@@ -3,7 +3,7 @@ import logging
 import re
 from http import HTTPStatus
 from typing import Optional, Tuple
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
@@ -281,6 +281,38 @@ class AuthService:
                 state.client_referer_uri
             )
         return user, state
+
+    async def import_return_url(
+        self, user: User, client_referer_uri: Optional[str], modal: bool = False
+    ) -> str:
+        """Where the browser goes after a form provider's consent screen: the
+        page the import started from (already checked by
+        ``safe_login_redirect``), else, when the request carried no Referer,
+        the user's workspace forms page (the app's home without a workspace).
+        ``modal`` asks that page to reopen the import picker."""
+        url = client_referer_uri
+        if not url:
+            client_url = (settings.api_settings.CLIENT_URL or "").rstrip("/")
+            url = client_url + "/"
+            workspaces = await self.workspace_service.get_mine_workspaces(user)
+            owned = [w for w in workspaces if w.is_owner]
+            workspace = next(
+                (w for w in owned if w.default), owned[0] if owned else None
+            ) or (workspaces[0] if workspaces else None)
+            if workspace is not None and workspace.workspace_name:
+                name = quote(workspace.workspace_name, safe="")
+                url = f"{client_url}/{name}/dashboard/forms"
+        if modal:
+            parts = urlsplit(url)
+            query = [
+                (key, value)
+                for key, value in parse_qsl(parts.query, keep_blank_values=True)
+                if key != "modal"
+            ]
+            url = urlunsplit(
+                parts._replace(query=urlencode(query + [("modal", "true")]))
+            )
+        return url
 
     async def get_basic_auth_url(
         self,
