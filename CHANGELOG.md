@@ -34,6 +34,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
+  when a form gets its first logic while being edited (forms that already branch still open in it).
+  Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
+  welcome page's title on every save; the outline's Welcome row shows the form's title.
+
 ### Security
 
 ## [4.0.3] - 2026-10-24
