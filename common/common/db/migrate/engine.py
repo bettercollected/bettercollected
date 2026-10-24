@@ -1061,12 +1061,21 @@ class Runner:
             # its Mongo delete (primary or mirror) runs after the row is gone.
             if await self._still_the_row(coll, table, document, row_checksum):
                 return True
-            await coll.delete_one(
+            removed = await coll.delete_one(
                 {
                     "_id": document["_id"],
                     "$expr": {"$eq": ["$$ROOT", {"$literal": document}]},
                 }
             )
+            if not removed.deleted_count:
+                # gone already (the application's own delete) or changed since:
+                # either way not this run's copy any more; verify shows the rest
+                logger.info(
+                    "reconcile %s: the copy of %s inserted for a record deleted "
+                    "meanwhile was no longer there to remove",
+                    coll.name,
+                    document["_id"],
+                )
             return False
         result = await coll.replace_one(
             {

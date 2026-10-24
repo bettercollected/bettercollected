@@ -6,9 +6,10 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from types import ModuleType
-from typing import Callable, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 from common.db.groups import (
     SERVICE_GROUPS,
@@ -16,6 +17,7 @@ from common.db.groups import (
     parse_groups,
     validate_groups,
 )
+from common.db.flags import FlagError, WriteMode, load_flags
 from common.db.migrate.engine import Runner, Target
 from common.db.schema_guard import MigrationTarget
 
@@ -206,13 +208,59 @@ async def run(args: argparse.Namespace, target: Target) -> int:
     return 2
 
 
-def main(argv: Sequence[str], target: Target, prog: str) -> int:
+def reconcile_to_mongo_refusal(
+    args: argparse.Namespace, target: Target, env: Mapping[str, str]
+) -> Optional[str]:
+    """Why ``reconcile --direction postgres->mongo`` must not run now, or None.
+
+    It copies Postgres rows into Mongo, which is only safe while Postgres is
+    the primary for every group it covers (``postgres_primary_dual``): a
+    delete then reaches Postgres first, with its tombstone, and reconcile's
+    re-check after each Mongo insert sees it. Under ``dual`` Mongo deletes
+    first and records no tombstone for a document that is not there, so a
+    delete racing an insert could bring the record back. A dry run writes
+    nothing and is always allowed."""
+    if args.command != "reconcile" or args.direction != "postgres->mongo":
+        return None
+    if args.dry_run:
+        return None
+    try:
+        flags = load_flags(env)
+    except FlagError as exc:
+        return f"the write-mode flags do not parse: {exc}"
+    collections = select_collections(args, target) or list(target.tables)
+    groups = sorted({target.group_of(c) for c in collections})
+    wrong = {
+        g: flags.write_mode(g).value
+        for g in groups
+        if flags.write_mode(g) is not WriteMode.POSTGRES_PRIMARY_DUAL
+    }
+    if not wrong:
+        return None
+    named = ", ".join(f"{g} ({mode})" for g, mode in wrong.items())
+    return (
+        "reconcile --direction postgres->mongo runs only while every group it "
+        f"covers is on DB_WRITE_MODE=postgres_primary_dual; not: {named}. Run it "
+        "with the services' flags (see docs/postgres-cutover-runbook.md), or "
+        "--dry-run to see what it would do"
+    )
+
+
+def main(
+    argv: Sequence[str],
+    target: Target,
+    prog: str,
+    env: Mapping[str, str] = os.environ,
+) -> int:
     parser = build_parser(prog)
     args = parser.parse_args(argv)
     try:
         select_collections(args, target)
     except UnknownGroup as exc:
         parser.error(str(exc))  # exits 2
+    refusal = reconcile_to_mongo_refusal(args, target, env)
+    if refusal:
+        parser.error(refusal)  # exits 2
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
