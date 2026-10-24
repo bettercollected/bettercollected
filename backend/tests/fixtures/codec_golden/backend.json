@@ -6190,7 +6190,7 @@
   "document": "ResponderGroupMemberDocument"
  },
  "responses_deletion_requests/full": {
-  "checksum": "sha256:f476b48480515d07c82863378c8bc509d28ec003421cb5391d8e3ae6680c5d32",
+  "checksum": "sha256:fab6723083776815fe2a81d11374193fa23cfd55cb74d358f61d9b7ca29e3630",
   "doc": {
    "_id": {
     "$oid": "6f55554967f1dabf844efe81"
@@ -6198,6 +6198,22 @@
    "anonymous_identity": "FormResponseDeletionRequest.anonymous_identity tëxt ✓ \"quoted\" \\ line\nbreak",
    "closed_at": "2026-03-04T05:06:07.891234+02:00",
    "closed_by": "FormResponseDeletionRequest.closed_by tëxt ✓ \"quoted\" \\ line\nbreak",
+   "closures": [
+    {
+     "at": "FormResponseDeletionRequest.closures[0].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[0].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[0].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[0].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[0].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
+    {
+     "at": "FormResponseDeletionRequest.closures[1].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[1].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[1].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[1].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[1].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    }
+   ],
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "dataOwnerIdentifier": "FormResponseDeletionRequest.dataOwnerIdentifier tëxt ✓ \"quoted\" \\ line\nbreak",
    "decline_reason": "other",
@@ -6214,7 +6230,7 @@
   "document": "FormResponseDeletionRequest"
  },
  "responses_deletion_requests/minimal": {
-  "checksum": "sha256:cbe4fc6797fd677c2acbcc540447ffa2e5435b9fc3201c01636703efd18ab9c4",
+  "checksum": "sha256:e00868bbce1c22dfad0e2dd5d00113c1ed2916f6f9846e1502e87f44befd541b",
   "doc": {
    "_id": {
     "$oid": "6ff897ae7efa9e24a60dae54"
@@ -6222,6 +6238,7 @@
    "anonymous_identity": null,
    "closed_at": null,
    "closed_by": null,
+   "closures": [],
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "dataOwnerIdentifier": null,
    "decline_reason": null,
@@ -6236,7 +6253,7 @@
   "document": "FormResponseDeletionRequest"
  },
  "responses_deletion_requests/naive": {
-  "checksum": "sha256:903325252d48ef695a4eda814a0d9640f8ccb4744950ada2e86666be7d44b5a0",
+  "checksum": "sha256:c30e1ce32bb771dd07095c6328cf5c728ca2a24832c6e21d052d9269d4855d45",
   "doc": {
    "_id": {
     "$oid": "12df22a04a4ebb3bac1217b6"
@@ -6244,6 +6261,22 @@
    "anonymous_identity": "FormResponseDeletionRequest.anonymous_identity tëxt ✓ \"quoted\" \\ line\nbreak",
    "closed_at": "2026-03-04T05:06:07.891234",
    "closed_by": "FormResponseDeletionRequest.closed_by tëxt ✓ \"quoted\" \\ line\nbreak",
+   "closures": [
+    {
+     "at": "FormResponseDeletionRequest.closures[0].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[0].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[0].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[0].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[0].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
+    {
+     "at": "FormResponseDeletionRequest.closures[1].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[1].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[1].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[1].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[1].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    }
+   ],
    "created_at": "2026-01-02T03:04:05.678901",
    "dataOwnerIdentifier": "FormResponseDeletionRequest.dataOwnerIdentifier tëxt ✓ \"quoted\" \\ line\nbreak",
    "decline_reason": "other",
@@ -6260,7 +6293,7 @@
   "document": "FormResponseDeletionRequest"
  },
  "responses_deletion_requests/nulls": {
-  "checksum": "sha256:883b9dd0deea083f28190fedb9ae2dc05742a3e472d049edeae6659e0558220f",
+  "checksum": "sha256:f8a114ac2f148c9fd1767a365734c5ddcf6fa261ebb97c60c132ea5753449c6a",
   "doc": {
    "_id": {
     "$oid": "d971683eed9e07b463ef9719"
@@ -6268,6 +6301,22 @@
    "anonymous_identity": null,
    "closed_at": null,
    "closed_by": null,
+   "closures": [
+    {
+     "at": "FormResponseDeletionRequest.closures[0].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[0].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[0].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[0].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[0].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
+    {
+     "at": "FormResponseDeletionRequest.closures[1].at tëxt ✓ \"quoted\" \\ line\nbreak",
+     "by": "FormResponseDeletionRequest.closures[1].by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "reason": "FormResponseDeletionRequest.closures[1].reason tëxt ✓ \"quoted\" \\ line\nbreak",
+     "source": "FormResponseDeletionRequest.closures[1].source tëxt ✓ \"quoted\" \\ line\nbreak",
+     "status": "FormResponseDeletionRequest.closures[1].status tëxt ✓ \"quoted\" \\ line\nbreak"
+    }
+   ],
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "dataOwnerIdentifier": null,
    "decline_reason": null,

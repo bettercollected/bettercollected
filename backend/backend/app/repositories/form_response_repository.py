@@ -36,6 +36,8 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     DeclineReason,
     DeletionRequestStatus,
+    import_closure,
+    staff_closure,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from beanie.odm.queries.update import UpdateResponse
@@ -478,10 +480,15 @@ class FormResponseRepository(BaseRepository):
         decline_reason: Optional[DeclineReason] = None,
     ) -> FormResponseDeletionRequest:
         """Staff closed ``request`` by hand: its outcome, who and when."""
+        now = utcnow()
         request.status = status
         request.closed_by = closed_by
-        request.closed_at = utcnow()
+        request.closed_at = now
         request.decline_reason = decline_reason
+        request.closures = [
+            *request.closures,
+            staff_closure(status, closed_by, now, decline_reason),
+        ]
         return await request.save()
 
     @write_op
@@ -497,17 +504,26 @@ class FormResponseRepository(BaseRepository):
     async def mark_deletion_requests_success_except(
         self, scope: ResponseScope, provider: str, keep_response_ids: List[str], now
     ) -> int:
-        """Imported-form refresh: responses gone at the source count as deleted."""
-        result = await FormResponseDeletionRequest.find(
-            {
-                **scope.mongo_filter(),
-                "provider": provider,
-                "response_id": {"$nin": keep_response_ids},
-            }
+        """Imported-form refresh: responses gone at the source count as deleted.
+        A request not yet done gets a new closure entry; an earlier one (a
+        staff decline) is kept, never overwritten."""
+        query = {
+            **scope.mongo_filter(),
+            "provider": provider,
+            "response_id": {"$nin": keep_response_ids},
+        }
+        closed = await FormResponseDeletionRequest.find(
+            {**query, "status": {"$ne": DeletionRequestStatus.SUCCESS}}
         ).update_many(
-            {"$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": now}}
+            {
+                "$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": now},
+                "$push": {"closures": import_closure(now).model_dump()},
+            }
         )
-        return result.modified_count
+        touched = await FormResponseDeletionRequest.find(
+            {**query, "status": DeletionRequestStatus.SUCCESS}
+        ).update_many({"$set": {"updated_at": now}})
+        return closed.modified_count + touched.modified_count
 
     @write_op
     async def delete_in_scope(self, scope: ResponseScope):

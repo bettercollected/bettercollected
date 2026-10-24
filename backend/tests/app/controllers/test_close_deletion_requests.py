@@ -17,6 +17,7 @@ from backend.app.schemas.standard_form_response import (
     DeclineReason,
     DeletionRequestStatus,
 )
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from tests.app.controllers.data import testUser
 
@@ -263,3 +264,98 @@ class TestNativeForms:
 
         assert response.status_code == 200, response.text
         assert await service.workspace_response(workspace.id, response_id) is None
+
+
+class TestReviewFollowUps:
+    async def test_closing_from_another_workspace_is_refused(
+        self, client: AsyncClient, workspace, workspace_1, test_user_cookies_1, imported
+    ):
+        # testUser1 owns workspace_1 (privacy.manage there), not this form's
+        response = await client.post(
+            _close_url(workspace_1, imported),
+            cookies=test_user_cookies_1,
+            json={"outcome": "completed"},
+        )
+        assert response.status_code in (403, 404)
+        request = await _request(workspace, imported)
+        assert request.status == DeletionRequestStatus.PENDING
+        service = container.form_response_service()
+        assert await service.workspace_response(workspace.id, ASKED) is not None
+
+    async def test_completed_is_refused_while_an_unattributed_copy_remains(
+        self, client: AsyncClient, workspace, test_user_cookies, imported
+    ):
+        # the workspace's copy can't be resolved (e.g. a legacy copy without a
+        # workspace on a form linked to several): the data would stay
+        with patch.object(
+            FormResponseService, "workspace_response", AsyncMock(return_value=None)
+        ):
+            response = await client.post(
+                _close_url(workspace, imported),
+                cookies=test_user_cookies,
+                json={"outcome": "completed"},
+            )
+
+        assert response.status_code == 409
+        assert response.json()["code"] == "deletion_request_copy_unresolved"
+        request = await _request(workspace, imported)
+        assert request.status == DeletionRequestStatus.PENDING
+
+    async def test_a_sync_after_a_decline_records_a_new_close(
+        self, client: AsyncClient, workspace, test_user_cookies, imported, google_source
+    ):
+        await client.post(
+            _close_url(workspace, imported),
+            cookies=test_user_cookies,
+            json={"outcome": "declined", "reason": "legal_claims"},
+        )
+        # the source drops the declined response
+        only_kept = _imported()
+        only_kept["responses"] = only_kept["responses"][:1]
+        google_source.side_effect = lambda **kwargs: only_kept
+        await _import(client, workspace, test_user_cookies)
+
+        request = await _request(workspace, imported)
+        assert request.status == DeletionRequestStatus.SUCCESS
+        assert [(c.status, c.source) for c in request.closures] == [
+            ("declined", "staff"),
+            ("success", "import"),
+        ]
+        # the decline itself is kept, not overwritten
+        assert request.closures[0].by == testUser.id
+        assert request.closures[0].reason == "legal_claims"
+        assert request.decline_reason == DeclineReason.LEGAL_CLAIMS
+
+    async def test_the_respondent_sees_a_declined_request_as_not_deleted(
+        self,
+        client: AsyncClient,
+        workspace,
+        published_form,
+        workspace_form_response,
+        test_user_cookies,
+    ):
+        response_id = workspace_form_response["response_id"]
+        service = container.form_response_service()
+        stored = await service.workspace_response(workspace.id, response_id)
+        await container.form_response_repo().add_deletion_request(stored, response_id)
+        await client.post(
+            _close_url(workspace, published_form.form_id, response_id),
+            cookies=test_user_cookies,
+            json={"outcome": "declined", "reason": "legal_obligation"},
+        )
+
+        # the respondent's own deletion requests (testUser submitted it)
+        listed = await client.get(
+            f"{ROOT}/workspaces/{workspace.id}/submissions",
+            params={"request_for_deletion": True},
+            cookies=test_user_cookies,
+        )
+
+        assert listed.status_code == 200, listed.text
+        items = [i for i in listed.json()["items"] if i["responseId"] == response_id]
+        assert len(items) == 1
+        assert items[0]["status"] == "declined"
+        assert items[0]["declineReason"] == "legal_obligation"
+        # who declined it is never sent to the respondent
+        assert "closedBy" not in items[0] and "closures" not in items[0]
+        assert await service.workspace_response(workspace.id, response_id) is not None
