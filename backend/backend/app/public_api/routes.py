@@ -15,7 +15,10 @@ from starlette.concurrency import run_in_threadpool
 from backend.app.exceptions import HTTPException
 from backend.app.public_api.auth import ApiCaller, api_key
 from backend.app.public_api.errors import error_payload
+from backend.app.models.dtos.deletion_request_dto import CloseDeletionRequestBody
 from backend.app.public_api.models import (
+    ClosedDeletionRequestResult,
+    CloseDeletionRequest,
     CreatedForm,
     DryRunResult,
     Error,
@@ -480,6 +483,31 @@ async def publish_form(
     return await _idempotent(request, caller, idempotency_key, body, "body", run)
 
 
+@router.delete(
+    "/forms/{form_id}",
+    tags=[FORMS],
+    operation_id="deleteForm",
+    summary="Delete a form and its responses",
+    description="The product's delete: the form leaves the workspace and the "
+    "responses collected through it are deleted. Needs `forms:write`, and "
+    "the key's creator needs to delete forms (`form.delete`).",
+    status_code=HTTPStatus.NO_CONTENT,
+    response_class=Response,
+    responses=_errors(401, 403, 404, 409, 429),
+)
+async def delete_form(
+    form_id: str,
+    caller: ApiCaller = Depends(api_key("forms:write", "api:delete_form")),
+):
+    await _require_form(caller, form_id)
+    await (
+        _c()
+        .workspace_form_service()
+        .delete_form_from_workspace(caller.workspace_id, form_id, caller.user)
+    )
+    return Response(status_code=HTTPStatus.NO_CONTENT)
+
+
 # -- operations ----------------------------------------------------------------
 
 
@@ -612,6 +640,69 @@ async def get_response(
             status_code=HTTPStatus.NOT_FOUND, content="Response not found"
         )
     return JSONResponse(detail)
+
+
+@router.post(
+    "/forms/{form_id}/responses/{response_id}/deletion-request/close",
+    tags=[RESPONSES],
+    operation_id="closeDeletionRequest",
+    summary="Close a pending deletion request",
+    description="What staff do on the dashboard: `completed` deletes the "
+    "workspace's stored copy of the response, `declined` keeps it and "
+    "records one of the fixed reasons, which the respondent sees. Needs "
+    "`deletion_requests:write`, and the key's creator needs "
+    "`privacy.manage`. 409 when the request is already closed.",
+    response_model=ClosedDeletionRequestResult,
+    responses=_errors(401, 403, 404, 409, 422, 429),
+    openapi_extra=_json_body("CloseDeletionRequest"),
+)
+async def close_deletion_request(
+    form_id: str,
+    response_id: str,
+    request: Request,
+    caller: ApiCaller = Depends(
+        api_key("deletion_requests:write", "api:close_deletion_request")
+    ),
+):
+    await _require_form(caller, form_id)
+    raw = parse_json_document(await read_document_bytes(request))
+    try:
+        parsed = CloseDeletionRequest.model_validate(raw)
+        # the product's rule: a reason with declined, none with completed
+        body = CloseDeletionRequestBody(outcome=parsed.outcome, reason=parsed.reason)
+    except ValidationError as error:
+        from common.form_spec import validation_errors
+
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": "invalid_request",
+                "message": "The request is not valid.",
+                "errors": validation_errors(error),
+            },
+        )
+    closed = await (
+        _c()
+        .form_response_service()
+        .close_deletion_request(
+            workspace_id=caller.workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            outcome=body.outcome,
+            reason=body.reason,
+            user=caller.user,
+        )
+    )
+    return JSONResponse(
+        {
+            "formId": str(closed.form_id),
+            "responseId": closed.response_id,
+            "status": closed.status.value,
+            "declineReason": (
+                closed.decline_reason.value if closed.decline_reason else None
+            ),
+        }
+    )
 
 
 __all__: List[str] = ["router"]

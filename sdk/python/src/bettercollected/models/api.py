@@ -7,6 +7,18 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ClosedDeletionRequestResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    form_id: str = Field(..., alias="formId", title="Formid")
+    response_id: str = Field(..., alias="responseId", title="Responseid")
+    status: str = Field(..., description="success or declined.", title="Status")
+    decline_reason: str | None = Field(
+        None, alias="declineReason", title="Declinereason"
+    )
+
+
 class CreatedForm(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -22,7 +34,9 @@ class DeletionRequestInfo(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    status: str = Field(..., description="pending or success.", title="Status")
+    status: str = Field(
+        ..., description="pending, success or declined.", title="Status"
+    )
 
 
 class ErrorItem(BaseModel):
@@ -165,6 +179,31 @@ class OpsRequest(BaseModel):
         True,
         description="All or nothing (the default here): when any operation fails, nothing is stored and every error is returned.",
         title="Atomic",
+    )
+
+
+class CloseDeletionRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    outcome: Literal["completed", "declined"] = Field(
+        ...,
+        description="completed deletes the workspace's stored copy of the response; declined keeps it.",
+        title="Outcome",
+    )
+    reason: (
+        Literal[
+            "legal_obligation",
+            "legal_claims",
+            "public_interest",
+            "identity_not_verified",
+            "other",
+        ]
+        | None
+    ) = Field(
+        None,
+        description="Required with declined, refused with completed. A fixed list, so no free text (and no personal data) reaches the respondent.",
+        title="Reason",
     )
 
 
