@@ -186,18 +186,27 @@ KEYSET = [
     "keyset.verify",
     "keyset.drop_old",
 ]
-REAL = sorted(["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET])
+REAL = sorted(
+    [
+        "responses.backfill_workspaces",
+        "responses.check_undecryptable",
+        "responses.purge_orphaned_forms",
+        *KEYSET,
+    ]
+)
 
 
 def test_selftest_tasks_are_registered_only_when_flagged():
     assert [m.name for m in catalog.all_meta({})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        "responses.purge_orphaned_forms",
         *KEYSET,
     ]
     assert [m.name for m in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        "responses.purge_orphaned_forms",
         *KEYSET,
     ]
     assert impl_package.build_registry({}).names() == REAL
@@ -205,6 +214,7 @@ def test_selftest_tasks_are_registered_only_when_flagged():
     assert [m.name for m in catalog.all_meta(flagged)] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        "responses.purge_orphaned_forms",
         *KEYSET,
         "selftest",
         "selftest_slow",

@@ -19,9 +19,19 @@ def selftest_enabled(env: Mapping[str, str] = os.environ) -> bool:
 
 def all_meta(env: Mapping[str, str] = os.environ) -> list[TaskMeta]:
     """Every task the build offers, in a stable order."""
-    from backend.admin.tasks.catalog import keyset, responses_backfill, responses_check
+    from backend.admin.tasks.catalog import (
+        keyset,
+        responses_backfill,
+        responses_check,
+        responses_purge,
+    )
 
-    metas: list[TaskMeta] = [responses_check.META, responses_backfill.META, *keyset.ALL]
+    metas: list[TaskMeta] = [
+        responses_check.META,
+        responses_backfill.META,
+        responses_purge.META,
+        *keyset.ALL,
+    ]
     if selftest_enabled(env):
         from backend.admin.tasks.catalog import selftest, selftest_slow
 

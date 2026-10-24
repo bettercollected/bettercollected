@@ -288,10 +288,17 @@ BEGIN
     -- application's migrations on an upgrade, and `workspace_id` of the response
     -- tables arrives with a later revision (app 0015). The run after the
     -- migrations (deploy.sh) grants it.
+    -- DELETE (a table privilege) only where responses.purge_orphaned_forms
+    -- removes the records of forms that belong to no workspace: the responses,
+    -- their deletion requests, and the form, its versions and its group links
+    -- (of which the runner reads the form id alone).
     FOREACH r SLICE 1 IN ARRAY ARRAY[
-        ['form_responses', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
-        ['responses_deletion_requests', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
-        ['workspace_forms', 'id,form_id,workspace_id,doc', '']
+        ['form_responses', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum', 'delete'],
+        ['responses_deletion_requests', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum', 'delete'],
+        ['workspace_forms', 'id,form_id,workspace_id,doc', '', ''],
+        ['forms', 'id,form_id', '', 'delete'],
+        ['form_versions', 'id,form_id', '', 'delete'],
+        ['responder_group_form', 'id,form_id', '', 'delete']
     ] LOOP
         IF to_regclass('app.' || r[1]) IS NOT NULL THEN
             GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;
@@ -312,6 +319,9 @@ BEGIN
                 IF cols IS NOT NULL THEN
                     EXECUTE format('GRANT UPDATE (%s) ON app.%I TO bc_tasks_data_app', cols, r[1]);
                 END IF;
+            END IF;
+            IF r[4] = 'delete' THEN
+                EXECUTE format('GRANT DELETE ON app.%I TO bc_tasks_data_app', r[1]);
             END IF;
         END IF;
     END LOOP;

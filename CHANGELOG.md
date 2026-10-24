@@ -15,6 +15,17 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Admin task `responses.purge_orphaned_forms` ("Delete forms in no workspace, with their responses"):
+  deletes the forms that older code left linked to no workspace, with their responses, deletion
+  requests, versions and responder-group links, in Mongo and Postgres alike. Nobody could open those
+  responses, and they kept an old response key in use (`keyset.drop_old` refused). A form is in scope
+  only when no store links it to a workspace and none of its responses carries one; an optional
+  `newest_response_before` narrows it further. The apply needs a prior dry run and the dry run's
+  counts (`expected_forms`, `expected_responses`), refuses when the stores disagree, re-checks each
+  batch before deleting it, and resumes after a cancel or failure. The runner's data role
+  `bc_tasks_data_app` gains DELETE on exactly the five tables it deletes from and SELECT of `id` and
+  `form_id` on `forms`, `form_versions` and `responder_group_form` (`postgres/ensure-admin-roles.sh`).
+
 ### Changed
 
 - The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on

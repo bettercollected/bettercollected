@@ -145,3 +145,15 @@ def test_the_roles_script_declares_one_data_role_per_owning_schema_without_broad
         role = "app" if line.endswith("bc_tasks_data_app;") else "google"
         assert f" {role}." in line or f"SCHEMA {role} " in line, line
     assert not re.search(r"GRANT TEMPORARY[^;]*bc_tasks_data", ROLES)
+    # DELETE: one table grant, on exactly the tables responses.purge_orphaned_forms
+    # deletes from, all in the app schema
+    deletes = [l.strip() for l in ROLES.splitlines() if "DELETE" in l and "bc_tasks_data" in l]
+    assert deletes == ["EXECUTE format('GRANT DELETE ON app.%I TO bc_tasks_data_app', r[1]);"]
+    flagged = re.findall(r"\['([a-z_]+)', '[a-z_,]*', '[a-z_,]*', 'delete'\]", ROLES)
+    assert sorted(flagged) == [
+        "form_responses",
+        "form_versions",
+        "forms",
+        "responder_group_form",
+        "responses_deletion_requests",
+    ]

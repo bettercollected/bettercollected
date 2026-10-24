@@ -31,6 +31,7 @@ from sqlalchemy.pool import NullPool
 
 from backend.admin.tasks.impl import keyset_core as core
 from backend.admin.tasks.impl.responses_backfill import PostgresStore as BackfillStore
+from backend.admin.tasks.impl.responses_purge import PostgresPurgeStore
 from backend.db.startup import MIGRATIONS as APP_MIGRATIONS
 from common.db.canonical import canonical_document, checksum
 from common.db.schema_guard import upgrade_schema
@@ -51,6 +52,15 @@ pytestmark = needs_postgres
 WS = "65e5501d00000000000000a1"
 HEX = "0123456789abcdef01234567"
 RESPONSE_COLUMNS = ("id", "form_id", "response_id", "workspace_id", "doc")
+PURGED_FORM_TABLES = ("forms", "form_versions", "responder_group_form")
+# the table privileges besides SELECT and UPDATE: DELETE where the purge deletes
+TABLE_GRANTS = {
+    "app": {
+        ("app", t, "DELETE")
+        for t in ("form_responses", "responses_deletion_requests", *PURGED_FORM_TABLES)
+    },
+    "google": set(),
+}
 # exactly what each role holds: (schema, table, column, privilege)
 EXPECTED = {
     "app": {
@@ -59,6 +69,8 @@ EXPECTED = {
         *(("app", "responses_deletion_requests", c, "SELECT") for c in RESPONSE_COLUMNS),
         *(("app", "responses_deletion_requests", c, "UPDATE") for c in ("doc", "_bc_checksum")),
         *(("app", "workspace_forms", c, "SELECT") for c in ("id", "form_id", "workspace_id", "doc")),
+        # responses.purge_orphaned_forms finds these by form id and deletes them
+        *(("app", t, c, "SELECT") for t in PURGED_FORM_TABLES for c in ("id", "form_id")),
     },
     "google": {
         *(("google", "oauth_credentials", c, "SELECT") for c in ("id", "user_id", "doc")),
@@ -131,6 +143,18 @@ async def sqlstate(engine, sql, **params):
     return getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
 
 
+async def table_grants(conn, role):
+    rows = await conn.execute(
+        text(
+            "SELECT table_schema, table_name, privilege_type FROM information_schema.role_table_grants "
+            "WHERE grantee = :r AND table_schema NOT IN ('information_schema', 'pg_catalog') "
+            "AND privilege_type NOT IN ('SELECT', 'UPDATE')"
+        ),
+        {"r": role},
+    )
+    return {tuple(r) for r in rows}
+
+
 async def held(superuser, role):
     async with superuser.connect() as conn:
         rows = await conn.execute(
@@ -149,16 +173,7 @@ async def held(superuser, role):
 async def test_each_role_holds_exactly_its_schemas_privileges(superuser, server, which):
     role = role_of(server, which)
     async with superuser.connect() as conn:
-        tables = (
-            await conn.execute(
-                text(
-                    "SELECT count(*) FROM information_schema.role_table_grants "
-                    "WHERE grantee = :r AND table_schema NOT IN ('information_schema', 'pg_catalog') "
-                    "AND privilege_type NOT IN ('SELECT', 'UPDATE')"
-                ),
-                {"r": role},
-            )
-        ).scalar_one()
+        tables = await table_grants(conn, role)
         attrs = (
             await conn.execute(
                 text(
@@ -193,7 +208,7 @@ async def test_each_role_holds_exactly_its_schemas_privileges(superuser, server,
             )
         ).scalar_one()
     assert await held(superuser, role) == EXPECTED[which]
-    assert tables == 0
+    assert tables == TABLE_GRANTS[which]
     assert tuple(attrs) == (False, False, False, True, False, False)
     # `public` keeps its default USAGE (nothing in it; CREATE was revoked)
     assert {s for s, (use, _) in schemas.items() if use} - {"public"} == {which}
@@ -212,6 +227,7 @@ async def test_the_grants_are_idempotent_and_repair_drift(server, db, superuser)
         await conn.execute(
             text(f'GRANT SELECT, INSERT, DELETE ON app.form_responses TO "{server.data_app_role}"')
         )
+        await conn.execute(text(f'GRANT DELETE ON app.workspace_forms TO "{server.data_app_role}"'))
         await conn.execute(text(f'GRANT USAGE ON SCHEMA google TO "{server.data_app_role}"'))
         await conn.execute(text(f'GRANT USAGE ON SCHEMA app TO "{server.data_google_role}"'))
         await conn.execute(text(f'GRANT SELECT ON google.oauth_credentials TO "{server.data_app_role}"'))
@@ -222,6 +238,7 @@ async def test_the_grants_are_idempotent_and_repair_drift(server, db, superuser)
     assert await held(superuser, server.data_google_role) == EXPECTED["google"]
     async with superuser.connect() as conn:
         for which in ("app", "google"):
+            assert await table_grants(conn, role_of(server, which)) == TABLE_GRANTS[which]
             use = (
                 await conn.execute(
                     text("SELECT has_schema_privilege(:r, :s, 'USAGE')"),
@@ -325,11 +342,18 @@ APP_DENIED = [
     "UPDATE app.form_responses SET created_at = now()",
     "UPDATE app.workspace_forms SET doc = doc",
     "INSERT INTO app.form_responses (id, doc, _bc_checksum) VALUES ('a', '{}', 'c')",
-    "DELETE FROM app.form_responses",
     "TRUNCATE app.form_responses",
+    "TRUNCATE app.forms",
+    "DELETE FROM app.workspace_forms",
+    "DELETE FROM app.workspaces",
+    "DELETE FROM app.responder_group",
     "SELECT 1 FROM app.sessions",
-    "SELECT 1 FROM app.forms",
+    "SELECT doc FROM app.forms",
+    "SELECT title FROM app.forms",
+    "SELECT doc FROM app.form_versions",
+    "SELECT doc FROM app.responder_group_form",
     "UPDATE app.forms SET doc = doc",
+    "INSERT INTO app.forms (id, doc, _bc_checksum) VALUES ('a', '{}', 'c')",
     "CREATE TABLE app.t (a int)",
     # the other owner's schema: tables and what it owns
     "SELECT * FROM google.oauth_credentials",
@@ -481,6 +505,40 @@ async def test_the_backfill_and_the_scans_work_with_only_these_grants(app, super
     assert await backfill.stamp("form_responses", unstamped[0]["key"], WS) == 1
     assert await backfill.stamp("responses_deletion_requests", HEX, WS) == 1
     assert await backfill.links() == {"f1": [WS]}
+
+
+async def test_the_purge_works_with_only_these_grants(app, superuser):
+    await _seed(superuser)
+    # an orphan: a form in no workspace, with a version, a group link, a response
+    # and a deletion request
+    other = "0123456789abcdef0123456a"
+    docs = {
+        "app.forms": {"_id": ObjectId(other), "form_id": "f2", "title": "t"},
+        "app.form_versions": {"_id": ObjectId(other), "form_id": "f2", "version": 1},
+        "app.responder_group_form": {"_id": ObjectId(other), "form_id": "f2", "group_id": "g"},
+        "app.form_responses": {"_id": ObjectId(other), "form_id": "f2", "response_id": "r2"},
+        "app.responses_deletion_requests": {"_id": ObjectId(other), "form_id": "f2", "response_id": "r2"},
+    }
+    async with superuser.begin() as conn:
+        for table, raw in docs.items():
+            doc = canonical_document(raw)
+            await conn.execute(
+                text(f"INSERT INTO {table} (id, doc, _bc_checksum) VALUES (:id, CAST(:doc AS jsonb), :c)"),
+                {"id": other, "doc": json.dumps(doc), "c": checksum(doc)},
+            )
+    store = PostgresPurgeStore(app)
+    assert await store.linked_forms() == {"f1"}
+    stats = await store.response_stats()
+    assert stats["f2"].responses == 1 and stats["f2"].stamped == 0
+    assert await store.count(["f2"]) == {
+        "group_links": 1, "versions": 1, "deletion_requests": 1, "forms": 1, "responses": 1,
+    }
+    assert await store.delete(["f2"]) == {
+        "group_links": 1, "versions": 1, "deletion_requests": 1, "forms": 1, "responses": 1,
+    }
+    assert set((await store.count(["f2"])).values()) == {0}
+    # the linked form's records stay
+    assert (await store.response_stats())["f1"].responses == 1
 
 
 async def test_the_first_run_of_an_upgrade_precedes_the_workspace_id_column(server):

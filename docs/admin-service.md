@@ -964,14 +964,15 @@ running them elsewhere.
 ## Task runner: the responses data tasks
 
 The `task-runner` service (backend image, no published port, own database role)
-runs the tasks the portal lists. Two of them work on stored responses:
+runs the tasks the portal lists. Three of them work on stored responses:
 
 | Task | Does | Refuses with |
 |---|---|---|
 | `responses.check_undecryptable` | read-only: counts stored values that carry the ciphertext prefix but do not decrypt, per store and field (no ids, no values) | `store_not_configured`, `keyset_missing`, `keyset_unreadable`, `store_unreachable`, `store_empty` |
 | `responses.backfill_workspaces` | stamps responses and deletion requests that predate `workspace_id`; a dry run first (required), resumable, idempotent; ambiguous records (a form linked to several workspaces with nothing to authenticate them) are never guessed and stay unstamped | the same codes |
+| `responses.purge_orphaned_forms` | deletes the forms that belong to no workspace (left behind by older code), with their responses, deletion requests, versions and responder-group links; a dry run first (required), the apply only with the dry run's counts confirmed, resumable, idempotent. Below | `store_not_configured`, `write_mode_unknown`, `store_unreachable`, `store_empty`, `expected_counts_missing`, `expected_counts_mismatch`, `stores_disagree` |
 
-Both need the data stores and the keyset in the runner's environment. The
+They need the data stores in the runner's environment, and the first two the keyset. The
 compose service passes them from the root `.env`, and they are empty by default
 (the tasks then refuse; nothing else changes):
 
@@ -1008,16 +1009,18 @@ the runner's own state and the settings store. Why two: an UPDATE runs the table
 and generated-column helpers with the updater's privileges. One role over `bc_app`'s and
 `bc_google`'s tables would let either owner plant code that a re-encryption run executes with
 access to the other's table. Each role holds no more than the owner of its schema already has, has
-`search_path = pg_catalog`, and has USAGE on its own schema only. Column-level grants, nothing else:
+`search_path = pg_catalog`, and has USAGE on its own schema only. Column-level grants, and DELETE
+(a table privilege in Postgres) only where `responses.purge_orphaned_forms` deletes:
 
-| Role | Table | SELECT | UPDATE |
-|---|---|---|---|
-| `bc_tasks_data_app` | `app.form_responses` | `id`, `form_id`, `response_id`, `workspace_id`, `doc` | `doc`, `_bc_checksum` |
-| | `app.responses_deletion_requests` | the same columns | `doc`, `_bc_checksum` |
-| | `app.workspace_forms` | `id`, `form_id`, `workspace_id`, `doc` | none |
-| `bc_tasks_data_google` | `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` |
+| Role | Table | SELECT | UPDATE | DELETE |
+|---|---|---|---|---|
+| `bc_tasks_data_app` | `app.form_responses` | `id`, `form_id`, `response_id`, `workspace_id`, `doc` | `doc`, `_bc_checksum` | yes |
+| | `app.responses_deletion_requests` | the same columns | `doc`, `_bc_checksum` | yes |
+| | `app.workspace_forms` | `id`, `form_id`, `workspace_id`, `doc` | none | no |
+| | `app.forms`, `app.form_versions`, `app.responder_group_form` | `id`, `form_id` | none | yes |
+| `bc_tasks_data_google` | `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` | no |
 
-No INSERT, DELETE, TRUNCATE or TEMPORARY; nothing in `admin`, `tasks`, `settings`, `auth` or `jobs`.
+No INSERT, TRUNCATE or TEMPORARY, no DELETE elsewhere; nothing in `admin`, `tasks`, `settings`, `auth` or `jobs`.
 The grants are in the roles script, not in a migration, because the tables belong to other roles.
 `tests/admin/tasks/test_data_role.py` pins the exact privilege set per role, that neither role can
 reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
@@ -1027,7 +1030,57 @@ Mongo, while it still holds responses: give the runner a dedicated user. For the
 and dry runs a read-only user is enough (`read` on the responses database and the Google
 integration's database). `responses.backfill_workspaces`, `keyset.reencrypt` and the other writing
 tasks need `readWrite` on exactly `form_responses` and `Oauth2CredentialDocument` (the
-credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO_URI`.
+credentials), and `read` on `workspace_forms`. `responses.purge_orphaned_forms` also needs
+`readWrite` on `responses_deletion_requests`, `forms`, `form_versions` and `responder_group_form`
+(give it only while you run the purge). Put its URI in `TASK_RUNNER_MONGO_URI`.
+
+### Deleting the forms that belong to no workspace: `responses.purge_orphaned_forms`
+
+Older code removed a form's last workspace link without deleting the form, so such forms and
+their responses stayed behind. Nobody can show or decrypt those responses (their encryption
+context is the workspace, which is unknown), and they keep the old response key in use:
+`keyset.drop_old` refuses while their values are on it. Current code deletes a form's responses
+when it leaves its last workspace, so no new ones appear.
+
+A form is in scope only if all of these hold, evaluated when the run starts, in EVERY store the
+runner is configured for (also one that `stores` does not cover):
+
+- no workspace link names it, in Mongo or in Postgres;
+- it has responses, and none of them carries a workspace (a form whose responses are stamped is
+  held by a workspace: it is skipped and counted as `skipped_stamped`). A form without responses
+  is never in scope (a form being created has no link for a moment);
+- with `newest_response_before` (a date): its newest response was stored before that date, UTC.
+  The date is the one in the response's id, which both stores share. Skipped forms are counted
+  as `skipped_newer`.
+
+For each such form it deletes, in each covered store (the primary first, then the other, as the
+services write; `stores` follows the same rule as the other tasks), the responder-group links,
+the versions, the responses' deletion requests, the form document and, last, the responses.
+Postgres deletes one batch in one transaction. Both stores end with the same records, so
+`backend.migrate verify` stays clean. Files in object storage are not touched: their folder is
+named after the workspace, which is unknown (the form's public logo folder, if any, stays too).
+
+Steps:
+
+1. Dry run with the parameters you want and the expected counts left empty. The result gives
+   `forms` and `responses` (responses in the first covered store), each store's counts
+   (`form_documents`, `responses`, `deletion_requests`, `versions`, `group_links`), the skipped
+   forms, the first and last date of the responses in scope, and `stores_agree`.
+2. Dry run again with the same parameters plus `expected_forms` and `expected_responses` copied
+   from step 1 (an apply needs a dry run with exactly its parameters); it reports
+   `expected_counts_match`.
+3. Apply with those parameters. It refuses with `expected_counts_mismatch` unless it finds exactly
+   those numbers (the scope changed since the dry run), with `expected_counts_missing` without
+   them, and with `stores_disagree` when the covered stores hold different numbers of the forms'
+   responses (bring the stores in line first, or run each store on its own).
+
+Just before each batch it checks the batch's forms again; one that gained a link or a stamped
+response meanwhile is kept and reported (`skipped_changed`, with its id). The run checkpoints the
+batch before deleting it, so a cancelled or failed run resumes where it stopped, finishes the
+batch it had started and still checks that the totals equal the confirmed counts (a store's counts
+may then miss what that store had already deleted of the interrupted batch). Events carry counts
+and form ids only, never titles or answers. Once done, a dry run finds 0 forms; a second apply
+with `expected_forms: 0` and `expected_responses: 0` deletes nothing.
 
 ### Keyset tasks
 
