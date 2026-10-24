@@ -57,6 +57,7 @@ async def test_the_retry_releases_pending_connections(workspace, sso_on):
         "workspaces": 1,
         "released": 0,
         "failed": 1,
+        "overdue": 0,
     }
     assert len(await _repo().list_release_pending(10)) == 2
 
@@ -65,6 +66,7 @@ async def test_the_retry_releases_pending_connections(workspace, sso_on):
         "workspaces": 1,
         "released": 1,
         "failed": 0,
+        "overdue": 0,
     }
     assert polis.calls.count(("delete_tenant", str(workspace.id))) == 3
     assert await _repo().list_release_pending(10) == []
@@ -210,3 +212,123 @@ async def test_the_command_needs_sso_configured(capsys):
     assert not settings.sso.is_configured
     assert await sso_cli.main(["release-pending"]) == 2
     assert "not configured" in capsys.readouterr().out
+
+
+# -- review follow-ups -------------------------------------------------------
+async def test_a_failed_insert_never_deletes_a_live_polis_connection(
+    workspace, sso_on, monkeypatch
+):
+    """Polis updates the tenant's existing connection for the same IdP in
+    place and answers with its clientID: the failed insert then concerns a
+    connection we record (and may be the enabled one)."""
+    polis, _ = sso_on
+    await verify_domain(workspace.id)
+    live = await add_connection(workspace.id, client_id="polis-client-1")
+    polis.connections["polis-client-1"] = {"clientID": "polis-client-1"}
+    polis._n = 0  # Polis answers with the existing clientID
+
+    async def broken(document):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(_repo(), "create", broken)
+    with pytest.raises(RuntimeError):
+        await _service().create_connection(workspace.id, _create_dto(), testUser)
+    assert ("delete", "polis-client-1") not in polis.calls
+    assert "polis-client-1" in polis.connections
+    assert (await _repo().get(live.id)).is_enabled
+
+
+async def test_when_the_record_cant_be_checked_polis_is_left_alone(
+    workspace, sso_on, monkeypatch
+):
+    polis, _ = sso_on
+    await verify_domain(workspace.id)
+
+    async def broken(*args):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(_repo(), "create", broken)
+    monkeypatch.setattr(_repo(), "find_by_polis_client_id", broken)
+    with pytest.raises(RuntimeError):
+        await _service().create_connection(workspace.id, _create_dto(), testUser)
+    assert not [c for c in polis.calls if c[0] == "delete"]
+
+
+async def test_a_failed_retry_goes_to_the_back_of_the_queue(
+    workspace, workspace_1, sso_on, monkeypatch
+):
+    polis, _ = sso_on
+    first = await add_connection(workspace.id)
+    second = await add_connection(workspace_1.id)
+    polis.fail_tenant = PolisUnavailable()
+    await _service().release_workspaces([workspace.id])
+    await _service().release_workspaces([workspace_1.id])
+    # the oldest attempt first
+    assert [c.id for c in await _repo().list_release_pending(1)] == [first.id]
+
+    async def only_the_second(tenant):
+        polis.calls.append(("delete_tenant", tenant))
+        if tenant != str(workspace_1.id):
+            raise PolisUnavailable()
+
+    monkeypatch.setattr(polis, "delete_tenant", only_the_second)
+    result = await _service().retry_pending_releases(limit=1)
+    assert result["failed"] == 1 and result["released"] == 0
+    # the failure moved it back: the next run reaches the other one
+    result = await _service().retry_pending_releases(limit=1)
+    assert result["released"] == 1
+    assert await _repo().get(second.id) is None
+    assert (await _repo().get(first.id)).status == SsoConnectionStatus.RELEASE_PENDING
+
+
+async def test_connections_waiting_too_long_are_reported(workspace, sso_on):
+    import datetime as dt
+
+    polis, _ = sso_on
+    connection = await add_connection(workspace.id)
+    polis.fail_tenant = PolisUnavailable()
+    await _service().release_workspaces([workspace.id])
+    assert (await _service().retry_pending_releases())["overdue"] == 0
+
+    stored = await _repo().get(connection.id)
+    stored.disabled_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=8)
+    await _repo().save(stored)
+    assert (await _service().retry_pending_releases())["overdue"] == 1
+
+
+async def test_releasing_never_deletes_another_workspaces_record(
+    workspace, workspace_1, sso_on
+):
+    """A Polis connection held under workspace_1's tenant whose clientID our
+    record files under another workspace: Polis's is released, our record
+    of the other workspace stays."""
+    polis, _ = sso_on
+    other = await add_connection(workspace.id, client_id="c-shared")
+    polis.entity_holders = [_holder("c-shared", str(workspace_1.id))]
+
+    holders = await _service().entity_id_holders(ENTITY)
+    assert holders[0]["state"] == "unrecorded"
+    result = await _service().release_entity_id(ENTITY, apply=True)
+
+    assert result["released"] == ["c-shared"]
+    assert ("delete", "c-shared") in polis.calls
+    assert await _repo().get(other.id) is not None
+
+
+async def test_a_pending_connection_never_signs_anyone_in(client, workspace, sso_on):
+    from tests.app.controllers.test_sso_login import CALLBACK, sso_error, start
+    from tests.app.sso_helpers import state_of
+
+    polis, auth = sso_on
+    await verify_domain(workspace.id)
+    await add_connection(workspace.id)
+    started = await start(client)
+    assert started.status_code == 307, started.text
+    polis.fail_tenant = PolisUnavailable()
+    await _service().release_workspaces([workspace.id])
+
+    reply = await client.get(
+        CALLBACK, params={"code": "c", "state": state_of(started.headers["location"])}
+    )
+    assert sso_error(reply) == "sso_not_configured"
+    assert auth.created_accounts() == []

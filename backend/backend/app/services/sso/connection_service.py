@@ -64,6 +64,9 @@ from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.config import settings
 
 MAX_METADATA_BYTES = 512 * 1024
+# a deleted workspace's connections still not released after this many days
+# are logged as an error at every retry
+RELEASE_OVERDUE_DAYS = 7
 OIDC_ENDPOINTS = (
     "issuer",
     "authorization_endpoint",
@@ -417,17 +420,7 @@ class SsoConnectionService:
                 "Its details were updated; test it again.",
             )
         except Exception:
-            # not recorded here: the new Polis connection would otherwise hold
-            # the IdP's entity ID with nothing pointing at it
-            try:
-                await self._polis.delete_connection(client_id)
-            except PolisError:
-                logger.warning(
-                    "SSO: Polis connection {} of workspace {} not recorded and "
-                    "not deleted (release it with python -m backend.sso)",
-                    client_id,
-                    workspace_id,
-                )
+            await self._forget_unrecorded(client_id, workspace_id)
             raise
         logger.info(
             "SSO connection {} ({}) created in workspace {} by {}",
@@ -437,6 +430,35 @@ class SsoConnectionService:
             user.id,
         )
         return SsoConnectionDto.of(document)
+
+    async def _forget_unrecorded(self, client_id: str, workspace_id) -> None:
+        """Recording a new connection failed: delete it in Polis so it does
+        not hold the IdP's entity ID with nothing pointing at it, but only
+        when no record of ours names that Polis connection. Polis updates an
+        existing connection for the same tenant and IdP in place and answers
+        with its clientID, so the failed insert may concern a connection that
+        is live here; and when even that lookup fails, nothing is deleted."""
+        try:
+            recorded = await self._connections.find_by_polis_client_id(client_id)
+        except Exception:  # noqa: BLE001 — can't tell: leave Polis alone
+            logger.warning(
+                "SSO: Polis connection {} of workspace {} not recorded; not "
+                "deleted (its record could not be checked)",
+                client_id,
+                workspace_id,
+            )
+            return
+        if recorded is not None:
+            return
+        try:
+            await self._polis.delete_connection(client_id)
+        except PolisError:
+            logger.warning(
+                "SSO: Polis connection {} of workspace {} not recorded and "
+                "not deleted (release it with python -m backend.sso)",
+                client_id,
+                workspace_id,
+            )
 
     async def _guarded_url(self, url: str) -> str:
         try:
@@ -787,15 +809,44 @@ class SsoConnectionService:
         ``python -m backend.sso release-pending``). Counts only."""
         if not settings.sso.is_configured:
             return {"workspaces": 0, "released": 0, "failed": 0, "skipped": True}
+        # least recently tried first: a failed attempt moves the workspace's
+        # connections to the back, so ones that keep failing can't starve
+        # the others
         pending = await self._connections.list_release_pending(limit)
-        workspace_ids = sorted({c.workspace_id for c in pending}, key=str)
-        released = [w for w in workspace_ids if await self._release_tenant(w)]
+        now = _now()
+        since: dict = {}
+        for connection in pending:
+            began = connection.disabled_at or connection.updated_at or now
+            if began.tzinfo is None:
+                began = began.replace(tzinfo=dt.timezone.utc)
+            since[connection.workspace_id] = min(
+                since.get(connection.workspace_id, began), began
+            )
+        released, failed, overdue = [], [], 0
+        for workspace_id in since:
+            if await self._release_tenant(workspace_id):
+                released.append(workspace_id)
+                continue
+            failed.append(workspace_id)
+            days = (now - since[workspace_id]).days
+            if days >= RELEASE_OVERDUE_DAYS:
+                overdue += 1
+                logger.error(
+                    "SSO: the Polis connections of deleted workspace {} have "
+                    "waited {} days to be released; check Polis, or release "
+                    "them with python -m backend.sso",
+                    workspace_id,
+                    days,
+                )
         if released:
             await self._connections.delete_by_workspace_ids(released)
+        if failed:
+            await self._connections.touch_release_pending(failed, now)
         result = {
-            "workspaces": len(workspace_ids),
+            "workspaces": len(since),
             "released": len(released),
-            "failed": len(workspace_ids) - len(released),
+            "failed": len(failed),
+            "overdue": overdue,
         }
         logger.info("SSO pending releases: {}", result)
         return result
@@ -876,7 +927,12 @@ class SsoConnectionService:
                     continue
             if apply:
                 await self._polis.delete_connection(holder["client_id"])
-                if recorded is not None:
+                # our record goes only when it is that tenant's: a record of
+                # another workspace naming the same clientID is left alone
+                if (
+                    recorded is not None
+                    and str(recorded.workspace_id) == holder["tenant"]
+                ):
                     await self._connections.delete(recorded.id)
                 logger.info(
                     "SSO entity ID released: Polis connection {} of tenant {} ({})",
