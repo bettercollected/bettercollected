@@ -24,3 +24,6 @@ webapp/.yarn
 .env.*
 !.env.example
 !.env.deployment.example
+
+# Python bytecode (e.g. from running .github/scripts tests)
+__pycache__/
