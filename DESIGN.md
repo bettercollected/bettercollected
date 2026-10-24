@@ -563,9 +563,18 @@ form, in every style (`views/molecules/form/form-logo-strip.tsx`; rules in
 
 ## 10. Brand
 
-- **Name and wordmark.** bettercollected keeps its name and wordmark, in Sireto
-  blue and ink (`components/icons/bettercollected-logo.tsx`,
-  `…-small-logo.tsx`, `components/ui/logo.tsx`, favicon and app icons).
+- **Name and wordmark.** The wordmark is the name itself, set the way the
+  admin portal sets it: "bettercollected", lower case, Instrument Sans 600,
+  −0.018em, in ink (`#101828`). No colour, no mark beside it, no trailing
+  dot. It is drawn as outlines of that face
+  (`components/icons/bettercollected-logo.tsx`, used through
+  `components/ui/logo.tsx`), so it never waits for the font, and it is
+  labelled "bettercollected" for assistive tech.
+- **The mark.** Where the name doesn't fit, the wordmark's own "b" stands in,
+  in ink (`…-small-logo.tsx`, `small-logo.tsx`). The favicon and app icons
+  are that "b" on a white square with 22% corners. The email logo
+  (`logo-200-20.png` on the public bucket) is the wordmark at 2×, shown at
+  200 × 20.
 - **Footer.** Public and auth pages (sign-in, not-found, error, the responder
   portal) end with one quiet line:
   "A product of Sireto B.V. · Sireto® is a registered trademark of Sireto B.V.",

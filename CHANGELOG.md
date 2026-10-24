@@ -25,6 +25,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `/ai-profile`, `/ai-memory`, `/api-keys`, `/domains`) redirect permanently. Members, Single sign-on
   and AI share one tab bar: a named navigation of links marking the current tab with
   `aria-current="page"`, with 44px targets, a visible focus ring, and sideways scrolling on small screens.
+- The bettercollected logo is now the name alone, as the admin portal sets it: "bettercollected" in
+  Instrument Sans 600, in ink, with no blue "b" and no trailing dot. The small mark, the favicon and the
+  app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
+  "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
 
 ### Removed
 
