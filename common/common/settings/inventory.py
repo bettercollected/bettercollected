@@ -490,6 +490,8 @@ SERVICES: Tuple[SettingSpec, ...] = (
           max_length=100),
     _secret("BREVO_TRACKER_KEY", "analytics", (BACKEND,), "Marketing tracker key."),
     _url("BREVO_TRACKER_API_URL", "analytics", (BACKEND,), "Marketing tracker address."),
+    _secret("BREVO_CONTACTS_API_KEY", "analytics", (BACKEND, AUTH),
+            "Marketing contacts key (erases a deleted account's contact)."),
     _secret("SENTRY_DSN", "monitoring", (BACKEND, AUTH, GOOGLE), "Error report destination."),
     _bool("SENTRY_DEBUG", "monitoring", (BACKEND, AUTH, GOOGLE), False, "Verbose error reporter."),
     _secret("UNSPLASH_ACCESS_KEY", "integrations", (BACKEND, WEBAPP),
