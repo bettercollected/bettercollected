@@ -13,6 +13,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+### Fixed
+
+- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
+  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
+  HTMX swaps or task progress updates.
+
 ## [4.0.4] - 2026-10-24
 
 ### Added
