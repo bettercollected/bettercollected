@@ -5,11 +5,42 @@ permissions:
 
 on:
     pull_request:
+        # labeled/unlabeled: the changelog check reads the `no-changelog` label
+        types: [opened, synchronize, reopened, labeled, unlabeled]
         branches:
             - master
             - develop
+            - "release/**"
+
+concurrency:
+    group: pr-checks-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
 
 jobs:
+    # Every change that needs a changelog entry brings one as a file in changelog.d/
+    # (see changelog.d/README.md); CHANGELOG.md itself is only edited when a release
+    # is assembled. The rules are in .github/scripts/changelog.py (`needs_entry`).
+    changelog:
+        name: Changelog fragment
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  # the pull request's merge commit and its base parent
+                  fetch-depth: 2
+                  persist-credentials: false
+
+            - name: Test the changelog script
+              run: python3 -I -m unittest discover -s .github/scripts/tests
+
+            - name: Check the changelog fragments
+              env:
+                  HEAD_REF: ${{ github.head_ref }}
+                  PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+                  PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+              run: python3 -I .github/scripts/changelog.py check
+
     build-webapp:
         runs-on: ubuntu-latest
         strategy:
