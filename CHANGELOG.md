@@ -21,6 +21,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+### Security
+
+## [4.0.3] - 2026-10-24
+
+### Added
+
+- The dashboard sidebar shows the running version under "Powered by bettercollected": the release
+  tag on release builds (`v4.0.3`), `dev · <short sha>` or `staging · <short sha>` on builds from
+  `develop` and `master`, and nothing on builds without the value. It is set when the webapp image
+  is built (`NEXT_PUBLIC_APP_VERSION`; `scripts/app-version.sh` for self-built images) and is never
+  shown on respondent pages.
+
+### Fixed
+
 - The Google Forms integration no longer fails to start with "MASTER_ENCRYPTION_KEYSET is set
   neither in the environment nor in the settings store" when the response keyset is held only in
   the settings store (after `bootstrap-keys` or `settings-prune`). The shared response cipher
@@ -28,8 +42,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   before the service had loaded its settings snapshot; it is now built on first use, so the import
   order no longer matters. The backend, its jobs worker and the integration still build it at
   startup and refuse to start when no keyset exists in either place.
-
-### Security
 
 ## [4.0.2] - 2026-10-24
 
@@ -840,7 +852,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.3...HEAD
+[4.0.3]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/bettercollected/bettercollected/compare/v3.4.0...v4.0.0
