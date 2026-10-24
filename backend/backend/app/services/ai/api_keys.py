@@ -28,6 +28,9 @@ from backend.app.models.enum.permission import Permission
 VALID_SCOPES = {
     "forms:read",
     "forms:write",
+    # its own scope: a key given out to edit forms never gains deleting
+    # them (and their responses)
+    "forms:delete",
     "responses:read",
     "deletion_requests:read",
     "deletion_requests:write",

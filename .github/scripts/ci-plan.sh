@@ -35,8 +35,8 @@ if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 
     BACKEND_SHARDS=$SHARDS
 fi
 
-backend=false auth=false google=false common=false webapp=false
-everything() { backend=true auth=true google=true common=true webapp=true; }
+backend=false auth=false google=false common=false webapp=false smoke=false
+everything() { backend=true auth=true google=true common=true webapp=true smoke=true; }
 
 if [ "$full" = true ] || [ "${EVENT:-pull_request}" != pull_request ]; then
     everything
@@ -58,6 +58,9 @@ else
         integrations/google/*) google=true common=true ;;
         common/*) backend=true auth=true google=true common=true ;;
         temporal/*) backend=true common=true ;;
+        scripts/smoke/*) smoke=true ;; # the smoke suite's self-test
+        .github/workflows/smoke-production.yml) smoke=true ;;
+        .github/workflows/smoke-dry-run.yml) smoke=true common=true ;; # common reads its keyset
         */*) everything ;; # .github, postgres, deploy, scripts, other integrations, ...
         *.md) ;;           # top-level prose: README, CHANGELOG, ...
         *) everything ;;   # top-level config the tests read (compose, deploy.sh, .env examples, .nvmrc)
@@ -105,7 +108,8 @@ out=${GITHUB_OUTPUT:-/dev/stdout}
     echo "google=$google"
     echo "common=$common"
     echo "webapp=$webapp"
+    echo "smoke=$smoke"
     echo "modes=$modes"
     echo "backend_matrix=$matrix"
 } >>"$out"
-echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp modes=$modes" >&2
+echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke modes=$modes" >&2
