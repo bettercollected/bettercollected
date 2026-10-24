@@ -20,6 +20,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   English), and the submission-update notice follows the form's language. The invitation now names the
   workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
   says that the name is the one the inviter chose.
+- Two SQL scripts for the Umami database, `scripts/umami/email-data-count.sql` (read-only) and
+  `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
+  event-data property that the web app sent before it stopped sending the signed-in user's email to
+  analytics. They print counts only.
 
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
