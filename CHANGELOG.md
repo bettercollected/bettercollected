@@ -41,6 +41,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
+  many, the question that names the node). "Start with AI" opens on phones and small tablets too
+  (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
+
 ### Security
 
 ## [4.0.3] - 2026-10-24
