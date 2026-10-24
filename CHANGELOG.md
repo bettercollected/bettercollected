@@ -13,6 +13,46 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.7] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations and no compose or setting change.** The new deletion-request fields (`declined`
+  status, closures, decline reason) are stored on the request document.
+- **Rollback limit.** A 4.0.6 image can't read a deletion request that was declined: its status
+  list has only `pending` and `success`, so loading one fails, and its respondent card would show it
+  as deleted. Before rolling back, check (read-only) that no request was declined:
+
+  ```sql
+  SELECT count(*) FROM app.responses_deletion_requests WHERE status = 'declined';
+  ```
+
+  ```js
+  db.responses_deletion_requests.countDocuments({status: "declined"})
+  ```
+
+  If either is above 0, fix forward on 4.0.7 instead of rolling back.
+- **After the deploy:** to use the production smoke test, create a new API key for the test workspace
+  that includes the new `forms:delete` scope, and replace `SMOKE_API_KEY` in its environment.
+
+### Added
+
+- Staff with `privacy.manage` close a pending deletion request by hand, without the form's provider:
+  `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
+  `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
+  Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
+  Who closed a request and when is kept on it (every close is appended, never overwritten), and a later sync no
+  longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
+  of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
+  "Not deleted: <reason>" (English and Dutch), never as deleted.
+- Public API: `DELETE /forms/{formId}` deletes a form and its responses. It needs the new key
+  scope `forms:delete` ("Delete forms" when creating a key; `forms:write` does not allow it, so no
+  existing key gains it) and a key creator with `form.delete`.
+  `POST /forms/{formId}/responses/{responseId}/deletion-request/close` closes a pending deletion
+  request as `completed` or `declined` with a fixed reason (`deletion_requests:write`; the creator
+  needs `privacy.manage`).
+
 ## [4.0.6] - 2026-10-24
 
 ### Upgrade notes
@@ -1015,7 +1055,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...HEAD
+[4.0.7]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/bettercollected/bettercollected/compare/v4.0.5...v4.0.6
 [4.0.3]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...v4.0.2
