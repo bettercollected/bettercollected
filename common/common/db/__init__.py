@@ -63,6 +63,12 @@ from common.db.schema_guard import (
     ensure_schema_ready,
 )
 from common.db.spine import SpineColumns
+from common.db.mongo import (
+    init_documents,
+    mongo_client,
+    mongo_required,
+    mongo_status,
+)
 from common.db.groups import SERVICE_GROUPS, SERVICE_SCHEMAS
 from common.db.marker import MarkerInfo, StoreMigrationMixin, migration_verified
 from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase
@@ -105,4 +111,8 @@ __all__ = [
     "MarkerInfo",
     "StoreMigrationMixin",
     "migration_verified",
+    "init_documents",
+    "mongo_client",
+    "mongo_required",
+    "mongo_status",
 ]

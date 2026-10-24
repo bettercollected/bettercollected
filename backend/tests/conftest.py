@@ -35,6 +35,7 @@ if XDIST_WORKER:
 
 import httpx
 import pymongo
+from dependency_injector import providers
 import pytest
 import pytest_asyncio
 from common.models.form_import import FormImportResponse
@@ -44,6 +45,7 @@ from tests.app.auth_helpers import access_token
 from backend.app import get_application
 from backend.app.asgi import lifespan
 from backend.app.container import container
+from backend.app.handlers.database import init_db
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -51,6 +53,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
 from backend.config import settings
+from backend.db.startup import mongo_required
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -67,6 +70,109 @@ load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
 
 TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
 TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
+
+
+def _mongo_used() -> bool:
+    """Whether the flags leave any repository group on Mongo. When none is, the
+    app starts without it (MONGO_URI may point nowhere)."""
+    return mongo_required(container)
+
+
+#: Whether this session connected Beanie to the test Mongo (set at session
+#: start): when the flags use Mongo, or when a selected test drives Mongo
+#: itself (marker ``mongo``). Otherwise the suite neither creates, clears nor
+#: drops a Mongo database.
+_MONGO = {"connected": False}
+
+
+ALL = "*"
+#: Tests that drive a Mongo server themselves, whatever the flags: parity of the
+#: two stores, the migration CLI, the store-wide operator tasks and scripts.
+#: They get the ``mongo`` marker. CI runs the Postgres mode without Mongo and
+#: ``-m "not mongo"``, and these in a job of their own with Mongo (docs/ci.md).
+#: A test missing here fails there on the unreachable Mongo: add it (the whole
+#: file, or its test functions by name).
+MONGO_DRIVEN = {
+    "tests/admin/tasks/test_keyset_tasks.py": ALL,
+    "tests/admin/tasks/test_responses_tasks.py": {
+        "test_a_dry_run_cannot_write_to_mongo",
+        "test_a_dry_run_cannot_write_to_the_data_store",
+        "test_a_real_run_needs_a_prior_dry_run",
+        "test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped",
+        "test_a_resumed_run_ends_in_the_state_of_an_uninterrupted_one",
+        "test_an_empty_store_is_refused_not_reported_clean",
+        "test_an_unreachable_store_is_refused",
+        "test_auto_refuses_without_the_services_write_mode",
+        "test_backfill_both_stores_stamps_each",
+        "test_backfill_can_be_limited_to_a_workspace_or_forms",
+        "test_backfill_dry_run_counts_match_and_change_nothing",
+        "test_backfill_stamps_the_attributable_and_is_a_no_op_the_second_time",
+        "test_cancel_between_batches_stops_cleanly",
+        "test_check_auto_follows_the_write_mode",
+        "test_check_cancel_between_batches",
+        "test_check_counts_per_store_and_field",
+        "test_check_does_not_change_the_data",
+        "test_refusals",
+        "test_the_backfill_waits_for_another_mutating_task",
+        "test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none",
+        "test_the_run_checkpoints_and_reports_progress",
+    },
+    "tests/app/controllers/test_scim_review.py": {
+        "test_a_legacy_row_in_both_stores",
+        "test_the_unique_index_and_the_duplicate_report",
+    },
+    "tests/app/db/test_outbox.py": ALL,
+    "tests/app/migrate/test_engine.py": ALL,
+    "tests/app/migrate/test_marker.py": ALL,
+    "tests/app/migrate/test_mirror_verify.py": ALL,
+    "tests/app/pdf_import/test_repository_parity.py": ALL,
+    "tests/app/repositories/test_actions_parity.py": ALL,
+    "tests/app/repositories/test_ai_parity.py": ALL,
+    "tests/app/repositories/test_beanie_pagination.py": ALL,
+    "tests/app/repositories/test_create_form_prompt_parity.py": ALL,
+    "tests/app/repositories/test_form_groups.py": ALL,
+    "tests/app/repositories/test_forms_parity.py": ALL,
+    "tests/app/repositories/test_idempotency_parity.py": ALL,
+    "tests/app/repositories/test_identity_parity.py": ALL,
+    "tests/app/repositories/test_platform_metrics_parity.py": ALL,
+    "tests/app/repositories/test_rate_limit_parity.py": ALL,
+    "tests/app/repositories/test_refdata_parity.py": ALL,
+    "tests/app/repositories/test_responses_parity.py": ALL,
+    "tests/app/repositories/test_scim_parity.py": ALL,
+    "tests/app/repositories/test_sso_connection_parity.py": ALL,
+    "tests/app/repositories/test_workspace_domain_parity.py": ALL,
+    "tests/app/repositories/test_workspace_form_links_unique.py": {
+        "test_mongo_refuses_a_second_link_of_the_same_form",
+        "test_mongo_links_without_a_workspace_are_not_indexed",
+        "test_mongo_save_workspace_form_returns_the_existing_link",
+        "test_a_workspaces_links_keep_their_order_in_both_stores",
+        "test_the_index_is_built_after_beanie_and_skipped_on_duplicates",
+        "test_a_mongo_holding_duplicate_links_still_starts",
+    },
+    "tests/app/test_operator_tools.py": {
+        "test_custom_domain_references_are_the_same_on_both_stores",
+        "test_expiration_schedules_are_the_same_on_both_stores",
+        "test_export_reference_map_reads_the_workspaces_from_the_read_source",
+        "test_jobs_sweep_reads_the_responses_from_the_read_source",
+    },
+    "tests/scripts/test_backfill_response_workspaces.py": ALL,
+    "tests/scripts/test_check_undecryptable_values.py": ALL,
+    "tests/scripts/test_rotate_response_keyset.py": ALL,
+}
+
+
+def _mongo_driven(nodeid: str) -> bool:
+    path, _, rest = nodeid.partition("::")
+    names = MONGO_DRIVEN.get(path)
+    if names is None:
+        return False
+    return names == ALL or rest.split("::")[-1].split("[")[0] in names
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if _mongo_driven(item.nodeid):
+            item.add_marker(pytest.mark.mongo)
 
 
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -198,7 +304,7 @@ def _drop_test_db() -> None:
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
-async def _initialized_app():
+async def _initialized_app(request):
     """Initialise the app (and Beanie) exactly once for the whole test session.
 
     Re-running the ASGI lifespan per test was the dominant cost of the suite:
@@ -213,7 +319,12 @@ async def _initialized_app():
     settings.mongo_settings.DB = TEST_MONGO_DB
     container.database_client.reset_override()
 
-    _drop_test_db()
+    mongo_tests = any(
+        item.get_closest_marker("mongo") for item in request.session.items
+    )
+    _MONGO["connected"] = _mongo_used() or mongo_tests
+    if _MONGO["connected"]:
+        _drop_test_db()
 
     worker_database = bool(XDIST_WORKER) and _postgres_configured()
     if worker_database:
@@ -227,11 +338,22 @@ async def _initialized_app():
             "point at a database whose name contains 'test'"
         )
 
+    # The flags leave Mongo unused but a selected test drives it: give the app
+    # a real client (the lifespan keeps a client already set) and set Beanie
+    # up on it as a Mongo-using start would, indexes included.
+    connect_anyway = _MONGO["connected"] and not _mongo_used()
+    if connect_anyway:
+        container.database_client.override(
+            providers.Object(pymongo.AsyncMongoClient(TEST_MONGO_URI))
+        )
     app = get_application(is_test_mode=True)
     async with lifespan(app):
+        if connect_anyway:
+            await init_db(TEST_MONGO_DB, container.database_client(), required=True)
         yield app
 
-    _drop_test_db()
+    if _MONGO["connected"]:
+        _drop_test_db()
     if worker_database:
         await _drop_worker_database()
     settings.mongo_settings.URI = original_uri
@@ -246,7 +368,8 @@ async def _clean_db(_initialized_app):
     Clearing documents (rather than dropping the database) keeps the indexes and
     collections created by the one-time init, so per-test setup stays cheap.
     """
-    await _clear_mongo(container.database_client()[TEST_MONGO_DB])
+    if _MONGO["connected"]:
+        await _clear_mongo(container.database_client()[TEST_MONGO_DB])
     if _postgres_configured() and container.flags().requires_postgres():
         await _truncate_postgres()
     yield

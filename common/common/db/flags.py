@@ -177,6 +177,26 @@ class DbFlags:
             return True
         return self.shadow_read_sample > 0
 
+    def uses_mongo(self, groups: Iterable[str] = ()) -> bool:
+        """Whether any of ``groups`` (a service's repository groups; empty: the
+        defaults and every overridden group) reads from Mongo, writes to it as
+        primary or mirror, or may shadow-read it. False only once every group
+        is on ``DB_READ_SOURCE=postgres`` and ``DB_WRITE_MODE=postgres`` with
+        no shadow reads: then nothing the service serves touches Mongo and it
+        starts without it (:mod:`common.db.mongo`). The jobs backends do not
+        count: a job runs on Temporal or the ``jobs`` schema, never on Mongo."""
+        if self.shadow_read_sample > 0:
+            return True  # a shadow read goes to the other store, Mongo included
+        names = {g.lower() for g in groups} or (
+            {"*"} | set(self.read_overrides) | set(self.write_overrides)
+        )
+        for group in names:
+            read = self.default_read if group == "*" else self.read_source(group)
+            mode = self.default_write if group == "*" else self.write_mode(group)
+            if read is ReadSource.MONGO or mode is not WriteMode.POSTGRES:
+                return True
+        return False
+
     def requires_postgres(self) -> bool:
         """Whether the process needs a working DATABASE_URL at all."""
         return (

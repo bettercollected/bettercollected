@@ -49,33 +49,35 @@ const page = (): StandardFormFieldDto[] => [
 ];
 
 // The builder's edit functions, captured from inside the Provider.
-const editor: { fields?: ReturnType<typeof useFormFieldsAtom>; status?: string; dispatch?: (args: DispatchArgs) => boolean; language?: string | null; undoSteps?: number } = {};
+const editor: { fields?: ReturnType<typeof useFormFieldsAtom>; form?: ReturnType<typeof useFormState>; status?: string; dispatch?: (args: DispatchArgs) => boolean; language?: string | null; undoSteps?: number } = {};
 
 /** Does what the editor page does: load the form into the builder state, then mark it hydrated. */
-function EditorPage({ hydrate = true }: { hydrate?: boolean }) {
+function EditorPage({ hydrate = true, welcomeTitle }: { hydrate?: boolean; welcomeTitle?: string }) {
     const fields = useFormFieldsAtom();
-    const { setFormState } = useFormState();
+    const form = useFormState();
+    const { setFormState } = form;
     const { setHydratedFormId } = useBuilderHydration();
     const { autosaveStatus } = useAutosaveStatus();
     editor.fields = fields;
+    editor.form = form;
     editor.status = autosaveStatus.state;
     editor.dispatch = useSetAtom(dispatchAtom);
     editor.language = useAtomValue(formLanguageAtom);
     editor.undoSteps = useAtomValue(docHistoryAtom).steps.length;
     useFormLanguageSync();
     React.useEffect(() => {
-        setFormState((prev) => ({ ...prev, title: 'Loaded form' }));
+        setFormState((prev) => ({ ...prev, title: 'Loaded form', ...(welcomeTitle !== undefined ? { welcomePage: { ...prev.welcomePage, title: welcomeTitle } } : {}) }));
         fields.initFormFields(page());
         if (hydrate) setHydratedFormId('form-1');
     }, []);
     return null;
 }
 
-function renderEditor({ hydrate = true, publish = false } = {}) {
+function renderEditor({ hydrate = true, publish = false, welcomeTitle }: { hydrate?: boolean; publish?: boolean; welcomeTitle?: string } = {}) {
     return render(
         <ReduxProvider store={store}>
             <Provider>
-                <EditorPage hydrate={hydrate} />
+                <EditorPage hydrate={hydrate} welcomeTitle={welcomeTitle} />
                 <AutoSaveForm formId="form-1" />
                 {publish && <PublishButton fields={editor.fields?.formFields} />}
                 <Toaster />
@@ -280,6 +282,30 @@ describe('publishing from the editor', () => {
         await advance(1000);
         expect(lastBody().settings).toEqual({ language: null });
         expect(store.getState().form.settings?.language).toBeNull();
+    });
+
+    it('renaming the form titles its welcome page in the document, and the save sends the document as it is', async () => {
+        renderEditor({ welcomeTitle: 'Loaded form' });
+        await act(async () => editor.form!.setFormTitle('Renamed form'));
+        expect(editor.form!.formState.welcomePage?.title).toBe('Renamed form');
+        await advance(1000);
+        expect(patchFormMock).toHaveBeenCalledTimes(1);
+        expect(lastBody().title).toBe('Renamed form');
+        expect(lastBody().welcomePage.title).toBe('Renamed form');
+
+        // one undo step brings both back
+        await act(async () => editor.fields!.undo());
+        expect(editor.form!.formState.title).toBe('Loaded form');
+        expect(editor.form!.formState.welcomePage?.title).toBe('Loaded form');
+    });
+
+    it('an edit elsewhere saves the welcome page as it was loaded, not retitled', async () => {
+        renderEditor({ welcomeTitle: 'Welcome aboard' });
+        await act(async () => editor.fields!.updateDescription(0, 0, 'Your full name'));
+        await advance(1000);
+        expect(patchFormMock).toHaveBeenCalledTimes(1);
+        expect(lastBody().title).toBe('Loaded form');
+        expect(lastBody().welcomePage.title).toBe('Welcome aboard');
     });
 });
 

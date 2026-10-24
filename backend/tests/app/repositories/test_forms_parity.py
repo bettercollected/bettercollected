@@ -14,6 +14,7 @@ from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
 from backend.app.container import container
+from backend.app.handlers.database import ensure_workspace_form_unique_index
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.enum.FormVersion import FormVersion
@@ -244,6 +245,59 @@ async def test_form_listings_search_and_versions(sessions):
     assert strip(await mongo.get_latest_version_of_form("f9")) == strip(
         await postgres.get_latest_version_of_form("f9")
     )
+
+
+async def test_listing_counts_distinct_workspaces_not_link_rows(sessions):
+    """Mongo holds the form's link to ``ws`` twice; Postgres once (one link
+    per workspace and form). Either way the form is linked to ``ws`` only, so
+    its unstamped response counts there, in both stores."""
+    ws = PydanticObjectId()
+    groups, responses = ResponderGroupsRepository(), FormResponseRepository(
+        crypto=container.crypto()
+    )
+    mongo = FormRepository()
+    postgres = PostgresFormRepository(sessions, groups, responses)
+    document = form("dup", "Duplicated link", 1)
+    await seed_both((mongo, postgres), "save_form", document)
+    await seed_both((mongo, postgres), "save_form_version", version(document, 1))
+    link = workspace_form(ws, "dup", "u1", 1)
+    await seed_both(
+        (WorkspaceFormRepository(), PostgresWorkspaceFormRepository(sessions, groups)),
+        "save",
+        link,
+    )
+    # the Mongo duplicate: a database holding one has no unique link index
+    # (startup skips it and logs an error), so drop it for this test
+    links = WorkspaceFormDocument.get_pymongo_collection()
+    await links.drop_index("uq_workspace_forms_workspace_form")
+    try:
+        await workspace_form(ws, "dup", "u1", 2).insert()
+        await _assert_counted_once(ws, mongo, postgres)
+    finally:
+        await links.delete_many({"form_id": "dup"})
+        assert await ensure_workspace_form_unique_index(links.database)
+
+
+async def _assert_counted_once(ws, mongo, postgres):
+    for response_id, workspace_id in (("d1", ws), ("d2", None)):
+        await FormResponseDocument(
+            form_id="dup",
+            response_id=response_id,
+            answers={},
+            workspace_id=workspace_id,
+        ).save()
+    await FormResponseDeletionRequest(form_id="dup", response_id="d2").save()
+
+    def counts(rows):
+        return {(r["form_id"], r["responses"], r["deletion_requests"]) for r in rows}
+
+    expected = {("dup", 2, 1)}
+    for listing, args in (
+        ("get_forms_in_workspace", (ws, ["dup"], True)),
+        ("get_published_forms_in_workspace", (ws, ["dup"])),
+    ):
+        assert counts(await getattr(mongo, listing)(*args)) == expected, listing
+        assert counts(await getattr(postgres, listing)(*args)) == expected, listing
 
 
 # ----------------------------------------------------------------- workspace forms

@@ -106,11 +106,11 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                     <div className="h3-new mb-4 mt-6 text-black-800">New Form</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
                         {isMobile ? (
-                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
+                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} desktopOnly />
                         ) : (
                             <Sheet>
                                 <SheetTrigger asChild>
-                                    <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
+                                    <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} desktopOnly />
                                 </SheetTrigger>
                                 <SheetContent className="h-full w-full p-0" side={'top'} hideCloseIcon>
                                     <SheetTitle className="sr-only">Select form type</SheetTitle>
@@ -135,9 +135,8 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             variant={'pink'}
                             icon={<AIIcon className="text-brand-500" />}
                             content={'Start with AI'}
-                            onClick={() => {
-                                if (!isMobile) openDialogModal('START_WITH_AI');
-                            }}
+                            // The dialog and its outline review fit a 375px screen.
+                            onClick={() => openDialogModal('START_WITH_AI')}
                         />
                     </div>
 
@@ -184,9 +183,11 @@ interface CardWrapperProps {
     variant: 'blue' | 'purple' | 'pink';
     addSoon?: boolean;
     soonMsg?: string;
+    /** Says so below the desktop breakpoint (the blank-form builder). */
+    desktopOnly?: boolean;
 }
 
-const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapperProps) => {
+const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly }: CardWrapperProps) => {
 
     return (
         <div
@@ -197,9 +198,9 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
         >
             {icon}
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
-            {content !== 'Import Google Form' && content !== 'Import a PDF form' && <OnlyAvailableInDesktopVersion />}
+            {desktopOnly && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {content === 'Start with AI' && <div className="absolute right-2 top-2 hidden rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600 lg:flex">beta</div>}
+            {content === 'Start with AI' && <div className="absolute right-2 top-2 flex rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600">beta</div>}
         </div>
     );
 };

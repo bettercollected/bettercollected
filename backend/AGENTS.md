@@ -115,6 +115,13 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
+- **Mongo only while a group uses it** (`common/db/mongo.py`, `DbFlags.uses_mongo`): once every group of a service
+  reads and writes Postgres only (no shadow reads), the backend, its job worker, auth and the Google service start
+  without Mongo — Beanie is set up with no request to the server on a client that never connects
+  (`mongo-not-used.invalid`), and `/persistence/status` reports `"mongo": {"used": false, "status": "not used"}`.
+  Any group still on Mongo keeps today's start (fails on an unreachable Mongo). Startup code that touches Mongo
+  outside the repositories (indexes, seeds, outbox counts) must check `mongo_required` first. A test that drives
+  Mongo itself goes on `MONGO_DRIVEN` in `tests/conftest.py` (CI's Postgres shards run without Mongo; docs/ci.md).
 - **Schema check at startup** (`common/db/schema_guard.py`, wired in `backend/db/startup.py`; auth and google pass
   their own `MigrationTarget` in their `asgi.py`): when any group reads/writes Postgres the service refuses to start
   unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job

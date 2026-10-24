@@ -221,13 +221,33 @@ class PdfImportService:
             return
         task = asyncio.create_task(self._run_in_process(import_id))
         self._running.add(task)
-        task.add_done_callback(self._running.discard)
+        task.add_done_callback(self._finished)
+
+    def _finished(self, task: asyncio.Task) -> None:
+        """Nothing awaits an in-process import, so its outcome is retrieved
+        here: an exception left on a finished task is logged by asyncio only
+        when the task is collected, with whatever its traceback holds.
+        ``_run_in_process`` handles its own errors; this is the backstop."""
+        self._running.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.error(
+                "a form import task ended with {}", type(task.exception()).__name__
+            )
 
     async def _run_in_process(self, import_id: PydanticObjectId) -> None:
-        # the heartbeat covers the retry waits too
-        await self._pipeline.keep_alive(import_id, self._attempts(import_id))
+        try:
+            # the heartbeat covers the retry waits too
+            await self._pipeline.keep_alive(import_id, self._attempts(import_id))
+        except Exception:  # noqa: BLE001 — recorded on the import below
+            logger.exception("form import {} could not run", import_id)
+            try:
+                await self._pipeline.fail(import_id)
+            except Exception:  # noqa: BLE001 — expired as interrupted later
+                logger.exception("form import {} could not be marked failed", import_id)
 
     async def _attempts(self, import_id: PydanticObjectId) -> None:
+        """The run, retried while the sandbox is unreachable. Any other error
+        reaches ``_run_in_process``, which fails the import."""
         from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 
         for delay in RETRY_DELAYS_S + (None,):
@@ -239,9 +259,6 @@ class PdfImportService:
                     await self._pipeline.give_up(import_id)
                     return
                 await asyncio.sleep(delay)
-            except Exception:  # noqa: BLE001 — the pipeline records its own failures
-                logger.exception("form import {} could not run", import_id)
-                return
 
     async def wait_for_background_imports(self) -> None:
         """Tests and shutdown: let in-process imports finish."""
