@@ -265,7 +265,10 @@ export interface StandardFormResponseDto {
     createdAt: string | Date;
     updatedAt: string | Date;
     formImportedBy?: string;
+    /** Deletion request status (on deletion request lists): pending, success or declined. */
     status?: string;
+    /** Why a declined deletion request was declined (a fixed code, e.g. legal_obligation). */
+    declineReason?: string | null;
     /** The receipt number responders use to find/delete this response. */
     submissionUuid?: string;
     /** Set (instead of dataOwnerIdentifier) when submitted anonymously. */

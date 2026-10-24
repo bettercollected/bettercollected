@@ -15,6 +15,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Staff with `privacy.manage` close a pending deletion request by hand, without the form's provider:
+  `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
+  `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
+  Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
+  Who closed a request and when is kept on it (every close is appended, never overwritten), and a later sync no
+  longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
+  of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
+  "Not deleted: <reason>" (English and Dutch), never as deleted.
 - The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
   that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
   English), and the submission-update notice follows the form's language. The invitation now names the
@@ -33,7 +41,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   no account, broken down by a marker attribute and by Brevo list membership, and lists the attribute
   names they carry. It prints counts and attribute names only. `--apply` needs `--marker ATTRIBUTE[=VALUE]`.
   It deletes only contacts that have no account, carry the marker and are on no Brevo list.
-
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment

@@ -8,6 +8,7 @@ import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDate, utcToLocalDateTIme } from '@app/utils/date-utils';
 import Link from 'next/link';
 import FeedbackStatusChip from '@Components/form/feedback-status-chip';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 
 interface IWorkspaceFormResponseDeletionCardProps {
@@ -16,6 +17,23 @@ interface IWorkspaceFormResponseDeletionCardProps {
     className?: string;
     isCustomDomain?: boolean;
     workspaceName: string;
+}
+
+const DECLINE_REASONS = ['legal_obligation', 'legal_claims', 'public_interest', 'identity_not_verified', 'other'];
+
+/**
+ * What a deletion request's status means for the respondent. Only `success`
+ * says "Deleted": a declined request was NOT deleted and says why (a fixed
+ * reason code from the workspace, never free text). Unknown statuses are not
+ * shown as deleted either.
+ */
+export function deletionStatusLabel(status: string, declineReason: string | null | undefined, deletedAt: string, t: (key: string, options?: any) => string): string {
+    if (status === 'success') return t('DELETION.DELETED', { date: deletedAt });
+    if (status === 'declined') {
+        const reason = DECLINE_REASONS.includes(declineReason ?? '') ? (declineReason as string) : 'other';
+        return t('DELETION.DECLINED', { reason: t(`DELETION.REASON.${reason.toUpperCase()}`) });
+    }
+    return t('DELETION.REQUESTED');
 }
 
 // Drop the href a Link would take — spreading href="" onto the div trips
@@ -32,6 +50,7 @@ const DefaultDiv = ({ href, ...props }: any) => <div {...props} />;
 export default function WorkspaceFormResponseDeletionCard({ response, deletionRequests = false, className = '', workspaceName, isCustomDomain = false }: IWorkspaceFormResponseDeletionCardProps) {
     const deletedAt = `${utcToLocalDate(response.updatedAt)}`;
     const { t } = useTranslation();
+    const { t: tRespondent } = useRespondentLanguage();
 
     const disabled = deletionRequests && response.status === 'success';
 
@@ -76,7 +95,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                     )}
                     {!!response?.status && (
                         <span className={`rounded px-2 py-0.5 text-xs font-medium ${response?.status === 'pending' ? 'bg-brand-accent-100 text-brand-olive' : 'bg-black-100 text-black-600'}`}>
-                            {response?.status === 'pending' ? 'Deletion requested' : `Deleted (${deletedAt})`}
+                            {deletionStatusLabel(response.status, response.declineReason, deletedAt, tRespondent)}
                         </span>
                     )}
                 </div>
