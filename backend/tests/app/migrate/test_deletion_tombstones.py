@@ -454,3 +454,25 @@ async def test_deletes_prune_expired_postgres_tombstones_as_they_go(
     created = await new_form(repo)
     await repo.delete_form(created.form_id)
     assert await postgres_tombstones() == {("forms", str(created.id))}
+
+
+async def test_pruning_runs_outside_the_delete_and_never_undoes_it(target, monkeypatch):
+    """Pruning happens after the delete committed, in a transaction of its
+    own: a prune that fails leaves the delete and its tombstone in place."""
+    import common.db.pg_repository as pg_repository
+
+    monkeypatch.setattr(tombstones, "PRUNE_EVERY", 1)
+    calls = []
+
+    async def failing_prune(session, schema, now=None):
+        calls.append(schema)
+        raise RuntimeError("prune failed")
+
+    monkeypatch.setattr(pg_repository, "prune_postgres", failing_prune)
+    repo = forms_repo("postgres")
+    created = await new_form(repo)
+    await repo.delete_form(created.form_id)
+
+    assert calls == ["app"]
+    assert await copies(created.id) == (False, False)
+    assert await postgres_tombstones() == {("forms", str(created.id))}
