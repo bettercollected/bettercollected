@@ -486,7 +486,10 @@ class WorkspaceService:
         ]
 
     async def send_otp_for_workspace(
-        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+        self,
+        workspace_id: PydanticObjectId,
+        receiver_email: EmailStr,
+        locale: Optional[str] = None,
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         if self._sso_policy is not None:
@@ -502,6 +505,7 @@ class WorkspaceService:
                 "workspace_title": workspace.title or "",
                 "workspace_profile_image": workspace.profile_image or "",
                 "creator": False,
+                **({"locale": locale} if locale else {}),
             },
         )
         return {"message": "Otp sent successfully"}

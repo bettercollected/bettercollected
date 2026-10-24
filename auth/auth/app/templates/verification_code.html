@@ -1,10 +1,9 @@
 <!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
       xmlns:o="urn:schemas-microsoft-com:office:office">
 
 <head>
-    <title>
-    </title>
+    <title>{{ subject }}</title>
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!--<![endif]-->
@@ -208,7 +207,7 @@
                                     style="font-size:0px;padding-bottom:16px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:18px;font-weight:600;line-height:30px;text-align:center;color:#101828;">
                                         <span style="color: #101828">{% if workspace_title %}{{ workspace_title }} via {{ product }}{% else %}{{ product }}{% endif %}</span>
-                                        <span style="color: #5A6478">verification code</span>
+                                        <span style="color: #5A6478">{{ t.code_heading }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -216,7 +215,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:16px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
-                                        Use the code below to confirm your identity.
+                                        {{ t.code_intro }}
                                     </div>
                                 </td>
                             </tr>
@@ -232,7 +231,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#344054;">
-                                        This code will expire in 5 minutes
+                                        {{ t.code_expiry }}
                                     </div>
                                 </td>
                             </tr>
@@ -240,7 +239,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;padding-bottom:8px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
-                                        If you did not request verification code,
+                                        {{ t.code_not_you }}
                                     </div>
                                 </td>
                             </tr>
@@ -248,7 +247,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
-                                        <span style="color: #101828">please report on</span>
+                                        <span style="color: #101828">{{ t.code_report }}</span>
                                         <a href="mailto:abuse@bettercollected.com" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">abuse@bettercollected.com</span></a>
                                     </div>
                                 </td>
@@ -285,7 +284,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
-                                        &copy; {{ year }} Sireto B.V. All rights reserved.
+                                        &copy; {{ year }} Sireto B.V. {{ t.footer_rights }}
                                     </div>
                                 </td>
                             </tr>
@@ -293,9 +292,9 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:400;line-height:1;text-align:center;color:#101828;">
-                                        <span style="color: #5A6478">Visit</span>
+                                        <span style="color: #5A6478">{{ t.footer_visit }}</span>
                                         <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">bettercollected</span></a>
-                                        <span style="color: #5A6478">for more information</span>
+                                        <span style="color: #5A6478">{{ t.footer_more }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -303,7 +302,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:16px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12px;font-weight:400;line-height:18px;text-align:center;color:#667085;">
-                                        <a href="https://sireto.com" style="color:#667085;text-decoration:underline;">A product of Sireto B.V.</a> &middot; Sireto&reg; is a registered trademark of Sireto B.V.
+                                        <a href="https://sireto.com" style="color:#667085;text-decoration:underline;">{{ t.footer_product_of }}</a> &middot; Sireto&reg; {{ t.footer_trademark }}
                                     </div>
                                 </td>
                             </tr>

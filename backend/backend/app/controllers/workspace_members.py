@@ -1,7 +1,7 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from fastapi_pagination import Page
 from backend.app.container import container
 from backend.app.models.dtos.workspace_member_dto import (
@@ -131,9 +131,11 @@ class WorkspaceMembersRouter(Routable):
         workspace_id: PydanticObjectId,
         invitation: InvitationRequest,
         user: User = Depends(get_full_user),
+        # the invitation mail's language; English unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         return await self.workspace_members_service.create_invitation_request(
-            workspace_id=workspace_id, invitation=invitation, user=user
+            workspace_id=workspace_id, invitation=invitation, user=user, locale=locale
         )
 
     @get(

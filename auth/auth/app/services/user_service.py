@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, Optional
 from urllib.parse import quote
 
 from beanie import PydanticObjectId
@@ -16,6 +16,7 @@ from auth.app.services.mail_service import (
     sender_name,
     avatar_image_url,
 )
+from auth.app.services.mail_text import mail_locale, role_name, texts
 from auth.app.services.stripe_service import StripeService
 from auth.config import settings
 
@@ -39,6 +40,7 @@ class UserService:
         email: str,
         token: str,
         inviter_id: str,
+        locale: Optional[str] = None,
     ):
         inviter: UserDocument = await self.user_repo.get_user_by_id(inviter_id)
         invitation_link = (
@@ -51,14 +53,21 @@ class UserService:
         # From and subject are this instance's; the workspace title is chosen
         # by the workspace and only shown in the body (#761)
         product = sender_name()
+        t = texts(locale)
+        subject = t["invite_subject"].format(product=product)
         message = MessageSchema(
-            subject=f"You have been invited to a workspace on {product}",
+            subject=subject,
             recipients=[email],
             body=render(
                 "invitation_mail.html",
+                t=t,
+                lang=mail_locale(locale),
+                subject=subject,
+                # the inviter's name is self-chosen: said so in the mail
+                invite_name_note=t["invite_name_note"].format(product=product),
                 product=product,
                 workspace_title=one_line(workspace_title),
-                role=one_line(role),
+                role=role_name(one_line(role), locale),
                 invitation_link=invitation_link,
                 inviter_name=inviter_name,
                 image_url=avatar_image_url(inviter.profile_image),

@@ -7,7 +7,7 @@ from typing import List, Optional
 from classy_fastapi import Routable, get, post, delete
 from common.enums.form_provider import FormProvider
 from common.models.user import User, UserLoginWithOTP
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import EmailStr
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -90,8 +90,15 @@ class AuthRoutes(Routable):
             503: {"description": "Requested Source not available."},
         },
     )
-    async def send_otp_for_creator(self, receiver_email: EmailStr):
-        return await self.auth_service.send_otp_for_creator(receiver_email)
+    async def send_otp_for_creator(
+        self,
+        receiver_email: EmailStr,
+        # the mail's language ("nl" or "en"); English unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
+    ):
+        return await self.auth_service.send_otp_for_creator(
+            receiver_email, locale=locale
+        )
 
     @post(
         "/otp/validate",

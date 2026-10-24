@@ -11,6 +11,7 @@ from auth.app.router import router
 from auth.app.services.auth_service import AuthService
 
 from classy_fastapi import Routable, get
+from fastapi import Query
 
 from common.models.user import (
     User,
@@ -49,6 +50,9 @@ class AuthRoutes(Routable):
         # over-long or foreign image is dropped; neither may fail the send.
         workspace_title: Optional[str] = None,
         workspace_profile_image: Optional[str] = None,
+        # the mail's language ("nl", "en", a tag like "nl-NL"); English
+        # unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         background_tasks.add_task(
             self.auth_service.send_otp_to_mail,
@@ -56,6 +60,7 @@ class AuthRoutes(Routable):
             workspace_title=workspace_title,
             workspace_profile_image=workspace_profile_image,
             creator=creator,
+            locale=locale,
         )
         return {"message": "Email set to be sent"}
 

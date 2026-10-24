@@ -24,6 +24,7 @@ from auth.app.services.mail_service import (
     sender_name,
     storage_image_url,
 )
+from auth.app.services.mail_text import mail_locale, texts
 from auth.app.services.platform_admins import roles_for
 from auth.config import settings
 
@@ -152,6 +153,7 @@ class AuthService:
         workspace_title: Optional[str],
         workspace_profile_image: Optional[str],
         creator: bool,
+        locale: Optional[str] = None,
     ):
         otp = self.generate_otp()
         otp_expiry = self.get_expiry_epoch_after(timedelta(minutes=5))
@@ -179,11 +181,16 @@ class AuthService:
         if is_sender_name(title):
             title = None
         image_url = storage_image_url(workspace_profile_image)
+        t = texts(locale)
+        subject = t["code_subject"].format(product=product)
         message = MessageSchema(
-            subject=f"Your {product} verification code",
+            subject=subject,
             recipients=[receiver_mail],
             body=render(
                 "verification_code.html",
+                t=t,
+                lang=mail_locale(locale),
+                subject=subject,
                 product=product,
                 workspace_title=title,
                 otp=otp,
