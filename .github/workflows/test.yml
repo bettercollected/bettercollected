@@ -73,7 +73,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Configure schemathesis using action
-              uses: schemathesis/action@806cace2053cbbac93188e1281ff7da415643160 # v3.0.0
+              uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
               with:
                   schema: "https://bettercollected-admin.sireto.dev/api/v1/public/v1/openapi.json"
                   max-examples: 30
