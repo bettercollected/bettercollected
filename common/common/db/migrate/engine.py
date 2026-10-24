@@ -20,7 +20,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 from bson import ObjectId
@@ -29,6 +29,7 @@ from sqlalchemy import Table, and_, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from common.db import tombstones
 from common.db.base import SOURCE_APP, SOURCE_BACKFILL
 from common.db.canonical import canonical_document, checksum, from_canonical_document
 from common.db.engine import DatabaseSettings, make_engine
@@ -55,6 +56,7 @@ SPINE_PATH = re.compile(r"doc\s*->\s*'([^']+)'((?:\s*->\s*'[^']+')*)")
 STALLED_AFTER_S = 300
 MIN_BATCH, MAX_BATCH = 25, 2000
 SLOW_BATCH_S, FAST_BATCH_S = 20.0, 2.0
+MISSING = object()  # no copy in that store
 
 
 @dataclass
@@ -106,6 +108,9 @@ class CollectionReport:
     missing_in_mongo: int = 0
     mismatched: int = 0
     drifted: int = 0  # tier 3: row → document round-trip differs from Mongo
+    # copies still present (either store) of records deleted after they were
+    # last written (common.db.tombstones)
+    tombstoned: int = 0
     invalid_ids: int = 0
     duplicates: int = 0
     samples: dict = field(
@@ -114,6 +119,7 @@ class CollectionReport:
             "missing_in_mongo": [],
             "mismatched": [],
             "drifted": [],
+            "tombstoned": [],
         }
     )
 
@@ -124,6 +130,7 @@ class CollectionReport:
             or self.missing_in_mongo
             or self.mismatched
             or self.drifted
+            or self.tombstoned
         )
 
     def as_dict(self) -> dict:
@@ -618,9 +625,14 @@ class Runner:
                     extra = extra.where(table.c.id > last_id)
                 if sample_every == 1:
                     report.missing_in_mongo += (await conn.execute(extra)).scalar_one()
+            # deleted records still present, in either store (never sampled)
+            for row_id, _ in await self._deletion_victims(name, table):
+                report.tombstoned += 1
+                if len(report.samples["tombstoned"]) < 5:
+                    report.samples["tombstoned"].append(row_id)
             reports.append(report)
             logger.info(
-                "verify %s: mongo=%d postgres=%d missing_in_postgres=%d missing_in_mongo=%d mismatched=%d drifted=%d",
+                "verify %s: mongo=%d postgres=%d missing_in_postgres=%d missing_in_mongo=%d mismatched=%d drifted=%d tombstoned=%d",
                 name,
                 report.mongo,
                 report.postgres,
@@ -628,6 +640,7 @@ class Runner:
                 report.missing_in_mongo,
                 report.mismatched,
                 report.drifted,
+                report.tombstoned,
             )
         return reports
 
@@ -644,32 +657,39 @@ class Runner:
         ``app`` rows when the Mongo document is at least as new.
         ``postgres->mongo``: replace Mongo documents from rows (R2/R3 fallback).
 
-        Deletes are never propagated, in either direction: a row present on
-        one side only is reported by ``verify`` and left in place, except that
-        ``postgres->mongo`` (re)inserts a Postgres row Mongo lacks and
-        ``mongo->postgres`` (re)inserts a Mongo document Postgres lacks. So a
-        row deleted in the primary store whose mirror delete failed stays in
-        the mirror, and reconciling in the opposite direction resurrects it.
-        The outboxes are drained only when every collection was reconciled
-        (no ``--group``/``--collections`` subset): their entries name a
-        repository, not a collection."""
+        Deletes are honoured in both directions through the deletion
+        tombstones (:mod:`common.db.tombstones`), before anything is copied:
+        a deleted record whose copy survives on one side only (its mirror
+        delete failed) has that copy deleted; one whose copies survive on
+        both sides is reported (``tombstoned``) and left for an operator; and
+        a deleted record is never copied in either direction. Any other row
+        present on one side only is copied to the side the direction targets.
+        Postgres tombstones past their retention are pruned at the end of a
+        run (Mongo expires its own). The outboxes are drained only when
+        every collection was reconciled (no ``--group``/``--collections``
+        subset): their entries name a repository, not a collection."""
         selected = self.tables_for(collections)
         results = {}
         for name, table in selected.items():
             report = (await self.verify([name]))[0]
-            fixed = 0
-            ids = report.samples["missing_in_postgres"] + report.samples["mismatched"]
+            fixed, deleted, kept = 0, 0, 0
             # samples are capped; walk the collection for the full set when anything differs
             if not report.clean:
+                deleted, kept, victims = await self._honour_tombstones(
+                    name, table, dry_run
+                )
                 fixed = await self._reconcile_collection(
-                    name, table, direction, dry_run
+                    name, table, direction, dry_run, never_copy=victims
                 )
             results[name] = {
                 "fixed": fixed,
+                "deleted": deleted,
+                "tombstoned": kept,
                 "before": report.as_dict(),
                 "direction": direction,
             }
-            del ids
+        if not dry_run:
+            await self._prune_tombstones()
         if set(selected) == set(self.target.tables):
             await self._drain_outbox(direction, dry_run)
         else:
@@ -679,7 +699,121 @@ class Runner:
             )
         return results
 
-    async def _reconcile_collection(self, name, table, direction, dry_run) -> int:
+    # -- deletion tombstones ----------------------------------------------------
+    async def _tombstones(self, name: str) -> dict:
+        """id -> latest deleted_at for ``name``, from both stores' tombstones."""
+        pg = tombstones.postgres_table(self.target.schema)
+        async with self.engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    select(pg.c.row_id, pg.c.deleted_at).where(pg.c.collection == name)
+                )
+            ).all()
+        found = await (
+            self.collection(tombstones.COLLECTION)
+            .find({"collection": name}, {"row_id": 1, "deleted_at": 1})
+            .to_list()
+        )
+        return tombstones.merge(
+            {r[0]: r[1] for r in rows}, {d["row_id"]: d["deleted_at"] for d in found}
+        )
+
+    async def _copies(self, name: str, table: Table, ids: list[str]):
+        """(id -> Postgres updated_at, id -> Mongo updated_at) of the copies present."""
+        async with self.engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    select(table.c.id, table.c.updated_at).where(table.c.id.in_(ids))
+                )
+            ).all()
+        documents = await (
+            self.collection(name)
+            .find(
+                {"_id": {"$in": [ObjectId(i) for i in ids if is_object_id(i)]}},
+                {"updated_at": 1},
+            )
+            .to_list()
+        )
+        return {r[0]: r[1] for r in rows}, {
+            str(d["_id"]): d.get("updated_at") for d in documents
+        }
+
+    async def _deletion_victims(self, name: str, table: Table) -> list:
+        """``(id, (Postgres updated_at, Mongo updated_at, deleted_at))`` of
+        every deleted record with a copy still present that was last written
+        before the delete; a store without a copy gives ``MISSING``."""
+        tomb = await self._tombstones(name)
+        victims = []
+        ids = sorted(tomb)
+        for start in range(0, len(ids), 500):
+            chunk = ids[start : start + 500]
+            pg, mongo = await self._copies(name, table, chunk)
+            for row_id in chunk:
+                at = tomb[row_id]
+                p = pg[row_id] if row_id in pg else MISSING
+                m = mongo[row_id] if row_id in mongo else MISSING
+                if (p is not MISSING and tombstones.is_victim(at, p)) or (
+                    m is not MISSING and tombstones.is_victim(at, m)
+                ):
+                    victims.append((row_id, (p, m, at)))
+        return victims
+
+    async def _honour_tombstones(
+        self, name: str, table: Table, dry_run: bool
+    ) -> tuple[int, int, set]:
+        """Delete the surviving copy of each deleted record present on one
+        side only; report those present on both. Returns (deleted, reported,
+        ids that must not be copied). A copy is deleted only while it is the
+        one read (same ``updated_at``), never one written again since."""
+        coll = self.collection(name)
+        deleted, reported, never_copy = 0, 0, set()
+        for row_id, (p, m, at) in await self._deletion_victims(name, table):
+            never_copy.add(row_id)
+            p_victim = p is not MISSING and tombstones.is_victim(at, p)
+            m_victim = m is not MISSING and tombstones.is_victim(at, m)
+            if p_victim and m is MISSING:
+                if dry_run:
+                    deleted += 1
+                    continue
+                async with self.engine.begin() as conn:
+                    result = await conn.execute(
+                        table.delete().where(
+                            table.c.id == row_id,
+                            table.c.updated_at.is_not_distinct_from(p),
+                        )
+                    )
+                deleted += result.rowcount or 0
+            elif m_victim and p is MISSING:
+                if dry_run:
+                    deleted += 1
+                    continue
+                result = await coll.delete_one(
+                    {"_id": ObjectId(row_id), "updated_at": m}
+                )
+                deleted += result.deleted_count
+            elif p_victim and m_victim:
+                reported += 1
+        if deleted or reported:
+            logger.info(
+                "reconcile %s: copies of deleted records deleted=%d present on both sides=%d",
+                name,
+                deleted,
+                reported,
+            )
+        return deleted, reported, never_copy
+
+    async def _prune_tombstones(self) -> None:
+        """Drop Postgres tombstones past the retention (Mongo's expire by TTL)."""
+        pg = tombstones.postgres_table(self.target.schema)
+        before = datetime.now(timezone.utc) - timedelta(days=tombstones.RETENTION_DAYS)
+        async with self.engine.begin() as conn:
+            result = await conn.execute(pg.delete().where(pg.c.deleted_at < before))
+        if result.rowcount:
+            logger.info("tombstones pruned: %d", result.rowcount)
+
+    async def _reconcile_collection(
+        self, name, table, direction, dry_run, never_copy=frozenset()
+    ) -> int:
         coll = self.collection(name)
         fixed, last_id, size = 0, None, 500
         while True:
@@ -706,6 +840,8 @@ class Runner:
                 to_write = []
                 for document in documents:
                     oid = str(document["_id"])
+                    if oid in never_copy:
+                        continue  # a deleted record (tombstone): never copied
                     row = row_from_document(document)
                     current = pg.get(oid)
                     if current is None or current[1] != row["_bc_checksum"]:
@@ -734,11 +870,12 @@ class Runner:
                     async with self.engine.begin() as conn:
                         await conn.execute(stmt)
                 fixed += len(to_write)
-                for oid in pg:  # rows Mongo no longer has
-                    if oid not in {str(d["_id"]) for d in documents}:
-                        pass  # reported by verify; deleting is a human decision (R3)
+                # rows Mongo does not have: those of deleted records were
+                # handled by _honour_tombstones, verify reports the others
             else:  # postgres->mongo
                 for oid, r in pg.items():
+                    if oid in never_copy:
+                        continue  # a deleted record (tombstone): never copied
                     document = from_canonical_document(r[3])
                     mongo_doc = next(
                         (d for d in documents if str(d["_id"]) == oid), None
@@ -754,10 +891,12 @@ class Runner:
                         fixed += 1
         if direction == "postgres->mongo":  # rows beyond Mongo's range
             async with self.engine.connect() as conn:
-                extra = select(table.c.doc)
+                extra = select(table.c.id, table.c.doc)
                 if last_id:
                     extra = extra.where(table.c.id > last_id)
-                for (doc,) in (await conn.execute(extra)).all():
+                for row_id, doc in (await conn.execute(extra)).all():
+                    if row_id in never_copy:
+                        continue
                     document = from_canonical_document(doc)
                     if not dry_run:
                         await coll.replace_one(

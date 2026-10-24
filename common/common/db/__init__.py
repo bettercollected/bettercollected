@@ -72,6 +72,7 @@ from common.db.mongo import (
 from common.db.groups import SERVICE_GROUPS, SERVICE_SCHEMAS
 from common.db.marker import MarkerInfo, StoreMigrationMixin, migration_verified
 from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase
+from common.db.tombstones import DeletionTombstoneMixin
 from common.db.outbox import (
     MIRROR_OPS,
     MirrorWriteFailureDocument,
@@ -106,6 +107,7 @@ __all__ = [
     "MIRROR_OPS",
     "MirrorWriteFailureDocument",
     "MirrorWriteFailureMixin",
+    "DeletionTombstoneMixin",
     "SERVICE_GROUPS",
     "SERVICE_SCHEMAS",
     "MarkerInfo",
