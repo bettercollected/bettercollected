@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -5,6 +6,7 @@ from http import HTTPStatus
 from typing import Optional, Tuple
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+import aiohttp
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
 from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
@@ -42,6 +44,9 @@ from backend.app.utils import AiohttpClient
 from backend.config import settings
 
 log = logging.getLogger(__name__)
+
+# seconds a provider service gets to delete a user's stored credentials
+CREDENTIALS_DELETE_TIMEOUT = 20
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
 
@@ -360,19 +365,30 @@ class AuthService:
                     user.id,
                 )
                 continue
-            response = await AiohttpClient.get_aiohttp_client().delete(
-                await self.form_provider_service.get_provider_url(
-                    provider.provider_name
+            # Best effort: an unreachable or failing provider service never
+            # blocks deleting the account (the rest of the deletion is the
+            # respondent-facing promise). Logged with ids only, so the
+            # leftover credential can be removed on that service later.
+            try:
+                response = await AiohttpClient.get_aiohttp_client().delete(
+                    await self.form_provider_service.get_provider_url(
+                        provider.provider_name
+                    )
+                    + f"/{provider.provider_name}"
+                    + "/oauth/credentials",
+                    params={"user_id": user.id, "email": user.sub},
+                    timeout=aiohttp.ClientTimeout(total=CREDENTIALS_DELETE_TIMEOUT),
                 )
-                + f"/{provider.provider_name}"
-                + "/oauth/credentials",
-                params={"user_id": user.id, "email": user.sub},
-                timeout=20000,
-            )
-            if response.status != HTTPStatus.OK:
-                raise HTTPException(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    content=f"Could not delete credentials from {provider.provider_name} integration.",
+                status = response.status
+            except (aiohttp.ClientError, asyncio.TimeoutError, OSError, HTTPException):
+                status = None
+            if status != HTTPStatus.OK:
+                log.warning(
+                    "Account deletion: credentials of user %s not deleted on the "
+                    "%s service (%s); the account deletion continues",
+                    user.id,
+                    provider.provider_name,
+                    status if status is not None else "unreachable",
                 )
 
     async def delete_user_form_auth(self, user: User):

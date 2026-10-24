@@ -64,6 +64,9 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Account deletion no longer fails when the Google Forms service is off, unreachable, slow or failing:
+  deleting the user's stored Google credentials there is best effort (20 s timeout) and a leftover is logged
+  with the user id and the provider name only, while the rest of the deletion completes.
 - The forms list and form search ask the auth service about each importer once, instead of once per
   form on the page. Search now shows each form's own importer: it could show another member's name on
   a form, and no importer at all on forms imported by someone other than the searching member. The forms
