@@ -114,6 +114,33 @@ class SsoConnectionRepository:
         return result.deleted_count if result else 0
 
     @write_op
+    async def mark_release_pending(
+        self, workspace_ids: List[PydanticObjectId], now: dt.datetime
+    ) -> int:
+        """The connections of deleted workspaces Polis did not release yet."""
+        result = await SsoConnectionDocument.find(
+            {"workspace_id": {"$in": [PydanticObjectId(w) for w in workspace_ids]}}
+        ).update(
+            {
+                "$set": {
+                    "status": SsoConnectionStatus.RELEASE_PENDING.value,
+                    "updated_at": now,
+                }
+            }
+        )
+        return result.modified_count if result else 0
+
+    async def list_release_pending(self, limit: int) -> List[SsoConnectionDocument]:
+        return (
+            await SsoConnectionDocument.find(
+                {"status": SsoConnectionStatus.RELEASE_PENDING.value}
+            )
+            .sort([("created_at", 1), ("_id", 1)])
+            .limit(limit)
+            .to_list()
+        )
+
+    @write_op
     async def delete_by_workspace_ids(
         self, workspace_ids: List[PydanticObjectId]
     ) -> int:

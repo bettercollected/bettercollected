@@ -15,6 +15,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Single sign-on: a deleted workspace's connections that the identity bridge (Polis) could not delete
+  are no longer dropped silently. They are kept as `release_pending`, never sign anyone in, and a daily
+  job (`sso_release_retry`) deletes them in Polis, so they stop holding the identity provider's entity
+  ID. A support command, `python -m backend.sso entity-id <entity id>`, shows which connections hold an
+  entity ID and, with `--apply`, releases orphaned ones (a named workspace's only on request). The SSO
+  docs now say that a workspace's identity provider controls the whole account of users on its
+  verified domains, their other workspaces included.
+
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment

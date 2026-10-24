@@ -16,6 +16,10 @@ class SsoConnectionType(str, enum.Enum):
 class SsoConnectionStatus(str, enum.Enum):
     DISABLED = "disabled"
     ENABLED = "enabled"
+    # the workspace was deleted but Polis could not delete the connection:
+    # kept so the daily retry (and ``python -m backend.sso``) can release the
+    # IdP's entity ID in Polis; never signs anyone in
+    RELEASE_PENDING = "release_pending"
 
 
 class SsoConnectionDocument(MongoDocument):

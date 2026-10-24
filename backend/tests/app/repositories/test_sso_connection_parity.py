@@ -83,7 +83,13 @@ async def test_sso_connections(sessions):
             ("find_enabled", lambda: (other,)),
             ("delete", lambda: (off.id,)),
             ("count_by_workspace", lambda: (ws,)),
+            ("list_release_pending", lambda: (10,)),
+            ("mark_release_pending", lambda: ([other], now)),
+            ("mark_release_pending", lambda: ([other], now)),
+            ("list_release_pending", lambda: (10,)),
+            ("find_enabled", lambda: (other,)),
             ("delete_by_workspace_ids", lambda: ([other],)),
+            ("list_release_pending", lambda: (10,)),
             ("list_by_workspace", lambda: (other,)),
         ],
     )
