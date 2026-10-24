@@ -129,8 +129,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
   `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
   Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
-  Who closed a request and when is kept on it, and a later sync no longer brings back a response whose deletion
-  request was completed.
+  Who closed a request and when is kept on it (every close is appended, never overwritten), and a later sync no
+  longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
+  of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
+  "Not deleted: <reason>" (English and Dutch), never as deleted.
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment

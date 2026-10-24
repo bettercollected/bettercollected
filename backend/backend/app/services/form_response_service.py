@@ -719,6 +719,19 @@ class FormResponseService:
             and request.status == DeletionRequestStatus.PENDING
         )
 
+    async def _unresolved_copy(
+        self, workspace_id: PydanticObjectId, form_id: str, response_id: str
+    ) -> bool:
+        """Whether a stored copy of (form_id, response_id) remains that is
+        this workspace's or belongs to no workspace yet."""
+        return any(
+            str(copy.form_id) == str(form_id)
+            and copy.workspace_id in (None, PydanticObjectId(workspace_id))
+            for copy in await self._form_response_repo.list_by_response_id(
+                str(response_id)
+            )
+        )
+
     async def close_deletion_request(
         self,
         workspace_id: PydanticObjectId,
@@ -764,6 +777,18 @@ class FormResponseService:
             stored = await self.workspace_response(workspace_id, response_id)
             if stored is not None and str(stored.form_id) == str(form_id):
                 await self.delete_form_response(form_id, response_id, workspace_id)
+            elif await self._unresolved_copy(workspace_id, form_id, response_id):
+                # a copy this workspace may own (e.g. stored before #768
+                # without a workspace, on a form linked to several) is still
+                # there: never say "completed" while the data stays
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "deletion_request_copy_unresolved",
+                        "message": "A stored copy of this response could not be "
+                        "attributed to this workspace; it was not deleted.",
+                    },
+                )
             status, reason = DeletionRequestStatus.SUCCESS, None
         else:
             status = DeletionRequestStatus.DECLINED

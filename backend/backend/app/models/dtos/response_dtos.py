@@ -163,6 +163,10 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_imported_by: Optional[str] = None
     consent: Optional[List[ConsentResponseCamelModel]] = None
     deletion_status: Optional[DeletionRequestStatus] = None
+    # a declined deletion request's reason (a fixed code, see DeclineReason),
+    # so the respondent is told it was NOT deleted and why; who declined it
+    # (closed_by) is never sent
+    decline_reason: Optional[str] = None
     anonymize: Optional[bool] = None
     # The stored feedback history carries staff identity and ciphertext: it
     # is never serialised. Respondents get ``feedback``; staff get

@@ -39,6 +39,8 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
+    import_closure,
+    staff_closure,
 )
 from backend.app.schemas.workspace_responder import (
     WorkspaceResponderDocument,
@@ -614,10 +616,15 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         closed_by: str,
         decline_reason: Optional[DeclineReason] = None,
     ) -> FormResponseDeletionRequest:
+        now = utcnow()
         request.status = status
         request.closed_by = closed_by
-        request.closed_at = utcnow()
+        request.closed_at = now
         request.decline_reason = decline_reason
+        request.closures = [
+            *request.closures,
+            staff_closure(status, closed_by, now, decline_reason),
+        ]
         return await self.save_document(request, row=ResponseDeletionRequestRow)
 
     async def delete_by_form_id_except(
@@ -646,6 +653,9 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 or request.updated_at != now
             ):
                 modified += 1
+            if request.status != DeletionRequestStatus.SUCCESS:
+                # a new close; an earlier one (a decline) is kept
+                request.closures = [*request.closures, import_closure(now)]
             request.status = DeletionRequestStatus.SUCCESS
             request.updated_at = now
         await self.upsert_many(requests, row=dr)

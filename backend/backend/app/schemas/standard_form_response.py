@@ -1,8 +1,9 @@
 import datetime as dt
 import enum
-from typing import Optional
+from typing import List, Optional
 
 from beanie import PydanticObjectId
+from pydantic import BaseModel, Field
 from pymongo import IndexModel
 from pymongo.errors import OperationFailure
 
@@ -77,6 +78,37 @@ async def drop_legacy_deletion_request_index(collection) -> bool:
     return True
 
 
+class DeletionRequestClosure(BaseModel):
+    """One close of a deletion request (ids only)."""
+
+    status: str
+    # "staff" (closed by hand) or "import" (the source no longer has it)
+    source: str
+    at: str  # ISO 8601, UTC
+    by: Optional[str] = None  # the staff user id
+    reason: Optional[str] = None  # DeclineReason value, declines only
+
+
+def _iso(at: dt.datetime) -> str:
+    return at.astimezone(dt.timezone.utc).isoformat() if at.tzinfo else at.isoformat()
+
+
+def staff_closure(status, by: str, at: dt.datetime, reason=None) -> DeletionRequestClosure:
+    return DeletionRequestClosure(
+        status=getattr(status, "value", status),
+        source="staff",
+        at=_iso(at),
+        by=by,
+        reason=getattr(reason, "value", reason),
+    )
+
+
+def import_closure(at: dt.datetime) -> DeletionRequestClosure:
+    return DeletionRequestClosure(
+        status=DeletionRequestStatus.SUCCESS.value, source="import", at=_iso(at)
+    )
+
+
 class FormResponseDeletionRequest(MongoDocument):
     form_id: str
     response_id: str
@@ -96,6 +128,11 @@ class FormResponseDeletionRequest(MongoDocument):
     closed_by: Optional[str] = None
     closed_at: Optional[dt.datetime] = None
     decline_reason: Optional[DeclineReason] = None
+    # Every close, oldest first (append only): a staff decision, or an import
+    # that no longer has the response. A later close never overwrites an
+    # earlier one (a declined request whose response then leaves the source
+    # keeps its decline here and gets a second entry).
+    closures: List[DeletionRequestClosure] = Field(default_factory=list)
 
     class Settings:
         # No indexes here: DELETION_REQUEST_INDEX_MODEL is built (and the
