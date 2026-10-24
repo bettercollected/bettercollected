@@ -42,6 +42,20 @@ from common.db import to_bson_dict
 from common.db.routing import write_op
 from common.clock import utcnow
 
+# In a $lookup of a response's deletion request (``let: {workspace_id}`` the
+# response copy's, null when it has none): the request of that copy's
+# workspace, or one stored before requests carried a workspace (#768).
+_REQUEST_OF_THIS_COPY = {
+    "$match": {
+        "$expr": {
+            "$in": [
+                {"$ifNull": ["$workspace_id", None]},
+                ["$$workspace_id", None],
+            ]
+        }
+    }
+}
+
 
 class FormResponseRepository(BaseRepository):
     def __init__(self, crypto: Crypto):
@@ -73,12 +87,15 @@ class FormResponseRepository(BaseRepository):
             {"$unwind": "$form_title"},
             # Surface any deletion request's status on the response itself —
             # without it, requesting deletion changed nothing visible in the
-            # responder's submissions list.
+            # responder's submissions list. This copy's workspace's request
+            # only: another workspace's copy has its own.
             {
                 "$lookup": {
                     "from": "responses_deletion_requests",
                     "localField": "response_id",
                     "foreignField": "response_id",
+                    "let": {"workspace_id": {"$ifNull": ["$workspace_id", None]}},
+                    "pipeline": [_REQUEST_OF_THIS_COPY],
                     "as": "deletion_request",
                 },
             },
@@ -118,6 +135,14 @@ class FormResponseRepository(BaseRepository):
                     "from": "responses_deletion_requests",
                     "localField": "response_ids",
                     "foreignField": "response_id",
+                    # this workspace's requests (or stored before they had one)
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "workspace_id": {"$in": [scope.workspace_id, None]}
+                            }
+                        }
+                    ],
                     "as": "deletion_requests",
                 }
             },
@@ -415,11 +440,6 @@ class FormResponseRepository(BaseRepository):
     @write_op
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await response.save()
-
-    async def find_deletion_request_by_response_id(
-        self, response_id: str
-    ) -> Optional[FormResponseDeletionRequest]:
-        return await FormResponseDeletionRequest.find_one({"response_id": response_id})
 
     async def find_deletion_request_for(
         self, response: FormResponseDocument

@@ -149,10 +149,17 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         ]
         if data_owner_identifier is not None:
             where.append(FormResponseRow.data_owner_identifier == data_owner_identifier)
-        # $arrayElemAt [deletion_request.status, 0]: the first request, in natural order
+        # $arrayElemAt [deletion_request.status, 0]: the first request, in natural
+        # order, of this copy's workspace (or stored before requests had one)
         first_request = (
             select(dr.doc)
-            .where(dr.response_id == FormResponseRow.response_id)
+            .where(
+                dr.response_id == FormResponseRow.response_id,
+                or_(
+                    dr.workspace_id == FormResponseRow.workspace_id,
+                    dr.workspace_id.is_(None),
+                ),
+            )
             .order_by(dr.created_at, dr.id)
             .limit(1)
             .correlate(FormResponseRow)
@@ -204,7 +211,14 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         )
         deletion_requests = (
             select(func.count())
-            .where(dr.response_id == func.any(grouped.c.response_ids))
+            .where(
+                dr.response_id == func.any(grouped.c.response_ids),
+                # this workspace's requests (or stored before they had one)
+                or_(
+                    dr.workspace_id == str(scope.workspace_id),
+                    dr.workspace_id.is_(None),
+                ),
+            )
             .correlate(grouped)
             .scalar_subquery()
         )
@@ -293,9 +307,13 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         ]
         if data_owner_identifier is not None:
             where.append(dr.data_owner_identifier == data_owner_identifier)
+        # the copy in the request's workspace (any for a request without one)
         response_doc = (
             select(r.doc)
-            .where(r.response_id == dr.response_id)
+            .where(
+                r.response_id == dr.response_id,
+                or_(dr.workspace_id.is_(None), r.workspace_id == dr.workspace_id),
+            )
             .order_by(r.created_at, r.id)
             .limit(1)
             .correlate(dr)
@@ -552,15 +570,6 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await self.save_document(response)
-
-    async def find_deletion_request_by_response_id(
-        self, response_id: str
-    ) -> Optional[FormResponseDeletionRequest]:
-        return await self.one_of(
-            ResponseDeletionRequestRow,
-            FormResponseDeletionRequest,
-            ResponseDeletionRequestRow.response_id == response_id,
-        )
 
     async def find_deletion_request_for(
         self, response: FormResponseDocument

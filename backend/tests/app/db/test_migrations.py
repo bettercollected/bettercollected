@@ -254,3 +254,51 @@ def test_duplicate_workspace_links_stop_0019_before_it_changes_anything(scratch_
     asyncio.run(
         _execute(scratch_url, _link("e" * 24, "form-1", "6ac000000000000000000009"))
     )
+
+
+def _deletion_request(oid: str, workspace_id) -> str:
+    workspace = (
+        f", 'workspace_id', jsonb_build_object('$oid', '{workspace_id}')"
+        if workspace_id
+        else ""
+    )
+    return (
+        "INSERT INTO app.responses_deletion_requests (id, doc, _bc_checksum) VALUES "
+        f"('{oid}', jsonb_build_object('_id', jsonb_build_object('$oid', '{oid}'), "
+        f"'form_id', 'form-1', 'response_id', 'resp-1', 'provider', 'google'"
+        f"{workspace}), 'x') RETURNING id"
+    )
+
+
+def test_0020_keys_deletion_requests_per_workspace(scratch_url):
+    """Before 0020 a request in one workspace refuses the other's for its copy
+    of the same response; after it each workspace has its own, a second one in
+    the same workspace is refused, and unstamped requests still collide."""
+    config = _config(scratch_url)
+    command.upgrade(config, "0019")
+    workspace_a, workspace_b = "6ac000000000000000000001", "6ac000000000000000000002"
+    asyncio.run(_execute(scratch_url, _deletion_request("a" * 24, workspace_a)))
+    with pytest.raises(Exception, match="form_id_response_id_provider"):
+        asyncio.run(_execute(scratch_url, _deletion_request("b" * 24, workspace_b)))
+
+    command.upgrade(config, "head")
+    asyncio.run(_execute(scratch_url, _deletion_request("b" * 24, workspace_b)))
+    index = "uq_deletion_requests_form_response_provider_workspace"
+    with pytest.raises(Exception, match=index):
+        asyncio.run(_execute(scratch_url, _deletion_request("c" * 24, workspace_a)))
+    asyncio.run(_execute(scratch_url, _deletion_request("d" * 24, None)))
+    with pytest.raises(Exception, match=index):
+        asyncio.run(_execute(scratch_url, _deletion_request("e" * 24, None)))
+
+    # the downgrade restores the per-response key, so it refuses while two
+    # workspaces hold a request for the same response
+    with pytest.raises(Exception, match="form_id_response_id_provider"):
+        command.downgrade(config, "0019")
+    asyncio.run(
+        _execute(
+            scratch_url,
+            "DELETE FROM app.responses_deletion_requests"
+            f" WHERE id IN ('{'b' * 24}', '{'d' * 24}') RETURNING id",
+        )
+    )
+    command.downgrade(config, "0019")

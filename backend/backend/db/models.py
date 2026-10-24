@@ -336,9 +336,17 @@ class ResponseDeletionRequestRow(Base, BaseRow):
     anonymous_identity = S.text("anonymous_identity")
     workspace_id = S.text("workspace_id")  # of the response (0015, #768)
     __table_args__ = (
-        # Mongo's unique index treats a missing provider as one value; NULLS NOT DISTINCT keeps that.
-        UniqueConstraint(
-            "form_id", "response_id", "provider", postgresql_nulls_not_distinct=True
+        # one request per response, provider and workspace (0020): Mongo's
+        # unique index treats a missing provider or workspace as one value
+        # (null); NULLS NOT DISTINCT keeps that
+        Index(
+            "uq_deletion_requests_form_response_provider_workspace",
+            "form_id",
+            "response_id",
+            "provider",
+            "workspace_id",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
         ),
         Index(None, "status"),
     )
