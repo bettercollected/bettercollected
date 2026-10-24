@@ -20,6 +20,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   English), and the submission-update notice follows the form's language. The invitation now names the
   workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
   says that the name is the one the inviter chose.
+- Two SQL scripts for the Umami database, `scripts/umami/email-data-count.sql` (read-only) and
+  `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
+  event-data property that the web app sent before it stopped sending the signed-in user's email to
+  analytics. They print counts only.
 - Deleting an account now also erases its Brevo marketing contact (`DELETE /v3/contacts/{email}`), with
   a separate Brevo API key, `BREVO_CONTACTS_API_KEY` (never the tracker key). Without the key the
   erasure is skipped. Rate limits and server errors are retried a few times with backoff. It never holds
