@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
+from common.db.convergence import active, touch, ttl_of
+from common.db.tombstones import record_postgres
 
 
 class PostgresNotConfigured(RuntimeError):
@@ -109,6 +111,27 @@ class PostgresRepositoryBase:
             ).scalar_one()
 
     # -- writes ----------------------------------------------------------------
+    def _touch(self, row: Type[Any], ids: Iterable[Any]) -> None:
+        """Report rows this repository writes or deletes to the routed write
+        in progress (:mod:`common.db.convergence`). The helpers below do it;
+        a method that executes its own INSERT/UPDATE/DELETE calls it too."""
+        if not active():
+            return
+        touch(
+            row,
+            ids,
+            sessions=self._sessions,
+            mongo_collection=lambda: self.document.get_pymongo_collection().database[
+                row.mongo_collection()
+            ],
+            ttl=ttl_of(self._document_of(row)),
+        )
+
+    def _document_of(self, row: Type[Any]) -> Optional[Type[Any]]:
+        if row is getattr(self, "row", None):
+            return getattr(self, "document", None)
+        return next((d for d, r in self.document_rows.items() if r is row), None)
+
     def _column_names(self, row: Optional[Type[Any]] = None) -> dict[str, str]:
         """attribute -> column name (``bc_source`` is stored as ``_bc_source``)."""
         mapper = sa_inspect(row or self.row).mapper
@@ -141,6 +164,7 @@ class PostgresRepositoryBase:
     ):
         row = row or self.row
         names = self._column_names(row)
+        self._touch(row, [values["id"]])
         stmt = pg_insert(row).values({names[k]: v for k, v in values.items()})
         excluded = stmt.excluded
         return stmt.on_conflict_do_update(
@@ -203,10 +227,25 @@ class PostgresRepositoryBase:
             f"expected one of {[t.__name__ for t in expected]}"
         )
 
+    async def _delete_recorded(self, session, row: Type[Any], *where: Any) -> int:
+        """Delete and, in the same transaction, record a tombstone per
+        deleted id (:mod:`common.db.tombstones`); report the ids to the
+        routed write in progress (:mod:`common.db.convergence`)."""
+        ids = (
+            (await session.execute(delete(row).where(*where).returning(row.id)))
+            .scalars()
+            .all()
+        )
+        await record_postgres(
+            session, row.__table__.schema, row.mongo_collection(), ids
+        )
+        self._touch(row, ids)
+        return len(ids)
+
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
+        row = row or self.row
         async with self._session() as session, session.begin():
-            result = await session.execute(delete(row or self.row).where(*where))
-        return result.rowcount or 0
+            return await self._delete_recorded(session, row, *where)
 
     async def delete_one_where(
         self, *where: Any, row: Optional[Type[Any]] = None
@@ -223,8 +262,7 @@ class PostgresRepositoryBase:
                 .limit(1)
                 .scalar_subquery()
             )
-            result = await session.execute(delete(row).where(row.id == target))
-        return result.rowcount or 0
+            return await self._delete_recorded(session, row, row.id == target)
 
     async def delete_by_id(self, document_id: Any) -> int:
         return await self.delete_where(self.row.id == str(document_id))

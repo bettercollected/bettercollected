@@ -48,38 +48,70 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   no account, broken down by a marker attribute and by Brevo list membership, and lists the attribute
   names they carry. It prints counts and attribute names only. `--apply` needs `--marker ATTRIBUTE[=VALUE]`.
   It deletes only contacts that have no account, carry the marker and are on no Brevo list.
-- The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
-  which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
-  flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
-  changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
-  the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
-  keyset freeze and the backup and restore test to do before Mongo is turned off.
 - `GOOGLE_FORMS_IMPORT=on|readonly|off` (backend and Google Forms service; default `on`). `readonly` keeps
   imported forms and responses readable but refuses new imports, re-syncs, account connections and every
   other call to Google with a Google Forms credential (403 `google_forms_readonly`); `off` answers 410
   `google_forms_off` and never calls the Google Forms service. `GET /providers` reports the mode
   (`importMode`). See `docs/RUNNING_INTEGRATIONS.md`.
 
+### Removed
+
+- **Typeform** (services): the Typeform sign-in (always refused, since its email is not verified) and its
+  settings are gone. `/auth/{provider}/basic` takes Google only, and the import and proxy routes no longer
+  accept `typeform`. Forms and responses imported from Typeform stay readable as ordinary forms. The
+  `TYPEFORM_*` settings are retired: values left in an env file or the settings store are ignored and no
+  longer reported. A stored `typeform` provider row is no longer offered, read or called (the OAuth
+  callback and every provider lookup refuse it), so account deletion no longer depends on the Typeform
+  service. The row itself stays in `forms_plugin_configs` and is pruned with the other Typeform data later. The keyset tasks accept and ignore `typeform_acknowledged`
+  and no longer wait for a Typeform heartbeat.
+- **Typeform** (deployment): the `integrations-typeform` compose service, `.env.typeform`, the
+  `TYPEFORM_*` lines of `.env.deployment.example` and the Typeform seed row are gone.
+  `./deploy.sh typeform` and `./deploy.sh both` still work, with a warning, and start the stack
+  without Typeform (with Google Forms for `both`); `settings-prune` ignores `--typeform` and
+  `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
+  release still exists and never removes it; existing `.env.typeform` files are left alone.
+
+## [4.0.6] - 2026-10-24
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **Migrations run on start** (`deploy.sh`, or `DB_AUTO_MIGRATE`): app `0019`, `0020` and `0021`,
+  auth `0004`, google `0004`. All are expand-only. `0019` refuses to run while
+  `app.workspace_forms` holds duplicate (`workspace_id`, `form_id`) links; the read-only check is in
+  the `0019` entry below.
+- **No compose or setting change.**
+- **Rollback limit.** Roll back the image only and keep the schema: a 4.0.5 image runs on the newer
+  schema, so don't run the Alembic downgrades. Once two workspaces hold a deletion request for the
+  same response, a 4.0.5 service using Mongo can't rebuild its old unique index on
+  `responses_deletion_requests` (`form_id_1_response_id_1_provider_1`) and doesn't start, and the
+  `0020` downgrade fails. Check first (read-only):
+
+  ```sql
+  SELECT form_id, response_id, provider, count(*) AS requests,
+         array_agg(id ORDER BY updated_at DESC) AS ids
+    FROM app.responses_deletion_requests
+   GROUP BY form_id, response_id, provider HAVING count(*) > 1;
+  ```
+
+  ```js
+  db.responses_deletion_requests.aggregate([
+    {$group: {_id: {f: "$form_id", r: "$response_id", p: "$provider"}, n: {$sum: 1},
+              ids: {$push: "$_id"}, workspaces: {$push: "$workspace_id"}}},
+    {$match: {n: {$gt: 1}}}])
+  ```
+
+  If either finds a pair, prefer fixing forward on 4.0.6. To roll back anyway, merge each pair
+  into one request in both stores first: note the ids and workspaces, complete the requests that
+  can be completed, keep one request per response, and delete the others by id
+  (`DELETE FROM app.responses_deletion_requests WHERE id = '<id>';` and
+  `db.responses_deletion_requests.deleteOne({_id: ObjectId("<id>")})`). After upgrading again,
+  re-file the removed requests in their workspaces.
+- **After the deploy**, open the admin portal's health page. Every instance should report, with no
+  mirror failures and no outbox backlog.
+
 ### Changed
 
-- Once every repository group is on Postgres for reads and writes (`DB_READ_SOURCE=postgres`,
-  `DB_WRITE_MODE=postgres`, no group override back to Mongo, no shadow reads), the backend, its job worker,
-  auth and the Google Forms service start and serve without MongoDB: no connection is made, `MONGO_URI` may be
-  unset, and the backend's persistence status reports Mongo as "not used". While any group still uses Mongo,
-  startup is unchanged and fails on an unreachable Mongo. CI's Postgres runs now go without a Mongo server.
-
-- The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
-  holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
-  instance); AI holds the Profile, Memory, MCP (endpoint and API keys) and Settings tabs, each shown only
-  to members who may use it, and opens on the first of them. Every tab has its own address
-  (`/dashboard/sso/domains`, `/dashboard/ai/memory`, ...); the old addresses (`/ai-settings`,
-  `/ai-profile`, `/ai-memory`, `/api-keys`, `/domains`) redirect permanently. Members, Single sign-on
-  and AI share one tab bar: a named navigation of links marking the current tab with
-  `aria-current="page"`, with 44px targets, a visible focus ring, and sideways scrolling on small screens.
-- The bettercollected logo is now the name alone, as the admin portal sets it: "bettercollected" in
-  Instrument Sans 600, in ink, with no blue "b" and no trailing dot. The small mark, the favicon and the
-  app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
-  "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
 - A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
   Postgres (app revision `0019`, replacing the plain index) and in Mongo (`uq_workspace_forms_workspace_form`,
   built at startup while Mongo is used; links without a workspace or form are left out, as Postgres treats
@@ -102,26 +134,36 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   same time (a failure of either is logged and the service starts anyway). Filing twice for the same copy
   is refused as before, and a request stored before requests carried a workspace is still found for the
   response.
-
-### Removed
-
-- **Typeform** (services): the Typeform sign-in (always refused, since its email is not verified) and its
-  settings are gone. `/auth/{provider}/basic` takes Google only, and the import and proxy routes no longer
-  accept `typeform`. Forms and responses imported from Typeform stay readable as ordinary forms. The
-  `TYPEFORM_*` settings are retired: values left in an env file or the settings store are ignored and no
-  longer reported. A stored `typeform` provider row is no longer offered, read or called (the OAuth
-  callback and every provider lookup refuse it), so account deletion no longer depends on the Typeform
-  service. The row itself stays in `forms_plugin_configs` and is pruned with the other Typeform data later. The keyset tasks accept and ignore `typeform_acknowledged`
-  and no longer wait for a Typeform heartbeat.
-- **Typeform** (deployment): the `integrations-typeform` compose service, `.env.typeform`, the
-  `TYPEFORM_*` lines of `.env.deployment.example` and the Typeform seed row are gone.
-  `./deploy.sh typeform` and `./deploy.sh both` still work, with a warning, and start the stack
-  without Typeform (with Google Forms for `both`); `settings-prune` ignores `--typeform` and
-  `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
-  release still exists and never removes it; existing `.env.typeform` files are left alone.
+- Changelog entries are now files in `changelog.d/` (`<pr-number-or-branch-slug>.<category>.md`)
+  instead of edits to `CHANGELOG.md`, which a release assembles them into with
+  `.github/scripts/changelog.py assemble X.Y.Z` (`--draft` previews). A PR check fails when a pull
+  request changes code without a fragment (unless it is labelled `no-changelog`) or edits
+  `CHANGELOG.md` outside a `docs/changelog-X.Y.Z` release branch. See `changelog.d/README.md`.
 
 ### Fixed
 
+- Two writes to the same document at once, in `dual` or `postgres_primary_dual`, could reach the
+  mirror store in the opposite order and leave it with the older version. After its mirror write,
+  each write now brings the mirror's copy of the rows it touched in line with the primary's
+  (counted as `mirror_repairs`); a mirror copy of a row the primary deleted is removed even when
+  the rounds or the mirror timeout run out. `reconcile` no longer overwrites, or re-inserts, a copy
+  the application changed or deleted after reconcile read it (counted as `skipped`, and the outbox
+  stays open).
+- `reconcile` could bring back a record deleted in one store whose delete had failed in the other
+  (a response, a deletion request, an account). Every delete now records a tombstone (collection,
+  id and time only) in the store that deletes, in every write mode. `reconcile` never copies a
+  deleted record and deletes its surviving copy instead, in both directions, and `verify` reports
+  deleted records that are still present (`tombstoned`). Tombstones are kept 120 days. New table
+  `deletion_tombstones` in the `app`, `auth` and `google` schemas (app revision `0021`, auth and
+  google `0004`).
+
+## [4.0.5] - 2026-10-24
+
+### Fixed
+
+- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
+  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
+  HTMX swaps or task progress updates.
 - Importing from Google Forms works again after Google's consent screen. The Google Forms service sent a PKCE
   challenge with the authorization URL (the default of google-auth-oauthlib since 1.3) but exchanged the code
   without its verifier, so Google refused the exchange (`invalid_grant`). The verifier is now derived from the
@@ -136,14 +178,41 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   upstream status and error code.
 - After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
   instead of failing, and the picker flag is added to the return URL as a proper query parameter.
-- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
-  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
-  HTMX swaps or task progress updates.
-- The forms list and form search ask the auth service about each importer once, instead of once per
-  form on the page. Search now shows each form's own importer: it could show another member's name on
-  a form, and no importer at all on forms imported by someone other than the searching member. The forms
-  list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
-  to the same workspace still counts that workspace's older responses.
+
+## [4.0.4] - 2026-10-24
+
+### Added
+
+- The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
+  which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
+  flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
+  changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
+  the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
+  keyset freeze and the backup and restore test to do before Mongo is turned off.
+
+### Changed
+
+- Once every repository group is on Postgres for reads and writes (`DB_READ_SOURCE=postgres`,
+  `DB_WRITE_MODE=postgres`, no group override back to Mongo, no shadow reads), the backend, its job worker,
+  auth and the Google Forms service start and serve without MongoDB: no connection is made, `MONGO_URI` may be
+  unset, and the backend's persistence status reports Mongo as "not used". While any group still uses Mongo,
+  startup is unchanged and fails on an unreachable Mongo. CI's Postgres runs now go without a Mongo server.
+
+- The dashboard sidebar's Workspace group is now Members, Themes, Single sign-on and AI. Single sign-on
+  holds the Single sign-on and Domains tabs (only Domains, named so, when single sign-on is off on the
+  instance); AI holds the Profile, Memory, MCP (endpoint and API keys) and Settings tabs, each shown only
+  to members who may use it, and opens on the first of them. Every tab has its own address
+  (`/dashboard/sso/domains`, `/dashboard/ai/memory`, ...); the old addresses (`/ai-settings`,
+  `/ai-profile`, `/ai-memory`, `/api-keys`, `/domains`) redirect permanently. Members, Single sign-on
+  and AI share one tab bar: a named navigation of links marking the current tab with
+  `aria-current="page"`, with 44px targets, a visible focus ring, and sideways scrolling on small screens.
+- The bettercollected logo is now the name alone, as the admin portal sets it: "bettercollected" in
+  Instrument Sans 600, in ink, with no blue "b" and no trailing dot. The small mark, the favicon and the
+  app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
+  "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
+
+### Fixed
+
 - A document import running in the API process that stops on an unexpected error (outside the import's
   own error handling, such as a database error while failing it) now fails the import with code
   `failed` and removes its empty draft, instead of leaving it running until it expires. Its task no longer
@@ -155,6 +224,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
   many, the question that names the node). "Start with AI" opens on phones and small tablets too
   (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
+- The forms list and form search ask the auth service about each importer once, instead of once per
+  form on the page. Search now shows each form's own importer: it could show another member's name on
+  a form, and no importer at all on forms imported by someone other than the searching member. The forms
+  list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
+  to the same workspace still counts that workspace's older responses.
 
 ### Security
 
@@ -999,7 +1073,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.3...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...HEAD
+[4.0.6]: https://github.com/bettercollected/bettercollected/compare/v4.0.5...v4.0.6
 [4.0.3]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/bettercollected/bettercollected/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/bettercollected/bettercollected/compare/v4.0.0...v4.0.1
