@@ -101,12 +101,7 @@ class FormService:
         pinned_only: bool,
         user: User,
     ) -> Page[FormDtoCamelModel]:
-        # Members get the dashboard listing; everyone else the public one.
-        has_access_to_workspace = await self._authorization.has_permission(
-            user, Permission.FORM_READ, workspace_id
-        )
-        if not published and not has_access_to_workspace:
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        has_access_to_workspace = await self._staff_view(user, workspace_id, published)
 
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id,
@@ -134,7 +129,7 @@ class FormService:
             for form in forms_page.items:
                 respondent_view(form)
 
-        if not published:
+        if has_access_to_workspace and not published:
             importers = await self._importer_details(
                 form.imported_by for form in forms_page.items
             )
@@ -146,6 +141,20 @@ class FormService:
                     )
 
         return forms_page
+
+    async def _staff_view(
+        self, user: Optional[User], workspace_id: PydanticObjectId, published: bool
+    ) -> bool:
+        """Whether ``user`` sees the workspace's forms as staff (``form.read``).
+        Members get the dashboard listing and search; everyone else only the
+        published forms: drafts (``published`` false) are 403 for them. Staff
+        alone get importer details (members' names and emails)."""
+        staff = await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id
+        )
+        if not published and not staff:
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        return staff
 
     async def _importer_details(self, importer_ids: Iterable[Optional[str]]):
         """importer id -> the auth service's details for them: one call with
@@ -176,6 +185,8 @@ class FormService:
     async def search_form_in_workspace(
         self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
     ):
+        # before any query: drafts are staff-only, as in the listing
+        staff = await self._staff_view(user, workspace_id, published)
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
         )
@@ -185,13 +196,11 @@ class FormService:
             query=query,
             published=published,
         )
-        if not await self._authorization.has_permission(
-            user, Permission.FORM_READ, workspace_id
-        ):
+        if not staff:
             for form in forms:
                 respondent_view(form)
 
-        if not published:
+        if staff and not published:
             importers = await self._importer_details(
                 form.get("imported_by") for form in forms
             )
@@ -294,7 +303,7 @@ class FormService:
                             status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                         )
                     form = form[0]
-                    form = await self.add_user_details_to_form(form)
+                    form = await self.add_user_details_to_form(form, is_admin)
                     return form
                 form = await self._form_repo.get_latest_version_of_form(
                     form_id=PydanticObjectId(workspace_form.form_id)
@@ -327,20 +336,19 @@ class FormService:
             )
         else:
             form = form[0]
-        form = await self.add_user_details_to_form(form)
+        form = await self.add_user_details_to_form(form, is_admin)
         return form
 
-    async def add_user_details_to_form(self, form):
-        user_ids = [form["imported_by"]] if form else []
-        user_details = (
-            {"users_info": []}
-            if not user_ids
-            else await self.fetch_user_details(user_ids=user_ids)
-        )
-        user_info = user_details.get("users_info")[0]
-        form["importer_details"] = FormImporterDetails(
-            **user_info, id=user_info.get("_id")
-        )
+    async def add_user_details_to_form(self, form, staff: bool):
+        """The form as a DTO; ``staff`` (``form.read``) also get its
+        importer's details, the members' names and emails being theirs only."""
+        if staff:
+            importers = await self._importer_details([form.get("imported_by")])
+            user_info = importers.get(form.get("imported_by"))
+            if user_info is not None:
+                form["importer_details"] = FormImporterDetails(
+                    **user_info, id=form["imported_by"]
+                )
         minified_form = FormDtoCamelModel(**form)
         if minified_form.consent is None:
             minified_form.consent = default_consents
