@@ -26,7 +26,7 @@ from typing import Any, Callable, Iterable, Mapping, Optional
 from bson import ObjectId
 from pymongo import AsyncMongoClient, ReadPreference
 from pymongo.errors import DuplicateKeyError
-from sqlalchemy import Table, and_, func, select, text
+from sqlalchemy import Table, and_, func, literal, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -205,6 +205,16 @@ def id_range(table: Table, after: Optional[str], upto: str):
     if after is None:
         return table.c.id <= upto
     return and_(table.c.id > after, table.c.id <= upto)
+
+
+def expired(document: Mapping[str, Any], ttl: Optional[tuple], now: datetime) -> bool:
+    """Whether a copy of a collection Mongo expires by TTL has expired:
+    reconcile treats it as absent, like convergence does."""
+    if ttl is None:
+        return False
+    field_name, seconds = ttl
+    at = timestamp_of(document.get(field_name))
+    return at is not None and at + timedelta(seconds=seconds) <= now
 
 
 def on_primary(collection):
@@ -721,18 +731,20 @@ class Runner:
         return results
 
     # -- deletion tombstones ----------------------------------------------------
-    async def _tombstones(self, name: str) -> dict:
-        """id -> latest deleted_at for ``name``, from both stores' tombstones."""
+    async def _tombstones(self, name: str, ids: Optional[list] = None) -> dict:
+        """id -> latest deleted_at for ``name`` (only ``ids``, when given),
+        from both stores' tombstones; Mongo's read from its primary."""
         pg = tombstones.postgres_table(self.target.schema)
+        query = select(pg.c.row_id, pg.c.deleted_at).where(pg.c.collection == name)
+        mongo_query: dict = {"collection": name}
+        if ids is not None:
+            query = query.where(pg.c.row_id.in_(ids))
+            mongo_query["row_id"] = {"$in": ids}
         async with self.engine.connect() as conn:
-            rows = (
-                await conn.execute(
-                    select(pg.c.row_id, pg.c.deleted_at).where(pg.c.collection == name)
-                )
-            ).all()
+            rows = (await conn.execute(query)).all()
         found = await (
-            self.collection(tombstones.COLLECTION)
-            .find({"collection": name}, {"row_id": 1, "deleted_at": 1})
+            on_primary(self.collection(tombstones.COLLECTION))
+            .find(mongo_query, {"row_id": 1, "deleted_at": 1})
             .to_list()
         )
         return tombstones.merge(
@@ -823,6 +835,18 @@ class Runner:
             )
         return deleted, reported, never_copy
 
+    @staticmethod
+    async def _ttl_of(coll) -> Optional[tuple[str, int]]:
+        """(field, seconds) of the collection's TTL index in Mongo, or None."""
+        try:
+            indexes = await coll.index_information()
+        except Exception:  # noqa: BLE001 — no collection yet: no TTL
+            return None
+        for spec in indexes.values():
+            if "expireAfterSeconds" in spec and len(spec.get("key", [])) == 1:
+                return spec["key"][0][0], int(spec["expireAfterSeconds"])
+        return None
+
     async def _prune_tombstones(self) -> None:
         """Drop Postgres tombstones past the retention (Mongo's expire by TTL)."""
         pg = tombstones.postgres_table(self.target.schema)
@@ -838,6 +862,8 @@ class Runner:
         """(copies written, copies skipped because the target changed since
         it was read). Ids in ``never_copy`` (deleted records) are not copied."""
         coll = self.collection(name)
+        ttl = await self._ttl_of(coll)
+        now = datetime.now(timezone.utc)
         fixed, skipped, last_id, size = 0, 0, None, 500
         while True:
             query = {"_id": {"$gt": ObjectId(last_id)}} if last_id else {}
@@ -865,6 +891,8 @@ class Runner:
                     oid = str(document["_id"])
                     if oid in never_copy:
                         continue  # a deleted record (tombstone): never copied
+                    if expired(document, ttl, now):
+                        continue  # Mongo's TTL drops it; the twin already may have
                     row = row_from_document(document)
                     current = pg.get(oid)
                     if current is None or current[1] != row["_bc_checksum"]:
@@ -907,6 +935,8 @@ class Runner:
                     if oid in never_copy:
                         continue  # a deleted record (tombstone): never copied
                     document = from_canonical_document(r[3])
+                    if expired(document, ttl, now):
+                        continue  # expired: Mongo's TTL index would drop the copy
                     mongo_doc = next(
                         (d for d in documents if str(d["_id"]) == oid), None
                     )
@@ -929,6 +959,8 @@ class Runner:
                     if row_id in never_copy:
                         continue
                     document = from_canonical_document(doc)
+                    if expired(document, ttl, now):
+                        continue
                     if dry_run or await self._apply_to_mongo(
                         coll, table, document, None, row_checksum
                     ):
@@ -949,12 +981,35 @@ class Runner:
         application deleted meanwhile stays deleted. Returns how many were
         stored."""
         applied = 0
+        name = next(c for c, t in self.target.tables.items() if t is table)
+        pg_stones = tombstones.postgres_table(self.target.schema)
         async with self.engine.begin() as conn:
             for values, expected in writes:
                 if expected is None:
+                    # ... and only while no tombstone newer than the copy exists
+                    # (a delete that landed after this run looked; the delete
+                    # writes its tombstone in its own transaction)
+                    columns = list(values)
+                    deleted_since = (
+                        select(literal(1))
+                        .select_from(pg_stones)
+                        .where(
+                            pg_stones.c.collection == name,
+                            pg_stones.c.row_id == values["id"],
+                            func.date_trunc("milliseconds", pg_stones.c.deleted_at)
+                            > func.date_trunc(
+                                "milliseconds",
+                                literal(values["updated_at"], table.c.updated_at.type),
+                            ),
+                        )
+                        .exists()
+                    )
+                    source = select(
+                        *[literal(values[c], table.c[c].type).label(c) for c in columns]
+                    ).where(~deleted_since)
                     stmt = (
                         pg_insert(table)
-                        .values(values)
+                        .from_select(columns, source)
                         .on_conflict_do_nothing(index_elements=["id"])
                     )
                 else:
@@ -1004,6 +1059,11 @@ class Runner:
         if current != row_checksum:
             return False
         if read is None:
+            # not a record deleted since this run looked (either store)
+            row_id = str(document["_id"])
+            deleted_at = (await self._tombstones(coll.name, [row_id])).get(row_id)
+            if tombstones.is_victim(deleted_at, document.get("updated_at")):
+                return False
             try:
                 await coll.insert_one(document)
             except DuplicateKeyError:

@@ -22,6 +22,12 @@ from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import DeletionTombstone, FormRow, MigrationProgress
 from backend.migrate.__main__ import _tables
+from backend.app.repositories.postgres.responses import (
+    PostgresResponderGroupsRepository,
+)
+from backend.app.repositories.responder_groups_repository import (
+    ResponderGroupsRepository,
+)
 from common.db import ReadSource, RoutingRepository, load_flags
 from common.db import tombstones
 from common.db.canonical import from_canonical_document
@@ -289,3 +295,162 @@ async def test_mongo_tombstones_expire_by_a_ttl_index(target):
     )
     ttl = indexes["deleted_at_ttl"]
     assert ttl["expireAfterSeconds"] == tombstones.RETENTION_DAYS * 86400
+
+
+# -- review follow-ups -------------------------------------------------------
+
+
+@pytest.mark.parametrize("mode", ["dual", "postgres_primary_dual"])
+async def test_saving_a_groups_emails_again_deletes_nothing_for_good(target, mode):
+    """Saving a group's emails deletes and re-inserts its members in one
+    write, under ids derived from (group, email): the same ids come back with
+    the delete's own time, at microseconds in Postgres and milliseconds in
+    Mongo. They are not deleted records."""
+    flags = load_flags({"DB_WRITE_MODE": mode, "DB_READ_SOURCE": READ[mode]})
+    repo = RoutingRepository(
+        group="responses",
+        flags=flags,
+        mongo=ResponderGroupsRepository(),
+        postgres=PostgresResponderGroupsRepository(container.pg_sessionmaker()),
+        on_mirror_failure=container.outbox_recorder(),
+    )
+    workspace_id = PydanticObjectId()
+    group = await repo.create_group(workspace_id, "Group")
+    emails = ["a@example.com", "b@example.com"]
+    await repo.add_emails_to_group(group.id, emails)
+    await repo.update_group(workspace_id, emails=emails, group_id=group.id)
+
+    async with Runner(target) as runner:
+        (report,) = await runner.verify(["responder_group_member"])
+        assert report.tombstoned == 0 and report.clean
+        result = await runner.reconcile(
+            ["responder_group_member"], direction="mongo->postgres"
+        )
+    assert result["responder_group_member"]["deleted"] == 0
+    members = await ResponderGroupsRepository().get_emails_in_group(group.id)
+    assert sorted(members["emails"]) == emails
+
+
+class DeleteBetween(Runner):
+    """A reconcile run during which the application deletes a record: after
+    the run has collected the deleted records, before it copies."""
+
+    between = None
+
+    async def _reconcile_collection(self, *args, **kwargs):
+        between, type(self).between = type(self).between, None
+        if between is not None:
+            await between()
+        return await super()._reconcile_collection(*args, **kwargs)
+
+
+@pytest.mark.allow_mirror_failures
+async def test_a_delete_racing_reconcile_is_not_copied_back(target):
+    """Postgres deletes (postgres_primary_dual) while its Mongo mirror fails,
+    after reconcile looked for deleted records: the copy from Mongo must not
+    re-insert it (the insert checks for a newer tombstone)."""
+    healthy = forms_repo("postgres_primary_dual")
+    created = await new_form(healthy)
+    other = await new_form(healthy, "Other")
+    # something for reconcile to do, so it walks the collection
+    await FormDocument.get_pymongo_collection().update_one(
+        {"_id": other.id}, {"$set": {"title": "Stale"}}
+    )
+
+    async def application_delete():
+        await forms_repo("postgres_primary_dual", mirror_down=True).delete_form(
+            created.form_id
+        )
+
+    DeleteBetween.between = application_delete
+    async with DeleteBetween(target) as runner:
+        result = await runner.reconcile(["forms"], direction="mongo->postgres")
+    assert await copies(created.id) == (True, False)  # not re-inserted
+    assert result["forms"]["skipped"] == 1
+
+    # the next verify names it, and the next reconcile removes the stray copy
+    assert (await verify(target)).tombstoned == 1
+    assert (await reconcile(target, "mongo->postgres"))["deleted"] == 1
+    assert await copies(created.id) == (False, False)
+
+
+async def test_reconcile_never_copies_an_expired_ttl_record(target):
+    """Mongo's TTL index removes an expired counter on its own schedule and
+    the twin drops it when it counts; reconcile must not copy it back."""
+    from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
+
+    expired = RateLimitCounterDocument(
+        id=PydanticObjectId(),
+        hits=1,
+        expires_at=dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5),
+    )
+    await RateLimitCounterDocument.get_pymongo_collection().insert_one(
+        {
+            "_id": expired.id,
+            "hits": 1,
+            "expires_at": expired.expires_at,
+            "created_at": expired.created_at,
+            "updated_at": expired.updated_at,
+        }
+    )
+    async with Runner(target) as runner:
+        result = await runner.reconcile(
+            ["rate_limit_counters"], direction="mongo->postgres"
+        )
+    assert result["rate_limit_counters"]["fixed"] == 0
+
+
+async def test_a_record_written_again_in_the_deleting_write_is_not_deleted(target):
+    """One write deletes a record and writes it again under the same id, so
+    the tombstone and both copies carry the same clock reading: microseconds
+    in Postgres, milliseconds where Mongo stores a BSON date. Compared at
+    millisecond precision, neither copy is a deleted record."""
+    from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+    from backend.db.models import AllowedOriginRow
+    from common.db.canonical import canonical_document, checksum
+
+    at = dt.datetime(2026, 10, 24, 12, 0, 0, 123456, tzinfo=dt.timezone.utc)
+    document = {
+        "_id": PydanticObjectId(),
+        "origin": "https://again.example",
+        "created_at": at.replace(microsecond=123000),
+        "updated_at": at.replace(microsecond=123000),  # Mongo keeps milliseconds
+    }
+    await AllowedOriginsDocument.get_pymongo_collection().insert_one(dict(document))
+    doc = canonical_document(document)
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            AllowedOriginRow(
+                id=str(document["_id"]),
+                doc=doc,
+                created_at=at,
+                updated_at=at,  # Postgres keeps microseconds
+                bc_checksum=checksum(doc),
+            )
+        )
+        session.add(
+            DeletionTombstone(
+                collection="allowed_origins", row_id=str(document["_id"]), deleted_at=at
+            )
+        )
+
+    async with Runner(target) as runner:
+        (report,) = await runner.verify(["allowed_origins"])
+    assert report.tombstoned == 0
+
+
+async def test_deletes_prune_expired_postgres_tombstones_as_they_go(
+    target, monkeypatch
+):
+    """Not only reconcile prunes: a service drops expired tombstones while it
+    records deletes, so the table stays bounded after the cutover."""
+    monkeypatch.setattr(tombstones, "PRUNE_EVERY", 1)
+    old = dt.datetime.now(dt.timezone.utc) - dt.timedelta(
+        days=tombstones.RETENTION_DAYS + 1
+    )
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(DeletionTombstone(collection="forms", row_id="old", deleted_at=old))
+    repo = forms_repo("postgres")
+    created = await new_form(repo)
+    await repo.delete_form(created.form_id)
+    assert await postgres_tombstones() == {("forms", str(created.id))}

@@ -19,6 +19,15 @@ def test_a_copy_written_before_the_delete_is_a_victim():
     assert is_victim(T, None)  # no usable timestamp: older than any delete
 
 
+def test_times_compare_at_millisecond_precision():
+    """Postgres keeps microseconds, Mongo milliseconds: a copy written by the
+    deleting write itself is not a victim in either store."""
+    at = T.replace(microsecond=123456)
+    assert not is_victim(at, at.replace(microsecond=123000))
+    assert not is_victim(at.replace(microsecond=123000), at)
+    assert is_victim(at, at.replace(microsecond=122999))
+
+
 def test_a_copy_written_at_or_after_the_delete_is_not():
     assert not is_victim(T, T)  # the same routed write deleted and wrote it again
     assert not is_victim(T, T + timedelta(seconds=1))
@@ -119,7 +128,10 @@ async def test_delete_many_records_each_id_before_deleting_exactly_those():
     stones = db[tombstones.COLLECTION].docs
     assert {s["row_id"] for s in stones} == {str(a), str(b)}
     assert all(set(s) == {"_id", "collection", "row_id", "deleted_at"} for s in stones)
-    assert all(s["collection"] == "forms" and s["deleted_at"] == now for s in stones)
+    assert all(
+        s["collection"] == "forms" and s["deleted_at"] == tombstones.to_ms(now)
+        for s in stones
+    )
     # the tombstones were written before the delete, which names the ids
     tombstoned_at = db[tombstones.COLLECTION].log
     assert tombstoned_at and db["forms"].log[0][1]["$and"][1] == {

@@ -129,8 +129,12 @@ Start on staging; repeat on production only after the staging gate.
    Reconcile can run while the services write: each copy is stored only while the target still
    holds what reconcile read, so a document the application changed in the meantime is left as
    the application wrote it and counted under `skipped` (an update never re-inserts a row the
-   application deleted meanwhile). A run with skipped copies leaves the outbox open. Run `verify`
-   again; if it still differs, run `reconcile` again.
+   application deleted meanwhile). A run with skipped copies leaves the outbox open. **Always run
+   `verify` after a `reconcile`**: a record deleted while reconcile was running can still be copied
+   back in a window of milliseconds, and only a later `verify` (as `tombstoned`) shows it; if it
+   still differs, run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
+   index (sessions, rate-limit counters, idempotency keys, SSO states, SCIM, flow events) treat an
+   expired copy as absent: reconcile never copies one.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
 
@@ -223,9 +227,16 @@ while it is still the copy it read (same `updated_at`). Its result per collectio
 `tombstoned` record is not clean and records no marker; its output names up to five such ids per
 collection (`samples.tombstoned`).
 
-Retention: tombstones are kept 400 days, longer than the cutover and the time a Mongo archive is
-kept, so a copy restored from it is still recognised. Mongo expires its tombstones with a TTL index
-(`deleted_at_ttl`); `reconcile` deletes the Postgres ones older than that at the end of each run.
+Times are compared at millisecond precision (Mongo's), so a record deleted and written again in the
+same write, such as a responder group's members when its emails are saved, is not a deleted
+record.
+
+Retention: tombstones are kept 120 days, enough for the cutover. Some ids are derived from personal
+data (a responder group member's id is a hash of the group and the email), so they are not kept
+longer. Mongo expires its tombstones with a TTL index (`deleted_at_ttl`). Each service prunes its
+expired Postgres tombstones as it records deletes (a bounded batch every 200 deletes), and
+`reconcile` prunes them at the end of each run. Drop the tables and the collection with the Mongo
+decommission (below).
 
 A *full* reconcile (no `--group` or `--collections`) then marks every unresolved outbox entry
 resolved; a partial reconcile leaves the outboxes alone (their entries name a repository and method,
@@ -559,6 +570,9 @@ Stored definition: save it with `replicas: 0` and without `MONGO_*`. A stale cop
    backend and Google instance reports `write_stores = postgres`. Don't drop a key that the retained
    Mongo archive still needs until that archive is deleted.
 4. Delete the Typeform developer app, if you had one.
+5. Drop the deletion tombstones: `DROP TABLE app.deletion_tombstones, auth.deletion_tombstones,
+   google.deletion_tombstones` (in a later release's migration), and the Mongo collection goes with
+   the Mongo data. They exist only so that reconcile can tell the two stores apart.
 
 ## Quick reference
 
