@@ -63,7 +63,11 @@ export interface paths {
          */
         put: operations["replaceForm"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a form and its responses
+         * @description The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:write`, and the key's creator needs to delete forms (`form.delete`).
+         */
+        delete: operations["deleteForm"];
         options?: never;
         head?: never;
         patch?: never;
@@ -186,6 +190,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/forms/{form_id}/responses/{response_id}/deletion-request/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a pending deletion request
+         * @description What staff do on the dashboard: `completed` deletes the workspace's stored copy of the response, `declined` keeps it and records one of the fixed reasons, which the respondent sees. Needs `deletion_requests:write`, and the key's creator needs `privacy.manage`. 409 when the request is already closed.
+         */
+        post: operations["closeDeletionRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -238,6 +262,20 @@ export interface components {
             /** Label */
             label?: string | null;
             attachment?: components["schemas"]["Attachment"] | null;
+        };
+        /** ClosedDeletionRequestResult */
+        ClosedDeletionRequestResult: {
+            /** Formid */
+            formId: string;
+            /** Responseid */
+            responseId: string;
+            /**
+             * Status
+             * @description success or declined.
+             */
+            status: string;
+            /** Declinereason */
+            declineReason?: string | null;
         };
         /**
          * Condition
@@ -296,7 +334,7 @@ export interface components {
         DeletionRequestInfo: {
             /**
              * Status
-             * @description pending or success.
+             * @description pending, success or declined.
              */
             status: string;
         };
@@ -328,9 +366,26 @@ export interface components {
         };
         /**
          * Ending
-         * @description A page shown after submitting.
+         * @description A page shown after submitting. A page jump may choose one by its
+         *     ``id``; a plain submit shows the default ending (the one with
+         *     ``isDefault``, else the first).
          */
         Ending: {
+            /**
+             * Id
+             * @description Stable id that page jumps name. Given when left out.
+             */
+            id?: string | null;
+            /**
+             * Name
+             * @description Short internal name, e.g. Eligible. Respondents never see it.
+             */
+            name?: string | null;
+            /**
+             * Isdefault
+             * @description Shown after a plain submit. At most one ending.
+             */
+            isDefault?: boolean | null;
             /** Title */
             title?: string | null;
             /** Message */
@@ -502,13 +557,21 @@ export interface components {
             title?: string | null;
             /** Description */
             description?: string | null;
+            /**
+             * Language
+             * @description The language the form's own text (title, questions, choices) is written in, as a short BCP 47 tag. Respondent pages mark that text with it for screen readers and browsers. When a document that replaces a form leaves it out, the form keeps its language; null clears it.
+             */
+            language?: ("nl" | "en" | "de" | "fr" | "es" | "it" | "pt" | "pl" | "da" | "sv" | "nb" | "fi") | null;
             welcomePage?: components["schemas"]["WelcomePage"] | null;
             /**
              * Pages
              * @description At most 200 pages, with at most 2000 fields in all (group questions included).
              */
             pages?: components["schemas"]["Page"][];
-            /** Endings */
+            /**
+             * Endings
+             * @description At most 20 endings.
+             */
             endings?: components["schemas"]["Ending"][] | null;
             theme?: components["schemas"]["Theme"] | null;
             /**
@@ -626,7 +689,9 @@ export interface components {
          * PageJump
          * @description After this page, go to ``target`` (a page id, or "__SUBMIT__" to
          *     end the form) when the conditions match. The first matching jump wins;
-         *     no match goes to the next page.
+         *     no match goes to the next page. With "__SUBMIT__", ``endingId`` names
+         *     the ending shown after submitting (default: the form's default
+         *     ending).
          */
         PageJump: {
             /** Operator */
@@ -635,6 +700,11 @@ export interface components {
             conditions?: components["schemas"]["Condition"][] | null;
             /** Target */
             target?: string | null;
+            /**
+             * Endingid
+             * @description The id of an ending of this form; only with target "__SUBMIT__".
+             */
+            endingId?: string | null;
         };
         /**
          * Position
@@ -775,6 +845,46 @@ export interface components {
              * @description e.g. classic, sheet, studio, leaflet
              */
             style?: string | null;
+            /**
+             * Titlefont
+             * @description Face of titles and question labels. Absent: the text face (or the style's own title face).
+             */
+            titleFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+            /**
+             * Bodyfont
+             * @description Face of everything else respondents read. Absent: public-sans.
+             */
+            bodyFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+            /**
+             * Datafont
+             * @description Face of data such as the submission number. Absent: the app's mono face.
+             */
+            dataFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+            /**
+             * Titlewidth
+             * @description Width of display titles: expanded is 125% on a face with a width axis (archivo).
+             */
+            titleWidth?: ("normal" | "expanded") | null;
+            /**
+             * Radius
+             * @description Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.
+             */
+            radius?: ("sharp" | "soft" | "round") | null;
+            /**
+             * Buttonstyle
+             * @description Absent: filled.
+             */
+            buttonStyle?: ("filled" | "outlined" | "pill") | null;
+            /**
+             * Highlight
+             * @description The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.
+             */
+            highlight?: string | null;
+            /**
+             * Selection
+             * @description The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.
+             */
+            selection?: string | null;
         };
         /**
          * ThemeBackground
@@ -796,6 +906,11 @@ export interface components {
              * @description Only images from our own storage or Unsplash are shown.
              */
             imageUrl?: string | null;
+            /**
+             * Artwork
+             * @description Built-in artwork served by the app (marble: a marbled endpaper). It fills the picture half of a welcome or ending page whose layout has one and no image of its own. Absent: none.
+             */
+            artwork?: "marble" | null;
         };
         /**
          * Trust
@@ -892,6 +1007,21 @@ export interface components {
              * @default true
              */
             atomic: boolean;
+        };
+        /** CloseDeletionRequest */
+        CloseDeletionRequest: {
+            /**
+             * Outcome
+             * @description completed deletes the workspace's stored copy of the response; declined keeps it.
+             * @enum {string}
+             */
+            outcome: "completed" | "declined";
+            /**
+             * Reason
+             * @description Required with declined, refused with completed. A fixed list, so no free text (and no personal data) reaches the respondent.
+             * @default null
+             */
+            reason: ("legal_obligation" | "legal_claims" | "public_interest" | "identity_not_verified" | "other") | null;
         };
     };
     responses: never;
@@ -1395,6 +1525,80 @@ export interface operations {
             };
             /** @description If-Match is required. */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited; see Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No valid API key. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The key lacks the scope, or its creator lacks the permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No such form (or response) in the key's workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A request with the same Idempotency-Key is still running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The request is not valid. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1968,6 +2172,87 @@ export interface operations {
                 };
             };
             /** @description The request is not valid. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited; see Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    closeDeletionRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+                response_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedDeletionRequestResult"];
+                };
+            };
+            /** @description No valid API key. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The key lacks the scope, or its creator lacks the permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No such form (or response) in the key's workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A request with the same Idempotency-Key is still running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The body is not valid; `errors` locates each problem. */
             422: {
                 headers: {
                     [name: string]: unknown;

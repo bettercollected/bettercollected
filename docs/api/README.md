@@ -29,8 +29,9 @@ cannot be used against this API.
 | Scope | Allows | The key's creator must hold |
 |---|---|---|
 | `forms:read` | list, read and validate forms | `form.read` |
-| `forms:write` | create, replace, edit and publish forms | `form.edit` |
+| `forms:write` | create, replace, edit, publish and delete forms | `form.edit` (`form.delete` to delete) |
 | `responses:read` | list and read responses | `response.read` and `response.export` |
+| `deletion_requests:write` | close a respondent's deletion request | `privacy.manage` |
 
 The creator's permissions are checked on every call: a key never does more
 than the person who created it may do at that moment. Every call is recorded
@@ -49,8 +50,10 @@ in the workspace's API audit log.
 | `POST /forms/{formId}/ops` | Apply edit operations (atomic by default) |
 | `POST /forms/{formId}/ops/dry-run` | Preview operations; stores nothing |
 | `POST /forms/{formId}/publish` | Publish, with the product's publish checks |
+| `DELETE /forms/{formId}` | Delete the form and the responses collected through it (the creator needs `form.delete`) |
 | `GET /forms/{formId}/responses?page&size` | Response summaries, most recent first |
 | `GET /forms/{formId}/responses/{responseId}` | One response with its answers |
+| `POST /forms/{formId}/responses/{responseId}/deletion-request/close` | Close a pending deletion request as `completed` or `declined` |
 
 ### Replacing a form
 
@@ -86,7 +89,12 @@ stored.
 
 Only the workspace's own responses are returned. A response with a pending
 deletion request carries `deletionRequest: {"status": "pending"}`; honour it
-in every copy you keep. Who answered (email, identity) and captured URL
+in every copy you keep. Staff close it with
+`POST .../deletion-request/close`: `{"outcome": "completed"}` deletes the
+workspace's stored copy, `{"outcome": "declined", "reason": "..."}` keeps it
+with one of the fixed reasons (`legal_obligation`, `legal_claims`,
+`public_interest`, `identity_not_verified`, `other`), which the respondent
+sees; a closed request answers 409. Who answered (email, identity) and captured URL
 parameters are never returned. Values of internal (staff-only) fields are
 returned as `internalAnswers`.
 

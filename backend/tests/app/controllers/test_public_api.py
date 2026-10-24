@@ -930,6 +930,220 @@ class TestResponses:
         )
 
 
+class TestDeleteForm:
+    async def test_deletes_the_form_and_its_responses(
+        self, client: AsyncClient, workspace, published_form
+    ):
+        token = await _token(workspace.id)
+        form_id = published_form.form_id
+        response = await container.workspace_form_service().submit_response(
+            workspace.id, form_id, StandardFormResponse(**formResponse), testUser2
+        )
+
+        deleted = await client.delete(f"{BASE}/forms/{form_id}", headers=_auth(token))
+        assert deleted.status_code == 204, deleted.text
+        assert deleted.content == b""
+        _is_error(
+            await client.get(f"{BASE}/forms/{form_id}", headers=_auth(token)),
+            404,
+            "not_found",
+        )
+        assert await _form_count(workspace.id) == 0
+        assert (
+            await container.form_response_service().workspace_response(
+                workspace.id, response.response_id
+            )
+        ) is None
+        _is_error(
+            await client.delete(f"{BASE}/forms/{form_id}", headers=_auth(token)),
+            404,
+            "not_found",
+        )
+
+    async def test_needs_forms_write_and_the_creators_form_delete(
+        self, client: AsyncClient, workspace, workspace_form
+    ):
+        url = f"{BASE}/forms/{workspace_form.form_id}"
+        read_only = await _token(workspace.id, ["forms:read"])
+        _is_error(
+            await client.delete(url, headers=_auth(read_only)), 403, "missing_scope"
+        )
+
+        # a viewer may not change forms: a key they made is refused
+        creator = await _member(workspace, WorkspaceRoles.ADMIN)
+        token = await _token(workspace.id, ["forms:read", "forms:write"], user=creator)
+        await _set_role(workspace, creator, WorkspaceRoles.VIEWER)
+        _is_error(
+            await client.delete(url, headers=_auth(token)),
+            403,
+            "key_creator_lacks_permission",
+        )
+        assert await _form_count(workspace.id) == 1
+
+    async def test_another_workspaces_form_is_not_found(
+        self, client: AsyncClient, workspace, workspace_1, workspace_form
+    ):
+        token = await _token(workspace_1.id, user=testUser1)
+        _is_error(
+            await client.delete(
+                f"{BASE}/forms/{workspace_form.form_id}", headers=_auth(token)
+            ),
+            404,
+            "not_found",
+        )
+        assert await _form_count(workspace.id) == 1
+
+
+async def _member(workspace, role) -> User:
+    user = User(id=str(PydanticObjectId()), sub="api-member@example.com")
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(workspace_id=workspace.id, user_id=user.id, roles=[role])
+    )
+    return user
+
+
+async def _set_role(workspace, user: User, role) -> None:
+    repo = container.workspace_user_repo()
+    membership = await repo.find_workspace_user(workspace.id, PydanticObjectId(user.id))
+    membership.roles = [role]
+    await repo.save(membership)
+
+
+CLOSE_SCOPES = ALL_SCOPES + ["deletion_requests:read", "deletion_requests:write"]
+
+
+async def _pending_request(workspace, form) -> str:
+    response = await container.workspace_form_service().submit_response(
+        workspace.id, form.form_id, StandardFormResponse(**formResponse), testUser2
+    )
+    await container.form_response_service().request_for_response_deletion(
+        workspace.id, response.response_id, testUser
+    )
+    return response.response_id
+
+
+class TestCloseDeletionRequest:
+    async def test_declined_keeps_the_response_and_records_the_reason(
+        self, client: AsyncClient, workspace, published_form
+    ):
+        token = await _token(workspace.id, CLOSE_SCOPES)
+        response_id = await _pending_request(workspace, published_form)
+        url = f"{BASE}/forms/{published_form.form_id}/responses/{response_id}"
+
+        closed = await client.post(
+            f"{url}/deletion-request/close",
+            json={"outcome": "declined", "reason": "legal_obligation"},
+            headers=_auth(token),
+        )
+        assert closed.status_code == 200, closed.text
+        assert closed.json() == {
+            "formId": published_form.form_id,
+            "responseId": response_id,
+            "status": "declined",
+            "declineReason": "legal_obligation",
+        }
+        detail = await client.get(url, headers=_auth(token))
+        assert detail.status_code == 200
+        assert detail.json()["deletionRequest"] == {"status": "declined"}
+
+        _is_error(
+            await client.post(
+                f"{url}/deletion-request/close",
+                json={"outcome": "completed"},
+                headers=_auth(token),
+            ),
+            409,
+            "deletion_request_closed",
+        )
+
+    async def test_completed_deletes_the_stored_copy(
+        self, client: AsyncClient, workspace, published_form
+    ):
+        token = await _token(workspace.id, CLOSE_SCOPES)
+        response_id = await _pending_request(workspace, published_form)
+        url = f"{BASE}/forms/{published_form.form_id}/responses/{response_id}"
+        closed = await client.post(
+            f"{url}/deletion-request/close",
+            json={"outcome": "completed"},
+            headers=_auth(token),
+        )
+        assert closed.status_code == 200, closed.text
+        assert closed.json()["status"] == "success"
+        assert closed.json()["declineReason"] is None
+        _is_error(await client.get(url, headers=_auth(token)), 404, "not_found")
+
+    async def test_invalid_bodies_are_422_and_change_nothing(
+        self, client: AsyncClient, workspace, published_form
+    ):
+        token = await _token(workspace.id, CLOSE_SCOPES)
+        response_id = await _pending_request(workspace, published_form)
+        url = (
+            f"{BASE}/forms/{published_form.form_id}/responses/{response_id}"
+            "/deletion-request/close"
+        )
+        for body in (
+            {"outcome": "declined"},
+            {"outcome": "completed", "reason": "other"},
+            {"outcome": "declined", "reason": "because I said so"},
+            {"outcome": "archived"},
+            [],
+        ):
+            _is_error(
+                await client.post(url, json=body, headers=_auth(token)),
+                422,
+                "invalid_request",
+            )
+        listed = await client.get(
+            f"{BASE}/forms/{published_form.form_id}/responses", headers=_auth(token)
+        )
+        assert listed.json()["items"][0]["deletionRequest"] == {"status": "pending"}
+
+    async def test_needs_the_write_scope_and_privacy_manage(
+        self, client: AsyncClient, workspace, published_form
+    ):
+        response_id = await _pending_request(workspace, published_form)
+        url = (
+            f"{BASE}/forms/{published_form.form_id}/responses/{response_id}"
+            "/deletion-request/close"
+        )
+        body = {"outcome": "declined", "reason": "other"}
+        token = await _token(workspace.id, ALL_SCOPES + ["deletion_requests:read"])
+        message = _is_error(
+            await client.post(url, json=body, headers=_auth(token)),
+            403,
+            "missing_scope",
+        )["message"]
+        assert "deletion_requests:write" in message
+
+        # an editor (stored as COLLABORATOR) has no privacy.manage
+        creator = await _member(workspace, WorkspaceRoles.ADMIN)
+        editor_token = await _token(
+            workspace.id, ["deletion_requests:write"], user=creator
+        )
+        await _set_role(workspace, creator, WorkspaceRoles.COLLABORATOR)
+        _is_error(
+            await client.post(url, json=body, headers=_auth(editor_token)),
+            403,
+            "key_creator_lacks_permission",
+        )
+
+    async def test_another_workspaces_request_is_not_found(
+        self, client: AsyncClient, workspace, published_form, workspace_1
+    ):
+        response_id = await _pending_request(workspace, published_form)
+        token = await _token(workspace_1.id, CLOSE_SCOPES, user=testUser1)
+        _is_error(
+            await client.post(
+                f"{BASE}/forms/{published_form.form_id}/responses/{response_id}"
+                "/deletion-request/close",
+                json={"outcome": "completed"},
+                headers=_auth(token),
+            ),
+            404,
+            "not_found",
+        )
+
+
 # -- OpenAPI -----------------------------------------------------------------------
 
 
