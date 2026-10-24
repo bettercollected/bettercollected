@@ -34,11 +34,12 @@ export const authApi = createApi({
             }),
             invalidatesTags: [AUTH_REFRESH_TAG]
         }),
-        postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string }>({
+        // `locale`: the code mail's language ("en" or "nl"; English when unset)
+        postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string; locale?: string }>({
             query: (body) => ({
                 url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/creator/otp/send`,
                 method: 'POST',
-                params: { receiver_email: body.receiver_email }
+                params: { receiver_email: body.receiver_email, ...(body.locale ? { locale: body.locale } : {}) }
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),

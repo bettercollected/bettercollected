@@ -451,7 +451,9 @@
   },
   "INVITE_COLLABORATOR": {
     "DEFAULT": "Invite Collaborator",
-    "DESCRIPTION": "A collaborator can import and manage forms in workspace."
+    "DESCRIPTION": "A collaborator can import and manage forms in workspace.",
+    "LANGUAGE": "Invitation language",
+    "LANGUAGE_DESCRIPTION": "The invitation email is sent in this language."
   },
   "LAST_SUBMITTED_AT": "Submitted: ",
   "LINK_TO_PRIVACY_POLICY": "Link to Privacy Policy",

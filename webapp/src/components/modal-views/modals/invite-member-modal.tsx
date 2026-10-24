@@ -19,8 +19,10 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceRole, assignableRoles, roleLocale } from '@app/models/enums/workspace-role';
 import { AppInput } from '@app/shadcn/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { MAIL_LOCALES, MailLocale, browserMailLocale } from '@app/utils/mail-locale';
 
 // Shared by the email input and the role select so the two line up.
 export const INVITE_FIELD_CLASS = 'h-10 w-full rounded border-control px-3 text-sm';
@@ -33,6 +35,10 @@ export default function InviteMemberModal() {
     const { t } = useTranslation();
     const [invitationMail, setInvitationMail] = useState('');
     const [role, setRole] = useState<WorkspaceRole>(WorkspaceRole.EDITOR);
+    // The invitation mail goes to someone who may have no account yet, so we
+    // don't know their language: the inviter chooses it (English or Dutch),
+    // starting from the inviter's browser language.
+    const [locale, setLocale] = useState<MailLocale>(() => browserMailLocale());
     // only an owner (workspace.billing) invites an owner
     const { can } = useWorkspacePermissions();
     const canGiveOwner = can(WorkspacePermission.WORKSPACE_BILLING);
@@ -56,6 +62,7 @@ export default function InviteMemberModal() {
         } else {
             const response: any = await trigger({
                 workspaceId: workspace.id,
+                locale,
                 body: {
                     role,
                     email: invitationMail
@@ -105,6 +112,22 @@ export default function InviteMemberModal() {
                 <RoleSelect value={role} roles={assignableRoles(canGiveOwner)} onChange={setRole} disabled={isLoading} ariaLabel={t(members.role)} className={`${INVITE_FIELD_CLASS} bg-white`} />
                 <div className="text-black-600 mt-2 text-xs leading-relaxed">{t(roleLocale(role).description)}</div>
                 <div className="text-black-600 mt-1 text-xs leading-relaxed">{t(memberRoles.inviteDescription)}</div>
+                <div id="invite-member-language-label" className="text-black-700 mb-2 mt-4 text-sm font-medium">
+                    {t(inviteCollaborator.language)}
+                </div>
+                <Select value={locale} onValueChange={(value) => setLocale(value as MailLocale)} disabled={isLoading}>
+                    <SelectTrigger aria-labelledby="invite-member-language-label" className={`${INVITE_FIELD_CLASS} bg-white`}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                        {MAIL_LOCALES.map(({ code, label }) => (
+                            <SelectItem key={code} value={code} lang={code}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <div className="text-black-600 mt-2 text-xs leading-relaxed">{t(inviteCollaborator.languageDescription)}</div>
                 <div className="mt-4 flex w-full flex-col justify-end">
                     <Button size="medium" disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
