@@ -26,7 +26,7 @@ DESCRIPTION = """\
 Create, read, change, publish and delete forms as **form spec v1** documents,
 read their responses and close deletion requests. Authenticate with a
 workspace API key: `Authorization: Bearer bc_...`. A key works in its own
-workspace only, with its scopes (`forms:read`, `forms:write`,
+workspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,
 `responses:read`, `deletion_requests:write`), and never does more than the
 person who created it may do at the time of the call.
 

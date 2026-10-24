@@ -930,11 +930,14 @@ class TestResponses:
         )
 
 
+DELETE_SCOPES = ALL_SCOPES + ["forms:delete"]
+
+
 class TestDeleteForm:
     async def test_deletes_the_form_and_its_responses(
         self, client: AsyncClient, workspace, published_form
     ):
-        token = await _token(workspace.id)
+        token = await _token(workspace.id, DELETE_SCOPES)
         form_id = published_form.form_id
         response = await container.workspace_form_service().submit_response(
             workspace.id, form_id, StandardFormResponse(**formResponse), testUser2
@@ -960,30 +963,40 @@ class TestDeleteForm:
             "not_found",
         )
 
-    async def test_needs_forms_write_and_the_creators_form_delete(
+    async def test_forms_write_is_not_enough(
         self, client: AsyncClient, workspace, workspace_form
     ):
+        """Keys issued to edit forms never gain deleting them (and their
+        responses): deleting is its own scope."""
         url = f"{BASE}/forms/{workspace_form.form_id}"
-        read_only = await _token(workspace.id, ["forms:read"])
-        _is_error(
-            await client.delete(url, headers=_auth(read_only)), 403, "missing_scope"
-        )
+        for scopes in (["forms:read"], ["forms:read", "forms:write"], ALL_SCOPES):
+            token = await _token(workspace.id, scopes)
+            body = _is_error(
+                await client.delete(url, headers=_auth(token)), 403, "missing_scope"
+            )
+            assert "forms:delete" in body["message"]
+        assert await _form_count(workspace.id) == 1
 
-        # a viewer may not change forms: a key they made is refused
+    async def test_the_creator_needs_form_delete(
+        self, client: AsyncClient, workspace, workspace_form
+    ):
+        # a viewer may not delete forms: a forms:delete key they made is refused
+        url = f"{BASE}/forms/{workspace_form.form_id}"
         creator = await _member(workspace, WorkspaceRoles.ADMIN)
-        token = await _token(workspace.id, ["forms:read", "forms:write"], user=creator)
+        token = await _token(workspace.id, ["forms:delete"], user=creator)
         await _set_role(workspace, creator, WorkspaceRoles.VIEWER)
-        _is_error(
+        body = _is_error(
             await client.delete(url, headers=_auth(token)),
             403,
             "key_creator_lacks_permission",
         )
+        assert "form.delete" in body["message"]
         assert await _form_count(workspace.id) == 1
 
     async def test_another_workspaces_form_is_not_found(
         self, client: AsyncClient, workspace, workspace_1, workspace_form
     ):
-        token = await _token(workspace_1.id, user=testUser1)
+        token = await _token(workspace_1.id, DELETE_SCOPES, user=testUser1)
         _is_error(
             await client.delete(
                 f"{BASE}/forms/{workspace_form.form_id}", headers=_auth(token)

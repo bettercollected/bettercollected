@@ -29,7 +29,8 @@ cannot be used against this API.
 | Scope | Allows | The key's creator must hold |
 |---|---|---|
 | `forms:read` | list, read and validate forms | `form.read` |
-| `forms:write` | create, replace, edit, publish and delete forms | `form.edit` (`form.delete` to delete) |
+| `forms:write` | create, replace, edit and publish forms | `form.edit` |
+| `forms:delete` | delete forms, and with them their responses (`forms:write` does not allow it) | `form.delete` |
 | `responses:read` | list and read responses | `response.read` and `response.export` |
 | `deletion_requests:write` | close a respondent's deletion request | `privacy.manage` |
 
@@ -50,7 +51,7 @@ in the workspace's API audit log.
 | `POST /forms/{formId}/ops` | Apply edit operations (atomic by default) |
 | `POST /forms/{formId}/ops/dry-run` | Preview operations; stores nothing |
 | `POST /forms/{formId}/publish` | Publish, with the product's publish checks |
-| `DELETE /forms/{formId}` | Delete the form and the responses collected through it (the creator needs `form.delete`) |
+| `DELETE /forms/{formId}` | Delete the form and the responses collected through it (`forms:delete`) |
 | `GET /forms/{formId}/responses?page&size` | Response summaries, most recent first |
 | `GET /forms/{formId}/responses/{responseId}` | One response with its answers |
 | `POST /forms/{formId}/responses/{responseId}/deletion-request/close` | Close a pending deletion request as `completed` or `declined` |

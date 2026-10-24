@@ -59,7 +59,7 @@ Everything comes from the `production-smoke` environment.
 
 | Name | What |
 |---|---|
-| `SMOKE_API_KEY` | API key of the test workspace with the scopes `forms:read`, `forms:write`, `responses:read` (with its acknowledgement), `deletion_requests:read` and `deletion_requests:write` |
+| `SMOKE_API_KEY` | API key of the test workspace with the scopes `forms:read`, `forms:write`, `forms:delete`, `responses:read` (with its acknowledgement), `deletion_requests:read` and `deletion_requests:write` |
 | `SMOKE_IMAP_APP_PASSWORD` | Gmail app password for IMAP, **or instead** the three below |
 | `SMOKE_GMAIL_CLIENT_ID`, `SMOKE_GMAIL_CLIENT_SECRET`, `SMOKE_GMAIL_REFRESH_TOKEN` | Gmail API access with the `gmail.readonly` scope |
 
@@ -103,7 +103,7 @@ pasted into an issue, a pull request or a chat.
    base address. Its workspace is the test workspace; give it a plan that
    allows custom domains. Note its name (or id) for `SMOKE_WORKSPACE_ID`.
 3. **API key.** In the test workspace, as its owner: dashboard → AI → MCP →
-   new key, with the five scopes above and the acknowledgement for
+   new key, with the six scopes above and the acknowledgement for
    `responses:read`. Store it as `SMOKE_API_KEY`.
 4. **Test Google Form.** In the Google account, make a small form and answer
    it a few times. In the test workspace, connect the Google account once by

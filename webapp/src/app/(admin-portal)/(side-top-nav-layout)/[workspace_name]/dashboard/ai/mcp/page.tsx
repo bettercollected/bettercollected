@@ -27,6 +27,7 @@ interface APIKey {
 const SCOPES: Array<{ key: string; label: string; hint: string }> = [
     { key: 'forms:read', label: 'Read forms', hint: 'List forms and read their structure' },
     { key: 'forms:write', label: 'Create & edit forms', hint: 'Create forms with AI, edit and publish them' },
+    { key: 'forms:delete', label: 'Delete forms', hint: 'Deletes forms and their responses' },
     { key: 'responses:read', label: 'Read responses', hint: 'List and read form responses, in full' },
     { key: 'deletion_requests:read', label: 'Read deletion requests', hint: 'See pending response-deletion requests' },
     { key: 'deletion_requests:write', label: 'Act on deletion requests', hint: 'Process response-deletion requests' }
