@@ -58,6 +58,8 @@ STALLED_AFTER_S = 300
 MIN_BATCH, MAX_BATCH = 25, 2000
 SLOW_BATCH_S, FAST_BATCH_S = 20.0, 2.0
 MISSING = object()  # no copy in that store
+# The outbox ``error`` of a copy whose re-check failed (common.db.convergence)
+UNVERIFIED_ERROR = "CopyUnverified:"
 
 
 @dataclass
@@ -570,6 +572,8 @@ class Runner:
         """Tier 1 counts; tier 2 checksum merge-join over ids in batches; tier 3 a
         round-trip deep compare of the first ``deep_per_batch`` rows of each
         batch. ``sample_every=k`` checks every k-th batch (large collections)."""
+        # what a clean result can vouch for: only what existed when it started
+        self._verify_started = datetime.now(timezone.utc)
         reports = []
         for name, table in self.tables_for(collections).items():
             report = CollectionReport(name)
@@ -1100,26 +1104,55 @@ class Runner:
 
     async def _drain_outbox(self, direction: str, dry_run: bool) -> None:
         """Mirror-write failures name a repository and ids; after a full pass
-        the affected rows agree, so mark them resolved (both stores)."""
+        the affected rows agree, so mark them resolved (both stores). Except
+        an unverified copy (``CopyUnverified``): only a clean full ``verify``
+        resolves those (:meth:`_resolve_unverified`)."""
+        if not dry_run:
+            await self._resolve_outbox(only_unverified=False)
+
+    async def _resolve_unverified(self) -> None:
+        """A clean full verify: the stores agree, unverified copies included,
+        but only those recorded before that verify started (one recorded
+        while it ran may concern a copy it read before the copy landed)."""
+        started = getattr(self, "_verify_started", None)
+        if started is None:
+            logger.info("unverified copies not resolved: no verify ran in this run")
+            return
+        await self._resolve_outbox(only_unverified=True, before=started)
+
+    async def _resolve_outbox(
+        self, *, only_unverified: bool, before: Optional[datetime] = None
+    ) -> None:
         now = datetime.now(timezone.utc)
+        unverified = UNVERIFIED_ERROR + "%"
+        created = "" if before is None else " AND created_at < :before"
         async with self.engine.begin() as conn:
             table = f'"{self.target.schema}"."mirror_write_failures"'
             exists = (
                 await conn.execute(text(f"SELECT to_regclass('{table}')"))
             ).scalar()
-            if exists is not None and not dry_run:
+            if exists is not None:
+                which = "LIKE" if only_unverified else "NOT LIKE"
                 result = await conn.execute(
                     text(
-                        f"UPDATE {table} SET resolved_at = :now WHERE resolved_at IS NULL"
+                        f"UPDATE {table} SET resolved_at = :now "
+                        f"WHERE resolved_at IS NULL AND error {which} :unverified"
+                        f"{created}"
                     ),
-                    {"now": now},
+                    {"now": now, "unverified": unverified, "before": before},
                 )
                 logger.info("outbox (postgres): resolved %d", result.rowcount)
-        if not dry_run:
-            result = await self.collection("mirror_write_failures").update_many(
-                {"resolved_at": None}, {"$set": {"resolved_at": now}}
-            )
-            logger.info("outbox (mongo): resolved %d", result.modified_count)
+        pattern = {"$regex": "^" + UNVERIFIED_ERROR}
+        selector = {
+            "resolved_at": None,
+            "error": pattern if only_unverified else {"$not": pattern},
+        }
+        if before is not None:
+            selector["created_at"] = {"$lt": before}
+        result = await self.collection("mirror_write_failures").update_many(
+            selector, {"$set": {"resolved_at": now}}
+        )
+        logger.info("outbox (mongo): resolved %d", result.modified_count)
 
     # -- status -------------------------------------------------------------
     async def status(self) -> dict:
@@ -1264,6 +1297,7 @@ class Runner:
         outcome["groups"] = clean_groups
         if full:
             outcome["marker"] = "written"
+            await self._resolve_unverified()
         elif not clean_groups:
             outcome["reason"] = "no group was verified clean in full"
         else:
