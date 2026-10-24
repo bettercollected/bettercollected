@@ -3,6 +3,7 @@ import PortalFormCard from '@Components/responder-portal/portal-form-card';
 import { PortalAudience, usePortalText } from '@app/lib/hooks/use-respondent-language';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -40,7 +41,7 @@ const FormCards = ({ title, hideTitle = false, formsArray, workspace, showPinned
             <div className="flex flex-col gap-4">
                 {formsArray.map((form: StandardFormDto, idx: number) => {
                     const slug = form.settings?.customUrl;
-                    const pathname = publicBaseUrl ? `${publicBaseUrl}/forms/${slug}` : isCustomDomain ? `/forms/${slug}${langQuery}` : `/${workspace.workspaceName}/forms/${slug}${langQuery}`;
+                    const pathname = publicBaseUrl ? `${publicBaseUrl}${portalPath(null, true, 'forms', slug)}` : `${portalPath(workspace.workspaceName, isCustomDomain, 'forms', slug)}${langQuery}`;
                     return (
                         <Link
                             key={form.formId + idx}

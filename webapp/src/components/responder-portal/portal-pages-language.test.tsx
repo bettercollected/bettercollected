@@ -166,11 +166,11 @@ describe('the portal submission lists', () => {
     });
 });
 
-const renderSubmission = (response: Record<string, unknown>, path: 'form' | 'settings' = 'settings') => {
+const renderSubmission = (response: Record<string, unknown>, path: 'form' | 'settings' = 'settings', workspaceName = 'acme') => {
     nav.pathname = `/acme/submissions/r1/${path}`;
     return render(
         <ReduxProvider store={store}>
-            <SubmissionProvider value={{ data: { form: { formId: 'f1', title: 'Intake' }, response: { ...submission, ...response } }, isLoading: false, isError: false, handleRequestForDeletion: vi.fn(), hasCustomDomain: false, workspaceName: 'acme' }}>
+            <SubmissionProvider value={{ data: { form: { formId: 'f1', title: 'Intake' }, response: { ...submission, ...response } }, isLoading: false, isError: false, handleRequestForDeletion: vi.fn(), hasCustomDomain: false, workspaceName, submissionId: 'r1', isUUID: false }}>
                 <SubmissionLayoutClient>
                     <SubmissionSettingsContent />
                 </SubmissionLayoutClient>
@@ -228,5 +228,42 @@ describe('dates in the respondent’s language', () => {
         expect(utcToLocalDateIn('2026-10-01T10:00:00', 'nl')).toMatch(/oktober 2026$/);
         expect(utcToLocalDateIn('2026-10-01T10:00:00', 'en')).toMatch(/October 2026$/);
         expect(utcToLocalDateTimeIn(undefined, 'nl')).toBe('');
+    });
+});
+
+// A workspace handle comes from the route and the API: whatever it holds,
+// every portal link stays on this site (no protocol-relative "//host" href).
+describe('portal links with a hostile workspace handle', () => {
+    const HOSTILE = ['//evil.com', '/evil.com', '%2Fevil.com', '%2F', 'javascript:alert(1)'];
+    const linksStayOnSite = () => {
+        const hrefs = Array.from(document.querySelectorAll('a[href]'))
+            .map((a) => a.getAttribute('href')!)
+            // the fixed outside links (credits, footer, default terms and privacy)
+            .filter((href) => !/^https:\/\/(bettercollected\.com|sireto\.com)(\/|$)/.test(href));
+        expect(hrefs.length).toBeGreaterThan(0);
+        for (const href of hrefs) {
+            expect(href, href).toMatch(/^\/(?![/\\])/);
+            expect(new URL(href, 'https://forms.example').origin, href).toBe('https://forms.example');
+        }
+    };
+
+    it.each(HOSTILE)('the portal, its form cards and receipts for %j', async (workspaceName) => {
+        signIn();
+        store.dispatch(setWorkspace({ ...workspace, workspaceName }));
+        at('/x/forms?lang=en');
+        const { unmount } = renderPortal(<WorkspaceFormsTabContent workspace={{ ...workspace, workspaceName }} />);
+        await screen.findByRole('heading', { level: 3, name: 'Intake' });
+        linksStayOnSite();
+        unmount();
+        renderPortal(<WorkspaceResponsesTabContent workspace={{ ...workspace, workspaceName }} audience="respondent" />);
+        await screen.findByRole('heading', { level: 3, name: 'Intake' });
+        linksStayOnSite();
+    });
+
+    it.each(HOSTILE)('a submission page for %j', async (workspaceName) => {
+        at('/x/submissions/r1/settings?lang=en');
+        renderSubmission({}, 'settings', workspaceName);
+        await screen.findByRole('heading', { level: 1, name: 'Intake' });
+        linksStayOnSite();
     });
 });

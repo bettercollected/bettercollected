@@ -3,6 +3,7 @@ import { Shield as ShieldIcon } from 'lucide-react';
 
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDateIn, utcToLocalDateTimeIn } from '@app/utils/date-utils';
+import { portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -61,7 +62,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
 
     // Link straight to the default tab: the bare id route only server-redirects
     // to /form, which showed as a URL hop + reload flicker on every open.
-    const pathname = disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}/form${langQuery}` : `/${workspaceName}/submissions/${response.responseId}/form${langQuery}`;
+    const pathname = disabled ? '' : `${portalPath(workspaceName, isCustomDomain, 'submissions', response.responseId, 'form')}${langQuery}`;
 
     const isAnonymous = !response?.dataOwnerIdentifier;
 

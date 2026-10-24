@@ -81,7 +81,7 @@ export default function SharedSubmissionLayoutClient({
     };
 
     return (
-        <SubmissionProvider value={{ data, isLoading, isError, handleRequestForDeletion, hasCustomDomain, workspaceName }}>
+        <SubmissionProvider value={{ data, isLoading, isError, handleRequestForDeletion, hasCustomDomain, workspaceName, submissionId, isUUID }}>
             <SubmissionLayoutClient>
                 {children}
             </SubmissionLayoutClient>

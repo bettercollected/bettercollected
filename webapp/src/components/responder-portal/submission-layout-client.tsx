@@ -15,6 +15,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateIn, utcToLocalDateTimeIn } from '@app/utils/date-utils';
+import { portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import { deletionStatusLabel } from '@Components/workspace-client/workspace-form-response-deletion-card';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
@@ -30,7 +31,7 @@ import { useSubmissionContext } from './submission-context';
  * their data rights.
  */
 export default function SubmissionLayoutClient({ children }: { children: React.ReactNode }) {
-    const { data, isLoading, isError, hasCustomDomain, workspaceName } = useSubmissionContext();
+    const { data, isLoading, isError, hasCustomDomain, workspaceName, submissionId, isUUID } = useSubmissionContext();
     const workspace = useAppSelector(selectWorkspace);
     const form: any = data ?? {};
     const pathname = usePathname();
@@ -38,10 +39,9 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     // ?lang= from the link stays on every link out of it.
     const { t, language } = useRespondentLanguage();
     const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
-    const portalBase = hasCustomDomain ? '' : workspaceName ? `/${workspaceName}` : '';
-
-    const isSettings = pathname?.endsWith('/settings');
-    const basePath = isSettings ? pathname.replace('/settings', '') : pathname?.replace('/form', '');
+    // Every link is built from encoded segments (utils/portal-path), never
+    // from the current URL.
+    const submissionPath = (tab: string) => portalPath(workspaceName, hasCustomDomain, 'submissions', ...(isUUID ? ['uuid'] : []), submissionId, tab);
 
     const tabs = [
         {
@@ -91,14 +91,14 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
             <RespondentDocumentLanguage />
             <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
-                <Link href={`${portalBase}/forms${langQuery}`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
+                <Link href={`${portalPath(workspaceName, hasCustomDomain, 'forms')}${langQuery}`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                     <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
                     <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
                 </Link>
             </header>
             <main className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
                 {/* Back to the list is navigation, so it is a link. */}
-                <Link href={`${portalBase}/my-submissions${langQuery}`} className="text-black-700 hover:text-black-900 flex w-fit items-center gap-1 text-sm" lang={language}>
+                <Link href={`${portalPath(workspaceName, hasCustomDomain, 'my-submissions')}${langQuery}`} className="text-black-700 hover:text-black-900 flex w-fit items-center gap-1 text-sm" lang={language}>
                     <ChevronLeft strokeWidth={2} width={18} height={18} aria-hidden="true" />
                     {t('PORTAL.MY_SUBMISSIONS')}
                 </Link>
@@ -157,7 +157,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                             return (
                                 <Link
                                     key={tab.path}
-                                    href={`${basePath}/${tab.path}${langQuery}`}
+                                    href={`${submissionPath(tab.path)}${langQuery}`}
                                     aria-current={isActive ? 'page' : undefined}
                                     className={cn(
                                         'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium focus:outline-hidden',

@@ -22,4 +22,11 @@ describe('the portal root redirect', () => {
         await visit(search);
         expect(redirect).toHaveBeenCalledWith(target);
     });
+
+    it.each(['%2Fevil.com', '/evil.com', '//evil.com', 'javascript:alert(1)'])('stays on the site for the handle %s', async (workspace_name) => {
+        await WorkspaceIndexPage({ params: Promise.resolve({ workspace_name }), searchParams: Promise.resolve({}) });
+        const target = vi.mocked(redirect).mock.calls[0][0] as string;
+        expect(target).toMatch(/^\/[^/\\]/);
+        expect(new URL(target, 'https://forms.example').origin).toBe('https://forms.example');
+    });
 });

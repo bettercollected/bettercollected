@@ -12,6 +12,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { portalPath } from '@app/utils/portal-path';
 
 /**
  * Find a submission by its receipt number. On the respondent's pages it is in
@@ -40,7 +41,8 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
             submissionUUID: submissionNumber
         });
         if (response.data) {
-            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}/form` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}/form`;
+            // The typed number is one encoded path segment (utils/portal-path).
+            const submissionUrl = portalPath(workspace.workspaceName, isCustomDomain, 'submissions', 'uuid', submissionNumber, 'form');
             router.push(submissionUrl);
         }
         if (response.error) {

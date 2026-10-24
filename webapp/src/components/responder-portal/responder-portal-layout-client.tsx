@@ -27,6 +27,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { portalBase, portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import SearchBySubmissionNumber from './search-by-submission-number';
@@ -74,7 +75,7 @@ export default function ResponderPortalLayoutClient({
         });
     }
 
-    const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
+    const basePath = portalBase(workspace.workspaceName, hasCustomDomain);
     // A ?lang=nl|en from the link stays on the tab links, so the next page
     // (and a reload of it) is in the same language.
     const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
@@ -196,7 +197,7 @@ export default function ResponderPortalLayoutClient({
                             return (
                                 <Link
                                     key={tab.path}
-                                    href={`${basePath}/${tab.path}${langQuery}`}
+                                    href={`${portalPath(workspace.workspaceName, hasCustomDomain, tab.path)}${langQuery}`}
                                     aria-current={isActive ? 'page' : undefined}
                                     className={cn(
                                         'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
