@@ -261,6 +261,15 @@ describe('answer piping', () => {
         expect(resolvePipesInText('{{group:g:max:income|none}}', { slides: slides(), answers: {} })).toBe('none');
     });
 
+    it("shows a choice question's option text, in the list and in an item", () => {
+        const role: StandardFormFieldDto = { id: 'role', index: 2, type: FieldTypes.DROP_DOWN, title: 'Role', properties: { choices: [{ id: 'r-guest', value: 'Guest' }, { id: 'r-host', value: 'Host' }] } };
+        const g = group({ itemTitle: '{{field:role}}' }, [name, income, role]);
+        const picked = (id: string) => ({ type: 'choice', choice: { value: id } });
+        const roles = answersWith({ role: picked('r-host') }, { role: picked('r-guest') });
+        expect(resolvePipesInText('Roles: {{group:g:list:role}}.', { slides: slides(g), answers: roles })).toBe('Roles: Host and Guest.');
+        expect(getItemHeader(g, 0, { slides: slides(g), answers: roles })).toBe('Applicant 1: Host');
+    });
+
     it('prunes group pipes whose group or question is gone', () => {
         const pipe = (pipeKey: string) => ({ type: 'answerPipe', attrs: { kind: 'group', pipeKey } });
         const title = { type: 'doc', content: [{ type: 'paragraph', content: [pipe('g:count'), pipe('g:sum:income'), pipe('g:sum:gone'), pipe('nope:count')] }] };

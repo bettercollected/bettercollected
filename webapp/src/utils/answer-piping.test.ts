@@ -15,7 +15,13 @@ const SLIDES = [
     slide(0, [
         { id: 'name-field', index: 0, type: FieldTypes.SHORT_TEXT },
         { id: 'email-field', index: 1, type: FieldTypes.EMAIL },
-        { id: 'toppings-field', index: 2, type: FieldTypes.MULTIPLE_CHOICE, properties: { allowMultipleSelection: true } as any }
+        {
+            id: 'toppings-field',
+            index: 2,
+            type: FieldTypes.MULTIPLE_CHOICE,
+            properties: { allowMultipleSelection: true, allowOtherChoice: true, choices: [{ id: 't-olives', value: 'Olives' }, { id: 't-feta', value: 'Feta' }, { id: 't-basil', label: 'Basil' }, { id: 't-blank' }] } as any
+        },
+        { id: 'topic-field', index: 3, type: FieldTypes.DROP_DOWN, properties: { choices: [{ id: 'c-billing', value: 'Billing' }, { id: 'c-tech', value: 'Technical issue' }] } as any }
     ]),
     slide(1, [{ id: 'rating-field', index: 0, type: FieldTypes.RATING }])
 ];
@@ -23,7 +29,9 @@ const SLIDES = [
 const ANSWERS = {
     'name-field': { text: 'Ada' },
     'email-field': { email: 'ada@example.com' },
-    'toppings-field': { choices: { values: ['Olives', 'Feta'] } },
+    // choice answers hold the chosen options' ids, as the respondent page stores them
+    'toppings-field': { choices: { values: ['t-olives', 't-feta'] } },
+    'topic-field': { choice: { value: 'c-tech' } },
     'rating-field': { number: 4 }
 };
 
@@ -37,6 +45,22 @@ describe('resolvePipeValue', () => {
 
     it('joins multi-choice answers with commas', () => {
         expect(resolvePipeValue('field', 'toppings-field', CTX)).toBe('Olives, Feta');
+    });
+
+    it("shows a chosen option's text, not its id", () => {
+        expect(resolvePipeValue('field', 'topic-field', CTX)).toBe('Technical issue');
+        expect(resolvePipesInText('About {{field:topic-field}}.', CTX)).toBe('About Technical issue.');
+        const title = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'topic-field', label: 'Topic', fallback: '' } }] }] };
+        expect(JSON.stringify(resolvePipesInTitle(title, CTX))).toContain('"text":"Technical issue"');
+    });
+
+    it('shows an option as the question does: its text, its label, else "Item <n>"; then the Other text', () => {
+        const answers = { 'toppings-field': { choices: { values: ['t-basil', 't-blank'], other: 'Anchovies' } } };
+        expect(resolvePipeValue('field', 'toppings-field', { ...CTX, answers })).toBe('Basil, Item 4, Anchovies');
+        expect(resolvePipeValue('field', 'topic-field', { ...CTX, answers: { 'topic-field': { choice: { other: 'Partners' } } } })).toBe('Partners');
+        // an option the question no longer has: shown as stored
+        expect(resolvePipeValue('field', 'topic-field', { ...CTX, answers: { 'topic-field': { choice: { value: 'gone' } } } })).toBe('gone');
+        expect(resolvePipeValue('field', 'topic-field', { ...CTX, answers: { 'topic-field': { choices: { values: [] } } } })).toBeUndefined();
     });
 
     it('resolves hidden fields from captured URL values', () => {
