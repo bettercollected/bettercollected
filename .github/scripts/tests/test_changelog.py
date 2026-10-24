@@ -255,6 +255,12 @@ class CheckTest(Repo):
     def test_branch_sync_skipped(self):
         self.assertEqual(self.check(["CHANGELOG.md", "backend/x.py"], head="release/4.0"), [])
 
+    def test_merge_forward_is_a_branch_sync(self):
+        changed = ["CHANGELOG.md", "backend/x.py"]
+        self.assertEqual(self.check(changed, head="merge/release-4.0-into-develop"), [])
+        # only a merge of a release branch: other merge/ heads are checked as usual
+        self.assertTrue(self.check(changed, head="merge/feature-into-develop"))
+
     def test_invalid_fragment_fails_check(self):
         self.fragment("feat-x.improved.md", "- X.\n")
         problems = self.check(["backend/x.py", "changelog.d/feat-x.improved.md"])

@@ -36,7 +36,7 @@ def test_every_collection_is_in_the_google_group():
     assert target.service == "google" and target.group_names() == ["google"]
     assert set(target.groups) == set(_tables())
     assert target.marker is not None and target.marker.name == "store_migration"
-    assert "+schema.0003" in target.code_version
+    assert "+schema.0004" in target.code_version
 
 
 def test_an_unknown_group_is_refused(capsys):
