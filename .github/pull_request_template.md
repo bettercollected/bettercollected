@@ -36,5 +36,6 @@ Closes #<!-- issue number, if any -->
 - [ ] Tests pass (`uv run pytest` for Python, `yarn build` / `yarn test` for webapp)
 - [ ] Lint/format pass (`black`/`flake8`, `yarn lint`)
 - [ ] I updated docs (`README`, `docs/`, relevant `AGENTS.md`) where needed
+- [ ] I added a changelog fragment in `changelog.d/` (or nothing notable changed)
 - [ ] **No secrets committed** — `.env.example` files contain placeholders only
 - [ ] I read the [Contributing guide](../blob/develop/CONTRIBUTING.md)

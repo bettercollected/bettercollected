@@ -37,11 +37,24 @@ us automate release notes later.
 
 1. **Pick the version.** Review merged PRs since the last tag and decide
    major/minor/patch from the nature of the changes.
-2. **Update the changelog.** In [CHANGELOG.md](CHANGELOG.md), move the relevant
-   entries from `## [Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section,
-   and update the compare links at the bottom. Keep an empty `Unreleased`
-   scaffold for the next cycle.
-3. **Merge** that changelog PR to `develop`.
+2. **Assemble the changelog.** On a branch named `docs/changelog-X.Y.Z` (the only
+   branches the PR check lets edit CHANGELOG.md):
+
+   ```bash
+   python3 -I .github/scripts/changelog.py assemble --draft   # preview, changes nothing
+   python3 -I .github/scripts/changelog.py assemble X.Y.Z     # --date YYYY-MM-DD, --previous A.B.C
+   ```
+
+   `assemble` moves everything under `## [Unreleased]` (entries already there are
+   kept) and every fragment in [changelog.d/](changelog.d/README.md) into a new
+   `## [X.Y.Z] - YYYY-MM-DD` section, categories in the order CHANGELOG.md uses and
+   fragments sorted by name (PR numbers first, numerically). It leaves an empty
+   `## [Unreleased]`, adds the compare link (from the newest version in the file;
+   `--previous` when the last release was cut from another branch) and deletes the
+   fragments. Review the section, add a summary paragraph under the heading if the
+   release needs one, and commit.
+3. **Merge** that changelog PR to `develop` (or to the `release/X.Y` branch for a
+   patch release cut from it).
 4. **Tag** the release commit and push the tag:
 
    ```bash
@@ -60,9 +73,12 @@ us automate release notes later.
 
 ## Keeping the changelog current
 
-Prefer to note user-facing changes under `## [Unreleased]` **as part of the PR
-that makes them**, rather than reconstructing everything at release time. Small,
-continuous updates keep the release step to a few minutes.
+Every PR notes its user- or operator-facing changes **as part of the PR that makes
+them**, as a fragment file in [changelog.d/](changelog.d/README.md)
+(`<pr-number-or-branch-slug>.<category>.md`) rather than an edit to CHANGELOG.md, so
+pull requests do not conflict on the changelog. The `Changelog fragment` PR check
+requires one when a PR changes code (label `no-changelog` when nothing notable
+changed) and refuses direct CHANGELOG.md edits outside `docs/changelog-*` branches.
 
 ## Future automation
 
