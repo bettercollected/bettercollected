@@ -17,6 +17,7 @@ import { WorkspaceRole, roleLocale, toWorkspaceRole } from '@app/models/enums/wo
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { browserMailLocale } from '@app/utils/mail-locale';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
 
 interface IInvitationTableProps {
@@ -44,6 +45,9 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         try {
             await trigger({
                 workspaceId: workspace.id,
+                // the original invitation's language is not kept: the inviter's
+                // browser language, as the invite dialog starts with
+                locale: browserMailLocale(),
                 body: {
                     // the role it was sent with (stored as COLLABORATOR for an Editor)
                     role: toWorkspaceRole(role) ?? WorkspaceRole.EDITOR,

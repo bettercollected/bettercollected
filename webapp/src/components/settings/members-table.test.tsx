@@ -195,7 +195,25 @@ describe('InviteMemberModal', () => {
         fireEvent.change(screen.getByPlaceholderText('ENTER_EMAIL'), { target: { value: 'new@example.com' } });
         fireEvent.submit(screen.getByRole('button', { name: 'BUTTON.SEND_INVITATION' }).closest('form') as HTMLFormElement);
 
-        await waitFor(() => expect(inviteMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', body: { role: 'EDITOR', email: 'new@example.com' } }));
+        await waitFor(() => expect(inviteMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', locale: 'en', body: { role: 'EDITOR', email: 'new@example.com' } }));
+    });
+
+    it('sends the invitation in the language chosen, starting from the browser language', async () => {
+        const languages = vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['nl-NL', 'en-US']);
+        try {
+            inviteMock.mockResolvedValue({ data: {} });
+            renderWith(<InviteMemberModal />);
+
+            const language = screen.getByRole('combobox', { name: 'INVITE_COLLABORATOR.LANGUAGE' });
+            expect(language.textContent).toBe('Nederlands');
+            expect(screen.getByText('INVITE_COLLABORATOR.LANGUAGE_DESCRIPTION')).toBeDefined();
+            fireEvent.change(screen.getByPlaceholderText('ENTER_EMAIL'), { target: { value: 'nieuw@example.com' } });
+            fireEvent.submit(screen.getByRole('button', { name: 'BUTTON.SEND_INVITATION' }).closest('form') as HTMLFormElement);
+
+            await waitFor(() => expect(inviteMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', locale: 'nl', body: { role: 'EDITOR', email: 'nieuw@example.com' } }));
+        } finally {
+            languages.mockRestore();
+        }
     });
 
     it('labels the email field and lines it up with the role field', () => {

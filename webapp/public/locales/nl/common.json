@@ -450,7 +450,9 @@
   },
   "INVITE_COLLABORATOR": {
     "DEFAULT": "Medewerker uitnodigen",
-    "DESCRIPTION": "Een medewerker kan formulieren in de werkruimte importeren en beheren."
+    "DESCRIPTION": "Een medewerker kan formulieren in de werkruimte importeren en beheren.",
+    "LANGUAGE": "Taal van de uitnodiging",
+    "LANGUAGE_DESCRIPTION": "De uitnodigingsmail wordt in deze taal verstuurd."
   },
   "LAST_SUBMITTED_AT": "Ingezonden bij:",
   "LINK_TO_PRIVACY_POLICY": "Link naar privacybeleid",

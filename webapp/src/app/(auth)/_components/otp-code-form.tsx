@@ -13,6 +13,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { browserMailLocale } from '@app/utils/mail-locale';
 
 interface OtpCodeFormProps {
     email: string;
@@ -76,7 +77,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
     };
 
     const resendOtpCode = async () => {
-        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || "" });
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', ...(workspace_id ? {} : { locale: browserMailLocale() }) });
         if ('data' in res && !!res.data) {
             setCounter(60);
         }

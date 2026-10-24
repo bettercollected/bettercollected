@@ -17,6 +17,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
+import { browserMailLocale } from '@app/utils/mail-locale';
 import { capitalize } from '@app/utils/string-utils';
 
 import SsoSignIn from './sso-sign-in';
@@ -73,7 +74,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         e.preventDefault();
         if (!email) return;
 
-        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '' });
+        // a creator's code mail follows the browser's language (a respondent's
+        // code is sent through the workspace, in the form's language)
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', ...(workspace_id ? {} : { locale: browserMailLocale() }) });
 
         if ('data' in res && !!res.data) {
             toast({ description: constants.otpSuccessMessage });
