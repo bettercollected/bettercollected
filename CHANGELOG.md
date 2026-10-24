@@ -23,7 +23,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Security
 
-## [4.0.2] - 2026-10-20
+## [4.0.2] - 2026-10-24
 
 Groundwork for running on Postgres only (4.1): every write now reaches both data stores through
 the routed repositories, the two copies of a mirrored write are identical, and operators get the
@@ -96,6 +96,13 @@ tools to verify and switch the stores group by group.
   the recorded test durations.
 
 ### Security
+
+- Dependency updates for published advisories: Pillow 13.0.0 (backend, including the PDF import and
+  its sandbox), pypdf 6.21.2, certifi 2026.10.19 (all Python services; 2026.10.23 in the Python SDK),
+  OpenTelemetry API 1.45.1, filelock 4.2.4 and virtualenv 21.14.13 (auth and the Google integration),
+  setuptools 84.1.0, black 26.10.1 (SDK development) and zod 4.6.7 (webapp tooling).
+  **Upgrade note:** backend, auth and the Google integration now require Python 3.11 or newer
+  (Pillow 13 and the patched filelock no longer support 3.10); the Docker images already use 3.11.
 
 ## [4.0.1] - 2026-10-19
 
