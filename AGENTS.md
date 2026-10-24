@@ -148,3 +148,8 @@ yarn storybook      # component explorer on :6006
 2. If you touched an API shape, remember Schemathesis and the webapp RTK Query slice that consumes it — keep them in sync.
 3. If you touched `common/`, check every Python service that imports the changed symbol.
 4. Don't commit or push unless asked. Branch off `develop` (the main branch) for new work.
+5. Changelog: never edit `CHANGELOG.md`. Add `changelog.d/<pr-number-or-branch-slug>.<category>.md`
+   (`added|changed|deprecated|removed|fixed|security`) with the bullet(s) exactly as they should read in the
+   changelog, wrapped, no heading. The PR check requires one for any change outside docs, `*.md` and tests
+   (label `no-changelog` otherwise). Only release branches `docs/changelog-X.Y.Z` assemble them into
+   `CHANGELOG.md` (`python3 -I .github/scripts/changelog.py assemble X.Y.Z`). See `changelog.d/README.md`.
