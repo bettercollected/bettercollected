@@ -323,3 +323,49 @@ def test_the_module_prints_the_table():
     )
     assert done.returncode == 0, done.stderr[-500:]
     assert done.stdout == inventory.markdown()
+
+
+# ------------------------------------------------------------ resolver addresses
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "",
+        "1.1.1.1",
+        "1.1.1.1,9.9.9.9",
+        " 1.1.1.1 ,  9.9.9.9 ",
+        "2606:4700:4700::1111",
+        "1.1.1.1, 2620:fe::fe",
+    ],
+)
+def test_nameservers_accept_ip_addresses(raw):
+    reg = inventory.full_registry()
+    assert reg.validate("VERIFIED_DOMAINS_NAMESERVERS", raw) == raw
+    assert reg.coerce("VERIFIED_DOMAINS_NAMESERVERS", raw) == raw
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "dns.google",
+        "1.1.1.1,dns.quad9.net",
+        "1.1.1.1;9.9.9.9",
+        "1.1.1.1 9.9.9.9",
+        "1.1.1.1,",
+        "1.1.1.1,,9.9.9.9",
+        "1.1.1.1:53",
+        "[2606:4700:4700::1111]",
+        "10.0.0.0/8",
+        "https://dns.google/dns-query",
+        "fe80::1%eth0",
+        ",".join(["1.1.1.1"] * 17),
+    ],
+)
+def test_nameservers_refuse_names_and_other_separators(raw):
+    reg = inventory.full_registry()
+    for check in (reg.validate, reg.coerce):
+        with pytest.raises(ValidationError) as raised:
+            check("VERIFIED_DOMAINS_NAMESERVERS", raw)
+        assert raised.value.reason == "bad_ip_list"
+        assert str(raised.value).startswith("VERIFIED_DOMAINS_NAMESERVERS: ")
