@@ -630,10 +630,6 @@
       "OTP_DESCRIPTION": "Wij zorgen ervoor dat respondenten hun formulierantwoorden kunnen bekijken en op elk moment een verzoek tot verwijdering van hun antwoorden kunnen indienen."
     }
   },
-  "SIRETO_FOOTER": {
-    "PRODUCT_OF": "Een product van Sireto B.V.",
-    "TRADEMARK": "Sireto® is een geregistreerd handelsmerk van Sireto B.V."
-  },
   "SLUG": {
     "DEFAULT": "Slak",
     "VALIDATION_MESSAGE": "Voer een geldige slug in"
