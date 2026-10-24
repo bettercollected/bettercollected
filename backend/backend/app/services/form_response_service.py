@@ -176,6 +176,11 @@ class FormResponseService:
         # the feedback only the current status (no staff identity).
         for item in user_responses.items:
             strip_internal_answers(item)
+            # which staff member imported the form is not the respondent's business
+            if isinstance(item, dict):
+                item.pop("form_imported_by", None)
+            elif getattr(item, "form_imported_by", None) is not None:
+                item.form_imported_by = None
             if not request_for_deletion:
                 present_to_respondent(item, None, enabled=False, with_entries=False)
         if not request_for_deletion:

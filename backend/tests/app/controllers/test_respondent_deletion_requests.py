@@ -159,5 +159,26 @@ async def test_a_request_filed_in_one_workspace_is_listed_there_only(
     (item,) = listed_a.json()["items"]
     assert item["responseId"] == "r1"
     assert item["submissionUuid"] == "uuid-r1"
+    # which staff member imported the form is not the respondent's business
+    assert item.get("formImportedBy") is None
 
     assert await _listed(client, b, RESPONDENT) == []
+
+
+async def test_respondent_lists_never_name_the_importing_staff_member(
+    client: AsyncClient, workspace, workspace_1
+):
+    await _import_owned_by(workspace, testUser, "shared-a", "address")
+    filed = await client.delete(
+        f"{_url(workspace)}/submissions/r1", cookies=_cookies(RESPONDENT)
+    )
+    assert filed.status_code == 200, filed.text
+    for request_for_deletion in (True, False):
+        listed = await client.get(
+            f"{_url(workspace)}/submissions",
+            params={"request_for_deletion": request_for_deletion},
+            cookies=_cookies(RESPONDENT),
+        )
+        assert listed.status_code == 200, listed.text
+        assert listed.json()["items"], request_for_deletion
+        assert testUser.id not in listed.text
