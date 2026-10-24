@@ -25,7 +25,8 @@ export function choiceMutators(ctx: BuilderContext) {
         setFormFields(updatedSlides, `choice:${slide.properties!.fields![fieldIndex].id}:${choiceId}`);
     };
 
-    const addChoiceField = (fieldIndex: number, slideIndex: number) => {
+    /** Adds an empty option at the end of the question's choices; returns its id. */
+    const addChoiceField = (fieldIndex: number, slideIndex: number): string => {
         const choiceId = v4();
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex]?.properties?.choices?.push({
@@ -33,6 +34,7 @@ export function choiceMutators(ctx: BuilderContext) {
         });
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
+        return choiceId;
     };
 
     const removeChoiceField = (fieldIndex: number, slideIndex: number, choiceId: string) => {

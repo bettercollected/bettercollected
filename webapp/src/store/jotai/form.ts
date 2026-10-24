@@ -84,8 +84,10 @@ export function useFormState() {
     const [formState, setFormState] = useAtom(formStateAtom);
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
+    // The welcome page shows the form's title: renaming the form titles it
+    // too (as update_form_info does), in the same undo step.
     const setFormTitle = (title: string) => {
-        setFormState((prev) => ({ ...prev, title }), 'form:title');
+        setFormState((prev) => ({ ...prev, title, ...(prev?.welcomePage ? { welcomePage: { ...prev.welcomePage, title } } : {}) }), 'form:title');
     };
 
     /** `options.undoable` false: a default written on mount, not an edit (no undo step). */

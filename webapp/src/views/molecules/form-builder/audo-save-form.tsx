@@ -72,17 +72,14 @@ const currentParts = (store: ReturnType<typeof useStore>): SavedParts => ({ form
 const sameParts = (a: SavedParts, b: SavedParts) => a.formState === b.formState && a.fields === b.fields && a.language === b.language;
 
 /**
- * What autosave sends: the form-level state with the builder's pages, and
- * the form's own language as its one setting (null clears it; the server
- * keeps the form's other settings, and the workspace's are saved apart).
+ * What autosave sends: the form-level state as the document holds it (a
+ * rename titles the welcome page there, see setFormTitle) with the builder's
+ * pages, and the form's own language as its one setting (null clears it; the
+ * server keeps the form's other settings, and the workspace's are saved apart).
  */
 function savedFormOf({ formState, fields, language }: SavedParts) {
     return {
         ...formState,
-        welcomePage: {
-            ...formState.welcomePage,
-            title: formState.title
-        },
         fields,
         settings: { language }
     };
