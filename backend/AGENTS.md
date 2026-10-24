@@ -90,12 +90,16 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
 runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
 
-- **Every repository is routed.** The container hands out `RoutingRepository` proxies over a Mongo implementation and
-  its Postgres *twin* (`app/repositories/postgres/*.py`, one class per Mongo repository, same public methods —
-  `tests/app/repositories/test_postgres_surface.py` enforces it). Repositories are grouped (`refdata`, `identity`,
-  `forms`, `responses`, `actions`, `ai`, `analytics`); `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>`
-  (`mongo|dual|postgres_primary_dual|postgres`) choose the store per group, flips are restarts, and
-  `backend/db/groups.py` declares the cutover order the flags enforce at boot.
+- **Every repository is routed**, except those of the groups already served from Postgres only. The container hands
+  out `RoutingRepository` proxies over a Mongo implementation and its Postgres *twin* (`app/repositories/postgres/*.py`,
+  one class per Mongo repository, same public methods — `tests/app/repositories/test_postgres_surface.py` enforces
+  it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
+  `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
+  per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
+- **Postgres-only groups (4.1):** `refdata` and analytics (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`) have no
+  Mongo repository and no routing: their documents are `common.records.Record` classes, their repositories the
+  `postgres/refdata.py` / `postgres/analytics.py` classes on `RecordRepository`, and a `DB_*__<group>` flag other than
+  `postgres` refuses the start. A fresh store gets its reference data from `python -m backend.seed_refdata`.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
@@ -802,7 +806,7 @@ one of ours; `services/image_urls.py` is the single allow-list:
   (`services/internal_auth.py`, the shared `AUTH_INTERNAL_NOTIFY_KEY`); `tests/app/services/test_auth_call_sites.py`
   fails on a call without it. Never add the key to a shared client — it also calls third parties.
 - **Sessions** (`services/session_service.py`, `sessions` collection, identity group): every sign-in
-  (`SessionService.start`: OTP, Google/Typeform basic sign-in) creates a session whose id is the tokens' `sid`.
+  (`SessionService.start`: OTP, Google basic sign-in) creates a session whose id is the tokens' `sid`.
   Tokens carry `typ` (`access`/`refresh`); an access token is accepted without a database read only with `typ=access`
   and a `sid`, so `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` (default 15; never the old 43200) bounds how long a revoked
   session keeps working. The refresh path (`get_logged_user` when the access token expired, and `POST /auth/refresh`)
@@ -852,8 +856,8 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 
 ## Gotchas
 
-- **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` Mongo collection — a new host must be
-  seeded there (see root docs / `seed-data.js`) or requests are blocked.
+- **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` table (Postgres) — a new host must be
+  stored there (`python -m backend.seed_refdata --origin ...` on an empty table) or requests are blocked.
   A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
   place that adds or removes those origins) and stale ones are pruned at startup.
 - Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that

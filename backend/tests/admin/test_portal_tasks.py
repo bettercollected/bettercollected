@@ -776,13 +776,13 @@ def test_keyset_task_forms_cover_lists_of_enums_flags_and_bounded_ids():
     fields = {f.name: f for f in taskform.fields_for(keyset.REENCRYPT)}
     assert fields["targets"].kind == "multi" and fields["targets"].choices == ("responses", "google_credentials")
     assert fields["primary_id"].kind == "int" and fields["primary_id"].maximum == 4294967295
-    assert fields["google_in_use"].default is True and fields["typeform_acknowledged"].default is False
+    assert fields["google_in_use"].default is True and "typeform_acknowledged" not in fields
     parsed = taskform.parse(
         keyset.REENCRYPT, list(fields.values()),
         {"p_primary_id": "7", "p_targets__responses": "on", "p_google_in_use": "on"},
     )
     assert parsed.params["targets"] == ["responses"] and parsed.params["google_in_use"] is True
-    assert parsed.params["typeform_acknowledged"] is False and parsed.params["primary_id"] == 7
+    assert "typeform_acknowledged" not in parsed.params and parsed.params["primary_id"] == 7
     assert taskform.parse(keyset.REENCRYPT, list(fields.values()), {"p_primary_id": "0"}).bad == {"primary_id"}
     none = taskform.parse(keyset.REENCRYPT, list(fields.values()), {"p_primary_id": "7"})
     assert none.params["targets"] == [] and none.params["google_in_use"] is False

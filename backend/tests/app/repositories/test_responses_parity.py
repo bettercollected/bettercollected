@@ -22,7 +22,6 @@ from backend.app.repositories.ai_preference_memory_repository import (
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
-from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
 from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
 from backend.app.repositories.form_repository import FormRepository
@@ -31,7 +30,6 @@ from backend.app.repositories.mcp_audit_log_repository import McpAuditLogReposit
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
-    PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
     PostgresMcpAuditLogRepository,
@@ -69,7 +67,7 @@ from common.exceptions import NotFoundError
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.test_refdata_parity import parity, strip
+from tests.app.repositories.parity import parity, strip
 
 T0 = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
 
@@ -431,19 +429,10 @@ async def test_actions(sessions):
         assert await repo.get_action_by_id(action.id) is None
 
 
-# ------------------------------------------------------------ ai and analytics
-async def test_ai_and_analytics(sessions):
+# ------------------------------------------------------------ ai
+# (analytics is Postgres only: tests/app/repositories/test_analytics_repositories.py)
+async def test_ai(sessions):
     ws = PydanticObjectId()
-    await parity(
-        FlowEventRepository(),
-        PostgresFlowEventRepository(sessions),
-        [
-            ("add", lambda: ("f1", "s1", "p1", "p2")),
-            ("add", lambda: ("f1", "s1", "p2", "p3")),
-            ("list_by_form_id", lambda: ("f1",)),
-            ("list_by_form_id", lambda: ("f2",)),
-        ],
-    )
     insight = FormAIInsightDocument(
         id=PydanticObjectId(),
         workspace_id=ws,

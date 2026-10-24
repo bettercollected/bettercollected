@@ -234,4 +234,7 @@ def get_application(is_test_mode: bool = False):
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         apm = make_apm_client()
         app.add_middleware(ElasticAPM, client=apm)
+    # verified domains are SSO trust grants: name what a hosted stack misses
+    for warning in settings.verified_domains.warnings(settings.sso.is_configured):
+        logger.warning(warning)
     return app

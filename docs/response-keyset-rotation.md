@@ -31,13 +31,9 @@ keyset does not hide one.
 | `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Mongo `form_responses` (`MONGO_DB`), Postgres `app.form_responses` |
 | `google-credentials` | the Google Forms integration's OAuth credentials | Mongo `Oauth2CredentialDocument` (`GOOGLE_MONGO_DB`, default `bettercollected_googleform`), Postgres `google.oauth_credentials` |
 
-The services that load the keyset: **backend**, **jobs-worker**, **integrations-googleform**,
-and **integrations-typeform** (a separate image). Auth, the Temporal workers, the
-actions-executor and the webapp do not use it.
-
-The Typeform integration is not part of this repository, so the script does not re-encrypt data
-it stores. If you run it and it stores data with the keyset, keep the old key (skip "Drop the old
-key") or reconnect the Typeform accounts after dropping it.
+The services that load the keyset: **backend**, **jobs-worker** and **integrations-googleform**.
+Auth, the Temporal workers, the actions-executor and the webapp do not use it. (The Typeform
+integration, a separate image that also loaded it, was removed in 4.1.)
 
 ## Before you start
 
@@ -142,7 +138,7 @@ new=$(cat keyset-rotation/rotated.keyset)
 awk -v value="$new" '/^MASTER_ENCRYPTION_KEYSET=/ { print "MASTER_ENCRYPTION_KEYSET=" value; next } { print }' \
   .env > .env.rotating && mv .env.rotating .env && chmod 600 .env
 unset new
-./deploy.sh          # or: docker compose -f docker-compose.deployment.yml up -d backend jobs-worker integrations-googleform integrations-typeform
+./deploy.sh          # or: docker compose -f docker-compose.deployment.yml up -d backend jobs-worker integrations-googleform
 ```
 
 If your stack is deployed another way (Docker Swarm, Kubernetes), set the new value wherever those
@@ -208,8 +204,7 @@ This scans every target in every store the services write. It **refuses**, writi
   count, then run again with `--allow-empty`;
 - the keyset file is not the deployed one (see above).
 
-Otherwise it writes `keyset-rotation/final.keyset`, which holds the primary key only. The report
-repeats the Typeform caveat (see "What the keyset encrypts"): the script cannot check that data.
+Otherwise it writes `keyset-rotation/final.keyset`, which holds the primary key only.
 
 ### 6. Give every service the final keyset
 
@@ -233,7 +228,7 @@ As in step 3, with `keyset-rotation/final.keyset`. Then check that no service lo
   everything re-encrypted, are under the new key, and the old keyset cannot read them. Going back to
   old-key-only means restoring the pre-rotation backup, which loses everything written since.
 - **After step 6**, a value under the old key can turn up again, for example from a restored
-  backup or from Typeform data. Give the services `rotated.keyset` again, run `reencrypt`, then
+  backup. Give the services `rotated.keyset` again, run `reencrypt`, then
   `drop-old`.
 - `drop-old` and the final keyset never touch stored data. Only `reencrypt` writes, and it writes
   only values that decrypt back correctly.
@@ -298,8 +293,7 @@ kept.
 `drop_old` has no target or store parameters on purpose, and a scan that did not finish (cancelled)
 refuses. A Google credentials store that is empty because the integration was never used needs
 `allow_empty_google` together with `google_in_use: false` (the combination `allow_empty_google` with
-`google_in_use: true` is refused); the responses store is never accepted empty. It also refuses
-while a Typeform integration instance reports a heartbeat (`typeform_reporting`). Values no candidate workspace
+`google_in_use: true` is refused); the responses store is never accepted empty. Values no candidate workspace
 opens stay where they are and are counted (`values_unopenable`); `drop_old` then refuses.
 
 **Readiness.** `promote`, `reencrypt` and `drop_old` first check the settings store's service
@@ -315,11 +309,9 @@ primary, so after a promote the revision and restart flag are what show a servic
 refusals are `consumer_not_reporting`, `consumer_stale`, `consumer_missing_key`,
 `consumer_restart_pending`, `consumer_behind` and `consumer_env_override`.
 
-**Typeform.** The Typeform integration is a separate image that also receives the keyset from its
-environment. It reports no heartbeat (if a build of it does, as service `typeform`, `drop_old`
-refuses while it is seen) and what it stores can be neither checked nor re-encrypted
-from here, so `promote`, `reencrypt` and `drop_old` need `typeform_acknowledged: true`: you confirm
-you kept the old key for it or will reconnect its accounts after the final keyset.
+**Typeform.** The Typeform integration was removed in 4.1. `promote`, `reencrypt` and
+`drop_old` accept and ignore `typeform_acknowledged`, and `drop_old` no longer waits for a
+Typeform heartbeat.
 
 **Where the new keyset is written.** The runner has no write privilege on the settings tables and
 no access to the audit log. It seals and signs the new row itself (for the keyset's section only),

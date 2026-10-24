@@ -27,6 +27,7 @@ from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.ai_settings import AISettings
 from backend.config.google_ai_settings import GoogleAISettings
+from backend.config.google_forms_settings import GoogleFormsSettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -90,6 +91,7 @@ class Application(StoreBackedSettings):
     ai: AISettings = AISettings()
     open_ai: OpenAISettings = OpenAISettings()
     google_ai: GoogleAISettings = GoogleAISettings()
+    google_forms: GoogleFormsSettings = GoogleFormsSettings()
     unsplash: UnsplashSettings = UnsplashSettings()
     brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()

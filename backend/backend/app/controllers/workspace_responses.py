@@ -31,7 +31,7 @@ from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.flow_event_repository import FlowEventRepository
+from backend.app.repositories.postgres.analytics import PostgresFlowEventRepository
 from backend.app.router import router
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_response_service import FormResponseService
@@ -58,7 +58,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(
         self,
         form_response_service: FormResponseService = container.form_response_service(),
-        flow_event_repo: FlowEventRepository = container.flow_event_repo(),
+        flow_event_repo: PostgresFlowEventRepository = container.flow_event_repo(),
         respondent_feedback_service: RespondentFeedbackService = (
             container.respondent_feedback_service()
         ),

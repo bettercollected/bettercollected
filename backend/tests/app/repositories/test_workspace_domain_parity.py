@@ -18,7 +18,7 @@ from backend.app.repositories.workspace_domain_repository import (
 )
 from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.test_refdata_parity import parity
+from tests.app.repositories.parity import parity
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 """The Postgres twin of each identity repository behaves like the Mongo original.
 
-Same harness as the refdata parity tests: each step runs on both stores and the
+Same harness as the other parity tests (parity.py): each step runs on both stores and the
 results are compared after stripping the fields that legitimately differ.
 Skipped unless DATABASE_URL points at a *_test database.
 """
@@ -43,7 +43,7 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.exceptions import NotFoundError
 from common.models.user import User
-from tests.app.repositories.test_refdata_parity import parity, strip
+from tests.app.repositories.parity import parity, strip
 
 
 @pytest.fixture

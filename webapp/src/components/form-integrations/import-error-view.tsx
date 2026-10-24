@@ -33,7 +33,7 @@ interface IPermission {
 }
 
 interface IDefaultContent {
-    type: 'dark' | 'light' | 'typeform';
+    type: 'dark' | 'light';
     permissionText: string;
     permissions: Array<IPermission>;
 }
@@ -64,24 +64,10 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
             scope: 'https://www.googleapis.com/auth/forms.responses.readonly'
         }
     ];
-    const typeformPermissions: Array<IPermission> = [
-        {
-            type: 'sensitive',
-            isPermissionGiven: false,
-            name: 'Permissions to import your Typeform',
-            description: 'To be able to show a list of forms for you to import, we require permissions to fetch Typeforms.'
-        },
-        {
-            type: 'sensitive',
-            isPermissionGiven: false,
-            name: 'Permissions to import form responses',
-            description: 'To be able to show form responses and build a beautiful responder portal for you, we require permissions to fetch form responses.'
-        }
-    ];
     const [defaultContent] = useState<IDefaultContent>({
-        type: provider === 'google' ? 'dark' : 'typeform',
-        permissionText: provider === 'google' ? 'Enable Permissions for Importing\n' + 'Google Forms' : 'Enable Permissions for Importing\n' + 'Typeform',
-        permissions: provider === 'google' ? googlePermissions : typeformPermissions
+        type: 'dark',
+        permissionText: 'Enable Permissions for Importing\n' + 'Google Forms',
+        permissions: googlePermissions
     });
 
 

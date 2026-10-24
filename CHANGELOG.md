@@ -23,12 +23,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
   of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
   "Not deleted: <reason>" (English and Dutch), never as deleted.
+- The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
+  that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
+  English), and the submission-update notice follows the form's language. The invitation now names the
+  workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
+  says that the name is the one the inviter chose.
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
   changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
   the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
   keyset freeze and the backup and restore test to do before Mongo is turned off.
+- `GOOGLE_FORMS_IMPORT=on|readonly|off` (backend and Google Forms service; default `on`). `readonly` keeps
+  imported forms and responses readable but refuses new imports, re-syncs, account connections and every
+  other call to Google with a Google Forms credential (403 `google_forms_readonly`); `off` answers 410
+  `google_forms_off` and never calls the Google Forms service. `GET /providers` reports the mode
+  (`importMode`). See `docs/RUNNING_INTEGRATIONS.md`.
 
 ### Changed
 
@@ -75,8 +85,40 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Removed
 
+- **Typeform** (services): the Typeform sign-in (always refused, since its email is not verified) and its
+  settings are gone. `/auth/{provider}/basic` takes Google only, and the import and proxy routes no longer
+  accept `typeform`. Forms and responses imported from Typeform stay readable as ordinary forms. The
+  `TYPEFORM_*` settings are retired: values left in an env file or the settings store are ignored and no
+  longer reported. A stored `typeform` provider row is no longer offered, read or called (the OAuth
+  callback and every provider lookup refuse it), so account deletion no longer depends on the Typeform
+  service. The row itself stays in `forms_plugin_configs` and is pruned with the other Typeform data later. The keyset tasks accept and ignore `typeform_acknowledged`
+  and no longer wait for a Typeform heartbeat.
+- **Typeform** (deployment): the `integrations-typeform` compose service, `.env.typeform`, the
+  `TYPEFORM_*` lines of `.env.deployment.example` and the Typeform seed row are gone.
+  `./deploy.sh typeform` and `./deploy.sh both` still work, with a warning, and start the stack
+  without Typeform (with Google Forms for `both`); `settings-prune` ignores `--typeform` and
+  `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
+  release still exists and never removes it; existing `.env.typeform` files are left alone.
+
 ### Fixed
 
+- Importing from Google Forms works again after Google's consent screen. The Google Forms service sent a PKCE
+  challenge with the authorization URL (the default of google-auth-oauthlib since 1.3) but exchanged the code
+  without its verifier, so Google refused the exchange (`invalid_grant`). The verifier is now derived from the
+  request's state with a server-side key, so the callback presents the matching one.
+- The Google Forms service no longer depends on `OAUTHLIB_RELAX_TOKEN_SCOPE` in its environment: it relaxes
+  oauthlib's scope comparison itself (Google always returns aliases and earlier grants) and instead checks that
+  the scopes the import needs were granted, refusing with a clear message when the user unticked one.
+  `invalid_client` and other OAuth errors from Google now answer with a message instead of a server error, and a
+  callback whose state does not decrypt is refused before the code is used.
+- Errors from a form provider service now reach the user with that service's own status and message (an expired
+  authorization, a missing permission) instead of "Could not fetch data from proxy server."; the API logs the
+  upstream status and error code.
+- After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
+  instead of failing, and the picker flag is added to the return URL as a proper query parameter.
+- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
+  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
+  HTMX swaps or task progress updates.
 - The forms list and form search ask the auth service about each importer once, instead of once per
   form on the page. Search now shows each form's own importer: it could show another member's name on
   a form, and no importer at all on forms imported by someone other than the searching member. The forms

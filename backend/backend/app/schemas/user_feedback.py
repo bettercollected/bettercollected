@@ -1,13 +1,10 @@
 import datetime as dt
 from typing import Optional
 
-from common.configs.mongo_document import MongoDocument
-
-from backend.app.handlers.database import entity
+from common.records import Record
 
 
-@entity
-class UserFeedbackDocument(MongoDocument):
+class UserFeedbackDocument(Record):
     reason_for_deletion: str
     feedback: Optional[str] = None
 

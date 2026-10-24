@@ -90,6 +90,8 @@ const nextConfig = {
                 port: '',
                 pathname: '**'
             },
+            // kept after the Typeform integration's removal: forms imported
+            // from Typeform may still show images hosted there
             {
                 protocol: 'https',
                 hostname: 'images.typeform.com',

@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import Any, List, Optional
 from datetime import timedelta
 from http import HTTPStatus
 
@@ -118,7 +118,11 @@ class WorkspaceMembersService:
         return response_user_list
 
     async def create_invitation_request(
-        self, workspace_id: PydanticObjectId, invitation: InvitationRequest, user: User
+        self,
+        workspace_id: PydanticObjectId,
+        invitation: InvitationRequest,
+        user: User,
+        locale: Optional[str] = None,
     ):
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
@@ -146,6 +150,7 @@ class WorkspaceMembersService:
                 "email": invitation.email,
                 "inviter_id": user.id,
                 "token": workspace_invitation.invitation_token,
+                **({"locale": locale} if locale else {}),
             },
             headers=auth_service_headers(),
             timeout=60,

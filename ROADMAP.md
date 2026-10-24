@@ -38,7 +38,7 @@ after the recent monorepo migration (uv, Pydantic v2, Next 16).
 ## Later — product & platform
 
 - More form-builder field types and templates.
-- Additional import/integration providers beyond Google Forms and Typeform.
+- Additional import/integration providers beyond Google Forms.
 - Deeper consent & GDPR tooling (data-retention policies, export formats).
 - Internationalisation and accessibility improvements.
 

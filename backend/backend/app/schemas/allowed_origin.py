@@ -1,9 +1,9 @@
 import datetime as dt
 
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
 
-class AllowedOriginsDocument(MongoDocument):
+class AllowedOriginsDocument(Record):
     """A custom MongoDocument subclass representing a document in the
     'allowedOrigins' collection.
 

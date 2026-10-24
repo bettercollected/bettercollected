@@ -54,7 +54,7 @@ describe('deletion request status on the respondent card', () => {
     it('has the Dutch strings', () => {
         render(<I18nProvider><span /></I18nProvider>);
         const t = i18n.getFixedT('nl', 'respondent');
-        expect(deletionStatusLabel('declined', 'identity_not_verified', '3-1-2026', t)).toBe('Niet verwijderd: uw identiteit kon niet worden vastgesteld');
+        expect(deletionStatusLabel('declined', 'identity_not_verified', '3-1-2026', t)).toBe('Niet verwijderd: je identiteit kon niet worden vastgesteld');
         expect(deletionStatusLabel('success', null, '3-1-2026', t)).toBe('Verwijderd (3-1-2026)');
         expect(deletionStatusLabel('pending', null, '3-1-2026', t)).toBe('Verwijdering aangevraagd');
     });

@@ -88,8 +88,8 @@ const FIELDS: StandardFormFieldDto[] = [
 const STYLES: ThemeStyle[] = ['classic', 'sheet', 'studio', 'leaflet'];
 const DEFAULT_THEME = ThemeColors.find((theme) => theme.title === 'Default')!;
 
-const loadForm = (style: ThemeStyle) => {
-    const theme: FormTheme = { ...DEFAULT_THEME, style };
+const loadForm = (style: ThemeStyle, look: FormTheme = DEFAULT_THEME) => {
+    const theme: FormTheme = { ...look, style };
     store.dispatch(
         setForm({
             formId: `axe-${style}-${Math.random()}`,
@@ -119,8 +119,8 @@ function RespondentPage({ slide, theme }: { slide: number; theme: FormTheme }) {
     );
 }
 
-const open = (style: ThemeStyle, slide: number) => {
-    const theme = loadForm(style);
+const open = (style: ThemeStyle, slide: number, look?: FormTheme) => {
+    const theme = loadForm(style, look);
     return render(
         <ReduxProvider store={store}>
             <Provider>
@@ -195,6 +195,34 @@ describe.each(STYLES)('respondent pages pass axe (WCAG 2.1 A/AA) in the %s style
     it('the ending page', async () => {
         open(style, -2);
         await screen.findByRole('heading', { level: 1, name: 'Thank you' });
+        expect(await violations()).toEqual([]);
+        expectPageStructure();
+    });
+});
+
+// The complete looks letter their answer options (A, B, C; Y and N):
+// the letters are hidden decoration and each option names its key.
+describe.each(['Kantlijn', 'Raster'])('lettered option cards in %s pass axe', (title) => {
+    const look = ThemeColors.find((theme) => theme.title === title)!;
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        Element.prototype.scrollIntoView = vi.fn();
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+    });
+    afterEach(() => {
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('a page with every field type, answers chosen by their letters', async () => {
+        open(look.style!, 0, look);
+        const green = await screen.findByRole('radio', { name: 'Green' });
+        expect(green).toHaveAttribute('aria-keyshortcuts', 'B');
+        act(() => void fireEvent.keyDown(green, { key: 'b' }));
+        act(() => void fireEvent.keyDown(screen.getByRole('checkbox', { name: 'Apple' }), { key: 'a' }));
+        act(() => void fireEvent.keyDown(screen.getByRole('radio', { name: 'Yes' }), { key: 'y' }));
+        expect(screen.getByRole('radio', { name: 'Green' })).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByRole('checkbox', { name: 'Apple' })).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByRole('radio', { name: 'Yes' })).toHaveAttribute('aria-checked', 'true');
         expect(await violations()).toEqual([]);
         expectPageStructure();
     });

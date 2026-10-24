@@ -1,20 +1,18 @@
 """Platform admins named by PLATFORM_ADMIN_EMAILS get the ADMIN role in their
 tokens (added at token time, never stored), and only on sign-ins that proved
-the email: OTP, or Google reporting it verified. Never Typeform, never an
-unverified session's refresh or /callback JWT exchange."""
+the email: OTP, or Google reporting it verified. Never an unverified
+session's refresh or /callback JWT exchange."""
 
 import calendar
 import datetime as dt
-import json
 from unittest.mock import AsyncMock
 
 import pytest
 
 from auth.app.container import container
-from auth.app.services import google_auth_provider, typeform_auth_provider
+from auth.app.services import google_auth_provider
 from auth.app.services.google_auth_provider import GoogleAuthProvider
 from auth.app.services.platform_admins import platform_admin_emails, roles_for
-from auth.app.services.typeform_auth_provider import TypeformAuthProvider
 from auth.config import settings
 from common.models.user import User, UserInfo
 from starlette.requests import Request
@@ -148,35 +146,6 @@ def test_google_with_an_unverified_email_does_not(
 ):
     result = _google_callback(
         app_runner, monkeypatch, {"email": platform_admin, "verified_email": False}
-    )
-    # refused outright since #758: no user, so no token and no role
-    assert "user" not in result
-
-
-def test_typeform_never_grants(app_runner, platform_admin, monkeypatch):
-    class TokenReply:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"access_token": "t"}
-
-    monkeypatch.setattr(
-        typeform_auth_provider.requests, "post", lambda *a, **k: TokenReply()
-    )
-    monkeypatch.setattr(
-        TypeformAuthProvider,
-        "perform_typeform_request",
-        staticmethod(
-            lambda token, path, params=None: {
-                "email": platform_admin,
-                "alias": "Ops Person",
-            }
-        ),
-    )
-    state = typeform_auth_provider.crypto.encrypt(json.dumps({"creator": True}))
-    result = app_runner.portal.call(
-        lambda: TypeformAuthProvider().basic_auth_callback("c", state)
     )
     # refused outright since #758: no user, so no token and no role
     assert "user" not in result

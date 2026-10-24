@@ -431,7 +431,8 @@ class SettingsService:
                 tombstones.add(e.key)
                 continue
             if e.key not in self.registry:
-                unverified.append(e.key)
+                if e.key not in self.registry.retired:
+                    unverified.append(e.key)
                 continue
             try:
                 if not self.keys.verify_row(e.to_setting_row()):
@@ -625,7 +626,8 @@ class SettingsService:
         in batches under the writer lock. Values and versions do not change.
         Needs ``master_previous`` on the keys while old material remains; with
         none to do it changes nothing. A key the registry no longer knows is
-        skipped and reported (``RewrapResult.skipped``), not fatal. Keys added
+        skipped and reported (``RewrapResult.skipped``), not fatal; a retired
+        key (``inventory.RETIRED``) is skipped without a report. Keys added
         while the run is in progress are picked up by further passes."""
         rewrapped = resigned = batches = 0
         done: set[str] = set()
@@ -647,7 +649,8 @@ class SettingsService:
                         except SettingsError as exc:
                             if exc.code != "unknown_key":
                                 raise
-                            skipped[entry.key] = exc.code
+                            if entry.key not in self.registry.retired:
+                                skipped[entry.key] = exc.code
                             continue
                         rewrapped += did_wrap
                         resigned += did_sign
@@ -742,7 +745,8 @@ class SettingsService:
 
         for e in entries:
             if e.key not in self.registry:
-                problems.append(Problem(e.key, "unknown_key"))
+                if e.key not in self.registry.retired:  # a retired key's row is left alone
+                    problems.append(Problem(e.key, "unknown_key"))
                 continue
             spec = self.registry.get(e.key)
             # every sealed version kept in the history must still open (the history

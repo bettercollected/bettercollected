@@ -1,4 +1,4 @@
-"""Postgres twins of the ai- and analytics-group repositories."""
+"""Postgres twins of the ai-group repositories."""
 
 import datetime as dt
 from typing import List, Optional
@@ -15,11 +15,9 @@ from backend.app.schemas.api_idempotency_record import (
     IDEMPOTENCY_PENDING,
     ApiIdempotencyRecordDocument,
 )
-from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
-from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.db.models import (
     AiPreferenceMemoryRow,
@@ -27,37 +25,11 @@ from backend.db.models import (
     CreateFormPromptRow,
     FormAiInsightRow,
     FormAiSessionRow,
-    FormFlowEventRow,
     McpAuditLogRow,
-    RateLimitCounterRow,
     WorkspaceAiProfileRow,
 )
 from common.db import PostgresRepositoryBase, from_row_doc, row_values
 from common.clock import utcnow
-
-
-class PostgresFlowEventRepository(PostgresRepositoryBase):
-    row = FormFlowEventRow
-    document = FlowEventDocument
-
-    async def add(
-        self, form_id: str, session_id: str, from_page: str, to_page: str
-    ) -> FlowEventDocument:
-        return await self.save_document(
-            FlowEventDocument(
-                form_id=form_id,
-                session_id=session_id,
-                from_page=from_page,
-                to_page=to_page,
-            )
-        )
-
-    async def list_by_form_id(self, form_id: str) -> List[FlowEventDocument]:
-        return await self.many(FormFlowEventRow.form_id == form_id)
-
-    async def delete_older_than(self, cutoff: dt.datetime) -> int:
-        """Events recorded before ``cutoff``; uses the created_at index."""
-        return await self.delete_where(FormFlowEventRow.created_at < cutoff)
 
 
 class PostgresFormAIInsightRepository(PostgresRepositoryBase):
@@ -184,54 +156,6 @@ class PostgresCreateFormPromptRepository(PostgresRepositoryBase):
         self, form_id: PydanticObjectId
     ) -> List[CreateFormPrompt]:
         return await self.many(CreateFormPromptRow.form_id == _oid(form_id))
-
-
-class PostgresRateLimitRepository(PostgresRepositoryBase):
-    row = RateLimitCounterRow
-    document = RateLimitCounterDocument
-
-    async def hit(
-        self, counter_id: str, expires_at: dt.datetime, amount: int = 1
-    ) -> int:
-        now = utcnow()
-        names = self._column_names()
-        locked = (
-            select(RateLimitCounterRow.doc)
-            .where(RateLimitCounterRow.id == counter_id)
-            .with_for_update()
-        )
-        async with self._session() as session, session.begin():
-            doc = (await session.execute(locked)).scalar_one_or_none()
-            if doc is None:
-                first = RateLimitCounterDocument(
-                    id=PydanticObjectId(counter_id),
-                    hits=amount,
-                    expires_at=expires_at,
-                )
-                values = row_values(first)
-                inserted = await session.execute(
-                    pg_insert(RateLimitCounterRow)
-                    .values({names[k]: v for k, v in values.items()})
-                    .on_conflict_do_nothing(index_elements=[names["id"]])
-                    .returning(RateLimitCounterRow.id)
-                )
-                if inserted.scalar_one_or_none() is not None:
-                    created = True
-                else:
-                    # another request created it first: count on that one
-                    doc = (await session.execute(locked)).scalar_one()
-                    created = False
-            else:
-                created = False
-            if not created:
-                counter = from_row_doc(RateLimitCounterDocument, doc)
-                counter.hits += amount
-                counter.updated_at = now
-                await session.execute(self._upsert_statement(row_values(counter)))
-                return counter.hits
-        # no TTL index here: expired counters go whenever a new one starts
-        await self.delete_where(RateLimitCounterRow.expires_at <= now)
-        return amount
 
 
 class PostgresIdempotencyRepository(PostgresRepositoryBase):

@@ -111,7 +111,7 @@ async def test_routed_save_workspace_form_keeps_one_link_in_every_mode():
     )
     assert str(second.id) == str(first.id)
     assert [str(wf.id) for wf in await repo.list_in_workspace(ws)] == [str(first.id)]
-    if container.flags().requires_postgres():
+    if container.flags().writes_postgres("forms"):
         postgres = PostgresWorkspaceFormRepository(
             container.pg_sessionmaker(), ResponderGroupsRepository()
         )

@@ -142,7 +142,8 @@ def verify_snapshot(
     """Check every row. Does not change ``seen_versions``: call its
     ``commit(accepted.values(), revision)`` once the result is applied.
 
-    Per row, in order: key known to ``registry``; ``service`` allowed by the
+    Per row, in order: key known to ``registry`` (a row of a retired key is
+    skipped, neither accepted nor rejected); ``service`` allowed by the
     registry and the row; present in the manifest with the same version and
     signature; own signature; version not lower than one already seen. A
     missing, badly signed or older manifest rejects every row
@@ -172,7 +173,8 @@ def verify_snapshot(
         spec = None
         if registry is not None:
             if row.key not in registry:
-                reject(row, RejectionReason.UNKNOWN_KEY)
+                if row.key not in registry.retired:
+                    reject(row, RejectionReason.UNKNOWN_KEY)
                 continue
             spec = registry.get(row.key)
             if (

@@ -1,16 +1,17 @@
 import datetime as dt
 
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 from pydantic import field_validator
-from pymongo import IndexModel
 
 
-class RateLimitCounterDocument(MongoDocument):
+class RateLimitCounterDocument(Record):
     """Requests one client made in one fixed window (services/rate_limiter.py).
 
     The id is derived from a keyed hash of the scope, the client and the
     window, so the record names no address. Kept until ``expires_at``, a
     window after its own ended."""
+
+    # the repository deletes expired counters whenever it starts a new one
 
     hits: int = 0
     expires_at: dt.datetime
@@ -24,8 +25,3 @@ class RateLimitCounterDocument(MongoDocument):
 
     class Settings:
         name = "rate_limit_counters"
-        indexes = [
-            # Mongo drops a counter once it expired; the Postgres twin deletes
-            # expired rows whenever it starts a new one
-            IndexModel([("expires_at", 1)], expireAfterSeconds=0),
-        ]

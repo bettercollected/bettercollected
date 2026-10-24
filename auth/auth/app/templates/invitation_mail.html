@@ -1,10 +1,9 @@
 <!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+<html lang="{{ lang }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
       xmlns:o="urn:schemas-microsoft-com:office:office">
 
 <head>
-    <title>
-    </title>
+    <title>{{ subject }}</title>
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!--<![endif]-->
@@ -199,9 +198,8 @@
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:16px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:18px;font-weight:600;line-height:1;text-align:center;color:#101828;">
-                                        <span style="color: #101828">{{ inviter_name }}</span>
-                                        <span style="color: #5A6478">has invited you to</span>
-                                        <span style="color: #101828">{{ workspace_title or "a workspace" }}</span>
+                                        <span style="color: #101828">{{ workspace_title or t.invite_unknown_workspace }}</span>
+                                        <span style="color: #5A6478">{{ t.invite_heading_via }} {{ product }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -209,7 +207,9 @@
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:16px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
-                                        Join workspace and start to collaborate
+                                        <span style="color: #101828">{{ inviter_name }}</span>
+                                        {% if role %}{{ t.invite_line_role }} <span style="color: #101828">{{ role }}</span>.{% else %}{{ t.invite_line }}.{% endif %}
+                                        <br><span style="font-size:13px;color:#667085;">{{ invite_name_note }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -226,7 +226,7 @@
                                                     style="border:none;border-bottom:3px solid #0E2D8F;border-radius:6px;cursor:auto;height:60px;mso-padding-alt:10px 25px;background:#1649E2;"
                                                     valign="middle">
                                                     <p style="display:inline-block;width:169px;background:#1649E2;color:#ffffff;font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:20px;font-weight:600;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:6px;">
-                                                        Join Workspace </p>
+                                                        {{ t.invite_button }} </p>
                                                 </td>
                                             </tr>
                                             </tbody>
@@ -238,7 +238,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#344054;">
-                                        This link will expire in 7 days
+                                        {{ t.invite_expiry }}
                                     </div>
                                 </td>
                             </tr>
@@ -246,7 +246,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;padding-bottom:8px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
-                                        Efficiently organize, manage and build
+                                        {{ t.invite_pitch }}
                                     </div>
                                 </td>
                             </tr>
@@ -254,8 +254,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-bottom:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:500;line-height:1;text-align:center;color:#101828;">
-                                        <span style="color: #101828">trust with your form submissions.</span>
-                                        <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">Learn more</span></a>
+                                                                                <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">{{ t.invite_learn_more }}</span></a>
                                     </div>
                                 </td>
                             </tr>
@@ -291,7 +290,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:40px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14px;font-weight:400;line-height:1;text-align:center;color:#5A6478;">
-                                        &copy; {{ year }} Sireto B.V. All rights reserved.
+                                        &copy; {{ year }} Sireto B.V. {{ t.footer_rights }}
                                     </div>
                                 </td>
                             </tr>
@@ -299,9 +298,9 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:20px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:400;line-height:1;text-align:center;color:#101828;">
-                                        <span style="color: #5A6478">Visit</span>
+                                        <span style="color: #5A6478">{{ t.footer_visit }}</span>
                                         <a href="https://bettercollected.com/" style="color:#123FC9;text-decoration:underline;"><span style="color: #123FC9">bettercollected</span></a>
-                                        <span style="color: #5A6478">for more information</span>
+                                        <span style="color: #5A6478">{{ t.footer_more }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -309,7 +308,7 @@
                                 <td align="center"
                                     style="font-size:0px;padding-top:16px;word-break:break-word;">
                                     <div style="font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12px;font-weight:400;line-height:18px;text-align:center;color:#667085;">
-                                        <a href="https://sireto.com" style="color:#667085;text-decoration:underline;">A product of Sireto B.V.</a> &middot; Sireto&reg; is a registered trademark of Sireto B.V.
+                                        <a href="https://sireto.com" style="color:#667085;text-decoration:underline;">{{ t.footer_product_of }}</a> &middot; Sireto&reg; {{ t.footer_trademark }}
                                     </div>
                                 </td>
                             </tr>
