@@ -60,11 +60,22 @@ async def test_a_failed_send_does_not_log_the_email(monkeypatch):
 @pytest.fixture
 def brevo_api(monkeypatch):
     requests = []
-    status = {"code": 204}
+    # the answer to each request: "code", or "codes" to answer in turn
+    status = {"code": 204, "codes": []}
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
+        if status["codes"]:
+            code = status["codes"].pop(0)
+            if code == "down":
+                raise httpx.ConnectError("down")
+            return httpx.Response(code)
         return httpx.Response(status["code"])
+
+    async def no_wait(seconds):
+        status.setdefault("waits", []).append(seconds)
+
+    monkeypatch.setattr(BrevoService, "retry_sleep", staticmethod(no_wait))
 
     monkeypatch.setattr(
         BrevoService, "contacts_transport", httpx.MockTransport(handler)
@@ -103,13 +114,46 @@ async def test_the_contact_is_deleted_with_the_contacts_key(brevo_api):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "code,outcome", [(404, "absent"), (500, "failed"), (401, "failed")]
+    "code,outcome,attempts",
+    [(404, "absent", 1), (500, "failed", 4), (503, "failed", 4), (401, "failed", 1)],
 )
-async def test_brevo_answers(brevo_api, code, outcome):
-    _, status, messages = brevo_api
+async def test_brevo_answers(brevo_api, code, outcome, attempts):
+    requests, status, messages = brevo_api
     status["code"] = code
     assert await BrevoService().delete_contact("gone@example.com", "user-1") == outcome
+    # a refusal is final; a server error is retried, then given up
+    assert len(requests) == attempts
     assert all("gone@example.com" not in m for m in messages)
+
+
+@pytest.mark.asyncio
+async def test_transient_failures_are_retried_with_backoff(brevo_api):
+    requests, status, messages = brevo_api
+    status["codes"] = [429, "down", 502]
+    assert await BrevoService().delete_contact("gone@example.com", "user-1") == (
+        "deleted"
+    )
+    assert len(requests) == 4
+    assert status["waits"] == [1.0, 2.0, 4.0]
+    assert any("user-1: deleted" in m for m in messages)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "email,segment",
+    [
+        ("a/b@example.com", "a%2Fb%40example.com"),
+        ("a?b=1@example.com", "a%3Fb%3D1%40example.com"),
+        ("a#b@example.com", "a%23b%40example.com"),
+    ],
+)
+async def test_an_address_is_one_encoded_path_segment(brevo_api, email, segment):
+    requests, _, _ = brevo_api
+    assert await BrevoService().delete_contact(email, "user-1") == "deleted"
+    (request,) = requests
+    assert request.url.raw_path.decode() == (
+        f"/v3/contacts/{segment}?identifierType=email_id"
+    )
 
 
 @pytest.mark.asyncio
@@ -125,8 +169,16 @@ async def test_without_the_contacts_key_nothing_is_sent(brevo_api, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_an_unreachable_brevo_fails_quietly(monkeypatch):
+    calls = []
+
     def handler(request):
+        calls.append(request)
         raise httpx.ConnectError("down")
+
+    async def no_wait(seconds):
+        return None
+
+    monkeypatch.setattr(BrevoService, "retry_sleep", staticmethod(no_wait))
 
     monkeypatch.setattr(
         BrevoService, "contacts_transport", httpx.MockTransport(handler)
@@ -135,6 +187,7 @@ async def test_an_unreachable_brevo_fails_quietly(monkeypatch):
         brevo_service.settings.brevo_settings, "contacts_api_key", "contacts-key"
     )
     assert await BrevoService().delete_contact("gone@example.com", "u") == "failed"
+    assert len(calls) == 4
 
 
 @pytest.mark.asyncio
