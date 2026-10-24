@@ -30,6 +30,13 @@ vi.mock('@app/store/redux/template-api', async (importOriginal) => ({
     useCreateFormFromTemplateMutation: () => [vi.fn()]
 }));
 
+// what GET /providers reports (the Google Forms import switch)
+const providers: { data: any; isLoading: boolean } = { data: [{ providerName: 'google', importMode: 'on' }], isLoading: false };
+vi.mock('@app/store/redux/import-api', async (importOriginal) => ({
+    ...((await importOriginal()) as object),
+    useGetProvidersQuery: () => providers
+}));
+
 async function renderPage() {
     await act(async () => {
         render(
@@ -65,5 +72,41 @@ describe('the New Form page', () => {
         await renderPage();
         fireEvent.click(card('Start with AI'));
         expect(openDialogModal).toHaveBeenCalledWith('START_WITH_AI');
+    });
+});
+
+describe('the New Form page and the Google Forms import switch', () => {
+    beforeEach(() => {
+        isMobile = false;
+        providers.isLoading = false;
+        store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+    });
+
+    it('offers the Google import while imports are on, or when the mode is unknown', async () => {
+        providers.data = [{ providerName: 'google', importMode: 'on' }];
+        await renderPage();
+        expect(screen.getByText('Import Google Form')).toBeTruthy();
+    });
+
+    it('drops the Google import and says why when imports are read-only', async () => {
+        providers.data = [{ providerName: 'google', importMode: 'readonly' }];
+        await renderPage();
+        expect(screen.queryByText('Import Google Form')).toBeNull();
+        expect(screen.getByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeTruthy();
+        expect(screen.getByText('Import a PDF form')).toBeTruthy();
+    });
+
+    it('does not offer Google at all when imports are off', async () => {
+        providers.data = [];
+        await renderPage();
+        expect(screen.queryByText('Import Google Form')).toBeNull();
+        expect(screen.queryByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeNull();
+    });
+
+    it('waits for the mode before offering the Google import', async () => {
+        providers.data = undefined;
+        providers.isLoading = true;
+        await renderPage();
+        expect(screen.queryByText('Import Google Form')).toBeNull();
     });
 });

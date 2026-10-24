@@ -7,7 +7,11 @@ import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wr
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
+import { useTranslation } from 'react-i18next';
+
 import { useModal } from '@app/components/modal-views/context';
+import { googleFormsImport } from '@app/constants/locales/google-forms-import';
+import { googleFormsRefusal, useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { IntegrationType } from '@app/models/enums/integration-type';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';
@@ -33,6 +37,11 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
     const [showIntegrationConsent, setShowIntegrationConsent] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [oauthResult, setOauthResult] = useState({ state: '', code: '' });
+    const { t } = useTranslation();
+    // GOOGLE_FORMS_IMPORT=off: the Sheets action still goes through the
+    // Google Forms service, so connecting answers 410 google_forms_off.
+    const { mode: googleImportMode } = useGoogleFormsImportMode();
+    const sheetsOff = googleImportMode === 'off';
 
     useEffect(() => {
         if (action.name === 'creator_copy_mail') {
@@ -60,6 +69,14 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
     const handleClick = () => {
         setErrorMessage('');
         fetchOauthUrl({ integrationType: IntegrationType.GoogleSheet }).then((res) => {
+            if (googleFormsRefusal(res.error) === 'off') {
+                setErrorMessage(t(googleFormsImport.off.sheets));
+                return;
+            }
+            if (!res.data) {
+                setErrorMessage('Could not reach Google. Please try again.');
+                return;
+            }
             window.open(res.data, 'oauthWindow', 'height=600 width=600 left=600 top=300');
         });
     };
@@ -75,10 +92,16 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                         <span className="text-blue-600">{action?.title || 'Untitled'}</span> to the form <span className="text-blue-600">{form?.title || 'Untitled'}</span>
                     </div>
                     <p className="text-center text-sm text-gray-600 ">Send your BetterCollected form responses to your Google Sheets</p>
-                    <Button className="mt-4" onClick={handleClick}>
-                        Connect to Google{' '}
-                    </Button>
-                    {errorMessage && <h1 className={'mt-4 text-red-500'}>{errorMessage}</h1>}
+                    {sheetsOff ? (
+                        <p role="note" className="mt-4 max-w-[400px] rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-sm text-black-800">
+                            {t(googleFormsImport.off.sheets)}
+                        </p>
+                    ) : (
+                        <Button className="mt-4" onClick={handleClick}>
+                            Connect to Google{' '}
+                        </Button>
+                    )}
+                    {errorMessage && <p role="alert" className={'mt-4 max-w-[400px] text-sm text-red-500'}>{errorMessage}</p>}
                 </div>
             </HeaderModalWrapper>
         );

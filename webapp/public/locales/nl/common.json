@@ -382,6 +382,18 @@
     }
   },
   "GO_TO_RESPONSE": "Ga naar antwoord",
+  "GOOGLE_FORMS_IMPORT": {
+    "READONLY": {
+      "TITLE": "Import uit Google Forms is alleen-lezen",
+      "DESCRIPTION": "Formulieren en reacties die eerder uit Google Forms zijn geïmporteerd, blijven hier en u kunt ze blijven beheren. Nieuwe imports en opnieuw synchroniseren vanuit Google Forms kunnen niet meer.",
+      "CREATE_PAGE": "Importeren uit Google Forms is niet meer beschikbaar. Eerder geïmporteerde formulieren blijven in uw formulierenlijst."
+    },
+    "OFF": {
+      "TITLE": "Import uit Google Forms staat uit",
+      "DESCRIPTION": "Deze installatie maakt geen verbinding meer met Google Forms. Formulieren en reacties die eerder zijn geïmporteerd, blijven hier.",
+      "SHEETS": "Google Sheets kan niet worden gekoppeld: deze installatie heeft haar Google Forms-service uitgezet, en de Google Sheets-actie loopt nog via die service."
+    }
+  },
   "GROUP": {
     "DEFAULT": "Groep",
     "GROUPS": "Groepen",
