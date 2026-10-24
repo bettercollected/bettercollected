@@ -16,7 +16,29 @@ export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } fro
  *   - `action: 'HIDE'` → the field is visible until the conditions are met.
  * Conditions reference an earlier field's answer by id + type, so we can read the
  * right slot out of the stored answer.
+ *
+ * Choice questions store the chosen option's id, while a condition names the
+ * option by its text (what the builder and the AI operations store) or by its
+ * id. The evaluators therefore take the form's questions by id (`LogicSources`,
+ * from `logicSourcesById`) and match a condition against the chosen option's
+ * id, text or label. The server's twin is backend services/repeating_groups.py.
  */
+
+/** The form's questions by id (page questions and the questions of repeating groups). */
+export type LogicSources = Record<string, StandardFormFieldDto>;
+
+/** Every question of a form by id, as the evaluators read a choice condition's options from it. */
+export function logicSourcesById(slides: Array<StandardFormFieldDto> | undefined | null): LogicSources {
+    // No prototype: a question id is creator content and never names an inherited key.
+    const byId: LogicSources = Object.create(null);
+    (slides ?? []).forEach((slide) =>
+        slide?.properties?.fields?.forEach((field) => {
+            if (field?.id) byId[field.id] = field;
+            if (field?.type === FieldTypes.GROUP) field.properties?.fields?.forEach((child) => child?.id && (byId[child.id] = child));
+        })
+    );
+    return byId;
+}
 
 /** Pull the comparable value out of a stored v2 answer for a given source field type. */
 export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | string): any {
@@ -72,22 +94,58 @@ export function getGroupAnswerItems(answer: any): Array<Record<string, any>> {
  * layered over the rest of the form's, exactly like visibility inside an item.
  * ALL over zero items does not match (there is nothing to match).
  */
-function evaluateGroupCondition(answers: Record<string, any>, condition: LogicCondition): boolean {
+function evaluateGroupCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources): boolean {
     const items = getGroupAnswerItems(answers?.[condition.fieldId]);
     if (condition.groupMode === 'COUNT') {
         return compareValue(items.length, condition.comparison, condition.value);
     }
     if (!condition.childFieldId) return false;
     const child: LogicCondition = { fieldId: condition.childFieldId, fieldType: condition.childFieldType ?? '', comparison: condition.comparison, value: condition.value };
-    const matches = items.map((item) => evaluateCondition({ ...(answers || {}), ...item }, child));
+    const matches = items.map((item) => evaluateCondition({ ...(answers || {}), ...item }, child, sources));
     if (condition.groupMode === 'ANY') return matches.some(Boolean);
     if (condition.groupMode === 'ALL') return matches.length > 0 && matches.every(Boolean);
     return false;
 }
 
-function evaluateCondition(answers: Record<string, any>, condition: LogicCondition): boolean {
-    if (condition.groupMode) return evaluateGroupCondition(answers, condition);
-    const value = getComparableAnswerValue(answers?.[condition.fieldId], condition.fieldType);
+const CHOICE_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
+const NEGATED_COMPARISONS = new Set<string>([Comparison.IS_NOT_EQUAL, Comparison.DOES_NOT_CONTAIN]);
+
+const filledText = (v: any): v is string | number => (typeof v === 'string' && v !== '') || typeof v === 'number';
+
+/** What a chosen option answers to: its id, its text and its label (an unknown id: itself). */
+function choiceTokens(chosen: string, source?: StandardFormFieldDto): string[] {
+    const choice = source?.properties?.choices?.find((c) => c?.id === chosen);
+    if (!choice) return [chosen];
+    return [...new Set([chosen, choice.value, choice.label].filter(filledText).map(String))];
+}
+
+/**
+ * A condition on a choice question. The answer holds option ids (and the text
+ * typed as "Other"); the condition names an option by its text or its id.
+ * Several answers: one list of everything the chosen options answer to, plus
+ * the "Other" text, compared as a list (membership). One answer: the
+ * condition holds when it holds for any of what the option answers to; "is
+ * not" and "does not contain" when they hold for all of them.
+ */
+function evaluateChoiceCondition(answer: any, source: StandardFormFieldDto | undefined, comparison: Comparison, target: any): boolean {
+    const many = answer?.choices;
+    if (many && typeof many === 'object' && !Array.isArray(many)) {
+        const tokens = (Array.isArray(many.values) ? many.values : []).filter(filledText).flatMap((v: string | number) => choiceTokens(String(v), source));
+        if (filledText(many.other)) tokens.push(String(many.other));
+        return compareValue(tokens, comparison, target);
+    }
+    const one = answer?.choice;
+    const tokens = [...(filledText(one?.value) ? choiceTokens(String(one.value), source) : []), ...(filledText(one?.other) ? [String(one.other)] : [])];
+    if (!tokens.length) return compareValue(undefined, comparison, target);
+    const results = tokens.map((token) => compareValue(token, comparison, target));
+    return NEGATED_COMPARISONS.has(comparison) ? results.every(Boolean) : results.some(Boolean);
+}
+
+function evaluateCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources): boolean {
+    if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources);
+    const answer = answers?.[condition.fieldId];
+    if (CHOICE_TYPES.has(condition.fieldType)) return evaluateChoiceCondition(answer, sources?.[condition.fieldId], condition.comparison, condition.value);
+    const value = getComparableAnswerValue(answer, condition.fieldType);
     return compareValue(value, condition.comparison, condition.value);
 }
 
@@ -126,17 +184,21 @@ function compareValue(value: any, comparison: Comparison, target: any): boolean 
     }
 }
 
-/** Fold a set of conditions with AND/OR. Empty/incomplete condition sets never match. */
-export function evaluateConditions(operator: LogicalOperator | undefined, conditions: LogicCondition[] | undefined, answers: Record<string, any>): boolean {
+/**
+ * Fold a set of conditions with AND/OR. Empty/incomplete condition sets never match.
+ * `sources`: the form's questions by id (`logicSourcesById`), which a condition on a
+ * choice question needs to match an option's text; without it, only option ids match.
+ */
+export function evaluateConditions(operator: LogicalOperator | undefined, conditions: LogicCondition[] | undefined, answers: Record<string, any>, sources?: LogicSources): boolean {
     const valid = (conditions ?? []).filter((c) => c && c.fieldId && c.comparison);
     if (valid.length === 0) return false;
-    if (operator === LogicalOperator.OR) return valid.some((c) => evaluateCondition(answers, c));
-    return valid.every((c) => evaluateCondition(answers, c));
+    if (operator === LogicalOperator.OR) return valid.some((c) => evaluateCondition(answers, c, sources));
+    return valid.every((c) => evaluateCondition(answers, c, sources));
 }
 
 /** Are a rule's conditions satisfied given the current answers? */
-export function areConditionsMet(logic: FieldConditionalLogic, answers: Record<string, any>): boolean {
-    return evaluateConditions(logic?.operator, logic?.conditions, answers);
+export function areConditionsMet(logic: FieldConditionalLogic, answers: Record<string, any>, sources?: LogicSources): boolean {
+    return evaluateConditions(logic?.operator, logic?.conditions, answers, sources);
 }
 
 /**
@@ -144,8 +206,8 @@ export function areConditionsMet(logic: FieldConditionalLogic, answers: Record<s
  * Returns the first matching jump rule's target (a slide id or JUMP_TARGET_SUBMIT),
  * or null when no rule matches (caller falls back to the linear next page).
  */
-export function resolveJumpTargetId(slide: StandardFormFieldDto | undefined, answers: Record<string, any>): string | null {
-    return resolveJump(slide, answers)?.target || null;
+export function resolveJumpTargetId(slide: StandardFormFieldDto | undefined, answers: Record<string, any>, sources?: LogicSources): string | null {
+    return resolveJump(slide, answers, sources)?.target || null;
 }
 
 /**
@@ -153,11 +215,11 @@ export function resolveJumpTargetId(slide: StandardFormFieldDto | undefined, ans
  * conditions match, or null. With a JUMP_TARGET_SUBMIT target its `endingId`
  * names the ending to show (utils/endings.ts).
  */
-export function resolveJump(slide: StandardFormFieldDto | undefined, answers: Record<string, any>): PageJump | null {
+export function resolveJump(slide: StandardFormFieldDto | undefined, answers: Record<string, any>, sources?: LogicSources): PageJump | null {
     const jumps = slide?.properties?.jumps as PageJump[] | undefined;
     if (!Array.isArray(jumps)) return null;
     for (const jump of jumps) {
-        if (jump?.conditions?.length && evaluateConditions(jump.operator, jump.conditions, answers)) return jump;
+        if (jump?.conditions?.length && evaluateConditions(jump.operator, jump.conditions, answers, sources)) return jump;
     }
     return null;
 }
@@ -166,18 +228,18 @@ export function resolveJump(slide: StandardFormFieldDto | undefined, answers: Re
  * Is this field hidden right now given the answers so far?
  * Fields without a logic rule (or with no usable conditions) are always visible.
  */
-export function isFieldHiddenByLogic(field: StandardFormFieldDto, answers: Record<string, any>): boolean {
+export function isFieldHiddenByLogic(field: StandardFormFieldDto, answers: Record<string, any>, sources?: LogicSources): boolean {
     const logic = field?.properties?.logic as FieldConditionalLogic | undefined;
     if (!logic || !logic.action || !(logic.conditions?.length > 0)) return false;
-    const met = areConditionsMet(logic, answers);
+    const met = areConditionsMet(logic, answers, sources);
     return logic.action === 'SHOW' ? !met : met;
 }
 
 /** Ids of every field in a slide that should be hidden right now. */
-export function getHiddenFieldIds(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>): Set<string> {
+export function getHiddenFieldIds(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources): Set<string> {
     const hidden = new Set<string>();
     fields?.forEach((field) => {
-        if (isFieldHiddenByLogic(field, answers)) hidden.add(field.id);
+        if (isFieldHiddenByLogic(field, answers, sources)) hidden.add(field.id);
     });
     return hidden;
 }
@@ -234,7 +296,7 @@ export interface SubmissionPath {
  * final answers, so mid-fill back-tracking isn't represented, and paths are
  * capped at 2×pages+2 hops in case persisted rules loop.
  */
-export function submissionPath(slides: Array<StandardFormFieldDto>, answers: Record<string, any>): SubmissionPath {
+export function submissionPath(slides: Array<StandardFormFieldDto>, answers: Record<string, any>, sources: LogicSources = logicSourcesById(slides)): SubmissionPath {
     const slideIds = new Set(slides.map((s) => s.id));
     const indexById = new Map(slides.map((s, i) => [s.id, i]));
     const steps: SubmissionPath['steps'] = [];
@@ -244,7 +306,7 @@ export function submissionPath(slides: Array<StandardFormFieldDto>, answers: Rec
         const slide = slides[index];
         // Find the first matching jump (same order semantics as the responder).
         const jumps = (slide.properties?.jumps as PageJump[] | undefined) ?? [];
-        const matchIdx = jumps.findIndex((j) => j?.conditions?.length && isJumpTargetValid(j.target, slideIds) && evaluateConditions(j.operator, j.conditions, answers ?? {}));
+        const matchIdx = jumps.findIndex((j) => j?.conditions?.length && isJumpTargetValid(j.target, slideIds) && evaluateConditions(j.operator, j.conditions, answers ?? {}, sources));
         if (matchIdx < 0) {
             steps.push({ pageId: slide.id });
             index += 1;
@@ -277,7 +339,8 @@ export function flowTrafficFromPaths(paths: Array<SubmissionPath>): FlowTraffic 
 
 /** Replay answers here and count them (the flow view gets the paths from the server instead). */
 export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersList: Array<Record<string, any>>): FlowTraffic {
-    return flowTrafficFromPaths(answersList.map((answers) => submissionPath(slides, answers)));
+    const sources = logicSourcesById(slides);
+    return flowTrafficFromPaths(answersList.map((answers) => submissionPath(slides, answers, sources)));
 }
 
 /**

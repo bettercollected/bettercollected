@@ -150,7 +150,7 @@ export function resolveDateRuleBounds(field: StandardFormFieldDto, context: Date
         } else if (rule.target === 'field' && rule.fieldId) {
             const source = context.fieldsById[rule.fieldId];
             // Unanswered, hidden by logic or gone: the rule does not apply.
-            if (!source || source.type !== FieldTypes.DATE || isFieldHiddenByLogic(source, context.answers)) return;
+            if (!source || source.type !== FieldTypes.DATE || isFieldHiddenByLogic(source, context.answers, context.fieldsById)) return;
             const value = context.answers?.[rule.fieldId]?.date;
             if (!isIsoDate(value)) return;
             bounds.push({ rule, bound: value, label: `${dateFieldName(source, messages)} (${formatDate(value)})` });
@@ -214,7 +214,7 @@ export function validateGroupDateRules(group: StandardFormFieldDto, answers: Rec
     const childIds = children.map((c) => c.id);
     getGroupItems(answers, group.id).forEach((_item, index) => {
         const scoped = itemScopeAnswers(answers, { groupId: group.id, index, childIds });
-        const hidden = getItemHiddenChildIds(group, answers, index);
+        const hidden = getItemHiddenChildIds(group, answers, index, fieldsById);
         ruled.forEach((child) => {
             if (hidden.has(child.id)) return;
             if (getDateRuleError(child, { answers: scoped, fieldsById, today })) invalid[scopedFieldId(child.id, index)] = ['DATE_RULE'];

@@ -12,6 +12,7 @@ import {
     getHiddenFieldIds,
     isFieldHiddenByLogic,
     isJumpTargetValid,
+    logicSourcesById,
     pruneOrphanedConditions,
     resolveJumpTargetId,
     slideHasLogic,
@@ -386,5 +387,94 @@ describe('submissionPath and flowTrafficFromPaths', () => {
         expect(t.endingVisits.get('')).toBe(2);
         expect(t.nextTraversals.get('__welcome__')).toBe(3);
         expect(t.nextTraversals.get('p3')).toBe(2);
+    });
+});
+
+/* ---------------------------- choice questions --------------------------- */
+
+describe('conditions on choice questions', () => {
+    // As the builder makes them: options with an id and a text; answers hold
+    // the chosen option's id, conditions the option's text (older and AI-made
+    // rules) or its id.
+    const choices = [
+        { id: 'c-billing', value: 'Billing' },
+        { id: 'c-tech', value: 'Technical issue' },
+        { id: 'c-legacy', label: 'Legacy label' }
+    ];
+    const dropdown: StandardFormFieldDto = { id: 'topic', index: 0, type: FieldTypes.DROP_DOWN, properties: { choices } };
+    const multi: StandardFormFieldDto = { id: 'tags', index: 0, type: FieldTypes.MULTIPLE_CHOICE, properties: { choices, allowMultipleSelection: true, allowOtherChoice: true } };
+    const slides = [slide('p1', [dropdown, multi])];
+    const sources = logicSourcesById(slides);
+    const picked = (id: string) => ({ topic: { type: 'choice', choice: { value: id } } });
+    const many = (values: string[], other?: string) => ({ tags: { type: 'choices', choices: { values, ...(other ? { other } : {}) } } });
+    const on = (fieldId: string, fieldType: string, comparison: Comparison, value: any, answers: Record<string, any>, src = sources) =>
+        evaluateConditions(LogicalOperator.AND, [cond(fieldId, comparison, value, fieldType)], answers, src);
+
+    it('collects page questions and the questions of groups', () => {
+        const group = { id: 'g', index: 0, type: FieldTypes.GROUP, properties: { repeat: {}, fields: [dropdown] } } as StandardFormFieldDto;
+        expect(Object.keys(logicSourcesById([slide('p', [field('q'), group])])).sort()).toEqual(['g', 'q', 'topic']);
+        expect(Object.keys(logicSourcesById(undefined))).toEqual([]);
+    });
+
+    it('matches the chosen option by its text, its id or its label', () => {
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'Billing', picked('c-billing'))).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'c-billing', picked('c-billing'))).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'Legacy label', picked('c-legacy'))).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'Technical issue', picked('c-billing'))).toBe(false);
+    });
+
+    it('compares exactly and case-sensitively, as other equality does', () => {
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'billing', picked('c-billing'))).toBe(false);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'Bill', picked('c-billing'))).toBe(false);
+    });
+
+    it('"is not" holds only when nothing the option answers to is equal', () => {
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EQUAL, 'Billing', picked('c-billing'))).toBe(false);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EQUAL, 'c-billing', picked('c-billing'))).toBe(false);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EQUAL, 'Billing', picked('c-tech'))).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EQUAL, 'Billing', {})).toBe(true);
+    });
+
+    it('treats an unanswered choice as empty and a chosen one as not', () => {
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EMPTY, '', {})).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EMPTY, '', picked('c-billing'))).toBe(false);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EMPTY, '', picked('c-billing'))).toBe(true);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.IS_EMPTY, '', many([]))).toBe(true);
+    });
+
+    it('checks membership of several answers by text or id', () => {
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.CONTAINS, 'Technical issue', many(['c-billing', 'c-tech']))).toBe(true);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.CONTAINS, 'c-tech', many(['c-tech']))).toBe(true);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.CONTAINS, 'Technical', many(['c-tech']))).toBe(false);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.DOES_NOT_CONTAIN, 'Billing', many(['c-tech']))).toBe(true);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.DOES_NOT_CONTAIN, 'Billing', many(['c-billing']))).toBe(false);
+    });
+
+    it('compares the text typed as "Other" as it is', () => {
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.CONTAINS, 'Partners', many([], 'Partners'))).toBe(true);
+        expect(on('tags', FieldTypes.MULTIPLE_CHOICE, Comparison.IS_NOT_EMPTY, '', many([], 'Partners'))).toBe(true);
+        const other = { topic: { type: 'choice', choice: { other: 'Partners' } } };
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_EQUAL, 'Partners', other)).toBe(true);
+        expect(on('topic', FieldTypes.DROP_DOWN, Comparison.IS_NOT_EMPTY, '', other)).toBe(true);
+    });
+
+    it('matches only option ids when the form is not given', () => {
+        const byId = cond('topic', Comparison.IS_EQUAL, 'c-billing', FieldTypes.DROP_DOWN);
+        const byText = cond('topic', Comparison.IS_EQUAL, 'Billing', FieldTypes.DROP_DOWN);
+        expect(evaluateConditions(LogicalOperator.AND, [byId], picked('c-billing'))).toBe(true);
+        expect(evaluateConditions(LogicalOperator.AND, [byText], picked('c-billing'))).toBe(false);
+    });
+
+    it('shows, hides and jumps on an option text', () => {
+        const shown = field('details', FieldTypes.SHORT_TEXT, { action: 'SHOW', operator: LogicalOperator.AND, conditions: [cond('topic', Comparison.IS_EQUAL, 'Billing', FieldTypes.DROP_DOWN)] });
+        expect(isFieldHiddenByLogic(shown, picked('c-billing'), sources)).toBe(false);
+        expect(isFieldHiddenByLogic(shown, picked('c-tech'), sources)).toBe(true);
+        expect(getHiddenFieldIds([shown], picked('c-billing'), sources).size).toBe(0);
+        const form = [slide('p1', [dropdown], [{ operator: LogicalOperator.AND, conditions: [cond('topic', Comparison.IS_EQUAL, 'Billing', FieldTypes.DROP_DOWN)], target: 'p3' }]), slide('p2'), slide('p3')];
+        expect(resolveJumpTargetId(form[0], picked('c-billing'), logicSourcesById(form))).toBe('p3');
+        expect(resolveJumpTargetId(form[0], picked('c-tech'), logicSourcesById(form))).toBeNull();
+        // the flow view's insights read the options from the pages themselves
+        expect(submissionPath(form, picked('c-billing')).steps.map((s) => s.pageId)).toEqual(['p1', 'p3']);
+        expect(computeFlowTraffic(form, [picked('c-billing'), picked('c-tech')]).nodeVisits.get('p2')).toBe(1);
     });
 });

@@ -99,6 +99,17 @@ describe('rule evaluation', () => {
         expect(getDateRuleError(end, context({ ...answers, trip: { boolean: true } }, forms))).toBe('Must be after Start date (12 Mar 2026).');
     });
 
+    it("reads a choice condition hiding the other question by the option's text", () => {
+        const hiddenStart = date('start', 'Start date', undefined, {
+            properties: { logic: { action: 'SHOW', operator: 'AND' as any, conditions: [{ fieldId: 'stay', fieldType: FieldTypes.DROP_DOWN, comparison: 'IS_EQUAL' as any, value: 'Several nights' }] } }
+        });
+        const stay: StandardFormFieldDto = { id: 'stay', index: 0, type: FieldTypes.DROP_DOWN, title: 'Stay', properties: { choices: [{ id: 's-day', value: 'Day visit' }, { id: 's-nights', value: 'Several nights' }] } };
+        const forms = [slide('s1', [stay, hiddenStart, end])];
+        const answers = { stay: { type: 'choice', choice: { value: 's-day' } }, start: day('2026-03-12'), end: day('2026-03-01') };
+        expect(getDateRuleError(end, context(answers, forms))).toBeUndefined();
+        expect(getDateRuleError(end, context({ ...answers, stay: { type: 'choice', choice: { value: 's-nights' } } }, forms))).toBe('Must be after Start date (12 Mar 2026).');
+    });
+
     it('checks fixed dates and today', () => {
         const field = date('d', 'Date', [
             { comparison: 'on_or_after', target: 'date', date: '2026-01-01' },

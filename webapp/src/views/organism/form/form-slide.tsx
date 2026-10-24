@@ -27,7 +27,7 @@ import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { isShownToRespondents, localToday } from '@app/utils/calculated-fields';
-import { getHiddenFieldIds, resolveJump } from '@app/utils/conditional-logic';
+import { getHiddenFieldIds, logicSourcesById, resolveJump } from '@app/utils/conditional-logic';
 import { validateDateRulesInSlide } from '@app/utils/date-rules';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
@@ -197,9 +197,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         return response.data;
     };
 
+    // The form's questions by id: a condition on a choice question reads its
+    // options from them (answers hold option ids, conditions an option's text).
+    const logicSources = logicSourcesById(standardForm?.fields);
     // Fields hidden by conditional logic given the answers so far. Recomputed each
     // render, so the form reacts live as the responder answers earlier questions.
-    const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
+    const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {}, logicSources);
     // Calculations kept from respondents ("internal results") are computed, never shown.
     const visibleFields: StandardFormFieldDto[] = (formSlide?.properties?.fields || []).filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id) && isShownToRespondents(field));
 
@@ -233,7 +236,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Where "Next" goes with the answers so far: a jump that submits makes
     // this page the last one, whatever its place in the form.
     const isLastPage = (standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index;
-    const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {})?.target === JUMP_TARGET_SUBMIT;
+    const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {}, logicSources)?.target === JUMP_TARGET_SUBMIT;
     const submitsHere = isLastPage || endsHere;
     // A failed submission, shown by the button until the next attempt.
     const [submitError, setSubmitError] = useState(false);
@@ -298,11 +301,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}),
             // Repeating groups: item limits, and required questions per item
             // (keyed by the item-scoped id the question renders under).
-            ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
+            ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources)
         };
         // Answer rules (length, format, value range, number of options) on
         // answers given; a missing one is Required's to report.
-        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {})).forEach(([id, problems]) => {
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources)).forEach(([id, problems]) => {
             if (!invalidations[id]) invalidations[id] = problems as any;
         });
         // Date rules (e.g. "after Start date"), on top of a missing answer.
@@ -321,7 +324,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         }
 
         // Page-jump / branching: a matching rule overrides the linear next page.
-        const jump = resolveJump(formSlide, formResponse.answers || {});
+        const jump = resolveJump(formSlide, formResponse.answers || {}, logicSources);
         const jumpTargetId = jump?.target || null;
         if (jumpTargetId === JUMP_TARGET_SUBMIT) {
             if (isPreviewMode) toast({ description: 'Logic rule matched → submitting the form' });
