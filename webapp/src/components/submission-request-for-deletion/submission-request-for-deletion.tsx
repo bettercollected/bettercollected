@@ -1,23 +1,23 @@
-
-import { useTranslation } from 'react-i18next';
-
 import GenericHalfModal from '@Components/common/generic-half-modal';
 
-import { formConstant } from '@app/constants/locales/form';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
+/** The respondent confirms a deletion request for their own submission, in their language. */
 export default function RequestForDeletionView(props: any) {
     const { handleRequestForDeletion } = props;
-    const { t } = useTranslation();
+    const { t, language } = useRespondentLanguage();
     return (
         // Buttons say what they do — "Yes/No" makes people re-read the question.
-        <GenericHalfModal
-            type="danger"
-            headerTitle="Request deletion"
-            title={t(formConstant.deletionResponseWarningMessage)}
-            subTitle="The workspace will be asked to delete this response. The request and its status stay visible to you here and under Deletion requests."
-            positiveAction={handleRequestForDeletion}
-            positiveText="Request deletion"
-            negativeText="Cancel"
-        />
+        <div lang={language}>
+            <GenericHalfModal
+                type="danger"
+                headerTitle={t('SUBMISSION.REQUEST')}
+                title={t('SUBMISSION.CONFIRM_QUESTION')}
+                subTitle={t('SUBMISSION.CONFIRM_TEXT')}
+                positiveAction={handleRequestForDeletion}
+                positiveText={t('SUBMISSION.REQUEST')}
+                negativeText={t('SUBMISSION.CANCEL')}
+            />
+        </div>
     );
 }

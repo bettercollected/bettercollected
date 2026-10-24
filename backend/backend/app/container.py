@@ -72,7 +72,6 @@ from backend.app.repositories.postgres.refdata import (
     PostgresUserFeedbackRepo,
 )
 
-from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.workspace_api_key_repository import (
     WorkspaceAPIKeyRepository,
 )
@@ -217,18 +216,10 @@ class AppContainer(containers.DeclarativeContainer):
         UserTagsService, user_tags_repo=user_tags_repo
     )
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
-    # defined early: the workspace twin composes over it (identity → actions)
-    action_repository = providers.Singleton(
-        RoutingRepository,
-        group="actions",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ActionRepository, crypto=crypto),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresActionRepository, pg_sessionmaker, crypto
-        ),
+    # defined early: both workspace repositories compose over it (identity →
+    # actions, WorkspaceRepository.get_workspace_with_action_by_id)
+    action_repository: PostgresActionRepository = providers.Singleton(
+        PostgresActionRepository, pg_sessionmaker, crypto
     )
 
     # Repositories
@@ -255,7 +246,9 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceRepository),
+        mongo=providers.Singleton(
+            WorkspaceRepository, action_repository=action_repository
+        ),
         postgres=providers.Singleton(
             postgres_repository,
             PostgresWorkspaceRepository,

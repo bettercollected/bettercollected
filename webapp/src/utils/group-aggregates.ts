@@ -1,5 +1,5 @@
-import { FieldTypes } from '@app/models/dtos/form';
-import { getComparableAnswerValue, getGroupAnswerItems } from '@app/utils/conditional-logic';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { choiceAnswerText, getComparableAnswerValue, getGroupAnswerItems } from '@app/utils/conditional-logic';
 
 /**
  * Values computed across the items of a repeating group — the building blocks
@@ -67,18 +67,24 @@ export function joinList(values: string[]): string | undefined {
     return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
 
-/** One child question's answers across the items, as display strings. */
-export function getGroupValues(groupAnswer: any, childId: string, childType: string): string[] {
+const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
+
+/**
+ * One child question's answers across the items, as display strings. With the
+ * child question given, a choice answer shows its options' text (not their ids).
+ */
+export function getGroupValues(groupAnswer: any, childId: string, childType: string, child?: StandardFormFieldDto): string[] {
+    const display = (answer: any) => (child && CHOICE_TYPES.includes(childType) ? choiceAnswerText(answer, child) : getComparableAnswerValue(answer, childType));
     return getGroupAnswerItems(groupAnswer)
-        .map((item) => getComparableAnswerValue(item?.[childId], childType))
+        .map((item) => display(item?.[childId]))
         .map((value) => (Array.isArray(value) ? value.join(', ') : value === undefined || value === null ? '' : String(value)))
         .filter((value) => value !== '');
 }
 
 /** Resolve an aggregate to display text (count needs no child question). */
-export function resolveGroupAggregate(groupAnswer: any, aggregate: GroupAggregate, childId?: string, childType?: string): string | undefined {
+export function resolveGroupAggregate(groupAnswer: any, aggregate: GroupAggregate, childId?: string, childType?: string, child?: StandardFormFieldDto): string | undefined {
     if (aggregate === 'count') return String(getGroupAnswerItems(groupAnswer).length);
     if (!childId) return undefined;
-    if (aggregate === 'list') return joinList(getGroupValues(groupAnswer, childId, childType ?? ''));
+    if (aggregate === 'list') return joinList(getGroupValues(groupAnswer, childId, childType ?? '', child));
     return formatAggregate(aggregateGroupNumbers(groupAnswer, childId, childType ?? '', aggregate));
 }

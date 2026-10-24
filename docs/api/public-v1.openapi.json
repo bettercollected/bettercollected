@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BetterCollected public API",
-    "description": "Create, read, change and publish forms as **form spec v1** documents, and read\ntheir responses. Authenticate with a workspace API key:\n`Authorization: Bearer bc_...`. A key works in its own workspace only, with\nits scopes (`forms:read`, `forms:write`, `responses:read`), and never does\nmore than the person who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
+    "description": "Create, read, change, publish and delete forms as **form spec v1** documents,\nread their responses and close deletion requests. Authenticate with a\nworkspace API key: `Authorization: Bearer bc_...`. A key works in its own\nworkspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,\n`responses:read`, `deletion_requests:write`), and never does more than the\nperson who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -670,6 +670,95 @@
                 ],
                 "trust": {
                   "purpose": "To plan seats and catering."
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Forms"
+        ],
+        "summary": "Delete a form and its responses",
+        "description": "The product's delete: the form leaves the workspace and the responses collected through it are deleted. Needs `forms:delete` (`forms:write` is not enough), and the key's creator needs to delete forms (`form.delete`).",
+        "operationId": "deleteForm",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -1468,6 +1557,123 @@
           }
         }
       }
+    },
+    "/forms/{form_id}/responses/{response_id}/deletion-request/close": {
+      "post": {
+        "tags": [
+          "Responses"
+        ],
+        "summary": "Close a pending deletion request",
+        "description": "What staff do on the dashboard: `completed` deletes the workspace's stored copy of the response, `declined` keeps it and records one of the fixed reasons, which the respondent sees. Needs `deletion_requests:write`, and the key's creator needs `privacy.manage`. 409 when the request is already closed.",
+        "operationId": "closeDeletionRequest",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "response_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Response Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedDeletionRequestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseDeletionRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1647,6 +1853,41 @@
         "title": "Choice",
         "description": "One option of a choice question. Logic conditions compare with\n``value``."
       },
+      "ClosedDeletionRequestResult": {
+        "properties": {
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "responseId": {
+            "type": "string",
+            "title": "Responseid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "success or declined."
+          },
+          "declineReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declinereason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "formId",
+          "responseId",
+          "status"
+        ],
+        "title": "ClosedDeletionRequestResult"
+      },
       "Condition": {
         "properties": {
           "fieldId": {
@@ -1825,7 +2066,7 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "pending or success."
+            "description": "pending, success or declined."
           }
         },
         "type": "object",
@@ -4142,6 +4383,44 @@
           "ops"
         ],
         "title": "OpsRequest",
+        "type": "object"
+      },
+      "CloseDeletionRequest": {
+        "properties": {
+          "outcome": {
+            "description": "completed deletes the workspace's stored copy of the response; declined keeps it.",
+            "enum": [
+              "completed",
+              "declined"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "legal_obligation",
+                  "legal_claims",
+                  "public_interest",
+                  "identity_not_verified",
+                  "other"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Required with declined, refused with completed. A fixed list, so no free text (and no personal data) reaches the respondent.",
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "title": "CloseDeletionRequest",
         "type": "object"
       }
     },

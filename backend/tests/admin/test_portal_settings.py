@@ -351,6 +351,20 @@ async def test_invalid_values_are_explained_without_echoing_secrets(admin):
         assert PLANT not in r.text and 'type="password"' in r.text
 
 
+async def test_resolver_addresses_must_be_ip_addresses(admin):
+    """VERIFIED_DOMAINS_NAMESERVERS: a host name or a `;` separator made every
+    domain re-check fail; the portal refuses them with the setting's name."""
+    key = "VERIFIED_DOMAINS_NAMESERVERS"
+    page = (await admin.get(f"/settings/{key}")).text
+    assert "Comma-separated IP addresses" in page
+    for bad in ("dns.google", "1.1.1.1;9.9.9.9", "1.1.1.1, dns.quad9.net"):
+        r = await admin.prepare(key, "set", value=bad, confirmation=key)
+        assert r.status_code == 400 and "IP addresses" in unescape(r.text), bad
+        assert await admin.version(key) == 0
+    ok = await admin.prepare(key, "set", value="1.1.1.1, 2620:fe::fe", confirmation=key)
+    assert ok.status_code == 200 and "Apply the change" in ok.text
+
+
 # -- tokens: action-bound and replay-safe ---------------------------------------------------
 async def test_apply_without_a_token_is_refused_and_changes_nothing(admin):
     t = await admin.csrf()

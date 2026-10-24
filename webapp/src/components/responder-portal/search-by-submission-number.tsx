@@ -12,6 +12,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { portalPath } from '@app/utils/portal-path';
 
 /**
  * Find a submission by its receipt number. On the respondent's pages it is in
@@ -40,7 +41,8 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
             submissionUUID: submissionNumber
         });
         if (response.data) {
-            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}/form` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}/form`;
+            // The typed number is one encoded path segment (utils/portal-path).
+            const submissionUrl = portalPath(workspace.workspaceName, isCustomDomain, 'submissions', 'uuid', submissionNumber, 'form');
             router.push(submissionUrl);
         }
         if (response.error) {
@@ -57,7 +59,7 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
                 </div>
 
                 <div className="mt-4">
-                    <div className="h4-new text-black-800 text-center font-medium">{t('LOOKUP.TITLE')}</div>
+                    <h2 className="h4-new text-black-800 text-center font-medium">{t('LOOKUP.TITLE')}</h2>
                     <div className="p2-new text-black-700 mt-2 text-center!">{t('LOOKUP.HINT')}</div>
                 </div>
                 <div className="mt-4 flex w-full gap-4">

@@ -18,6 +18,7 @@ from bson import ObjectId
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db import PostgresRepositoryBase, write_op
+from common.models.standard_form import ParameterValue
 from pydantic import EmailStr, field_validator
 from pymongo import ReturnDocument
 
@@ -25,6 +26,7 @@ from backend.app.handlers.database import entity
 from backend.app.models.enum.coupon_status import CouponStatus
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
+from backend.app.schemas.action_document import ActionSettings
 from backend.db.models import AllowedOriginRow
 
 _ISO_ENCODERS = {
@@ -290,6 +292,38 @@ class ApiIdempotencyRecordDocument(MongoDocument):
         name = "api_idempotency_keys"
 
 
+# -- actions ---------------------------------------------------------------------
+
+
+class ActionDocument(MongoDocument):
+    name: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    action_code: str
+    created_by: PydanticObjectId
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
+    type: Optional[str] = None
+    predefined: Optional[bool] = None
+    url: Optional[str] = None
+
+    class Settings:
+        name = "actions"
+        bson_encoders = _ISO_ENCODERS
+
+
+class WorkspaceActionsDocument(MongoDocument):
+    workspace_id: PydanticObjectId
+    action_id: PydanticObjectId
+    settings: Optional[ActionSettings] = ActionSettings()
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
+
+    class Settings:
+        name = "workspace_actions"
+        bson_encoders = _ISO_ENCODERS
+
+
 ORIGINALS = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -305,6 +339,8 @@ ORIGINALS = (
     MCPAuditLogDocument,
     CreateFormPrompt,
     ApiIdempotencyRecordDocument,
+    ActionDocument,
+    WorkspaceActionsDocument,
 )
 
 for _original in ORIGINALS:

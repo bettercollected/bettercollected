@@ -2,7 +2,7 @@ import { JSONContent } from '@tiptap/react';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { calculatedAnswerValue, formatCalculatedValue, isCalculatedField } from '@app/utils/calculated-fields';
-import { getComparableAnswerValue } from '@app/utils/conditional-logic';
+import { choiceAnswerText, getComparableAnswerValue } from '@app/utils/conditional-logic';
 import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
 
 /**
@@ -20,7 +20,9 @@ import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregat
  *    `|fallback`: `{{hidden:name|there}}`.
  *
  * Values come from the same `getComparableAnswerValue` the conditional-logic
- * evaluator uses, so piping and logic can never disagree about an answer.
+ * evaluator uses, so piping and logic can never disagree about an answer. A
+ * choice answer holds option ids: it is shown as the chosen options' text
+ * (`choiceAnswerText`).
  * Hidden-field values are the URL parameters captured when the form loaded.
  */
 
@@ -79,7 +81,7 @@ function resolveGroupPipe(pipeKey: string, context: PipeContext): string | undef
     if (!group || group.type !== FieldTypes.GROUP) return undefined;
     const child = childId ? group.properties?.fields?.find((f) => f.id === childId) : undefined;
     if (childId && !child) return undefined;
-    return resolveGroupAggregate(context.answers?.[groupId], (aggregate as GroupAggregate) || 'count', childId, child?.type);
+    return resolveGroupAggregate(context.answers?.[groupId], (aggregate as GroupAggregate) || 'count', childId, child?.type, child);
 }
 
 /** Render a comparable answer value as display text. Empty-ish → undefined. */
@@ -106,6 +108,7 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     if (!field) return undefined;
     // A calculated value is shown as its field formats it.
     if (isCalculatedField(field)) return formatCalculatedValue(calculatedAnswerValue(context.answers?.[pipeKey]), field.properties?.format, context.language) || undefined;
+    if (field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.DROP_DOWN) return formatPipeValue(choiceAnswerText(context.answers?.[pipeKey], field));
     return formatPipeValue(getComparableAnswerValue(context.answers?.[pipeKey], field.type));
 }
 

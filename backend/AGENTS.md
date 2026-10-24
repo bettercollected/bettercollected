@@ -96,11 +96,12 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
   `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
   per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
-- **Postgres-only groups (4.1):** `refdata`, `analytics` and `ai` (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`)
-  have no Mongo repository and no routing: their documents are `common.records.Record` classes, their repositories the
-  `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` classes on `RecordRepository`, and a
-  `DB_*__<group>` flag other than `postgres` refuses the start. A fresh store gets its reference data from
-  `python -m backend.seed_refdata`.
+- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai` and `actions` (`POSTGRES_ONLY_GROUPS` in
+  `backend/db/groups.py`) have no Mongo repository and no routing: their documents are `common.records.Record` classes,
+  their repositories the `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` / `postgres/actions.py`
+  classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may
+  join into one of them (its collections are no longer written): both workspace repositories read a workspace's copy of
+  an action through the actions repository. A fresh store gets its reference data from `python -m backend.seed_refdata`.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
@@ -369,7 +370,17 @@ up new/changed templates the next time it restarts, no manual step required.
   options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
   `_choices(...)`.
 - To add a template: write a new zero-arg builder function returning `{title, description, category, fields}` (see
-  `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`.
+  `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`. A payload may also
+  carry `language` (stored as the template's `settings.language`, which forms made from it keep), `welcome_page`
+  and `thankyou_page`.
+- **Dutch-first templates** (`scripts/dutch_first_templates.py`): rental home application, school enrolment,
+  request to an organisation, new colleague, event registration. Each is written once with its Dutch (B1 plain
+  language) and English text side by side and seeded as two templates (`settings.language` `nl` / `en`) with the
+  same questions: one question per page, a "why we ask this" line on every question, few required answers,
+  nothing pre-selected, no ID numbers or documents, follow-up pages skipped unless a yes/no question is answered
+  yes (page jumps on yes/no only: choice conditions are not used there). `tests/scripts/test_dutch_first_templates.py`
+  checks the twins match, the wording rules, the jump paths and that a form made from one publishes. Change
+  wording in that file, then delete the seeded template by title to re-seed it.
 - To force a re-seed of a changed template, delete it from `form_templates` first (by title) — the next restart (or
   a manual run) recreates it.
 - Manual one-off run (e.g. without restarting the app): `uv run python -m scripts.seed_flow_templates` from `backend/`.

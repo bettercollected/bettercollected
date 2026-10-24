@@ -51,3 +51,8 @@ updates are noted when they are folded together.
 
 The check also fails when a pull request edits CHANGELOG.md directly. Only a release's
 changelog pull request does that, from a branch named `docs/changelog-X.Y.Z`.
+
+Branch syncs are not checked: a pull request whose head is `develop`, `master`, `main`, a
+`release/*` branch, or a merge-forward branch `merge/release-<x>-into-develop`. A
+merge-forward brings a release branch's released CHANGELOG.md sections (and their changes)
+into develop, so it edits CHANGELOG.md without a fragment (see RELEASING.md).

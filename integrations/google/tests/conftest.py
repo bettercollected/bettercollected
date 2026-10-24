@@ -27,6 +27,7 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 MONGO_DRIVEN = (
     "tests/integration/app/repository/test_postgres_parity.py",
     "tests/integration/test_migrate_marker.py",
+    "tests/integration/test_migrate_tombstones.py",
 )
 
 

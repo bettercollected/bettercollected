@@ -1,4 +1,5 @@
-from pydantic import AliasChoices, Field
+from common.settings.registry import ip_list_problem
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from common.settings.loader.pydantic_source import StoreBackedSettings
 
@@ -39,6 +40,16 @@ class VerifiedDomainSettings(StoreBackedSettings):
     model_config = SettingsConfigDict(
         env_prefix="VERIFIED_DOMAINS_", env_ignore_empty=True
     )
+
+    @field_validator("NAMESERVERS")
+    @classmethod
+    def _nameservers_are_ip_addresses(cls, value: str) -> str:
+        # dnspython takes only addresses (or DoH URLs): a host name or another
+        # separator would make every lookup, and so every re-check, fail
+        problem = ip_list_problem(value or "")
+        if problem:
+            raise ValueError(f"VERIFIED_DOMAINS_NAMESERVERS: {problem}")
+        return value
 
     @property
     def nameservers(self) -> list[str]:

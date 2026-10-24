@@ -1,81 +1,86 @@
-"""Postgres twin of the actions-group repository."""
+"""The actions group's repository: Postgres only (its Mongo collections are
+read only by the import from 4.0)."""
 
 from typing import List
 
-from beanie import PydanticObjectId
-
 from backend.app.models.dtos.action_dto import ActionDto
-from backend.app.repositories.postgres.forms import _oid
 from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
 from backend.db.models import ActionRow, WorkspaceActionRow
 from common.configs.crypto import Crypto
-from common.db import PostgresRepositoryBase
 from common.models.standard_form import ParameterValue
 from common.models.user import User
+from common.records import RecordId
+from common.records.repository import RecordRepository
 
 
-class PostgresActionRepository(PostgresRepositoryBase):
+class PostgresActionRepository(RecordRepository):
+    """Actions (``actions``) and each workspace's copy of one, with the
+    credentials it configured (``workspace_actions``)."""
+
     row = ActionRow
     document = ActionDocument
-    # create_action_in_workspace_from_action (replayed)
-    document_rows = {WorkspaceActionsDocument: WorkspaceActionRow}
 
     def __init__(self, session_factory, crypto: Crypto):
         super().__init__(session_factory)
         self.crypto = crypto
 
-    async def create_action(
-        self, workspace_id: PydanticObjectId, action: ActionDto, user: User
-    ) -> ActionDocument:
+    def _encrypt_secrets(self, action: ActionDto) -> None:
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
+
+    async def create_action(
+        self, workspace_id: RecordId, action: ActionDto, user: User
+    ) -> ActionDocument:
+        self._encrypt_secrets(action)
         return await self.save_document(
             ActionDocument(
                 **action.model_dump(mode="json"),
-                created_by=PydanticObjectId(user.id),
+                created_by=RecordId(user.id),
                 workspace_id=workspace_id,
             )
         )
 
-    async def delete_action(self, action_id: PydanticObjectId):
+    async def delete_action(self, action_id: RecordId):
         await self.delete_by_id(action_id)
         # each workspace's copy of the action (with its credentials) goes too
         await self.delete_where(
-            WorkspaceActionRow.action_id == _oid(action_id), row=WorkspaceActionRow
+            WorkspaceActionRow.action_id == str(action_id), row=WorkspaceActionRow
         )
         return action_id
 
-    async def get_all_actions(self):
+    async def get_all_actions(self) -> List[ActionDocument]:
         return await self.many()
 
-    async def get_action_by_id(self, action_id: PydanticObjectId):
-        return await self.one(ActionRow.id == _oid(action_id))
+    async def get_action_by_id(self, action_id: RecordId):
+        return await self.one(ActionRow.id == str(action_id))
 
     async def get_workspace_action(
-        self, workspace_id: PydanticObjectId, action_id: PydanticObjectId
+        self, workspace_id: RecordId, action_id: RecordId
     ) -> WorkspaceActionsDocument | None:
         return await self.one_of(
             WorkspaceActionRow,
             WorkspaceActionsDocument,
-            WorkspaceActionRow.workspace_id == _oid(workspace_id),
-            WorkspaceActionRow.action_id == _oid(action_id),
+            WorkspaceActionRow.workspace_id == str(workspace_id),
+            WorkspaceActionRow.action_id == str(action_id),
         )
 
-    async def get_actions_by_ids(self, action_ids: List[PydanticObjectId]):
-        return await self.many(ActionRow.id.in_([_oid(i) for i in action_ids]))
+    async def get_actions_by_ids(
+        self, action_ids: List[RecordId]
+    ) -> List[ActionDocument]:
+        return await self.many(ActionRow.id.in_([str(i) for i in action_ids]))
 
     async def create_action_in_workspace_from_action(
         self,
-        workspace_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        action_id: RecordId,
         credentials: str = None,
-    ):
+    ) -> WorkspaceActionsDocument:
+        """The workspace's copy of the action, created or updated in place,
+        holding ``credentials`` (already encrypted) or none."""
         workspace_action = await self.get_workspace_action(workspace_id, action_id)
         secrets = None
         if credentials:
-            # a model, not a dict: what is stored is what save() hands back
-            # (Beanie re-reads the document) and what a replayed mirror writes
             secrets = [ParameterValue(name="Credentials", value=credentials)]
         if workspace_action is None:
             workspace_action = WorkspaceActionsDocument(
@@ -85,11 +90,7 @@ class PostgresActionRepository(PostgresRepositoryBase):
         return await self.save_document(workspace_action, row=WorkspaceActionRow)
 
     async def create_global_action(self, action: ActionDto, user: User):
-        if action.secrets is not None:
-            for secret in action.secrets:
-                secret.value = self.crypto.encrypt(secret.value)
+        self._encrypt_secrets(action)
         return await self.save_document(
-            ActionDocument(
-                **action.model_dump(mode="json"), created_by=PydanticObjectId(user.id)
-            )
+            ActionDocument(**action.model_dump(mode="json"), created_by=RecordId(user.id))
         )

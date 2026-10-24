@@ -69,6 +69,7 @@ TOOL_SCOPES = {
 ALL_SCOPES = [
     "forms:read",
     "forms:write",
+    "forms:delete",
     "responses:read",
     "deletion_requests:read",
     "deletion_requests:write",

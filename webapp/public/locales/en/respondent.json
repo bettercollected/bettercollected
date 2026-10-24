@@ -190,7 +190,13 @@
         "NO_FORMS_TITLE": "No forms to show",
         "NO_FORMS_TEXT": "This workspace has no public forms yet.",
         "POWERED_BY": "Powered by <1>bettercollected</1>",
-        "POWERED_BY_LABEL": "Powered by"
+        "POWERED_BY_LABEL": "Powered by",
+        "QUESTIONS_one": "{{count}} question",
+        "QUESTIONS_other": "{{count}} questions",
+        "PINNED": "Pinned",
+        "UNTITLED_FORM": "Untitled form",
+        "NO_WORKSPACE": "No workspace is associated with this email yet.",
+        "TRY_PRODUCT": "Try bettercollected"
     },
     "SIRETO_FOOTER": {
         "PRODUCT_OF": "A product of Sireto B.V.",
@@ -207,5 +213,36 @@
             "IDENTITY_NOT_VERIFIED": "your identity could not be verified",
             "OTHER": "the organisation declined the request"
         }
+    },
+    "SUBMISSIONS": {
+        "FIND_TITLE": "Find your submissions",
+        "FIND_TEXT": "Verify your email to see responses you've submitted, or enter a submission number in the search panel.",
+        "FIND_ANONYMOUS": "Submitted anonymously? Your submission number is the only way to find that response — that's what keeps it anonymous.",
+        "EMPTY_TITLE": "No submissions yet",
+        "EMPTY_TEXT": "You haven't submitted any responses to this workspace's forms yet.",
+        "NO_REQUESTS_TITLE": "No deletion requests",
+        "NO_REQUESTS_TEXT": "You haven't asked for any of your responses to be deleted.",
+        "ANONYMOUS_NOTE": "Anonymous submissions aren't linked to your account — find them with their submission number. That's what keeps them anonymous.",
+        "SUBMITTED": "Submitted: {{date}}",
+        "REQUESTED": "Requested: {{date}}",
+        "ANONYMOUS": "Anonymous",
+        "ANONYMOUS_TITLE": "Submitted without your identity attached",
+        "NUMBER_TITLE": "Your submission number — you can also search by it",
+        "LATEST_STATUS_TITLE": "The latest status from the organisation"
+    },
+    "SUBMISSION": {
+        "TABS_LABEL": "Your submission",
+        "TAB_RESPONSE": "My response",
+        "TAB_PRIVACY": "Privacy & deletion",
+        "OWNERSHIP": "This response belongs to you. You can ask for it to be deleted at any time — the request and its status stay visible here and under Deletion requests.",
+        "REQUEST": "Request deletion",
+        "REQUEST_HINT": "The workspace reviews deletion requests — you'll see the status change here once it's handled.",
+        "PENDING": "Deletion requested · Pending",
+        "PENDING_TEXT": "The workspace has been asked to delete this response. Its status will update here and under Deletion requests.",
+        "CONFIRM_QUESTION": "Ask the workspace to delete this response?",
+        "CONFIRM_TEXT": "The workspace will be asked to delete this response. The request and its status stay visible to you here and under Deletion requests.",
+        "CANCEL": "Cancel",
+        "REQUEST_SENT": "Deletion requested",
+        "REQUEST_FAILED": "Something went wrong. Please try again."
     }
 }

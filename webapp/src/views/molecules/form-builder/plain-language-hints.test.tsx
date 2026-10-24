@@ -28,7 +28,7 @@ const form = (title: object): StandardFormFieldDto[] => [
 let api: ReturnType<typeof useFormFieldsAtom> | null = null;
 
 /** The builder's title row as slide-builder renders it: editor, then tips. */
-function TitleWithHints({ title }: { title: object }) {
+function TitleWithHints({ title, showHints = true }: { title: object; showHints?: boolean }) {
     const fields = useFormFieldsAtom();
     api = fields;
     const [ready, setReady] = React.useState(false);
@@ -42,18 +42,27 @@ function TitleWithHints({ title }: { title: object }) {
     if (!ready || !slide || !field) return null;
     return (
         <div>
-            <RichTextEditor field={field} slide={slide} describedById="plain-language-title-q1" />
-            <PlainLanguageHints id="plain-language-title-q1" value={field.title} formId="form-1" debounceMs={10} />
+            <RichTextEditor field={field} slide={slide} describedById={showHints ? 'plain-language-title-q1' : undefined} />
+            {showHints && <PlainLanguageHints id="plain-language-title-q1" value={field.title} formId="form-1" debounceMs={10} />}
         </div>
     );
 }
 
-const renderTitle = (text: string) =>
+const renderTitle = (text: string, showHints = true) =>
     render(
         <Provider>
-            <TitleWithHints title={doc(text)} />
+            <TitleWithHints title={doc(text)} showHints={showHints} />
         </Provider>
     );
+
+const STORAGE_KEY = 'bc.plainLanguage.dismissed:form-1:plain-language-title-q1';
+const stored = () => JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]') as string[];
+const titleBox = () =>
+    waitFor(() => {
+        const element = document.querySelector('[contenteditable="true"]');
+        expect(element).not.toBeNull();
+        return element as HTMLElement;
+    });
 
 const tipsList = () => screen.queryByRole('list', { name: 'Plain-language tips' });
 
@@ -116,6 +125,59 @@ describe('PlainLanguageHints in the builder', () => {
         renderTitle('Indien u vragen heeft, belt u ons.');
         await waitFor(() => expect(document.querySelector('[contenteditable="true"]')).not.toBeNull());
         expect(tipsList()).toBeNull();
+    });
+
+    it('keeps earlier dismissals while their tips are not showing', async () => {
+        renderTitle('Indien u vragen heeft, belt u ons.');
+        await waitFor(() => expect(tipsList()).toHaveTextContent('“Indien”'));
+        fireEvent.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+
+        // Another text: a different tip, dismissed too.
+        act(() => api!.updateTitle(0, 0, doc('Wat is uw naam en/of adres?') as any));
+        await waitFor(() => expect(tipsList()).toHaveTextContent('“en/of”'));
+        fireEvent.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+        expect(stored()).toEqual(['jargon:nl:indien', 'double-question:and-or']);
+
+        // The first text again: its tip stays dismissed.
+        act(() => api!.updateTitle(0, 0, doc('Indien u vragen heeft, belt u ons.') as any));
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(tipsList()).toBeNull();
+    });
+
+    it("stores no question text when a tip about the creator's words is dismissed", async () => {
+        const sentence = 'Please tell us whether the delivery was made at the right address, whether the box was closed when it arrived and whether anything at all inside it was broken.';
+        renderTitle(sentence);
+        await waitFor(() => expect(screen.getAllByRole('button', { name: 'Dismiss tip' }).length).toBeGreaterThanOrEqual(2));
+        for (const button of screen.getAllByRole('button', { name: 'Dismiss tip' })) fireEvent.click(button);
+        expect(tipsList()).toBeNull();
+        const ids = stored();
+        expect(ids.some((id) => id.startsWith('passive:en:'))).toBe(true);
+        expect(ids.some((id) => id.startsWith('long-sentence:'))).toBe(true);
+        expect(window.localStorage.getItem(STORAGE_KEY)).not.toMatch(/delivery|was made|broken|address/);
+    });
+
+    it('drops dismissals stored in the old format, which held question text', async () => {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(['passive:en:was made', 'long-sentence:0', 'jargon:nl:indien']));
+        renderTitle('Wat is uw naam?');
+        await titleBox();
+        expect(stored()).toEqual(['jargon:nl:indien']);
+    });
+
+    it('describes the title by its tips only while they are shown', async () => {
+        const view = (showHints: boolean) => (
+            <Provider>
+                <TitleWithHints title={doc('Indien u vragen heeft, belt u ons.')} showHints={showHints} />
+            </Provider>
+        );
+        const { rerender } = render(view(false));
+        expect(await titleBox()).not.toHaveAttribute('aria-describedby');
+        expect(document.getElementById('plain-language-title-q1')).toBeNull();
+        // The question becomes the one being edited, and stops being it.
+        rerender(view(true));
+        await waitFor(() => expect(document.querySelector('[contenteditable="true"]')).toHaveAttribute('aria-describedby', 'plain-language-title-q1'));
+        expect(document.getElementById('plain-language-title-q1')).not.toBeNull();
+        rerender(view(false));
+        await waitFor(() => expect(document.querySelector('[contenteditable="true"]')).not.toHaveAttribute('aria-describedby'));
     });
 });
 

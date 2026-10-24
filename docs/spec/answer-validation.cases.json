@@ -4083,6 +4083,2524 @@
           "item": 1
         }
       ]
+    },
+    {
+      "name": "choice rule: a dropdown condition on an option's text matches the chosen option",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: a dropdown condition on an option's text, another option chosen",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-tech"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: a dropdown condition on an option's id matches the chosen option",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "c-billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: a dropdown condition compares the option's text case-sensitively",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: a dropdown condition on an unanswered question",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "choice rule: a multiple choice condition on an option's text matches the chosen option",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_EQUAL",
+                        "value": "Technical issue"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-tech"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: is not equal to the chosen option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_NOT_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: is not equal to another option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_NOT_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-tech"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: is not equal to the chosen option's id",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_NOT_EQUAL",
+                        "value": "c-billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: HIDE on the chosen option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "Billing"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: the text typed as Other is compared as it is",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ],
+                  "allowOtherChoice": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_EQUAL",
+                        "value": "Partnerships"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "other": "Partnerships"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: an answer typed as Other is not empty",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ],
+                  "allowOtherChoice": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "IS_NOT_EMPTY"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "other": "Partnerships"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: several answers contain an option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "CONTAINS",
+                        "value": "Feta"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-olives",
+              "t-feta"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: several answers without the option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "CONTAINS",
+                        "value": "Feta"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-olives"
+            ]
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: several answers contain an option's id",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "CONTAINS",
+                        "value": "t-feta"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-feta"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: several answers do not contain an option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "DOES_NOT_CONTAIN",
+                        "value": "Feta"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-feta",
+              "t-basil"
+            ]
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: several answers do not contain an unchosen option's text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "DOES_NOT_CONTAIN",
+                        "value": "Feta"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-basil"
+            ]
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice rule: several answers with Other text contain that text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "multiple_choice",
+                        "comparison": "CONTAINS",
+                        "value": "Anchovies"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-olives"
+            ],
+            "other": "Anchovies"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice jump: a dropdown jump on an option's text skips the page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice jump: a dropdown jump on an option's text, another option chosen",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-other"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "choice jump: a dropdown jump on an option's id skips the page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "c-billing"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice jump: a multiple choice jump on an option's text skips the page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "multiple_choice",
+                    "comparison": "IS_EQUAL",
+                    "value": "Something else"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-other"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice jump: several answers containing an option's text skip the page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "multiple_choice",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "t-olives",
+                      "value": "Olives"
+                    },
+                    {
+                      "id": "t-feta",
+                      "value": "Feta"
+                    },
+                    {
+                      "id": "t-basil",
+                      "value": "Basil"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "multiple_choice",
+                    "comparison": "CONTAINS",
+                    "value": "Basil"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "t-basil"
+            ]
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice jump: a jump to submit on an option's text ends the form",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "dropdown",
+                "title": "q1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q1",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "choice rule: a group item question shown by the item's own option",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "Orders",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Order"
+                  },
+                  "fields": [
+                    {
+                      "id": "k1",
+                      "type": "dropdown",
+                      "title": "k1",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "k-pickup",
+                            "value": "Pick up"
+                          },
+                          {
+                            "id": "k-ship",
+                            "value": "Ship"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "k2",
+                      "type": "short_text",
+                      "title": "k2",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "logic": {
+                          "action": "SHOW",
+                          "operator": "AND",
+                          "conditions": [
+                            {
+                              "fieldId": "k1",
+                              "fieldType": "dropdown",
+                              "comparison": "IS_EQUAL",
+                              "value": "Ship"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "k1": {
+                "type": "choice",
+                "choice": {
+                  "value": "k-pickup"
+                }
+              }
+            },
+            {
+              "k1": {
+                "type": "choice",
+                "choice": {
+                  "value": "k-ship"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "k2",
+          "rule": "required",
+          "item": 1
+        }
+      ]
+    },
+    {
+      "name": "choice jump: any group item choosing an option's text skips the page",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "Orders",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Order"
+                  },
+                  "fields": [
+                    {
+                      "id": "k1",
+                      "type": "dropdown",
+                      "title": "k1",
+                      "properties": {
+                        "choices": [
+                          {
+                            "id": "k-pickup",
+                            "value": "Pick up"
+                          },
+                          {
+                            "id": "k-ship",
+                            "value": "Ship"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "g1",
+                    "fieldType": "group",
+                    "groupMode": "ANY",
+                    "childFieldId": "k1",
+                    "childFieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Ship"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "k1": {
+                "type": "choice",
+                "choice": {
+                  "value": "k-pickup"
+                }
+              }
+            },
+            {
+              "k1": {
+                "type": "choice",
+                "choice": {
+                  "value": "k-ship"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "support triage template: 'Billing' takes its route",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "intro",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "topic",
+                "type": "dropdown",
+                "title": "What do you need help with?",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "billing"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Technical issue"
+                  }
+                ],
+                "target": "technical"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Something else"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "billing",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "invoice",
+                "type": "short_text",
+                "title": "invoice",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "technical",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "issue",
+                "type": "long_text",
+                "title": "issue",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "contact",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "reply",
+                "type": "email",
+                "title": "reply",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "topic": {
+          "type": "choice",
+          "choice": {
+            "value": "c-billing"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "invoice",
+          "rule": "required"
+        },
+        {
+          "fieldId": "reply",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "support triage template: 'Technical issue' takes its route",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "intro",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "topic",
+                "type": "dropdown",
+                "title": "What do you need help with?",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "billing"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Technical issue"
+                  }
+                ],
+                "target": "technical"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Something else"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "billing",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "invoice",
+                "type": "short_text",
+                "title": "invoice",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "technical",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "issue",
+                "type": "long_text",
+                "title": "issue",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "contact",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "reply",
+                "type": "email",
+                "title": "reply",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "topic": {
+          "type": "choice",
+          "choice": {
+            "value": "c-tech"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "issue",
+          "rule": "required"
+        },
+        {
+          "fieldId": "reply",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "support triage template: 'Something else' takes its route",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "intro",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "topic",
+                "type": "dropdown",
+                "title": "What do you need help with?",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-billing",
+                      "value": "Billing"
+                    },
+                    {
+                      "id": "c-tech",
+                      "value": "Technical issue"
+                    },
+                    {
+                      "id": "c-other",
+                      "value": "Something else"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "billing"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Technical issue"
+                  }
+                ],
+                "target": "technical"
+              },
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Something else"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "billing",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "invoice",
+                "type": "short_text",
+                "title": "invoice",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "topic",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Billing"
+                  }
+                ],
+                "target": "contact"
+              }
+            ]
+          }
+        },
+        {
+          "id": "technical",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "issue",
+                "type": "long_text",
+                "title": "issue",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "contact",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "reply",
+                "type": "email",
+                "title": "reply",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "topic": {
+          "type": "choice",
+          "choice": {
+            "value": "c-other"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "reply",
+          "rule": "required"
+        }
+      ]
     }
   ]
 }

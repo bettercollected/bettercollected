@@ -66,6 +66,7 @@ from backend.app.services.repeating_groups import (
     group_items,
     has_answer_value,
     is_hidden_by_logic,
+    logic_sources,
 )
 
 # Rule codes (the webapp's AnswerRuleProblem / Invalidations, lower case).
@@ -496,20 +497,25 @@ def answer_ids(*forms: Any) -> Set[str]:
     return ids
 
 
-def resolve_jump(slide: Any, answers: Dict[str, Any]) -> Optional[Any]:
+def resolve_jump(
+    slide: Any, answers: Dict[str, Any], sources: Optional[Dict[str, Any]] = None
+) -> Optional[Any]:
     """Twin of the webapp's ``resolveJump``: the first jump whose
-    conditions hold decides, even when its target is gone."""
+    conditions hold decides, even when its target is gone. ``sources``:
+    the form's questions by id (``logic_sources``)."""
     for jump in getattr(_props(slide), "jumps", None) or []:
         if jump.conditions and evaluate_conditions(
-            jump.operator, jump.conditions, answers
+            jump.operator, jump.conditions, answers, sources
         ):
             return jump
     return None
 
 
-def resolve_jump_target(slide: Any, answers: Dict[str, Any]) -> Optional[str]:
+def resolve_jump_target(
+    slide: Any, answers: Dict[str, Any], sources: Optional[Dict[str, Any]] = None
+) -> Optional[str]:
     """Twin of the webapp's ``resolveJumpTargetId``."""
-    jump = resolve_jump(slide, answers)
+    jump = resolve_jump(slide, answers, sources)
     return (jump.target or None) if jump is not None else None
 
 
@@ -518,6 +524,7 @@ def _walk(slides: List[Any], answers: Dict[str, Any]) -> Tuple[List[Any], Any]:
     ended the path (None when it ended after the last page). A jump that
     chooses an ending (``ending_id``) is a jump to "submit": the path ends
     there too."""
+    sources = logic_sources(slides)
     index_by_id = {str(slide.id): i for i, slide in enumerate(slides)}
     visited: List[Any] = []
     seen: Set[int] = set()
@@ -528,7 +535,7 @@ def _walk(slides: List[Any], answers: Dict[str, Any]) -> Tuple[List[Any], Any]:
         seen.add(index)
         slide = slides[index]
         visited.append(slide)
-        jump = resolve_jump(slide, answers)
+        jump = resolve_jump(slide, answers, sources)
         target = (jump.target or None) if jump is not None else None
         if target == JUMP_TARGET_SUBMIT:
             return visited, jump
@@ -551,6 +558,7 @@ def submission_path(
     the flow view's counting."""
     slides = _slides(form) or []
     answers = _plain(answers)
+    sources = logic_sources(slides)
     slide_ids = {str(slide.id) for slide in slides}
     index_by_id = {str(slide.id): i for i, slide in enumerate(slides)}
     steps: List[Tuple[str, Optional[int]]] = []
@@ -567,7 +575,9 @@ def submission_path(
                 if jump is not None
                 and jump.conditions
                 and (jump.target == JUMP_TARGET_SUBMIT or jump.target in slide_ids)
-                and evaluate_conditions(jump.operator, jump.conditions, answers)
+                and evaluate_conditions(
+                    jump.operator, jump.conditions, answers, sources
+                )
             ),
             None,
         )
@@ -833,6 +843,7 @@ def _check_group(
     answers: Dict[str, Any],
     out: List[AnswerProblem],
     budget: PatternBudget,
+    sources: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Required and answer rules per displayed item (limits and structure
     are ``repeating_groups.validate_group_answers``'s)."""
@@ -844,7 +855,7 @@ def _check_group(
         item = items[index] if index < len(items) else {}
         scope = {**answers, **item}
         for child in children:
-            if is_hidden_by_logic(child, scope):
+            if is_hidden_by_logic(child, scope, sources):
                 continue
             _check_question(
                 child, item.get(str(child.id)), scope, out, str(group.id), budget, index
@@ -919,12 +930,13 @@ def validate_answers(
     problems: List[AnswerProblem] = []
     budget = PatternBudget()
     _check_types(by_id, matrix_of, answers, known_ids, problems)
+    sources = logic_sources(slides)
     for slide in visited_slides(slides, answers):
         for field in _children(slide):
-            if not _counts(field) or is_hidden_by_logic(field, answers):
+            if not _counts(field) or is_hidden_by_logic(field, answers, sources):
                 continue
             if is_repeating_group(field):
-                _check_group(field, answers, problems, budget)
+                _check_group(field, answers, problems, budget, sources)
             else:
                 _check_question(
                     field,

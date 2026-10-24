@@ -55,6 +55,7 @@ jobs:
             google: ${{ steps.plan.outputs.google }}
             common: ${{ steps.plan.outputs.common }}
             webapp: ${{ steps.plan.outputs.webapp }}
+            smoke: ${{ steps.plan.outputs.smoke }}
             modes: ${{ steps.plan.outputs.modes }}
             backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
@@ -351,6 +352,39 @@ jobs:
             - name: Run common tests
               run: uv run --frozen pytest
 
+    # The production smoke suite (scripts/smoke, docs/smoke-test.md) never runs
+    # here: this checks its pure parts (configuration, code-mail matching,
+    # report redaction, the standing-set comparison) with fixtures. No secrets,
+    # no browser, no network beyond a local test server.
+    smoke-selftest:
+        name: Smoke suite self-test
+        needs: plan
+        if: needs.plan.outputs.smoke == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        defaults:
+            run:
+                working-directory: scripts/smoke
+        env:
+            VIRTUAL_ENV: ""
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              run: uv sync --frozen
+
+            - name: Run the self-test
+              run: uv run --frozen pytest -q
+
     webapp-build:
         name: Webapp lint, build & type-check
         needs: plan
@@ -455,6 +489,7 @@ jobs:
             - common-tests
             - webapp-build
             - webapp-tests
+            - smoke-selftest
         runs-on: ubuntu-latest
         steps:
             - name: Every job passed or was not needed

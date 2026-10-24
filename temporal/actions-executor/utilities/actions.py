@@ -26,6 +26,12 @@ from utilities.form import (
     sheet_title_for,
 )
 from utilities.mail import response_mail_context
+from utilities.mail_headers import (
+    FROM_NAME_MAX,
+    SUBJECT_MAX,
+    one_line,
+    uses_own_smtp,
+)
 from settings.application import settings
 
 
@@ -131,7 +137,8 @@ async def run_action(
             MAIL_FROM=smtp_sender,
             MAIL_PORT=smtp_port,
             MAIL_SERVER=smtp_server,
-            MAIL_FROM_NAME=org_name,
+            # one line, capped: a title can never add a header
+            MAIL_FROM_NAME=one_line(org_name, FROM_NAME_MAX),
             MAIL_STARTTLS=tls,
             MAIL_SSL_TLS=ssl,
             USE_CREDENTIALS=use_credentials,
@@ -152,7 +159,7 @@ async def run_action(
         mail_config = config
 
         message = MessageSchema(
-            subject=subject,
+            subject=one_line(subject, SUBJECT_MAX),
             recipients=recipient,
             subtype=MessageType.html,
             template_body=response_mail_context(
@@ -357,7 +364,12 @@ async def run_action(
             sender = get_parameter("Sender")
             port = int(get_parameter("Port"))
             server = get_parameter("server")
-            from_name = workspace.get("title", "")
+            # Through the workspace's own SMTP server and from its own address,
+            # the workspace really is the sender: its title is the From name.
+            # Otherwise (the action's defaults, the instance's server) a mail is
+            # never sent in a workspace's name.
+            own_smtp = uses_own_smtp(action, workspace, form)
+            from_name = workspace.get("title", "") if own_smtp else ""
 
             mail_config = config_mail(
                 username, password, sender, port, server, from_name

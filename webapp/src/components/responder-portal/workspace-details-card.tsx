@@ -19,7 +19,7 @@ export default function WorkspaceDetailsCard({ workspace, audience = 'team' }: I
         <div className="border border-black-300 w-full rounded bg-white">
             {workspace.bannerImage && (
                 <div className="aspect-banner relative w-full rounded-t-2xl">
-                    <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />
+                    <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="" layout="fill" />
                 </div>
             )}
             <div className={`${workspace.bannerImage ? 'relative left-6 top-[-36px]' : 'relative top-6 ml-6'} h-16 w-16`}>
@@ -27,7 +27,8 @@ export default function WorkspaceDetailsCard({ workspace, audience = 'team' }: I
             </div>
 
             <div className={`${workspace.bannerImage ? '-mt-8' : 'mt-4'}  p-6`}>
-                <div className="h4-new">{workspace?.title || 'Untitled Workspace'}</div>
+                {/* On the portal the workspace's name is the page's one h1. */}
+                {audience === 'respondent' ? <h1 className="h4-new">{workspace?.title || 'Untitled Workspace'}</h1> : <div className="h4-new">{workspace?.title || 'Untitled Workspace'}</div>}
                 {workspace?.description && <div className="p2-new text-black-600 mt-1">{workspace.description}</div>}
                 {/* Identity card does one job — who + policies. The
                     "view or delete anytime" promise is made actionable by the

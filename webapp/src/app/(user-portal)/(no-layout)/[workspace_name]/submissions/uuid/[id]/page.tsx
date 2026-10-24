@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 
+import { portalPath } from '@app/utils/portal-path';
+
 export default async function WorkspaceSubmissionUUIDIndexPage({ params }: { params: Promise<{ workspace_name: string, id: string }> }) {
     const { workspace_name, id } = await params;
-    redirect(`/${workspace_name}/submissions/uuid/${id}/form`);
+    redirect(portalPath(workspace_name, false, 'submissions', 'uuid', id, 'form'));
 }

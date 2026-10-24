@@ -199,7 +199,8 @@ class SettingSpec:
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     max_length: Optional[int] = None
-    # for strings: "cidr_list" or "host"; for secrets one of ``secret_checks.SECRET_FORMATS``
+    # for strings: "cidr_list", "ip_list" or "host"; for secrets one of
+    # ``secret_checks.SECRET_FORMATS``
     format: str = ""
     # services that were once readers: rows written then still list them, and a
     # reader accepts such a row (its signature covers the old list) instead of
@@ -260,7 +261,7 @@ class SettingSpec:
             bad("empty range")
         if self.max_length is not None and self.type is not ValueType.STR:
             bad("max_length applies to strings only")
-        plain_formats = ("cidr_list", "host")
+        plain_formats = ("cidr_list", "ip_list", "host")
         if self.format and self.format not in plain_formats + tuple(SECRET_FORMATS):
             bad("unknown format")
         if self.format and self.type is not ValueType.STR:
@@ -371,6 +372,10 @@ def coerce_value(spec: SettingSpec, raw: Any) -> Any:
         raise _fail(spec, "control_characters")
     if spec.format == "cidr_list":
         parse_cidr_list(spec, raw)
+    elif spec.format == "ip_list":
+        problem = ip_list_problem(raw)
+        if problem:
+            raise _fail(spec, "bad_ip_list", problem)
     elif spec.format == "host":
         check_host_syntax(spec, raw)
     return raw
@@ -494,6 +499,41 @@ def parse_cidr_list(spec: SettingSpec, value: str):
         except ValueError:
             raise _fail(spec, "bad_cidr_list", "contains an invalid address or CIDR") from None
     return networks
+
+
+MAX_IP_LIST = 16
+
+
+def parse_ip_list(value: str) -> list:
+    """Comma separated IPv4/IPv6 addresses, whitespace around each tolerated;
+    empty is an empty list. ValueError (with ``ip_list_problem``'s text) for
+    anything else: a host name, a CIDR, a port, a URL, another separator."""
+    if not value.strip():
+        return []
+    items = [part.strip() for part in value.split(",")]
+    if len(items) > MAX_IP_LIST:
+        raise ValueError(f"at most {MAX_IP_LIST} addresses")
+    addresses = []
+    for item in items:
+        try:
+            if not item or "%" in item:
+                raise ValueError
+            addresses.append(ipaddress.ip_address(item))
+        except ValueError:
+            raise ValueError(
+                "expected comma separated IP addresses (IPv4 or IPv6), "
+                "not host names, ports or other separators"
+            ) from None
+    return addresses
+
+
+def ip_list_problem(value: str) -> Optional[str]:
+    """Why ``value`` is not a comma separated list of IP addresses, or None."""
+    try:
+        parse_ip_list(value)
+    except ValueError as exc:
+        return str(exc)
+    return None
 
 
 def check_policy_cidrs(spec: SettingSpec, value: str) -> None:

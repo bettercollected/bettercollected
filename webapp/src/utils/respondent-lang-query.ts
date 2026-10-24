@@ -5,7 +5,10 @@
  */
 export function respondentLangQuery(value: string | string[] | null | undefined): string {
     const lang = (Array.isArray(value) ? value[0] : value)?.toLowerCase();
-    return lang === 'en' || lang === 'nl' ? `?lang=${lang}` : '';
+    // Constant results: nothing from the URL is copied into the next link.
+    if (lang === 'nl') return '?lang=nl';
+    if (lang === 'en') return '?lang=en';
+    return '';
 }
 
 /**

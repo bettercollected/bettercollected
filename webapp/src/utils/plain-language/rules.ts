@@ -1,12 +1,15 @@
 import jargonEn from './jargon-en.json';
 import jargonNl from './jargon-nl.json';
 import type { PlainLanguage } from './language';
-import { splitClauses, splitSentences, tokenize } from './text';
+import { splitClauses, splitSentences, textFingerprint, tokenize } from './text';
 
 export type PlainLanguageRule = 'long-sentence' | 'passive' | 'jargon' | 'double-question';
 
 export interface PlainLanguageHint {
-    /** Stable per text and finding — used to dismiss one hint for one field. */
+    /**
+     * Stable per text and finding — used to dismiss one hint for one field.
+     * Never holds the creator's wording: text-specific parts are fingerprints.
+     */
     id: string;
     rule: PlainLanguageRule;
     /** Language whose rule matched; 'any' for language-neutral findings. */
@@ -43,9 +46,16 @@ export const SENTENCE_WORD_LIMIT: Record<PlainLanguage, number> = { nl: 20, en: 
 export function checkSentenceLength(text: string, languages: PlainLanguage[]): PlainLanguageHint[] {
     const limit = Math.max(...languages.map((language) => SENTENCE_WORD_LIMIT[language]));
     const language = languages.length === 1 ? languages[0] : 'any';
-    return splitSentences(text).flatMap((sentence, index) => {
+    // Keyed by the sentence's fingerprint, not its position: dismissing one
+    // long sentence never hides a different one that later takes its place.
+    // A sentence repeated word for word gets one hint.
+    const seen = new Set<string>();
+    return splitSentences(text).flatMap((sentence) => {
         const words = tokenize(sentence).length;
-        return words > limit ? [{ id: `long-sentence:${index}`, rule: 'long-sentence' as const, language, words, limit }] : [];
+        const id = `long-sentence:${textFingerprint(sentence)}`;
+        if (words <= limit || seen.has(id)) return [];
+        seen.add(id);
+        return [{ id, rule: 'long-sentence' as const, language, words, limit }];
     });
 }
 
@@ -439,7 +449,7 @@ export function checkPassive(text: string, languages: PlainLanguage[]): PlainLan
                 .map((clause) => find(tokenize(clause)))
                 .find(Boolean);
             if (match) {
-                hints.push({ id: `passive:${language}:${match.toLowerCase()}`, rule: 'passive', language, match });
+                hints.push({ id: `passive:${language}:${textFingerprint(match)}`, rule: 'passive', language, match });
                 break;
             }
         }

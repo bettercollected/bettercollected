@@ -1,5 +1,6 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import type { LogicSources } from '@app/utils/conditional-logic';
 import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
@@ -155,7 +156,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
  * id its question renders under, skipping questions hidden in that item (the
  * server checks items the same way).
  */
-export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>): Record<string, AnswerRuleProblem[]> {
+export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources): Record<string, AnswerRuleProblem[]> {
     const invalid: Record<string, AnswerRuleProblem[]> = {};
     (fields ?? []).forEach((field) => {
         if (field.internal) return;
@@ -163,7 +164,7 @@ export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFie
             const items = getGroupItems(answers, field.id);
             const count = getDisplayedItemCount(field, answers);
             for (let index = 0; index < count; index++) {
-                const hidden = getItemHiddenChildIds(field, answers, index);
+                const hidden = getItemHiddenChildIds(field, answers, index, sources);
                 getGroupChildren(field).forEach((child) => {
                     if (child.internal || hidden.has(child.id)) return;
                     const problems = checkAnswerRules(child, items[index]?.[child.id]);

@@ -39,6 +39,7 @@ COMMON_DIR = REPO / "common"
 PUBLISHED_IN = (
     ".github/workflows/ci.yml",
     ".github/workflows/test.yml",
+    ".github/workflows/smoke-dry-run.yml",
     "backend/.ci/docker-compose.yml",
 )
 
