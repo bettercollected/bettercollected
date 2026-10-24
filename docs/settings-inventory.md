@@ -78,7 +78,7 @@ environment, whatever the tier.
 | `VERIFIED_DOMAINS_DNS_TIMEOUT_S` | domains | backend | float 0.5..60 |  | R | T1 | `5.0` |
 | `VERIFIED_DOMAINS_LOSS_AFTER_FAILED_CHECKS` | domains | backend | int 1..100 |  | R | T1 | `3` |
 | `VERIFIED_DOMAINS_MAX_PER_WORKSPACE` | domains | backend | int 1..1000 |  | R | T1 | `20` |
-| `VERIFIED_DOMAINS_NAMESERVERS` | domains | backend | str max 500 |  | R | T3 |  |
+| `VERIFIED_DOMAINS_NAMESERVERS` | domains | backend | str max 500 ip_list |  | R | T3 |  |
 | `VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS` | domains | backend | int 1..720 |  | R | T1 | `24` |
 | `VERIFIED_DOMAINS_RESERVED` | domains | backend | str max 4000 |  | R | T2 |  |
 | `API_EDITOR_OPS_SAVE_ENABLED` | features | backend | bool |  | H | T1 | `false` |
