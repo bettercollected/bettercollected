@@ -86,6 +86,7 @@ from backend.app.services.publish_checks import (
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
+from backend.app.services.google_forms_mode import refuse_google_forms_processing
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.repeating_groups import (
@@ -323,6 +324,8 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
+        # a new import and a re-sync alike: only while GOOGLE_FORMS_IMPORT=on
+        refuse_google_forms_processing(provider)
 
         await self.workspace_form_repository.check_is_form_imported_in_other_workspace(
             workspace_id=workspace_id, form_id=form_import.form.get("formId")
