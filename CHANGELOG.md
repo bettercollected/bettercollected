@@ -67,6 +67,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Removed
 
+- **Typeform** (services): the Typeform sign-in (always refused, since its email is not verified) and its
+  settings are gone. `/auth/{provider}/basic` takes Google only, and the import and proxy routes no longer
+  accept `typeform`. Forms and responses imported from Typeform stay readable as ordinary forms. The
+  `TYPEFORM_*` settings are retired: values left in an env file or the settings store are ignored and no
+  longer reported. A stored `typeform` provider row is no longer offered, read or called (the OAuth
+  callback and every provider lookup refuse it), so account deletion no longer depends on the Typeform
+  service. The row itself stays in `forms_plugin_configs` and is pruned with the other Typeform data later. The keyset tasks accept and ignore `typeform_acknowledged`
+  and no longer wait for a Typeform heartbeat.
+
 ### Fixed
 
 - The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the

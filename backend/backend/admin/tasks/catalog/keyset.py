@@ -16,17 +16,16 @@ All five share the lock ``keyset`` (exclusive across the family) and
 ``responses.encryption``. The keyset is never a parameter, a result, an event
 or a log line: only key ids and counts.
 
-``typeform_acknowledged``: the Typeform integration is a separate image that
-also receives ``MASTER_ENCRYPTION_KEYSET`` from its environment. It reports no
-heartbeat and what it stores cannot be checked or re-encrypted from here, so
-the operator confirms they have dealt with it (kept the old key, or will
-reconnect its accounts) before any step that could make its data unreadable.
+``typeform_acknowledged`` is accepted and ignored: it confirmed the Typeform
+integration (a separate image holding the keyset) was dealt with, and that
+integration was removed in 4.1. Requests and scripts that still send it keep
+working.
 """
 
 import enum
 from typing import Annotated, Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.spec import Params, Result, TaskMeta
@@ -52,7 +51,6 @@ class Refusals(str, enum.Enum):
     consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
-    typeform_not_acknowledged = "typeform_not_acknowledged"
     published_primary = "published_primary"
     published_key_to_promote = "published_key_to_promote"
     primary_mismatch = "primary_mismatch"
@@ -67,7 +65,6 @@ class Refusals(str, enum.Enum):
     values_on_old_key = "values_on_old_key"
     scan_incomplete = "scan_incomplete"
     stale_version = "stale_version"
-    typeform_reporting = "typeform_reporting"
     google_flags_conflict = "google_flags_conflict"
     values_not_readable = "values_not_readable"
 
@@ -83,25 +80,37 @@ class Events(str, enum.Enum):
 
 
 # ------------------------------------------------------------------ params
+RETIRED_PARAMS = ("typeform_acknowledged",)
+
+
+class _RotationParams(Params):
+    """Accepts and drops ``RETIRED_PARAMS`` (see the module docstring)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_retired(cls, data):
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if k not in RETIRED_PARAMS}
+        return data
+
+
 class AddKeyParams(Params):
     pass
 
 
-class PromoteParams(Params):
+class PromoteParams(_RotationParams):
     # the key to make primary (a key id, as add_key reported it)
     new_primary_id: Annotated[int, Field(ge=1, le=4294967295)]
-    typeform_acknowledged: bool = False
     # false when the stack never ran the Google Forms integration
     google_in_use: bool = True
 
 
-class ReencryptParams(Params):
+class ReencryptParams(_RotationParams):
     # the primary the stored keyset must have now (guards against a stale view)
     primary_id: Annotated[int, Field(ge=1, le=4294967295)]
     targets: Annotated[list[Targets], Field(max_length=2)] = []  # empty: all
     stores: StoreChoice = StoreChoice.auto
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 200
-    typeform_acknowledged: bool = False
     google_in_use: bool = True
 
 
@@ -111,11 +120,11 @@ class VerifyParams(Params):
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
 
 
-class DropOldParams(Params):
+class DropOldParams(_RotationParams):
     # No target or store selection on purpose: a key is dropped only after a
     # full scan of every target in BOTH stores (Mongo and Postgres), unless the
     # operator states that Mongo is retired (mongo_retired below).
-    typeform_acknowledged: bool = False
+
     # A signed, audited statement that no service writes Mongo any more: the
     # scan then covers Postgres alone. Refused unless the runner's DB_WRITE_MODE,
     # DB_WRITE_MODE__RESPONSES and DB_WRITE_MODE__GOOGLE all say postgres, and

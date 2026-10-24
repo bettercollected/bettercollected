@@ -541,8 +541,12 @@ class Registry:
         *,
         secret_problems: Optional[SecretCheck] = None,
         format_checks: Optional[Mapping[str, FormatCheck]] = None,
+        retired: Iterable[str] = (),
     ):
-        """``secret_problems(key, value)`` returns one line per problem with
+        """``retired`` names keys that were settings once and no longer are: a
+        stored row of one is ignored (neither applied nor reported as refused).
+
+        ``secret_problems(key, value)`` returns one line per problem with
         the secret (lines name the key, never the value). For example
         ``lambda k, v: shipped_secrets.secret_problems(jwt_secrets={k: v})``.
 
@@ -553,6 +557,7 @@ class Registry:
         self._specs: Dict[str, SettingSpec] = {}
         self._secret_problems = secret_problems
         self._format_checks = None if format_checks is None else dict(format_checks)
+        self.retired: frozenset = frozenset(retired)
         for spec in specs:
             self.register(spec)
 
@@ -561,6 +566,8 @@ class Registry:
             raise RegistryError(f"{spec.key}: environment-only keys are not store keys")
         if spec.key in self._specs:
             raise RegistryError(f"{spec.key}: registered twice")
+        if spec.key in self.retired:
+            raise RegistryError(f"{spec.key}: retired keys are not registered")
         self._specs[spec.key] = spec
         return spec
 

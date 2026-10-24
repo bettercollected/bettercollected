@@ -94,11 +94,6 @@ class _Base:
             raise Refusal("keyset_missing")
         return keys, None, value, state.parsed(value)
 
-    @staticmethod
-    def _typeform(params) -> None:
-        if not params.typeform_acknowledged:
-            raise Refusal("typeform_not_acknowledged")
-
     async def _ready(self, ctx, params, parsed, stored) -> int:
         async with ctx.connection() as conn:
             return await state.check_consumers(
@@ -191,7 +186,6 @@ class Promote(_Base):
     META = catalog.PROMOTE
 
     async def _gate(self, ctx, params):
-        self._typeform(params)
         keys, stored, _value, parsed = await self._keyset(ctx)
         if params.new_primary_id not in key_ids(parsed):
             raise Refusal("key_not_in_keyset")
@@ -239,7 +233,6 @@ class Reencrypt(_Base):
     META = catalog.REENCRYPT
 
     async def _gate(self, ctx, params):
-        self._typeform(params)
         keys, stored, value, parsed = await self._keyset(ctx)
         if parsed.primary_key_id != params.primary_id:
             raise Refusal("primary_mismatch")
@@ -442,7 +435,6 @@ class DropOld(_Base):
     META = catalog.DROP_OLD
 
     async def _gate(self, ctx, params):
-        self._typeform(params)
         if params.allow_empty_google and params.google_in_use:
             raise Refusal("google_flags_conflict")  # empty credentials: not in use
         keys, stored, value, parsed = await self._keyset(ctx)
@@ -451,11 +443,6 @@ class DropOld(_Base):
         # every service must already encrypt with the primary: otherwise one
         # could still write a value under a key about to be dropped
         await self._ready(ctx, params, parsed, stored)
-        # the Typeform integration reports a heartbeat only if it runs a build
-        # that does; if it does, it may still need the old key
-        async with ctx.connection() as conn:
-            if await state.typeform_reporting(conn):
-                raise Refusal("typeform_reporting")
         if params.mongo_retired:
             # the services' own reports, not only the runner's copy of their mode
             async with ctx.connection() as conn:

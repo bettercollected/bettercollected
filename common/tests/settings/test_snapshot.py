@@ -122,6 +122,21 @@ def test_unknown_key_and_reader_not_allowed(keys):
     assert set(result.accepted) == {"MAIL_PASSWORD"}
 
 
+def test_a_retired_key_row_is_ignored_not_rejected(keys):
+    """A setting removed from the inventory (``RETIRED``) may still have a row
+    in a stack's store: it is neither applied nor reported as refused."""
+    retired = Registry(list(REGISTRY), retired=("OLD_PROVIDER_SECRET",))
+    gone = plain_row(key="OLD_PROVIDER_SECRET", readers=("backend", "auth"))
+    snap = FakeSnapshot.build([gone, plain_row(), secret_row(keys)], keys)
+    result = run(snap, keys, registry=retired, service="auth")
+    assert result.rejections == []
+    assert set(result.accepted) == {"MAIL_SMTP_PORT", "MAIL_PASSWORD"}
+    # without the retirement the same row is an unknown key
+    assert reasons(run(snap, keys, registry=REGISTRY, service="auth")) == {
+        ("OLD_PROVIDER_SECRET", "unknown_key")
+    }
+
+
 def test_registry_readers_are_authoritative(keys):
     wide = plain_row(readers=("backend", "auth", "google"))
     snap = FakeSnapshot.build([wide], keys)

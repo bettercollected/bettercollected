@@ -129,7 +129,7 @@ class Flow:
         return stored
 
     def params(self, **extra):
-        return {"typeform_acknowledged": True, **extra}
+        return dict(extra)
 
     async def rotate_to_new_primary(self):
         """add_key and promote, with consumers following each step."""
@@ -221,12 +221,11 @@ def test_flags_resources_and_locks():
 
 def test_drop_old_has_no_target_or_store_selection():
     assert set(meta.DropOldParams.model_fields) == {
-        "typeform_acknowledged", "mongo_retired", "google_in_use", "allow_empty_google",
-        "batch_size",
+        "mongo_retired", "google_in_use", "allow_empty_google", "batch_size",
     }
     for extra in ({"targets": ["responses"]}, {"stores": "mongo"}, {"target": "responses"}):
         with pytest.raises(Exception):
-            meta.DropOldParams.model_validate({"typeform_acknowledged": True, **extra})
+            meta.DropOldParams.model_validate(extra)
 
 
 # ------------------------------------------------------------ the sequence
@@ -504,20 +503,23 @@ async def test_google_need_not_report_when_it_is_not_in_use(world, flow):
 
 
 @pytest.mark.parametrize(
-    "task, params",
+    "cls, params",
     [
-        ("keyset.promote", {"new_primary_id": 1}),
-        ("keyset.reencrypt", {"primary_id": 1}),
-        ("keyset.drop_old", {}),
+        (meta.PromoteParams, {"new_primary_id": 1}),
+        (meta.ReencryptParams, {"primary_id": 1}),
+        (meta.DropOldParams, {}),
     ],
 )
-async def test_the_typeform_integration_must_be_acknowledged(world, flow, task, params):
-    # it also receives the keyset, reports no heartbeat and what it stores cannot
-    # be checked or re-encrypted from here
-    _, run = await flow.run(task, params, dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "typeform_not_acknowledged"
-    _, run = await flow.run(task, {**params, "typeform_acknowledged": False}, dry_run=True)
-    assert run["refusal_code"] == "typeform_not_acknowledged"
+def test_typeform_acknowledged_is_accepted_and_ignored(cls, params):
+    """The Typeform integration is gone: its acknowledgement no longer gates a
+    step, and requests that still send it keep validating."""
+    plain = cls.model_validate(params)
+    for ack in (True, False, "on"):
+        parsed = cls.model_validate({**params, "typeform_acknowledged": ack})
+        assert parsed == plain and "typeform_acknowledged" not in parsed.model_dump()
+    assert "typeform_acknowledged" not in cls.model_json_schema()["properties"]
+    with pytest.raises(Exception):
+        cls.model_validate({**params, "typeform_reporting": True})  # other names stay refused
 
 
 # ------------------------------------------------------------- reencrypt
@@ -1229,19 +1231,16 @@ async def test_mongo_retired_refuses_while_a_service_reports_writing_mongo(
 
 
 # ------------------------------------------------------- the other drop guards
-async def test_drop_old_refuses_while_typeform_reports_in(world, flow):
+async def test_drop_old_no_longer_waits_for_typeform(world, flow):
+    """Neither an unticked acknowledgement nor a leftover instance of the
+    removed Typeform integration reporting in stops the drop any more."""
     new_id = await flow.rotate_to_new_primary()
     await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.choice))
     stored = await flow.stored()
     await heartbeat(world.owner, "typeform", stored.value, instance="t1", revision=stored.revision)
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "typeform_reporting"
-    # a Typeform that stopped reporting long ago is taken as gone
-    await heartbeat(
-        world.owner, "typeform", stored.value, instance="t1", revision=stored.revision,
-        age_seconds=3600,
+    _, run = await flow.run(
+        "keyset.drop_old", flow.params(typeform_acknowledged=False), dry_run=True
     )
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
     assert run["state"] == "succeeded", run
 
 
