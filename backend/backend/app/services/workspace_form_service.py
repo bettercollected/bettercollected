@@ -27,7 +27,11 @@ from starlette.requests import Request
 from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
+from backend.app.models.dtos.action_dto import (
+    ActionUpdateType,
+    AddActionToFormDto,
+    UpdateActionInFormDto,
+)
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
@@ -1424,6 +1428,11 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
+        # an action runs on every submission and may send the answers out of
+        # the workspace: that is an export (docs/enterprise-access-model.md)
+        await self.authorization_service.authorize(
+            user, Permission.RESPONSE_EXPORT, workspace_id
+        )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
         )
@@ -1472,6 +1481,11 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
+        if update_action_dto.update_type == ActionUpdateType.ENABLE:
+            # turning an action on starts sending answers again: an export
+            await self.authorization_service.authorize(
+                user, Permission.RESPONSE_EXPORT, workspace_id
+            )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
         )
