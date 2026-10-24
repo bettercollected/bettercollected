@@ -195,5 +195,17 @@
     "SIRETO_FOOTER": {
         "PRODUCT_OF": "Een product van Sireto B.V.",
         "TRADEMARK": "Sireto® is een geregistreerd handelsmerk van Sireto B.V."
+    },
+    "DELETION": {
+        "REQUESTED": "Verwijdering aangevraagd",
+        "DELETED": "Verwijderd ({{date}})",
+        "DECLINED": "Niet verwijderd: {{reason}}",
+        "REASON": {
+            "LEGAL_OBLIGATION": "de organisatie moet het wettelijk bewaren",
+            "LEGAL_CLAIMS": "het is nodig voor een juridische claim",
+            "PUBLIC_INTEREST": "het wordt bewaard in het algemeen belang",
+            "IDENTITY_NOT_VERIFIED": "je identiteit kon niet worden vastgesteld",
+            "OTHER": "de organisatie heeft het verzoek afgewezen"
+        }
     }
 }

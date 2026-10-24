@@ -15,6 +15,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Staff with `privacy.manage` close a pending deletion request by hand, without the form's provider:
+  `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
+  `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
+  Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
+  Who closed a request and when is kept on it (every close is appended, never overwritten), and a later sync no
+  longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
+  of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
+  "Not deleted: <reason>" (English and Dutch), never as deleted.
 - Single sign-on: a deleted workspace's connections that the identity bridge (Polis) could not delete
   are no longer dropped silently. They are kept as `release_pending`, never sign anyone in, and a daily
   job (`sso_release_retry`) deletes them in Polis, so they stop holding the identity provider's entity
@@ -31,7 +39,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
   event-data property that the web app sent before it stopped sending the signed-in user's email to
   analytics. They print counts only.
-
+- Deleting an account now also erases its Brevo marketing contact (`DELETE /v3/contacts/{email}`), with
+  a separate Brevo API key, `BREVO_CONTACTS_API_KEY` (never the tracker key). Without the key the
+  erasure is skipped. Rate limits and server errors are retried a few times with backoff. It never holds
+  up the deletion, and the log names only the user id.
+- For accounts deleted earlier, `python -m auth.brevo_contacts` (auth container; the key comes from the
+  container's environment or a hidden prompt, never the command line) counts the Brevo contacts that have
+  no account, broken down by a marker attribute and by Brevo list membership, and lists the attribute
+  names they carry. It prints counts and attribute names only. `--apply` needs `--marker ATTRIBUTE[=VALUE]`.
+  It deletes only contacts that have no account, carry the marker and are on no Brevo list.
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
