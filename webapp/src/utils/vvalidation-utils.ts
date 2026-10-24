@@ -71,6 +71,10 @@ export const statusProps = (status: string, t: any) => {
         currentStatus = t('FORM.STATUS_DELETED');
         cName = 'bg-[#E7F4EE] text-success-700!';
         dotCName = 'bg-success';
+    } else if (normalized === 'declined') {
+        // Closed without deleting (a fixed reason, shown next to it): never
+        // styled or worded like a deletion.
+        currentStatus = t('FORM.STATUS_DECLINED');
     } else if (normalized === 'expired') {
         currentStatus = t(formConstant.status.expired);
     }

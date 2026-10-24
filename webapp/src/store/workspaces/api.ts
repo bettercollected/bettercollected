@@ -9,6 +9,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { CreateScimDirectoryRequest, ScimCredentialsDto, ScimDirectoryDto, ScimGroupDto, ScimOverviewDto, ScimResyncDto } from '@app/models/dtos/workspace-scim-dto';
 import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
+import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletion-request';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
@@ -68,6 +69,20 @@ export const workspacesApi = createApi({
             // The deletion-requests table (getWorkspaceAllSubmissions) and the
             // pending counter (getWorkspaceStats) only carry WORKSPACE_TAGS —
             // without it they kept showing the row as Pending after the delete.
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
+        }),
+        // Staff close a pending deletion request (privacy.manage): completed
+        // deletes the copy stored here, declined keeps it with a fixed reason.
+        closeDeletionRequest: builder.mutation<
+            { formId: string; responseId: string; status: string; closedBy?: string | null; closedAt?: string | null; declineReason?: string | null },
+            { workspaceId: string; formId: string; responseId: string; outcome: DeletionRequestOutcome; reason?: DeclineReason }
+        >({
+            query: ({ workspaceId, formId, responseId, outcome, reason }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${encodeURIComponent(responseId)}/deletion-request/close`,
+                method: 'POST',
+                body: { outcome, ...(reason ? { reason } : {}) }
+            }),
+            // the lists and the pending counter (see deleteResponse)
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
         getWorkspaceNameSuggestions: builder.query<any, any>({
@@ -694,6 +709,7 @@ export const {
     useLazySearchWorkspaceFormsQuery,
     useGetFormsSubmissionsQuery,
     useDeleteResponseMutation,
+    useCloseDeletionRequestMutation,
     usePatchFormSettingsMutation,
     useDeleteFormMutation,
     useCreateWorkspaceMutation,

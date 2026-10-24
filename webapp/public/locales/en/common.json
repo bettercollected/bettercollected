@@ -159,6 +159,29 @@
       "7": "Something else"
     }
   },
+  "DELETION_REQUEST": {
+    "MARK_DELETED": "Mark as deleted",
+    "DECLINE": "Decline",
+    "MARK_DELETED_TITLE": "Mark this request as deleted?",
+    "MARK_DELETED_DESCRIPTION": "The copy of this response stored here is deleted permanently and the request is marked as completed. A response imported from Google Forms stays in Google Forms: delete it there as well.",
+    "DECLINE_TITLE": "Decline this deletion request?",
+    "DECLINE_DESCRIPTION": "Nothing is deleted. The responder sees that their response was not deleted, with the reason you choose. Decline only when you may keep the response by law.",
+    "REASON_LABEL": "Reason",
+    "REASON": {
+      "LEGAL_OBLIGATION": "A legal obligation requires keeping it",
+      "LEGAL_CLAIMS": "It is needed for a legal claim",
+      "PUBLIC_INTEREST": "It is kept in the public interest",
+      "IDENTITY_NOT_VERIFIED": "The requester's identity could not be verified",
+      "OTHER": "Another reason"
+    },
+    "NOT_DELETED": "Not deleted",
+    "MARKED_DELETED": "Request marked as deleted",
+    "DECLINED": "Request declined",
+    "ALREADY_CLOSED": "This request was already closed.",
+    "COPY_UNRESOLVED": "A stored copy of this response could not be matched to this workspace, so nothing was deleted and the request stays open.",
+    "FAILED": "Could not update the request. Try again.",
+    "REASON_REQUIRED": "Choose a reason."
+  },
   "DELETED_ON": "Deleted On",
   "DELETION_REMAINING": "deletion remaining",
   "DESCRIPTION": "Description",
@@ -220,6 +243,7 @@
     "RESPONSE_ID": "Response ID",
     "STATUS_DELETED": "Deleted",
     "STATUS_PENDING": "Pending",
+    "STATUS_DECLINED": "Declined",
     "STATUS_EXPIRED": "Expired",
     "SUBMISSION_DATE": "Submission Date",
     "SUBMITTED_FORMS": "My submissions",

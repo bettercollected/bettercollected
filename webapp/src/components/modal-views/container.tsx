@@ -21,6 +21,7 @@ import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
 import DeleteInvitationModal from '@app/components/modal-views/modals/delete-invitation-modal';
 import DeleteMemberModal from '@app/components/modal-views/modals/delete-member-modal';
+import CloseDeletionRequestModal from '@app/components/modal-views/modals/close-deletion-request-modal';
 import DeleteResponseModal from '@app/components/modal-views/modals/delete-response-modal';
 import DeleteTemplateConfirmationModalView from '@app/components/modal-views/modals/delete-template-modal-view';
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
@@ -60,6 +61,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <DeleteInvitationModal {...modalProps} />;
         case 'DELETE_MEMBER':
             return <DeleteMemberModal {...modalProps} />;
+        case 'CLOSE_DELETION_REQUEST':
+            return <CloseDeletionRequestModal {...modalProps} />;
         case 'DELETE_RESPONSE':
             return <DeleteResponseModal {...modalProps} />;
         case 'EDIT_WORKSPACE_MODAL':
