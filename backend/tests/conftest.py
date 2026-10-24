@@ -130,6 +130,7 @@ MONGO_DRIVEN = {
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
     "tests/app/migrate/test_marker.py": ALL,
+    "tests/app/migrate/test_mirror_order.py": ALL,
     "tests/app/migrate/test_mirror_verify.py": ALL,
     "tests/app/pdf_import/test_repository_parity.py": ALL,
     "tests/app/repositories/test_actions_parity.py": ALL,

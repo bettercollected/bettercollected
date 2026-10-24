@@ -24,7 +24,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 from bson import ObjectId
-from pymongo import AsyncMongoClient
+from pymongo import AsyncMongoClient, ReadPreference
+from pymongo.errors import DuplicateKeyError
 from sqlalchemy import Table, and_, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -204,6 +205,12 @@ def id_range(table: Table, after: Optional[str], upto: str):
     if after is None:
         return table.c.id <= upto
     return and_(table.c.id > after, table.c.id <= upto)
+
+
+def on_primary(collection):
+    """``collection`` read from the primary: the runner scans from a secondary,
+    but a compare-and-set must compare with the current copy."""
+    return collection.with_options(read_preference=ReadPreference.PRIMARY)
 
 
 def adapt_batch(size: int, seconds: float) -> int:
@@ -657,6 +664,12 @@ class Runner:
         ``app`` rows when the Mongo document is at least as new.
         ``postgres->mongo``: replace Mongo documents from rows (R2/R3 fallback).
 
+        Each copy is a compare-and-set against what this run read: a row or
+        document the application changed in the meantime (a write whose
+        mirror landed while reconcile was between its read and its write) is
+        left as the application wrote it and counted as ``skipped``; the
+        next ``verify`` shows whether it still differs.
+
         Deletes are honoured in both directions through the deletion
         tombstones (:mod:`common.db.tombstones`), before anything is copied:
         a deleted record whose copy survives on one side only (its mirror
@@ -672,17 +685,18 @@ class Runner:
         results = {}
         for name, table in selected.items():
             report = (await self.verify([name]))[0]
-            fixed, deleted, kept = 0, 0, 0
+            fixed, skipped, deleted, kept = 0, 0, 0, 0
             # samples are capped; walk the collection for the full set when anything differs
             if not report.clean:
                 deleted, kept, victims = await self._honour_tombstones(
                     name, table, dry_run
                 )
-                fixed = await self._reconcile_collection(
+                fixed, skipped = await self._reconcile_collection(
                     name, table, direction, dry_run, never_copy=victims
                 )
             results[name] = {
                 "fixed": fixed,
+                "skipped": skipped,
                 "deleted": deleted,
                 "tombstoned": kept,
                 "before": report.as_dict(),
@@ -690,7 +704,14 @@ class Runner:
             }
         if not dry_run:
             await self._prune_tombstones()
-        if set(selected) == set(self.target.tables):
+        skipped_any = sum(r["skipped"] for r in results.values())
+        if skipped_any:
+            logger.info(
+                "outbox not drained: %d copies were skipped because the application "
+                "changed them meanwhile; run verify, then reconcile again",
+                skipped_any,
+            )
+        elif set(selected) == set(self.target.tables):
             await self._drain_outbox(direction, dry_run)
         else:
             logger.info(
@@ -813,9 +834,11 @@ class Runner:
 
     async def _reconcile_collection(
         self, name, table, direction, dry_run, never_copy=frozenset()
-    ) -> int:
+    ) -> tuple[int, int]:
+        """(copies written, copies skipped because the target changed since
+        it was read). Ids in ``never_copy`` (deleted records) are not copied."""
         coll = self.collection(name)
-        fixed, last_id, size = 0, None, 500
+        fixed, skipped, last_id, size = 0, 0, None, 500
         while True:
             query = {"_id": {"$gt": ObjectId(last_id)}} if last_id else {}
             documents = await coll.find(query).sort("_id", 1).limit(size).to_list()
@@ -854,22 +877,29 @@ class Runner:
                             and mongo_updated < current[2]
                         ):
                             continue  # the application wrote this row after Mongo's copy: keep it
-                        to_write.append(row)
+                        # the checksum read: the row is replaced only while it holds it
+                        to_write.append((row, None if current is None else current[1]))
                 if to_write and not dry_run:
-                    stmt = pg_insert(table).values(to_write)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=["id"],
-                        set_={
-                            "doc": stmt.excluded.doc,
-                            "created_at": stmt.excluded.created_at,
-                            "updated_at": stmt.excluded.updated_at,
-                            "_bc_checksum": stmt.excluded._bc_checksum,
-                            "_bc_source": stmt.excluded._bc_source,
-                        },
-                    )
-                    async with self.engine.begin() as conn:
-                        await conn.execute(stmt)
-                fixed += len(to_write)
+                    # Mongo was read before Postgres: a document the application
+                    # changed in between is not copied (its mirror write follows)
+                    fresh = {
+                        str(d["_id"]): checksum(canonical_document(d))
+                        for d in await on_primary(coll)
+                        .find(
+                            {"_id": {"$in": [ObjectId(r["id"]) for r, _ in to_write]}}
+                        )
+                        .to_list()
+                    }
+                    unchanged = [
+                        (r, expected)
+                        for r, expected in to_write
+                        if fresh.get(r["id"]) == r["_bc_checksum"]
+                    ]
+                    applied = await self._apply_to_postgres(table, unchanged)
+                    fixed += applied
+                    skipped += len(to_write) - applied
+                elif to_write:
+                    fixed += len(to_write)
                 # rows Mongo does not have: those of deleted records were
                 # handled by _honour_tombstones, verify reports the others
             else:  # postgres->mongo
@@ -884,27 +914,109 @@ class Runner:
                         mongo_doc is None
                         or checksum(canonical_document(mongo_doc)) != r[1]
                     ):
-                        if not dry_run:
-                            await coll.replace_one(
-                                {"_id": document["_id"]}, document, upsert=True
-                            )
-                        fixed += 1
+                        if dry_run or await self._apply_to_mongo(
+                            coll, table, document, mongo_doc, r[1]
+                        ):
+                            fixed += 1
+                        else:
+                            skipped += 1
         if direction == "postgres->mongo":  # rows beyond Mongo's range
             async with self.engine.connect() as conn:
-                extra = select(table.c.id, table.c.doc)
+                extra = select(table.c.id, table.c._bc_checksum, table.c.doc)
                 if last_id:
                     extra = extra.where(table.c.id > last_id)
-                for row_id, doc in (await conn.execute(extra)).all():
+                for row_id, row_checksum, doc in (await conn.execute(extra)).all():
                     if row_id in never_copy:
                         continue
                     document = from_canonical_document(doc)
-                    if not dry_run:
-                        await coll.replace_one(
-                            {"_id": document["_id"]}, document, upsert=True
+                    if dry_run or await self._apply_to_mongo(
+                        coll, table, document, None, row_checksum
+                    ):
+                        fixed += 1
+                    else:
+                        skipped += 1
+        logger.info(
+            "reconcile %s (%s): fixed=%d skipped=%d", name, direction, fixed, skipped
+        )
+        return fixed, skipped
+
+    async def _apply_to_postgres(
+        self, table: Table, writes: list[tuple[dict, Optional[str]]]
+    ) -> int:
+        """Store each ``(row values, checksum read)``: a row that was absent
+        is inserted only while it still is; a present one is updated (never
+        inserted) only while it still holds the checksum read, so a row the
+        application deleted meanwhile stays deleted. Returns how many were
+        stored."""
+        applied = 0
+        async with self.engine.begin() as conn:
+            for values, expected in writes:
+                if expected is None:
+                    stmt = (
+                        pg_insert(table)
+                        .values(values)
+                        .on_conflict_do_nothing(index_elements=["id"])
+                    )
+                else:
+                    stmt = (
+                        table.update()
+                        .where(
+                            table.c.id == values["id"],
+                            table.c._bc_checksum == expected,
                         )
-                    fixed += 1
-        logger.info("reconcile %s (%s): fixed=%d", name, direction, fixed)
-        return fixed
+                        .values(
+                            {
+                                name: values[name]
+                                for name in (
+                                    "doc",
+                                    "created_at",
+                                    "updated_at",
+                                    "_bc_checksum",
+                                    "_bc_source",
+                                )
+                            }
+                        )
+                    )
+                applied += (await conn.execute(stmt)).rowcount or 0
+        return applied
+
+    async def _apply_to_mongo(
+        self,
+        coll,
+        table: Table,
+        document: dict,
+        read: Optional[dict],
+        row_checksum: str,
+    ) -> bool:
+        """Store ``document`` (the Postgres row read, with ``row_checksum``)
+        in Mongo only while the row still holds that checksum (re-read here:
+        a row the application deleted or changed meanwhile is not copied)
+        and the Mongo copy is still the one read (``read``; ``None``: there
+        was none). Returns whether it was stored."""
+        async with self.engine.connect() as conn:
+            current = (
+                await conn.execute(
+                    select(table.c._bc_checksum).where(
+                        table.c.id == str(document["_id"])
+                    )
+                )
+            ).scalar_one_or_none()
+        if current != row_checksum:
+            return False
+        if read is None:
+            try:
+                await coll.insert_one(document)
+            except DuplicateKeyError:
+                return False
+            return True
+        result = await coll.replace_one(
+            {
+                "_id": document["_id"],
+                "$expr": {"$eq": ["$$ROOT", {"$literal": read}]},
+            },
+            document,
+        )
+        return result.matched_count == 1
 
     async def _drain_outbox(self, direction: str, dry_run: bool) -> None:
         """Mirror-write failures name a repository and ids; after a full pass
