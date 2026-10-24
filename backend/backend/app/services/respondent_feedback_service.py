@@ -153,6 +153,7 @@ class RespondentFeedbackService:
             workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
             form = await self._form_repo.get_form_document_by_id(response.form_id)
             link = submission_link(workspace.workspace_name, response.response_id)
+            language = getattr(getattr(form, "settings", None), "language", None)
             await self._http_client.post(
                 settings.auth_settings.BASE_URL + NOTIFY_PATH,
                 json={
@@ -160,6 +161,9 @@ class RespondentFeedbackService:
                     "form_title": (form.title if form else None) or "a form",
                     "workspace_title": workspace.title or None,
                     "link": link,
+                    # the notice speaks the form's language (English unless
+                    # Dutch)
+                    **({"locale": language} if language else {}),
                 },
                 headers=auth_service_headers(Authorization=f"Bearer {access_token}"),
                 timeout=NOTIFY_TIMEOUT_SECONDS,

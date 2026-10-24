@@ -178,6 +178,34 @@
         "FORMS": "Forms",
         "MY_SUBMISSIONS": "My submissions",
         "DELETION_REQUESTS": "Deletion requests",
-        "SEARCH_FORMS": "Search forms"
+        "SEARCH_FORMS": "Search forms",
+        "SIGN_IN_TITLE": "See your submissions",
+        "SIGN_IN_TEXT": "Verify your email to see every response you've submitted to this workspace — and request deletion of any of them.",
+        "VERIFY_EMAIL": "Verify email",
+        "ANONYMOUS_HINT": "Submitted anonymously? Use your submission number instead.",
+        "TERMS": "Terms of service",
+        "PRIVACY_POLICY": "Privacy policy",
+        "PINNED_FORMS": "Pinned forms",
+        "ALL_FORMS": "All forms",
+        "NO_FORMS_TITLE": "No forms to show",
+        "NO_FORMS_TEXT": "This workspace has no public forms yet.",
+        "POWERED_BY": "Powered by <1>bettercollected</1>",
+        "POWERED_BY_LABEL": "Powered by"
+    },
+    "SIRETO_FOOTER": {
+        "PRODUCT_OF": "A product of Sireto B.V.",
+        "TRADEMARK": "Sireto® is a registered trademark of Sireto B.V."
+    },
+    "DELETION": {
+        "REQUESTED": "Deletion requested",
+        "DELETED": "Deleted ({{date}})",
+        "DECLINED": "Not deleted: {{reason}}",
+        "REASON": {
+            "LEGAL_OBLIGATION": "the organisation must keep it by law",
+            "LEGAL_CLAIMS": "it is needed for a legal claim",
+            "PUBLIC_INTEREST": "it is kept in the public interest",
+            "IDENTITY_NOT_VERIFIED": "your identity could not be verified",
+            "OTHER": "the organisation declined the request"
+        }
     }
 }

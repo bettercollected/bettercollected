@@ -114,6 +114,50 @@ class SsoConnectionRepository:
         return result.deleted_count if result else 0
 
     @write_op
+    async def mark_release_pending(
+        self, workspace_ids: List[PydanticObjectId], now: dt.datetime
+    ) -> int:
+        """The connections of deleted workspaces Polis did not release yet."""
+        result = await SsoConnectionDocument.find(
+            {"workspace_id": {"$in": [PydanticObjectId(w) for w in workspace_ids]}}
+        ).update(
+            {
+                "$set": {
+                    "status": SsoConnectionStatus.RELEASE_PENDING.value,
+                    # pending since
+                    "disabled_at": now,
+                    "updated_at": now,
+                }
+            }
+        )
+        return result.modified_count if result else 0
+
+    async def list_release_pending(self, limit: int) -> List[SsoConnectionDocument]:
+        """Least recently tried first (``touch_release_pending``)."""
+        return (
+            await SsoConnectionDocument.find(
+                {"status": SsoConnectionStatus.RELEASE_PENDING.value}
+            )
+            .sort([("updated_at", 1), ("_id", 1)])
+            .limit(limit)
+            .to_list()
+        )
+
+    @write_op
+    async def touch_release_pending(
+        self, workspace_ids: List[PydanticObjectId], now: dt.datetime
+    ) -> int:
+        """A failed release attempt: to the back of the queue."""
+        result = await SsoConnectionDocument.find(
+            {
+                "workspace_id": {"$in": [PydanticObjectId(w) for w in workspace_ids]},
+                "status": SsoConnectionStatus.RELEASE_PENDING.value,
+            }
+        ).update({"$set": {"updated_at": now}})
+        # the connections tried (matched), whether or not the time moved
+        return result.matched_count if result else 0
+
+    @write_op
     async def delete_by_workspace_ids(
         self, workspace_ids: List[PydanticObjectId]
     ) -> int:

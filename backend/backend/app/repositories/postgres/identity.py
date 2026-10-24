@@ -628,6 +628,42 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
     async def delete(self, connection_id: PydanticObjectId) -> int:
         return await self.delete_by_id(connection_id)
 
+    async def mark_release_pending(
+        self, workspace_ids: List[PydanticObjectId], now: datetime.datetime
+    ) -> int:
+        changed = 0
+        for connection in await self.many(
+            SsoConnectionRow.workspace_id.in_([_oid(w) for w in workspace_ids])
+        ):
+            if connection.status == SsoConnectionStatus.RELEASE_PENDING:
+                continue
+            connection.status = SsoConnectionStatus.RELEASE_PENDING
+            connection.disabled_at = now
+            connection.updated_at = now
+            await self.upsert(connection)
+            changed += 1
+        return changed
+
+    async def list_release_pending(self, limit: int) -> List[SsoConnectionDocument]:
+        return await self.many(
+            SsoConnectionRow.status == SsoConnectionStatus.RELEASE_PENDING.value,
+            order_by=(SsoConnectionRow.updated_at, SsoConnectionRow.id),
+            limit=limit,
+        )
+
+    async def touch_release_pending(
+        self, workspace_ids: List[PydanticObjectId], now: datetime.datetime
+    ) -> int:
+        changed = 0
+        for connection in await self.many(
+            SsoConnectionRow.workspace_id.in_([_oid(w) for w in workspace_ids]),
+            SsoConnectionRow.status == SsoConnectionStatus.RELEASE_PENDING.value,
+        ):
+            connection.updated_at = now
+            await self.upsert(connection)
+            changed += 1
+        return changed
+
     async def delete_by_workspace_ids(
         self, workspace_ids: List[PydanticObjectId]
     ) -> int:

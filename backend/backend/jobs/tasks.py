@@ -119,6 +119,52 @@ async def scim_reconcile(timestamp: int) -> str:
     return f"{result['directories']} resynced, {result['failed']} failed"
 
 
+@app.periodic(cron="47 3 * * *", periodic_id="sso_release_retry")
+@app.task(
+    name="sso_release_retry",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="sso_release_retry",
+)
+async def sso_release_retry(timestamp: int) -> str:
+    """Daily: delete in Polis the SSO connections of deleted workspaces that
+    a failed Polis call left behind, so they never keep holding an identity
+    provider's entity ID (docs/sso.md). ``python -m backend.sso
+    release-pending`` does the same by hand."""
+    result = await _container().sso_connection_service().retry_pending_releases()
+    return f"{result['released']} released, {result['failed']} failed"
+
+
+DOMAIN_RECHECK_BATCH = 100
+DOMAIN_RECHECK_MAX_BATCHES = 20
+
+
+@app.periodic(cron="23 * * * *", periodic_id="recheck_verified_domains")
+@app.task(
+    name="recheck_verified_domains",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="recheck_verified_domains",
+)
+async def recheck_verified_domains(timestamp: int) -> str:
+    """Re-check the TXT record of every verified email domain once its
+    ``VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS`` (24) have passed
+    (docs/verified-domains.md). Runs hourly so each domain is checked about
+    a day after the last check, not up to two; at most
+    ``DOMAIN_RECHECK_MAX_BATCHES`` batches per run (the rest wait an hour).
+    Logs and returns counts only."""
+    from loguru import logger
+
+    service = _container().workspace_domain_service()
+    totals = {"checked": 0, "passed": 0, "failed": 0, "lost": 0}
+    for _ in range(DOMAIN_RECHECK_MAX_BATCHES):
+        counts = await service.recheck_verified_domains(limit=DOMAIN_RECHECK_BATCH)
+        for key in totals:
+            totals[key] += counts.get(key, 0)
+        if counts.get("checked", 0) < DOMAIN_RECHECK_BATCH:
+            break
+    logger.info("verified domains re-checked: {}", totals)
+    return ", ".join(f"{totals[k]} {k}" for k in totals)
+
+
 def run_action_deferrer(queueing_lock: str):
     """Defer ``run_action`` to the actions queue without importing its body."""
     return app.configure_task(

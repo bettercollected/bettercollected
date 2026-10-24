@@ -90,12 +90,16 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
 runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
 
-- **Every repository is routed.** The container hands out `RoutingRepository` proxies over a Mongo implementation and
-  its Postgres *twin* (`app/repositories/postgres/*.py`, one class per Mongo repository, same public methods —
-  `tests/app/repositories/test_postgres_surface.py` enforces it). Repositories are grouped (`refdata`, `identity`,
-  `forms`, `responses`, `actions`, `ai`, `analytics`); `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>`
-  (`mongo|dual|postgres_primary_dual|postgres`) choose the store per group, flips are restarts, and
-  `backend/db/groups.py` declares the cutover order the flags enforce at boot.
+- **Every repository is routed**, except those of the groups already served from Postgres only. The container hands
+  out `RoutingRepository` proxies over a Mongo implementation and its Postgres *twin* (`app/repositories/postgres/*.py`,
+  one class per Mongo repository, same public methods — `tests/app/repositories/test_postgres_surface.py` enforces
+  it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
+  `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
+  per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
+- **Postgres-only groups (4.1):** `refdata` and analytics (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`) have no
+  Mongo repository and no routing: their documents are `common.records.Record` classes, their repositories the
+  `postgres/refdata.py` / `postgres/analytics.py` classes on `RecordRepository`, and a `DB_*__<group>` flag other than
+  `postgres` refuses the start. A fresh store gets its reference data from `python -m backend.seed_refdata`.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
@@ -399,6 +403,11 @@ BetterCollected-hosted Umami; that's gone, so no self-hosted deployment phones h
 - Deployment: `deploy.sh` seeds the `UMAMI_URL` setting with `http://umami:3000` (internal docker network; it is
   not pinned in compose any more) and replaces Umami's built-in `admin`/`umami` login with a generated password
   stored as the `UMAMI_PASSWORD` setting (`deploy/umami-rotate.js`). `UMAMI_WEBSITE_ID` stays optional.
+- **No personal data in events.** Event properties must never carry a user's email or other personal data.
+  The web app used to send the signed-in user's email as an event property (`email`); events stored
+  before that change still hold it. `scripts/umami/email-data-count.sql` (read-only) and
+  `email-data-purge.sql` (a dry run unless `-v apply=1`) count and delete those event-data rows in the
+  Umami database. They print counts only, and the usage is in each file's header.
 
 ## Public API (forms as code)
 
@@ -852,8 +861,8 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 
 ## Gotchas
 
-- **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` Mongo collection — a new host must be
-  seeded there (see root docs / `seed-data.js`) or requests are blocked.
+- **CORS is dynamic** (`DynamicCORSMiddleware`) driven by the `allowed_origins` table (Postgres) — a new host must be
+  stored there (`python -m backend.seed_refdata --origin ...` on an empty table) or requests are blocked.
   A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
   place that adds or removes those origins) and stale ones are pruned at startup.
 - Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that

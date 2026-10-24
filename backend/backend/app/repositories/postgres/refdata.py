@@ -1,12 +1,12 @@
+"""The refdata group's repositories: Postgres only (its Mongo collections are
+read only by the import from 4.0)."""
+
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from pydantic import BaseModel
 
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
-from backend.app.repositories.form_plugin_provider_repository import (
-    FormPluginProviderRepository,
-)
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.coupon_codes import CouponCodeDocument
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
@@ -19,10 +19,11 @@ from backend.db.models import (
     PriceSuggestionRow,
     UserFeedbackRow,
 )
-from common.db import PostgresRepositoryBase
+from common.records import RecordId
+from common.records.repository import RecordRepository
 
 
-class PostgresAllowedOriginsRepository(PostgresRepositoryBase):
+class PostgresAllowedOriginsRepository(RecordRepository):
     row = AllowedOriginRow
     document = AllowedOriginsDocument
 
@@ -36,11 +37,11 @@ class PostgresAllowedOriginsRepository(PostgresRepositoryBase):
         return await self.save_document(AllowedOriginsDocument(origin=origin))
 
     async def delete_by_origin(self, origin: str) -> None:
-        # Mongo's find_one(...).delete() removes a single document; match it.
+        # one row, the oldest, even when an origin is listed twice
         await self.delete_one_where(AllowedOriginRow.origin == origin)
 
 
-class PostgresFormPluginProviderRepository(PostgresRepositoryBase):
+class PostgresFormPluginProviderRepository(RecordRepository):
     row = FormPluginConfigRow
     document = FormPluginConfigDocument
 
@@ -53,13 +54,14 @@ class PostgresFormPluginProviderRepository(PostgresRepositoryBase):
     async def get(self, provider_name: str) -> FormPluginConfigDocument | None:
         return await self.one(FormPluginConfigRow.provider_name == provider_name)
 
-    async def get_provider_url(
-        self, provider_name
-    ) -> Optional[FormPluginProviderRepository.ProviderUrlProject]:
+    class ProviderUrlProject(BaseModel):
+        provider_url: str
+
+    async def get_provider_url(self, provider_name) -> Optional[ProviderUrlProject]:
         document = await self.get(provider_name)
         if document is None:
             return None
-        return FormPluginProviderRepository.ProviderUrlProject(
+        return self.ProviderUrlProject(
             provider_url=document.provider_url
         )
 
@@ -75,10 +77,10 @@ class PostgresFormPluginProviderRepository(PostgresRepositoryBase):
         return await self.save_document(item)
 
     async def delete(self, provider_name: str, provider: FormPluginConfigDocument):
-        pass  # the Mongo implementation is a no-op too
+        pass  # providers are never deleted
 
 
-class PostgresCouponRepository(PostgresRepositoryBase):
+class PostgresCouponRepository(RecordRepository):
     row = CouponCodeRow
     document = CouponCodeDocument
 
@@ -96,7 +98,7 @@ class PostgresCouponRepository(PostgresRepositoryBase):
         return await self.one(CouponCodeRow.code == str(coupon_code))
 
 
-class PostgresUserFeedbackRepo(PostgresRepositoryBase):
+class PostgresUserFeedbackRepo(RecordRepository):
     row = UserFeedbackRow
     document = UserFeedbackDocument
 
@@ -104,12 +106,12 @@ class PostgresUserFeedbackRepo(PostgresRepositoryBase):
         return await self.save_document(user_feedback)
 
 
-class PostgresPriceSuggestionRepository(PostgresRepositoryBase):
+class PostgresPriceSuggestionRepository(RecordRepository):
     row = PriceSuggestionRow
     document = PriceSuggestion
 
     async def add(self, suggestion: PriceSuggestion) -> PriceSuggestion:
         return await self.save_document(suggestion)
 
-    async def list_by_user_id(self, user_id: PydanticObjectId) -> List[PriceSuggestion]:
+    async def list_by_user_id(self, user_id: RecordId) -> List[PriceSuggestion]:
         return await self.many(PriceSuggestionRow.user_id == str(user_id))

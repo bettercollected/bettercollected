@@ -13,6 +13,10 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services.user_service import forwarded_access_token
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
+from backend.app.models.dtos.deletion_request_dto import (
+    ClosedDeletionRequest,
+    CloseDeletionRequestBody,
+)
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersPatch,
@@ -27,7 +31,7 @@ from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.flow_event_repository import FlowEventRepository
+from backend.app.repositories.postgres.analytics import PostgresFlowEventRepository
 from backend.app.router import router
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_response_service import FormResponseService
@@ -54,7 +58,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(
         self,
         form_response_service: FormResponseService = container.form_response_service(),
-        flow_event_repo: FlowEventRepository = container.flow_event_repo(),
+        flow_event_repo: PostgresFlowEventRepository = container.flow_event_repo(),
         respondent_feedback_service: RespondentFeedbackService = (
             container.respondent_feedback_service()
         ),
@@ -156,6 +160,40 @@ class WorkspaceResponsesRouter(CustomRoutable):
             answers=body.answers,
             user=user,
             expected_version=body.version,
+        )
+
+    @post(
+        "/forms/{form_id}/submissions/{submission_id}/deletion-request/close",
+        response_model=ClosedDeletionRequest,
+    )
+    async def close_deletion_request(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        submission_id: str,
+        body: CloseDeletionRequestBody,
+        user: User = Depends(get_logged_user),
+    ):
+        """Close a pending deletion request by hand (``privacy.manage``),
+        without the form's provider: ``completed`` deletes the workspace's
+        stored copy of the response, ``declined`` keeps it and records one of
+        the fixed reasons. Who and when are kept on the request; 409 when it
+        is already closed."""
+        closed = await self._form_response_service.close_deletion_request(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=submission_id,
+            outcome=body.outcome,
+            reason=body.reason,
+            user=user,
+        )
+        return ClosedDeletionRequest(
+            form_id=str(closed.form_id),
+            response_id=closed.response_id,
+            status=closed.status.value,
+            closed_by=closed.closed_by,
+            closed_at=closed.closed_at,
+            decline_reason=closed.decline_reason.value if closed.decline_reason else None,
         )
 
     @post(

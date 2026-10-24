@@ -10,9 +10,6 @@ from dependency_injector import providers
 from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
-from backend.app.repositories.postgres.refdata import PostgresAllowedOriginsRepository
-from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.db.groups import COLLECTION_GROUPS, GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
@@ -21,6 +18,11 @@ from common.db import RoutingRepository, load_flags, write_op
 from common.db.marker import SCOPE_GROUP, SCOPE_SERVICE, migration_verified
 from common.db.migrate import Runner
 from common.db.migrate.cli import build_parser, run
+from tests.app.db.beanie_originals import (
+    AllowedOriginsDocument,
+    AllowedOriginsRepository,
+    PostgresAllowedOriginsRepository,
+)
 
 
 @pytest.fixture

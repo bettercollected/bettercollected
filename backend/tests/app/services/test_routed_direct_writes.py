@@ -102,7 +102,8 @@ async def test_the_prompt_of_an_ai_form_is_stored_in_every_written_store(workspa
         assert isinstance(stored, CreateFormPrompt)
 
 
-async def test_a_price_suggestion_is_stored_in_every_written_store():
+async def test_a_price_suggestion_is_stored():
+    """refdata is served from Postgres only (no routing): stored there."""
     user = User(id=str(PydanticObjectId()), sub="suggests@example.com")
     auth_service = SimpleNamespace(upgrade_user_to_pro=AsyncMock())
     workspace_service = SimpleNamespace(upgrade_user_workspace=AsyncMock())
@@ -122,7 +123,4 @@ async def test_a_price_suggestion_is_stored_in_every_written_store():
     repo = container.price_suggestion_repo()
     [served] = await repo.list_by_user_id(user.id)
     assert (served.price, served.email) == (7, "suggests@example.com")
-    for source in written_stores("refdata"):
-        [stored] = await repo.store(source).list_by_user_id(user.id)
-        assert stored.id == served.id, source
-        assert isinstance(stored, PriceSuggestion)
+    assert isinstance(served, PriceSuggestion) and str(served.user_id) == user.id

@@ -18,7 +18,7 @@ from backend.app.schemas.sso_connection import (
     SsoConnectionType,
 )
 from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.test_refdata_parity import parity
+from tests.app.repositories.parity import parity
 
 
 @pytest.fixture
@@ -83,7 +83,16 @@ async def test_sso_connections(sessions):
             ("find_enabled", lambda: (other,)),
             ("delete", lambda: (off.id,)),
             ("count_by_workspace", lambda: (ws,)),
+            ("list_release_pending", lambda: (10,)),
+            ("mark_release_pending", lambda: ([other], now)),
+            ("mark_release_pending", lambda: ([other], now)),
+            ("list_release_pending", lambda: (10,)),
+            ("touch_release_pending", lambda: ([other], now)),
+            ("touch_release_pending", lambda: ([ws], now)),
+            ("list_release_pending", lambda: (10,)),
+            ("find_enabled", lambda: (other,)),
             ("delete_by_workspace_ids", lambda: ([other],)),
+            ("list_release_pending", lambda: (10,)),
             ("list_by_workspace", lambda: (other,)),
         ],
     )

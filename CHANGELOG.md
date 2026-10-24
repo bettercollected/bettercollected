@@ -15,6 +15,39 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- Staff with `privacy.manage` close a pending deletion request by hand, without the form's provider:
+  `POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close` with
+  `outcome` `completed` (the workspace's stored copy is deleted) or `declined` plus a reason from a fixed list.
+  Responses imported from Google Forms could only be cleared by deleting them at the source and syncing again.
+  Who closed a request and when is kept on it (every close is appended, never overwritten), and a later sync no
+  longer brings back a response whose deletion request was completed. `completed` is refused (409) while a copy
+  of the response that the workspace may own cannot be attributed to it. Respondents see a declined request as
+  "Not deleted: <reason>" (English and Dutch), never as deleted.
+- Single sign-on: a deleted workspace's connections that the identity bridge (Polis) could not delete
+  are no longer dropped silently. They are kept as `release_pending`, never sign anyone in, and a daily
+  job (`sso_release_retry`) deletes them in Polis, so they stop holding the identity provider's entity
+  ID. A support command, `python -m backend.sso entity-id <entity id>`, shows which connections hold an
+  entity ID and, with `--apply`, releases orphaned ones (a named workspace's only on request). The SSO
+  docs now say that a workspace's identity provider controls the whole account of users on its
+  verified domains, their other workspaces included.
+- The sign-in code, invitation and submission-update mails are available in Dutch. The backend endpoints
+  that send them take an optional `locale` (`nl`, or a tag such as `nl-NL`; anything else gets
+  English), and the submission-update notice follows the form's language. The invitation now names the
+  workspace as "<workspace> via <instance name>". It names the inviter with the role they offer and
+  says that the name is the one the inviter chose.
+- Two SQL scripts for the Umami database, `scripts/umami/email-data-count.sql` (read-only) and
+  `scripts/umami/email-data-purge.sql` (a dry run unless `-v apply=1`), count and delete the `email`
+  event-data property that the web app sent before it stopped sending the signed-in user's email to
+  analytics. They print counts only.
+- Deleting an account now also erases its Brevo marketing contact (`DELETE /v3/contacts/{email}`), with
+  a separate Brevo API key, `BREVO_CONTACTS_API_KEY` (never the tracker key). Without the key the
+  erasure is skipped. Rate limits and server errors are retried a few times with backoff. It never holds
+  up the deletion, and the log names only the user id.
+- For accounts deleted earlier, `python -m auth.brevo_contacts` (auth container; the key comes from the
+  container's environment or a hidden prompt, never the command line) counts the Brevo contacts that have
+  no account, broken down by a marker attribute and by Brevo list membership, and lists the attribute
+  names they carry. It prints counts and attribute names only. `--apply` needs `--marker ATTRIBUTE[=VALUE]`.
+  It deletes only contacts that have no account, carry the marker and are on no Brevo list.
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
   which have no `deploy.sh`. For each stage (Stage 0, each group's read and primary switch, the jobs
   flips, stopping Mongo writes, turning Mongo off and decommissioning) it gives the environment
@@ -89,6 +122,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Importing from Google Forms works again after Google's consent screen. The Google Forms service sent a PKCE
+  challenge with the authorization URL (the default of google-auth-oauthlib since 1.3) but exchanged the code
+  without its verifier, so Google refused the exchange (`invalid_grant`). The verifier is now derived from the
+  request's state with a server-side key, so the callback presents the matching one.
+- The Google Forms service no longer depends on `OAUTHLIB_RELAX_TOKEN_SCOPE` in its environment: it relaxes
+  oauthlib's scope comparison itself (Google always returns aliases and earlier grants) and instead checks that
+  the scopes the import needs were granted, refusing with a clear message when the user unticked one.
+  `invalid_client` and other OAuth errors from Google now answer with a message instead of a server error, and a
+  callback whose state does not decrypt is refused before the code is used.
+- Errors from a form provider service now reach the user with that service's own status and message (an expired
+  authorization, a missing permission) instead of "Could not fetch data from proxy server."; the API logs the
+  upstream status and error code.
+- After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
+  instead of failing, and the picker flag is added to the return URL as a proper query parameter.
 - Account deletion no longer fails when the Google Forms service is off, unreachable, slow or failing:
   deleting the user's stored Google credentials there is best effort (20 s timeout) and a leftover is logged
   with the user id and the provider name only, while the rest of the deletion completes.

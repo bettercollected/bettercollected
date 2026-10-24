@@ -166,6 +166,15 @@ class PolisAdminClient:
             return body[0] if body else None
         return body or None
 
+    async def find_by_entity_id(self, entity_id: str) -> List[Dict[str, Any]]:
+        """Every SAML connection holding an IdP entity ID, whatever its
+        tenant and product (Polis keeps one tenant per entity ID): what a
+        squatted or orphaned entity ID is released from."""
+        body = await self._request("GET", "/api/v1/sso", params={"entityId": entity_id})
+        if isinstance(body, dict):
+            body = [body]
+        return [c for c in body or [] if isinstance(c, dict)]
+
     async def delete_connection(self, client_id: str) -> None:
         """Delete one connection. Polis wants the connection's own client
         secret for that, and its DELETE only takes it as a query parameter,

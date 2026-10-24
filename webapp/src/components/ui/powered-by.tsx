@@ -1,5 +1,8 @@
 import React from 'react';
 
+import { useTranslation } from 'react-i18next';
+
+import type { RespondentLanguage } from '@app/lib/hooks/use-respondent-language';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 
 import Logo from '@app/components/ui/logo';
@@ -10,9 +13,12 @@ import AnchorLink from './links/anchor-link';
 
 interface IPoweredByProps {
     isFormCreatorPortal?: boolean;
+    /** The respondent's language, on the responder portal. */
+    language?: RespondentLanguage;
 }
 
-export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
+export default function PoweredBy({ isFormCreatorPortal, language }: IPoweredByProps) {
+    const { t } = useTranslation('respondent', { lng: language ?? 'en' });
     const workspace = useAppSelector(selectWorkspace);
     const isProUser = workspace.isPro;
 
@@ -39,8 +45,8 @@ export default function PoweredBy({ isFormCreatorPortal }: IPoweredByProps) {
                     </AnchorLink>
                 )
             ) : (
-                <div className="px-3 fixed lg:bottom-10 lg:right-20 bottom-0 right-0 left-0 lg:left-auto py-2 justify-center flex gap-2 bg-white items-center rounded border border-black-300 cursor-pointer">
-                    <span className="text-black-600 text-sm leading-5">Powered by</span>
+                <div lang={language} className="px-3 fixed lg:bottom-10 lg:right-20 bottom-0 right-0 left-0 lg:left-auto py-2 justify-center flex gap-2 bg-white items-center rounded border border-black-300 cursor-pointer">
+                    <span className="text-black-600 text-sm leading-5">{t('PORTAL.POWERED_BY_LABEL')}</span>
                     <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
                 </div>
             )}

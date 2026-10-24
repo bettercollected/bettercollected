@@ -178,6 +178,34 @@
         "FORMS": "Formulieren",
         "MY_SUBMISSIONS": "Mijn inzendingen",
         "DELETION_REQUESTS": "Verwijderverzoeken",
-        "SEARCH_FORMS": "Formulieren zoeken"
+        "SEARCH_FORMS": "Formulieren zoeken",
+        "SIGN_IN_TITLE": "Je inzendingen bekijken",
+        "SIGN_IN_TEXT": "Bevestig je e-mailadres om alles te zien wat je bij deze organisatie hebt ingezonden, en om iets daarvan te laten verwijderen.",
+        "VERIFY_EMAIL": "E-mailadres bevestigen",
+        "ANONYMOUS_HINT": "Anoniem ingezonden? Gebruik dan je inzendnummer.",
+        "TERMS": "Gebruiksvoorwaarden",
+        "PRIVACY_POLICY": "Privacyverklaring",
+        "PINNED_FORMS": "Uitgelichte formulieren",
+        "ALL_FORMS": "Alle formulieren",
+        "NO_FORMS_TITLE": "Geen formulieren",
+        "NO_FORMS_TEXT": "Deze organisatie heeft nog geen openbare formulieren.",
+        "POWERED_BY": "Mogelijk gemaakt door <1>bettercollected</1>",
+        "POWERED_BY_LABEL": "Mogelijk gemaakt door"
+    },
+    "SIRETO_FOOTER": {
+        "PRODUCT_OF": "Een product van Sireto B.V.",
+        "TRADEMARK": "Sireto® is een geregistreerd handelsmerk van Sireto B.V."
+    },
+    "DELETION": {
+        "REQUESTED": "Verwijdering aangevraagd",
+        "DELETED": "Verwijderd ({{date}})",
+        "DECLINED": "Niet verwijderd: {{reason}}",
+        "REASON": {
+            "LEGAL_OBLIGATION": "de organisatie moet het wettelijk bewaren",
+            "LEGAL_CLAIMS": "het is nodig voor een juridische claim",
+            "PUBLIC_INTEREST": "het wordt bewaard in het algemeen belang",
+            "IDENTITY_NOT_VERIFIED": "je identiteit kon niet worden vastgesteld",
+            "OTHER": "de organisatie heeft het verzoek afgewezen"
+        }
     }
 }

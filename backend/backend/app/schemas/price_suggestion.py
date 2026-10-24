@@ -1,16 +1,11 @@
 import datetime as dt
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 from pydantic import EmailStr
 
-from backend.app.handlers.database import entity
 
-
-@entity
-class PriceSuggestion(MongoDocument):
-
-    user_id: PydanticObjectId
+class PriceSuggestion(Record):
+    user_id: RecordId
     email: EmailStr
     price: int
 
