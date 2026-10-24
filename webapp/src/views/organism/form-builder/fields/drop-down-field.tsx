@@ -9,7 +9,7 @@ import { PlusIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@app/shadcn/util/lib';
-import { ChoiceIndicator, choiceRowStyle } from '@app/views/atoms/choice';
+import { ChoiceIndicator, OptionKeyHint, choiceRowStyle, optionKeys, showsOptionKeys } from '@app/views/atoms/choice';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
@@ -30,6 +30,8 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
     }, [focusChoiceId, field.properties?.choices]);
     const rowTheme = slide.properties?.theme?.secondary ? { ...theme, ...slide.properties.theme } : theme;
     const isChoiceList = field.type === FieldTypes.MULTIPLE_CHOICE;
+    // The respondent's key letters, on a theme that shows them.
+    const keys = isChoiceList && showsOptionKeys(rowTheme) ? optionKeys(field.properties?.choices?.length ?? 0) : [];
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (
@@ -77,7 +79,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                             <div className="group relative" key={choice.id ?? index}>
                                 {isChoiceList ? (
                                     <div className={cn(row.className, 'cursor-text pr-10')} style={row.style}>
-                                        <ChoiceIndicator kind={field.properties?.allowMultipleSelection ? 'checkbox' : 'radio'} theme={rowTheme} />
+                                        {keys[index] ? <OptionKeyHint letter={keys[index]!} theme={rowTheme} /> : <ChoiceIndicator kind={field.properties?.allowMultipleSelection ? 'checkbox' : 'radio'} theme={rowTheme} />}
                                         {input}
                                     </div>
                                 ) : (

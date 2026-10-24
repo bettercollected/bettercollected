@@ -6,6 +6,16 @@ umask 077
 
 user_preference="$1"
 
+# The Typeform integration was removed in 4.1: its preferences still work, without it.
+case "$user_preference" in
+  typeform)
+    echo "WARNING: the Typeform integration was removed in 4.1; starting the stack without it." >&2
+    user_preference="" ;;
+  both)
+    echo "WARNING: the Typeform integration was removed in 4.1; starting the stack with Google Forms only." >&2
+    user_preference=googleform ;;
+esac
+
 # The services every deployment starts. `up -d NAME...` starts only the services
 # it names (and what they depend on), so each one has to be listed here: the admin
 # service (the portal), the jobs worker (the procrastinate `default` queue:
@@ -104,13 +114,10 @@ esac
 
 # The settings keys the stack's own files (the root .env, .env.deployment) can
 # still carry, and the ones something outside the settings store reads:
-#  - the Typeform service (a separate image) reads three keys from its
-#    environment, so they stay in the files while it runs;
 #  - deploy.sh itself reads the SSO values from the root .env to add the Polis
 #    overlay (single sign-on stays environment-driven in this release);
 #  - the admin service mails sign-in codes with MAIL_* from the environment
 #    (until the admin mail settings are set up in the portal).
-typeform_keys=(AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET)
 env_driven_keys=(SSO_ENABLED SSO_POLIS_URL SSO_POLIS_API_KEY SSO_REDIRECT_URI SSO_SAML_AUDIENCE MAIL_USER MAIL_PASSWORD MAIL_SMTP_SERVER MAIL_SMTP_PORT MAIL_SENDER MAIL_STARTTLS MAIL_SSL_TLS MAIL_USE_CREDENTIALS MAIL_VALIDATE_CERTS)
 
 # What the services that are NOT settings-store readers read from their environment,
@@ -120,8 +127,6 @@ env_driven_keys=(SSO_ENABLED SSO_POLIS_URL SSO_POLIS_API_KEY SSO_REDIRECT_URI SS
 # prefix. docs/settings-inventory.md lists the readers; a test compares the two.
 webapp_env_keys=(INTERNAL_DOCKER_API_ENDPOINT_HOST API_ENDPOINT_HOST DASHBOARD_DOMAIN FORM_DOMAIN HTTP_SCHEME FORM_PRIVACY_POLICY_URL BASE_DEPLOY_PATH UNSPLASH_ACCESS_KEY GOOGLE_CLIENT_ID GOOGLE_PICKER_API_KEY UMAMI_WEBSITE_ID UMAMI_SCRIPT_URL CUSTOM_DOMAIN_APPLICATION_ID CUSTOM_DOMAIN_ASSERTION_KEYS CUSTOM_DOMAIN_ASSERTION_MODE CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN 'NEXT_PUBLIC_*' 'ELASTIC_APM_*')
 worker_env_keys=(SERVER_URL NAMESPACE WORKER_QUEUE WORKERS COOKIE_DOMAIN MAX_THREAD_POOL_EXECUTORS 'ELASTIC_APM_*')
-# the Typeform image is not built here; this is what its last released source read
-typeform_env_keys=(DEBUG API_ROOT_PATH API_ENVIRONMENT API_VERSION AUTH_SERVER_URL MONGO_URI MONGO_DB TYPEFORM_SCOPE TYPEFORM_CLIENT_ID TYPEFORM_CLIENT_SECRET TYPEFORM_AUTH_URI TYPEFORM_TOKEN_URI TYPEFORM_REDIRECT_URI TYPEFORM_API_URI SENTRY_DSN 'ELASTIC_APM_*')
 
 # --- helpers ---------------------------------------------------------------------------
 
@@ -153,7 +158,7 @@ env_put() {
 }
 
 # Creates the env file of a service that is not one of the settings-store readers
-# (webapp, Temporal worker, Typeform), once, from the lines of .env.deployment it
+# (webapp, Temporal worker), once, from the lines of .env.deployment it
 # reads. It never gets anything else, so a bug in the public webapp or in the browser
 # the worker drives cannot expose the backend's secrets. An existing file is never
 # changed (only its mode is made private). An item ending in * is a name prefix.
@@ -366,30 +371,20 @@ umami_credentials() {
   return 0
 }
 
-# ./deploy.sh settings-prune [--apply] [--swap] [--typeform | --no-typeform]
+# ./deploy.sh settings-prune [--apply] [--swap]
 # Removes from .env and .env.deployment the settings the store already holds
 # with the same value (docs/admin-service.md). Without --apply it only reports.
+# --typeform and --no-typeform (from before the Typeform removal) are ignored.
 settings_prune() {
-  local args=() typeform=auto arg keep=() dir rc stamp
+  local args=() arg keep=() dir rc stamp
   for arg in "$@"; do
     case "$arg" in
-      --typeform) typeform=yes ;;
-      --no-typeform) typeform=no ;;
+      --typeform|--no-typeform) echo "$arg is ignored: the Typeform integration was removed in 4.1." >&2 ;;
       *) args+=("$arg") ;;
     esac
   done
-  if [ "$typeform" = auto ]; then
-    typeform=no
-    if [ -n "$("${docker_compose_cmd[@]}" "${compose_files[@]}" ps -aq integrations-typeform 2>/dev/null)" ]; then
-      typeform=yes
-    fi
-  fi
   local name
   for name in "${env_driven_keys[@]}"; do keep+=(--keep "$name"); done
-  if [ "$typeform" = yes ]; then
-    for name in "${typeform_keys[@]}"; do keep+=(--keep "$name"); done
-    echo "integrations-typeform is deployed: its three keys (${typeform_keys[*]}) are kept in the files."
-  fi
   dir=$(private_dir) || return 1
   cp -p .env "$dir/.env" 2>/dev/null
   cp -p .env.deployment "$dir/.env.deployment" 2>/dev/null
@@ -464,14 +459,13 @@ setup_token() {
   "${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps admin /api/backend/.venv/bin/python -m backend.admin setup-token "$@"
 }
 
-# The services `up` is asked to start for a preference (both, googleform, typeform or
-# none): the always-on list above plus the optional integrations. One name per line.
+# The services `up` is asked to start for a preference (googleform or none; both and
+# typeform mean the same without Typeform, removed in 4.1): the always-on list above
+# plus the optional integration. One name per line.
 services_for() {
   local list=("${services_to_start[@]}")
   case "$1" in
-    both) list+=("integrations-typeform" "integrations-googleform") ;;
-    googleform) list+=("integrations-googleform") ;;
-    typeform) list+=("integrations-typeform") ;;
+    both|googleform) list+=("integrations-googleform") ;;
   esac
   printf '%s\n' "${list[@]}"
 }
@@ -775,17 +769,10 @@ fi
 chmod 600 .env
 
 # The env files of the services that are not settings-store readers (webapp, Temporal
-# worker, Typeform): each holds only what that service reads, copied once from
-# .env.deployment, mode 600. The Typeform service also needs the Mongo connection
-# (it is not on the store); a new stack's MONGO_URI is in the store, not in the files,
-# so it is written here from the generated root password.
+# worker): each holds only what that service reads, copied once from .env.deployment,
+# mode 600. An .env.typeform left by an earlier release is no longer used.
 service_env_file .env.webapp "${webapp_env_keys[@]}" || exit 1
 service_env_file .env.worker "${worker_env_keys[@]}" || exit 1
-service_env_file .env.typeform "${typeform_env_keys[@]}" || exit 1
-if { [ "$user_preference" = typeform ] || [ "$user_preference" = both ]; } \
-   && [ -f .env.typeform ] && ! file_has .env.typeform MONGO_URI && file_has .env BC_MONGO_ROOT_PASSWORD; then
-  printf 'MONGO_URI=mongodb://root:%s@mongodb:27017\n' "$(dotenv_value .env BC_MONGO_ROOT_PASSWORD)" >> .env.typeform
-fi
 
 # The stack's keys (AUTH_JWT_SECRET, AUTH_AES_HEX_KEY, AUTH_INTERNAL_NOTIFY_KEY,
 # TEMPORAL_API_KEY, MASTER_ENCRYPTION_KEYSET) live in the settings store. Runs
@@ -918,16 +905,10 @@ fresh_install=false
 
 # Common docker function
 function dockerup() {
-  typeform_flag=false
   googleform_flag=false
 
   # Loop through the arguments in "$@"
   for arg in "$@"; do
-    # Check if the current argument is equal to "integrations-typeform"
-    if [ "$arg" == "integrations-typeform" ]; then
-      typeform_flag=true
-    fi
-
     # Check if the current argument is equal to "integrations-googleform"
     if [ "$arg" == "integrations-googleform" ]; then
       googleform_flag=true
@@ -945,7 +926,6 @@ function dockerup() {
   # one. A failed pull (offline, a local build) is a warning: the cached images are used.
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" pull -q backend auth webapp worker \
     $([ "$googleform_flag" = true ] && echo integrations-googleform) \
-    $([ "$typeform_flag" = true ] && echo integrations-typeform) \
     || echo "WARNING: could not pull all images; the images already on this host are used." >&2
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" up -d --wait app-postgres || exit 1
   # The admin service's schema and roles (idempotent), as the database superuser
@@ -974,7 +954,15 @@ function dockerup() {
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
 
-  GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
+  # Typeform leftovers from before 4.1 (no longer in the compose file): say so, never remove them.
+  # Only this compose project's container counts: another stack on the host is not ours to report.
+  if [ -n "$(docker ps -aq --filter label=com.docker.compose.project="$COMPOSE_PROJECT_NAME" --filter label=com.docker.compose.service=integrations-typeform 2>/dev/null)" ]; then
+    echo "WARNING: an integrations-typeform container from an earlier release still exists. Typeform was removed in 4.1; remove that container when you no longer need it." >&2
+  fi
+  if [ -f .env.typeform ]; then
+    echo "WARNING: .env.typeform from an earlier release still exists. It holds the Typeform client secret and a database URI and is no longer used: delete it (rm .env.typeform)." >&2
+  fi
+  GOOGLE_ENABLED="$googleform_flag" "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
     echo "docker compose could not start the stack (see above). Fix the cause and run ./deploy.sh again: it continues where it stopped." >&2
     exit 1
   }
@@ -1040,7 +1028,7 @@ function dockerdown() {
 if [ "$user_preference" == down ]; then
   dockerdown
 else
-  # both, googleform, typeform or nothing: the always-on services plus the optional
+  # googleform or nothing: the always-on services plus the optional
   # integrations (services_for, which `./deploy.sh print-services` shows)
   start_list=()
   while IFS= read -r service; do

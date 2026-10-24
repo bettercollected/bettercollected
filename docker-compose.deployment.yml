@@ -45,7 +45,6 @@ services:
       dockerfile: Dockerfile.deployment.mongo-seed
     environment:
       GOOGLE_ENABLED: ${GOOGLE_ENABLED}
-      TYPEFORM_ENABLED: ${TYPEFORM_ENABLED}
       MONGO_ROOT_PASSWORD: ${BC_MONGO_ROOT_PASSWORD:-root}
     depends_on:
       mongodb:
@@ -289,6 +288,10 @@ services:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
       SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
+      # the platform admins' email domains (the root .env's list, the admin
+      # portal's) can't be claimed as verified domains (docs/verified-domains.md);
+      # empty leaves a PLATFORM_ADMIN_EMAILS from .env.deployment in force
+      VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
     # .env.deployment is the operator's own file and is not tracked; deploy.sh
     # creates it from .env.deployment.example when it is missing. Optional
     # (Compose 2.24+) here and in the other three services that read it, so
@@ -569,27 +572,6 @@ services:
         required: false
     security_opt:
       - no-new-privileges:true
-
-  # Not on the settings store: this image is not built from this repository, so
-  # it keeps reading its three keys from the environment (the root .env). Keep
-  # them there (`deploy.sh settings-prune` passes --keep for them). Its other
-  # settings (Mongo connection, Typeform client values, APM) come from its own
-  # env file, .env.typeform, which deploy.sh creates once from the lines of
-  # .env.deployment this service reads: it gets nothing else (no Stripe, Google
-  # or mail secrets).
-  integrations-typeform:
-    image: bettercollected/integrations-typeform:nightly
-    # image: bettercollected/integrations-typeform:nightly
-    environment:
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
-      AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
-      MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
-    env_file:
-      - path: .env.typeform
-        required: false
-    security_opt:
-      - no-new-privileges:true
-    cap_drop: [ALL]
 
   integrations-googleform:
     image: bettercollected/integrations-google:nightly

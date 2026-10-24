@@ -46,6 +46,8 @@ class SubmissionUpdateNotice(BaseModel):
     form_title: str = Field(..., min_length=1, max_length=1000)
     workspace_title: Optional[str] = Field(None, max_length=1000)
     link: str = Field(..., max_length=2000)
+    # the mail's language (the form's); English unless Dutch
+    locale: Optional[str] = Field(None, max_length=35)
 
 
 @router(prefix="/notifications", tags=["Notifications"])
@@ -82,5 +84,6 @@ class NotificationsRouter(Routable):
             form_title=one_line(notice.form_title),
             workspace_title=one_line(notice.workspace_title),
             link=notice.link,
+            locale=notice.locale,
         )
         return {"message": "Notice queued."}

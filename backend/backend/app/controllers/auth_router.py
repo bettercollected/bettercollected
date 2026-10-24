@@ -6,8 +6,9 @@ from typing import List, Optional
 
 from classy_fastapi import Routable, get, post, delete
 from common.enums.form_provider import FormProvider
+from common.enums.login_provider import LoginProvider
 from common.models.user import User, UserLoginWithOTP
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import EmailStr
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -90,8 +91,15 @@ class AuthRoutes(Routable):
             503: {"description": "Requested Source not available."},
         },
     )
-    async def send_otp_for_creator(self, receiver_email: EmailStr):
-        return await self.auth_service.send_otp_for_creator(receiver_email)
+    async def send_otp_for_creator(
+        self,
+        receiver_email: EmailStr,
+        # the mail's language ("nl" or "en"); English unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
+    ):
+        return await self.auth_service.send_otp_for_creator(
+            receiver_email, locale=locale
+        )
 
     @post(
         "/otp/validate",
@@ -252,7 +260,7 @@ class AuthRoutes(Routable):
     async def _auth_callback(
         self,
         request: Request,
-        provider_name: str = None,
+        provider_name: FormProvider,
         state: str = None,
         code: str = None,
         user=Depends(get_full_user),
@@ -286,16 +294,12 @@ class AuthRoutes(Routable):
     )
     async def _basic_auth(
         self,
-        provider: FormProvider,
+        provider: LoginProvider,
         request: Request,
         creator: bool = False,
         prospective_pro_user: bool = False,
     ):
-        provider_name = ""
-        if provider == FormProvider.GOOGLE:
-            provider_name = "google"
-        else:
-            provider_name = "typeform"
+        provider_name = provider.value
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider_name,
@@ -313,16 +317,12 @@ class AuthRoutes(Routable):
     )
     async def _basic_auth_callback(
         self,
-        provider: FormProvider,
+        provider: LoginProvider,
         request: Request,
         code: Optional[str] = None,
         state: Optional[str] = None,
     ):
-        provider_name = ""
-        if provider == FormProvider.GOOGLE:
-            provider_name = "google"
-        else:
-            provider_name = "typeform"
+        provider_name = provider.value
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
         user, client_referer_url = await self.auth_service.basic_auth_callback(

@@ -134,6 +134,43 @@ def test_platform_admin_email_domains_are_reserved(monkeypatch):
     assert config.reserved_domains == {"operator.example", "sireto.io", "acme-ops.com"}
 
 
+def test_an_empty_prefixed_variable_does_not_hide_the_platform_admins(monkeypatch):
+    """The compose file passes the root .env's list as
+    VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS, empty when it has none; the
+    service's own PLATFORM_ADMIN_EMAILS then still applies."""
+    from backend.config.verified_domain_settings import VerifiedDomainSettings
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS", "")
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "ops@operator.example")
+    assert VerifiedDomainSettings().platform_admin_domains == {"operator.example"}
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS", "a@root-env.example")
+    assert VerifiedDomainSettings().platform_admin_domains == {"root-env.example"}
+
+
+def test_startup_warnings_only_with_sso(monkeypatch):
+    from backend.config.verified_domain_settings import VerifiedDomainSettings
+
+    for name in (
+        "VERIFIED_DOMAINS_NAMESERVERS",
+        "VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS",
+        "PLATFORM_ADMIN_EMAILS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    config = VerifiedDomainSettings()
+    assert config.warnings(sso_enabled=False) == []
+    warned = config.warnings(sso_enabled=True)
+    assert len(warned) == 2
+    assert "VERIFIED_DOMAINS_NAMESERVERS" in warned[0]
+    assert "PLATFORM_ADMIN_EMAILS" in warned[1]
+
+    monkeypatch.setenv("VERIFIED_DOMAINS_NAMESERVERS", "1.1.1.1, 9.9.9.9")
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "ops@operator.example")
+    config = VerifiedDomainSettings()
+    assert config.nameservers == ["1.1.1.1", "9.9.9.9"]
+    assert config.warnings(sso_enabled=True) == []
+
+
 def test_canonical_domain_does_not_apply_claim_policy():
     assert canonical_domain("Gmail.com") == "gmail.com"
     assert registrable_domain("eng.acme.co.uk") == "acme.co.uk"

@@ -4,7 +4,7 @@ import cn from 'classnames';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import Divider from '@Components/common/divider';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -19,6 +19,7 @@ import { Logout } from '@app/components/icons/logout-icon';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
+import RespondentDocumentLanguage from '@app/components/form/respondent-document-language';
 import SiretoFooter from '@app/components/layout/sireto-footer';
 import PoweredBy from '@app/components/ui/powered-by';
 import { profileMenu } from '@app/constants/locales/profile-menu';
@@ -104,12 +105,14 @@ export default function ResponderPortalLayoutClient({
         // and a stable scrollbar gutter stops the layout flicker that used to
         // happen the moment content grew past a screenful.
         <div className={`max-w-screen bg-[#F5F7FB]! flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? 'pb-20!' : ''}`}>
+            {/* The portal is in the respondent's language (<html lang>), as the form pages are. */}
+            <RespondentDocumentLanguage />
             <div className="max-w-screen w-full md:max-h-full md:w-[320px] md:max-w-[320px] md:overflow-y-auto">
-                <WorkspaceDetailsCard workspace={workspace} />
+                <WorkspaceDetailsCard workspace={workspace} audience="respondent" />
                 {!auth.id && !auth.isLoading && (
-                    <div className="mt-6 flex flex-col rounded bg-white p-6">
-                        <div className="h4-new">See your submissions</div>
-                        <div className="p2-new text-black-600 mt-2">Verify your email to see every response you&apos;ve submitted to this workspace — and request deletion of any of them.</div>
+                    <div className="mt-6 flex flex-col rounded bg-white p-6" lang={language}>
+                        <h2 className="h4-new">{tRespondent('PORTAL.SIGN_IN_TITLE')}</h2>
+                        <p className="p2-new text-black-600 mt-2">{tRespondent('PORTAL.SIGN_IN_TEXT')}</p>
                         <Button
                             className="mt-6"
                             size="sm"
@@ -122,9 +125,9 @@ export default function ResponderPortalLayoutClient({
                                 router.push(`/login?${params.toString()}`);
                             }}
                         >
-                            Verify email
+                            {tRespondent('PORTAL.VERIFY_EMAIL')}
                         </Button>
-                        <div className="p4-new text-black-600 mt-3">Submitted anonymously? Use your submission number instead.</div>
+                        <p className="p4-new text-black-600 mt-3">{tRespondent('PORTAL.ANONYMOUS_HINT')}</p>
                     </div>
                 )}
                 {auth.id && (
@@ -156,10 +159,11 @@ export default function ResponderPortalLayoutClient({
                                             </>
                                         )}
                                         <Divider className="text-black-200" />
-                                        <div className="text-black-600 hover:bg-brand-100 m-2 flex cursor-pointer gap-2 rounded p-2 active:bg-blue-100" onClick={handleLogout}>
-                                            <Logout width={24} height={24} />
+                                        {/* A real button, so signing out works from the keyboard too. */}
+                                        <button type="button" className="text-black-600 hover:bg-brand-100 m-2 flex w-[calc(100%-1rem)] cursor-pointer gap-2 rounded p-2 text-left active:bg-blue-100" onClick={handleLogout}>
+                                            <Logout width={24} height={24} aria-hidden="true" />
                                             <span>{t(profileMenu.logout)}</span>
-                                        </div>
+                                        </button>
                                     </Disclosure.Panel>
                                 </>
                             )}
@@ -175,10 +179,10 @@ export default function ResponderPortalLayoutClient({
                     competing with the workspace's own identity. */}
                 {!hasCustomDomain && (
                     <>
-                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 mt-6 hidden w-full justify-center text-xs md:flex">
-                            Powered by&nbsp;<span className="font-semibold">bettercollected</span>
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" lang={language} className="text-black-600 hover:text-brand-600 mt-6 hidden w-full justify-center gap-1 text-xs md:flex">
+                            <Trans t={tRespondent} i18nKey="PORTAL.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
                         </a>
-                        <SiretoFooter className="mt-2 hidden md:block" />
+                        <SiretoFooter className="mt-2 hidden md:block" language={language} />
                     </>
                 )}
             </div>
@@ -213,9 +217,9 @@ export default function ResponderPortalLayoutClient({
                     <div className="min-w-0 flex-1 md:min-h-0 md:overflow-y-auto md:scrollbar-gutter-stable">{children}</div>
                 </div>
             </div>
-            {!hasCustomDomain && <SiretoFooter className="mt-6 md:hidden" />}
+            {!hasCustomDomain && <SiretoFooter className="mt-6 md:hidden" language={language} />}
             <div className="lg:hidden">
-                <PoweredBy />
+                <PoweredBy language={language} />
             </div>
         </div>
     );

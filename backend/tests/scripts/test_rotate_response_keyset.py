@@ -504,15 +504,14 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
     assert "records_reencrypted" not in again["targets"]["responses"][primary]
     assert await stored_values(stores) == after
 
-    # drop-old: the new key only, with every store's record count and the
-    # Typeform caveat in the report
+    # drop-old: the new key only, with every store's record count in the report
     code, dropped = await cli(
         capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
     )
     assert code == 0, dropped
     assert dropped["dropped_key_ids"] == [OLD_KEY]
     assert dropped["records"] == drop_old_records(stores, responses=4, google=1)
-    assert "Typeform" in dropped["note"]
+    assert "note" not in dropped  # no Typeform caveat since its removal
     assert stat.S_IMODE(os.stat(final_file).st_mode) == 0o600
     final_value = final_file.read_text().strip()
     final = parse_keyset(final_value)

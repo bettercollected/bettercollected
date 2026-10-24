@@ -11,7 +11,9 @@ from auth.app.router import router
 from auth.app.services.auth_service import AuthService
 
 from classy_fastapi import Routable, get
+from fastapi import Query
 
+from common.enums.login_provider import LoginProvider
 from common.models.user import (
     User,
 )
@@ -49,6 +51,9 @@ class AuthRoutes(Routable):
         # over-long or foreign image is dropped; neither may fail the send.
         workspace_title: Optional[str] = None,
         workspace_profile_image: Optional[str] = None,
+        # the mail's language ("nl", "en", a tag like "nl-NL"); English
+        # unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         background_tasks.add_task(
             self.auth_service.send_otp_to_mail,
@@ -56,6 +61,7 @@ class AuthRoutes(Routable):
             workspace_title=workspace_title,
             workspace_profile_image=workspace_profile_image,
             creator=creator,
+            locale=locale,
         )
         return {"message": "Email set to be sent"}
 
@@ -67,22 +73,22 @@ class AuthRoutes(Routable):
     @get("/{provider_name}/basic")
     async def _basic_auth(
         self,
-        provider_name: str,
+        provider_name: LoginProvider,
         client_referer_url,
         creator: bool = False,
         prospective_pro_user: bool = False,
     ):
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider_name, client_referer_url, creator, prospective_pro_user
+            provider_name.value, client_referer_url, creator, prospective_pro_user
         )
         return basic_auth_url
 
     @get("/{provider}/basic/callback")
     async def _basic_auth_callback(
-        self, provider: str, code: str, state: str, request: Request
+        self, provider: LoginProvider, code: str, state: str, request: Request
     ):
         basic_auth_url = await self.auth_service.basic_auth_callback(
-            provider, code, state, request=request
+            provider.value, code, state, request=request
         )
         return basic_auth_url
 

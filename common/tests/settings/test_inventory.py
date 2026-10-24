@@ -18,6 +18,7 @@ from common.settings.inventory import (
     NOT_A_SETTING,
     NOT_A_SETTING_PREFIXES,
     READERS,
+    RETIRED,
     TODO_LIVE,
     all_specs,
 )
@@ -219,6 +220,7 @@ def _classified(name: str) -> bool:
         name in {s.key for s in all_specs()}
         or name in ALIASES
         or name in NOT_A_SETTING
+        or name in RETIRED
         or name.startswith(NOT_A_SETTING_PREFIXES)
         or is_env_only(name)
     )
@@ -253,6 +255,17 @@ def test_every_note_in_not_a_setting_is_still_listed_somewhere():
         n for n in NOT_A_SETTING if n not in seen and n not in {"NODE_ENV", "BC_RENDER_MAX_SIDE"}
     )
     assert not stale, f"NOT_A_SETTING names nothing lists any more: {stale}"
+
+
+def test_retired_keys_are_not_settings_and_are_ignored_by_the_full_registry():
+    keys = {s.key for s in all_specs()}
+    assert RETIRED and not set(RETIRED) & (keys | set(ALIASES) | set(NOT_A_SETTING))
+    assert default_registry().retired == frozenset(RETIRED)
+    # Typeform (removed in 4.1): every name it used is retired, none is live
+    assert {"TYPEFORM_CLIENT_ID", "TYPEFORM_CLIENT_SECRET", "TYPEFORM_ENABLED"} <= set(RETIRED)
+    assert not any(k.startswith("TYPEFORM_") for k in keys)
+    with pytest.raises(RegistryError):
+        Registry([next(iter(INVENTORY))], retired=(next(iter(INVENTORY)).key,))
 
 
 @monorepo

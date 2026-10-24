@@ -9,12 +9,12 @@ only when it vouches that the user owns that email:
   come through here.
 - **Google** proves it when userinfo reports ``verified_email`` (OpenID
   Connect: ``email_verified``) true.
-- **Typeform** returns an email from ``/me`` with no verification guarantee, so
-  its sign-ins are always refused, for existing *and* new accounts. A new
-  account under an unproven address would squat it: the real owner who later
-  signs in with OTP or Google lands in an account the squatter set up, whose
-  session may still be live, and the squatter can publish forms under that
-  person's address meanwhile.
+- A provider that returns an email with no verification guarantee (as
+  Typeform's ``/me`` did, before its sign-in was removed in 4.1) is refused for
+  existing *and* new accounts. A new account under an unproven address would
+  squat it: the real owner who later signs in with OTP or Google lands in an
+  account the squatter set up, whose session may still be live, and the
+  squatter can publish forms under that person's address meanwhile.
 
 An unproven sign-in is refused the same way whether or not an account exists,
 so the refusal tells nobody which emails have accounts. New providers (SSO)

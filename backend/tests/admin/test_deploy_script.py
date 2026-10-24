@@ -139,6 +139,16 @@ DOCKER_STUB = textwrap.dedent(
     if argv[:1] == ["inspect"]:
         print(os.environ.get("STUB_ADMIN_HEALTH", "healthy"))
         sys.exit(0)
+    if argv[:1] == ["ps"]:
+        # STUB_TYPEFORM_PROJECT: the project an old integrations-typeform container belongs to
+        owner = os.environ.get("STUB_TYPEFORM_PROJECT", "")
+        filters = [a for a in argv if a.startswith("label=")]
+        if owner and "label=com.docker.compose.service=integrations-typeform" in filters and all(
+            f in ("label=com.docker.compose.service=integrations-typeform", "label=com.docker.compose.project=" + owner)
+            for f in filters
+        ):
+            print("0123456789ab")
+        sys.exit(0)
     sys.exit(0)
     '''
 )
@@ -353,12 +363,13 @@ def test_prune_keeps_what_something_outside_the_store_reads(site):
     prune = calls[_index(calls, "settings-prune")]
     for name in ("SSO_ENABLED", "MAIL_PASSWORD", "SSO_POLIS_API_KEY"):
         assert f"--keep {name}" in prune
-    assert "--keep AUTH_JWT_SECRET" not in prune  # no Typeform deployed
+    assert "--keep AUTH_JWT_SECRET" not in prune
+    # the Typeform flags (Typeform was removed in 4.1) are accepted and ignored
     (state / "calls.log").unlink()
     done, calls = _run(site, "settings-prune", "--typeform")
     prune = calls[_index(calls, "settings-prune")]
-    for name in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"):
-        assert f"--keep {name}" in prune
+    assert "--keep AUTH_JWT_SECRET" not in prune and "--typeform" not in prune
+    assert "ignored" in done.stderr
 
 
 def _upgrade_env(work):
@@ -438,20 +449,24 @@ def test_every_always_on_service_is_started_for_every_preference(site):
     preference (a docker-compose `up --dry-run` version of this runs in
     test_deployment_config.py)."""
     required = {"admin", "jobs-worker", "document-sandbox", "task-runner", "backend", "auth", "worker", "webapp"}
-    for preference, extra in (("", set()), ("both", {"integrations-typeform", "integrations-googleform"}),
-                              ("typeform", {"integrations-typeform"}), ("googleform", {"integrations-googleform"})):
+    # both and typeform still work; Typeform itself was removed in 4.1
+    for preference, extra in (("", set()), ("both", {"integrations-googleform"}),
+                              ("typeform", set()), ("googleform", {"integrations-googleform"})):
         done, calls = _run(site, "print-services", preference)
         assert done.returncode == 0, done.stderr
         listed = set(done.stdout.split())
         assert required <= listed, (preference, required - listed)
         assert extra <= listed
-        assert ("integrations-typeform" in listed) == ("integrations-typeform" in extra)
-    # and the real start passes exactly that list to `up`
+        assert "integrations-typeform" not in listed
+        assert ("integrations-googleform" in listed) == ("integrations-googleform" in extra)
+    # and the real start passes exactly that list to `up`, with a warning for both
     done, calls = _run(site, "both")
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert "Typeform integration was removed" in done.stderr
     up = calls[_index(calls, "up --build")]
-    for name in required | {"integrations-typeform", "integrations-googleform"}:
+    for name in required | {"integrations-googleform"}:
         assert f" {name}" in up, name
+    assert "integrations-typeform" not in up and "TYPEFORM" not in up
 
 
 @pytest.mark.parametrize("value", ['true', '"true"', "'True'", "1", "yes", "on"])
@@ -587,12 +602,12 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
         "SERVER_URL=http://backend:8000/api/v1\nCOOKIE_DOMAIN=example.test\nNAMESPACE=default\n"
         "TYPEFORM_CLIENT_ID=tid\nTYPEFORM_CLIENT_SECRET=tsecret\nUMAMI_PASSWORD=\n"
     )
-    done, _ = _run(site, "typeform")
+    done, _ = _run(site, "typeform")  # a pre-4.1 preference: starts without Typeform
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     webapp = _tail(work, ".env.webapp")
     worker = _tail(work, ".env.worker")
-    typeform = _tail(work, ".env.typeform")
-    for text, name in ((webapp, "webapp"), (worker, "worker"), (typeform, "typeform")):
+    assert not (work / ".env.typeform").exists()  # Typeform was removed in 4.1
+    for text, name in ((webapp, "webapp"), (worker, "worker")):
         for secret in ("sk_live_dummy", "gsecret", "mailpw", "whsec"):
             assert secret not in text, (name, secret)
         assert "MASTER_ENCRYPTION_KEYSET" not in text and "AUTH_JWT_SECRET" not in text
@@ -606,9 +621,6 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
     assert not any(line.startswith(("SERVER_URL=", "COOKIE_DOMAIN=")) for line in webapp.splitlines())
     assert "COOKIE_DOMAIN=example.test" in worker and "SERVER_URL=http://backend:8000/api/v1" in worker
     assert "NAMESPACE=default" in worker and "UNSPLASH" not in worker and "TYPEFORM" not in worker
-    assert "TYPEFORM_CLIENT_SECRET=tsecret" in typeform and "UNSPLASH" not in typeform
-    # a new stack's Mongo connection is written for the Typeform service (it needs it)
-    assert _dotenv(work)["BC_MONGO_ROOT_PASSWORD"] in typeform
     # never overwritten by a later run
     (work / ".env.webapp").write_text("MINE=1\n")
     (work / ".env.worker").chmod(0o644)
@@ -782,3 +794,21 @@ def test_a_host_with_only_the_compose_plugin_deploys(site, tmp_path):
     assert "command not found" not in done.stderr
     assert any("bootstrap-keys" in c for c in calls)
     assert any("up --build" in c for c in calls)
+
+
+def test_typeform_leftovers_are_reported_never_removed(site):
+    # a pre-4.1 .env.typeform holds the Typeform secret and a database URI: say so, keep the file
+    work, _, _ = site
+    (work / ".env.typeform").write_text("TYPEFORM_CLIENT_SECRET=x\n")
+    done, _ = _run(site, extra={"STUB_TYPEFORM_PROJECT": "stack"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert ".env.typeform from an earlier release still exists" in done.stderr
+    assert "integrations-typeform container from an earlier release" in done.stderr
+    assert (work / ".env.typeform").exists()
+
+
+def test_another_projects_typeform_container_is_not_reported(site):
+    done, _ = _run(site, extra={"STUB_TYPEFORM_PROJECT": "other-stack"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert "integrations-typeform container" not in done.stderr
+    assert ".env.typeform" not in done.stderr

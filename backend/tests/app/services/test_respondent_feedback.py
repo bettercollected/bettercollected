@@ -571,3 +571,35 @@ async def test_staff_member_who_is_also_respondent_sees_staff_view(
         cookies=_cookies(invited_user),
     )
     assert result.json()["feedback"]["entries"][0]["createdBy"] == testUser.id
+
+
+async def test_the_notice_speaks_the_forms_language(
+    client, workspace, form, monkeypatch
+):
+    from types import SimpleNamespace
+
+    await _enable(client, workspace, form, requireVerifiedIdentity=True)
+    identified = await _submit(workspace, form)
+    service = container.respondent_feedback_service()
+    real = service._form_repo
+
+    class DutchForm:
+        async def get_form_document_by_id(self, form_id):
+            document = await real.get_form_document_by_id(form_id)
+            return SimpleNamespace(
+                title=document.title, settings=SimpleNamespace(language="nl")
+            )
+
+        def __getattr__(self, name):
+            return getattr(real, name)
+
+    monkeypatch.setattr(service, "_form_repo", DutchForm())
+    mailer, patched = _mailer()
+    with patched:
+        result = await client.post(
+            _feedback_url(workspace, form.form_id, identified.response_id),
+            json={"status": "Selected"},
+            cookies=_cookies(testUser),
+        )
+    assert result.status_code == 200, result.text
+    assert mailer.calls[0]["json"]["locale"] == "nl"

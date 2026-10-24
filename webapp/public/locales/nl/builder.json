@@ -197,7 +197,7 @@
     "WIDE_TITLES": "Brede titels",
     "WIDE_TITLES_HINT": "Zet titels een kwart breder, in de brede snit van Archivo.",
     "RADIUS": "Hoeken",
-    "RADIUS_HINT": "Van velden, antwoordopties en knoppen.",
+    "RADIUS_HINT": "Van velden, antwoordopties en knoppen. Elke keuze behalve Standaard zet ook letters bij de antwoordopties (A, B, C), zodat ze met een toets te kiezen zijn.",
     "RADIUS_DEFAULT": "Standaard",
     "RADIUS_SHARP": "Scherp",
     "RADIUS_SOFT": "Zacht",

@@ -1,17 +1,20 @@
 """A login provider signs in to (or creates) the account for an email only when
 it vouches the user owns that email (#758): Google with a verified email, never
-Typeform, never the /callback JWT exchange for an unknown email. Runs against
+the /callback JWT exchange for an unknown email. Typeform sign-in (always
+refused) is gone: its routes answer like any unknown provider. Runs against
 whichever store the routed repository serves (Mongo, dual, Postgres)."""
 
-import json
 import uuid
 from unittest.mock import AsyncMock
 
+import pytest
+
 from auth.app.container import container
-from auth.app.services import google_auth_provider, typeform_auth_provider
+from auth.app.exceptions import HTTPException
+from auth.app.services import google_auth_provider
+from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.google_auth_provider import GoogleAuthProvider
 from auth.app.services.provider_sign_in import UNVERIFIED_EMAIL, may_sign_in
-from auth.app.services.typeform_auth_provider import TypeformAuthProvider
 from common.models.user import User, UserInfo
 from starlette.requests import Request
 from tests.integration.app.test_google_auth_provider import FakeFlow
@@ -51,32 +54,6 @@ def _google_callback(app_runner, monkeypatch, userinfo):
     )
     return app_runner.portal.call(
         lambda: provider.basic_auth_callback("c", state, request=request)
-    )
-
-
-def _typeform_callback(app_runner, monkeypatch, email):
-    class TokenReply:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"access_token": "t"}
-
-    monkeypatch.setattr(
-        typeform_auth_provider.requests, "post", lambda *a, **k: TokenReply()
-    )
-    monkeypatch.setattr(
-        TypeformAuthProvider,
-        "perform_typeform_request",
-        staticmethod(
-            lambda token, path, params=None: {"email": email, "alias": "Some One"}
-        ),
-    )
-    state = typeform_auth_provider.crypto.encrypt(
-        json.dumps({"creator": True, "client_referer_url": "https://x.test/login"})
-    )
-    return app_runner.portal.call(
-        lambda: TypeformAuthProvider().basic_auth_callback("c", state)
     )
 
 
@@ -138,19 +115,13 @@ def test_google_unverified_creates_no_account(app_runner, monkeypatch):
     assert _lookup(app_runner, email) is None
 
 
-def test_typeform_is_refused_for_an_existing_account(app_runner, monkeypatch):
-    email = _email()
-    _existing(app_runner, email)
-    result = _typeform_callback(app_runner, monkeypatch, email)
-    _assert_refused(result, "typeform")
-    assert _lookup(app_runner, email).first_name is None
-
-
-def test_typeform_creates_no_account(app_runner, monkeypatch):
-    email = _email()
-    result = _typeform_callback(app_runner, monkeypatch, email)
-    _assert_refused(result, "typeform")
-    assert _lookup(app_runner, email) is None
+def test_typeform_is_no_login_provider_any_more(app_runner):
+    with pytest.raises(HTTPException) as refused:
+        AuthProviderFactory().get_auth_provider("typeform")
+    assert refused.value.status_code == 501
+    for path in ("auth/typeform/basic", "auth/typeform/basic/callback"):
+        params = {"client_referer_url": "https://x.test/login", "code": "c", "state": "s"}
+        assert app_runner.get(path, params=params).status_code == 422, path
 
 
 def test_jwt_exchange_reissues_for_an_existing_account(app_runner):

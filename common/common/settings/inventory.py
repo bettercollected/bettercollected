@@ -6,7 +6,8 @@ owner (section and readers), secrecy, reload class and guard tier.
 environment (tier T5: bootstrap, wiring, build arguments, per-service
 identity). ``ALIASES`` maps alternative environment names to their key and
 ``NOT_A_SETTING`` lists names that appear in env files or compose files but
-are not read as settings by any service (and why).
+are not read as settings by any service (and why). ``RETIRED`` lists former
+settings whose stored rows and environment values are ignored.
 
 Reading the tables:
 
@@ -53,6 +54,7 @@ __all__ = [
     "NOT_A_SETTING",
     "NOT_A_SETTING_PREFIXES",
     "READERS",
+    "RETIRED",
     "TODO_LIVE",
     "all_specs",
     "full_registry",
@@ -465,17 +467,10 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
     _text("GOOGLE_API_VERSION", "google", (GOOGLE,), "Google API version.", "v2", max_length=16),
     _url("GOOGLE_REVOKE_CREDENTIALS_URL", "google", (GOOGLE,), "Google token revocation endpoint.",
          "https://oauth2.googleapis.com/revoke"),
-    _text("TYPEFORM_CLIENT_ID", "typeform", (AUTH,), "Typeform OAuth client id.", tier=T3, max_length=300),
-    _secret("TYPEFORM_CLIENT_SECRET", "typeform", (AUTH,), "Typeform OAuth client secret.", tier=T3),
-    _url("TYPEFORM_AUTH_URI", "typeform", (AUTH,), "Typeform authorization endpoint template.",
-         "https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}"
-         "&redirect_uri={redirect_uri}&scope={scope}"),
-    _url("TYPEFORM_TOKEN_URI", "typeform", (AUTH,), "Typeform token endpoint.",
-         "https://api.typeform.com/oauth/token"),
-    _url("TYPEFORM_API_URI", "typeform", (AUTH,), "Typeform API base address.", "https://api.typeform.com"),
-    _url("TYPEFORM_REDIRECT_URI", "typeform", (AUTH,), "Typeform OAuth redirect address."),
-    _text("TYPEFORM_SCOPE", "typeform", (AUTH,), "Typeform scopes.", "accounts:read", tier=T3,
-          max_length=500),
+    _spec("GOOGLE_FORMS_IMPORT", "google", (BACKEND, GOOGLE),
+          "Google Forms import: on; readonly (imported data stays, no import, sync or call to "
+          "Google: 403); off (410, the service is never called).",
+          ENUM, tier=T2, default="on", choices=("on", "readonly", "off")),
     _url("AUTH_CALLBACK_URI", "google", (BACKEND,),
          "OAuth callback address (the code default is the auth address plus /auth/callback)."),
 )
@@ -755,15 +750,12 @@ NOT_A_SETTING: Dict[str, str] = {
     "OAUTHLIB_RELAX_TOKEN_SCOPE": "read by the oauthlib library",
     "BC_RENDER_MAX_SIDE": "set by the import runner for its own sandbox child",
     "STRIPE_REDIRECT_URL": "compose interpolation expanded into the STRIPE_*_URL keys",
-    "TYPEFORM_BASIC_REDIRECT_URI": "listed in the deployment env file; no service reads it",
-    "TYPEFORM_BASIC_SCOPE": "listed in the deployment env file; no service reads it",
     "ENABLE_COMMAND_FORM_BUILDERS": "listed in the deployment env file; no service reads it",
     "ENABLE_FORM_BUILDER": "listed in the deployment env file; no service reads it",
     "SCHEDULAR_INTERVAL_MINUTES": "listed in an env example; no service reads it",
     "TEMPLATE_PREDEFINED_WORKSPACE_ID": "listed in an env example; no service reads it",
     "VIRTUAL_HOST_1": "read by the reverse proxy image, not by a service",
     "GOOGLE_ENABLED": "compose profile switch",
-    "TYPEFORM_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
     "POLIS_CLIENT_SECRET_VERIFIER": "read by the identity bridge container",
@@ -773,6 +765,25 @@ NOT_A_SETTING: Dict[str, str] = {
     "SANDBOX_UID": "compose build argument of the local sandbox",
     "SANDBOX_GID": "compose build argument of the local sandbox",
     "UMAMI_APP_SECRET": "read by the analytics container",
+}
+
+
+# Keys that were settings once. A stored row of one is ignored (never applied,
+# never reported as refused) and an environment value of one is read by no
+# service, so a stack that still holds them keeps working; the rows stay in the
+# store until a later release prunes them.
+_TYPEFORM_GONE = "Typeform integration, removed in 4.1; ignored"
+RETIRED: Dict[str, str] = {
+    "TYPEFORM_API_URI": _TYPEFORM_GONE,
+    "TYPEFORM_AUTH_URI": _TYPEFORM_GONE,
+    "TYPEFORM_BASIC_REDIRECT_URI": _TYPEFORM_GONE,
+    "TYPEFORM_BASIC_SCOPE": _TYPEFORM_GONE,
+    "TYPEFORM_CLIENT_ID": _TYPEFORM_GONE,
+    "TYPEFORM_CLIENT_SECRET": _TYPEFORM_GONE,
+    "TYPEFORM_ENABLED": _TYPEFORM_GONE,
+    "TYPEFORM_REDIRECT_URI": _TYPEFORM_GONE,
+    "TYPEFORM_SCOPE": _TYPEFORM_GONE,
+    "TYPEFORM_TOKEN_URI": _TYPEFORM_GONE,
 }
 
 
@@ -789,7 +800,9 @@ def full_registry(
     format_checks: Optional[Mapping[str, FormatCheck]] = None,
 ) -> Registry:
     """A registry of every storable key (``ENV_ONLY_INVENTORY`` is not stored)."""
-    return Registry(INVENTORY, secret_problems=secret_problems, format_checks=format_checks)
+    return Registry(
+        INVENTORY, secret_problems=secret_problems, format_checks=format_checks, retired=RETIRED
+    )
 
 
 # ---------------------------------------------------------------- markdown
@@ -859,6 +872,8 @@ def markdown() -> str:
     lines += ["", "## Not settings", "", "| Name | Why |", "|---|---|"]
     lines += [f"| `{n}` | {_cell(w)} |" for n, w in sorted(NOT_A_SETTING.items())]
     lines += [f"| `{p}*` | database role passwords of the deploy scripts |" for p in NOT_A_SETTING_PREFIXES]
+    lines += ["", "## Retired", "", "| Name | Why |", "|---|---|"]
+    lines += [f"| `{n}` | {_cell(w)} |" for n, w in sorted(RETIRED.items())]
     lines.append("")
     return "\n".join(lines)
 

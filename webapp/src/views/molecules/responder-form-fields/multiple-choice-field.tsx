@@ -52,7 +52,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                             labelProps={control}
                             theme={theme}
                             value={getSelectedValue() ?? null}
-                            onChange={(value, { viaArrowKeys }) => handleClick(value, !viaArrowKeys)}
+                            onChange={(value, { viaKeys }) => handleClick(value, !viaKeys)}
                             className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
                             options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}`, lang: choice.value ? contentLang : undefined }))}
                         />

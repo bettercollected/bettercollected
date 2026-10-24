@@ -27,7 +27,11 @@ from starlette.requests import Request
 from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
+from backend.app.models.dtos.action_dto import (
+    ActionUpdateType,
+    AddActionToFormDto,
+    UpdateActionInFormDto,
+)
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
@@ -86,6 +90,7 @@ from backend.app.services.publish_checks import (
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
+from backend.app.services.google_forms_mode import refuse_google_forms_processing
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.repeating_groups import (
@@ -323,6 +328,8 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
+        # a new import and a re-sync alike: only while GOOGLE_FORMS_IMPORT=on
+        refuse_google_forms_processing(provider)
 
         await self.workspace_form_repository.check_is_form_imported_in_other_workspace(
             workspace_id=workspace_id, form_id=form_import.form.get("formId")
@@ -1424,6 +1431,11 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
+        # an action runs on every submission and may send the answers out of
+        # the workspace: that is an export (docs/enterprise-access-model.md)
+        await self.authorization_service.authorize(
+            user, Permission.RESPONSE_EXPORT, workspace_id
+        )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
         )
@@ -1472,6 +1484,11 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
+        if update_action_dto.update_type == ActionUpdateType.ENABLE:
+            # turning an action on starts sending answers again: an export
+            await self.authorization_service.authorize(
+                user, Permission.RESPONSE_EXPORT, workspace_id
+            )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
         )
