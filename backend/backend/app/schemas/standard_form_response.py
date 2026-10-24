@@ -29,6 +29,19 @@ class FormResponseDocument(MongoDocument, StandardFormResponse):
 class DeletionRequestStatus(str, enum.Enum):
     PENDING = "pending"
     SUCCESS = "success"
+    # closed by staff without deleting, for one of DeclineReason
+    DECLINED = "declined"
+
+
+class DeclineReason(str, enum.Enum):
+    """Why staff declined a deletion request (GDPR Art. 17(3), Art. 12(6)).
+    A fixed list on purpose: no free text, so no personal data."""
+
+    LEGAL_OBLIGATION = "legal_obligation"
+    LEGAL_CLAIMS = "legal_claims"
+    PUBLIC_INTEREST = "public_interest"
+    IDENTITY_NOT_VERIFIED = "identity_not_verified"
+    OTHER = "other"
 
 
 DELETION_REQUEST_INDEX = "uq_deletion_requests_form_response_provider_workspace"
@@ -77,6 +90,12 @@ class FormResponseDeletionRequest(MongoDocument):
     # the workspace of the response it covers (#768)
     workspace_id: Optional[PydanticObjectId] = None
     deleted_at: Optional[str] = None
+    # Who closed the request by hand and when (the staff path, which needs no
+    # provider): the audit record of the decision. None when it was closed by
+    # deleting the response or by an import that no longer has it.
+    closed_by: Optional[str] = None
+    closed_at: Optional[dt.datetime] = None
+    decline_reason: Optional[DeclineReason] = None
 
     class Settings:
         # No indexes here: DELETION_REQUEST_INDEX_MODEL is built (and the

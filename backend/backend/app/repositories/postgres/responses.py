@@ -35,6 +35,7 @@ from backend.app.schemas.responder_group import (
     ResponderGroupMemberDocument,
 )
 from backend.app.schemas.standard_form_response import (
+    DeclineReason,
     DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
@@ -605,6 +606,19 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             ),
             row=ResponseDeletionRequestRow,
         )
+
+    async def close_deletion_request(
+        self,
+        request: FormResponseDeletionRequest,
+        status: DeletionRequestStatus,
+        closed_by: str,
+        decline_reason: Optional[DeclineReason] = None,
+    ) -> FormResponseDeletionRequest:
+        request.status = status
+        request.closed_by = closed_by
+        request.closed_at = utcnow()
+        request.decline_reason = decline_reason
+        return await self.save_document(request, row=ResponseDeletionRequestRow)
 
     async def delete_by_form_id_except(
         self, scope: ResponseScope, keep_response_ids: List[str]
