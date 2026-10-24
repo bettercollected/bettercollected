@@ -41,6 +41,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Form builder: "Add Option" puts the cursor in the new option. The Flow view no longer opens by itself
+  when a form gets its first logic while being edited (forms that already branch still open in it).
+  Renaming a form titles its welcome page in the same undo step, and autosave no longer rewrites the
+  welcome page's title on every save; the outline's Welcome row shows the form's title.
 - Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
   many, the question that names the node). "Start with AI" opens on phones and small tablets too
   (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.

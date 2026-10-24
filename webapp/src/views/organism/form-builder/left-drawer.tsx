@@ -604,7 +604,8 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                 {!filtering && (
                     <StaticRow
                         label="Welcome"
-                        secondary={formState.welcomePage?.title || formState.title || undefined}
+                        // The welcome page shows the form's title.
+                        secondary={formState.title || undefined}
                         selected={isActiveSlide('welcome-page')}
                         onSelect={() => {
                             setActiveSlideComponent({ id: 'welcome-page', index: -10 });
