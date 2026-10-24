@@ -403,6 +403,11 @@ BetterCollected-hosted Umami; that's gone, so no self-hosted deployment phones h
 - Deployment: `deploy.sh` seeds the `UMAMI_URL` setting with `http://umami:3000` (internal docker network; it is
   not pinned in compose any more) and replaces Umami's built-in `admin`/`umami` login with a generated password
   stored as the `UMAMI_PASSWORD` setting (`deploy/umami-rotate.js`). `UMAMI_WEBSITE_ID` stays optional.
+- **No personal data in events.** Event properties must never carry a user's email or other personal data.
+  The web app used to send the signed-in user's email as an event property (`email`); events stored
+  before that change still hold it. `scripts/umami/email-data-count.sql` (read-only) and
+  `email-data-purge.sql` (a dry run unless `-v apply=1`) count and delete those event-data rows in the
+  Umami database. They print counts only, and the usage is in each file's header.
 
 ## Public API (forms as code)
 

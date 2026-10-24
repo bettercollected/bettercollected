@@ -1,6 +1,7 @@
 import asyncio
 import json
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote
 
 import httpx
 import loguru
@@ -12,7 +13,7 @@ from backend.config import settings
 
 def value_serializer(model_instance):
     if isinstance(model_instance, BaseModel):
-        data_dict = model_instance.model_dump(mode='json')
+        data_dict = model_instance.model_dump(mode="json")
         try:
             serialized_data = json.dumps(data_dict)
             return serialized_data.encode("utf-8")
@@ -26,8 +27,19 @@ def value_serializer(model_instance):
 
 executor = ThreadPoolExecutor(max_workers=10)
 
+# Brevo's REST API (contacts); the tracker uses BREVO_TRACKER_API_URL
+BREVO_API_URL = "https://api.brevo.com/v3"
+ERASURE_ATTEMPTS = 4
+ERASURE_BACKOFF_SECONDS = 1.0
+
 
 class BrevoService:
+    # a seam for tests: the HTTP transport of the contacts API (tests never
+    # reach Brevo)
+    contacts_transport = None
+    # and of the pause between erasure attempts
+    retry_sleep = staticmethod(asyncio.sleep)
+
     def __init__(self):
         self.event_api_client = httpx.AsyncClient(
             headers={
@@ -91,6 +103,57 @@ class BrevoService:
         self, event_type: UserEventType, user_id: str, email: EmailStr
     ):
         asyncio.ensure_future(self.send_brevo_event(event_type, user_id, email))
+
+    async def delete_contact(self, email: str, user_id: str) -> str:
+        """Erase a deleted account's Brevo contact (GDPR erasure) with the
+        contacts API key (``BREVO_CONTACTS_API_KEY``), never the tracker key.
+        Best effort: returns ``deleted``, ``absent`` (Brevo has no such
+        contact), ``skipped`` (no key) or ``failed``. Logs the user id and the
+        outcome, never the address."""
+        key = settings.brevo_settings.contacts_api_key
+        if not key:
+            loguru.logger.info(
+                f"Brevo contact erasure skipped for user {user_id}: "
+                "BREVO_CONTACTS_API_KEY is not set"
+            )
+            return "skipped"
+        if not email or not email.strip():
+            return "absent"
+        # once the account is gone the address is too: a transient failure
+        # (rate limit, Brevo down) is retried a few times with backoff
+        path = f"{BREVO_API_URL}/contacts/{quote(email.strip().lower(), safe='')}"
+        outcome = problem = None
+        for attempt in range(1, ERASURE_ATTEMPTS + 1):
+            if attempt > 1:
+                await self.retry_sleep(ERASURE_BACKOFF_SECONDS * 2 ** (attempt - 2))
+            try:
+                async with httpx.AsyncClient(
+                    transport=self.contacts_transport, timeout=15
+                ) as client:
+                    response = await client.delete(
+                        path,
+                        params={"identifierType": "email_id"},
+                        headers={"api-key": key, "accept": "application/json"},
+                    )
+            except httpx.HTTPError as error:
+                problem = type(error).__name__
+                continue
+            if response.status_code in (200, 204):
+                outcome = "deleted"
+                break
+            if response.status_code == 404:
+                outcome = "absent"
+                break
+            problem = f"HTTP {response.status_code}"
+            if response.status_code != 429 and response.status_code < 500:
+                break  # refused (a wrong key, say): retrying will not help
+        if outcome is None:
+            loguru.logger.warning(
+                f"Brevo contact erasure failed for user {user_id}: {problem}"
+            )
+            return "failed"
+        loguru.logger.info(f"Brevo contact erasure for user {user_id}: {outcome}")
+        return outcome
 
 
 def get_enthusiastic_text(event_type):
