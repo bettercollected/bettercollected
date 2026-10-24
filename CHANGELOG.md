@@ -136,9 +136,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   upstream status and error code.
 - After the consent screen, an import that started without a `Referer` returns to the workspace's forms page
   instead of failing, and the picker flag is added to the return URL as a proper query parameter.
-- Account deletion no longer fails when the Google Forms service is off, unreachable, slow or failing:
-  deleting the user's stored Google credentials there is best effort (20 s timeout) and a leftover is logged
-  with the user id and the provider name only, while the rest of the deletion completes.
 - The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
   scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
   HTMX swaps or task progress updates.
