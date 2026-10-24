@@ -29,10 +29,7 @@ interface OtpEmailFormProps {
 
 const providers: Array<string> = ['google'];
 
-const loginProviderNames = new Map<string, string>([
-    ['google', 'Google'],
-    ['typeform', 'Typeform']
-]);
+const loginProviderNames = new Map<string, string>([['google', 'Google']]);
 
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const ssoEnabled = useSsoEnabled();
