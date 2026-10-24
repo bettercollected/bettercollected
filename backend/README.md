@@ -2,7 +2,7 @@
 
 **NOTE: Latest codebase is in develop branch**
 
-1. Install `pyenv` with `python` version `3.10` and higher. And activate a virtual environment.
+1. Install `pyenv` with `python` version `3.11` and higher. And activate a virtual environment.
 2. Look into [Makefile](Makefile) to see if you might need any command. If you need additional commands, you can add it there.
 3. Run `make install`, this will install `poetry` by default if it's not installed.
 4. Check if virtualenv made by poetry is of python version `3.10` or not by using command `poetry run python --version`. 

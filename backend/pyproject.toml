@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Backend for bettercollected"
 readme = "README.md"
 authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.143.0",
     "uvicorn[standard]>=0.54.0",
@@ -22,7 +22,7 @@ dependencies = [
     "httpx>=0.28.1",
     # images/import and the Unsplash route pin connections (services/image_fetch.py)
     "httpcore>=1.0.9",
-    "certifi>=2026.7.22",
+    "certifi>=2026.10.19",
     "classy-fastapi==0.7.0",
     "pyjwt>=2.15.1",
     "boto3>=1.43.112",
@@ -45,10 +45,10 @@ dependencies = [
     "mcp>=1.30.0,<2",
     "procrastinate>=3.10.0,<4",
     "custom-domain-sdk>=0.13.0",
-    "pypdf>=6.20.1",
+    "pypdf>=6.21.2",
     "pdfplumber>=0.11",
     "pypdfium2>=5.14.0",
-    "pillow>=11",
+    "pillow>=13.0.0",
     "dnspython>=2.8",
     "idna>=3.20",
     "publicsuffixlist>=1.1.0.20261010",

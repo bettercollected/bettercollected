@@ -73,7 +73,7 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 
 ## Environment & setup
 
-- **Prereqs:** Python **3.11** (see `.python-version`; services require `>=3.10`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
+- **Prereqs:** Python **3.11** (see `.python-version`; the backend, auth and Google integration require `>=3.11`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
 - **One-shot setup:** `./install.sh` (`uv sync` for the Python services + `yarn` for the webapp; skips missing dirs).
 - **Env file:** `.env.deployment` is the operator's own, untracked file: `deploy.sh` creates it (mode 600)
   from the tracked template `.env.deployment.example` when it is missing (keys: Stripe, Google/Typeform
