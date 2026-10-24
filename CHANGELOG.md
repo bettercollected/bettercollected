@@ -13,6 +13,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.4] - 2026-10-24
+
 ### Added
 
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
@@ -42,8 +44,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   Instrument Sans 600, in ink, with no blue "b" and no trailing dot. The small mark, the favicon and the
   app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
   "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
-
-### Removed
 
 ### Fixed
 
