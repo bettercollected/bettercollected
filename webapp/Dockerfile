@@ -13,11 +13,16 @@ RUN yarn install --prod --frozen-lockfile
 FROM prod AS builder
 ARG NEXT_PUBLIC_API_ENDPOINT_HOST
 ARG NEXT_PUBLIC_NODE_ENV="production"
+# The version the dashboard sidebar shows (v4.0.2, dev-<sha>, staging-<sha>);
+# a build fact, inlined by `next build`. Empty shows nothing. CI sets it in
+# .github/workflows/deploy.yml; scripts/app-version.sh derives it for your own builds.
+ARG NEXT_PUBLIC_APP_VERSION=""
 # The single sign-on UI is not a build setting: the running container's
 # SSO_ENABLED turns it on (docs/sso.md).
 
 ENV NEXT_PUBLIC_API_ENDPOINT_HOST=$NEXT_PUBLIC_API_ENDPOINT_HOST \
-    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV
+    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV \
+    NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 
 RUN yarn install --frozen-lockfile
 COPY --chown=node:node ./webapp .

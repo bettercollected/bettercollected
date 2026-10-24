@@ -54,12 +54,21 @@ jobs:
               run: |
                   set -euo pipefail
                   SERVICE_TAG="${SERVICE_TAG//\//-}"
+                  if [[ ! "${GIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+                    echo "Unexpected commit id" >&2
+                    exit 1
+                  fi
+                  # The version the dashboard sidebar shows: the release tag on a
+                  # tag build, else the stack and the short commit.
                   API_ENDPOINT_HOST=""
+                  APP_VERSION=""
                   if [[ "${GIT_REF}" = "refs/heads/develop" ]]; then
                     API_ENDPOINT_HOST="${DEVELOP_API}"
+                    APP_VERSION="dev-${GIT_SHA:0:7}"
                   fi
                   if [[ "${GIT_REF}" = "refs/heads/master" ]]; then
                     API_ENDPOINT_HOST="${STAGING_API}"
+                    APP_VERSION="staging-${GIT_SHA:0:7}"
                   fi
                   if [[ "${GIT_REF}" =~ ^refs/tags/ ]]; then
                     if [[ ! "${REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -67,9 +76,11 @@ jobs:
                       exit 1
                     fi
                     API_ENDPOINT_HOST="${PROD_API}"
+                    APP_VERSION="${REF_NAME}"
                   fi
                   docker build \
                     --build-arg "NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST}" \
+                    --build-arg "NEXT_PUBLIC_APP_VERSION=${APP_VERSION}" \
                     -f "${SERVICE_DIR}/Dockerfile" \
                     -t "bettercollected/${SERVICE_TAG}:${GIT_SHA}" .
                   docker push "bettercollected/${SERVICE_TAG}:${GIT_SHA}"

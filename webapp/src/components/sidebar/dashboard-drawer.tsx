@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
+import AppVersionCaption from '@app/components/sidebar/app-version-caption';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -8,6 +10,7 @@ import { IDrawerProps } from '@app/models/props/navbar';
 import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
 const Drawer = ({ navGroups, can }: any) => {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col h-full bg-white">
             {/* Top band matches the main navbar (77px + hairline border), with
@@ -44,6 +47,9 @@ const Drawer = ({ navGroups, can }: any) => {
                         <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 flex items-center justify-center px-4 text-xs">
                             Powered by&nbsp;<span className="font-semibold">bettercollected</span>
                         </a>
+                        {/* The build this stack runs, for the signed-in team
+                            only: respondent pages keep just the attribution. */}
+                        <AppVersionCaption label={t('APP_VERSION')} />
                     </div>
                 </div>
             </div>

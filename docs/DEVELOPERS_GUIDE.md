@@ -188,6 +188,25 @@ The webapp serves three logical hosts, matched by domain:
 Set `DASHBOARD_DOMAIN=localhost:3000` and `FORM_DOMAIN=localhost:3001` and
 `NEXT_PUBLIC_API_ENDPOINT_HOST=http://localhost:8000/api/v1` in `webapp/.env`.
 
+## Version in the dashboard sidebar
+
+The dashboard sidebar shows the version the webapp image was built as, under
+"Powered by bettercollected": `v4.0.2` for a release, `dev · b3a8cee` /
+`staging · b3a8cee` for the develop and master builds. It is a build fact,
+`NEXT_PUBLIC_APP_VERSION`, passed as a Docker build argument and inlined by
+`next build` (`.github/workflows/deploy.yml` sets it). Respondent pages never
+show it. A local `yarn dev` or an image built without it shows nothing. To
+build your own image with it:
+
+```bash
+docker build --build-arg "NEXT_PUBLIC_APP_VERSION=$(scripts/app-version.sh)" \
+  -f webapp/Dockerfile .
+```
+
+`scripts/app-version.sh` prints the release tag when the checkout is exactly on
+one, else the short commit (shown as `build · b3a8cee`). `deploy.sh` pulls the
+published images, which carry their own version.
+
 ## Integrations (Google / Typeform)
 
 Setting up the Google and Typeform OAuth apps is covered in

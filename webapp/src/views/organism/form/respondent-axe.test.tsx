@@ -210,3 +210,34 @@ describe('colour contrast', () => {
         expect(results.incomplete.map((rule) => rule.id)).toEqual(['color-contrast']);
     });
 });
+
+describe('respondent pages never show the build version', () => {
+    // The dashboard sidebar shows the version the stack runs; a respondent
+    // sees only "Powered by bettercollected" (app-version-caption.test.tsx).
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        Element.prototype.scrollIntoView = vi.fn();
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+    });
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it.each([
+        ['v4.0.2', /4\.0\.2/],
+        ['dev-b3a8cee', /b3a8cee/]
+    ])('with %s built in', async (version, shown) => {
+        vi.stubEnv('NEXT_PUBLIC_APP_VERSION', version);
+        const { unmount } = open('classic', -1);
+        await screen.findByRole('button', { name: 'Start' });
+        expect(document.body.textContent).toMatch(/Powered by/);
+        expect(document.body.textContent).not.toMatch(shown);
+        expect(document.body.textContent).not.toMatch(/Version|Versie/);
+        unmount();
+
+        open('classic', -2);
+        await screen.findByRole('heading', { level: 1, name: 'Thank you' });
+        expect(document.body.textContent).not.toMatch(shown);
+    });
+});
