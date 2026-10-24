@@ -1,6 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
@@ -135,22 +135,30 @@ class FormService:
                 respondent_view(form)
 
         if not published:
-            user_ids = [form.imported_by for form in forms_page.items]
-            user_details = (
-                {"users_info": []}
-                if not user_ids
-                else await self.fetch_user_details(user_ids=user_ids)
+            importers = await self._importer_details(
+                form.imported_by for form in forms_page.items
             )
-
             for form in forms_page.items:
-                for user_info in user_details.get("users_info", []):
-                    if form.imported_by == user_info["_id"]:
-                        form.importer_details = FormImporterDetails(
-                            **user_info, id=form.imported_by
-                        )
-                        break
+                user_info = importers.get(form.imported_by)
+                if user_info is not None:
+                    form.importer_details = FormImporterDetails(
+                        **user_info, id=form.imported_by
+                    )
 
         return forms_page
+
+    async def _importer_details(self, importer_ids: Iterable[Optional[str]]):
+        """importer id -> the auth service's details for them: one call with
+        each importer once, however many of their forms are on the page."""
+        unique_ids = list(dict.fromkeys(i for i in importer_ids if i))
+        if not unique_ids:
+            return {}
+        user_details = await self.fetch_user_details(user_ids=unique_ids)
+        return {
+            user_info["_id"]: user_info
+            for user_info in user_details.get("users_info") or []
+            if user_info.get("_id")
+        }
 
     async def fetch_user_details(self, user_ids):
         try:
@@ -184,19 +192,15 @@ class FormService:
                 respondent_view(form)
 
         if not published:
-            user_ids = [form["imported_by"] for form in forms]
-            user_details = (
-                {"users_info": []}
-                if not user_ids
-                else await self.fetch_user_details(user_ids=user_ids)
+            importers = await self._importer_details(
+                form.get("imported_by") for form in forms
             )
             for form in forms:
-                for user_info in user_details["users_info"]:
-                    if form["imported_by"] == user.id:
-                        form["importer_details"] = FormImporterDetails(
-                            **user_info, id=form["imported_by"]
-                        )
-                        break
+                user_info = importers.get(form.get("imported_by"))
+                if user_info is not None:
+                    form["importer_details"] = FormImporterDetails(
+                        **user_info, id=form["imported_by"]
+                    )
         return [FormDtoCamelModel(**form) for form in forms]
 
     async def get_form_by_id(

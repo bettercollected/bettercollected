@@ -58,6 +58,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
   many, the question that names the node). "Start with AI" opens on phones and small tablets too
   (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
+- The forms list and form search ask the auth service about each importer once, instead of once per
+  form on the page. Search now shows each form's own importer: it could show another member's name on
+  a form, and no importer at all on forms imported by someone other than the searching member. The forms
+  list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
+  to the same workspace still counts that workspace's older responses.
 
 ### Security
 

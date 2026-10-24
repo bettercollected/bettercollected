@@ -95,7 +95,13 @@ _LOOKUP_SCAFFOLDING = [
 # Before ``$unwind: $workspace_form``: how many workspaces the form is linked
 # to. A response stored before #768 has no workspace_id and counts for the
 # workspace only when that is one (see repositories/response_scope.py).
-_COUNT_FORM_LINKS = {"$set": {"_bc_form_links": {"$size": "$workspace_form"}}}
+# Distinct workspaces, not link rows: a duplicated link to the same workspace
+# still leaves the form that workspace's only, as the Postgres twin counts it.
+_COUNT_FORM_LINKS = {
+    "$set": {
+        "_bc_form_links": {"$size": {"$setUnion": ["$workspace_form.workspace_id", []]}}
+    }
+}
 
 
 def _scoped_lookup(collection: str, workspace_id: PydanticObjectId, alias: str):
