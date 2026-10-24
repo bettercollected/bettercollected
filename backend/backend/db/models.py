@@ -13,7 +13,7 @@ from __future__ import annotations
 from sqlalchemy import Index, UniqueConstraint, text
 
 from backend.db.base import S, Base
-from common.db import BaseRow, MirrorWriteFailureMixin
+from common.db import BaseRow, DeletionTombstoneMixin, MirrorWriteFailureMixin
 from common.db.migrate import MigrationProgressMixin, StoreMigrationMixin
 
 
@@ -539,3 +539,10 @@ class StoreMigration(Base, StoreMigrationMixin):
     (common.db.marker); written only by a clean ``verify``."""
 
     __tablename__ = "store_migration"
+
+
+class DeletionTombstone(Base, DeletionTombstoneMixin):
+    """Ids deleted from this schema's tables, kept so that reconcile never
+    copies a deleted record back (common.db.tombstones). Ids only."""
+
+    __tablename__ = "deletion_tombstones"

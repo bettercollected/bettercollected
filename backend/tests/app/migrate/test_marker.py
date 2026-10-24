@@ -192,12 +192,12 @@ class MongoDeleteFails(AllowedOriginsRepository):
 
 
 @pytest.mark.allow_mirror_failures
-async def test_reconcile_does_not_propagate_a_postgres_delete(target):
+async def test_reconcile_completes_a_postgres_delete_whose_mongo_mirror_failed(target):
     """Under postgres_primary_dual a delete whose Mongo mirror failed leaves the
-    document in Mongo and an outbox row in Postgres. ``reconcile --direction
-    postgres->mongo`` copies rows to Mongo but never deletes: the document
-    stays, verify keeps reporting it, and the outbox row is marked resolved
-    anyway. Reconciling the other way (Mongo authoritative) resurrects it."""
+    document in Mongo and an outbox row in Postgres. The delete left a
+    tombstone, so verify reports the document as a deleted record still
+    present, ``reconcile --direction postgres->mongo`` deletes it from Mongo
+    (and drains the outbox), and it never comes back into Postgres."""
     repo = RoutingRepository(
         group="refdata",
         flags=load_flags(
@@ -220,23 +220,25 @@ async def test_reconcile_does_not_propagate_a_postgres_delete(target):
 
     async with Runner(target) as runner:
         (before,) = await runner.verify(["allowed_origins"])
-        assert before.missing_in_postgres == 1
+        assert before.missing_in_postgres == 1 and before.tombstoned == 1
         # the kept row agrees: its replay stored the row's document exactly
         assert before.mismatched == 0
         result = await runner.reconcile(direction="postgres->mongo")
+        assert result["allowed_origins"]["deleted"] == 1
         assert result["allowed_origins"]["fixed"] == 0
         (after,) = await runner.verify(["allowed_origins"])
-    assert await AllowedOriginsDocument.get(gone.id) is not None  # not deleted
-    assert after.missing_in_postgres == 1 and after.mismatched == 0
-    assert not after.clean
+    collection = AllowedOriginsDocument.get_pymongo_collection()
+    assert await collection.find_one({"_id": gone.id}) is None
+    assert after.clean
     async with container.pg_engine().connect() as conn:
         resolved = (await conn.execute(select(MirrorWriteFailure.resolved_at))).all()
-    assert all(r[0] is not None for r in resolved)  # drained regardless
+    assert all(r[0] is not None for r in resolved)
 
     async with Runner(target) as runner:
         await runner.reconcile(["allowed_origins"], direction="mongo->postgres")
-        (back,) = await runner.verify(["allowed_origins"])
-    assert back.clean  # the deleted row is back in Postgres
+    async with container.pg_engine().connect() as conn:
+        ids = (await conn.execute(select(AllowedOriginRow.id))).scalars().all()
+    assert ids == [str(kept.id)]  # the deleted row did not come back
 
 
 async def test_a_partial_reconcile_leaves_the_outbox_alone(target):

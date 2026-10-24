@@ -113,7 +113,8 @@ Start on staging; repeat on production only after the staging gate.
    the verified marker; `--group g` records that group (see "Verified marker").
 5. **Reconcile:** `python -m backend.migrate reconcile` copies whatever verify found (Mongo
    authoritative) and, when run over every collection, marks both outboxes resolved. Run `verify`
-   again. Rows that exist on one side only are not deleted (see "Reconcile and deleted rows").
+   again. A record deleted in one store whose copy survives in the other is deleted there, never
+   copied back (see "Reconcile and deleted rows").
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
 
@@ -186,25 +187,35 @@ service's current collections, when a collection was added after the verify).
 
 ## Reconcile and deleted rows
 
-`reconcile` never deletes anything, in either direction. It compares the stores collection by
-collection: a document or row that exists on one side only is copied to the other side when that
-side is the target of the direction, and otherwise left where it is.
+Every delete records a **tombstone** in the store that deletes, in every write mode: the
+collection, the id and the time of the delete, nothing else (no document content, no personal
+data). Postgres writes it to `<schema>.deletion_tombstones` in the same transaction as the delete
+(app migration `0019`, auth and google `0004`), and Mongo writes it to the `deletion_tombstones`
+collection just before the delete. A copy of a record is *deleted* when a tombstone for its id, from
+either store, is newer than the copy's `updated_at`; a record written again under the same id after
+the delete (ids derived from a relation are) is newer, so it is not.
 
-| situation | `verify` reports | `reconcile` (mongo->postgres) | `reconcile --direction postgres->mongo` |
-|---|---|---|---|
-| deleted in Mongo (primary, `dual`), the Postgres delete failed: the row is only in Postgres | `missing_in_mongo` | leaves the row in Postgres | copies the row back into Mongo |
-| deleted in Postgres (primary, `postgres_primary_dual`), the Mongo delete failed: the document is only in Mongo | `missing_in_postgres` | copies the document back into Postgres | leaves the document in Mongo |
+| situation | `verify` reports | `reconcile`, either direction |
+|---|---|---|
+| deleted in Mongo (primary, `dual`), the Postgres delete failed: the row is only in Postgres | `missing_in_mongo`, `tombstoned` | deletes the row from Postgres |
+| deleted in Postgres (primary, `postgres_primary_dual` or `postgres`), the Mongo delete failed or Mongo was no longer written: the document is only in Mongo | `missing_in_postgres`, `tombstoned` | deletes the document from Mongo |
+| deleted, but copies older than the delete are in both stores (brought back by an earlier reconcile, or restored from a backup) | `tombstoned` | reports it (`tombstoned` in its result) and changes nothing: delete both copies by hand, by id, after checking them |
 
-So a failed mirror delete is not repaired by reconciling towards the mirror, and reconciling
-towards the primary brings the deleted record back. A *full* reconcile (no `--group` or
-`--collections`) then marks every unresolved outbox entry resolved, including the delete entries
-it did not replay; a partial reconcile leaves the outboxes alone (their entries name a repository
-and method, not a collection). Before reconciling, read the outbox (`status --json` →
-`mirror_failures.<store>.unresolved_by_method`); for each unresolved delete, check the record's id
-in both stores and delete the stray copy by hand from the store that is not authoritative for its
-group, then run `verify` again. Also under `postgres_primary_dual`: a write replayed into Mongo is
-saved with a fresh `updated_at`, so `verify` can report it as mismatched;
-`reconcile --direction postgres->mongo` rewrites it from the row.
+`reconcile` never copies a deleted record, in either direction, and deletes a surviving copy only
+while it is still the copy it read (same `updated_at`). Its result per collection gives `deleted`
+(surviving copies it deleted) and `tombstoned` (records left for an operator). A `verify` with any
+`tombstoned` record is not clean and records no marker; its output names up to five such ids per
+collection (`samples.tombstoned`).
+
+Retention: tombstones are kept 400 days, longer than the cutover and the time a Mongo archive is
+kept, so a copy restored from it is still recognised. Mongo expires its tombstones with a TTL index
+(`deleted_at_ttl`); `reconcile` deletes the Postgres ones older than that at the end of each run.
+
+A *full* reconcile (no `--group` or `--collections`) then marks every unresolved outbox entry
+resolved; a partial reconcile leaves the outboxes alone (their entries name a repository and method,
+not a collection). Also under `postgres_primary_dual`: a write replayed into Mongo is saved with a
+fresh `updated_at`, so `verify` can report it as mismatched; `reconcile --direction postgres->mongo`
+rewrites it from the row.
 
 ## Duplicate AI preference memories
 
@@ -422,8 +433,8 @@ skipped the mirror. Rollback: remove the override and redeploy.
 `google`), then redeploy. Postgres is now authoritative for the group, and the reverse mirror keeps
 Mongo current: failures now land under `mirror_failures.mongo`. Soak at least 72 h. In `verify`, a
 record replayed into Mongo can show as mismatched ("Reconcile and deleted rows"). Rollback: run
-`reconcile --group <g> --direction postgres->mongo`, after removing stray copies of deleted records
-by hand as that section describes. Then set `DB_WRITE_MODE__<g>=dual`, keep the read on Postgres,
+`reconcile --group <g> --direction postgres->mongo` (it deletes the Mongo copies of records deleted
+in Postgres, see "Reconcile and deleted rows"). Then set `DB_WRITE_MODE__<g>=dual`, keep the read on Postgres,
 and redeploy. Undo A afterwards if needed. Never move a group from `mongo` straight to `postgres`,
 and never set `postgres` for a group at this stage.
 
@@ -460,8 +471,9 @@ up first. Leave the Postgres workers running until their queues are empty.
 Start when every group, including `auth` and `google`, has passed B and its soak.
 
 1. **Make Mongo a full copy; this is the soft point of no return.** For backend, auth and google:
-   read the outbox (`status --json`), remove stray copies of deleted records by hand, run
-   `reconcile --direction postgres->mongo`, then `verify` until clean. After C, Mongo falls behind.
+   read the outbox (`status --json`), run `reconcile --direction postgres->mongo` (it also deletes
+   the Mongo copies of records deleted in Postgres), then `verify` until clean; delete by hand only
+   the records it reports as `tombstoned`. After C, Mongo falls behind.
 2. **Edit the definition.** On `backend` + `jobs-worker`, `auth` and `integrations-googleform`:
    remove every `DB_READ_SOURCE__*` and `DB_WRITE_MODE__*` (a leftover override wins over the
    default), then set `DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres`, and set
@@ -475,8 +487,8 @@ Watch: one `persistence flags` line per replica, `write_stores = postgres` on ev
 5xx and p95 against the baseline, and the jobs. Soak for 14 days.
 Rollback during the soak: put `postgres_primary_dual` back for every group, keep shadow reads off,
 and redeploy. Then, per service, run `reconcile --direction postgres->mongo`. Records deleted
-during C are still in Mongo (`verify` → `missing_in_postgres`; reconcile never deletes): remove
-them by hand before going back any further.
+during C are still in Mongo (`verify` → `missing_in_postgres`, `tombstoned`); the reconcile deletes
+them there from the Postgres tombstones, so they never come back.
 Stored definition: save it with C's values, and drop the per-group overrides there too.
 
 ### Backups and a restore test before D

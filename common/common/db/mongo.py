@@ -28,6 +28,7 @@ from beanie.odm.utils.init import Initializer
 from pymongo import AsyncMongoClient
 
 from common.db.flags import DbFlags
+from common.db.tombstones import ensure_mongo_ttl, tombstone_deletes
 
 #: Where the client of a process that does not use Mongo points (".invalid" never resolves).
 NOT_USED_URI = "mongodb://mongo-not-used.invalid:27017/"
@@ -69,6 +70,9 @@ async def init_documents(
     with no request to the server (no ``buildInfo``, no indexes)."""
     if required:
         await init_beanie(database=database, document_models=list(document_models))
+        # every delete records a tombstone first (common.db.tombstones)
+        tombstone_deletes(document_models)
+        await ensure_mongo_ttl(database)
         return
     views = [m for m in document_models if isinstance(m, type) and issubclass(m, View)]
     if views:  # a view is (re)created on the server: it needs Mongo

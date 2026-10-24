@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
+from common.db.tombstones import record_postgres
 
 
 class PostgresNotConfigured(RuntimeError):
@@ -203,10 +204,23 @@ class PostgresRepositoryBase:
             f"expected one of {[t.__name__ for t in expected]}"
         )
 
+    @staticmethod
+    async def _delete_recorded(session, row: Type[Any], *where: Any) -> int:
+        """Delete and, in the same transaction, record a tombstone per
+        deleted id (:mod:`common.db.tombstones`)."""
+        ids = (
+            (await session.execute(delete(row).where(*where).returning(row.id)))
+            .scalars()
+            .all()
+        )
+        await record_postgres(
+            session, row.__table__.schema, row.mongo_collection(), ids
+        )
+        return len(ids)
+
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
         async with self._session() as session, session.begin():
-            result = await session.execute(delete(row or self.row).where(*where))
-        return result.rowcount or 0
+            return await self._delete_recorded(session, row or self.row, *where)
 
     async def delete_one_where(
         self, *where: Any, row: Optional[Type[Any]] = None
@@ -223,8 +237,7 @@ class PostgresRepositoryBase:
                 .limit(1)
                 .scalar_subquery()
             )
-            result = await session.execute(delete(row).where(row.id == target))
-        return result.rowcount or 0
+            return await self._delete_recorded(session, row, row.id == target)
 
     async def delete_by_id(self, document_id: Any) -> int:
         return await self.delete_where(self.row.id == str(document_id))
