@@ -3,6 +3,11 @@ export const members = {
     role: 'MEMBERS.ROLE',
     managedByDirectory: 'MEMBERS.MANAGED_BY_DIRECTORY',
     deactivated: 'MEMBERS.DEACTIVATED',
+    ssoRemoval: {
+        title: 'MEMBERS.SSO_REMOVAL.TITLE',
+        withoutDirectory: 'MEMBERS.SSO_REMOVAL.WITHOUT_DIRECTORY',
+        withDirectory: 'MEMBERS.SSO_REMOVAL.WITH_DIRECTORY'
+    },
     join: 'MEMBERS.JOIN',
     invitations: 'MEMBERS.INVITATION',
     invitationDate: 'MEMBERS.INVITATION_DATE',
