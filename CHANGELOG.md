@@ -50,6 +50,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   Instrument Sans 600, in ink, with no blue "b" and no trailing dot. The small mark, the favicon and the
   app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
   "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
+- A form is linked to a workspace once: (`workspace_id`, `form_id`) is unique in `workspace_forms`, in
+  Postgres (app revision `0019`, replacing the plain index) and in Mongo (`uq_workspace_forms_workspace_form`,
+  built at startup). Saving a link that already exists (another importer, two imports racing) returns
+  the existing link unchanged instead of adding a second one. Existing duplicates are never merged
+  automatically: the migration refuses before changing anything, naming the counts, and a Mongo database
+  holding duplicates refuses to start with a duplicate-key error naming the index. Check before upgrading
+  (read-only): in Postgres `SELECT workspace_id, form_id, count(*), array_agg(id) FROM app.workspace_forms
+  GROUP BY workspace_id, form_id HAVING count(*) > 1;`, in Mongo
+  `db.workspace_forms.aggregate([{$group: {_id: {w: "$workspace_id", f: "$form_id"}, n: {$sum: 1}, ids:
+  {$push: "$_id"}}}, {$match: {n: {$gt: 1}}}])`; keep one link per pair, in both stores.
 
 ### Fixed
 

@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.models.user import User
 from pymongo.errors import (
+    DuplicateKeyError,
     InvalidOperation,
     InvalidURI,
     NetworkTimeout,
@@ -65,6 +66,10 @@ class WorkspaceFormRepository:
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
     ) -> WorkspaceFormDocument:
+        """Store this user's link of the form to the workspace with these
+        settings. A form is linked to a workspace once (unique index): when
+        the link was added meanwhile (another importer, a racing import),
+        that link is returned unchanged."""
         workspace_form = await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "form_id": form_id, "user_id": user_id}
         )
@@ -75,7 +80,13 @@ class WorkspaceFormRepository:
                 user_id=user_id,
             )
         workspace_form.settings = workspace_form_settings
-        return await workspace_form.save()
+        try:
+            return await workspace_form.save()
+        except DuplicateKeyError:
+            existing = await self.find_workspace_form(workspace_id, form_id)
+            if existing is None:
+                raise
+            return existing
 
     # TODO : Refactor this functions to include repo related only
     async def get_workspace_form_in_workspace(
