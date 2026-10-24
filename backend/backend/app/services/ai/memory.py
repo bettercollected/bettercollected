@@ -15,7 +15,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
 import loguru
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -84,24 +84,24 @@ def _c():
 class AIMemoryService:
     @staticmethod
     async def _get_document(
-        workspace_id: PydanticObjectId, user_id: str
+        workspace_id: RecordId, user_id: str
     ) -> Optional[UserAIPreferenceMemoryDocument]:
         return await _c().ai_preference_memory_repo().find(workspace_id, user_id)
 
     async def get_entries(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> List[MemoryEntryDto]:
         document = await self._get_document(workspace_id, user.id)
         return [MemoryEntryDto(**e) for e in (document.entries if document else [])]
 
     async def add_entry(
-        self, workspace_id: PydanticObjectId, user: User, dto: AddMemoryEntryDto
+        self, workspace_id: RecordId, user: User, dto: AddMemoryEntryDto
     ) -> List[MemoryEntryDto]:
         await self._append(workspace_id, user.id, [dto.text], source="manual")
         return await self.get_entries(workspace_id, user)
 
     async def delete_entry(
-        self, workspace_id: PydanticObjectId, user: User, entry_id: str
+        self, workspace_id: RecordId, user: User, entry_id: str
     ) -> List[MemoryEntryDto]:
         document = await self._get_document(workspace_id, user.id)
         if not document or not any(e.get("id") == entry_id for e in document.entries):
@@ -113,13 +113,13 @@ class AIMemoryService:
         return [MemoryEntryDto(**e) for e in document.entries]
 
     @staticmethod
-    async def learns_preferences(workspace_id: PydanticObjectId, user_id: str) -> bool:
+    async def learns_preferences(workspace_id: RecordId, user_id: str) -> bool:
         """The user's "Learn my preferences" setting (default off)."""
         document = await AIMemoryService._get_document(workspace_id, user_id)
         return bool(document and document.learn_preferences)
 
     async def set_learn_preferences(
-        self, workspace_id: PydanticObjectId, user: User, enabled: bool
+        self, workspace_id: RecordId, user: User, enabled: bool
     ) -> bool:
         """Turn extraction from chat turns on or off for the caller."""
         await _c().authorization_service().authorize(
@@ -137,7 +137,7 @@ class AIMemoryService:
 
     @staticmethod
     async def get_entries_for_prompt(
-        workspace_id: PydanticObjectId, user_id: str
+        workspace_id: RecordId, user_id: str
     ) -> List[str]:
         """Internal read for prompt building — the surrounding AI action is
         already authorized."""
@@ -146,7 +146,7 @@ class AIMemoryService:
 
     @staticmethod
     async def _append(
-        workspace_id: PydanticObjectId, user_id: str, texts: List[str], source: str
+        workspace_id: RecordId, user_id: str, texts: List[str], source: str
     ) -> None:
         document = await AIMemoryService._get_document(workspace_id, user_id)
         if document is None:
@@ -173,7 +173,7 @@ class AIMemoryService:
     async def extract_from_turn(
         self,
         provider,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user_id: str,
         user_message: str,
         assistant_reply: str,

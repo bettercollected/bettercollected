@@ -22,6 +22,7 @@ from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.db.models import WorkspaceResponderRow
 from common.db import ReadSource
 from common.models.user import User
+from common.records import RecordId
 from tests.app.controllers.data import testUser
 
 
@@ -76,8 +77,9 @@ async def test_a_patched_responder_is_served_by_the_listing(
         assert stored.tags == [tag.id], source
 
 
-async def test_the_prompt_of_an_ai_form_is_stored_in_every_written_store(workspace):
-    form_id = PydanticObjectId()
+async def test_the_prompt_of_an_ai_form_is_stored(workspace):
+    """ai is served from Postgres only (no routing): stored there."""
+    form_id = RecordId()
     form = SimpleNamespace(
         form_id=str(form_id), model_dump=lambda **_: {"title": "Generated"}
     )
@@ -96,10 +98,7 @@ async def test_the_prompt_of_an_ai_form_is_stored_in_every_written_store(workspa
         "a short survey",
         {"title": "Generated"},
     )
-    for source in written_stores("ai"):
-        [stored] = await repo.store(source).list_by_form_id(form_id)
-        assert stored.id == served.id, source  # one document, the same id
-        assert isinstance(stored, CreateFormPrompt)
+    assert isinstance(served, CreateFormPrompt) and served.form_id == form_id
 
 
 async def test_a_price_suggestion_is_stored():

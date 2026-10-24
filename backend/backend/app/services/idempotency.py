@@ -27,10 +27,10 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.idempotency_repository import IdempotencyRepository
+from backend.app.repositories.postgres.ai import PostgresIdempotencyRepository
 from backend.app.schemas.api_idempotency_record import (
     IDEMPOTENCY_DONE,
     ApiIdempotencyRecordDocument,
@@ -129,7 +129,7 @@ def _refusal(status: HTTPStatus, code: str, message: str) -> HTTPException:
 
 
 class IdempotencyService:
-    def __init__(self, idempotency_repo: IdempotencyRepository):
+    def __init__(self, idempotency_repo: PostgresIdempotencyRepository):
         self._repo = idempotency_repo
 
     @staticmethod
@@ -174,7 +174,7 @@ class IdempotencyService:
                     "Retry when it has finished.",
                 )
             record = ApiIdempotencyRecordDocument(
-                id=PydanticObjectId(record_id),
+                id=RecordId(record_id),
                 key_id=key_id,
                 request_hash=fingerprint,
                 expires_at=dt.datetime.now(dt.timezone.utc) + IDEMPOTENCY_TTL,

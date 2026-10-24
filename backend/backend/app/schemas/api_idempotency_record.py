@@ -1,15 +1,14 @@
 import datetime as dt
 from typing import Optional
 
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 from pydantic import field_validator
-from pymongo import IndexModel
 
 IDEMPOTENCY_PENDING = "pending"
 IDEMPOTENCY_DONE = "done"
 
 
-class ApiIdempotencyRecordDocument(MongoDocument):
+class ApiIdempotencyRecordDocument(Record):
     """One ``Idempotency-Key`` an API key sent to the public API
     (services/idempotency.py): the request it was first used for and, once
     that finished, a summary of its response, from which a retry with the
@@ -17,6 +16,8 @@ class ApiIdempotencyRecordDocument(MongoDocument):
 
     The id is derived from the API key's id and the client's key, so a key
     is claimed by inserting it. Kept until ``expires_at`` (24 hours)."""
+
+    # the repository deletes expired records whenever it stores a new one
 
     key_id: str
     # SHA-256 of the method, path and body of the first request
@@ -38,8 +39,3 @@ class ApiIdempotencyRecordDocument(MongoDocument):
 
     class Settings:
         name = "api_idempotency_keys"
-        indexes = [
-            # Mongo drops a record once it expired; the Postgres twin deletes
-            # expired rows whenever it stores a new one
-            IndexModel([("expires_at", 1)], expireAfterSeconds=0),
-        ]

@@ -68,8 +68,6 @@ class TestWorkspaces:
         )
         assert fetched.json()["guidelines"] == "Always British English."
 
-        from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
-
         document = await container.workspace_ai_profile_repo().find_by_workspace(
             workspace.id
         )

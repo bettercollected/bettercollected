@@ -565,8 +565,8 @@ TODO_LIVE: Dict[str, str] = {
     "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
     "API_ROOT_PATH": "backend/backend/app/asgi.py:201",
     "API_DOCS_ENABLED": "backend/backend/app/asgi.py:201",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:615",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:616",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:539",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:540",
 }
 
 # ------------------------------------------------------- environment only

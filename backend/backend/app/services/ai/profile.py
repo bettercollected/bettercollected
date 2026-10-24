@@ -10,15 +10,13 @@ import datetime as dt
 from http import HTTPStatus
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.workspace_ai_profile_repository import (
-    WorkspaceAIProfileRepository,
-)
+from backend.app.repositories.postgres.ai import PostgresWorkspaceAIProfileRepository
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
@@ -53,13 +51,13 @@ class AIProfileService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        profile_repo: WorkspaceAIProfileRepository,
+        profile_repo: PostgresWorkspaceAIProfileRepository,
     ):
         self._authorization = authorization_service
         self._profile_repo = profile_repo
 
     async def get_profile(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> AIProfileResponseDto:
         # Any workspace member may read — the profile steers what the AI
         # produces for them, and visibility is the point.
@@ -76,7 +74,7 @@ class AIProfileService:
         )
 
     async def update_profile(
-        self, workspace_id: PydanticObjectId, dto: AIProfileDto, user: User
+        self, workspace_id: RecordId, dto: AIProfileDto, user: User
     ) -> AIProfileResponseDto:
         await self._authorization.authorize(user, Permission.AI_MANAGE, workspace_id)
         document = await self._profile_repo.find_by_workspace(workspace_id)
@@ -112,7 +110,7 @@ class AIProfileService:
 
     @staticmethod
     async def get_profile_for_prompt(
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ) -> Optional[WorkspaceAIProfileDocument]:
         """Internal read for prompt building — no access check (callers have
         already authorized the surrounding AI action)."""

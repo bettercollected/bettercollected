@@ -1,5 +1,6 @@
-"""The Postgres twins of the responses, actions, ai and analytics repositories
-behave like the Mongo originals. The forms-group data the responses twin
+"""The Postgres twins of the responses and actions repositories behave like
+the Mongo originals (ai and analytics are Postgres only:
+test_ai_repositories.py, test_analytics_repositories.py). The forms-group data the responses twin
 composes over lives in Mongo here (routed repositories are Mongo instances).
 Skipped unless DATABASE_URL points at a *_test database.
 """
@@ -16,25 +17,12 @@ from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.action_repository import ActionRepository
-from backend.app.repositories.ai_preference_memory_repository import (
-    AIPreferenceMemoryRepository,
-)
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
-from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
-from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
-from backend.app.repositories.postgres.ai import (
-    PostgresAIPreferenceMemoryRepository,
-    PostgresFormAIInsightRepository,
-    PostgresFormAISessionRepository,
-    PostgresMcpAuditLogRepository,
-    PostgresWorkspaceAIProfileRepository,
-)
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
     PostgresResponderGroupsRepository,
@@ -44,29 +32,20 @@ from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
-from backend.app.repositories.workspace_ai_profile_repository import (
-    WorkspaceAIProfileRepository,
-)
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
-from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
-from backend.app.schemas.form_ai_insight import FormAIInsightDocument
-from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
-from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_responder import WorkspaceResponderDocument
-from common.exceptions import NotFoundError
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
-from tests.app.repositories.test_identity_parity import both_raise
 from tests.app.repositories.parity import parity, strip
 
 T0 = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
@@ -427,82 +406,6 @@ async def test_actions(sessions):
         assert await repo.get_workspace_action(PydanticObjectId(), action.id) is None
         assert await repo.delete_action(action.id) == action.id
         assert await repo.get_action_by_id(action.id) is None
-
-
-# ------------------------------------------------------------ ai
-# (analytics is Postgres only: tests/app/repositories/test_analytics_repositories.py)
-async def test_ai(sessions):
-    ws = PydanticObjectId()
-    insight = FormAIInsightDocument(
-        id=PydanticObjectId(),
-        workspace_id=ws,
-        form_id="f1",
-        payload={"k": 1},
-        response_count=3,
-        total_responses=3,
-        generated_at=at(1),
-    )
-    await parity(
-        FormAIInsightRepository(),
-        PostgresFormAIInsightRepository(sessions),
-        [
-            ("find", lambda: (ws, "f1")),
-            ("save", lambda: (insight,)),
-            ("find", lambda: (ws, "f1")),
-            ("find", lambda: (ws, "f2")),
-        ],
-    )
-    session = FormAISessionDocument(
-        id=PydanticObjectId(), workspace_id=ws, form_id="f1", user_id="u1", messages=[]
-    )
-    mongo_s, postgres_s = FormAISessionRepository(), PostgresFormAISessionRepository(
-        sessions
-    )
-    await parity(
-        mongo_s,
-        postgres_s,
-        [("save", lambda: (session,)), ("get_or_404", lambda: (session.id,))],
-    )
-    missing = PydanticObjectId()
-    await both_raise(
-        NotFoundError,
-        lambda: mongo_s.get_or_404(missing),
-        lambda: postgres_s.get_or_404(missing),
-    )
-    profile = WorkspaceAIProfileDocument(
-        id=PydanticObjectId(), workspace_id=ws, about="us"
-    )
-    await parity(
-        WorkspaceAIProfileRepository(),
-        PostgresWorkspaceAIProfileRepository(sessions),
-        [
-            ("find_by_workspace", lambda: (ws,)),
-            ("save", lambda: (profile,)),
-            ("find_by_workspace", lambda: (ws,)),
-        ],
-    )
-    memory = UserAIPreferenceMemoryDocument(
-        id=PydanticObjectId(), workspace_id=ws, user_id="u1", entries=[{"text": "x"}]
-    )
-    await parity(
-        AIPreferenceMemoryRepository(),
-        PostgresAIPreferenceMemoryRepository(sessions),
-        [
-            ("save", lambda: (memory,)),
-            ("find", lambda: (ws, "u1")),
-            ("find", lambda: (ws, "u2")),
-        ],
-    )
-    mongo_l, postgres_l = McpAuditLogRepository(), PostgresMcpAuditLogRepository(
-        sessions
-    )
-    for repo in (mongo_l, postgres_l):
-        await repo.add(
-            workspace_id=ws, key_id="k", tool="update_form", ok=True, at=at(1)
-        )
-    assert strip(await mongo_l.list_by_workspace(ws)) == strip(
-        await postgres_l.list_by_workspace(ws)
-    )
 
 
 async def test_save_internal_answers_is_conditional_on_the_version(sessions):
