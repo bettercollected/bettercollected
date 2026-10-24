@@ -1,5 +1,7 @@
+import logging
 from http import HTTPStatus
 from typing import Any, Mapping, Dict
+from urllib.parse import urlparse
 
 from httpx import ConnectError
 from starlette.requests import Request
@@ -9,6 +11,27 @@ from backend.app.exceptions import HTTPException
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.http_methods import HTTPMethods
 from common.services.http_client import HttpClient
+
+log = logging.getLogger(__name__)
+
+
+def _upstream_error(response) -> Any:
+    """The upstream service's own error body (JSON), or None when it has none."""
+    try:
+        return response.json()
+    except ValueError:
+        return None
+
+
+def _error_code(content: Any) -> str:
+    """A short error code from an upstream error body, for the log: never the
+    body itself (it may carry user input)."""
+    if isinstance(content, dict):
+        for key in ("error", "code", "status"):
+            value = content.get(key)
+            if isinstance(value, (str, int)) and len(str(value)) <= 64:
+                return str(value)
+    return "-"
 
 
 class PluginProxyService:
@@ -49,19 +72,26 @@ class PluginProxyService:
                 timeout=60,
             )
 
-            if response.status_code == HTTPStatus.NOT_FOUND:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, content=response.json()
-                )
-            if response.status_code == HTTPStatus.UNAUTHORIZED:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED, content=response.json()
-                )
-            if response.status_code == HTTPStatus.FORBIDDEN:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, content=response.json()
-                )
             if response.status_code != HTTPStatus.OK:
+                content = _upstream_error(response)
+                log.warning(
+                    "plugin request to %s failed: upstream status %s, error %s",
+                    urlparse(url).path,
+                    response.status_code,
+                    _error_code(content),
+                )
+                if 400 <= response.status_code < 600:
+                    # the plugin's own status and message (an expired or
+                    # refused authorization, a missing scope, ...), not a
+                    # generic one that hides the cause
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        content=(
+                            content
+                            if content is not None
+                            else messages.proxy_server_error
+                        ),
+                    )
                 raise HTTPException(
                     HTTPStatus.INTERNAL_SERVER_ERROR, messages.proxy_server_error
                 )
