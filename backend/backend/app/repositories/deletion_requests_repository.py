@@ -32,7 +32,9 @@ class DeletionRequestsRepository:
         if anonymous_identity is not None:
             owner.append({"anonymous_identity": anonymous_identity})
         if owner:
-            find_query["$or"] = owner
+            # The scope is itself an $or (this workspace, or legacy rows):
+            # both must hold, so neither may replace the other.
+            find_query = {"$and": [find_query, {"$or": owner}]}
         aggregate_query = [
             {
                 "$lookup": {
