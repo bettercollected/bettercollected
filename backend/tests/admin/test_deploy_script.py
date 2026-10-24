@@ -139,6 +139,16 @@ DOCKER_STUB = textwrap.dedent(
     if argv[:1] == ["inspect"]:
         print(os.environ.get("STUB_ADMIN_HEALTH", "healthy"))
         sys.exit(0)
+    if argv[:1] == ["ps"]:
+        # STUB_TYPEFORM_PROJECT: the project an old integrations-typeform container belongs to
+        owner = os.environ.get("STUB_TYPEFORM_PROJECT", "")
+        filters = [a for a in argv if a.startswith("label=")]
+        if owner and "label=com.docker.compose.service=integrations-typeform" in filters and all(
+            f in ("label=com.docker.compose.service=integrations-typeform", "label=com.docker.compose.project=" + owner)
+            for f in filters
+        ):
+            print("0123456789ab")
+        sys.exit(0)
     sys.exit(0)
     '''
 )
@@ -784,3 +794,21 @@ def test_a_host_with_only_the_compose_plugin_deploys(site, tmp_path):
     assert "command not found" not in done.stderr
     assert any("bootstrap-keys" in c for c in calls)
     assert any("up --build" in c for c in calls)
+
+
+def test_typeform_leftovers_are_reported_never_removed(site):
+    # a pre-4.1 .env.typeform holds the Typeform secret and a database URI: say so, keep the file
+    work, _, _ = site
+    (work / ".env.typeform").write_text("TYPEFORM_CLIENT_SECRET=x\n")
+    done, _ = _run(site, extra={"STUB_TYPEFORM_PROJECT": "stack"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert ".env.typeform from an earlier release still exists" in done.stderr
+    assert "integrations-typeform container from an earlier release" in done.stderr
+    assert (work / ".env.typeform").exists()
+
+
+def test_another_projects_typeform_container_is_not_reported(site):
+    done, _ = _run(site, extra={"STUB_TYPEFORM_PROJECT": "other-stack"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert "integrations-typeform container" not in done.stderr
+    assert ".env.typeform" not in done.stderr

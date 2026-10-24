@@ -954,9 +954,13 @@ function dockerup() {
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
 
-  # a Typeform container from before 4.1 is no longer in the compose file: say so, never remove it
-  if [ -n "$(docker ps -aq --filter label=com.docker.compose.service=integrations-typeform 2>/dev/null)" ]; then
+  # Typeform leftovers from before 4.1 (no longer in the compose file): say so, never remove them.
+  # Only this compose project's container counts: another stack on the host is not ours to report.
+  if [ -n "$(docker ps -aq --filter label=com.docker.compose.project="$COMPOSE_PROJECT_NAME" --filter label=com.docker.compose.service=integrations-typeform 2>/dev/null)" ]; then
     echo "WARNING: an integrations-typeform container from an earlier release still exists. Typeform was removed in 4.1; remove that container when you no longer need it." >&2
+  fi
+  if [ -f .env.typeform ]; then
+    echo "WARNING: .env.typeform from an earlier release still exists. It holds the Typeform client secret and a database URI and is no longer used: delete it (rm .env.typeform)." >&2
   fi
   GOOGLE_ENABLED="$googleform_flag" "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
     echo "docker compose could not start the stack (see above). Fix the cause and run ./deploy.sh again: it continues where it stopped." >&2
