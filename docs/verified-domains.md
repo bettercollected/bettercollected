@@ -59,6 +59,8 @@ VERIFIED_DOMAINS_NAMESERVERS=1.1.1.1,9.9.9.9
 
 (Cloudflare and Quad9, both validating; any validating resolver you trust works, including your own.) A validating resolver answers SERVFAIL for a signed domain whose records were tampered with, which counts as `dns_error` (never as a pass, and never towards losing the domain). It cannot protect a domain that isn't signed; for those, the direct path to a well-known resolver is what narrows the window. The containers that need it are the backend (claims and "Verify now") and the jobs worker (the hourly re-check); both read the settings store, so setting it once in the admin portal (section "domains") covers both, or set it in each service's environment. With single sign-on configured, the backend logs a warning at startup while it is unset.
 
+The value is IP addresses only (IPv4 or IPv6), separated by commas; spaces around them are fine. A host name (`dns.google`), a port, a CIDR or another separator (`1.1.1.1;9.9.9.9`) is refused: the admin portal won't save it, and in a service's environment it stops the service at start with an error naming `VERIFIED_DOMAINS_NAMESERVERS` (before, it made every lookup and so every re-check fail).
+
 ## Which domains can be claimed
 
 Code: `backend/app/services/domains/names.py`. Domains are stored in their canonical form: lower case, IDNA 2008 with UTS #46 mapping (`idna`), so `Bücher.de` becomes `xn--bcher-kva.de`, and without a trailing dot. These are refused, each with a stable `code`:
@@ -116,7 +118,7 @@ Collection `workspace_domains` (Beanie `WorkspaceDomainDocument`), with its Post
 | Setting | Default | |
 |---|---|---|
 | `DNS_TIMEOUT_S` | 5 | total time for one lookup |
-| `NAMESERVERS` | empty | comma-separated resolver IPs; empty uses `/etc/resolv.conf`. Set DNSSEC-validating resolvers on hosted stacks ([above](#the-resolver-dnssec)) |
+| `NAMESERVERS` | empty | comma-separated resolver IP addresses (no host names); empty uses `/etc/resolv.conf`. Set DNSSEC-validating resolvers on hosted stacks ([above](#the-resolver-dnssec)) |
 | `LOSS_AFTER_FAILED_CHECKS` | 3 | |
 | `RECHECK_INTERVAL_HOURS` | 24 | |
 | `MAX_PER_WORKSPACE` | 20 | |

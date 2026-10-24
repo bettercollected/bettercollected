@@ -173,9 +173,11 @@ def field_kind(spec: SettingSpec) -> FieldKind:
         return FieldKind("textarea", {"rows": "6", "spellcheck": "false"}, hint="A JSON object or array.")
     if t is ValueType.URL:
         return FieldKind("url", {"maxlength": "2048", "spellcheck": "false"}, hint="An absolute URL.")
-    hint = {"cidr_list": "Comma-separated addresses or CIDR ranges.", "host": "A host name or address."}.get(
-        spec.format, ""
-    )
+    hint = {
+        "cidr_list": "Comma-separated addresses or CIDR ranges.",
+        "ip_list": "Comma-separated IP addresses (IPv4 or IPv6), no host names.",
+        "host": "A host name or address.",
+    }.get(spec.format, "")
     if spec.max_length:
         attrs["maxlength"] = str(spec.max_length)
     return FieldKind("text", {**attrs, "spellcheck": "false"}, hint=hint)
