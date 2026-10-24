@@ -127,6 +127,7 @@ MONGO_DRIVEN = {
         "test_the_unique_index_and_the_duplicate_report",
     },
     "tests/app/db/test_outbox.py": ALL,
+    "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
     "tests/app/migrate/test_marker.py": ALL,
     "tests/app/migrate/test_mirror_order.py": ALL,

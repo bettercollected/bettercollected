@@ -18,6 +18,7 @@ from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
 from common.db.convergence import active, touch, ttl_of
+from common.db.tombstones import record_postgres
 
 
 class PostgresNotConfigured(RuntimeError):
@@ -226,16 +227,25 @@ class PostgresRepositoryBase:
             f"expected one of {[t.__name__ for t in expected]}"
         )
 
+    async def _delete_recorded(self, session, row: Type[Any], *where: Any) -> int:
+        """Delete and, in the same transaction, record a tombstone per
+        deleted id (:mod:`common.db.tombstones`); report the ids to the
+        routed write in progress (:mod:`common.db.convergence`)."""
+        ids = (
+            (await session.execute(delete(row).where(*where).returning(row.id)))
+            .scalars()
+            .all()
+        )
+        await record_postgres(
+            session, row.__table__.schema, row.mongo_collection(), ids
+        )
+        self._touch(row, ids)
+        return len(ids)
+
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
         row = row or self.row
         async with self._session() as session, session.begin():
-            ids = (
-                (await session.execute(delete(row).where(*where).returning(row.id)))
-                .scalars()
-                .all()
-            )
-        self._touch(row, ids)
-        return len(ids)
+            return await self._delete_recorded(session, row, *where)
 
     async def delete_one_where(
         self, *where: Any, row: Optional[Type[Any]] = None
@@ -252,17 +262,7 @@ class PostgresRepositoryBase:
                 .limit(1)
                 .scalar_subquery()
             )
-            ids = (
-                (
-                    await session.execute(
-                        delete(row).where(row.id == target).returning(row.id)
-                    )
-                )
-                .scalars()
-                .all()
-            )
-        self._touch(row, ids)
-        return len(ids)
+            return await self._delete_recorded(session, row, row.id == target)
 
     async def delete_by_id(self, document_id: Any) -> int:
         return await self.delete_where(self.row.id == str(document_id))
