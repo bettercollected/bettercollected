@@ -45,7 +45,19 @@ _bettercollected-verification.acme.com.  TXT  "bettercollected-domain-verificati
 - The record goes on a dedicated name, not the apex. That keeps it away from the apex's SPF and other TXT records, and avoids CNAME-at-apex problems.
 - Each claim has its own 128-bit random token, so several workspaces' claims can sit side by side on that name. Only the workspace whose token is there can verify.
 - The whole string must match exactly. A record longer than 255 bytes is split into several strings, and these are joined before comparing.
-- Lookups use `dnspython` with no cache on our side, `search=False`, and a total time limit of `VERIFIED_DOMAINS_DNS_TIMEOUT_S`. They go to the system resolver, or to `VERIFIED_DOMAINS_NAMESERVERS` if set. The resolver is trusted: use one that does DNSSEC validation where that matters.
+- Lookups use `dnspython` with no cache on our side, `search=False`, and a total time limit of `VERIFIED_DOMAINS_DNS_TIMEOUT_S`. They go to the system resolver, or to `VERIFIED_DOMAINS_NAMESERVERS` if set. The resolver's answer is trusted, so see [the resolver](#the-resolver-dnssec) below.
+
+## The resolver (DNSSEC)
+
+A verified domain hands every address on it to the workspace's identity provider, so a forged TXT answer is a forged trust grant. The backend does not validate DNSSEC itself; it trusts the resolver it asks. Without `VERIFIED_DOMAINS_NAMESERVERS` that is the container's resolver (Docker's embedded DNS, forwarding to whatever the host uses), which may not validate and may be on a shared network.
+
+On every hosted stack, set it to resolvers that **validate DNSSEC** and are reached directly:
+
+```
+VERIFIED_DOMAINS_NAMESERVERS=1.1.1.1,9.9.9.9
+```
+
+(Cloudflare and Quad9, both validating; any validating resolver you trust works, including your own.) A validating resolver answers SERVFAIL for a signed domain whose records were tampered with, which counts as `dns_error` (never as a pass, and never towards losing the domain). It cannot protect a domain that isn't signed; for those, the direct path to a well-known resolver is what narrows the window. The containers that need it are the backend (claims and "Verify now") and the jobs worker (the hourly re-check); both read the settings store, so setting it once in the admin portal (section "domains") covers both, or set it in each service's environment. With single sign-on configured, the backend logs a warning at startup while it is unset.
 
 ## Which domains can be claimed
 
@@ -74,7 +86,7 @@ A workspace can hold at most `VERIFIED_DOMAINS_MAX_PER_WORKSPACE` claims (defaul
 
 ## Re-checks and losing the record
 
-`WorkspaceDomainService.recheck_verified_domains(limit)` re-checks verified domains not checked within `VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS`, oldest first, and returns counts. It is meant for a periodic job. No job schedule is wired up yet.
+`WorkspaceDomainService.recheck_verified_domains(limit)` re-checks verified domains not checked within `VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS`, oldest first, and returns counts. The `recheck_verified_domains` job (procrastinate, on the jobs worker) runs it every hour at minute 23, in batches of 100 until a batch comes back short (at most 20 batches a run), so each verified domain is checked about once a day; it logs the counts (`checked`, `passed`, `failed`, `lost`) and never a domain name. Without a running jobs worker nothing re-checks: "Verify now" still does.
 
 - A check that passes resets `failedChecks` and clears `verificationLostAt`.
 - A check that finds the record missing or wrong (`no_record`, `token_mismatch`) adds one to `failedChecks`. After `VERIFIED_DOMAINS_LOSS_AFTER_FAILED_CHECKS` such checks in a row (default 3), `verificationLostAt` is set.
@@ -104,18 +116,18 @@ Collection `workspace_domains` (Beanie `WorkspaceDomainDocument`), with its Post
 | Setting | Default | |
 |---|---|---|
 | `DNS_TIMEOUT_S` | 5 | total time for one lookup |
-| `NAMESERVERS` | empty | comma-separated resolver IPs; empty uses `/etc/resolv.conf` |
+| `NAMESERVERS` | empty | comma-separated resolver IPs; empty uses `/etc/resolv.conf`. Set DNSSEC-validating resolvers on hosted stacks ([above](#the-resolver-dnssec)) |
 | `LOSS_AFTER_FAILED_CHECKS` | 3 | |
 | `RECHECK_INTERVAL_HOURS` | 24 | |
 | `MAX_PER_WORKSPACE` | 20 | |
 | `RESERVED` | empty | comma-separated domains no workspace may claim |
-| `PLATFORM_ADMIN_EMAILS` | empty | read without the prefix too, the same variable auth uses |
+| `PLATFORM_ADMIN_EMAILS` | empty | read without the prefix too, the same variable auth uses. Must reach the **backend**, not only auth and the admin portal, or the platform admins' domains are not reserved (logged at startup with single sign-on on). `docker-compose.deployment.yml` passes the root `.env`'s `PLATFORM_ADMIN_EMAILS` to the backend as `VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS`; on a stack without that file (Docker Swarm) set either name on the backend service. An empty value counts as unset |
 
 ## Tests
 
-- `tests/app/services/test_domain_names.py`: normalisation and refusals.
+- `tests/app/services/test_domain_names.py`: normalisation, refusals, the platform admins' reservation and the startup warnings.
 - `tests/app/services/test_domain_dns.py`: the check, with the resolver mocked.
-- `tests/app/controllers/test_workspace_domains.py`: API, permissions, uniqueness, re-checks and helpers.
+- `tests/app/controllers/test_workspace_domains.py`: API, permissions, uniqueness, re-checks, the hourly job and helpers.
 - `tests/app/repositories/test_workspace_domain_parity.py`: both stores.
 
 `tests/app/services/test_domain_dns_live.py` does real lookups and only runs with `BC_LIVE_DNS_TESTS=1`.

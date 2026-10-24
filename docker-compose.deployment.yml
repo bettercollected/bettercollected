@@ -289,6 +289,10 @@ services:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:-}
       SSO_REDIRECT_URI: ${SSO_REDIRECT_URI:-}
       SSO_SAML_AUDIENCE: ${SSO_SAML_AUDIENCE:-}
+      # the platform admins' email domains (the root .env's list, the admin
+      # portal's) can't be claimed as verified domains (docs/verified-domains.md);
+      # empty leaves a PLATFORM_ADMIN_EMAILS from .env.deployment in force
+      VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
     # .env.deployment is the operator's own file and is not tracked; deploy.sh
     # creates it from .env.deployment.example when it is missing. Optional
     # (Compose 2.24+) here and in the other three services that read it, so
