@@ -209,6 +209,7 @@ class PostgresRateLimitRepository(PostgresRepositoryBase):
                     expires_at=expires_at,
                 )
                 values = row_values(first)
+                self._touch(RateLimitCounterRow, [values["id"]])
                 inserted = await session.execute(
                     pg_insert(RateLimitCounterRow)
                     .values({names[k]: v for k, v in values.items()})
@@ -248,6 +249,7 @@ class PostgresIdempotencyRepository(PostgresRepositoryBase):
         now = utcnow()
         names = self._column_names()
         values = row_values(record)
+        self._touch(ApiIdempotencyKeyRow, [values["id"]])
         async with self._session() as session, session.begin():
             # an expired record gives way to the new one
             await session.execute(
