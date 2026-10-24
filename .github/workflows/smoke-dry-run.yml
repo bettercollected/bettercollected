@@ -1,0 +1,165 @@
+name: Smoke test dry run
+
+# The production smoke suite (scripts/smoke, docs/smoke-test.md) against a
+# throwaway stack built in this job: Postgres, the auth service, the backend,
+# the web app and a Mailpit inbox for the sign-in codes. No production
+# secret, address or data is involved. Not part of "CI ok": it is slow, and it
+# exists to try changes to the suite (or to the pages it drives) before a
+# production run. The Google Forms check is skipped (no provider here) and the
+# run account's deletion stays queued (no worker here).
+on:
+    workflow_dispatch:
+    pull_request:
+        paths:
+            - "scripts/smoke/**"
+            - ".github/workflows/smoke-dry-run.yml"
+
+permissions:
+    contents: read
+
+concurrency:
+    group: smoke-dry-run-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    VIRTUAL_ENV: ""
+    # the stack's own values, as in ci.yml: nothing here is a real secret
+    DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/bettercollected_test
+    MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+    DB_READ_SOURCE: postgres
+    DB_WRITE_MODE: postgres
+    DB_AUTO_MIGRATE: "true"
+    AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+    AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+    AUTH_INTERNAL_NOTIFY_KEY: smoke-dry-run-notify-key-0123456789abcdef
+    MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+    API_ROOT_PATH: /api/v1
+    API_ENVIRONMENT: local
+    API_ENABLE_FORM_CREATION: "true"
+    # "localhost" in API_HOST makes the session cookies plain-http cookies;
+    # without it they are Secure and never come back over http (401)
+    API_HOST: localhost
+    AUTH_BASE_URL: http://127.0.0.1:8001/api/v1
+    SCHEDULAR_ENABLED: "False"
+    UNSPLASH_ACCESS_KEY: ""
+    AWS_PRE_SIGNED_URL_EXPIRY: "3600"
+    MAIL_SMTP_SERVER: 127.0.0.1
+    MAIL_SMTP_PORT: "1025"
+    MAIL_SENDER: dev@example.com
+    MAIL_STARTTLS: "false"
+    MAIL_SSL_TLS: "false"
+    MAIL_USE_CREDENTIALS: "false"
+    MAIL_VALIDATE_CERTS: "false"
+    MAIL_USER: ""
+    MAIL_PASSWORD: ""
+    # the web app: one host for the dashboard and the forms
+    NEXT_PUBLIC_API_ENDPOINT_HOST: http://localhost:8000/api/v1
+    INTERNAL_DOCKER_API_ENDPOINT_HOST: http://localhost:8000/api/v1
+    DASHBOARD_DOMAIN: localhost:3000
+    FORM_DOMAIN: localhost:3000
+    CLIENT_DOMAIN: localhost:3000
+    HTTP_SCHEME: http://
+
+jobs:
+    dry-run:
+        name: Smoke test against a throwaway stack
+        runs-on: ubuntu-latest
+        timeout-minutes: 40
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Start Postgres and Mailpit
+              run: |
+                  .github/scripts/test-dbs.sh start postgres
+                  docker run -d --name ci-mailpit -p 127.0.0.1:1025:1025 -p 127.0.0.1:8025:8025 \
+                      axllent/mailpit:v1.31.4@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Set up Node
+              id: node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: .nvmrc
+
+            - name: Restore node_modules
+              id: modules
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: webapp/node_modules
+                  key: webapp-node-modules-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('webapp/yarn.lock') }}
+
+            - name: Install the web app's dependencies
+              if: steps.modules.outputs.cache-hit != 'true'
+              working-directory: webapp
+              run: yarn install --frozen-lockfile
+
+            - name: Build the web app
+              working-directory: webapp
+              run: yarn build
+
+            - name: Install the services and the suite
+              run: |
+                  (cd auth && uv sync --frozen)
+                  (cd backend && uv sync --frozen)
+                  (cd scripts/smoke && uv sync --frozen --no-dev && uv run --frozen --no-dev playwright install --with-deps chromium)
+
+            - name: Start the stack
+              run: |
+                  .github/scripts/test-dbs.sh wait
+                  (cd auth && nohup uv run --frozen python -m uvicorn auth.app:get_application --host 127.0.0.1 --port 8001 >"$RUNNER_TEMP/auth.log" 2>&1 &)
+                  curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://127.0.0.1:8001/api/v1/ready
+                  # the allowed origins before the backend starts: it caches them for a minute
+                  (cd backend && uv run --frozen alembic -c alembic.ini upgrade head)
+                  (cd backend && uv run --frozen python -m backend.seed_refdata --origin http://localhost:3000 --origin http://127.0.0.1:3000 --google-enabled false)
+                  (cd backend && nohup uv run --frozen python -m uvicorn backend.app:get_application --host 127.0.0.1 --port 8000 >"$RUNNER_TEMP/backend.log" 2>&1 &)
+                  curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://127.0.0.1:8000/api/v1/providers
+                  (cd webapp && nohup yarn start -p 3000 >"$RUNNER_TEMP/webapp.log" 2>&1 &)
+                  curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://localhost:3000/api/config
+
+            # the owner signs in by code (Mailpit) and makes a key; the
+            # workspace serves as its own custom domain at 127.0.0.1:3000
+            - name: Prepare the test workspace
+              working-directory: scripts/smoke
+              run: |
+                  env_file="$RUNNER_TEMP/dry-run.env"
+                  uv run --frozen --no-dev python -m smoke.devstack --api http://127.0.0.1:8000/api/v1 \
+                      --mailpit http://127.0.0.1:8025 --origin http://localhost:3000 --env-file "$env_file"
+                  key=$(sed -n 's/^SMOKE_API_KEY=//p' "$env_file")
+                  echo "::add-mask::$key"
+                  workspace=$(sed -n 's/^SMOKE_WORKSPACE_ID=//p' "$env_file")
+                  [[ $workspace =~ ^[0-9a-f]{24}$ ]]
+                  docker exec ci-postgres psql -q -U postgres -d bettercollected_test -c \
+                      "UPDATE app.workspaces SET doc = jsonb_set(doc, '{custom_domain}', '\"127.0.0.1:3000\"') WHERE id = '$workspace'"
+                  cat "$env_file" >>"$GITHUB_ENV"
+                  rm -f "$env_file"
+
+            - name: Run the smoke test
+              working-directory: scripts/smoke
+              env:
+                  SMOKE_APP_URL: http://localhost:3000
+                  SMOKE_MAILBOX: smoke@example.com
+                  SMOKE_CUSTOM_DOMAIN: 127.0.0.1:3000
+                  SMOKE_GOOGLE_FORM_ID: 1DryRunNotARealGoogleFormEditId0000000000000
+              run: |
+                  uv run --frozen --no-dev python -m smoke --api-url http://localhost:8000/api/v1 \
+                      --mailpit http://127.0.0.1:8025 --report-dir "$RUNNER_TEMP/smoke-report" \
+                      --debug-dir "$RUNNER_TEMP/smoke-report/debug"
+
+            - name: Keep the report and the stack's logs
+              if: always()
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: smoke-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: |
+                      ${{ runner.temp }}/smoke-report
+                      ${{ runner.temp }}/*.log
+                  if-no-files-found: warn
+                  retention-days: 7
