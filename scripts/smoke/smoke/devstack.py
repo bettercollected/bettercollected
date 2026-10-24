@@ -31,6 +31,7 @@ from smoke.redact import Redactor
 SCOPES = [
     "forms:read",
     "forms:write",
+    "forms:delete",
     "responses:read",
     "deletion_requests:read",
     "deletion_requests:write",
@@ -73,6 +74,14 @@ def main(argv: list[str] | None = None) -> int:
     call("POST", f"/auth/creator/otp/send?{query}")
     code = mailbox.wait_for_code(args.owner, asked_at, timeout=60)
     call("POST", "/auth/otp/validate", {"email": args.owner, "otp_code": code})
+    if not any(c.name == "Authorization" and not c.secure for c in jar):
+        # Secure cookies are never sent back over http
+        print(
+            "the sign-in set no usable session cookie: run the backend with "
+            "API_HOST=localhost on a local stack",
+            file=sys.stderr,
+        )
+        return 1
     workspace = call("GET", "/workspaces/mine")[0]
     key = call(
         "POST",

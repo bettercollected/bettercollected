@@ -36,6 +36,9 @@ env:
     API_ROOT_PATH: /api/v1
     API_ENVIRONMENT: local
     API_ENABLE_FORM_CREATION: "true"
+    # "localhost" in API_HOST makes the session cookies plain-http cookies;
+    # without it they are Secure and never come back over http (401)
+    API_HOST: localhost
     AUTH_BASE_URL: http://127.0.0.1:8001/api/v1
     SCHEDULAR_ENABLED: "False"
     UNSPLASH_ACCESS_KEY: ""
