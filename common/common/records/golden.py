@@ -27,7 +27,7 @@ from __future__ import annotations
 import types
 from copy import copy
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from pydantic import BaseModel
 
@@ -204,14 +204,23 @@ def check_wire(
     fixture_path: Path,
     classes: Mapping[str, type],
     decode_document: Callable[[type, Mapping[str, Any]], Any],
+    records: Optional[Mapping[str, type]] = None,
 ) -> List[str]:
     """For each document class in ``classes`` (name -> Beanie class): its twin
     has the same JSON schema in both modes, and every pinned ``doc`` decoded
     into the twin dumps (JSON, by name and by alias) exactly like the Beanie
-    instance ``decode_document`` returns."""
+    instance ``decode_document`` returns.
+
+    ``records`` (name -> Record class) compares those classes instead of the
+    twins: after a group's move, its ``Record`` classes against the Beanie
+    classes as they were (kept by the tests for this)."""
     problems = []
+
+    def record_of(name: str, cls: type) -> type:
+        return records[name] if records is not None else twin(cls)
+
     for name, cls in sorted(classes.items()):
-        made = twin(cls)
+        made = record_of(name, cls)
         for mode in ("validation", "serialization"):
             if made.model_json_schema(mode=mode) != cls.model_json_schema(mode=mode):
                 problems.append(f"{name}: JSON schema ({mode}) differs")
@@ -219,7 +228,7 @@ def check_wire(
         cls = classes.get(case["document"])
         if cls is None:
             continue
-        record = decode(twin(cls), case["doc"])
+        record = decode(record_of(case["document"], cls), case["doc"])
         document = decode_document(cls, case["doc"])
         if _dumps(record) != _dumps(document):
             problems.append(f"{name}: the API would serialise it differently")

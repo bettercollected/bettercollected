@@ -1,14 +1,14 @@
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
 from common.enums.plan import Plans
 from common.models.user import User
+from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.price_suggestion import PriceSuggestionRequest
-from backend.app.repositories.price_suggestion_repository import (
-    PriceSuggestionRepository,
+from backend.app.repositories.postgres.refdata import (
+    PostgresPriceSuggestionRepository,
 )
 from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.services.auth_service import AuthService
@@ -21,7 +21,7 @@ class PriceSuggestionService:
         self,
         auth_service: AuthService,
         workspace_service: WorkspaceService,
-        price_suggestion_repo: PriceSuggestionRepository,
+        price_suggestion_repo: PostgresPriceSuggestionRepository,
     ):
         self.auth_service: AuthService = auth_service
         self.workspace_service: WorkspaceService = workspace_service
@@ -37,7 +37,7 @@ class PriceSuggestionService:
 
         await self.price_suggestion_repo.add(
             PriceSuggestion(
-                user_id=PydanticObjectId(user.id),
+                user_id=RecordId(user.id),
                 price=suggested_price.price,
                 email=user.sub,
             )

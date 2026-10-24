@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from backend.app.repositories.rate_limit_repository import RateLimitRepository
+from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
 
 _KEY_LABEL = b"bettercollected rate-limit counter v1\0"
 
@@ -29,7 +29,7 @@ class Verdict:
 class FixedWindowRateLimiter:
     def __init__(
         self,
-        repo: RateLimitRepository,
+        repo: PostgresRateLimitRepository,
         secret: str,
         clock: Callable[[], float] = time.time,
     ):

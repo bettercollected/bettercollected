@@ -7,14 +7,14 @@ from common.models.user import User
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.form_plugin_config import FormProviderConfigDto
-from backend.app.repositories.form_plugin_provider_repository import (
-    FormPluginProviderRepository,
+from backend.app.repositories.postgres.refdata import (
+    PostgresFormPluginProviderRepository,
 )
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 
 
 class FormPluginProviderService:
-    def __init__(self, form_provider_repo: FormPluginProviderRepository):
+    def __init__(self, form_provider_repo: PostgresFormPluginProviderRepository):
         self._form_provider_repo = form_provider_repo
 
     async def get_providers(self, user: User = None, get_all: bool = False):

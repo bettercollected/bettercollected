@@ -28,7 +28,7 @@ from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from tests.app.repositories.test_refdata_parity import parity
+from tests.app.repositories.parity import parity
 
 NOW = dt.datetime(2026, 3, 18, 12, 0, tzinfo=dt.timezone.utc)  # a Wednesday
 WEEKS = [dt.datetime(2026, 3, d, tzinfo=dt.timezone.utc) for d in (2, 9, 16, 23)]

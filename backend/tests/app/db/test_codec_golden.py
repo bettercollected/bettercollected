@@ -11,6 +11,13 @@ from sqlalchemy import delete, select
 
 from backend.app.container import container
 from backend.app.handlers.database import document_models
+from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+from backend.app.schemas.coupon_codes import CouponCodeDocument
+from backend.app.schemas.flow_event import FlowEventDocument
+from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.schemas.price_suggestion import PriceSuggestion
+from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
+from backend.app.schemas.user_feedback import UserFeedbackDocument
 from backend.db.base import Base
 from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
 from common.db.codec_golden import (
@@ -27,6 +34,19 @@ FIXTURE = Path(__file__).parents[2] / "fixtures" / "codec_golden" / "backend.jso
 # codec path is covered by common/tests/test_codec_golden.py.
 NO_DOCUMENT_CLASS = {"scheduler_form_configs"}
 
+# The document classes on ``Record`` (groups served from Postgres only): not
+# Beanie documents, so not in ``document_models``. They win over a Beanie
+# class of the same collection (tests/app/db/beanie_originals.py).
+RECORD_CLASSES = (
+    AllowedOriginsDocument,
+    FormPluginConfigDocument,
+    CouponCodeDocument,
+    PriceSuggestion,
+    UserFeedbackDocument,
+    FlowEventDocument,
+    RateLimitCounterDocument,
+)
+
 # Values the synthesizer cannot guess (a field validator with a checksum).
 OVERRIDES = {"coupon_codes": {"code": "A" * 24 + "0"}}
 
@@ -35,8 +55,12 @@ def _rows():
     return [m.class_ for m in Base.registry.mappers if issubclass(m.class_, BaseRow)]
 
 
+def _models():
+    return [*document_models, *RECORD_CLASSES]
+
+
 def _documents():
-    return mirrored_documents(_rows(), document_models)
+    return mirrored_documents(_rows(), _models())
 
 
 def test_every_mirrored_table_has_a_document_class_or_is_listed(_initialized_app):
@@ -50,7 +74,7 @@ def test_encoding_matches_the_pinned_bytes(_initialized_app):
 
 
 def test_decode_then_encode_gives_the_pinned_bytes(_initialized_app):
-    classes = {cls.__name__: cls for cls in document_models}
+    classes = {cls.__name__: cls for cls in _models()}
     assert check_round_trip(FIXTURE, classes) == []
 
 

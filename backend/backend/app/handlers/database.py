@@ -6,11 +6,7 @@ from loguru import logger
 from pymongo import AsyncMongoClient
 from pymongo.errors import InvalidOperation, PyMongoError
 
-from backend.app.schemas.allowed_origin import (
-    AllowedOriginsDocument,
-)
 from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
-from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupMemberDocument,
@@ -47,8 +43,6 @@ from backend.app.schemas.scim import (
     ScimGroupMemberDocument,
     ScimUserDocument,
 )
-from backend.app.schemas.flow_event import FlowEventDocument
-from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.api_idempotency_record import ApiIdempotencyRecordDocument
 from common.db import MirrorWriteFailureDocument, init_documents, mongo_client
 
@@ -96,10 +90,8 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
     db = client[db]
     document_models.extend(
         [
-            AllowedOriginsDocument,
             FormDocument,
             FormResponseDocument,
-            FormPluginConfigDocument,
             WorkspaceDocument,
             WorkspaceFormDocument,
             WorkspaceUserInvitesDocument,
@@ -109,8 +101,6 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
             ResponderGroupFormDocument,
             ResponderGroupMemberDocument,
             ResponderGroupDocument,
-            FlowEventDocument,
-            RateLimitCounterDocument,
             ApiIdempotencyRecordDocument,
             WorkspaceDomainDocument,
             SsoConnectionDocument,
