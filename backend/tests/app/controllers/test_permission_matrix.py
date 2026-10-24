@@ -488,6 +488,7 @@ CASES = [
     Case("scim.resync", "POST", W + "/scim/resync", OWNER_ONLY, ok=200),
     # --- forms
     Case("forms.list", "GET", W + "/forms", P.FORM_READ),
+    Case("forms.search", "POST", W + "/forms/search?query=a", P.FORM_READ, ok=200),
     Case(
         "forms.create",
         "POST",

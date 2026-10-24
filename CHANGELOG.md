@@ -13,6 +13,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.4] - 2026-10-24
+
 ### Added
 
 - The Postgres cutover runbook (`docs/postgres-cutover-runbook.md`) now covers Docker Swarm stacks,
@@ -43,8 +45,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   app icons are the same ink "b" (on a white square for the icons). The wordmark is labelled
   "bettercollected" for screen readers, and email logos now say "bettercollected" instead of "logo".
 
-### Removed
-
 ### Fixed
 
 - A document import running in the API process that stops on an unexpected error (outside the import's
@@ -58,8 +58,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Flow view: a page node's "+N more" counts only the questions it does not show (it counted one too
   many, the question that names the node). "Start with AI" opens on phones and small tablets too
   (its dialog fits a 375px screen); only "Create New Form" is marked desktop-only.
+- The forms list and form search ask the auth service about each importer once, instead of once per
+  form on the page. Search now shows each form's own importer: it could show another member's name on
+  a form, and no importer at all on forms imported by someone other than the searching member. The forms
+  list's response counts count distinct workspaces in MongoDB as Postgres does, so a form linked twice
+  to the same workspace still counts that workspace's older responses.
 
 ### Security
+
+- Searching a workspace's draft forms (`POST /workspaces/{id}/forms/search` without `published=true`)
+  now needs permission to read the workspace's forms, as the forms list already did. Any signed-in
+  account got 403 from the list but could search another workspace's drafts. Importer details (the
+  importing member's name and email) are only ever attached for members who may read the workspace's
+  forms: never in published search, and no longer when a non-member reads a single form. A single form's
+  importer is now the member who imported it, not the first user the auth service returned.
 
 ## [4.0.3] - 2026-10-24
 
