@@ -992,6 +992,28 @@ input[type='number']::-webkit-outer-spin-button {
     }
 }
 
+/*
+ * Selection feedback on a lettered option card (views/atoms/choice.tsx): the
+ * check mark of a chosen answer grows in over 160ms. Only when the
+ * respondent hasn't asked for reduced motion; then it simply appears.
+ */
+@keyframes form-choice-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .form-choice-pop {
+        animation: form-choice-pop 160ms ease-out;
+    }
+}
+
 /* Hide spin button for input type number */
 input.spin-button-hidden::-webkit-outer-spin-button,
 input.spin-button-hidden::-webkit-inner-spin-button {

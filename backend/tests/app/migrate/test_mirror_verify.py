@@ -17,15 +17,12 @@ import pytest
 from beanie import PydanticObjectId
 
 from backend.app.container import container
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.postgres.forms import PostgresFormRepository
-from backend.app.repositories.postgres.refdata import PostgresAllowedOriginsRepository
-from backend.app.repositories.postgres.ai import PostgresRateLimitRepository
+from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
 from backend.app.repositories.postgres.responses import (
     PostgresResponderGroupsRepository,
 )
-from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -39,6 +36,11 @@ from common.db import ReadSource, RoutingRepository, load_flags
 from common.db.migrate import Runner, Target
 from common.models.standard_form import StandardForm
 from tests.app.controllers.data import testUser
+from tests.app.db.beanie_originals import (
+    AllowedOriginsRepository,
+    PostgresAllowedOriginsRepository,
+    RateLimitRepository,
+)
 
 MODES = ["dual", "postgres_primary_dual"]
 # reconcile direction: from the primary to the mirror

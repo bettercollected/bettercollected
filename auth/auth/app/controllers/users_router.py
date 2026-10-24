@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, delete, patch
@@ -48,9 +48,11 @@ class UserRouter(Routable):
         token: str,
         inviter_id: str,
         background_tasks: BackgroundTasks,
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         background_tasks.add_task(
             self.user_service.send_mail_to_user_for_invitation,
+            locale=locale,
             workspace_title=workspace_title,
             workspace_name=workspace_name,
             role=role,

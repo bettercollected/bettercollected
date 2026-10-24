@@ -207,9 +207,9 @@ docker build --build-arg "NEXT_PUBLIC_APP_VERSION=$(scripts/app-version.sh)" \
 one, else the short commit (shown as `build · b3a8cee`). `deploy.sh` pulls the
 published images, which carry their own version.
 
-## Integrations (Google / Typeform)
+## Integrations (Google)
 
-Setting up the Google and Typeform OAuth apps is covered in
+Setting up the Google OAuth app is covered in
 [RUNNING_INTEGRATIONS.md](RUNNING_INTEGRATIONS.md).
 
 ## Tests, lint & format

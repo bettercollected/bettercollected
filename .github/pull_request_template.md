@@ -22,7 +22,7 @@ Closes #<!-- issue number, if any -->
 - [ ] webapp
 - [ ] backend
 - [ ] auth
-- [ ] integrations (google / typeform)
+- [ ] integrations (google)
 - [ ] temporal (workers)
 - [ ] infra / docs
 

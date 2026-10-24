@@ -77,7 +77,6 @@
     "SEND_INVITATION": "Send Invitation",
     "SHARE": "Share",
     "SUBMIT": "Submit",
-    "TYPEFORM_SIGNIN": "Sign in with Typeform",
     "UPDATE": "Update",
     "UPDATE_URL": "Update URL",
     "UPDATE_WORKSPACE": "Update workspace",
@@ -189,7 +188,7 @@
     "DELETION_RESPONSE_WARNING_MESSAGE": "Ask the workspace to delete this response?",
     "DRAFT": "Draft",
     "EMPTY": {
-      "DESCRIPTION": "Import your Google Forms or Typeforms",
+      "DESCRIPTION": "Import your Google Forms",
       "TITLE": "Import your first form"
     },
     "EMPTY_DELETION_REQUEST": {
@@ -360,7 +359,7 @@
     },
     "FORM_BUILDERS": {
       "TITLE": "Do you use online form builders?",
-      "DESCRIPTION": "Do you use online form builders like Google Form and Typeform for collecting form responses for yourself or your company?"
+      "DESCRIPTION": "Do you use online form builders like Google Forms for collecting form responses for yourself or your company?"
     },
     "FORM_BRAND": {
       "TITLE": "Did you ever wish if you could brand your forms better?",
@@ -623,7 +622,7 @@
     "ENTER_OTP_CODE": "Enter the 6-digit code",
     "ENTER_CODE_PLACEHOLDER": "eg: 000000",
     "SIGNUP_AGREEMENT_DESCRIPTION": "By signing up, you agree to our",
-    "SIGNUP_TO_CONTINUE": "You can sign up by simply signing in with Google or Typeform, or using your email.",
+    "SIGNUP_TO_CONTINUE": "You can sign up by signing in with Google, or with a code sent to your email.",
     "FEATURES": {
       "TITLE": "We’re a privacy-focused form builder platform",
       "OTP_TITLE": "Become a better data collector.",
@@ -631,10 +630,6 @@
       "DESCRIPTION": "Unlike other form builders, we put form responders' privacy rights at the forefront.",
       "OTP_DESCRIPTION": "We make sure that the responders can access their form responses and can request deletion of their responses whenever they choose to do so."
     }
-  },
-  "SIRETO_FOOTER": {
-    "PRODUCT_OF": "A product of Sireto B.V.",
-    "TRADEMARK": "Sireto® is a registered trademark of Sireto B.V."
   },
   "SLUG": {
     "DEFAULT": "Slug",

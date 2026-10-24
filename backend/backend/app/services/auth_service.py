@@ -1,8 +1,9 @@
 import json
+import logging
 import re
 from http import HTTPStatus
 from typing import Optional, Tuple
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from common.configs.crypto import Crypto
 from common.enums.roles import Roles
@@ -19,6 +20,11 @@ from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.google_forms_mode import (
+    google_service_enabled,
+    is_google,
+    refuse_google_forms_processing,
+)
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import safe_redirect
 from backend.app.services.session_service import (
@@ -35,6 +41,8 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+
+log = logging.getLogger(__name__)
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
 
@@ -124,13 +132,15 @@ class AuthService:
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
             )
 
-    async def send_otp_for_creator(self, receiver_email: EmailStr):
+    async def send_otp_for_creator(
+        self, receiver_email: EmailStr, locale: Optional[str] = None
+    ):
         if self.sso_policy is not None:
             await self.sso_policy.check_code_sign_in(receiver_email)
-        await workspaces_service.request_code_mail(
-            self.http_client,
-            {"receiver_email": receiver_email, "creator": True},
-        )
+        params = {"receiver_email": receiver_email, "creator": True}
+        if locale:
+            params["locale"] = locale
+        await workspaces_service.request_code_mail(self.http_client, params)
         return {"message": "Otp sent successfully"}
 
     async def validate_otp(
@@ -190,6 +200,8 @@ class AuthService:
     async def get_oauth_url(
         self, provider_name: str, client_referer_url: str, user: User
     ):
+        # connecting a Google account for imports: only while imports are on
+        refuse_google_forms_processing(provider_name)
         provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
             client_referer_uri=client_referer_url,
@@ -207,6 +219,8 @@ class AuthService:
     async def handle_backend_auth_callback(
         self, *, provider_name: str, state: str, request: Request, user: User = None
     ) -> Tuple[User, OAuthState]:
+        # the callback stores a Google Forms token: only while imports are on
+        refuse_google_forms_processing(provider_name)
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
         )
@@ -268,6 +282,38 @@ class AuthService:
                 state.client_referer_uri
             )
         return user, state
+
+    async def import_return_url(
+        self, user: User, client_referer_uri: Optional[str], modal: bool = False
+    ) -> str:
+        """Where the browser goes after a form provider's consent screen: the
+        page the import started from (already checked by
+        ``safe_login_redirect``), else, when the request carried no Referer,
+        the user's workspace forms page (the app's home without a workspace).
+        ``modal`` asks that page to reopen the import picker."""
+        url = client_referer_uri
+        if not url:
+            client_url = (settings.api_settings.CLIENT_URL or "").rstrip("/")
+            url = client_url + "/"
+            workspaces = await self.workspace_service.get_mine_workspaces(user)
+            owned = [w for w in workspaces if w.is_owner]
+            workspace = next(
+                (w for w in owned if w.default), owned[0] if owned else None
+            ) or (workspaces[0] if workspaces else None)
+            if workspace is not None and workspace.workspace_name:
+                name = quote(workspace.workspace_name, safe="")
+                url = f"{client_url}/{name}/dashboard/forms"
+        if modal:
+            parts = urlsplit(url)
+            query = [
+                (key, value)
+                for key, value in parse_qsl(parts.query, keep_blank_values=True)
+                if key != "modal"
+            ]
+            url = urlunsplit(
+                parts._replace(query=urlencode(query + [("modal", "true")]))
+            )
+        return url
 
     async def get_basic_auth_url(
         self,
@@ -345,6 +391,15 @@ class AuthService:
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
             if not provider.enabled:
+                continue
+            if is_google(provider.provider_name) and not google_service_enabled():
+                # GOOGLE_FORMS_IMPORT=off: the Google Forms service is not
+                # called; its stored credentials go with its retirement
+                log.info(
+                    "Google Forms service off: credentials of user %s not "
+                    "deleted there",
+                    user.id,
+                )
                 continue
             response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(

@@ -12,6 +12,20 @@ GOOGLE_PROJECT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
 
+#### The Google Forms import switch (`GOOGLE_FORMS_IMPORT`)
+
+Read by the backend and the Google Forms service (set it to the same value for both):
+
+| Value | Effect |
+|---|---|
+| `on` (default) | Imports, re-syncs and connecting a Google account work. |
+| `readonly` | Forms and responses imported earlier stay readable and manageable here. Nothing is processed with Google any more: no new import, no re-sync (importing an imported form again), no connection or token refresh, no listing of Google forms. These requests answer 403 with `{"code": "google_forms_readonly"}`. The Google Sheets action and deleting stored Google credentials (account deletion) keep working. bettercollected.com runs in this mode. |
+| `off` | The Google Forms endpoints answer 410 with `{"code": "google_forms_off"}` and the backend never calls the Google Forms service. Google is not listed in `GET /providers`. The Google Sheets action stops too while it still goes through that service, and account deletion no longer deletes the Google credentials stored there, so purge that service's credential store when you retire it. |
+
+`GET /providers` reports the mode for Google (`importMode`: `on` or `readonly`), so the webapp can say why
+imports are not offered. An unknown value stops the backend at startup; the Google Forms service treats
+it as `off`.
+
 #### Steps to create a client in Google:
 
 ##### Important Note: Steps 5, 6 and 12 are needed only if you want to run Google form integration.
@@ -40,35 +54,16 @@ GOOGLE_CLIENT_SECRET=
 14. Click on the "Download" button to download your client secret as a JSON file.
     Once you have generated your client secret, you can use it in your application to authenticate with Google APIs.
 
-### Typeform (Optional)
+### Typeform
 
-Similarly for using `Typeform` you need to set up certain environment variables and for that create a `Typeform` account
-and add your app in `Developer apps` to get the value for following environment variables.
-
-```dotenv
-   TYPEFORM_CLIENT_ID=
-   TYPEFORM_CLIENT_SECRET=
-```
-
-#### Steps to create a client in Typeform:
-
-1. Go to the [Admin Typeform's Developer Apps](https://admin.typeform.com/).
-2. Go to Developer apps from the dashboard and "Register a new app".
-3. Fill up the details and set the "Redirect URIs": `http://localhost:8000/api/v1/auth/typeform/basic/callback`
-   and `https://localhost:8000/api/v1/auth/typeform/oauth/callback`.
-4. Once you register the new app, you'll see a `secret`. You need to save this secret some place safe as you'll not see
-   this again.
-5. You can see the `client_id` whenever you want to.
+The Typeform integration was removed in 4.1. Forms and responses imported from Typeform before
+that stay readable as ordinary forms; `./deploy.sh typeform` and `./deploy.sh both` still work and
+start the stack without it (with Google Forms for `both`). Any `TYPEFORM_*` value left in an env
+file or the settings store is ignored.
 
 ## Running the project
 
-#### Run with both Googleform and Typeform Integrations
-
- ```
-    ./deploy both
- ```
-
-#### Run without both Googleform and Typeform Integrations
+#### Run without the Google Forms integration
 
  ```
     ./deploy 
@@ -78,12 +73,6 @@ and add your app in `Developer apps` to get the value for following environment 
 
  ```
     ./deploy googleform
- ```
-
-#### Run with Typeform
-
- ```
-    ./deploy typeform
  ```
 
 #### And finally you can stop all running services using the following command:

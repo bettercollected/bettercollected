@@ -9,7 +9,9 @@ class VerifiedDomainSettings(StoreBackedSettings):
 
     # total time one TXT lookup may take, across retries and nameservers
     DNS_TIMEOUT_S: float = 5.0
-    # comma-separated resolver IPs; empty = the system resolver (/etc/resolv.conf)
+    # comma-separated resolver IPs; empty = the system resolver (/etc/resolv.conf).
+    # A verified domain is an SSO trust grant: on a hosted stack use resolvers
+    # that validate DNSSEC (e.g. 1.1.1.1,9.9.9.9), not the container's default
     NAMESERVERS: str = ""
     # a verified domain whose record is missing or wrong this many re-checks in
     # a row is marked as having lost its verification (it stays verified)
@@ -30,11 +32,26 @@ class VerifiedDomainSettings(StoreBackedSettings):
         ),
     )
 
-    model_config = SettingsConfigDict(env_prefix="VERIFIED_DOMAINS_")
+    # an empty variable counts as unset: the compose file passes the root .env's
+    # PLATFORM_ADMIN_EMAILS as VERIFIED_DOMAINS_PLATFORM_ADMIN_EMAILS, which must
+    # not hide a PLATFORM_ADMIN_EMAILS from the service's own env file when the
+    # root .env has none
+    model_config = SettingsConfigDict(
+        env_prefix="VERIFIED_DOMAINS_", env_ignore_empty=True
+    )
 
     @property
     def nameservers(self) -> list[str]:
         return [part.strip() for part in self.NAMESERVERS.split(",") if part.strip()]
+
+    @property
+    def platform_admin_domains(self) -> set[str]:
+        domains = {
+            email.rsplit("@", 1)[1].strip().lower().rstrip(".")
+            for email in self.PLATFORM_ADMIN_EMAILS.split(",")
+            if "@" in email
+        }
+        return {domain for domain in domains if domain}
 
     @property
     def reserved_domains(self) -> set[str]:
@@ -43,7 +60,22 @@ class VerifiedDomainSettings(StoreBackedSettings):
             for part in self.RESERVED.split(",")
             if part.strip()
         }
-        for email in self.PLATFORM_ADMIN_EMAILS.split(","):
-            if "@" in email:
-                domains.add(email.rsplit("@", 1)[1].strip().lower().rstrip("."))
-        return {domain for domain in domains if domain}
+        return {domain for domain in domains if domain} | self.platform_admin_domains
+
+    def warnings(self, sso_enabled: bool) -> list[str]:
+        """Configuration a hosted stack with single sign-on should not run
+        without (logged at startup; docs/verified-domains.md)."""
+        if not sso_enabled:
+            return []
+        found = []
+        if not self.nameservers:
+            found.append(
+                "VERIFIED_DOMAINS_NAMESERVERS is not set: domain verification "
+                "trusts the container's resolver; set DNSSEC-validating resolvers"
+            )
+        if not self.platform_admin_domains:
+            found.append(
+                "PLATFORM_ADMIN_EMAILS is not set on the backend: the platform "
+                "admins' email domains are not reserved from verification"
+            )
+        return found

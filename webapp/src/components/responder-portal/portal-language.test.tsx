@@ -6,10 +6,11 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import '@app/shared/hocs/i18n-provider';
+import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
 
 import ResponderPortalLayoutClient from './responder-portal-layout-client';
@@ -73,8 +74,73 @@ describe('the respondent portal in Dutch', () => {
     });
 });
 
+// Signed out, once the session check has answered.
+const signedOut = () => store.dispatch(setAuth({ id: '', email: '', isLoading: false }));
+
+describe('the portal around the tabs in Dutch', () => {
+    beforeEach(signedOut);
+    afterEach(() => at('/'));
+
+    it('sets the page language, and has its sign-in card, credits and footer in Dutch', async () => {
+        at('/acme/forms?lang=nl');
+        renderPortal();
+        await screen.findByRole('link', { name: 'Formulieren' });
+        expect(document.documentElement).toHaveAttribute('lang', 'nl');
+        expect(screen.getByRole('heading', { level: 2, name: 'Je inzendingen bekijken' }).closest('[lang]')).toHaveAttribute('lang', 'nl');
+        expect(screen.getByRole('button', { name: 'E-mailadres bevestigen' })).toBeInTheDocument();
+        expect(screen.getByText('Anoniem ingezonden? Gebruik dan je inzendnummer.')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Mogelijk gemaakt door bettercollected' })).toHaveAttribute('lang', 'nl');
+        // the phone badge too
+        const credits = screen.getAllByText('Mogelijk gemaakt door');
+        expect(credits).toHaveLength(2);
+        for (const credit of credits) expect(credit.closest('[lang]')).toHaveAttribute('lang', 'nl');
+        const footers = screen.getAllByText('Sireto® is een geregistreerd handelsmerk van Sireto B.V.');
+        expect(footers.length).toBeGreaterThan(0);
+        for (const footer of footers) expect(footer.closest('footer')).toHaveAttribute('lang', 'nl');
+        expect(screen.getAllByRole('link', { name: 'Een product van Sireto B.V.' })[0]).toHaveAttribute('href', 'https://sireto.com');
+    });
+
+    it('puts the page language back when the portal is left', async () => {
+        at('/acme/forms?lang=nl');
+        document.documentElement.setAttribute('lang', 'en');
+        const { unmount } = renderPortal();
+        await screen.findByRole('link', { name: 'Formulieren' });
+        expect(document.documentElement).toHaveAttribute('lang', 'nl');
+        unmount();
+        expect(document.documentElement).toHaveAttribute('lang', 'en');
+    });
+});
+
+describe('the signed-in portal', () => {
+    afterEach(() => {
+        signedOut();
+        at('/');
+    });
+
+    it('signs out with a real button, reachable by keyboard', async () => {
+        store.dispatch(setAuth({ id: 'u1', email: 'someone@example.com', isLoading: false }));
+        at('/acme/forms?lang=en');
+        renderPortal();
+        fireEvent.click(await screen.findByRole('button', { name: /someone@example\.com/ }));
+        const logout = await screen.findByRole('button', { name: 'Logout' });
+        expect(logout.tagName).toBe('BUTTON');
+        expect(logout).toHaveAttribute('type', 'button');
+    });
+});
+
 describe('the respondent portal in English', () => {
     afterEach(() => at('/'));
+
+    it('has its sign-in card and footer in English', async () => {
+        signedOut();
+        at('/acme/forms?lang=en');
+        renderPortal();
+        await screen.findByRole('link', { name: 'Forms' });
+        expect(screen.getByRole('heading', { level: 2, name: 'See your submissions' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Verify email' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Powered by bettercollected' })).toBeInTheDocument();
+        expect(screen.getAllByText('Sireto® is a registered trademark of Sireto B.V.').length).toBeGreaterThan(0);
+    });
 
     it('keeps its English tab names', async () => {
         at('/acme/forms?lang=en');

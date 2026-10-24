@@ -15,7 +15,7 @@ from backend.app.schemas.form_import import (
     ImportStatus,
     PageAnalysis,
 )
-from tests.app.repositories.test_refdata_parity import parity
+from tests.app.repositories.parity import parity
 
 pytestmark = pytest.mark.asyncio
 

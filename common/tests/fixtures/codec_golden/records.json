@@ -1,0 +1,1296 @@
+{
+ "UnnamedRecord/full": {
+  "checksum": "sha256:50fbcab700e857de926bc2b2377aef05499fbfe3e6cfb1e4c3a40694e98d33ad",
+  "doc": {
+   "_id": {
+    "$oid": "92d0cb67b18684b743b37e2b"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "note": "UnnamedRecord.note tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   }
+  },
+  "document": "UnnamedRecord"
+ },
+ "UnnamedRecord/minimal": {
+  "checksum": "sha256:a70c52e853295039b00001a00fa6ea6bff16cd35237b01e9ab83d98c40b2ed44",
+  "doc": {
+   "_id": {
+    "$oid": "0fa32fe6c9db680eaabad0f4"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "note": "",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   }
+  },
+  "document": "UnnamedRecord"
+ },
+ "UnnamedRecord/naive": {
+  "checksum": "sha256:9cbd47e9b4884b00b81c2d86bba46e3a1066f834754167f2e783af22bdce0d5f",
+  "doc": {
+   "_id": {
+    "$oid": "22980c9fdb72220842eb9068"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "note": "UnnamedRecord.note tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   }
+  },
+  "document": "UnnamedRecord"
+ },
+ "UnnamedRecord/nulls": {
+  "checksum": "sha256:e2dab3d0dc64435e8d6e9ee4206689046d67951a5e868f0d945ef8cb2ad69fca",
+  "doc": {
+   "_id": {
+    "$oid": "829a755447204c8f654d1433"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "note": "UnnamedRecord.note tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   }
+  },
+  "document": "UnnamedRecord"
+ },
+ "sample_date_only_records/full": {
+  "checksum": "sha256:6e17d7a7dcab7c11c18dccb35e8ea0bf31cf7d869e127b1e6509851cb6a73dfc",
+  "doc": {
+   "_id": {
+    "$oid": "1e9ea735074e39b001a84325"
+   },
+   "created_at": "2026-01-02",
+   "day": "2026-03-04",
+   "nested": {
+    "displayName": "DateOnlyRecord.nested.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": "2026-03-04",
+    "street": "DateOnlyRecord.nested.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "DateOnlyRecord.nested.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "DateOnlyRecord.nested.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "updated_at": "2026-02-03",
+   "when": "2026-03-04"
+  },
+  "document": "DateOnlyRecord"
+ },
+ "sample_date_only_records/minimal": {
+  "checksum": "sha256:52ea1a6e0486ab30d67147afbc688d3d9ca6a78f765bc3a00106079fc693a2fc",
+  "doc": {
+   "_id": {
+    "$oid": "83d59325c923174ab4b5904c"
+   },
+   "created_at": "2026-01-02",
+   "day": null,
+   "nested": null,
+   "updated_at": "2026-02-03",
+   "when": null
+  },
+  "document": "DateOnlyRecord"
+ },
+ "sample_date_only_records/naive": {
+  "checksum": "sha256:22a7598bfd5ec9e4cf50e90cb1150b2b0b15acd5d6c541cd2a05902d37eb0a09",
+  "doc": {
+   "_id": {
+    "$oid": "fe8ba6cd1cab9558b32c56e3"
+   },
+   "created_at": "2026-01-02",
+   "day": "2026-03-04",
+   "nested": {
+    "displayName": "DateOnlyRecord.nested.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": "2026-03-04",
+    "street": "DateOnlyRecord.nested.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "DateOnlyRecord.nested.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "DateOnlyRecord.nested.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "updated_at": "2026-02-03",
+   "when": "2026-03-04"
+  },
+  "document": "DateOnlyRecord"
+ },
+ "sample_date_only_records/nulls": {
+  "checksum": "sha256:1b8b87806097f7350d6c11be4541780dfa99bf4b052f6327b36c297691d53216",
+  "doc": {
+   "_id": {
+    "$oid": "396fcc6a6fd663747696f0e5"
+   },
+   "created_at": "2026-01-02",
+   "day": null,
+   "nested": null,
+   "updated_at": "2026-02-03",
+   "when": null
+  },
+  "document": "DateOnlyRecord"
+ },
+ "sample_holder_records/full": {
+  "checksum": "sha256:859f993d1aceaf298aac95429e8257c6d6c61061d348c6297ed9090e64ad0807",
+  "doc": {
+   "_id": {
+    "$oid": "84f196a50e61202702714766"
+   },
+   "child": {
+    "_id": {
+     "$oid": "c57b5f4859ab41e952740bf9"
+    },
+    "address": {
+     "displayName": "HolderRecord.child.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234+02:00",
+     "street": "HolderRecord.child.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "HolderRecord.child.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "HolderRecord.child.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    "addresses": [
+     {
+      "displayName": null,
+      "since": null,
+      "street": "HolderRecord.child.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+      "tags": [
+       "HolderRecord.child.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+       "HolderRecord.child.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+      ]
+     },
+     {
+      "displayName": null,
+      "since": null,
+      "street": "HolderRecord.child.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+      "tags": [
+       "HolderRecord.child.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+       "HolderRecord.child.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+      ]
+     }
+    ],
+    "at_time": "05:06:07.891234",
+    "blob": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "by_colour": {
+     "blue": 9007199254740993
+    },
+    "colour": "blue",
+    "created_at": "2026-03-04T05:06:07.891234+02:00",
+    "day": "2026-03-04",
+    "displayLabel": "HolderRecord.child.label tëxt ✓ \"quoted\" \\ line\nbreak",
+    "extra": {
+     "bool": true,
+     "bytes": {
+      "$binary": {
+       "base64": "AAFiaW5hcnn/",
+       "subType": "00"
+      }
+     },
+     "datetime": "2026-03-04T05:06:07.891234+02:00",
+     "decimal": {
+      "$numberDecimal": "1234.5600"
+     },
+     "float": 0.30000000000000004,
+     "int": 7,
+     "large_int": 9007199254740993,
+     "list": [
+      1,
+      "two",
+      {
+       "three": [
+        3.0
+       ]
+      },
+      null
+     ],
+     "negative": -9007199254740993,
+     "nested": {
+      "a": 2,
+      "empty": {},
+      "empty_list": [],
+      "z": 1
+     },
+     "none": null,
+     "object_id": {
+      "$oid": "77c061fda92549c57b9ae47c"
+     },
+     "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
+    "flag": true,
+    "level": 2,
+    "link": "https://example.org/path",
+    "numbers": null,
+    "pair": [
+     9007199254740993,
+     9007199254740993
+    ],
+    "plain": "b",
+    "quantity": 9007199254740993,
+    "ratio": 0.30000000000000004,
+    "ref": {
+     "$oid": "8630faced7ab27ac741e5df9"
+    },
+    "refs": [
+     {
+      "$oid": "d1fc06aaead80339ce0823f7"
+     },
+     {
+      "$oid": "76beb4e87635e7ef01f29e4d"
+     }
+    ],
+    "secret": "HolderRecord.child.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+    "text": "HolderRecord.child.text tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token": null,
+    "ttl": null,
+    "updated_at": "2026-03-04T05:06:07.891234+02:00",
+    "when": "2026-03-04T05:06:07.891234+02:00"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "title": "HolderRecord.title tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": {
+    "$date": "2026-03-04T03:06:07.891Z"
+   }
+  },
+  "document": "HolderRecord"
+ },
+ "sample_holder_records/minimal": {
+  "checksum": "sha256:4615b50bfc72c589600dd6275b7672e0fd9c5d11c3f65e62bc7227ba0d0e2643",
+  "doc": {
+   "_id": {
+    "$oid": "76cb9a7ac327ae843fb9f376"
+   },
+   "child": null,
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "title": "HolderRecord.title tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": null
+  },
+  "document": "HolderRecord"
+ },
+ "sample_holder_records/naive": {
+  "checksum": "sha256:2b71d4024bcb57ad3ae3dd1c108df4d0af4dfeb72cd3cfc4f47184f290dcc29a",
+  "doc": {
+   "_id": {
+    "$oid": "d8bccedd4b9aaecdf635cf41"
+   },
+   "child": {
+    "_id": {
+     "$oid": "c57b5f4859ab41e952740bf9"
+    },
+    "address": {
+     "displayName": "HolderRecord.child.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234",
+     "street": "HolderRecord.child.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "HolderRecord.child.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "HolderRecord.child.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    "addresses": [
+     {
+      "displayName": null,
+      "since": null,
+      "street": "HolderRecord.child.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+      "tags": [
+       "HolderRecord.child.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+       "HolderRecord.child.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+      ]
+     },
+     {
+      "displayName": null,
+      "since": null,
+      "street": "HolderRecord.child.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+      "tags": [
+       "HolderRecord.child.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+       "HolderRecord.child.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+      ]
+     }
+    ],
+    "at_time": "05:06:07.891234",
+    "blob": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "by_colour": {
+     "blue": 9007199254740993
+    },
+    "colour": "blue",
+    "created_at": "2026-03-04T05:06:07.891234",
+    "day": "2026-03-04",
+    "displayLabel": "HolderRecord.child.label tëxt ✓ \"quoted\" \\ line\nbreak",
+    "extra": {
+     "bool": true,
+     "bytes": {
+      "$binary": {
+       "base64": "AAFiaW5hcnn/",
+       "subType": "00"
+      }
+     },
+     "datetime": "2026-03-04T05:06:07.891234",
+     "decimal": {
+      "$numberDecimal": "1234.5600"
+     },
+     "float": 0.30000000000000004,
+     "int": 7,
+     "large_int": 9007199254740993,
+     "list": [
+      1,
+      "two",
+      {
+       "three": [
+        3.0
+       ]
+      },
+      null
+     ],
+     "negative": -9007199254740993,
+     "nested": {
+      "a": 2,
+      "empty": {},
+      "empty_list": [],
+      "z": 1
+     },
+     "none": null,
+     "object_id": {
+      "$oid": "77c061fda92549c57b9ae47c"
+     },
+     "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
+    "flag": true,
+    "level": 2,
+    "link": "https://example.org/path",
+    "numbers": null,
+    "pair": [
+     9007199254740993,
+     9007199254740993
+    ],
+    "plain": "b",
+    "quantity": 9007199254740993,
+    "ratio": 0.30000000000000004,
+    "ref": {
+     "$oid": "8630faced7ab27ac741e5df9"
+    },
+    "refs": [
+     {
+      "$oid": "d1fc06aaead80339ce0823f7"
+     },
+     {
+      "$oid": "76beb4e87635e7ef01f29e4d"
+     }
+    ],
+    "secret": "HolderRecord.child.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+    "text": "HolderRecord.child.text tëxt ✓ \"quoted\" \\ line\nbreak",
+    "token": null,
+    "ttl": null,
+    "updated_at": "2026-03-04T05:06:07.891234",
+    "when": "2026-03-04T05:06:07.891234"
+   },
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "title": "HolderRecord.title tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": {
+    "$date": "2026-03-04T05:06:07.891Z"
+   }
+  },
+  "document": "HolderRecord"
+ },
+ "sample_holder_records/nulls": {
+  "checksum": "sha256:02c868cee5c06470b41452c1553d18f367959ab30b2b780e64be7ad5c880433a",
+  "doc": {
+   "_id": {
+    "$oid": "9b544b0a8c9e83782b7387dd"
+   },
+   "child": null,
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "title": "HolderRecord.title tëxt ✓ \"quoted\" \\ line\nbreak",
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": null
+  },
+  "document": "HolderRecord"
+ },
+ "sample_iso_records/full": {
+  "checksum": "sha256:553e169ee325f9dd02432d8431deb959e7cfd0540fd5f28cabaaad19cbf4d5cc",
+  "doc": {
+   "_id": {
+    "$oid": "129ce205c6dcd8786aabfdd1"
+   },
+   "address": {
+    "displayName": "IsoRecord.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": "2026-03-04T05:06:07.891234+02:00",
+    "street": "IsoRecord.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "IsoRecord.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "IsoRecord.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "addresses": [
+    {
+     "displayName": "IsoRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234+02:00",
+     "street": "IsoRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "IsoRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234+02:00",
+     "street": "IsoRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "at_time": "05:06:07.891234",
+   "blob": {
+    "$binary": {
+     "base64": "AAFiaW5hcnn/",
+     "subType": "00"
+    }
+   },
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": "blue",
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "day": "2026-03-04",
+   "displayLabel": "IsoRecord.label tëxt ✓ \"quoted\" \\ line\nbreak",
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": "2026-03-04T05:06:07.891234+02:00",
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "49af3e80777e34297fca1a64"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": 2,
+   "link": "https://example.org/path",
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": [
+    9007199254740993,
+    9007199254740993
+   ],
+   "plain": "b",
+   "quantity": 9007199254740993,
+   "ratio": 0.30000000000000004,
+   "ref": {
+    "$oid": "201e8c096b146ea3bac0a2c5"
+   },
+   "refs": [
+    {
+     "$oid": "043cd5f773d508dbddc3b256"
+    },
+    {
+     "$oid": "8adf9993cfe4c88388127fed"
+    }
+   ],
+   "secret": "IsoRecord.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+   "text": "IsoRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "when": "2026-03-04T05:06:07.891234+02:00"
+  },
+  "document": "IsoRecord"
+ },
+ "sample_iso_records/minimal": {
+  "checksum": "sha256:7473a9be3d704412c16faa3ae8d186c2e428442934418367e3b39b71a03d6aac",
+  "doc": {
+   "_id": {
+    "$oid": "34e3a7a53d95822d57b5e325"
+   },
+   "address": null,
+   "addresses": [],
+   "at_time": null,
+   "blob": null,
+   "by_colour": {},
+   "colour": null,
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "day": null,
+   "displayLabel": null,
+   "extra": {},
+   "flag": false,
+   "level": null,
+   "link": null,
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": null,
+   "plain": null,
+   "quantity": 0,
+   "ratio": null,
+   "ref": null,
+   "refs": [],
+   "secret": null,
+   "text": "IsoRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "when": null
+  },
+  "document": "IsoRecord"
+ },
+ "sample_iso_records/naive": {
+  "checksum": "sha256:3a123d12cf3eb68881e605d90ad03f8a2ceb30fc6ad2435ba79d17923469c5c0",
+  "doc": {
+   "_id": {
+    "$oid": "16a6c7e4b77302cae7e3b68c"
+   },
+   "address": {
+    "displayName": "IsoRecord.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": "2026-03-04T05:06:07.891234",
+    "street": "IsoRecord.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "IsoRecord.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "IsoRecord.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "addresses": [
+    {
+     "displayName": "IsoRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234",
+     "street": "IsoRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "IsoRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234",
+     "street": "IsoRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "at_time": "05:06:07.891234",
+   "blob": {
+    "$binary": {
+     "base64": "AAFiaW5hcnn/",
+     "subType": "00"
+    }
+   },
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": "blue",
+   "created_at": "2026-01-02T03:04:05.678901",
+   "day": "2026-03-04",
+   "displayLabel": "IsoRecord.label tëxt ✓ \"quoted\" \\ line\nbreak",
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": "2026-03-04T05:06:07.891234",
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "49af3e80777e34297fca1a64"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": 2,
+   "link": "https://example.org/path",
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": [
+    9007199254740993,
+    9007199254740993
+   ],
+   "plain": "b",
+   "quantity": 9007199254740993,
+   "ratio": 0.30000000000000004,
+   "ref": {
+    "$oid": "201e8c096b146ea3bac0a2c5"
+   },
+   "refs": [
+    {
+     "$oid": "043cd5f773d508dbddc3b256"
+    },
+    {
+     "$oid": "8adf9993cfe4c88388127fed"
+    }
+   ],
+   "secret": "IsoRecord.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+   "text": "IsoRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": "2026-02-03T04:05:06.789012",
+   "when": "2026-03-04T05:06:07.891234"
+  },
+  "document": "IsoRecord"
+ },
+ "sample_iso_records/nulls": {
+  "checksum": "sha256:7d0379e82528232382f13b08d05c8ea2fab66d08142530e76870edd4c5f56580",
+  "doc": {
+   "_id": {
+    "$oid": "7cd10848f3e997bd3f437a82"
+   },
+   "address": null,
+   "addresses": [
+    {
+     "displayName": "IsoRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234+02:00",
+     "street": "IsoRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "IsoRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": "2026-03-04T05:06:07.891234+02:00",
+     "street": "IsoRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "IsoRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "IsoRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "at_time": null,
+   "blob": null,
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": null,
+   "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "day": null,
+   "displayLabel": null,
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": "2026-03-04T05:06:07.891234+02:00",
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "49af3e80777e34297fca1a64"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": null,
+   "link": null,
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": null,
+   "plain": null,
+   "quantity": 9007199254740993,
+   "ratio": null,
+   "ref": null,
+   "refs": [
+    {
+     "$oid": "043cd5f773d508dbddc3b256"
+    },
+    {
+     "$oid": "8adf9993cfe4c88388127fed"
+    }
+   ],
+   "secret": null,
+   "text": "IsoRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": "2026-02-03T04:05:06.789012+00:00",
+   "when": null
+  },
+  "document": "IsoRecord"
+ },
+ "sample_records/full": {
+  "checksum": "sha256:d11a871a42846115c5887e7d2c916ef762782f478549529c2e842a34f0b5dff4",
+  "doc": {
+   "_id": {
+    "$oid": "8d10433f106c2d5d7ef471ba"
+   },
+   "address": {
+    "displayName": "SampleRecord.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": {
+     "$date": "2026-03-04T03:06:07.891Z"
+    },
+    "street": "SampleRecord.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "SampleRecord.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "SampleRecord.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "addresses": [
+    {
+     "displayName": "SampleRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T03:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "SampleRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T03:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "blob": {
+    "$binary": {
+     "base64": "AAFiaW5hcnn/",
+     "subType": "00"
+    }
+   },
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": "blue",
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "day": {
+    "$date": "2026-03-04T00:00:00Z"
+   },
+   "displayLabel": "SampleRecord.label tëxt ✓ \"quoted\" \\ line\nbreak",
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": {
+     "$date": "2026-03-04T03:06:07.891Z"
+    },
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "2d5baadfe46524e915e6b687"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": 2,
+   "link": "https://example.org/path",
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": [
+    9007199254740993,
+    9007199254740993
+   ],
+   "plain": "b",
+   "quantity": 9007199254740993,
+   "ratio": 0.30000000000000004,
+   "ref": {
+    "$oid": "a69ea67c2a9b27d10090cfdf"
+   },
+   "refs": [
+    {
+     "$oid": "2fefe481c39e979438a81a64"
+    },
+    {
+     "$oid": "44228708a4357298baae8e42"
+    }
+   ],
+   "secret": "SampleRecord.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+   "text": "SampleRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": {
+    "$date": "2026-03-04T03:06:07.891Z"
+   }
+  },
+  "document": "SampleRecord"
+ },
+ "sample_records/minimal": {
+  "checksum": "sha256:c82d8faf0981503f9db96ac66953d98bccc4e18656506a10e809f5d1c43e8f76",
+  "doc": {
+   "_id": {
+    "$oid": "b6fd7f2a0593f3ea82718323"
+   },
+   "address": null,
+   "addresses": [],
+   "blob": null,
+   "by_colour": {},
+   "colour": null,
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "day": null,
+   "displayLabel": null,
+   "extra": {},
+   "flag": false,
+   "level": null,
+   "link": null,
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": null,
+   "plain": null,
+   "quantity": 0,
+   "ratio": null,
+   "ref": null,
+   "refs": [],
+   "secret": null,
+   "text": "SampleRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": null
+  },
+  "document": "SampleRecord"
+ },
+ "sample_records/naive": {
+  "checksum": "sha256:b6b65ee95ddb253773a04ecc7aba70ad8d275759e2fabcb38b5990fc42d193ef",
+  "doc": {
+   "_id": {
+    "$oid": "75d7bf6045fcf6314a1f2389"
+   },
+   "address": {
+    "displayName": "SampleRecord.address.display tëxt ✓ \"quoted\" \\ line\nbreak",
+    "since": {
+     "$date": "2026-03-04T05:06:07.891Z"
+    },
+    "street": "SampleRecord.address.street tëxt ✓ \"quoted\" \\ line\nbreak",
+    "tags": [
+     "SampleRecord.address.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+     "SampleRecord.address.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+    ]
+   },
+   "addresses": [
+    {
+     "displayName": "SampleRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T05:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "SampleRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T05:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "blob": {
+    "$binary": {
+     "base64": "AAFiaW5hcnn/",
+     "subType": "00"
+    }
+   },
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": "blue",
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "day": {
+    "$date": "2026-03-04T00:00:00Z"
+   },
+   "displayLabel": "SampleRecord.label tëxt ✓ \"quoted\" \\ line\nbreak",
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": {
+     "$date": "2026-03-04T05:06:07.891Z"
+    },
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "2d5baadfe46524e915e6b687"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": 2,
+   "link": "https://example.org/path",
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": [
+    9007199254740993,
+    9007199254740993
+   ],
+   "plain": "b",
+   "quantity": 9007199254740993,
+   "ratio": 0.30000000000000004,
+   "ref": {
+    "$oid": "a69ea67c2a9b27d10090cfdf"
+   },
+   "refs": [
+    {
+     "$oid": "2fefe481c39e979438a81a64"
+    },
+    {
+     "$oid": "44228708a4357298baae8e42"
+    }
+   ],
+   "secret": "SampleRecord.secret tëxt ✓ \"quoted\" \\ line\nbreak",
+   "text": "SampleRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": {
+    "$date": "2026-03-04T05:06:07.891Z"
+   }
+  },
+  "document": "SampleRecord"
+ },
+ "sample_records/nulls": {
+  "checksum": "sha256:96326d775588c33a230cfb7015e1afa88cf04ce21e52e05ec74d50d5ed0f3439",
+  "doc": {
+   "_id": {
+    "$oid": "f761c36788636404873da239"
+   },
+   "address": null,
+   "addresses": [
+    {
+     "displayName": "SampleRecord.addresses[0].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T03:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[0].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[0].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[0].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    },
+    {
+     "displayName": "SampleRecord.addresses[1].display tëxt ✓ \"quoted\" \\ line\nbreak",
+     "since": {
+      "$date": "2026-03-04T03:06:07.891Z"
+     },
+     "street": "SampleRecord.addresses[1].street tëxt ✓ \"quoted\" \\ line\nbreak",
+     "tags": [
+      "SampleRecord.addresses[1].tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "SampleRecord.addresses[1].tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+     ]
+    }
+   ],
+   "blob": null,
+   "by_colour": {
+    "blue": 9007199254740993
+   },
+   "colour": null,
+   "created_at": {
+    "$date": "2026-01-02T03:04:05.678Z"
+   },
+   "day": null,
+   "displayLabel": null,
+   "extra": {
+    "bool": true,
+    "bytes": {
+     "$binary": {
+      "base64": "AAFiaW5hcnn/",
+      "subType": "00"
+     }
+    },
+    "datetime": {
+     "$date": "2026-03-04T03:06:07.891Z"
+    },
+    "decimal": {
+     "$numberDecimal": "1234.5600"
+    },
+    "float": 0.30000000000000004,
+    "int": 7,
+    "large_int": 9007199254740993,
+    "list": [
+     1,
+     "two",
+     {
+      "three": [
+       3.0
+      ]
+     },
+     null
+    ],
+    "negative": -9007199254740993,
+    "nested": {
+     "a": 2,
+     "empty": {},
+     "empty_list": [],
+     "z": 1
+    },
+    "none": null,
+    "object_id": {
+     "$oid": "2d5baadfe46524e915e6b687"
+    },
+    "text": "tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
+   "flag": true,
+   "level": null,
+   "link": null,
+   "numbers": [
+    3,
+    1,
+    2
+   ],
+   "pair": null,
+   "plain": null,
+   "quantity": 9007199254740993,
+   "ratio": null,
+   "ref": null,
+   "refs": [
+    {
+     "$oid": "2fefe481c39e979438a81a64"
+    },
+    {
+     "$oid": "44228708a4357298baae8e42"
+    }
+   ],
+   "secret": null,
+   "text": "SampleRecord.text tëxt ✓ \"quoted\" \\ line\nbreak",
+   "token": {
+    "$binary": {
+     "base64": "EjRWeBI0VngSNFZ4EjRWeA==",
+     "subType": "04"
+    }
+   },
+   "ttl": 86402.000003,
+   "updated_at": {
+    "$date": "2026-02-03T04:05:06.789Z"
+   },
+   "when": null
+  },
+  "document": "SampleRecord"
+ }
+}

@@ -97,6 +97,7 @@ environment, whatever the tier.
 | `GOOGLE_CLIENT_ID` | google | auth, google, webapp | str max 300 |  | R | T3 |  |
 | `GOOGLE_CLIENT_SECRET` | google | auth, google | str | yes | R | T3 |  |
 | `GOOGLE_CLIENT_TYPE` | google | google | str max 32 |  | R | T3 | `web` |
+| `GOOGLE_FORMS_IMPORT` | google | backend, google | enum on/readonly/off |  | R | T2 | `on` |
 | `GOOGLE_JAVASCRIPT_ORIGINS` | google | auth, google | str max 2000 |  | R | T3 |  |
 | `GOOGLE_PROJECT_ID` | google | auth, google | str max 200 |  | R | T3 |  |
 | `GOOGLE_REDIRECT_URIS` | google | auth, google | str max 2000 |  | R | T3 |  |
@@ -204,13 +205,6 @@ environment, whatever the tier.
 | `AWS_PUBLIC_URL` | storage | backend | url |  | R | T3 |  |
 | `AWS_REGION` | storage | backend | str max 64 |  | R | T3 | `eu-central-1` |
 | `AWS_SECRET_ACCESS_KEY` | storage | backend | str | yes | R | T3 |  |
-| `TYPEFORM_API_URI` | typeform | auth | url |  | R | T3 | `https://api.typeform.com` |
-| `TYPEFORM_AUTH_URI` | typeform | auth | url |  | R | T3 | `https://api.typeform.com/oauth/authorize?state={state}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}` |
-| `TYPEFORM_CLIENT_ID` | typeform | auth | str max 300 |  | R | T3 |  |
-| `TYPEFORM_CLIENT_SECRET` | typeform | auth | str | yes | R | T3 |  |
-| `TYPEFORM_REDIRECT_URI` | typeform | auth | url |  | R | T3 |  |
-| `TYPEFORM_SCOPE` | typeform | auth | str max 500 |  | R | T3 | `accounts:read` |
-| `TYPEFORM_TOKEN_URI` | typeform | auth | url |  | R | T3 | `https://api.typeform.com/oauth/token` |
 | `EVENT_WEBHOOK_ENABLED` | webhooks | backend | bool |  | R | T3 | `false` |
 | `EVENT_WEBHOOK_URL` | webhooks | backend | url |  | R | T3 |  |
 | `DEFAULT_SEED_FLOW_TEMPLATES` | workspace | backend | bool |  | R | T1 | `true` |
@@ -351,9 +345,21 @@ environment, whatever the tier.
 | `STRIPE_REDIRECT_URL` | compose interpolation expanded into the STRIPE_*_URL keys |
 | `TASK_RUNNER_GOOGLE_MONGO_DB` | the task-runner compose service's name for GOOGLE_MONGO_DB |
 | `TEMPLATE_PREDEFINED_WORKSPACE_ID` | listed in an env example; no service reads it |
-| `TYPEFORM_BASIC_REDIRECT_URI` | listed in the deployment env file; no service reads it |
-| `TYPEFORM_BASIC_SCOPE` | listed in the deployment env file; no service reads it |
-| `TYPEFORM_ENABLED` | compose profile switch |
 | `UMAMI_APP_SECRET` | read by the analytics container |
 | `VIRTUAL_HOST_1` | read by the reverse proxy image, not by a service |
 | `BC_*` | database role passwords of the deploy scripts |
+
+## Retired
+
+| Name | Why |
+|---|---|
+| `TYPEFORM_API_URI` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_AUTH_URI` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_BASIC_REDIRECT_URI` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_BASIC_SCOPE` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_CLIENT_ID` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_CLIENT_SECRET` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_ENABLED` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_REDIRECT_URI` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_SCOPE` | Typeform integration, removed in 4.1; ignored |
+| `TYPEFORM_TOKEN_URI` | Typeform integration, removed in 4.1; ignored |

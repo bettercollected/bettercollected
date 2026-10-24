@@ -23,8 +23,7 @@ and they can later **view their submission and request its deletion** (a
 GDPR-style flow baked into the product).
 
 It provides a **workspace** to host all your forms in one place — forms built
-with the native drag-and-drop builder, or **imported from Google Forms and
-Typeform**.
+with the native drag-and-drop builder, or **imported from Google Forms**.
 
 More at [bettercollected.com](https://bettercollected.com).
 
@@ -32,7 +31,7 @@ More at [bettercollected.com](https://bettercollected.com).
 
 - 🧩 Drag-and-drop form builder with a rich set of field types
 - 🔐 Consent + purpose declaration, response viewing, and deletion requests
-- 🔗 Import forms and responses from **Google Forms** and **Typeform**
+- 🔗 Import forms and responses from **Google Forms**
 - 🏢 Multi-tenant **workspaces** with members and custom domains
 - 📊 Form analytics powered by **self-hosted [Umami](https://umami.is)** — no
   responder data leaves your infrastructure — plus CSV export
@@ -53,7 +52,7 @@ bettercollected is a polyglot microservices monorepo:
 | [`webapp/`](webapp) | Next.js + TypeScript | Frontend (builder, dashboards, responder portal) |
 | [`backend/`](backend) | FastAPI + MongoDB (Beanie) | Core API |
 | [`auth/`](auth) | FastAPI + Stripe | Identity (OAuth / OTP / JWT) + billing |
-| [`integrations/`](integrations) | FastAPI + Google/Typeform APIs | Form-provider integrations |
+| [`integrations/`](integrations) | FastAPI + Google APIs | Form-provider integration (Google Forms) |
 | [`temporal/`](temporal) | Temporal workers | Background jobs (imports, deletion, CSV, previews) |
 | [`common/`](common) | Shared Python package | Models, enums, crypto, JWT |
 
@@ -84,7 +83,7 @@ cp webapp/.env.example webapp/.env
 
 The full walkthrough — env vars, shared secrets, provider OAuth, Temporal, and
 common gotchas — is in **[docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md)**.
-Integration setup (Google/Typeform apps) is in
+Integration setup (the Google app) is in
 [docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
 
 ## Self-hosting
@@ -95,8 +94,6 @@ third-party service ever sees responder data:
 ```bash
 ./deploy.sh                # everything except form-provider integrations
 ./deploy.sh googleform     # ... with Google Forms import
-./deploy.sh typeform       # ... with Typeform import
-./deploy.sh both           # ... with both
 ./deploy.sh down           # stop the stack
 ```
 

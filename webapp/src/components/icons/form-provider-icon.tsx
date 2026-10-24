@@ -1,4 +1,5 @@
-import { TypeformIcon } from "@app/components/icons/brands/typeform";
+import { FileText } from 'lucide-react';
+
 import { GoogleFormIcon } from "@app/components/icons/google-form-icon";
 import SmallLogo from "./small-logo";
 
@@ -21,9 +22,11 @@ export default function FormProviderIcon({ provider, size, variant }: IFormProvi
                 icon: GoogleFormIcon,
                 text: 'Google Forms'
             };
+        // Typeform is no longer integrated; forms imported from it keep their
+        // provider, so they still say where they came from (no brand logo).
         if (provider === 'typeform')
             return {
-                icon: TypeformIcon,
+                icon: FileText,
                 text: 'Typeform'
             };
         return {

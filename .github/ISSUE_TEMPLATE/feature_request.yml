@@ -29,7 +29,7 @@ body:
       options:
         - form builder
         - responses / responder portal
-        - integrations (google / typeform)
+        - integrations (google)
         - privacy / consent / deletion
         - billing
         - developer experience

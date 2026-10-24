@@ -57,8 +57,8 @@ from common.settings.registry import (
 MAX_CONFIG_BYTES = 8 * 1024 * 1024
 
 # Compose service name -> the registry reader whose settings it reads. The jobs
-# worker and the task runner use the backend's settings; the typeform service,
-# umami, polis and the databases are outside the store.
+# worker and the task runner use the backend's settings; umami, polis and the
+# databases are outside the store.
 COMPOSE_READERS = {
     "backend": "backend",
     "jobs-worker": "backend",

@@ -9,7 +9,6 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from backend.app.container import container
-from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.config import settings
@@ -201,23 +200,12 @@ async def test_refused_events_count_towards_the_limit(
 
 
 async def _stored_counter_text() -> str:
-    """Everything the counters hold, in whichever stores are written."""
-    flags = container.flags()
-    parts = (
-        [
-            repr(doc)
-            async for doc in RateLimitCounterDocument.get_pymongo_collection().find({})
-        ]
-        if flags.writes_mongo("analytics")
-        else []
-    )
-    if flags.requires_postgres():
-        from backend.db.models import RateLimitCounterRow
+    """Everything the counters hold (Postgres only since 4.1)."""
+    from backend.db.models import RateLimitCounterRow
 
-        async with container.pg_sessionmaker()() as session:
-            rows = (await session.execute(select(RateLimitCounterRow))).scalars()
-            parts.extend(repr((r.id, r.doc)) for r in rows)
-    return "\n".join(parts)
+    async with container.pg_sessionmaker()() as session:
+        rows = (await session.execute(select(RateLimitCounterRow))).scalars()
+        return "\n".join(repr((r.id, r.doc)) for r in rows)
 
 
 async def test_the_client_address_is_not_stored(
@@ -362,16 +350,3 @@ async def test_old_flow_events_are_deleted(
     service._last_sweep = None
     await service._sweep_expired()
     assert len(await _stored_events(form_id)) == 1
-
-
-def test_mongo_flow_events_have_a_ttl_index_on_created_at():
-    from backend.app.schemas.flow_event import FlowEventDocument
-
-    ttl = [
-        i
-        for i in FlowEventDocument.Settings.indexes
-        if i.document.get("expireAfterSeconds") is not None
-    ]
-    assert len(ttl) == 1
-    assert dict(ttl[0].document["key"]) == {"created_at": 1}
-    assert ttl[0].document["expireAfterSeconds"] == 395 * 86400

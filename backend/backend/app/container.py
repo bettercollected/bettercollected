@@ -12,11 +12,11 @@ from pymongo import AsyncMongoClient
 from backend.app.repositories.ai_preference_memory_repository import (
     AIPreferenceMemoryRepository,
 )
-from common.db import DatabaseSettings, RoutingMetrics, load_flags
+from common.db import DatabaseSettings, RoutingMetrics
 from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
-from backend.db.groups import MONGO_JOINS
+from backend.db.groups import load_backend_flags
 from backend.jobs.app import app as jobs_app
 from backend.db.session import (
     LazyRepository,
@@ -28,12 +28,10 @@ from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
     PostgresAIPreferenceMemoryRepository,
     PostgresCreateFormPromptRepository,
-    PostgresFlowEventRepository,
     PostgresFormAIInsightRepository,
     PostgresFormAISessionRepository,
     PostgresIdempotencyRepository,
     PostgresMcpAuditLogRepository,
-    PostgresRateLimitRepository,
     PostgresWorkspaceAIProfileRepository,
 )
 from backend.app.repositories.postgres.responses import (
@@ -65,6 +63,10 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
+from backend.app.repositories.postgres.analytics import (
+    PostgresFlowEventRepository,
+    PostgresRateLimitRepository,
+)
 from backend.app.repositories.postgres.refdata import (
     PostgresAllowedOriginsRepository,
     PostgresCouponRepository,
@@ -85,22 +87,12 @@ from backend.app.repositories.workspace_api_key_repository import (
 from backend.app.repositories.workspace_domain_repository import (
     WorkspaceDomainRepository,
 )
-from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.session_repository import SessionRepository
-from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.create_form_prompt_repository import (
     CreateFormPromptRepository,
 )
-from backend.app.repositories.price_suggestion_repository import (
-    PriceSuggestionRepository,
-)
-from backend.app.repositories.form_plugin_provider_repository import (
-    FormPluginProviderRepository,
-)
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.flow_event_repository import FlowEventRepository
-from backend.app.repositories.rate_limit_repository import RateLimitRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
@@ -109,7 +101,6 @@ from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
 from backend.app.repositories.template import FormTemplateRepository
-from backend.app.repositories.user_feedback import UserFeedbackRepo
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -206,8 +197,9 @@ class AppContainer(containers.DeclarativeContainer):
 
     database_client: AsyncMongoClient = providers.Object(None)
     # Mongo/Postgres switching (plans/postgres-consolidation.md D5): read once at boot,
-    # validated; a bad combination refuses to start.
-    flags = providers.Singleton(load_flags, mongo_joins=MONGO_JOINS)
+    # validated; a bad combination, or a stale flag for a Postgres-only group
+    # (backend.db.groups.POSTGRES_ONLY_GROUPS), refuses to start.
+    flags = providers.Singleton(load_backend_flags)
     # Postgres: engine and sessions exist only when DATABASE_URL is set; the
     # routing layer treats the store as absent otherwise. Mirror-write failures
     # land in the primary store's outbox (backend/db/outbox.py).
@@ -254,17 +246,8 @@ class AppContainer(containers.DeclarativeContainer):
 
     # Repositories
 
-    coupon_repository: CouponRepository = providers.Singleton(
-        RoutingRepository,
-        group="refdata",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        postgres=providers.Singleton(
-            postgres_repository, PostgresCouponRepository, pg_sessionmaker
-        ),
-        mongo=providers.Singleton(CouponRepository),
+    coupon_repository: PostgresCouponRepository = providers.Singleton(
+        PostgresCouponRepository, pg_sessionmaker
     )
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         RoutingRepository,
@@ -293,17 +276,8 @@ class AppContainer(containers.DeclarativeContainer):
             action_repository,
         ),
     )
-    allowed_origins_repo: AllowedOriginsRepository = providers.Singleton(
-        RoutingRepository,
-        group="refdata",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        postgres=providers.Singleton(
-            postgres_repository, PostgresAllowedOriginsRepository, pg_sessionmaker
-        ),
-        mongo=providers.Singleton(AllowedOriginsRepository),
+    allowed_origins_repo: PostgresAllowedOriginsRepository = providers.Singleton(
+        PostgresAllowedOriginsRepository, pg_sessionmaker
     )
     session_repo: SessionRepository = providers.Singleton(
         RoutingRepository,
@@ -318,29 +292,11 @@ class AppContainer(containers.DeclarativeContainer):
         ),
     )
 
-    flow_event_repo: FlowEventRepository = providers.Singleton(
-        RoutingRepository,
-        group="analytics",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FlowEventRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFlowEventRepository, pg_sessionmaker
-        ),
+    flow_event_repo: PostgresFlowEventRepository = providers.Singleton(
+        PostgresFlowEventRepository, pg_sessionmaker
     )
-    rate_limit_repo: RateLimitRepository = providers.Singleton(
-        RoutingRepository,
-        group="analytics",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(RateLimitRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresRateLimitRepository, pg_sessionmaker
-        ),
+    rate_limit_repo: PostgresRateLimitRepository = providers.Singleton(
+        PostgresRateLimitRepository, pg_sessionmaker
     )
     form_ai_insight_repo = providers.Singleton(
         RoutingRepository,
@@ -511,17 +467,8 @@ class AppContainer(containers.DeclarativeContainer):
         ),
     )
 
-    form_provider_repo: FormPluginProviderRepository = providers.Singleton(
-        RoutingRepository,
-        group="refdata",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormPluginProviderRepository, pg_sessionmaker
-        ),
-        mongo=providers.Singleton(FormPluginProviderRepository),
+    form_provider_repo: PostgresFormPluginProviderRepository = providers.Singleton(
+        PostgresFormPluginProviderRepository, pg_sessionmaker
     )
 
     # the forms twins compose over this one and it over theirs: resolved lazily
@@ -1136,17 +1083,8 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
     )
 
-    user_feedback_repo = providers.Singleton(
-        RoutingRepository,
-        group="refdata",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        postgres=providers.Singleton(
-            postgres_repository, PostgresUserFeedbackRepo, pg_sessionmaker
-        ),
-        mongo=providers.Singleton(UserFeedbackRepo),
+    user_feedback_repo: PostgresUserFeedbackRepo = providers.Singleton(
+        PostgresUserFeedbackRepo, pg_sessionmaker
     )
 
     user_feedback_service = providers.Singleton(
@@ -1160,17 +1098,8 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
     )
 
-    price_suggestion_repo: PriceSuggestionRepository = providers.Singleton(
-        RoutingRepository,
-        group="refdata",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        postgres=providers.Singleton(
-            postgres_repository, PostgresPriceSuggestionRepository, pg_sessionmaker
-        ),
-        mongo=providers.Singleton(PriceSuggestionRepository),
+    price_suggestion_repo: PostgresPriceSuggestionRepository = providers.Singleton(
+        PostgresPriceSuggestionRepository, pg_sessionmaker
     )
 
     price_suggestion_service = providers.Singleton(

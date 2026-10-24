@@ -10,7 +10,8 @@ the closest file to the code you're editing wins. Deep architecture lives in [do
 **bettercollected** is a **privacy-friendly form builder SaaS**. Its differentiator: a form creator declares a
 *purpose* for data collection that responders consent to before submitting, and responders can later view their
 submission and request its deletion (GDPR-style). It is multi-tenant (workspaces), has a native drag-and-drop form
-builder, and can **import forms + responses from Google Forms and Typeform**.
+builder, and can **import forms + responses from Google Forms** (Typeform was removed in 4.1; forms imported
+from it stay readable as ordinary forms).
 
 Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 
@@ -22,7 +23,6 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 | [backend/](backend/) | FastAPI + Beanie (MongoDB) + SQLAlchemy (PostgreSQL) | 8000 | Core API — the hub everything routes through |
 | [auth/](auth/) | FastAPI + fastapi-users + Stripe | 8001 | Identity (OAuth / email-OTP / JWT) + Stripe billing |
 | [integrations/google/](integrations/google/) | FastAPI + Google APIs | 8003 | Google Forms/Drive/Sheets provider microservice |
-| `integrations/typeform/` | FastAPI (Typeform APIs) | 8002 | Typeform provider microservice — **not checked out in this clone** |
 | [temporal/worker/](temporal/worker/) | temporalio + Selenium | — | Background jobs: imports, deletions, template previews |
 | [temporal/csv-worker/](temporal/csv-worker/) | temporalio | — | CSV export of responses |
 | [temporal/actions-executor/](temporal/actions-executor/) | temporalio | — | Runs user-defined form-action code |
@@ -35,16 +35,15 @@ service, `app`/`auth`/`google`/`jobs`, one least-privilege role each; runbook in
 hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, tracker on `:3003` via nginx, dashboard on `127.0.0.1:3004` — see
 `backend/AGENTS.md` "Analytics (Umami)").
 
-> Note: `integrations/typeform/` and `common/` are referenced by build scripts but live in separate repos /
-> are vendored per service. Only `integrations/google` and a top-level `common/` are present in this checkout.
-> Typeform's OAuth *login* also lives inside `auth/`, distinct from the Typeform *import* microservice.
+> Note: the only provider integration is `integrations/google`; `common/` is the shared package of the Python
+> services. Google's OAuth *login* lives inside `auth/`, distinct from the Google Forms *import* service.
 
 ## Two architectural ideas you must understand before editing
 
 1. **Provider plugin/proxy pattern.** [common/common/constants/plugin_routes.py](common/common/constants/plugin_routes.py)
    defines a standard route contract (`/{provider}/oauth/*`, `/{provider}/forms`, `/{provider}/import`,
    `/{provider}/forms/{id}/responses`). The backend's `plugin_proxy` controller forwards these to the matching
-   provider microservice (google :8003, typeform :8002). Each provider converts its native format into the shared
+   provider microservice (google :8003). Each provider converts its native format into the shared
    **StandardForm**. Adding a provider = implementing that contract in a new microservice + registering a plugin config.
 
 2. **StandardForm — one model for imported and native forms.**
@@ -76,7 +75,7 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 - **Prereqs:** Python **3.11** (see `.python-version`; the backend, auth and Google integration require `>=3.11`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
 - **One-shot setup:** `./install.sh` (`uv sync` for the Python services + `yarn` for the webapp; skips missing dirs).
 - **Env file:** `.env.deployment` is the operator's own, untracked file: `deploy.sh` creates it (mode 600)
-  from the tracked template `.env.deployment.example` when it is missing (keys: Stripe, Google/Typeform
+  from the tracked template `.env.deployment.example` when it is missing (keys: Stripe, Google
   OAuth, `TEMPORAL_SERVER_URL`, mail). Never commit `.env.deployment`; change defaults in the template.
   The template ships no secrets: `deploy.sh` generates `AUTH_JWT_SECRET`,
   `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` into the root `.env`, and the services refuse to start
@@ -127,10 +126,10 @@ yarn storybook      # component explorer on :6006
 ## Things to be careful about
 
 - **Feature flags everywhere.** `webapp/next.config.js` `publicRuntimeConfig` + `ENABLE_*` env vars gate builder V2,
-  Google, Typeform, CSV export, response editing, etc. A feature may be code-complete but flagged off — check the flag
+  Google, CSV export, response editing, etc. A feature may be code-complete but flagged off — check the flag
   before assuming behavior.
 - **Multi-host routing.** The webapp serves three logical hosts (admin `:3000`, client `:3001/{workspace_handle}`,
-  custom domain `:3002`) behind nginx; `allowed_origins` in Mongo controls CORS. Custom-domain and workspace routing
+  custom domain `:3002`) behind nginx; `allowed_origins` (Postgres) controls CORS. Custom-domain and workspace routing
   are load-bearing — see [docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md).
 - **Auth is cookie-based** on revocable server-side sessions (backend `services/session_service.py`, `sessions`
   collection): short access tokens checked without a database read, refresh checked against the session (see

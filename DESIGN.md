@@ -282,6 +282,20 @@ These hold in every theme and every style; the colours are the form's own.
   white text. Single-answer lists are a WAI-ARIA radio group (one tab stop,
   arrow keys move and choose); multi-answer lists say "Choose as many as you
   like." above the options.
+- **Lettered option cards.** A theme that sets its own corners (`radius`,
+  below; the complete looks do) letters its answer options: a 28px key
+  letter in the data face stands where the ring or box was (A, B, C…; Yes
+  and No take their own initials, Y and N, J and N in Dutch), outlined in
+  the `tertiary` with the letter in ink at rest, filled with the chosen
+  colour once chosen, and a chosen card ends in a check mark, so the choice
+  shows in colour, a mark and weight. While an option has focus, pressing
+  its letter (no modifier keys) chooses it, or ticks and unticks it, and
+  moves focus there; the letters work only inside the focused list, never
+  in a text field (WCAG 2.1.4), and each option names its key in
+  `aria-keyshortcuts`, the letter itself being hidden from assistive tech.
+  The check mark grows in over 160ms, and simply appears under reduced
+  motion. A theme without corners of its own keeps the ring and box, so
+  stored forms don't change. The dropdown's list is never lettered.
 - **Scales and ratings.** Number scales are 48px square cells: white face,
   number in the theme's ink, `tertiary` edge, ink on hover; the chosen cell
   fills with `secondary`, white semibold number. Star ratings sit in 48px
