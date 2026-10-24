@@ -456,6 +456,39 @@ async def test_deletes_prune_expired_postgres_tombstones_as_they_go(
     assert await postgres_tombstones() == {("forms", str(created.id))}
 
 
+class DeleteBeforeInsert(Runner):
+    """A reconcile run where the application deletes the record after the
+    run checked the row and before its Mongo insert lands."""
+
+    between = None
+
+    async def _insert_copy(self, coll, document):
+        between, type(self).between = type(self).between, None
+        if between is not None:
+            await between()
+        await coll.insert_one(document)
+
+
+async def test_a_delete_landing_before_the_mongo_insert_is_not_brought_back(target):
+    """postgres->mongo under postgres_primary_dual: the row is checked, then
+    deleted (Postgres, with its tombstone), then the copy lands in Mongo."""
+    repo = forms_repo("postgres_primary_dual")
+    created = await new_form(repo)
+    # Mongo lacks the document (not deleted: e.g. a mirror insert that failed)
+    collection = FormDocument.get_pymongo_collection()
+    await collection.database[collection.name].delete_one({"_id": created.id})
+
+    async def application_delete():
+        await repo.delete_form(created.form_id)
+
+    DeleteBeforeInsert.between = application_delete
+    async with DeleteBeforeInsert(target) as runner:
+        result = await runner.reconcile(["forms"], direction="postgres->mongo")
+    assert result["forms"]["fixed"] == 0 and result["forms"]["skipped"] == 1
+    assert await copies(created.id) == (False, False)
+    assert (await verify(target)).clean
+
+
 async def test_pruning_runs_outside_the_delete_and_never_undoes_it(target, monkeypatch):
     """Pruning happens after the delete committed, in a transaction of its
     own: a prune that fails leaves the delete and its tombstone in place."""

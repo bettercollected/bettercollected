@@ -1048,27 +1048,26 @@ class Runner:
         a row the application deleted or changed meanwhile is not copied)
         and the Mongo copy is still the one read (``read``; ``None``: there
         was none). Returns whether it was stored."""
-        async with self.engine.connect() as conn:
-            current = (
-                await conn.execute(
-                    select(table.c._bc_checksum).where(
-                        table.c.id == str(document["_id"])
-                    )
-                )
-            ).scalar_one_or_none()
-        if current != row_checksum:
+        if not await self._still_the_row(coll, table, document, row_checksum):
             return False
         if read is None:
-            # not a record deleted since this run looked (either store)
-            row_id = str(document["_id"])
-            deleted_at = (await self._tombstones(coll.name, [row_id])).get(row_id)
-            if tombstones.is_victim(deleted_at, document.get("updated_at")):
-                return False
             try:
-                await coll.insert_one(document)
+                await self._insert_copy(coll, document)
             except DuplicateKeyError:
                 return False
-            return True
+            # A delete that landed between the check above and the insert
+            # (its tombstone, or the row gone) means the copy must go again.
+            # A delete landing after this re-check removes the copy itself:
+            # its Mongo delete (primary or mirror) runs after the row is gone.
+            if await self._still_the_row(coll, table, document, row_checksum):
+                return True
+            await coll.delete_one(
+                {
+                    "_id": document["_id"],
+                    "$expr": {"$eq": ["$$ROOT", {"$literal": document}]},
+                }
+            )
+            return False
         result = await coll.replace_one(
             {
                 "_id": document["_id"],
@@ -1077,6 +1076,27 @@ class Runner:
             document,
         )
         return result.matched_count == 1
+
+    async def _still_the_row(
+        self, coll, table: Table, document: dict, row_checksum: str
+    ) -> bool:
+        """Whether the Postgres row still holds ``row_checksum`` and no store
+        recorded its delete after the copy was written."""
+        row_id = str(document["_id"])
+        async with self.engine.connect() as conn:
+            current = (
+                await conn.execute(
+                    select(table.c._bc_checksum).where(table.c.id == row_id)
+                )
+            ).scalar_one_or_none()
+        if current != row_checksum:
+            return False
+        deleted_at = (await self._tombstones(coll.name, [row_id])).get(row_id)
+        return not tombstones.is_victim(deleted_at, document.get("updated_at"))
+
+    @staticmethod
+    async def _insert_copy(coll, document: dict) -> None:
+        await coll.insert_one(document)
 
     async def _drain_outbox(self, direction: str, dry_run: bool) -> None:
         """Mirror-write failures name a repository and ids; after a full pass
