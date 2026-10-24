@@ -47,7 +47,10 @@ def test_typeform_is_neither_a_login_nor_a_form_provider():
 
 async def test_a_stored_typeform_row_is_not_offered_or_used_for_deletion():
     service = _service(_row("typeform"), _row("google"))
-    assert await service.get_providers() == [{"provider_name": "google"}]
+    # (Google also reports its GOOGLE_FORMS_IMPORT mode, "on" by default)
+    assert await service.get_providers() == [
+        {"provider_name": "google", "import_mode": "on"}
+    ]
     # account deletion walks get_all=True and calls each enabled provider
     assert [p.provider_name for p in await service.get_providers(get_all=True)] == [
         "google"

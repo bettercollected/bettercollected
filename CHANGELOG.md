@@ -27,6 +27,11 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   changes per service, the order of the redeploys, what to watch, the soak and exit criteria, and
   the rollback. It also says how to run the migration CLI as a one-off on the stack, and covers the
   keyset freeze and the backup and restore test to do before Mongo is turned off.
+- `GOOGLE_FORMS_IMPORT=on|readonly|off` (backend and Google Forms service; default `on`). `readonly` keeps
+  imported forms and responses readable but refuses new imports, re-syncs, account connections and every
+  other call to Google with a Google Forms credential (403 `google_forms_readonly`); `off` answers 410
+  `google_forms_off` and never calls the Google Forms service. `GET /providers` reports the mode
+  (`importMode`). See `docs/RUNNING_INTEGRATIONS.md`.
 
 ### Changed
 

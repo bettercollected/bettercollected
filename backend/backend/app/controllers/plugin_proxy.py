@@ -11,6 +11,7 @@ from starlette.responses import Response
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.google_forms_mode import refuse_google_forms_processing
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.user_service import get_logged_user
 from common.base.plugin import BasePluginRoute
@@ -38,6 +39,8 @@ class PluginProxy(BasePluginRoute):
         request: Request,
         user: User = Depends(get_full_user),
     ):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider.value}/forms"
@@ -52,6 +55,8 @@ class PluginProxy(BasePluginRoute):
         request: Request,
         user: User = Depends(get_full_user),
     ):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider.value}/forms/{form_id}"
@@ -64,6 +69,8 @@ class PluginProxy(BasePluginRoute):
         provider: FormProvider,
         request: Request,
     ):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider.value}/forms/{form_id}"
@@ -73,6 +80,8 @@ class PluginProxy(BasePluginRoute):
     async def import_forms(
         self, provider: FormProvider, request: Request, response: Response
     ):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider.value}/forms"
@@ -87,6 +96,8 @@ class PluginProxy(BasePluginRoute):
         request_body: Dict[str, Any] = Body(...),
         user: User = Depends(get_full_user),
     ):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider.value}/forms", data=request_body
@@ -147,6 +158,8 @@ class PluginProxy(BasePluginRoute):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
     async def verify_oauth_token(self, request: Request, provider: FormProvider):
+        # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
+        refuse_google_forms_processing(provider)
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         response = await self.plugin_proxy_service.pass_request(
             request,

@@ -97,6 +97,12 @@ class Application(StoreBackedSettings):
     GOOGLE_API_VERSION: str = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL: str = "https://oauth2.googleapis.com/revoke"
     MAX_THREAD_POOL_EXECUTORS: int = 150
+    # on | readonly | off, read by the backend too (backend/config/
+    # google_forms_settings.py). readonly and off refuse every Google Forms
+    # route here (listing, import, token check and refresh, connecting an
+    # account, handing out a stored credential); the Sheets routes and
+    # deleting stored credentials stay.
+    GOOGLE_FORMS_IMPORT: str = "on"
 
     apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()

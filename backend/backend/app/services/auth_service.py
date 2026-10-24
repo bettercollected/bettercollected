@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from http import HTTPStatus
 from typing import Optional, Tuple
@@ -19,6 +20,11 @@ from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.google_forms_mode import (
+    google_service_enabled,
+    is_google,
+    refuse_google_forms_processing,
+)
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import safe_redirect
 from backend.app.services.session_service import (
@@ -34,6 +40,8 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
+
+log = logging.getLogger(__name__)
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
 
@@ -191,6 +199,8 @@ class AuthService:
     async def get_oauth_url(
         self, provider_name: str, client_referer_url: str, user: User
     ):
+        # connecting a Google account for imports: only while imports are on
+        refuse_google_forms_processing(provider_name)
         provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
             client_referer_uri=client_referer_url,
@@ -208,6 +218,8 @@ class AuthService:
     async def handle_backend_auth_callback(
         self, *, provider_name: str, state: str, request: Request, user: User = None
     ) -> Tuple[User, OAuthState]:
+        # the callback stores a Google Forms token: only while imports are on
+        refuse_google_forms_processing(provider_name)
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
         )
@@ -340,6 +352,15 @@ class AuthService:
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
             if not provider.enabled:
+                continue
+            if is_google(provider.provider_name) and not google_service_enabled():
+                # GOOGLE_FORMS_IMPORT=off: the Google Forms service is not
+                # called; its stored credentials go with its retirement
+                log.info(
+                    "Google Forms service off: credentials of user %s not "
+                    "deleted there",
+                    user.id,
+                )
                 continue
             response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(

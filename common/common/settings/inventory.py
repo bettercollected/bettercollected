@@ -467,6 +467,10 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
     _text("GOOGLE_API_VERSION", "google", (GOOGLE,), "Google API version.", "v2", max_length=16),
     _url("GOOGLE_REVOKE_CREDENTIALS_URL", "google", (GOOGLE,), "Google token revocation endpoint.",
          "https://oauth2.googleapis.com/revoke"),
+    _spec("GOOGLE_FORMS_IMPORT", "google", (BACKEND, GOOGLE),
+          "Google Forms import: on; readonly (imported data stays, no import, sync or call to "
+          "Google: 403); off (410, the service is never called).",
+          ENUM, tier=T2, default="on", choices=("on", "readonly", "off")),
     _url("AUTH_CALLBACK_URI", "google", (BACKEND,),
          "OAuth callback address (the code default is the auth address plus /auth/callback)."),
 )

@@ -96,6 +96,7 @@ environment, whatever the tier.
 | `GOOGLE_CLIENT_ID` | google | auth, google, webapp | str max 300 |  | R | T3 |  |
 | `GOOGLE_CLIENT_SECRET` | google | auth, google | str | yes | R | T3 |  |
 | `GOOGLE_CLIENT_TYPE` | google | google | str max 32 |  | R | T3 | `web` |
+| `GOOGLE_FORMS_IMPORT` | google | backend, google | enum on/readonly/off |  | R | T2 | `on` |
 | `GOOGLE_JAVASCRIPT_ORIGINS` | google | auth, google | str max 2000 |  | R | T3 |  |
 | `GOOGLE_PROJECT_ID` | google | auth, google | str max 200 |  | R | T3 |  |
 | `GOOGLE_REDIRECT_URIS` | google | auth, google | str max 2000 |  | R | T3 |  |

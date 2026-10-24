@@ -8,9 +8,17 @@ from fastapi import Depends
 
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.services.forms_mode import google_forms_processing_allowed
 from googleform.app.services.oauth_credential import OauthCredentialService
 from googleform.app.services.transformer import GoogleFormTransformerService
 from googleform.app.services.user_service import get_user_credential
+
+
+# Every route that uses the Google Forms credential refuses in
+# GOOGLE_FORMS_IMPORT=readonly|off. Declared before the credential, so it runs
+# first (no credential read, no token refresh). create_google_sheet uses the
+# Sheets credential it is given and is not Google Forms work.
+_FORMS = Depends(google_forms_processing_allowed)
 
 
 class GoogleFormRouter(Routable):
@@ -28,7 +36,9 @@ class GoogleFormRouter(Routable):
 
     @get("", status_code=HTTPStatus.OK)
     async def _get_all_google_forms(
-            self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
+            self,
+            _forms: None = _FORMS,
+            credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -45,6 +55,7 @@ class GoogleFormRouter(Routable):
 
     @get("/read_google_sheet")
     async def read_google_sheet(self, google_sheet_id: str,
+                                _forms: None = _FORMS,
                                 credential: Oauth2CredentialDocument = Depends(get_user_credential)):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -62,6 +73,7 @@ class GoogleFormRouter(Routable):
     async def _get_single_google_form(
             self,
             form_id: str,
+            _forms: None = _FORMS,
             credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
@@ -82,6 +94,7 @@ class GoogleFormRouter(Routable):
             self,
             form_import: Dict[str, Any],
             convert_responses: Optional[bool] = True,
+            _forms: None = _FORMS,
             credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
@@ -104,7 +117,8 @@ class GoogleFormRouter(Routable):
         return standard_form
 
     @get("/oauth/verify")
-    async def _get_oauth_credentials(self, credential: Oauth2CredentialDocument = Depends(get_user_credential)):
+    async def _get_oauth_credentials(self, _forms: None = _FORMS,
+                                     credential: Oauth2CredentialDocument = Depends(get_user_credential)):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
