@@ -9,21 +9,22 @@
 #
 # Ory Polis (formerly BoxyHQ SAML Jackson) turns customers' SAML/OIDC identity
 # providers into one OAuth code flow. Isolated: its own Postgres
-# (`polis-postgres`, on the internal `polis-db` network only), and the `sso`
-# network, which reaches the internet (the customers' IdPs) and the backend,
-# the jobs worker and auth (who call it), but not Mongo, app-postgres,
-# Temporal or the other services. Bound to localhost: publish only
-# /api/oauth/*, /.well-known/* (and /api/scim/* with directory sync)
-# through your TLS reverse proxy at
-# SSO_POLIS_URL, never the admin API (/api/v1/*) or the admin UI.
+# (`polis-postgres`, on the internal `polis-db` network only); one internal
+# network per service that calls it (`sso-backend`, `sso-jobs`, `sso-auth`),
+# each shared by Polis and that one service only; and `polis-egress`, Polis's
+# alone, which reaches the internet (the customers' IdPs). Polis cannot reach
+# Mongo, app-postgres, Temporal or the other services. Bound to localhost:
+# publish only /api/oauth/*, /.well-known/* (and /api/scim/* with directory
+# sync) through your TLS reverse proxy at SSO_POLIS_URL, never the admin API
+# (/api/v1/*) or the admin UI.
 #
-# Known limit: Polis fetches IdP metadata from URLs customers supply and has
-# internet egress, and a network is symmetric: anything Polis can be called from
-# (the backend, auth) can also be called by Polis. Their internal routes are
-# protected by keys, not by the network. Where that matters, filter Polis's egress
-# (a forward proxy or host firewall rule for the `sso` network) so it cannot reach
-# private addresses; splitting the callers onto a listener Polis cannot reach needs
-# a change in those services, not in this file.
+# Required before SSO is enabled on a hosted stack (docs/sso.md): deny Polis's
+# egress to private addresses (RFC 1918, link-local incl. cloud metadata,
+# loopback, the Docker networks) with a host firewall rule or an egress proxy.
+# The IdP endpoints Polis calls are checked when a connection is saved, but
+# their names are resolved again at sign-in. A network is symmetric: Polis can
+# also reach the HTTP ports of its three callers, whose internal routes are
+# protected by keys, not by the network.
 services:
   polis:
     # 26.2.0, the version tested; pinned by digest
@@ -56,8 +57,14 @@ services:
     ports:
       - '127.0.0.1:5225:5225'
     networks:
-      - sso
+      # the internet (IdP token, userinfo and JWKS endpoints) and the published
+      # port; no other service is on it
+      - polis-egress
       - polis-db
+      # one network per caller (internal, no egress)
+      - sso-backend
+      - sso-jobs
+      - sso-auth
     depends_on:
       polis-postgres:
         condition: service_healthy
@@ -79,16 +86,19 @@ services:
       timeout: 5s
       retries: 10
 
-  # Those who call Polis join its `sso` network as well as the default one.
+  # Each service that calls Polis joins its own network with Polis, as well as
+  # the default one: the backend (admin API, SCIM; Polis posts SCIM events
+  # back), the jobs worker (nightly SCIM resync, releasing deleted workspaces'
+  # connections) and auth (token and userinfo of the sign-in code exchange).
   backend:
     environment:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
       # SCIM directory sync (docs/sso.md): Polis delivers directory events to
-      # the backend over this `sso` network; the directory's id is appended
+      # the backend over the `sso-backend` network; the directory's id is appended
       SCIM_WEBHOOK_URL: ${SCIM_WEBHOOK_URL:-http://backend:8000/api/v1/scim/webhook}
     networks:
       - default
-      - sso
+      - sso-backend
   jobs-worker:
     environment:
       SSO_POLIS_API_KEY: ${SSO_POLIS_API_KEY:?set by deploy.sh in the root .env}
@@ -97,20 +107,31 @@ services:
       SCIM_WEBHOOK_URL: ${SCIM_WEBHOOK_URL:-http://backend:8000/api/v1/scim/webhook}
     networks:
       - default
-      - sso
+      - sso-jobs
   auth:
     networks:
       - default
-      - sso
+      - sso-auth
 
 volumes:
   polis-db-data:
 
 networks:
   default:
-  # Polis and those who call it (backend, jobs worker, auth); has internet
-  # egress for the customers' identity providers
-  sso:
+  # Polis only: internet egress for the customers' identity providers, and the
+  # published port. Pinned subnet, so a host firewall rule can name it: filter
+  # it before enabling SSO (docs/sso.md, "Polis egress").
+  polis-egress:
+    ipam:
+      config:
+        - subnet: ${POLIS_EGRESS_SUBNET:-172.30.78.0/29}
+  # Polis and the one service that calls it over each; no egress
+  sso-backend:
+    internal: true
+  sso-jobs:
+    internal: true
+  sso-auth:
+    internal: true
   # Polis and its database only, no egress
   polis-db:
     internal: true
