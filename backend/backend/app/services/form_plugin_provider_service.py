@@ -55,7 +55,21 @@ class FormPluginProviderService:
                 return {"provider_name": provider.provider_name}
         return provider
 
+    @staticmethod
+    def _refuse_unlisted(provider_name):
+        # A stored row of a removed integration (typeform) is never read: its
+        # URLs point at a service that no longer runs, and a leftover container
+        # there must not receive the user's request.
+        if (
+            getattr(provider_name, "value", provider_name)
+            not in FormProvider.list_providers()
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
+
     async def get_provider_if_enabled(self, provider_name):
+        self._refuse_unlisted(provider_name)
         provider = await self._form_provider_repo.get(provider_name)
         if not provider:
             raise HTTPException(
@@ -71,5 +85,6 @@ class FormPluginProviderService:
         return provider
 
     async def get_provider_url(self, provider_name) -> str:
+        self._refuse_unlisted(provider_name)
         provider = await self._form_provider_repo.get_provider_url(provider_name)
         return provider.provider_url

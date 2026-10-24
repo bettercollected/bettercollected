@@ -61,8 +61,9 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   settings are gone. `/auth/{provider}/basic` takes Google only, and the import and proxy routes no longer
   accept `typeform`. Forms and responses imported from Typeform stay readable as ordinary forms. The
   `TYPEFORM_*` settings are retired: values left in an env file or the settings store are ignored and no
-  longer reported. A stored `typeform` provider row is no longer offered or called, so account deletion
-  no longer depends on the Typeform service. The keyset tasks accept and ignore `typeform_acknowledged`
+  longer reported. A stored `typeform` provider row is no longer offered, read or called (the OAuth
+  callback and every provider lookup refuse it), so account deletion no longer depends on the Typeform
+  service. The row itself stays in `forms_plugin_configs` and is pruned with the other Typeform data later. The keyset tasks accept and ignore `typeform_acknowledged`
   and no longer wait for a Typeform heartbeat.
 
 ### Fixed

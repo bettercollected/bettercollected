@@ -253,7 +253,7 @@ class AuthRoutes(Routable):
     async def _auth_callback(
         self,
         request: Request,
-        provider_name: str = None,
+        provider_name: FormProvider,
         state: str = None,
         code: str = None,
         user=Depends(get_full_user),
