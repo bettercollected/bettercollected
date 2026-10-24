@@ -369,7 +369,17 @@ up new/changed templates the next time it restarts, no manual step required.
   options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
   `_choices(...)`.
 - To add a template: write a new zero-arg builder function returning `{title, description, category, fields}` (see
-  `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`.
+  `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`. A payload may also
+  carry `language` (stored as the template's `settings.language`, which forms made from it keep), `welcome_page`
+  and `thankyou_page`.
+- **Dutch-first templates** (`scripts/dutch_first_templates.py`): rental home application, school enrolment,
+  request to an organisation, new colleague, event registration. Each is written once with its Dutch (B1 plain
+  language) and English text side by side and seeded as two templates (`settings.language` `nl` / `en`) with the
+  same questions: one question per page, a "why we ask this" line on every question, few required answers,
+  nothing pre-selected, no ID numbers or documents, follow-up pages skipped unless a yes/no question is answered
+  yes (page jumps on yes/no only: choice conditions are not used there). `tests/scripts/test_dutch_first_templates.py`
+  checks the twins match, the wording rules, the jump paths and that a form made from one publishes. Change
+  wording in that file, then delete the seeded template by title to re-seed it.
 - To force a re-seed of a changed template, delete it from `form_templates` first (by title) — the next restart (or
   a manual run) recreates it.
 - Manual one-off run (e.g. without restarting the app): `uv run python -m scripts.seed_flow_templates` from `backend/`.
