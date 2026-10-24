@@ -13,6 +13,68 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.8] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations.** No service schema changes, no new settings and no compose change.
+- **Run `postgres/ensure-admin-roles.sh` once after the deploy.** It creates the definer functions
+  behind the Health page's migration heads and mirror outbox. It is idempotent. `deploy.sh` runs it
+  on every deploy.
+  - **Without `deploy.sh` (a Swarm stack, say):** run it once as the database superuser, from a
+    one-off container with `psql` 15 or newer (the `postgres:16` image) that can reach the database.
+    Give it `PGHOST`, `PGPASSWORD`, `POSTGRES_USER`, `POSTGRES_DB` and the five `BC_*_PASSWORD`
+    values (`BC_ADMIN_PASSWORD`, `BC_ADMIN_MIG_PASSWORD`, `BC_TASKS_PASSWORD`,
+    `BC_TASKS_DATA_APP_PASSWORD` and `BC_TASKS_DATA_GOOGLE_PASSWORD`).
+  - **Use the values the stack already uses:** the script sets these roles' passwords, so a
+    different value locks the admin portal and the task runner out.
+  - **Until it runs,** the Health page shows those three schemas as "not available" and names the
+    script. Nothing else depends on it.
+- **Forms with logic on choice questions change behaviour.** On multiple choice and dropdown
+  questions, visibility rules and page jumps now work as they were designed: questions show and
+  hide, jumps fire and endings are chosen. Before, these conditions never matched. Forms that relied
+  on that (a question that "never showed") will now follow their rules, so review forms whose logic
+  tests a chosen option. Piped choice answers now show the option's text instead of its internal id.
+- **Rollback:** 4.0.7 can run against a 4.0.8 database. The new functions stay unused, and 4.0.7
+  treats a `CopyUnverified` outbox entry as an ordinary entry that `reconcile` resolves.
+
+### Added
+
+- The admin portal's Health page now shows the `app`, `auth` and `google` schemas'
+  migration state against the head the deployed code expects, next to `admin`, and a
+  "Mirror outbox" table with the unresolved and total mirror-write failures of each
+  service in PostgreSQL (red while any is unresolved). Both are read through narrow
+  definer functions created by `postgres/ensure-admin-roles.sh`; run it once after
+  upgrading (`deploy.sh` does). MongoDB outboxes are not shown.
+
+### Fixed
+
+- Logic on multiple choice and dropdown questions works. Visibility rules and page jumps that test
+  which option a respondent chose never matched: answers hold the chosen option's id, while the
+  logic editor, the AI assistant and the seeded "Support triage" template name the option by its
+  text. So such questions stayed hidden (or shown), jumps never fired, a jump never chose its
+  ending, and the flow view counted every response on the linear path. Conditions now match the
+  chosen option by its text or its id (exactly, as before), in the respondent's browser and in the
+  server's checks alike; several answers are tested for membership the same way, and text typed as
+  "Other" is compared as it is (an "Other" answer is no longer empty). Existing rules work without
+  changes. Affected every release since conditional logic shipped in 2.3.0.
+- Mirror convergence is capped as a whole, at twice the mirror timeout and including its writes, so a
+  hung store can no longer hold a request longer; a copy cut off by the cap is still re-checked. A copy
+  whose re-check failed is recorded in the outbox as `CopyUnverified`, and only a clean full `verify`,
+  not `reconcile`, resolves it.
+- Answer piping shows a choice answer as the option's text. A multiple choice or dropdown answer
+  recalled in a later question, description, ending or repeating-group item title (or listed across
+  a group's items) showed the chosen option's internal id instead of the words the respondent picked,
+  and text typed as "Other" was left out. It now shows the option's text (its label, or "Item <n>"
+  when it has none), followed by any "Other" text.
+- `reconcile --direction postgres->mongo` checks a copy it inserted into Mongo again once it has
+  landed, and removes it when the record was deleted meanwhile (its tombstone, or the Postgres row
+  gone), so a delete racing that insert can no longer bring the record back in Mongo.
+- Expired deletion tombstones are pruned after a delete has committed, in a transaction of their own,
+  instead of inside the delete's transaction, so a delete never waits on pruning or holds its locks,
+  and a failed prune never undoes a delete.
+
 ## [4.0.7] - 2026-10-25
 
 ### Upgrade notes
@@ -1055,7 +1117,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...HEAD
+[4.0.8]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...v4.0.8
 [4.0.7]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/bettercollected/bettercollected/compare/v4.0.5...v4.0.6
 [4.0.3]: https://github.com/bettercollected/bettercollected/compare/v4.0.2...v4.0.3
