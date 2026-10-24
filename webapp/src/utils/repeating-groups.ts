@@ -4,7 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
 import { groupPipeKey, PipeContext, resolvePipesInText } from '@app/utils/answer-piping';
 import { GROUP_AGGREGATE_LABELS, NUMERIC_AGGREGATES, NUMERIC_FIELD_TYPES } from '@app/utils/group-aggregates';
-import { getGroupAnswerItems, getHiddenFieldIds, isFieldHiddenByLogic } from '@app/utils/conditional-logic';
+import { getGroupAnswerItems, getHiddenFieldIds, isFieldHiddenByLogic, LogicSources, logicSourcesById } from '@app/utils/conditional-logic';
 
 /**
  * Repeating groups — a set of questions respondents fill several times (one
@@ -203,10 +203,11 @@ export function normalizeGroupAnswersForSubmit(slides: Array<StandardFormFieldDt
     let next = { ...(answers || {}) };
     const visited = visitedSlideIndexes ? new Set(visitedSlideIndexes) : null;
     const offPath = (slideIndex: number) => !!visited && !visited.has(slideIndex);
+    const sources = logicSourcesById(slides);
     (slides ?? []).forEach((slide, slideIndex) => {
         slide?.properties?.fields?.forEach((group) => {
             if (!isRepeatingGroup(group) || next[group.id] === undefined) return;
-            if (offPath(slideIndex) || isFieldHiddenByLogic(group, next)) {
+            if (offPath(slideIndex) || isFieldHiddenByLogic(group, next, sources)) {
                 delete next[group.id];
                 return;
             }
@@ -234,10 +235,15 @@ export function hasAnswerValue(answer: any): boolean {
     return Object.entries(answer).some(([key, value]) => key !== 'field' && key !== 'type' && filled(value));
 }
 
-/** Child questions hidden right now in item `index` (item-scoped visibility rules). */
-export function getItemHiddenChildIds(field: StandardFormFieldDto, answers: Record<string, any> | undefined, index: number): Set<string> {
+/**
+ * Child questions hidden right now in item `index` (item-scoped visibility rules).
+ * `sources`: the form's questions by id (`logicSourcesById`); the group's own
+ * questions are always among them.
+ */
+export function getItemHiddenChildIds(field: StandardFormFieldDto, answers: Record<string, any> | undefined, index: number, sources?: LogicSources): Set<string> {
     const children = getGroupChildren(field);
-    return getHiddenFieldIds(children, itemScopeAnswers(answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }));
+    const scope: LogicSources = Object.assign(Object.create(null), sources, Object.fromEntries(children.map((child) => [child.id, child])));
+    return getHiddenFieldIds(children, itemScopeAnswers(answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }), scope);
 }
 
 export type GroupInvalidation = 'REQUIRED' | 'MIN_ITEMS' | 'MAX_ITEMS';
@@ -246,7 +252,7 @@ export type GroupInvalidation = 'REQUIRED' | 'MIN_ITEMS' | 'MAX_ITEMS';
  * Validate one group: item count within limits (keyed by the group id) and
  * required questions per visible item (keyed by the scoped child id).
  */
-export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record<string, any> | undefined): Record<string, GroupInvalidation[]> {
+export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record<string, any> | undefined, sources?: LogicSources): Record<string, GroupInvalidation[]> {
     const invalid: Record<string, GroupInvalidation[]> = {};
     const { minItems, maxItems } = getRepeatSettings(field);
     const count = getDisplayedItemCount(field, answers);
@@ -256,7 +262,7 @@ export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record
     const items = getGroupItems(answers, field.id);
     for (let index = 0; index < count; index++) {
         const item = items[index] ?? {};
-        const hidden = getItemHiddenChildIds(field, answers, index);
+        const hidden = getItemHiddenChildIds(field, answers, index, sources);
         getGroupChildren(field).forEach((child) => {
             if (child?.validations?.required && !hidden.has(child.id) && !hasAnswerValue(item[child.id])) invalid[scopedFieldId(child.id, index)] = ['REQUIRED'];
         });
@@ -265,8 +271,8 @@ export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record
 }
 
 /** Validate the repeating groups among a page's visible fields. */
-export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any> | undefined): Record<string, GroupInvalidation[]> {
-    return (fields ?? []).filter(isRepeatingGroup).reduce((acc, group) => ({ ...acc, ...validateGroupAnswer(group, answers) }), {} as Record<string, GroupInvalidation[]>);
+export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any> | undefined, sources?: LogicSources): Record<string, GroupInvalidation[]> {
+    return (fields ?? []).filter(isRepeatingGroup).reduce((acc, group) => ({ ...acc, ...validateGroupAnswer(group, answers, sources) }), {} as Record<string, GroupInvalidation[]>);
 }
 
 /** A question's title as plain text (string or TipTap JSON), without UI imports. */
