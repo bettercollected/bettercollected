@@ -69,6 +69,9 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- The admin portal no longer shifts sideways when a page becomes long enough to scroll: every page reserves the
+  scrollbar's width (`scrollbar-gutter: stable`), so the content stays put on short pages, long pages and after
+  HTMX swaps or task progress updates.
 - The forms list and form search ask the auth service about each importer once, instead of once per
   form on the page. Search now shows each form's own importer: it could show another member's name on
   a form, and no importer at all on forms imported by someone other than the searching member. The forms
