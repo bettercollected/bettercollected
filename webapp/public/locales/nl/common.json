@@ -468,6 +468,11 @@
     "ROLE": "Rol",
     "MANAGED_BY_DIRECTORY": "Beheerd door uw directory",
     "DEACTIVATED": "Gedeactiveerd",
+    "SSO_REMOVAL": {
+      "TITLE": "Een lid verwijderen houdt die persoon niet buiten",
+      "WITHOUT_DIRECTORY": "Single sign-on staat aan: wie u hier verwijdert, komt terug zodra die persoon weer inlogt met single sign-on. Wilt u iemand buiten houden, schakel dan het account uit bij uw identiteitsprovider. Zodra directorysynchronisatie (SCIM) gekoppeld is, deactiveert uw directory mensen voor u.",
+      "WITH_DIRECTORY": "Single sign-on staat aan: wie u hier verwijdert, komt terug zodra die persoon weer inlogt met single sign-on. Wilt u iemand buiten houden, deactiveer die persoon dan in uw directory: een lid dat de directory heeft gedeactiveerd, staat op Gedeactiveerd en kan niet meer inloggen."
+    },
     "COLLABORATORS": {
       "DEFAULT": "Medewerkers",
       "DESCRIPTION": "Medewerkers kunnen formulieren importeren, formulieren verwijderen, reacties bekijken en reacties verwijderen."

@@ -469,6 +469,11 @@
     "ROLE": "Role",
     "MANAGED_BY_DIRECTORY": "Managed by your directory",
     "DEACTIVATED": "Deactivated",
+    "SSO_REMOVAL": {
+      "TITLE": "Removing a member does not keep them out",
+      "WITHOUT_DIRECTORY": "Single sign-on is on: someone removed here joins again the next time they sign in with single sign-on. To keep a person out, disable their account at your identity provider. Once directory sync (SCIM) is connected, your directory deactivates people for you.",
+      "WITH_DIRECTORY": "Single sign-on is on: someone removed here joins again the next time they sign in with single sign-on. To keep a person out, deactivate them in your directory: a member it deactivated shows as Deactivated and cannot sign in again."
+    },
     "COLLABORATORS": {
       "DEFAULT": "Collaborators",
       "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete responses."

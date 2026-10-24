@@ -12,7 +12,9 @@ import { memberRoles } from '@app/constants/locales/member-roles';
 import { members } from '@app/constants/locales/members';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceScimQuery, useGetWorkspaceSsoQuery } from '@app/store/workspaces/api';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 
 import MembersTable from '../settings/members-table';
@@ -26,6 +28,15 @@ export default function Collaborators() {
     const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id }, { skip: !workspace?.id || !canManageMembers });
     const { t } = useTranslation();
     const { openModal } = useModal();
+    // Single sign-on adds people just in time: a member removed here joins
+    // again at their next SSO sign-in (docs/sso.md). Only an account disabled
+    // at the identity provider (or deactivated by the directory) stays out,
+    // so say so while a connection is on.
+    const ssoEnabled = useSsoEnabled();
+    const canSeeSso = ssoEnabled && can(WorkspacePermission.SECURITY_MANAGE) && !!workspace?.id;
+    const { data: sso } = useGetWorkspaceSsoQuery(workspace.id, { skip: !canSeeSso });
+    const ssoOn = canSeeSso && !!sso?.available && !!sso?.connections?.some((connection) => connection.status === 'enabled');
+    const { data: scim } = useGetWorkspaceScimQuery(workspace.id, { skip: !ssoOn });
     if (isLoading || permissionsLoading) {
         return (
             <div className=" w-full py-10 flex justify-center">
@@ -54,6 +65,12 @@ export default function Collaborators() {
             </div>
 
             <p className="body4 mb-6 md:max-w-[301px] text-black-700">{t(members.collaborators.description)}</p>
+            {ssoOn && (
+                <div role="note" className="body4 -mt-2 mb-6 max-w-[640px] rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-black-800">
+                    <p className="font-medium">{t(members.ssoRemoval.title)}</p>
+                    <p className="mt-1 text-black-700">{t(scim?.directory ? members.ssoRemoval.withDirectory : members.ssoRemoval.withoutDirectory)}</p>
+                </div>
+            )}
             <MembersTable data={data} />
         </div>
     );
