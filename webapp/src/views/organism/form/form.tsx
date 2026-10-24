@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import { useResponderFormLogo } from '@app/lib/hooks/use-form-logo';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
@@ -64,7 +65,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     // and ending pages, and the pages drop the row that held it.
     const workspace = useAppSelector(selectWorkspace);
     const pathname = usePathname();
-    const responderSignInUrl = isPreviewMode ? '' : `/login?type=responder&workspace_id=${workspace?.id}&redirect_to=${pathname}`;
+    const responderSignInUrl = isPreviewMode ? '' : respondentSignInUrl(workspace?.id, pathname, language);
     // A welcome page set beside the theme's artwork is its cover (theme-artwork.tsx).
     const cover = greetingCover(standardForm.theme, standardForm.welcomePage?.layout, standardForm.welcomePage?.imageUrl, { privateForm: !!standardForm?.settings?.private });
     const ending = endingToShow(standardForm?.thankyouPage, endingId);

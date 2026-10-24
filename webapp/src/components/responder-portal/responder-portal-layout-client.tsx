@@ -27,7 +27,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { respondentLangQuery } from '@app/utils/respondent-lang-query';
+import { respondentLangQuery, respondentSignInUrl } from '@app/utils/respondent-lang-query';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import SearchBySubmissionNumber from './search-by-submission-number';
 
@@ -116,14 +116,7 @@ export default function ResponderPortalLayoutClient({
                         <Button
                             className="mt-6"
                             size="sm"
-                            onClick={() => {
-                                const params = new URLSearchParams({
-                                    type: 'responder',
-                                    workspace_id: workspace.id,
-                                    redirect_to: pathname
-                                });
-                                router.push(`/login?${params.toString()}`);
-                            }}
+                            onClick={() => router.push(respondentSignInUrl(workspace.id, pathname, language))}
                         >
                             {tRespondent('PORTAL.VERIFY_EMAIL')}
                         </Button>

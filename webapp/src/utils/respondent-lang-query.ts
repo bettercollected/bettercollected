@@ -7,3 +7,13 @@ export function respondentLangQuery(value: string | string[] | null | undefined)
     const lang = (Array.isArray(value) ? value[0] : value)?.toLowerCase();
     return lang === 'en' || lang === 'nl' ? `?lang=${lang}` : '';
 }
+
+/**
+ * The sign-in page for a respondent of a workspace. It carries the
+ * respondent's language, so the sign-in page asks for the code mail in it.
+ */
+export function respondentSignInUrl(workspaceId: string | undefined, redirectTo: string | null | undefined, language: string): string {
+    const params = new URLSearchParams({ type: 'responder', workspace_id: workspaceId ?? '', redirect_to: redirectTo ?? '' });
+    if (language === 'en' || language === 'nl') params.set('lang', language);
+    return `/login?${params.toString()}`;
+}

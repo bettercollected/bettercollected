@@ -34,9 +34,20 @@ describe('sign-in code mail language', () => {
         await waitFor(() => expect(sendOtp).toHaveBeenCalledWith({ receiver_email: 'maker@example.com', workspace_id: '', locale: 'nl' }));
     });
 
-    it("leaves a respondent's code (sent through the workspace) as it was", async () => {
+    it("asks for a respondent's code (sent through the workspace) in the respondent's language", async () => {
         searchParams = new URLSearchParams({ type: 'responder', workspace_id: 'ws-1' });
         submit('respondent@example.com');
-        await waitFor(() => expect(sendOtp).toHaveBeenCalledWith({ receiver_email: 'respondent@example.com', workspace_id: 'ws-1' }));
+        await waitFor(() => expect(sendOtp).toHaveBeenCalledWith({ receiver_email: 'respondent@example.com', workspace_id: 'ws-1', locale: 'nl' }));
+    });
+
+    it("follows the language the respondent's link chose over the browser's", async () => {
+        window.history.replaceState(null, '', '/login?type=responder&workspace_id=ws-1&lang=en');
+        searchParams = new URLSearchParams({ type: 'responder', workspace_id: 'ws-1', lang: 'en' });
+        try {
+            submit('respondent@example.com');
+            await waitFor(() => expect(sendOtp).toHaveBeenCalledWith({ receiver_email: 'respondent@example.com', workspace_id: 'ws-1', locale: 'en' }));
+        } finally {
+            window.history.replaceState(null, '', '/');
+        }
     });
 });

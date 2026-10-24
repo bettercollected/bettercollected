@@ -13,6 +13,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 
 interface OtpCodeFormProps {
@@ -38,6 +39,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
 
     const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
     const [postSendOtp] = usePostSendOtpMutation();
+    const { language: respondentLanguage } = useRespondentLanguage();
     const searchParams = useSearchParams();
     const fromProPlan = searchParams?.get('fromProPlan');
     const workspace_id = searchParams?.get('workspace_id');
@@ -77,7 +79,8 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
     };
 
     const resendOtpCode = async () => {
-        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', ...(workspace_id ? {} : { locale: browserMailLocale() }) });
+        // the same language as the first code (otp-email-form)
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale: workspace_id ? respondentLanguage : browserMailLocale() });
         if ('data' in res && !!res.data) {
             setCounter(60);
         }
