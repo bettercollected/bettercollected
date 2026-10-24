@@ -101,8 +101,12 @@ class Session:
         email.wait_for(state="visible")
         email.fill(address)
         asked_at = dt.datetime.now(dt.timezone.utc)
-        with page.expect_response(_api_call("POST", "/auth/otp/send")) as sent:
-            email.press("Enter")
+        try:
+            with page.expect_response(_api_call("POST", "/auth/otp/send")) as sent:
+                email.press("Enter")
+        except PlaywrightTimeout:
+            self.dump("sign-in-send-timeout")
+            raise FlowError("asking for a code got no answer the page could read")
         if sent.value.status != 200:
             self.dump("sign-in-send")
             raise FlowError(f"asking for a code answered {sent.value.status}")
@@ -110,8 +114,14 @@ class Session:
         code_input.wait_for(state="visible")
         code = read_code(asked_at)
         code_input.fill(code)
-        with page.expect_response(_api_call("POST", "/auth/otp/validate")) as checked:
-            code_input.press("Enter")
+        try:
+            with page.expect_response(
+                _api_call("POST", "/auth/otp/validate")
+            ) as checked:
+                code_input.press("Enter")
+        except PlaywrightTimeout:
+            self.dump("sign-in-validate-timeout")
+            raise FlowError("entering the code got no answer the page could read")
         if checked.value.status != 200:
             self.dump("sign-in-validate")
             raise FlowError(f"the code was refused ({checked.value.status})")
@@ -136,13 +146,17 @@ class Session:
     def open_form(self, url: str, title: str) -> None:
         page = self.page
         page.goto(url)
-        page.get_by_role("heading", name=title).first.wait_for(state="attached")
-        start = page.get_by_role("button", name=START)
-        question = page.locator("[data-question-wrapper]").first
-        start.or_(question).first.wait_for(state="visible")
-        if start.count() and start.first.is_visible():
-            start.first.click()
-        question.wait_for(state="visible")
+        try:
+            page.get_by_role("heading", name=title).first.wait_for(state="attached")
+            start = page.get_by_role("button", name=START)
+            question = page.locator("[data-question-wrapper]").first
+            start.or_(question).first.wait_for(state="visible")
+            if start.count() and start.first.is_visible():
+                start.first.click()
+            question.wait_for(state="visible")
+        except PlaywrightTimeout:
+            self.dump("open-form-timeout")
+            raise FlowError("the form page did not show the form")
 
     def fill(self, answers: Mapping[str, str]) -> None:
         """Answer each field (by id) with its value: a choice is picked by its

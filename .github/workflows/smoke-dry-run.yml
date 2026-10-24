@@ -116,9 +116,11 @@ jobs:
                   .github/scripts/test-dbs.sh wait
                   (cd auth && nohup uv run --frozen python -m uvicorn auth.app:get_application --host 127.0.0.1 --port 8001 >"$RUNNER_TEMP/auth.log" 2>&1 &)
                   curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://127.0.0.1:8001/api/v1/ready
+                  # the allowed origins before the backend starts: it caches them for a minute
+                  (cd backend && uv run --frozen alembic -c alembic.ini upgrade head)
+                  (cd backend && uv run --frozen python -m backend.seed_refdata --origin http://localhost:3000 --origin http://127.0.0.1:3000 --google-enabled false)
                   (cd backend && nohup uv run --frozen python -m uvicorn backend.app:get_application --host 127.0.0.1 --port 8000 >"$RUNNER_TEMP/backend.log" 2>&1 &)
                   curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://127.0.0.1:8000/api/v1/providers
-                  (cd backend && uv run --frozen python -m backend.seed_refdata --origin http://localhost:3000 --origin http://127.0.0.1:3000 --google-enabled false)
                   (cd webapp && nohup yarn start -p 3000 >"$RUNNER_TEMP/webapp.log" 2>&1 &)
                   curl -sf --retry 30 --retry-connrefused --retry-delay 2 -o /dev/null http://localhost:3000/api/config
 
