@@ -2,7 +2,7 @@
 # Decides what a CI run covers; writes step outputs to $GITHUB_OUTPUT (or stdout).
 #
 # Pull requests: the Postgres persistence mode only, and only the suites the
-# changed files can affect. Push to develop, the nightly schedule and a manual
+# changed files can affect. Push to develop or a release/** branch, the nightly schedule and a manual
 # run (scope "full"): every suite in every mode.
 #
 # Path rules are deliberately conservative: a file that is not known to be
