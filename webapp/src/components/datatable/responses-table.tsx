@@ -124,7 +124,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         return (
             <div className="flex flex-col items-start gap-1 py-1">
                 <StatusBadge status={status} />
-                {isDeclinedRequest(response?.status) && <span className="text-black-600 text-xs leading-snug">{t(deletionRequestLocale.reason(isDeclineReason(reason) ? reason : 'other'))}</span>}
+                {isDeclinedRequest(response?.status) && <span className="text-black-600 whitespace-normal text-xs leading-snug">{t(deletionRequestLocale.reason(isDeclineReason(reason) ? reason : 'other'))}</span>}
             </div>
         );
     };
@@ -256,6 +256,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         const statusToAdd = [
             {
                 name: t(localesCommon.status),
+                // room for a declined request's reason under the chip
+                minWidth: '200px',
                 selector: (row: StandardFormResponseDto) =>
                     Status({
                         status: row?.status || t(formConstant.status.pending),
