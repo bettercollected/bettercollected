@@ -227,6 +227,11 @@ the delete (ids derived from a relation are) is newer, so it is not.
 | deleted in Postgres (primary, `postgres_primary_dual` or `postgres`), the Mongo delete failed or Mongo was no longer written: the document is only in Mongo | `missing_in_postgres`, `tombstoned` | deletes the document from Mongo |
 | deleted, but copies older than the delete are in both stores (brought back by an earlier reconcile, or restored from a backup) | `tombstoned` | reports it (`tombstoned` in its result) and changes nothing: delete both copies by hand, by id, after checking them |
 
+`reconcile --direction postgres->mongo` runs only while every group it covers is on
+`DB_WRITE_MODE=postgres_primary_dual`, so run it with the services' flags; the CLI refuses
+otherwise (`--dry-run` excepted). Under `dual` Mongo deletes first and records no tombstone for a
+document that isn't there, so a delete racing reconcile's Mongo insert could bring the record back.
+
 `reconcile` never copies a deleted record, in either direction, and deletes a surviving copy only
 while it is still the copy it read (same `updated_at`). Its result per collection gives `deleted`
 (surviving copies it deleted) and `tombstoned` (records left for an operator). A `verify` with any
