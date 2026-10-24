@@ -130,9 +130,11 @@ Start on staging; repeat on production only after the staging gate.
    holds what reconcile read, so a document the application changed in the meantime is left as
    the application wrote it and counted under `skipped` (an update never re-inserts a row the
    application deleted meanwhile). A run with skipped copies leaves the outbox open. **Always run
-   `verify` after a `reconcile`**: a record deleted while reconcile was running can still be copied
-   back in a window of milliseconds, and only a later `verify` (as `tombstoned`) shows it; if it
-   still differs, run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
+   `verify` after a `reconcile`**: it is what shows that the stores agree. A record deleted while
+   reconcile runs is not copied back: the Postgres insert checks for a newer tombstone in the same
+   statement, and a Mongo insert is checked again after it lands and removed when the record was
+   deleted meanwhile. Should anything still differ, `verify` shows it (a deleted record as
+   `tombstoned`); then run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
    index (sessions, rate-limit counters, idempotency keys, SSO states, SCIM, flow events) treat an
    expired copy as absent: reconcile never copies one.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
