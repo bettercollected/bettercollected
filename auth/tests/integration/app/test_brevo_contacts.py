@@ -1,6 +1,6 @@
 """The one-off Brevo contact erasure (``python -m auth.brevo_contacts``):
-contacts whose address has no account are counted, and deleted only with
---apply; contacts on a Brevo list only with --include-listed. Brevo is a
+contacts without an account are counted (by marker and list), and deleted
+only with --apply and a marker, and only when on no Brevo list. Brevo is a
 mock transport: no test reaches it."""
 
 import asyncio
@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from auth import brevo_contacts
-from auth.brevo_contacts import BrevoContacts, BrevoError, erase
+from auth.brevo_contacts import BrevoContacts, BrevoError, erase, parse_marker
 
 
 class FakeUsers:
@@ -54,13 +54,17 @@ class FakeBrevo:
 
 
 CONTACTS = [
-    {"email": "kept@acme.org", "listIds": []},
-    {"email": "mixed@acme.org", "listIds": []},  # account stored as Mixed@Acme.org
-    {"email": "gone@acme.org", "listIds": []},
-    {"email": "subscriber@elsewhere.org", "listIds": [3]},
-    {"email": "gone2@acme.org", "listIds": []},
+    {"email": "kept@acme.org", "listIds": [], "attributes": {"SOURCE": "bc"}},
+    # an account stored as Mixed@Acme.org
+    {"email": "mixed@acme.org", "listIds": [], "attributes": {}},
+    {"email": "gone@acme.org", "listIds": [], "attributes": {"SOURCE": "bc"}},
+    {"email": "gone-listed@acme.org", "listIds": [3], "attributes": {"SOURCE": "BC"}},
+    {"email": "crm@elsewhere.org", "listIds": [], "attributes": {"SOURCE": "crm"}},
+    {"email": "subscriber@elsewhere.org", "listIds": [3], "attributes": {}},
+    {"email": "bare@elsewhere.org", "listIds": [], "attributes": {"FIRSTNAME": ""}},
 ]
 ACCOUNTS = ["kept@acme.org", "Mixed@Acme.org"]
+MARKER = ("SOURCE", "bc")
 
 
 @pytest.fixture
@@ -77,46 +81,106 @@ def brevo(monkeypatch):
     return fake, client
 
 
-def test_a_dry_run_counts_and_deletes_nothing(brevo):
+def test_a_dry_run_shows_the_breakdown_and_deletes_nothing(brevo):
     fake, client = brevo
-    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), False, False))
+    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), False, MARKER))
 
-    assert counts == {
-        "contacts": 5,
-        "with_account": 2,
-        "without_account": 3,
-        "without_account_on_no_list": 2,
-        "without_account_on_a_list": 1,
-        "to_delete": 2,
-        "deleted": 0,
-        "absent": 0,
-        "failed": 0,
+    assert counts["contacts"] == 7
+    assert counts["with_account"] == 2
+    assert counts["without_account"] == 5
+    assert counts["without_account_by_marker_and_list"] == {
+        "marked_unlisted": 1,
+        "marked_listed": 1,
+        "unmarked_unlisted": 2,
+        "unmarked_listed": 1,
     }
+    assert counts["without_account_with_no_attributes"] == 2
+    assert counts["without_account_attribute_names"] == {"SOURCE": 3}
+    assert counts["marker"] == "SOURCE=bc"
+    assert counts["to_delete"] == 1 and counts["deleted"] == 0
     assert fake.deleted == []
     assert {r.method for r in fake.requests} == {"GET"}
+    # counts and attribute names only: no address, no value
+    printed = json.dumps(counts)
+    assert "@" not in printed and "crm" not in printed
 
 
-def test_apply_deletes_contacts_without_an_account_on_no_list(brevo):
+def test_without_a_marker_nothing_is_a_target(brevo):
+    _, client = brevo
+    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), False, None))
+    assert counts["to_delete"] == 0
+    assert counts["without_account_by_marker_and_list"]["unmarked_unlisted"] == 3
+
+
+def test_apply_needs_a_marker(brevo):
+    _, client = brevo
+    with pytest.raises(ValueError):
+        asyncio.run(erase(client, FakeUsers(ACCOUNTS), True, None))
+
+
+def test_apply_deletes_only_marked_contacts_on_no_list(brevo):
     fake, client = brevo
-    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), True, False))
+    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), True, MARKER))
 
+    assert counts["deleted"] == 1
+    assert fake.deleted == ["gone%40acme.org"]
+
+
+def test_a_name_only_marker_matches_any_value(brevo):
+    fake, client = brevo
+    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), True, ("source", None)))
+    # gone@ and crm@ carry SOURCE and are on no list
     assert counts["deleted"] == 2
-    assert sorted(fake.deleted) == ["gone%40acme.org", "gone2%40acme.org"]
+    assert sorted(fake.deleted) == ["crm%40elsewhere.org", "gone%40acme.org"]
 
 
-def test_include_listed_also_deletes_list_members(brevo):
-    fake, client = brevo
-    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), True, True))
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("SOURCE", ("SOURCE", None)),
+        (" SOURCE = bc ", ("SOURCE", "bc")),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_parse_marker(value, expected):
+    assert parse_marker(value) == expected
 
-    assert counts["to_delete"] == counts["deleted"] == 3
-    assert "subscriber%40elsewhere.org" in fake.deleted
+
+def test_a_marker_needs_a_name():
+    with pytest.raises(ValueError):
+        parse_marker("=bc")
+
+
+@pytest.mark.parametrize(
+    "email,path",
+    [
+        ("a/b@acme.org", "a%2Fb%40acme.org"),
+        ("a?b=1@acme.org", "a%3Fb%3D1%40acme.org"),
+        ("a#b@acme.org", "a%23b%40acme.org"),
+        ("A+B@Acme.org", "a%2Bb%40acme.org"),
+    ],
+)
+def test_addresses_are_one_encoded_path_segment(email, path):
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(204)
+
+    client = BrevoContacts("k", transport=httpx.MockTransport(handler))
+    assert asyncio.run(client.remove_contact(email)) == "deleted"
+    (request,) = seen
+    assert request.url.raw_path.decode() == (
+        f"/v3/contacts/{path}?identifierType=email_id"
+    )
 
 
 def test_rate_limits_are_waited_out(brevo):
     fake, client = brevo
     fake.rate_limited = 2
-    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), False, False))
-    assert counts["contacts"] == 5
+    counts = asyncio.run(erase(client, FakeUsers(ACCOUNTS), False, MARKER))
+    assert counts["contacts"] == 7
 
 
 def test_a_refused_listing_stops_before_any_deletion():
@@ -125,22 +189,46 @@ def test_a_refused_listing_stops_before_any_deletion():
 
     client = BrevoContacts("bad-key", transport=httpx.MockTransport(refuse))
     with pytest.raises(BrevoError):
-        asyncio.run(erase(client, FakeUsers([]), True, True))
+        asyncio.run(erase(client, FakeUsers([]), True, MARKER))
 
 
-def test_the_command_needs_the_key(monkeypatch, capsys):
+def test_the_key_never_comes_from_the_command_line(monkeypatch, capsys):
     monkeypatch.delenv("BREVO_CONTACTS_API_KEY", raising=False)
+    monkeypatch.setattr(brevo_contacts.sys.stdin, "isatty", lambda: False)
     assert brevo_contacts.main([]) == 2
     assert "BREVO_CONTACTS_API_KEY" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        brevo_contacts.main(["--api-key", "x"])
+
+
+def test_the_key_is_asked_for_without_echo(monkeypatch):
+    monkeypatch.delenv("BREVO_CONTACTS_API_KEY", raising=False)
+    monkeypatch.setattr(brevo_contacts.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(brevo_contacts, "getpass", lambda prompt: " typed-key ")
+    assert brevo_contacts.api_key() == "typed-key"
+    monkeypatch.setenv("BREVO_CONTACTS_API_KEY", "env-key")
+    assert brevo_contacts.api_key() == "env-key"
+
+
+def test_apply_without_a_marker_stops_before_brevo(monkeypatch, capsys):
+    monkeypatch.setenv("BREVO_CONTACTS_API_KEY", "contacts-key")
+
+    async def never(*args):
+        raise AssertionError("must not run")
+
+    monkeypatch.setattr(brevo_contacts, "_main", never)
+    assert brevo_contacts.main(["--apply"]) == 2
+    assert "--marker" in capsys.readouterr().out
 
 
 def test_the_command_prints_counts_only(monkeypatch, capsys):
     monkeypatch.setenv("BREVO_CONTACTS_API_KEY", "contacts-key")
 
-    async def fake_main(args):
+    async def fake_main(args, key, marker):
+        assert key == "contacts-key" and marker == ("SOURCE", "bc")
         return {"contacts": 1, "failed": 0}
 
     monkeypatch.setattr(brevo_contacts, "_main", fake_main)
-    assert brevo_contacts.main([]) == 0
+    assert brevo_contacts.main(["--marker", "SOURCE=bc"]) == 0
     printed = json.loads(capsys.readouterr().out)
     assert printed == {"applied": False, "contacts": 1, "failed": 0}
