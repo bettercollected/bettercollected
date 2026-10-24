@@ -2,16 +2,21 @@
 
 import cn from 'classnames';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import React from 'react';
+import { Trans } from 'react-i18next';
 
 import { ChevronLeft, Eye, Shield as ShieldIcon, Trash2 } from 'lucide-react';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import RespondentDocumentLanguage from '@app/components/form/respondent-document-language';
 import SiretoFooter from '@app/components/layout/sireto-footer';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { utcToLocalDateIn, utcToLocalDateTimeIn } from '@app/utils/date-utils';
+import { respondentLangQuery } from '@app/utils/respondent-lang-query';
+import { deletionStatusLabel } from '@Components/workspace-client/workspace-form-response-deletion-card';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import RespondentFeedbackSection from './respondent-feedback-section';
 import { useSubmissionContext } from './submission-context';
@@ -28,34 +33,25 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     const { data, isLoading, isError, hasCustomDomain, workspaceName } = useSubmissionContext();
     const workspace = useAppSelector(selectWorkspace);
     const form: any = data ?? {};
-    const router = useRouter();
     const pathname = usePathname();
-    const portalBase = hasCustomDomain ? '' : `/${workspaceName ?? ''}`;
-
-    const goToSubmissions = () => {
-        let pathName;
-        if (hasCustomDomain) {
-            pathName = '';
-        } else if (workspaceName) {
-            pathName = `/${workspaceName}`;
-        } else {
-            pathName = '';
-        }
-        router.push(`${pathName}/my-submissions`);
-    };
+    // The page is in the respondent's language (and <html lang> says so); a
+    // ?lang= from the link stays on every link out of it.
+    const { t, language } = useRespondentLanguage();
+    const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
+    const portalBase = hasCustomDomain ? '' : workspaceName ? `/${workspaceName}` : '';
 
     const isSettings = pathname?.endsWith('/settings');
     const basePath = isSettings ? pathname.replace('/settings', '') : pathname?.replace('/form', '');
 
     const tabs = [
         {
-            icon: <Eye className="h-5 w-5" />,
-            title: 'My response',
+            icon: <Eye className="h-5 w-5" aria-hidden="true" />,
+            title: t('SUBMISSION.TAB_RESPONSE'),
             path: 'form'
         },
         {
-            icon: <Trash2 className="h-5 w-5" />,
-            title: 'Privacy & deletion',
+            icon: <Trash2 className="h-5 w-5" aria-hidden="true" />,
+            title: t('SUBMISSION.TAB_PRIVACY'),
             path: 'settings'
         }
     ];
@@ -64,7 +60,8 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // Keep the workspace-branded shell while loading — swapping the whole
         // page for a white full-screen loader read as a flicker on every open.
         return (
-            <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
+            <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!" aria-busy={isLoading || undefined}>
+                <RespondentDocumentLanguage />
                 <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
                     <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                         <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
@@ -92,38 +89,49 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
         // switch mid-journey — the workspace's own identity leads instead, and
         // bettercollected stays where the portal keeps it: a quiet caption.
         <div className="flex min-h-screen w-full flex-col bg-[#F5F7FB]!">
+            <RespondentDocumentLanguage />
             <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
-                <Link href={`${portalBase}/forms`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
+                <Link href={`${portalBase}/forms${langQuery}`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
                     <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
                     <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
                 </Link>
             </header>
-            <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
-                <button type="button" className="text-black-700 hover:text-black-900 flex w-fit items-center gap-1 text-sm" onClick={goToSubmissions}>
-                    <ChevronLeft strokeWidth={2} width={18} height={18} />
-                    My submissions
-                </button>
+            <main className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
+                {/* Back to the list is navigation, so it is a link. */}
+                <Link href={`${portalBase}/my-submissions${langQuery}`} className="text-black-700 hover:text-black-900 flex w-fit items-center gap-1 text-sm" lang={language}>
+                    <ChevronLeft strokeWidth={2} width={18} height={18} aria-hidden="true" />
+                    {t('PORTAL.MY_SUBMISSIONS')}
+                </Link>
 
                 {/* The receipt header: the same identity the list card shows,
-                    so responders know they opened the right response. */}
+                    so responders know they opened the right response. The
+                    form's title is the page's one h1. */}
                 <div className="w-full rounded bg-white p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-black-900 h3-new">{form?.form?.title || 'Untitled Form'}</span>
+                        {form?.form?.title ? (
+                            <h1 className="text-black-900 h3-new">{form.form.title}</h1>
+                        ) : (
+                            <h1 className="text-black-900 h3-new" lang={language}>
+                                {t('PORTAL.UNTITLED_FORM')}
+                            </h1>
+                        )}
                         {response?.submissionUuid && (
-                            <span className="bg-black-100 text-black-700 rounded px-2 py-0.5 font-mono text-xs" title="Your submission number — you can also search by it">
+                            <span className="bg-black-100 text-black-700 rounded px-2 py-0.5 font-mono text-xs" title={t('SUBMISSIONS.NUMBER_TITLE')}>
                                 #{response.submissionUuid}
                             </span>
                         )}
                     </div>
-                    <div className="text-black-600 mt-2 flex flex-wrap items-center gap-2 text-sm">
-                        <span>Submitted: {utcToLocalDateTIme(response?.createdAt)}</span>
+                    <div className="text-black-600 mt-2 flex flex-wrap items-center gap-2 text-sm" lang={language}>
+                        <span>{t('SUBMISSIONS.SUBMITTED', { date: utcToLocalDateTimeIn(response?.createdAt, language) })}</span>
                         {isAnonymous && (
-                            <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700" title="Submitted without your identity attached">
-                                <ShieldIcon className="h-3 w-3" strokeWidth={2} />
-                                Anonymous
+                            <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700" title={t('SUBMISSIONS.ANONYMOUS_TITLE')}>
+                                <ShieldIcon className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
+                                {t('SUBMISSIONS.ANONYMOUS')}
                             </span>
                         )}
-                        {!!response?.deletionStatus && <span className="rounded bg-brand-accent-100 px-2 py-0.5 text-xs font-medium text-brand-olive">Deletion requested</span>}
+                        {!!response?.deletionStatus && (
+                            <span className="rounded bg-brand-accent-100 px-2 py-0.5 text-xs font-medium text-brand-olive">{deletionStatusLabel(response.deletionStatus, response.declineReason, utcToLocalDateIn(response.updatedAt, language), t)}</span>
+                        )}
                     </div>
 
                     {/* The organisation's updates on this submission: the
@@ -143,13 +151,14 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                         </div>
                     )}
 
-                    <div className="border-b-black-300 mt-6 flex space-x-1 overflow-x-auto border-b pb-0">
+                    <nav aria-label={t('SUBMISSION.TABS_LABEL')} className="border-b-black-300 mt-6 flex space-x-1 overflow-x-auto border-b pb-0" lang={language}>
                         {tabs.map((tab) => {
                             const isActive = pathname?.endsWith(`/${tab.path}`);
                             return (
                                 <Link
                                     key={tab.path}
-                                    href={`${basePath}/${tab.path}`}
+                                    href={`${basePath}/${tab.path}${langQuery}`}
+                                    aria-current={isActive ? 'page' : undefined}
                                     className={cn(
                                         'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium focus:outline-hidden',
                                         isActive ? 'text-black-900 border-brand-500' : 'text-black-600 hover:text-black-900 border-transparent'
@@ -160,21 +169,22 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                                 </Link>
                             );
                         })}
-                    </div>
+                    </nav>
 
                     <div className="mt-6">
                         {children}
                     </div>
                 </div>
-            </div>
-            {!hasCustomDomain && (
-                <div className="flex flex-col items-center gap-2 px-5 pb-6">
-                    <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 text-center text-xs">
-                        Powered by <span className="font-semibold">bettercollected</span>
-                    </a>
-                    <SiretoFooter />
-                </div>
-            )}
+                {/* Inside main, so every part of the page is in a landmark. */}
+                {!hasCustomDomain && (
+                    <div className="mt-auto flex flex-col items-center gap-2 pt-6">
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" lang={language} className="text-black-600 hover:text-brand-600 text-center text-xs">
+                            <Trans t={t} i18nKey="PORTAL.POWERED_BY" components={{ 1: <span className="font-semibold" /> }} />
+                        </a>
+                        <SiretoFooter language={language} />
+                    </div>
+                )}
+            </main>
         </div>
     );
 }

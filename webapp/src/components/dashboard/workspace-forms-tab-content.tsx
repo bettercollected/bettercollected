@@ -12,7 +12,7 @@ import FormCards from '@app/components/dashboard/form-cards';
 import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { usePortalText } from '@app/lib/hooks/use-respondent-language';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
@@ -48,10 +48,8 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     const [searchWorkspaceForms] = useLazySearchWorkspaceFormsQuery();
     const [allForms, setAllForms] = useState<any>([]);
     const { t } = useTranslation();
-    const respondent = useRespondentLanguage();
-    const team = useTranslation('respondent');
-    const searchText = audience === 'team' ? team : respondent;
-    const searchLanguage = audience === 'team' ? team.i18n.language : respondent.language;
+    const searchText = usePortalText(audience);
+    const searchLanguage = searchText.language;
 
     const handleSearch = async (event: any) => {
         const response: any = await searchWorkspaceForms({
@@ -91,6 +89,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
                     title={audience === 'team' ? t(workspaceConstant.preview.emptyFormTitle) : searchText.t('PORTAL.NO_FORMS_TITLE')}
                     description={audience === 'team' ? t(workspaceConstant.preview.emptyFormDescription) : searchText.t('PORTAL.NO_FORMS_TEXT')}
                     className="pb-[20px]!"
+                    headingLevel={2}
                 />
             </div>
             // </SearchByUUIDWrapper>
@@ -99,12 +98,13 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     return (
         // <SearchByUUIDWrapper>
         <div className="flex w-full flex-col gap-6">
-            {pinnedForms?.items?.length !== 0 && <FormCards title={audience === 'team' ? t(formConstant.pinnedforms) : searchText.t('PORTAL.PINNED_FORMS')} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} />}
+            {pinnedForms?.items?.length !== 0 && <FormCards title={audience === 'team' ? t(formConstant.pinnedforms) : searchText.t('PORTAL.PINNED_FORMS')} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} audience={audience} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`} lang={searchLanguage}>
                 <SearchInput placeholder={searchText.t('PORTAL.SEARCH_FORMS')} handleSearch={handleSearch} />
             </div>
-            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? (audience === 'team' ? t(formConstant.all) : searchText.t('PORTAL.ALL_FORMS')) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} />}
+            {/* Without pinned forms the list's heading is for screen readers only. */}
+            {allForms.length !== 0 && <FormCards title={audience === 'team' ? t(formConstant.all) : searchText.t('PORTAL.ALL_FORMS')} hideTitle={pinnedForms?.items?.length === 0} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} audience={audience} />}
         </div>
         // </SearchByUUIDWrapper>
     );

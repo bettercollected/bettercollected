@@ -6,6 +6,20 @@ export const utcToLocalTime = (dateStr: any) => moment.utc(dateStr).local().form
 
 export const utcToLocalDateTIme = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY hh:mm A');
 
+const intlLocale = (language: string) => (language === 'nl' ? 'nl-NL' : 'en-GB');
+
+/** A UTC date as a local date in a language: "24 October 2026" / "24 oktober 2026". */
+export function utcToLocalDateIn(dateStr: any, language: string): string {
+    const date = moment.utc(dateStr);
+    return dateStr && date.isValid() ? new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long' }).format(date.toDate()) : '';
+}
+
+/** A UTC date as a local date and time in a language: "24 October 2026 at 14:05" / "24 oktober 2026 om 14:05". */
+export function utcToLocalDateTimeIn(dateStr: any, language: string): string {
+    const date = moment.utc(dateStr);
+    return dateStr && date.isValid() ? new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long', timeStyle: 'short' }).format(date.toDate()) : '';
+}
+
 /**
  * Formats a date and time in the "yyyy-mm-dd:hh:mm:ss" format, optionally adding days and hours.
  *

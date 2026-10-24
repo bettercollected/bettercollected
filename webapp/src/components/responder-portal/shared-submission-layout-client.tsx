@@ -1,13 +1,12 @@
 'use client';
 
 import { useModal } from '@app/components/modal-views/context';
-import { toastMessage } from '@app/constants/locales/toast-message';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionByUUIDQuery, useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionByUUIDMutation, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { SubmissionProvider } from './submission-context';
 import SubmissionLayoutClient from './submission-layout-client';
 
@@ -25,7 +24,8 @@ export default function SharedSubmissionLayoutClient({
     hasCustomDomain = false,
 }: SharedSubmissionLayoutClientProps) {
     const { toast } = useToast();
-    const { t } = useTranslation();
+    // The outcome is told in the respondent's language, like the page.
+    const { t } = useRespondentLanguage();
     const { closeModal } = useModal();
 
     const workspace = useAppSelector(selectWorkspace);
@@ -65,16 +65,17 @@ export default function SharedSubmissionLayoutClient({
                     submission_id: submissionId
                 };
 
+                // unwrap(): a failed request throws, so it is never reported as sent.
                 if (isUUID) {
-                    await requestForDeletionByUUID(query);
+                    await requestForDeletionByUUID(query).unwrap();
                 } else {
-                    await requestWorkspaceSubmissionDeletion(query);
+                    await requestWorkspaceSubmissionDeletion(query).unwrap();
                 }
 
-                toast({ description: t(toastMessage.workspaceSuccess).toString() });
+                toast({ description: t('SUBMISSION.REQUEST_SENT') });
                 closeModal();
             } catch (e) {
-                toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
+                toast({ description: t('SUBMISSION.REQUEST_FAILED'), variant: 'destructive' });
             }
         }
     };

@@ -52,3 +52,18 @@ export default function useRespondentLanguage() {
     const { t } = useTranslation('respondent', { lng: language });
     return { language, setLanguage: setChosen, t };
 }
+
+/** Who a shared portal view is shown to: respondents on the portal, or the team previewing it on their dashboard. */
+export type PortalAudience = 'respondent' | 'team';
+
+/**
+ * Respondent-namespace text for a view shared by the portal and the team's
+ * dashboard: in the respondent's language on the portal, in the app's
+ * language on the dashboard.
+ */
+export function usePortalText(audience: PortalAudience = 'respondent') {
+    const respondent = useRespondentLanguage();
+    const team = useTranslation('respondent');
+    if (audience === 'team') return { t: team.t, language: team.i18n.language };
+    return { t: respondent.t, language: respondent.language as string };
+}

@@ -57,7 +57,7 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
                 </div>
 
                 <div className="mt-4">
-                    <div className="h4-new text-black-800 text-center font-medium">{t('LOOKUP.TITLE')}</div>
+                    <h2 className="h4-new text-black-800 text-center font-medium">{t('LOOKUP.TITLE')}</h2>
                     <div className="p2-new text-black-700 mt-2 text-center!">{t('LOOKUP.HINT')}</div>
                 </div>
                 <div className="mt-4 flex w-full gap-4">

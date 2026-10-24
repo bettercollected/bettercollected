@@ -11,5 +11,5 @@ export default function CustomDeletionRequestsPage() {
 
     if (!auth.id) return null;
 
-    return <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />;
+    return <WorkspaceResponsesTabContent workspace={workspace} deletionRequests audience="respondent" />;
 }

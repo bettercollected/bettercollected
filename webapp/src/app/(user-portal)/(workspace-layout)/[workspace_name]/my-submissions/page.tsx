@@ -6,5 +6,5 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function PortalSubmissionsPage() {
     const workspace = useAppSelector(selectWorkspace);
-    return <WorkspaceResponsesTabContent workspace={workspace} />;
+    return <WorkspaceResponsesTabContent workspace={workspace} audience="respondent" />;
 }
