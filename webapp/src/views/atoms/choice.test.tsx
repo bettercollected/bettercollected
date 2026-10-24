@@ -6,12 +6,14 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FormTheme, ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
+import { useFormState } from '@app/store/jotai/form';
 import { store } from '@app/store/store';
 import { FormFieldComponent } from '@app/views/organism/form/form-slide';
 
-import Choice from './choice';
+import Choice, { initialKeys, optionKeys, showsOptionKeys } from './choice';
 
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
     RenderImage: () => null,
@@ -105,5 +107,104 @@ describe('radio group keyboard', () => {
     it('yes/no is a labelled radio group too', () => {
         renderField({ id: 'yn', index: 0, type: FieldTypes.YES_NO, title: 'Coming back?' });
         expect(screen.getByRole('radiogroup', { name: 'Coming back?' })).toBeDefined();
+    });
+});
+
+/** The field on a page that wears `theme` (the form's theme, as the respondent page sets it). */
+function Themed({ theme, children }: { theme: FormTheme; children: React.ReactNode }) {
+    const { updateFormTheme } = useFormState();
+    React.useEffect(() => {
+        updateFormTheme(theme, { undoable: false });
+    }, [theme]);
+    return <>{children}</>;
+}
+
+const renderThemed = (f: StandardFormFieldDto, theme: FormTheme) =>
+    render(
+        <ReduxProvider store={store}>
+            <Provider>
+                <Themed theme={theme}>
+                    <FormFieldComponent field={f} slideIndex={0} />
+                </Themed>
+            </Provider>
+        </ReduxProvider>
+    );
+
+const KANTLIJN = ThemeColors.find((theme) => theme.title === 'Kantlijn')!;
+const DEFAULT = ThemeColors.find((theme) => theme.title === 'Default')!;
+
+describe('lettered option cards', () => {
+    it('a theme with its own corners letters its options and names the keys', () => {
+        expect(showsOptionKeys(KANTLIJN)).toBe(true);
+        renderThemed(field(), KANTLIJN);
+        const radios = screen.getAllByRole('radio');
+        expect(radios.map((r) => r.getAttribute('aria-keyshortcuts'))).toEqual(['A', 'B', 'C']);
+        // The letter is decoration: the option's name is its label alone.
+        expect(screen.getByRole('radio', { name: 'Green' })).toBeDefined();
+        expect(document.querySelectorAll('[data-option-key-hint]')).toHaveLength(3);
+        expect(document.querySelector('[data-choice-indicator]')).toBeNull();
+    });
+
+    it('a theme without corners of its own is drawn as before: no letters, no shortcuts', () => {
+        expect(showsOptionKeys(DEFAULT)).toBe(false);
+        expect(showsOptionKeys({ ...KANTLIJN, radius: null } as unknown as FormTheme)).toBe(false);
+        renderThemed(field(), DEFAULT);
+        expect(screen.getAllByRole('radio').map((r) => r.getAttribute('aria-keyshortcuts'))).toEqual([null, null, null]);
+        expect(document.querySelector('[data-option-key-hint]')).toBeNull();
+        expect(document.querySelectorAll('[data-choice-indicator]')).toHaveLength(3);
+        // A letter does nothing there.
+        act(() => void fireEvent.keyDown(screen.getAllByRole('radio')[0], { key: 'b' }));
+        expect(screen.getAllByRole('radio').map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'false', 'false']);
+    });
+
+    it('a letter chooses its option and takes focus there; the chosen card ends in a check mark', () => {
+        renderThemed(field(), KANTLIJN);
+        expect(document.querySelector('[data-choice-check]')).toBeNull();
+        act(() => void fireEvent.keyDown(screen.getAllByRole('radio')[0], { key: 'c' }));
+        const blue = screen.getByRole('radio', { name: 'Blue' });
+        expect(blue.getAttribute('aria-checked')).toBe('true');
+        expect(document.activeElement).toBe(blue);
+        expect(blue.querySelector('[data-choice-check]')).not.toBeNull();
+        expect(document.querySelectorAll('[data-choice-check]')).toHaveLength(1);
+        // Arrow keys still move as before.
+        act(() => void fireEvent.keyDown(blue, { key: 'ArrowDown' }));
+        expect(screen.getByRole('radio', { name: 'Red' }).getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('letters with a modifier, and letters past the list, are left alone', () => {
+        renderThemed(field(), KANTLIJN);
+        const [red] = screen.getAllByRole('radio');
+        act(() => void fireEvent.keyDown(red, { key: 'b', ctrlKey: true }));
+        act(() => void fireEvent.keyDown(red, { key: 'b', altKey: true }));
+        act(() => void fireEvent.keyDown(red, { key: 'b', metaKey: true }));
+        act(() => void fireEvent.keyDown(red, { key: 'z' }));
+        expect(screen.getAllByRole('radio').map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'false', 'false']);
+    });
+
+    it('in a several-answers list a letter ticks and unticks its option', () => {
+        renderThemed(field({ allowMultipleSelection: true }), KANTLIJN);
+        const boxes = () => screen.getAllByRole('checkbox');
+        expect(boxes().map((b) => b.getAttribute('aria-keyshortcuts'))).toEqual(['A', 'B', 'C']);
+        act(() => void fireEvent.keyDown(boxes()[0], { key: 'b' }));
+        act(() => void fireEvent.keyDown(boxes()[1], { key: 'C' }));
+        expect(boxes().map((b) => b.getAttribute('aria-checked'))).toEqual(['false', 'true', 'true']);
+        expect(document.activeElement).toBe(boxes()[2]);
+        act(() => void fireEvent.keyDown(boxes()[2], { key: 'b' }));
+        expect(boxes().map((b) => b.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
+        expect(document.querySelectorAll('[data-choice-check]')).toHaveLength(1);
+    });
+
+    it('yes/no is lettered by its own initials', () => {
+        renderThemed({ id: 'yn', index: 0, type: FieldTypes.YES_NO, title: 'Coming back?' }, KANTLIJN);
+        expect(screen.getAllByRole('radio').map((r) => r.getAttribute('aria-keyshortcuts'))).toEqual(['Y', 'N']);
+        act(() => void fireEvent.keyDown(screen.getAllByRole('radio')[0], { key: 'n' }));
+        expect(screen.getByRole('radio', { name: 'No' }).getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('initials stand in only when they are distinct letters', () => {
+        expect(initialKeys(['Ja', 'Nee'])).toEqual(['J', 'N']);
+        expect(initialKeys(['Nope', 'No'])).toEqual(['A', 'B']);
+        expect(initialKeys(['1 time', 'Never'])).toEqual(['A', 'B']);
+        expect(optionKeys(28).slice(24)).toEqual(['Y', 'Z', undefined, undefined]);
     });
 });
