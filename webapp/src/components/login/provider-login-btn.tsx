@@ -3,7 +3,7 @@ import { PureComponent } from 'react';
 import { GoogleIcon } from '@Components/icons/google';
 
 import { ProviderIcon } from '@app/components/icons/brands/provider';
-import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/components/icons/brands/styles/google';
+import { darkStyle, disabledStyle, hoverStyle, lightStyle } from '@app/components/icons/brands/styles/google';
 
 interface IPropTypes {
     label: string;
@@ -12,7 +12,7 @@ interface IPropTypes {
     tabIndex?: number;
     onClick: Function;
     className?: string;
-    type: 'light' | 'dark' | 'typeform';
+    type: 'light' | 'dark';
     style?: any;
 }
 
@@ -36,9 +36,8 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
     };
 
     getStyle = (propStyles: any) => {
-        const baseStyle = this.props.type === 'dark' ? darkStyle : this.props.type === 'light' ? lightStyle : typeformDarkStyle;
-        if (this.props.type === 'typeform') hoverStyle.boxShadow = '0 0 3px 3px rgba(0,0,0,.3)';
-        else hoverStyle.boxShadow = '0 0 3px 3px rgba(66,133,244,.3)';
+        const baseStyle = this.props.type === 'dark' ? darkStyle : lightStyle;
+        hoverStyle.boxShadow = '0 0 3px 3px rgba(66,133,244,.3)';
         if (this.state.hovered) {
             return { ...baseStyle, ...hoverStyle, ...propStyles };
         }

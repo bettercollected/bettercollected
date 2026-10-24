@@ -66,26 +66,6 @@ export const importApi = createApi({
                         returnValue['clientFormItems'] = fieldItems;
                     }
                 }
-                if (provider === 'typeform') {
-                    const formItems = baseQueryReturnValue?.fields ?? [];
-                    if (formItems && Array.isArray(formItems)) {
-                        const emailFieldsArray = ['short_text', 'long_text', 'phone_number', 'email'];
-                        formItems
-                            .filter((field: any) => emailFieldsArray.includes(field.type))
-                            .forEach((item: any) => {
-                                if (!item?.id) return;
-                                const field = {
-                                    label: item.title,
-                                    questionId: item?.id
-                                };
-                                fieldItems.push(field);
-                            });
-
-                        // We're appending clientFormItems in the API response to set parsed field items
-                        // We need to remove this before making POST request when importing the form
-                        returnValue['clientFormItems'] = fieldItems;
-                    }
-                }
                 return returnValue;
             }
         })
