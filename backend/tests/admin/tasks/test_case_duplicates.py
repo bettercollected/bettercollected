@@ -336,6 +336,12 @@ def _raising(error):
          "auth_misconfigured"),
         ({}, _replying(502, json={"code": "deletion_unavailable", "status": 503}),
          "deletion_unavailable"),
+        # the API refuses until the forms import is complete (409 with its
+        # code); another 409 is the API's own error
+        ({}, _replying(409, json={"code": "forms_import_incomplete", "message": "m"}),
+         "forms_import_incomplete"),
+        ({}, _replying(409, json={"code": "something_else"}), "backend_error"),
+        ({}, _replying(409, text="conflict"), "backend_error"),
     ],
 )
 async def test_refusals(world, api, monkeypatch, caplog, env, transport, code):

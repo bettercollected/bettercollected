@@ -310,7 +310,10 @@ BEGIN
     FOREACH r SLICE 1 IN ARRAY ARRAY[
         ['form_responses', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
         ['responses_deletion_requests', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
-        ['workspace_forms', 'id,form_id,workspace_id,doc', '']
+        ['workspace_forms', 'id,form_id,workspace_id,doc', ''],
+        -- whether the forms' links were imported from 4.0 (a finished backfill
+        -- of workspace_forms), before a task writes from them
+        ['migration_progress', 'collection,state', '']
     ] LOOP
         IF to_regclass('app.' || r[1]) IS NOT NULL THEN
             GRANT USAGE ON SCHEMA app TO bc_tasks_data_app;

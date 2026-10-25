@@ -150,6 +150,16 @@ def _refusal(reply: httpx.Response) -> str:
     if 300 <= status < 400:
         # never followed: a redirect is a wrong URL or path, not a dead API
         return "backend_redirect"
+    if status == 409:
+        # the API counts forms in Postgres only (4.1): it refuses until the
+        # forms import is complete (backend.db.forms_import); another 409 is
+        # the API's own error
+        try:
+            code = reply.json().get("code")
+        except (ValueError, AttributeError):
+            code = None
+        if code == "forms_import_incomplete":
+            return "forms_import_incomplete"
     if status == 502:
         # what the API depends on failed (auth, the deletion); a 502
         # without one of its codes (a proxy in front of the API, say) is the

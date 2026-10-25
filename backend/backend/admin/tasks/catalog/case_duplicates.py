@@ -54,6 +54,10 @@ class Refusals(str, enum.Enum):
     # the API could not start an account deletion (the deletion workflow:
     # Temporal or the jobs worker)
     deletion_unavailable = "deletion_unavailable"
+    # the API counts forms in Postgres only (4.1) and the 4.0 forms import is
+    # not complete yet (or Mongo, configured, could not be read): before it,
+    # every account would count no forms (the API answered 409 with its code)
+    forms_import_incomplete = "forms_import_incomplete"
 
 
 class Events(str, enum.Enum):

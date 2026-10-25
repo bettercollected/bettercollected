@@ -1056,7 +1056,7 @@ runs the tasks the portal lists. Two of them work on stored responses:
 | Task | Does | Refuses with |
 |---|---|---|
 | `responses.check_undecryptable` | read-only: counts stored values that carry the ciphertext prefix but do not decrypt, per store and field (no ids, no values) | `store_not_configured`, `keyset_missing`, `keyset_unreadable`, `store_unreachable`, `store_empty` |
-| `responses.backfill_workspaces` | stamps responses and deletion requests that predate `workspace_id`; a dry run first (required), resumable, idempotent; ambiguous records (a form linked to several workspaces with nothing to authenticate them) are never guessed and stay unstamped | the same codes |
+| `responses.backfill_workspaces` | stamps responses and deletion requests that predate `workspace_id`; a dry run first (required), resumable, idempotent; ambiguous records (a form linked to several workspaces with nothing to authenticate them) are never guessed and stay unstamped | the same codes; the apply also `forms_import_incomplete` while a Mongo store is covered and the 4.0 forms import is not complete (complete the forms import, backfill and verify, first) |
 
 Both need the data stores and the keyset in the runner's environment. The
 compose service passes them from the root `.env`, and they are empty by default
@@ -1246,6 +1246,7 @@ auth is the cause.
 | `auth_key_refused` | Auth answered 401/403 to the API: the backend's `AUTH_INTERNAL_NOTIFY_KEY` is not the one auth holds | The same `AUTH_INTERNAL_NOTIFY_KEY` on `backend` and `auth` |
 | `auth_misconfigured` | The API's `AUTH_BASE_URL` is not a usable URL | The backend's `AUTH_BASE_URL` (compose: `http://auth:8000/api/v1`) |
 | `deletion_unavailable` | Apply only: the API could not start an account deletion (the deletion workflow: Temporal, or the jobs worker on Postgres) | The backend's log (`deletion could not be started`, with the error type and status); Temporal or the jobs worker; run the apply again once it is back: accounts already started are skipped |
+| `forms_import_incomplete` | The API counts an account's forms in Postgres only (4.1) and the 4.0 forms import is not complete: Mongo's `workspace_forms` holds a link Postgres lacks and no finished backfill of it is recorded (or Mongo, configured, could not be read). Before the import every account would count no forms | Complete the forms import (backfill and verify) first: `python -m backend.migrate --group forms backfill`, then run the task again |
 | `auth_error` | Auth answered another error (503: auth has no `AUTH_INTERNAL_NOTIFY_KEY`) or an unreadable reply | The status in the backend's log line; the auth service's log |
 
 A backend from before this change passes auth's failures through as its own status, so with

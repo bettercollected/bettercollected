@@ -21,8 +21,10 @@ The import counts as complete when EITHER
 - every ``(form_id, workspace_id)`` link in Mongo's ``workspace_forms`` is in
   Postgres (a link only Postgres has, made after the import, is fine).
 
-A role that may not read ``migration_progress`` (the task runner's data role)
-gets the second check only. Counts only are reported.
+Every role that runs the check may read ``migration_progress``'s
+``collection`` and ``state`` (the task runner's data role by
+``postgres/ensure-admin-roles.sh``); one that may not falls back to the
+second check, with a warning. Counts only are reported.
 """
 
 from __future__ import annotations
@@ -111,9 +113,11 @@ async def backfill_finished(engine) -> Optional[bool]:
                 )
             ).first()
     except DBAPIError as error:
-        logger.info(
+        # a fail-safe: every role that runs this check is granted these two
+        # columns (postgres/ensure-admin-roles.sh for the task runner)
+        logger.warning(
             "The forms import check cannot read migration_progress ({}): it "
-            "compares the links only.",
+            "compares the links only. Grant SELECT (collection, state) on it.",
             type(error).__name__,
         )
         return None
