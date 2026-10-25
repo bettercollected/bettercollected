@@ -27,7 +27,29 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - **Forms groups on Postgres:** this release is required before the forms group moves to
   `postgres_primary_dual`. Under `dual` nothing changes.
 - **Responder groups:** links to another workspace's group made before this release stay listed
-  on the form until its groups are saved again or the link is removed; any save drops them.
+  on the form until its groups are saved again or the link is removed; any save drops them. To see
+  whether any exist, run this read-only, counts-only query on the app database (the Postgres
+  mirror, which a clean `verify` of the `forms` and `responses` groups shows matches Mongo):
+
+  ```sql
+  SELECT
+    count(*) AS links_total,
+    count(*) FILTER (WHERE g.id IS NULL) AS links_to_missing_group,
+    count(*) FILTER (WHERE g.id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM app.workspace_forms wf
+        WHERE wf.form_id = l.form_id AND wf.workspace_id = g.workspace_id))
+      AS links_to_foreign_group,
+    count(DISTINCT l.form_id) FILTER (WHERE g.id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM app.workspace_forms wf
+        WHERE wf.form_id = l.form_id AND wf.workspace_id = g.workspace_id))
+      AS forms_with_foreign_group
+  FROM app.responder_group_form l
+  LEFT JOIN app.responder_group g ON g.id = l.group_id;
+  ```
+
+  `links_to_foreign_group` counts links whose group belongs to none of the form's workspaces;
+  `links_to_missing_group` counts links to a deleted group, which are not listed. If either is
+  above 0, a removal step follows in a later release.
 - **Rollback:** 4.0.12 can run against a 4.0.13 database. Marker rows written by 4.0.13 carry two
   more count keys, which 4.0.12 ignores.
 
