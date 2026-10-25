@@ -69,7 +69,6 @@ from backend.db.models import (
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 from common.db import PostgresRepositoryBase, from_canonical_document, from_row_doc
 from common.db.beanie_bridge import row_values
-from common.db.convergence import active
 from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
 from common.clock import utcnow
@@ -470,21 +469,21 @@ class PostgresFormRepository(PostgresRepositoryBase):
             )
         ).scalar_one_or_none()
         if doc is None:
-            await self._touch_draft_without_row(str(form_id))
+            self._touch_draft_without_row(str(form_id))
             return None
         return from_row_doc(FormDocument, doc)
 
-    async def _touch_draft_without_row(self, form_id: str) -> None:
+    def _touch_draft_without_row(self, form_id: str) -> None:
         """Report the draft's Mongo copy to the routed write in progress (a
-        draft row's id is the Mongo copy's ``_id``, not its form id). Only
-        inside a routed write, which writes Mongo as well."""
-        if not active():
-            return
-        other = await FormDocument.get_pymongo_collection().find_one(
-            {"form_id": form_id}, {"_id": 1}
-        )
-        if other is not None:
-            self._touch(FormRow, [other["_id"]])
+        draft row's id is the Mongo copy's ``_id``, not its form id). Mongo
+        is asked at convergence, so only when the write has a mirror, and
+        outside this write's transaction."""
+
+        async def mongo_ids(collection):
+            found = await collection.find_one({"form_id": form_id}, {"_id": 1})
+            return [] if found is None else [found["_id"]]
+
+        self._touch_later(FormRow, mongo_ids)
 
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         """A whole-form save (``apply_form_update``) onto the stored draft,
@@ -649,13 +648,17 @@ class PostgresFormRepository(PostgresRepositoryBase):
         """Set one secret (by name) of one action on the stored draft, under
         its row lock. ``form`` is the caller's earlier read: nothing of it is
         written back. Moves ``updated_at``, as the save of the Mongo original
-        does. None when there is no draft."""
+        does. None when there is no draft; the stored draft, unchanged and
+        not written, when the action has no secrets on it (any more)."""
         key = str(action_id)
         async with self._session() as session, session.begin():
             stored = await self._locked_draft(session, form_id)
             if stored is None:
                 return None
-            secrets = (stored.secrets or {}).get(key) or []
+            if key not in (stored.secrets or {}):
+                # the action was removed meanwhile: nothing to set
+                return stored
+            secrets = stored.secrets[key] or []
             for secret in secrets:
                 if secret.name == payload.name:
                     secret.value = payload.value

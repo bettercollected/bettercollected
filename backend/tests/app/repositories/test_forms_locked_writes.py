@@ -10,6 +10,7 @@ link or template stored again). Skipped unless DATABASE_URL points at a
 *_test database."""
 
 import asyncio
+from unittest.mock import patch
 
 import pytest
 from beanie import PydanticObjectId
@@ -20,6 +21,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
 from backend.app.models.template import StandardFormTemplate
 from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresFormTemplateRepository,
@@ -29,7 +31,7 @@ from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.db.models import FormRow, FormTemplateRow, WorkspaceFormRow
-from common.db import from_row_doc
+from common.db import RoutingRepository, from_row_doc, load_flags
 from common.models.standard_form import StandardForm
 
 ACTION = str(PydanticObjectId())
@@ -313,3 +315,55 @@ async def test_a_template_update_does_not_store_a_deleted_template_again(templat
 
     assert returned is None
     assert await templates.get_template_by_id(template.id) is None
+
+
+async def test_an_actions_secret_for_a_removed_action_writes_nothing(repo):
+    form = draft()
+    await repo.save_form(form)
+    read_before = await stored(form.form_id)
+    payload = FormActionsDto(name="Credentials", value="encrypted-3", type="secrets")
+
+    returned = await interleaved(
+        draft_row(form.form_id),
+        lambda: repo.remove_action_from_all_forms(ACTION),
+        lambda: repo.update_form_actions(form.form_id, ACTION, read_before, payload),
+    )
+
+    after = await stored(form.form_id)
+    assert ACTION not in after.secrets and ACTION not in after.parameters
+    assert after.updated_at == read_before.updated_at  # not written
+    assert ACTION not in returned.secrets
+
+
+@pytest.mark.parametrize(
+    "write",
+    [
+        lambda forms, form_id: forms.set_form_logo(form_id, "https://l"),
+        lambda forms, form_id: forms.update_form(
+            form_id, StandardForm(form_id=form_id, title="Saved")
+        ),
+        lambda forms, form_id: forms.update_form_actions(
+            form_id,
+            ACTION,
+            None,
+            FormActionsDto(name="Credentials", value="v", type="secrets"),
+        ),
+    ],
+    ids=["set_form_logo", "update_form", "update_form_actions"],
+)
+async def test_postgres_mode_never_asks_mongo_for_a_missing_draft(repo, write):
+    """Routed in ``postgres`` mode (no mirror): a draft deleted meanwhile is
+    None, without a Mongo query (Mongo may be unused and unreachable)."""
+    forms = RoutingRepository(
+        group="forms",
+        flags=load_flags({"DB_WRITE_MODE": "postgres", "DB_READ_SOURCE": "postgres"}),
+        mongo=FormRepository(),
+        postgres=repo,
+        on_mirror_failure=container.outbox_recorder(),
+    )
+    with patch.object(
+        FormDocument,
+        "get_pymongo_collection",
+        side_effect=AssertionError("Mongo asked"),
+    ):
+        assert await write(forms, str(PydanticObjectId())) is None

@@ -35,7 +35,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Iterator, Mapping, Optional
+from typing import Any, Awaitable, Callable, Iterable, Iterator, Mapping, Optional
 
 from bson import ObjectId
 from sqlalchemy import delete, select
@@ -77,6 +77,9 @@ class TouchedTable:
     mongo_collection: Callable[[], Any]  # the Mongo collection (resolved lazily)
     ids: set = field(default_factory=set)
     ttl: Optional[tuple] = None  # (field, seconds) when Mongo expires the collection
+    # async callables (Mongo collection -> ids) run by converge(): ids only the
+    # other store can name, looked up only when the write has a mirror
+    lookups: list = field(default_factory=list)
 
 
 _current: ContextVar[Optional[dict]] = ContextVar("bc_touched_rows", default=None)
@@ -111,13 +114,49 @@ def touch(
 ) -> None:
     """Record that the current routed write wrote (or deleted) ``ids`` of
     ``row``'s table. Outside a routed write this does nothing."""
+    entry = _entry(row, sessions, mongo_collection, ttl)
+    if entry is not None:
+        entry.ids.update(str(i) for i in ids)
+
+
+def touch_later(
+    row: Any,
+    lookup: Callable[[Any], Awaitable[Iterable[Any]]],
+    *,
+    sessions: Any,
+    mongo_collection: Callable[[], Any],
+    ttl: Optional[tuple] = None,
+) -> None:
+    """Like :func:`touch`, for rows whose ids only Mongo can name (a row the
+    Postgres side doesn't hold, known by another key). ``lookup`` gets the
+    Mongo collection and returns the ids; :func:`converge` runs it, so only
+    when the write has a mirror, after its transactions have ended. Outside a
+    routed write this does nothing."""
+    entry = _entry(row, sessions, mongo_collection, ttl)
+    if entry is not None:
+        entry.lookups.append(lookup)
+
+
+def _entry(row, sessions, mongo_collection, ttl) -> Optional[TouchedTable]:
     touched = _current.get()
     if touched is None:
-        return
+        return None
     entry = touched.get(row)
     if entry is None:
         entry = touched[row] = TouchedTable(row, sessions, mongo_collection, ttl=ttl)
-    entry.ids.update(str(i) for i in ids)
+    return entry
+
+
+async def _run_lookups(
+    touched: Mapping[Any, TouchedTable], read_timeout: Optional[float]
+) -> None:
+    for entry in touched.values():
+        while entry.lookups:
+            lookup = entry.lookups.pop(0)
+            found = lookup(entry.mongo_collection())
+            if read_timeout is not None:
+                found = asyncio.wait_for(found, read_timeout)
+            entry.ids.update(str(i) for i in await found)
 
 
 def ttl_of(document_cls: Any) -> Optional[tuple[str, int]]:
@@ -187,6 +226,7 @@ async def converge(
     write may still land) and when anything fails after a copy was made.
     """
     rounds = ROUNDS if rounds is None else rounds
+    await _run_lookups(touched, read_timeout)
     rewritten = 0
     for entry in touched.values():
         ids = sorted(i for i in entry.ids if _OBJECT_ID.match(i))

@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
-from common.db.convergence import active, touch, ttl_of
+from common.db.convergence import active, touch, touch_later, ttl_of
 from common.db.tombstones import prune_due, prune_postgres, record_postgres
 
 logger = logging.getLogger(__name__)
@@ -124,6 +124,20 @@ class PostgresRepositoryBase:
         touch(
             row,
             ids,
+            sessions=self._sessions,
+            mongo_collection=lambda: self.document.get_pymongo_collection().database[
+                row.mongo_collection()
+            ],
+            ttl=ttl_of(self._document_of(row)),
+        )
+
+    def _touch_later(self, row: Type[Any], lookup) -> None:
+        """:meth:`_touch` for rows only Mongo can name: ``lookup`` (the Mongo
+        collection -> ids) runs at convergence, only when the routed write
+        has a mirror (:func:`common.db.convergence.touch_later`)."""
+        touch_later(
+            row,
+            lookup,
             sessions=self._sessions,
             mongo_collection=lambda: self.document.get_pymongo_collection().database[
                 row.mongo_collection()
