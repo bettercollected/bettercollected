@@ -11,12 +11,13 @@ from backend.admin.tasks.spec import Params, Result, TaskMeta
 
 
 class Events(str, enum.Enum):
+    # scanned_mongo: only in the history of runs made before 4.1
     scanned_mongo = "scanned_mongo"
     scanned_postgres = "scanned_postgres"
 
 
 class CheckParams(Params):
-    stores: StoreChoice = StoreChoice.auto
+    stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
 
 
@@ -40,7 +41,7 @@ class StoreScan(Result):
 
 class CheckResult(Result):
     complete: bool
-    mongo: Optional[StoreScan] = None
+    mongo: Optional[StoreScan] = None  # runs made before 4.1 only
     postgres: Optional[StoreScan] = None
 
 

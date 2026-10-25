@@ -16,11 +16,11 @@ OAuth callback stores the new credential through :meth:`SheetsGrantService.store
    when the token is already revoked or expired: both count as done.
 3. A revocation that fails never blocks the new grant: a retryable
    ``revoke_google_grant`` job is queued (procrastinate,
-   ``JOBS_BACKEND__revoke_google_grant=postgres``), one attempt an hour for
+   ``JOBS_BACKEND``, default ``postgres``), one attempt an hour for
    two days. Its argument is the token sealed with the backend's Fernet key.
    A job still pending a day later, or failed, is reported by the admin
    portal's integrity monitor (``admin.credential_purges_overdue()``). When it
-   cannot be queued (Temporal routing, no queue), that is logged with ids.
+   cannot be queued (``JOBS_BACKEND__revoke_google_grant=temporal``: no queue), that is logged with ids.
 
 Google's revocation removes the user's whole grant to the OAuth client that
 issued the token. A legacy credential issued to the **same** client as the

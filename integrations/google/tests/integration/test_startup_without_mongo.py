@@ -23,7 +23,6 @@ PROGRAM = """
 from fastapi.testclient import TestClient
 
 from googleform.app import get_application
-from googleform.app.services import database_service
 from googleform.config import settings
 
 with TestClient(get_application()) as client:
@@ -33,8 +32,11 @@ with TestClient(get_application()) as client:
         json={"user_id": "nobody", "email": "nobody@example.com"},
     )
     print("credentials status:", deleted.status_code)
-    print("mongo used:", database_service.uses_mongo())
-    print("mongo hosts:", sorted(database_service._client.topology_description.server_descriptions()))
+    import gc
+
+    from pymongo import AsyncMongoClient
+
+    print("mongo clients:", sum(isinstance(o, AsyncMongoClient) for o in gc.get_objects()))
 """
 
 
@@ -69,8 +71,7 @@ def test_starts_and_serves_without_mongo(_postgres_schema, flags):
     result = boot(flags)
     assert result.returncode == 0, result.stderr[-3000:]
     assert "credentials status: 200" in result.stdout, result.stdout
-    assert "mongo used: False" in result.stdout
-    assert "mongo-not-used.invalid" in result.stdout
+    assert "mongo clients: 0" in result.stdout, result.stdout
 
 
 @pytest.mark.parametrize(

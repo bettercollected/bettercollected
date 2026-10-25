@@ -430,7 +430,6 @@ class TestUnlinkWithUnattributedResponses:
         from backend.app.schemas.standard_form_response import FormResponseDocument
         from common.services.crypto_service import crypto_service
         from scripts.backfill_response_workspaces import (
-            MongoStore,
             PostgresStore,
             default_opener,
             run,
@@ -462,12 +461,11 @@ class TestUnlinkWithUnattributedResponses:
 
         flags, stores = container.flags(), []
         if flags.writes_mongo("responses"):
-            # the forms' links are in Postgres only (4.1)
-            stores.append(
-                MongoStore(
-                    container.database_client()[TEST_MONGO_DB],
-                    links=PostgresStore(container.pg_engine()),
-                )
+            # the backfill covers Postgres alone since 4.1: stamp Mongo's copy
+            # (the store the routed repositories still read in these modes) by hand
+            await container.database_client()[TEST_MONGO_DB]["form_responses"].update_one(
+                {"response_id": "old", "workspace_id": None},
+                {"$set": {"workspace_id": a.id}},
             )
         if flags.writes_postgres("responses"):
             stores.append(PostgresStore(container.pg_engine()))

@@ -2,14 +2,14 @@
 decrypt. Read-only.
 
     uv run python -m scripts.check_undecryptable_values
-    uv run python -m scripts.check_undecryptable_values --store mongo
 
 Until ``CryptoService.encrypt`` stopped doing so, a plaintext starting with
 ``v1:`` (the ciphertext prefix) was stored as is, unencrypted. Such a value
 looks like ciphertext and does not decrypt; reads now return it as unreadable
-instead of failing. This finds out whether any exist, in Mongo
-(``MONGO_URI``/``MONGO_DB``) and, when ``DATABASE_URL`` is set, in the
-Postgres twin. Needs ``MASTER_ENCRYPTION_KEYSET``.
+instead of failing. This finds out whether any exist, in Postgres
+(``DATABASE_URL``, the only store since 4.1). Needs ``MASTER_ENCRYPTION_KEYSET``.
+``--store mongo`` and ``--store all`` (Mongo and Postgres) are refused
+(``store_retired``) before anything connects.
 
 Checked on each response (``form_responses``): ``answers``, ``hidden_fields``,
 ``internal_answers`` and every ``respondent_feedback`` message. Each value is
@@ -33,11 +33,9 @@ import os
 import sys
 from typing import List
 
-from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.responses_scan import (  # noqa: F401 - the CLI's public names
     FEEDBACK,
     FIELDS,
-    MongoStore,
     Opener,
     PostgresStore,
     check_record,
@@ -57,8 +55,8 @@ def _parse(argv: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--store",
         choices=("all", "mongo", "postgres"),
-        default="all",
-        help="all = Mongo, plus Postgres when DATABASE_URL is set",
+        default="postgres",
+        help="postgres; mongo and all (Mongo too) are refused: store_retired",
     )
     parser.add_argument("--batch-size", type=int, default=500)
     return parser.parse_args(argv)
@@ -66,45 +64,28 @@ def _parse(argv: List[str]) -> argparse.Namespace:
 
 async def _main(argv: List[str]) -> int:
     args = _parse(argv)
+    if args.store != "postgres":
+        print(
+            "refused (store_retired): Mongo is no longer covered; use --store postgres.",
+            file=sys.stderr,
+        )
+        return 2
     if not os.environ.get("MASTER_ENCRYPTION_KEYSET"):
         print("MASTER_ENCRYPTION_KEYSET is not set.", file=sys.stderr)
         return 2
     url = os.environ.get("DATABASE_URL")
-    if args.store == "postgres" and not url:
+    if not url:
         print("DATABASE_URL is not set.", file=sys.stderr)
         return 2
-    from pymongo import AsyncMongoClient
+    from sqlalchemy.ext.asyncio import create_async_engine
 
-    # MONGO_URI / MONGO_DB only: no other backend setting is needed
-    from backend.config.database import MongoSettings
-
-    stores, closers = [], []
-    if args.store in ("all", "mongo"):
-        mongo = MongoSettings()
-        client = AsyncMongoClient(mongo.URI)
-        stores.append(MongoStore(client[mongo.DB]))
-        closers.append(client.close)
-    if url:
-        from sqlalchemy.ext.asyncio import create_async_engine
-
-        engine = create_async_engine(url)
-        closers.append(engine.dispose)
-        postgres = PostgresStore(engine)
-        for store in stores:  # Mongo reads the forms' links from Postgres (4.1)
-            store.links_source = postgres
-        if args.store in ("all", "postgres"):
-            stores.append(postgres)
+    engine = create_async_engine(url)
     try:
-        if url and stores and stores[0].name == "mongo":
-            # the forms' links: an incomplete import may name the wrong
-            # workspace for a value; this read-only check goes on, warned
-            problem = await import_problem(stores[0].db, postgres.links, engine)
-            if problem:
-                print(f"warning: {problem[1]}", file=sys.stderr)
-        report = await run(stores, default_opener(), args.batch_size)
+        report = await run(
+            [PostgresStore(engine)], default_opener(), args.batch_size
+        )
     finally:
-        for close in closers:
-            await close()
+        await engine.dispose()
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0
 

@@ -12,7 +12,7 @@ nightly, and by hand (Actions → CI → Run workflow).
 The **Plan** job decides (`.github/scripts/ci-plan.sh`). Its path rules are
 conservative: prose (`docs/`, top-level `*.md`) runs nothing, a change inside one
 service runs that service (plus the common suite, which scans every service for
-settings names), `common/` runs every Python suite, and anything else
+settings names; a change in `temporal/actions-executor/` also runs its own tests), `common/` runs every Python suite, and anything else
 (workflows, compose files, `deploy.sh`, `postgres/`, `docs/spec/`, the settings
 inventory, ...) runs everything, because tests read those files. **CI ok**
 fails when any job failed or was cancelled; use it as the one required check.
