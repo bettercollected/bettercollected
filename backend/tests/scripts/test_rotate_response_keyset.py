@@ -188,25 +188,25 @@ class Data:
             b'{"token": "refresh-me"}',
         )
 
-    async def to_mongo(self):
+    async def to_mongo(self, responses=True, credentials=True):
         db = container.database_client()[TEST_MONGO_DB]
-        for document in (*self.links, *self.responses):
+        for document in (*self.links, *self.responses) if responses else ():
             await document.save()
-        if self.credentials:
+        if self.credentials and credentials:
             await db[GOOGLE_CREDENTIALS.collection].insert_many(
                 [dict(c) for c in self.credentials]
             )
 
-    async def to_postgres(self):
+    async def to_postgres(self, responses=True, credentials=True):
         sessions = container.pg_sessionmaker()
         links = PostgresWorkspaceFormRepository(sessions, None)
-        responses = PostgresFormResponseRepository(sessions, None, None)
-        for link in self.links:
+        repository = PostgresFormResponseRepository(sessions, None, None)
+        for link in self.links if responses else ():
             await links.upsert(link)
-        for document in self.responses:
-            await responses.upsert(document)
+        for document in self.responses if responses else ():
+            await repository.upsert(document)
         async with container.pg_engine().begin() as conn:
-            for credential in self.credentials:
+            for credential in self.credentials if credentials else ():
                 doc = canonical_document(credential)
                 await conn.execute(
                     text(
@@ -269,10 +269,10 @@ WRITE_MODES = {
 async def stores(request, google_table, monkeypatch):
     """Points the script's settings at the test stores, with the write mode
     that makes ``auto`` (what drop-old always uses) pick the chosen ones."""
-    if request.param != "mongo" and not _postgres_configured():
+    # every choice needs Postgres: the Google credentials are there (4.1)
+    if not _postgres_configured():
         pytest.skip("DATABASE_URL not set to a *_test database")
-    if _postgres_configured():  # also for mongo: drop-old scans both stores
-        await _truncate_postgres()
+    await _truncate_postgres()
     monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
     monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
     monkeypatch.setenv("GOOGLE_MONGO_DB", TEST_MONGO_DB)
@@ -293,56 +293,67 @@ def _only_the_chosen_stores(request, monkeypatch):
     test_drop_old_scans_a_configured_store_the_services_no_longer_write).
 
     drop-old needs both stores unless Mongo is retired: with ``mongo`` it
-    also scans the (emptied) Postgres store, with ``postgres`` it runs with
-    ``--mongo-retired`` (the services' write mode is postgres everywhere)."""
+    also scans the (emptied) Postgres responses, with ``postgres`` it runs with
+    ``--mongo-retired`` (the services' write mode is postgres everywhere).
+    The Google credentials are in Postgres in every choice (the Google Forms
+    integration writes Postgres alone since 4.1), so GOOGLE_DATABASE_URL stays."""
     if "stores" not in request.fixturenames:
         return
     choice = request.getfixturevalue("stores")
     if choice == "mongo":
-        if _postgres_configured():  # emptied by ``stores``
-            url = os.environ.get("DATABASE_URL", "")
-            monkeypatch.setitem(
-                DROP_OLD, "env", {"DATABASE_URL": url, "GOOGLE_DATABASE_URL": url}
-            )
+        url = os.environ.get("DATABASE_URL", "")
+        monkeypatch.setitem(DROP_OLD, "env", {"DATABASE_URL": url})
         monkeypatch.setenv("DATABASE_URL", "")
-        monkeypatch.setenv("GOOGLE_DATABASE_URL", "")
     elif choice == "postgres":
         monkeypatch.setenv("MONGO_URI", "")
         monkeypatch.setitem(DROP_OLD, "args", ["--mongo-retired"])
 
 
+# per store choice, the stores holding each target, primary first. The Google
+# credentials are in Postgres in every choice: the Google Forms integration
+# writes Postgres alone since 4.1; with ``both`` a copy from 4.0 is also left in
+# Mongo.
+TARGET_STORES = {
+    "mongo": {"responses": ["mongo"], "google-credentials": ["postgres"]},
+    "postgres": {"responses": ["postgres"], "google-credentials": ["postgres"]},
+    "both": {
+        "responses": ["mongo", "postgres"],
+        "google-credentials": ["postgres", "mongo"],
+    },
+}
+
+
 async def seed(store_choice, data):
-    if store_choice in ("mongo", "both"):
-        await data.to_mongo()
-    if store_choice in ("postgres", "both"):
-        await data.to_postgres()
+    held = TARGET_STORES[store_choice]
+    for name, store in (("mongo", data.to_mongo), ("postgres", data.to_postgres)):
+        responses = name in held["responses"]
+        credentials = name in held["google-credentials"]
+        if responses or credentials:
+            await store(responses=responses, credentials=credentials)
 
 
 def drop_old_records(store_choice, responses, google):
-    """drop-old's record counts: the chosen stores, plus the empty Postgres
-    store it also scans when the services write Mongo alone."""
-    extra = ["postgres"] if store_choice == "mongo" and DROP_OLD["env"] else []
+    """drop-old's record counts: both stores (Postgres alone with
+    ``--mongo-retired``), 0 where the choice keeps none of the target."""
+    scanned = ["postgres"] if store_choice == "postgres" else ["mongo", "postgres"]
 
-    def counts(value):
-        return {
-            **{name: value for name in store_names(store_choice)},
-            **{name: 0 for name in extra},
-        }
+    def counts(target, value):
+        held = store_names(store_choice, target)
+        return {name: value if name in held else 0 for name in scanned}
 
-    return {"responses": counts(responses), "google-credentials": counts(google)}
-
-
-def store_names(store_choice):
     return {
-        "mongo": ["mongo"],
-        "postgres": ["postgres"],
-        "both": ["mongo", "postgres"],
-    }[store_choice]
+        "responses": counts("responses", responses),
+        "google-credentials": counts("google-credentials", google),
+    }
+
+
+def store_names(store_choice, target="responses"):
+    return TARGET_STORES[store_choice][target]
 
 
 def store_objects(store_choice):
-    for name in store_names(store_choice):
-        for target in (RESPONSES, GOOGLE_CREDENTIALS):
+    for target in (RESPONSES, GOOGLE_CREDENTIALS):
+        for name in store_names(store_choice, target.name):
             if name == "mongo":
                 yield MongoStore(container.database_client()[TEST_MONGO_DB], target)
             else:
@@ -408,8 +419,8 @@ async def add_key_and_deploy(capsys, monkeypatch, tmp_path):
     return rotated_file, value, parse_keyset(value).primary_key_id
 
 
-def primary_of(store_choice):
-    return "postgres" if store_choice == "postgres" else "mongo"
+def primary_of(store_choice, target="responses"):
+    return store_names(store_choice, target)[0]
 
 
 async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
@@ -450,6 +461,7 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
             "values_stale": 6,
             f"values_key_{OLD_KEY}": 6,
         }
+    for name in store_names(stores, "google-credentials"):
         assert report["targets"]["google-credentials"][name]["values_stale"] == 1
     assert await stored_values(stores) == before
 
@@ -471,7 +483,8 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
     assert counts["records_reencrypted"] == 3 and counts["values_reencrypted"] == 6
     assert counts["records_current"] == 1
     assert "records_unopenable" not in counts
-    assert report["targets"]["google-credentials"][primary]["values_reencrypted"] == 1
+    google_primary = primary_of(stores, "google-credentials")
+    assert report["targets"]["google-credentials"][google_primary]["values_reencrypted"] == 1
     if stores == "both":
         # the mirror got the primary's ciphertexts, nothing left to do there
         assert counts["mirror_records_copied"] == 3
@@ -485,8 +498,7 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
         for (store, target, rid, path), value in after.items():
             if store == "mongo":
                 assert after[("postgres", target, rid, path)] == value
-    if stores != "mongo":
-        await postgres_checksums_agree()
+    await postgres_checksums_agree()
 
     # everything reads back, with the new key alone
     def reads_back(cipher):
@@ -587,8 +599,9 @@ async def test_drop_old_refuses_an_empty_store(stores, tmp_path, capsys, monkeyp
     )
     assert code == 1 and refused["values_stale"] == 0
     assert refused["records"] == drop_old_records(stores, responses=4, google=0)
-    for name in store_names(stores):
-        assert f"google-credentials in {name}" in refused["refused"]
+    # empty where the Google integration writes: Postgres
+    assert "google-credentials in postgres" in refused["refused"]
+    assert "google-credentials in mongo" not in refused["refused"]
     assert "--allow-empty" in refused["refused"]
     assert not final_file.exists()
 
@@ -792,19 +805,30 @@ async def test_auto_follows_the_write_mode_primary_first(mode, expected):
 async def test_auto_reads_the_group_override_first():
     env = _env(DB_WRITE_MODE__responses="postgres", DB_WRITE_MODE="mongo")
     assert plan_stores(RESPONSES, "auto", env)[0] == "postgres"
-    assert plan_stores(GOOGLE_CREDENTIALS, "auto", env)[0] == "mongo"
-    # the Google credentials' Postgres URL falls back to DATABASE_URL
-    env = _env(DB_WRITE_MODE__GOOGLE="postgres", MONGO_URI=None)
-    assert plan_stores(GOOGLE_CREDENTIALS, "auto", env) == ["postgres"]
-    with pytest.raises(Refusal, match="write_mode_unknown"):
-        plan_stores(RESPONSES, "auto", env)
+    # the Google credentials are in Postgres only (4.1): no write mode is read
+    assert plan_stores(GOOGLE_CREDENTIALS, "auto", env)[0] == "postgres"
+    for google in ("mongo", "dual", None):
+        env = _env(DB_WRITE_MODE__GOOGLE=google, MONGO_URI=None)
+        # the Google credentials' Postgres URL falls back to DATABASE_URL
+        assert plan_stores(GOOGLE_CREDENTIALS, "auto", env) == ["postgres"]
+        # the responses follow the services' default (mongo), not configured here
+        with pytest.raises(Refusal, match="store_not_configured"):
+            plan_stores(RESPONSES, "auto", env)
 
 
-@pytest.mark.parametrize("mode", [None, "", "  ", "mongodb", "both"])
+@pytest.mark.parametrize("mode", ["mongodb", "both", "auto"])
 async def test_auto_refuses_an_unknown_write_mode(mode):
-    """Unset is never guessed as the services' default (mongo)."""
+    """A value that is not a write mode is never guessed at."""
     with pytest.raises(Refusal, match="write_mode_unknown"):
         plan_stores(RESPONSES, "auto", _env(DB_WRITE_MODE=mode))
+
+
+@pytest.mark.parametrize("mode", [None, "", "  "])
+async def test_an_unset_write_mode_is_the_services_default(mode):
+    """Unset, as on a fresh stack: the services run on their default (mongo
+    while the backend has groups on Mongo), and so does the plan."""
+    assert plan_stores(RESPONSES, "auto", _env(DB_WRITE_MODE=mode)) == ["mongo", "postgres"]
+    assert plan_drop_old(RESPONSES, False, _env(DB_WRITE_MODE=mode)) == ["mongo", "postgres"]
 
 
 async def test_a_named_store_needs_no_write_mode_but_a_connection():
@@ -825,11 +849,12 @@ def _no_write_mode(monkeypatch):
 
 
 @pytest.mark.parametrize("command", ["reencrypt", "drop-old"])
-async def test_the_cli_refuses_an_unset_write_mode_before_opening_anything(
+async def test_the_cli_refuses_an_unreadable_write_mode_before_opening_anything(
     command, tmp_path, capsys, monkeypatch
 ):
     rotated_file, _, _ = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
     _no_write_mode(monkeypatch)
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo-and-postgres")
     monkeypatch.setenv("MONGO_URI", "mongodb://db.invalid:1")
     final_file = tmp_path / "final.keyset"
     args = [command, "--keyset-file", str(rotated_file)]
@@ -912,7 +937,7 @@ async def test_drop_old_needs_both_stores_whatever_the_write_mode(mode, expected
         with pytest.raises(Refusal, match="store_not_configured"):
             plan_drop_old(RESPONSES, False, _env(DB_WRITE_MODE=mode, **missing))
     with pytest.raises(Refusal, match="write_mode_unknown"):
-        plan_drop_old(RESPONSES, False, _env())
+        plan_drop_old(RESPONSES, False, _env(DB_WRITE_MODE="sometimes"))
 
 
 @pytest.mark.parametrize(
@@ -920,7 +945,7 @@ async def test_drop_old_needs_both_stores_whatever_the_write_mode(mode, expected
     [
         {"DB_WRITE_MODE": "dual"},
         {"DB_WRITE_MODE": "postgres_primary_dual"},
-        {"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__GOOGLE": "dual"},
+        {"DB_WRITE_MODE": "dual", "DB_WRITE_MODE__GOOGLE": "postgres"},
         {"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__RESPONSES": "mongo"},
         # an unset default is not retired, even with both overrides on postgres
         {"DB_WRITE_MODE__RESPONSES": "postgres", "DB_WRITE_MODE__GOOGLE": "postgres"},
@@ -938,9 +963,9 @@ async def test_mongo_retired_scans_postgres_alone():
     env = _env(MONGO_URI=None, DB_WRITE_MODE="postgres")
     assert plan_drop_old(RESPONSES, True, env) == ["postgres"]
     assert plan_drop_old(GOOGLE_CREDENTIALS, True, env) == ["postgres"]
-    env = _env(
-        MONGO_URI=None, DB_WRITE_MODE="POSTGRES", DB_WRITE_MODE__google="postgres"
-    )
+    # a stale Google override does not count: that group is Postgres only (4.1)
+    env = _env(MONGO_URI=None, DB_WRITE_MODE="POSTGRES", DB_WRITE_MODE__google="dual")
+    assert plan_drop_old(RESPONSES, True, env) == ["postgres"]
     assert plan_drop_old(GOOGLE_CREDENTIALS, True, env) == ["postgres"]
     with pytest.raises(Refusal, match="store_not_configured"):
         plan_drop_old(RESPONSES, True, _env(DB_WRITE_MODE="postgres", DATABASE_URL=""))
@@ -990,7 +1015,7 @@ async def test_drop_old_refuses_when_its_write_mode_is_wrong_and_mongo_is_missin
 
     # --mongo-retired is refused while any group is not on postgres
     monkeypatch.setenv("MONGO_URI", "")
-    monkeypatch.setenv("DB_WRITE_MODE__GOOGLE", "dual")
+    monkeypatch.setenv("DB_WRITE_MODE__RESPONSES", "dual")
     code, err = await cli(capsys, *drop, "--mongo-retired")
     assert code == 2 and "mongo_not_retired" in err
     assert not final_file.exists()

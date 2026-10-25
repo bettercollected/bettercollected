@@ -252,7 +252,7 @@ environment, whatever the tier.
 | `DB_POOL_SIZE` | database | backend, auth, google, jobs, admin | int 1..200 |  | R | T5 | `5` |
 | `DB_POOL_TIMEOUT_S` | database | backend, auth, google, jobs, admin | int 1..600 |  | R | T5 | `10` |
 | `DB_READ_SOURCE` | database | backend, auth, google | enum mongo/postgres |  | R | T5 | `mongo` |
-| `DB_SHADOW_READ_SAMPLE` | database | backend, auth, google | float 0..1 |  | R | T5 | `0.0` |
+| `DB_SHADOW_READ_SAMPLE` | database | backend | float 0..1 |  | R | T5 | `0.0` |
 | `DB_STATEMENT_TIMEOUT_MS` | database | backend, auth, google, jobs, admin | int 100..3.6e+06 |  | R | T5 | `30000` |
 | `DB_WRITE_MODE` | database | backend, auth, google | enum mongo/dual/postgres_primary_dual/postgres |  | R | T5 | `mongo` |
 | `JOBS_BACKEND` | jobs | backend, jobs, actions_executor | enum temporal/postgres |  | R | T5 | `temporal` |

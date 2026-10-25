@@ -35,7 +35,6 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     assert sorted(env) == [
         "DATABASE_URL",
         "DB_WRITE_MODE",
-        "DB_WRITE_MODE__GOOGLE",
         "DB_WRITE_MODE__RESPONSES",
         "GOOGLE_DATABASE_URL",
         "GOOGLE_MONGO_DB",
@@ -47,7 +46,6 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     ]
     for name in (
         "DB_WRITE_MODE",
-        "DB_WRITE_MODE__GOOGLE",
         "DB_WRITE_MODE__RESPONSES",
         "GOOGLE_MONGO_DB",
         "MASTER_ENCRYPTION_KEYSET",

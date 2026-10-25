@@ -21,8 +21,8 @@ a provider service (Google Forms) come last and never hold that back:
 The job (``backend/jobs/tasks.py``) retries for two days: through the
 service in ``on``/``readonly`` (so the grant is revoked), and in ``off``
 through ``google.purge_user_credentials(user_id, email)`` (google revision
-0005), the only access the backend's role has to the Google schema — when the
-Google group is on Postgres only. Mongo and dual stacks rely on the service.
+0005), the only access the backend's role has to the Google schema: the Google
+Forms service keeps its data in Postgres only since 4.1.
 A purge that is still pending after a day, or failed, is reported by the admin
 portal's integrity monitor (``admin.credential_purges_overdue()``).
 
@@ -41,8 +41,6 @@ from typing import Optional
 
 import aiohttp
 from sqlalchemy import text
-
-from common.db.flags import FlagError, WriteMode, load_flags
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.google_forms_mode import google_service_enabled, is_google
@@ -82,16 +80,6 @@ def seal(crypto, purge: CredentialPurge) -> str:
 
 def unseal(crypto, sealed: str) -> CredentialPurge:
     return CredentialPurge(**json.loads(crypto.decrypt(sealed)))
-
-
-def google_store_is_postgres_only(flags=None) -> bool:
-    """Whether the Google Forms service keeps its data in Postgres only (its
-    ``google`` group writes Postgres and nothing else)."""
-    try:
-        flags = flags or load_flags()
-    except FlagError:  # an inconsistent setting is not "Postgres only"
-        return False
-    return flags.write_mode("google") is WriteMode.POSTGRES
 
 
 class CredentialPurgeService:
@@ -158,10 +146,11 @@ class CredentialPurgeService:
                 f"{purge.provider} service answered "
                 f"{status if status is not None else 'unreachable'}"
             )
-        # GOOGLE_FORMS_IMPORT=off: no call to the service or to Google
-        if self._engine is None or not google_store_is_postgres_only():
+        # GOOGLE_FORMS_IMPORT=off: no call to the service or to Google; its
+        # store is Postgres only since 4.1, so no storage flag is read
+        if self._engine is None:
             raise CredentialPurgeFailed(
-                "the Google Forms service is off and its store is not Postgres only"
+                "the Google Forms service is off and no Postgres engine is configured"
             )
         async with self._engine.begin() as conn:
             deleted = (

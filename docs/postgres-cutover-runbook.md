@@ -443,10 +443,9 @@ they differ.
   runs the backend's repositories (deleting a user touches every group). Keep the flags in one block
   that both services read (a shared `env_file`, or a YAML anchor if your tooling supports merge
   keys), and always deploy the two together.
-- **The task runner's `DB_WRITE_MODE`, `DB_WRITE_MODE__responses` and `DB_WRITE_MODE__google`
-  follow the services' values** (the backend's for the default and `responses`, the Google
-  integration's for `google`) and change in the same deploy. If they are unset, the responses and
-  keyset tasks refuse with `write_mode_unknown` (docs/admin-service.md, "Task runner").
+- **The task runner's `DB_WRITE_MODE` and `DB_WRITE_MODE__responses` follow the backend's
+  values** and change in the same deploy (from 4.1 the runner takes the Google credentials as
+  Postgres only, and unset values as the services' default; docs/admin-service.md, "Task runner").
 - **Migrations:** `DB_AUTO_MIGRATE=true` on `backend`, `jobs-worker`, `auth` and
   `integrations-googleform`, from Stage 0 on ("Who runs the migrations"). A release whose notes
   name a migration with non-transactional DDL is migrated by hand first (one-off commands below).

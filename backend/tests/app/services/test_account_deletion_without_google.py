@@ -292,15 +292,27 @@ async def test_a_purge_routed_to_temporal_cannot_be_queued():
 
 
 class TestTheJobInOff:
-    """GOOGLE_FORMS_IMPORT=off: no call to the service; the database function
-    when the Google store is Postgres only, else the job keeps failing."""
+    """GOOGLE_FORMS_IMPORT=off: no call to the service; the database function,
+    since the Google store is Postgres only (4.1), whatever the write-mode
+    settings say; without a Postgres engine the job keeps failing."""
 
     PURGE = CredentialPurge(user_id="u1", email="e@example.com", provider="google")
 
-    async def test_postgres_store_uses_the_definer_function(self, monkeypatch):
+    # the backend's own defaults (mongo) and any stale google flag are not read
+    @pytest.mark.parametrize(
+        "env",
+        [
+            {},
+            {"DB_WRITE_MODE": "mongo", "DB_READ_SOURCE": "mongo"},
+            {"DB_WRITE_MODE__GOOGLE": "dual", "DB_READ_SOURCE__GOOGLE": "mongo"},
+        ],
+    )
+    async def test_postgres_store_uses_the_definer_function(self, monkeypatch, env):
         monkeypatch.setattr(settings.google_forms, "IMPORT", "off")
-        monkeypatch.setenv("DB_WRITE_MODE__GOOGLE", "postgres")
-        monkeypatch.setenv("DB_READ_SOURCE__GOOGLE", "postgres")
+        for key in ("DB_WRITE_MODE", "DB_READ_SOURCE"):
+            monkeypatch.delenv(key, raising=False)
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
         conn = MagicMock()
         conn.execute = AsyncMock(return_value=MagicMock(scalar=MagicMock(return_value=2)))
         engine = MagicMock()
@@ -314,26 +326,19 @@ class TestTheJobInOff:
         assert "google.purge_user_credentials" in str(statement)
         assert params == {"user_id": "u1", "email": "e@example.com"}
 
-    @pytest.mark.parametrize("write_mode", ["mongo", "dual", "postgres_primary_dual"])
-    async def test_mongo_and_dual_stores_rely_on_the_service(
-        self, monkeypatch, write_mode
-    ):
+    async def test_without_a_postgres_engine_the_job_keeps_failing(self, monkeypatch):
         monkeypatch.setattr(settings.google_forms, "IMPORT", "off")
-        monkeypatch.setenv("DB_WRITE_MODE__GOOGLE", write_mode)
-        monkeypatch.setenv(
-            "DB_READ_SOURCE__GOOGLE",
-            "postgres" if write_mode == "postgres_primary_dual" else "mongo",
-        )
-        service = purge_module.CredentialPurgeService(MagicMock(), MagicMock(), MagicMock())
-        with pytest.raises(CredentialPurgeFailed):
+        service = purge_module.CredentialPurgeService(MagicMock(), MagicMock(), None)
+        with Google(200) as google, pytest.raises(CredentialPurgeFailed) as failed:
             await service.purge(self.PURGE)
+        assert google.calls() == []
+        assert "no Postgres engine" in str(failed.value)
 
     @pytest.mark.parametrize("mode", ["on", "readonly"])
     async def test_on_and_readonly_go_through_the_service_which_revokes(
         self, google_provider_config, monkeypatch, mode
     ):
         monkeypatch.setattr(settings.google_forms, "IMPORT", mode)
-        monkeypatch.setenv("DB_WRITE_MODE__GOOGLE", "postgres")
         with Google(200) as google:
             assert await container.credential_purge_service().purge(self.PURGE) == "deleted"
         assert len(google.calls()) == 1

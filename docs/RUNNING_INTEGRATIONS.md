@@ -47,10 +47,9 @@ Known limits of the database purge in `off` (`google.purge_user_credentials`):
 - It succeeds when it deletes 0 rows. It deletes only rows that match both the user id and the email, so rows
   stored without a `user_id` (credentials connected by older versions) never match it. Erase those by
   email by hand, or run the service in `on`/`readonly` for the purge, where the service matches either.
-- It runs only when the backend's flags for the `google` group say Postgres only (`DB_WRITE_MODE__GOOGLE=postgres`
-  or `DB_WRITE_MODE=postgres`). The Google Forms service itself stores its data in Postgres only since 4.1 and
-  refuses to start while its own `DB_READ_SOURCE`/`DB_WRITE_MODE` (or their `__google` overrides) name another
-  store.
+- It needs the backend's Postgres connection, and no storage flag: the Google Forms service stores its data in
+  Postgres only since 4.1, and refuses to start while its own `DB_READ_SOURCE`/`DB_WRITE_MODE` (or their
+  `__google` overrides) name another store.
 
 #### The Google Sheets action (`GOOGLE_SHEETS_OAUTH`)
 
