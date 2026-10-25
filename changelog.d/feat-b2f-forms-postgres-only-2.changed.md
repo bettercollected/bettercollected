@@ -4,3 +4,10 @@
   backend from starting and names the setting: remove it. The backend no longer creates the Mongo
   index on `workspace_forms`; a 4.0 database's forms are imported with
   `python -m backend.migrate --group forms backfill`.
+- The response tools (admin tasks and scripts) read the forms' workspace links from Postgres. Until
+  the forms import is complete (a finished `workspace_forms` backfill, or every Mongo link in
+  Postgres) their writing runs refuse with `forms_import_incomplete`, and so does
+  `auth.resolve_case_duplicate_accounts`; read-only runs only warn. The task runner's data role now
+  reads `collection` and `state` of `app.migration_progress` (`postgres/ensure-admin-roles.sh`).
+- Form and media search and the response filters match the typed text literally, ignoring case,
+  instead of as a regular expression.
