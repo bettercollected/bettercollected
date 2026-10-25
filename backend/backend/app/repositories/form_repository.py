@@ -160,6 +160,23 @@ def detach_action(form: FormDocument, action_id: str) -> None:
             bag.pop(action_id, None)
 
 
+def _own_groups_only(workspace_id: PydanticObjectId) -> dict:
+    """After the responder_group $lookup: keep the requesting workspace's own
+    groups. A form held by several workspaces never carries another
+    workspace's groups (name, description, regex)."""
+    return {
+        "$set": {
+            "groups": {
+                "$filter": {
+                    "input": "$groups",
+                    "as": "group",
+                    "cond": {"$eq": ["$$group.workspace_id", workspace_id]},
+                }
+            }
+        }
+    }
+
+
 class FormRepository:
     def _forms_in_workspace_query(
         self,
@@ -202,6 +219,7 @@ class FormRepository:
                     "as": "groups",
                 }
             },
+            _own_groups_only(workspace_id),
         ]
 
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
@@ -353,6 +371,7 @@ class FormRepository:
                     "as": "groups",
                 }
             },
+            _own_groups_only(workspace_id),
         ]
         if get_actions:
             aggregation_pipeline.extend(get_action_aggregation)
