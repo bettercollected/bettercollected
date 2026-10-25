@@ -86,6 +86,10 @@ class Target:
     case_insensitive_keys: Mapping[str, Sequence[Sequence[str]]] = field(
         default_factory=dict
     )
+    # routed repository (its class name, what an outbox entry's ``table_name``
+    # holds) -> group, read when ``resolve-outbox`` runs; a service with a
+    # single group needs none (common.db.migrate.outbox)
+    repository_groups: Optional[Callable[[], Mapping[str, str]]] = None
 
     def group_of(self, collection: str) -> str:
         return self.groups.get(collection) or self.service or self.schema
@@ -827,7 +831,8 @@ class Runner:
                     "replaced with Mongo's copy in this run (counted as "
                     "newer_in_postgres). Run reconcile --direction postgres->mongo "
                     "over every collection while Postgres is primary to copy them "
-                    "and resolve the entries",
+                    "and resolve the entries, or, after a rollback to dual, "
+                    "resolve-outbox to resolve those whose write Mongo holds",
                     pending,
                 )
                 mongo_primary = set()
