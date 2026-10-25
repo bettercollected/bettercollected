@@ -781,28 +781,40 @@ moment. The only waits are the commands' own run times.
    `GET /api/v1/persistence/status` must show Mongo as not used: a `failure_action: rollback` in the
    next step would otherwise put a `dual` spec back. This deploy is where Mongo stops being written;
    it holds the data of step 3. Do not push the release tag before this step is done and checked.
-5. **Deploy 4.1.** Edit the stored definition for 4.1, then push the release tag (it updates the
-   images: `backend`, `jobs-worker`, `task-runner`, `admin` and `document-sandbox` run the backend
-   image), then deploy the definition with the writers' replicas restored. The 4.1 changes, which
-   the upgrade notes (the gate above) must agree with:
-   - **Roles and grants, once, before the 4.1 services start:** run `postgres/ensure-admin-roles.sh`
-     of the 4.1 tag as the database superuser inside the `app-postgres` container, the way the stack
-     ran it for earlier releases (`deploy.sh` does
-     `docker compose exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh`; on Swarm,
-     `docker exec -i <app-postgres container> bash -s < postgres/ensure-admin-roles.sh`). It is
-     idempotent; run it again after the services have migrated, as `deploy.sh` does. 4.1 adds
-     `admin.credential_purges_overdue()`, a column `SELECT` on `jobs.procrastinate_*` for
-     `bc_count_app`, and a `SELECT` on `app.migration_progress` for the task runner's data role.
-     Without it Health's integrity monitor and the response tools' `forms_import_incomplete` check
-     fail.
-   - **The internal listener** (docs/admin-service.md, "Internal routes"; never publish port 8001):
-     the task runner's `ADMIN_TASKS_BACKEND_URL` and the `SERVER_URL` of the Temporal worker and the
-     actions executor (both call the API's key-only routes) point at
-     `http://backend:8001/api/v1`, and the backend gets `API_INTERNAL_ROUTES=internal_port`. A Swarm
-     stack must set the last: with the default `direct`, Swarm's ingress mesh lets outside callers
-     reach the worker routes on port 8000, and only their key stops them. The admin-task routes
-     exist on port 8001 only.
-   - Whatever else the upgrade notes name.
+5. **Deploy 4.1**, in this order:
+   1. **Roles and grants, before the tag.** Run `postgres/ensure-admin-roles.sh` of the 4.1 tag as the
+      database superuser inside the `app-postgres` container, the way the stack ran it for earlier
+      releases (`deploy.sh` does `docker compose exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh`;
+      on Swarm, `docker exec -i <app-postgres container> bash -s < postgres/ensure-admin-roles.sh`:
+      `-i`, not `-t`). The script refuses to run unless the container's environment holds
+      `BC_ADMIN_PASSWORD`, `BC_ADMIN_MIG_PASSWORD`, `BC_TASKS_PASSWORD`,
+      `BC_TASKS_DATA_APP_PASSWORD` and `BC_TASKS_DATA_GOOGLE_PASSWORD` (letters, digits and
+      `. _ ~ -` only): the Swarm `app-postgres` service must carry all five, as it does when the
+      stack has run the script before (since 4.0.10). Check that they are set; never print their
+      values. The script is idempotent. 4.1 adds `admin.credential_purges_overdue()`, a column
+      `SELECT` on `jobs.procrastinate_*` for `bc_count_app`, and a `SELECT` on
+      `app.migration_progress` for the task runner's data role; without them Health's integrity
+      monitor and the response tools' `forms_import_incomplete` check fail. Run it again once the
+      4.1 services have migrated, as `deploy.sh` does.
+   2. **Edit the stored definition for 4.1** (do not deploy it yet). It carries the 4.1 image
+      tags (a definition still on the 4.0.x tags, deployed after the images were updated, would put
+      every image back), the replicas of the writers still at 0, and the 4.1 changes the upgrade
+      notes (the gate above) must agree with:
+      - **The internal listener** (docs/admin-service.md, "Internal routes"; never publish port
+        8001): the task runner's `ADMIN_TASKS_BACKEND_URL` and the `SERVER_URL` of the Temporal
+        worker and the actions executor (both call the API's key-only routes) point at
+        `http://backend:8001/api/v1`, and the backend gets `API_INTERNAL_ROUTES=internal_port`. A
+        Swarm stack must set the last: with the default `direct`, Swarm's ingress mesh lets outside
+        callers reach the worker routes on port 8000, and only their key stops them. The
+        admin-task routes exist on port 8001 only.
+      - Whatever else the upgrade notes name.
+   3. **Push the release tag.** CI updates the images of every service: `backend`, `jobs-worker`,
+      `task-runner`, `admin` and `document-sandbox` run the backend image. The 4.1 `backend`,
+      `jobs-worker`, `auth`, `integrations-googleform` and `admin` start now, still with the step 4
+      environment. Until sub-step 4 the backend runs without `API_INTERNAL_ROUTES=internal_port`,
+      which is harmless for that window: the callers of those routes (the workers and the task
+      runner) are still at 0 replicas, and `direct` still requires each route's key.
+   4. **Deploy the stored definition of sub-step 2**, with the writers' replicas restored.
 
    `DB_AUTO_MIGRATE=true` migrates `auth` and `google` to revision 0005 on the first 4.1 start (each
    service logs `schema … migrated`; `auth` 0005 refuses, with counts, while two accounts differ only
@@ -894,15 +906,19 @@ lost.
      (`backend/admin/services/settings_store.py:544`). So a set, restore or clear of one of those in
      the portal on 4.1 makes a row that 4.0.13 refuses, and that includes a restore: it stamps the
      4.1 readers again. A service on `SETTINGS_STORE=required` refuses to start when a refused row is
-     a critical key (a secret, or tier T3 or T4) with no value in its environment
-     (`common/settings/loader/runtime.py:220-230`): `auth` and `integrations-googleform` on
-     `GOOGLE_CLIENT_SECRET`; for the others the setting silently falls back to its default. Keys
+     a critical key (every secret, and every key of tier T3 or T4) with no value in its environment
+     (`common/settings/loader/runtime.py:220-230`). All five keys are critical: `GOOGLE_CLIENT_SECRET`
+     is a secret, and `GOOGLE_CLIENT_ID`, `GOOGLE_AUTH_URI`, `GOOGLE_TOKEN_URI` and
+     `GOOGLE_SHEET_REDIRECT_URL` are tier T3 (`common/settings/inventory.py:118, 439-442, 465`). So a
+     refused row of any of them stops `auth` and `integrations-googleform` at start
+     (`GOOGLE_SHEET_REDIRECT_URL`: the Google integration only, the one that reads it in 4.0.13). Keys
      only 4.1 knows (`GOOGLE_FORMS_IMPORT`, `GOOGLE_SHEETS_OAUTH`, `API_INTERNAL_*`,
      `DB_DISCARD_UNIMPORTED_MONGO_DATA`) are refused and ignored, which is harmless. If any of the
      five widened keys has a version written since the cutover (`updated_at`, or the key's history in
      the portal), put it right **before the services of the rollback start**, either by setting the
      value in the rollback definition's environment (an environment value wins over the store
-     and exempts the key from the startup check), or by rolling back `admin` first and setting the
+     and exempts the key from the startup check; for the secret the operator must have its value
+     to hand, the portal never shows it), or by rolling back `admin` first and setting the
      key again in its portal (4.0.13's `admin` stamps the readers 4.0.13 accepts).
 2. **Edit the rollback definition** (the copy saved before the cutover): image tags back to the 4.0.x
    tag for every service the 4.1 deploy changed (the list is in `.github/workflows/deploy.yml`,
