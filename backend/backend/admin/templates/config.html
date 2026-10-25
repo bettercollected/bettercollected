@@ -66,4 +66,14 @@
 {% else %}
 <p>{{ _("The list is empty.") }}</p>
 {% endif %}
+
+{% if access %}
+<h2>{{ _("Address gate") }}</h2>
+<p>{{ _("From ADMIN_ALLOWED_IPS (environment only; change it in the server's environment file). Only the number of entries and the one that lets you in are shown.") }}</p>
+<dl class="facts">
+  <dt>{{ _("Allowed networks") }}</dt><dd>{{ access.entries }}</dd>
+  <dt>{{ _("Your address") }}</dt><dd>{% if access.address %}<code>{{ access.address }}</code>{% else %}-{% endif %}</dd>
+  <dt>{{ _("Allowed by") }}</dt><dd>{% if access.matched_entry %}<code>{{ access.matched_entry }}</code>{% elif access.via_gateway %}{{ _("the gateway of the admin network: every client arrives as that address, so the gate cannot tell clients apart") }}{% else %}-{% endif %}</dd>
+</dl>
+{% endif %}
 {% endblock %}
