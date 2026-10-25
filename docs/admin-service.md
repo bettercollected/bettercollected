@@ -285,8 +285,8 @@ described under "Settings pages" and "Task pages" below.
 | Page | What it shows |
 |---|---|
 | `/` | Cards linking to the pages below |
-| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved; the background job queue (counts by state, see "Job queue" below); and the single sign-on settings still missing. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access |
-| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access. The backend's jobs worker labels its heartbeat (`backend.jobs:<host>`) and has a status line and a tag of its own; a "MongoDB" line says whether any running instance still reports writing MongoDB (`write_stores`), and says "not known" instead of green while a running instance did not say (a service from before the report existed), and each heartbeat row shows what it writes. The job queue is shown as counts by state (see "Job queue" below); the Temporal workers are not shown (see "Not on the Health page" below) |
+| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS`, and an "Address gate" block for `ADMIN_ALLOWED_IPS`: the number of entries, the signed-in admin's own address and the one entry that lets it in. The other entries are not shown (they say where the operator's networks are, which no admin needs); the admin addresses are, as they are the roster every admin shares |
 | `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts_app()` and `admin.platform_counts_auth()` |
 | `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
 | `/sessions` | Your live sessions (created, last seen, address, a short fingerprint of the browser identification) with the current one marked; revoke forms post, with the CSRF token, to the existing account routes |
@@ -360,6 +360,15 @@ expects come from the revision files in the backend image: its own and, copied i
 imported (`backend/admin/schema_heads.py`). The page reads the outboxes in PostgreSQL
 only; for MongoDB run `python -m backend.migrate status` (and `auth.migrate`,
 `googleform.migrate`) in the service's container.
+
+### Not on the Health page
+
+* **The Temporal workers** report nothing the portal can read: they stay off the settings store on purpose
+  (they drive a browser on user-supplied URLs and never get the master key), and the admin service has no network
+  path to Temporal and no Temporal client. Check them with `docker compose ps` / the Temporal UI.
+* **MongoDB** is reachable only from the backend's command line during the import of a 4.0 stack
+  (`python -m backend.migrate status`); the admin service has no MongoDB access, and no MongoDB container
+  runs otherwise. The "MongoDB" line on the page says only whether any running instance still writes it.
 
 ## Settings pages (changing settings)
 
@@ -1403,7 +1412,15 @@ touched.
 | `settings.service_state` | rows older than 7 days of a service with no newer row (a service that still reports prunes its own) |
 
 The admin role holds DELETE on `tasks.run_events`, `tasks.checkpoints` and
-`settings.service_state` for this; the runner role still can only append.
+`settings.service_state` for this; the runner role still can only append. A table grant
+cannot say "only old rows", so a `BEFORE DELETE` trigger on `settings.service_state`
+(`settings.service_state_delete_guard`, admin revision 0019) refuses, for any role that is
+neither the table's owner nor a superuser, the delete of a row that is not exactly what the
+loop removes: older than 7 days and of a service with no newer row. A stolen portal credential
+therefore cannot erase live heartbeats (the keyset gates and the integrity monitor read them);
+it can still delete the stale rows of a service that stopped reporting. `settings.report_state`
+runs as the owner and prunes the reporting service's own stale rows as before. Whoever owns the
+table can drop the trigger, as for the other guards in this schema.
 
 **Integrity.** Each pass runs the settings store check, verifies the next slice of the
 audit chain (up to 5000 rows) from a checkpoint kept in `admin.audit_verify_state` (the last

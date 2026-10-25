@@ -28,7 +28,7 @@ async def service_states(conn: AsyncConnection) -> list[Any]:
         await conn.execute(
             text(
                 "SELECT service, instance, revision_applied, restart_pending, "
-                "cardinality(rejected_keys) AS rejected, env_overrides, "
+                "cardinality(rejected_keys) AS rejected, env_overrides, write_stores, "
                 "extract(epoch FROM (now() - reported_at))::bigint AS age_seconds "
                 "FROM settings.service_state ORDER BY service, instance LIMIT 500"
             )
