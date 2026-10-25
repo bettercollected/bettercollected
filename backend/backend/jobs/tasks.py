@@ -13,6 +13,10 @@ from dataclasses import asdict
 from procrastinate import RetryStrategy
 
 from backend.app.services.credential_purge import PURGE_ATTEMPTS, PURGE_RETRY_SECONDS
+from backend.app.services.sheets_grant_revocation import (
+    REVOKE_ATTEMPTS,
+    REVOKE_RETRY_SECONDS,
+)
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
@@ -61,6 +65,26 @@ async def purge_provider_credentials(sealed: str, user_id: str) -> str:
     if purge.user_id != user_id:
         raise ValueError("purge request does not match the job's user")
     return await container.credential_purge_service().purge(purge)
+
+
+@app.task(
+    name="revoke_google_grant",
+    queue=DEFAULT_QUEUE,
+    retry=RetryStrategy(max_attempts=REVOKE_ATTEMPTS, wait=REVOKE_RETRY_SECONDS),
+)
+async def revoke_google_grant(sealed: str, form_id: str, action_id: str) -> str:
+    """Revoke at Google the broad grant a Google Sheets action held before it
+    was reconnected with ``drive.file`` (one attempt; retried hourly for two
+    days, then failed and reported by the admin portal's integrity monitor).
+    The local copy is already gone; ``sealed`` is the encrypted
+    GrantRevocation."""
+    from backend.app.services.sheets_grant_revocation import unseal
+
+    container = _container()
+    revocation = unseal(container.crypto(), sealed)
+    if (revocation.form_id, revocation.action_id) != (form_id, action_id):
+        raise ValueError("revocation request does not match the job's action")
+    return await container.sheets_grant_service().revoke(revocation)
 
 
 @app.task(

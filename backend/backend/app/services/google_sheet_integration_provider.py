@@ -73,11 +73,16 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
     ) -> Tuple[bool, str]:
         if backend_runs_sheets_oauth():
             credential = await self.sheets_oauth.exchange_code(code=code, state=state)
-            await self.integration_action_service.add_credentials_to_form_action(
+            # one write with the re-consent markers cleared; then the legacy
+            # grant it replaced is revoked (a failure queues a retry)
+            outcome = await self.integration_action_service.store_sheets_grant(
                 form_id=form_id, action_id=action_id, credentials=credential
             )
             logger.info(
-                "google sheets connected: form={} action={}", form_id, action_id
+                "google sheets connected: form={} action={} old_grant={}",
+                form_id,
+                action_id,
+                outcome,
             )
             return "Added credentials to form action"
         provider_url = await self.form_provider_service.get_provider_url(

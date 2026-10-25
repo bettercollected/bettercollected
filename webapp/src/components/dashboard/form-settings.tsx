@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -467,20 +467,35 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
  * Rows are separated by the parent's divide-y — a divider never cuts a
  * setting in half (the old layout drew the hairline between a setting's
  * label and its own control).
+ * The control (a switch) is named by the row's title and described by its
+ * description, unless it brings its own name.
  */
-export const SettingRow = ({ title, titleExtra, description, children, hint }: { title: React.ReactNode; titleExtra?: React.ReactNode; description: React.ReactNode; children: React.ReactNode; hint?: React.ReactNode }) => (
-    <div className="flex w-full items-start justify-between gap-6 py-5">
-        <div className="flex max-w-[560px] flex-col gap-1">
-            <div className="text-black-900 flex items-center gap-2 text-[15px] font-semibold">
-                {title}
-                {titleExtra}
+export const SettingRow = ({ title, titleExtra, description, children, hint }: { title: React.ReactNode; titleExtra?: React.ReactNode; description: React.ReactNode; children: React.ReactNode; hint?: React.ReactNode }) => {
+    const id = useId();
+    const titleId = `${id}-title`;
+    const descriptionId = `${id}-description`;
+    const control = isValidElement<Record<string, unknown>>(children)
+        ? cloneElement(children, {
+              ...(children.props['aria-label'] || children.props['aria-labelledby'] ? {} : { 'aria-labelledby': titleId }),
+              ...(children.props['aria-describedby'] ? {} : { 'aria-describedby': descriptionId })
+          })
+        : children;
+    return (
+        <div className="flex w-full items-start justify-between gap-6 py-5">
+            <div className="flex max-w-[560px] flex-col gap-1">
+                <div className="text-black-900 flex items-center gap-2 text-[15px] font-semibold">
+                    <span id={titleId}>{title}</span>
+                    {titleExtra}
+                </div>
+                <div id={descriptionId} className="text-black-700 text-sm leading-relaxed">
+                    {description}
+                </div>
+                {hint}
             </div>
-            <div className="text-black-700 text-sm leading-relaxed">{description}</div>
-            {hint}
+            <div className="pt-1">{control}</div>
         </div>
-        <div className="pt-1">{children}</div>
-    </div>
-);
+    );
+};
 
 const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
     const { openBottomSheetModal } = useBottomSheetModal();

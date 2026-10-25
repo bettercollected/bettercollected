@@ -113,6 +113,22 @@ class TemporalService:
         except AlreadyEnqueued:
             return "already_queued"
 
+    async def queue_grant_revocation(self, revocation) -> str:
+        """Queue the retryable revocation of a replaced Google Sheets grant
+        (services/sheets_grant_revocation.py). Procrastinate only, like the
+        credential purge: ``JOBS_BACKEND__revoke_google_grant`` must be
+        ``postgres``, otherwise this raises. The token travels sealed."""
+        from backend.app.services.sheets_grant_revocation import REVOKE_JOB, seal
+
+        if not self._on_postgres(REVOKE_JOB):
+            raise RuntimeError(f"{REVOKE_JOB} is not routed to the Postgres job queue")
+        await tasks.revoke_google_grant.defer_async(
+            sealed=seal(self.crypto, revocation),
+            form_id=revocation.form_id,
+            action_id=revocation.action_id,
+        )
+        return "queued"
+
     async def start_user_deletion_workflow(self, deletion: UserDeletion):
         # the argument keeps its historical name (queued jobs, the workflow);
         # it carries no tokens any more, only whose account to delete
