@@ -99,6 +99,19 @@ def _oid(value: Any) -> str:
     return str(value)
 
 
+def _set_paths(target: Any, fields: Dict[str, Any]) -> None:
+    """Apply ``{"a.b": value}`` to a model (attributes) or dict (keys)."""
+    for path, value in fields.items():
+        *parents, leaf = path.split(".")
+        node: Any = target
+        for part in parents:
+            node = node[part] if isinstance(node, dict) else getattr(node, part)
+        if isinstance(node, dict):
+            node[leaf] = value
+        else:
+            setattr(node, leaf, value)
+
+
 class PostgresWorkspaceRepository(PostgresRepositoryBase):
     row = WorkspaceRow
     document = WorkspaceDocument
@@ -173,19 +186,26 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     async def set_fields(
         self, workspace: WorkspaceDocument, fields: Dict[str, Any]
     ) -> None:
-        # Beanie's document.update({"$set": ...}) also refreshes the instance.
-        for path, value in fields.items():
-            *parents, leaf = path.split(".")
-            target: Any = workspace
-            for part in parents:
-                target = (
-                    target[part] if isinstance(target, dict) else getattr(target, part)
+        """Twin of Mongo's partial ``$set``: the row is locked while
+        ``fields`` (dotted paths) are applied to the stored copy, so a
+        concurrent change of other fields is kept, never overwritten from
+        ``workspace``, which may be stale. ``workspace`` gets the same fields
+        (the routed write refreshes it from the primary). A workspace that
+        is not stored stays so (``$set`` on no match)."""
+        _set_paths(workspace, fields)
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceRow.doc)
+                    .where(WorkspaceRow.id == _oid(workspace.id))
+                    .with_for_update()
                 )
-            if isinstance(target, dict):
-                target[leaf] = value
-            else:
-                setattr(target, leaf, value)
-        await self.upsert(workspace)
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            stored = from_row_doc(WorkspaceDocument, doc)
+            _set_paths(stored, fields)
+            await session.execute(self._upsert_statement(row_values(stored)))
 
     async def set_owner_if(
         self, workspace_id: PydanticObjectId, expected_owner_id: str, new_owner_id: str
