@@ -988,7 +988,7 @@
   "SSO": {
     "NOT_ENABLED": "Single sign-on is niet ingeschakeld op deze installatie. De beheerder schakelt het in (SSO_ENABLED, zie docs/sso.md).",
     "NOT_CONFIGURED": "Single sign-on staat aan, maar is op deze installatie nog niet helemaal ingesteld. Vraag de beheerder of de supportafdeling van deze installatie om de instelling af te maken.",
-    "SELF_HOSTING": "Beheer je deze installatie zelf? Zie de <1>handleiding voor single sign-on</1>."
+    "SELF_HOSTING": "Beheert u deze installatie zelf? Zie de <1>handleiding voor single sign-on</1>."
   },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",
