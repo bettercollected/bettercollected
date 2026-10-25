@@ -763,3 +763,20 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
     extra = {"googleform": {"integrations-googleform"}, "": set()}[preference]
     assert extra <= created
     assert ("integrations-googleform" in created) == ("integrations-googleform" in extra)
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+def test_a_new_stack_runs_the_backend_its_worker_and_the_task_runner_on_postgres(tmp_path):
+    """No DB_* value anywhere (a new stack): the backend, the jobs worker and the task
+    runner get Postgres, so nothing needs a MongoDB (the runner's `stores: auto` included).
+    An upgraded stack starts its services only after the import has run."""
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    shutil.copy(ROOT / ".env.deployment.example", tmp_path / ".env.deployment")
+    rendered = _render(tmp_path)
+    for name in ("backend", "jobs-worker"):
+        env = rendered[name]["environment"]
+        assert (env["DB_READ_SOURCE"], env["DB_WRITE_MODE"]) == ("postgres", "postgres"), name
+        assert not env.get("MONGO_URI"), name
+    assert rendered["task-runner"]["environment"]["DB_WRITE_MODE"] == "postgres"
+    assert not rendered["task-runner"]["environment"].get("MONGO_URI")
+    assert "mongodb" not in rendered
