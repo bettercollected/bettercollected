@@ -192,6 +192,8 @@ class WorkspaceMembersRouter(Routable):
         workspace_id: PydanticObjectId,
         invitation_id: str,
         user: User = Depends(get_full_user),
+        # the mail's language, as on the first send; English unless Dutch
+        locale: Optional[str] = Query(None, max_length=35),
     ):
         invitation = await self.workspace_members_service.get_workspace_invitation_by_token(
             workspace_id=workspace_id, user=user, invitation_token=invitation_id
@@ -219,7 +221,7 @@ class WorkspaceMembersRouter(Routable):
         # # Save the updated invitation
         # await self.workspace_members_service.update_invitation(invitation)
         return await self.workspace_members_service.create_invitation_request(
-            workspace_id=workspace_id, invitation=invitation, user=user
+            workspace_id=workspace_id, invitation=invitation, user=user, locale=locale
         )
         
         

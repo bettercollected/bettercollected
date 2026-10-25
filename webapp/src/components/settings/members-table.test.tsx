@@ -11,6 +11,8 @@ import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+import MemberOptions from '@Components/datatable/member-options';
+
 import MembersTable from './members-table';
 
 const access: { permissions: string[] } = { permissions: [] };
@@ -21,6 +23,7 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
 const updateRoleMock = vi.fn();
 const billingMock = vi.fn();
 const inviteMock = vi.fn();
+const resendMock = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
 vi.mock('@app/store/workspaces/members-n-invitations-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -29,7 +32,7 @@ vi.mock('@app/store/workspaces/members-n-invitations-api', async (importOriginal
         useMakeBillingOwnerMutation: () => [billingMock, { isLoading: false }],
         useInviteToWorkspaceMutation: () => [inviteMock, { isLoading: false }],
         useGetWorkspaceMembersQuery: () => ({ data: [] }),
-        useResendWorkspaceInvitationMutation: () => [vi.fn(), { isLoading: false }]
+        useResendWorkspaceInvitationMutation: () => [resendMock, { isLoading: false }]
     };
 });
 
@@ -228,5 +231,21 @@ describe('InviteMemberModal', () => {
         }
         expect(INVITE_FIELD_CLASS.split(' ')).toContain('w-full');
         expect(screen.getByRole('button', { name: 'BUTTON.CLOSE' })).toBeDefined();
+    });
+});
+
+describe('resending an invitation', () => {
+    it("asks for the mail in the browser's language", async () => {
+        access.permissions = ADMIN_PERMISSIONS;
+        vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['nl-NL', 'en']);
+        resendMock.mockClear();
+        const invitation = { workspaceId: 'w1', email: 'pending@example.com', invitationToken: 't1', invitationStatus: 'PENDING', role: 'EDITOR' } as any;
+        renderWith(<MemberOptions invitation={invitation} workspaceId="w1" />);
+
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Open menu' }), { button: 0, ctrlKey: false });
+        fireEvent.click(await screen.findByText('Resend invitation'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+
+        await waitFor(() => expect(resendMock).toHaveBeenCalledWith({ workspaceId: 'w1', invitationToken: 't1', locale: 'nl' }));
     });
 });
