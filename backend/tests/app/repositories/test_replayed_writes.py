@@ -23,7 +23,7 @@ from tests.app.response_helpers import unlinked_scope
 
 
 def responses_repo():
-    return FormResponseRepository(crypto=container.crypto())
+    return FormResponseRepository(container.crypto(), None, None)
 
 
 async def test_a_published_version_is_mirrored_to_its_table(sessions):

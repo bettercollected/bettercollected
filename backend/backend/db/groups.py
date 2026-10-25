@@ -142,8 +142,12 @@ COLLECTION_GROUPS = {
 }
 
 MONGO_JOINS = {
-    # FormResponseRepository / DeletionRequestsRepository → forms, workspace_forms
-    "responses": ("forms",),
+    # FormRepository (a form's responses, deletion requests and responder
+    # groups) and WorkspaceFormRepository (responder groups) → responses.
+    # The responses repositories read a form's title and importer through the
+    # forms repositories (backend.app.repositories.response_scope): no join
+    # into forms.
+    "forms": ("responses",),
 }
 
 

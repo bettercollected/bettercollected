@@ -40,9 +40,13 @@ async def test_deletion_requests_page_totals_and_slices():
     form_ids = await _seed_deletion_requests(5)
 
     with set_page(Page), set_params(Params(page=1, size=2)):
-        first = await DeletionRequestsRepository.get_deletion_requests(form_ids)
+        first = await DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(form_ids)
     with set_page(Page), set_params(Params(page=3, size=2)):
-        last = await DeletionRequestsRepository.get_deletion_requests(form_ids)
+        last = await DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(form_ids)
 
     assert (first.total, first.page, first.size, first.pages) == (5, 1, 2, 3)
     assert len(first.items) == 2
@@ -59,7 +63,9 @@ async def test_deletion_requests_filtered_total_follows_the_match():
     form_ids = await _seed_deletion_requests(5)
 
     with set_page(Page), set_params(Params(page=1, size=10)):
-        page = await DeletionRequestsRepository.get_deletion_requests(
+        page = await DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(
             form_ids, data_owner_identifier="owner@example.com"
         )
 
@@ -69,7 +75,9 @@ async def test_deletion_requests_filtered_total_follows_the_match():
 
 async def test_deletion_requests_empty_page():
     with set_page(Page), set_params(Params(page=1, size=10)):
-        page = await DeletionRequestsRepository.get_deletion_requests(
+        page = await DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(
             ResponseScope(PydanticObjectId(), ("missing",))
         )
 

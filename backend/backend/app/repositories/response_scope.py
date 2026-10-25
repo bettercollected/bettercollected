@@ -118,3 +118,58 @@ async def find_response_in_workspace(
         await form_response_repo.list_by_response_id(str(response_id)),
         workspace_id,
     )
+
+
+# -- composition over the forms group ----------------------------------------
+# A response listing carries its form's title (and a deletion request who
+# imported the form into the workspace). In 4.0 the Mongo repositories joined
+# ``forms`` / ``workspace_forms`` with ``$lookup`` + ``$unwind``; both
+# responses repositories now read them through the forms repositories instead,
+# so the forms group can leave Mongo while responses are still served from it.
+
+
+async def form_titles(form_repo, form_ids: Iterable[str]) -> Dict[str, Any]:
+    """form_id -> title for the forms of ``form_ids`` that exist (the
+    ``$lookup forms`` + ``$unwind``: responses of a deleted form are left out)."""
+    form_ids = list(dict.fromkeys(str(f) for f in form_ids))
+    if not form_ids:
+        return {}
+    forms = await form_repo.get_forms_by_form_ids(form_ids)
+    return {form.form_id: form.title for form in forms}
+
+
+async def form_importers(
+    workspace_form_repo, form_ids: Iterable[str], workspace_id: Any
+) -> Dict[str, str]:
+    """form_id -> the user who imported it into ``workspace_id`` (the
+    ``$lookup workspace_forms`` of that workspace + ``$unwind``)."""
+    form_ids = list(dict.fromkeys(str(f) for f in form_ids))
+    if not form_ids:
+        return {}
+    rows = await workspace_form_repo.get_workspace_forms_form_ids(form_ids)
+    importers: Dict[str, str] = {}
+    for workspace_form in rows:
+        if str(workspace_form.workspace_id) == str(workspace_id):
+            importers.setdefault(str(workspace_form.form_id), workspace_form.user_id)
+    return importers
+
+
+def mongo_lookup_stages(field: str, by_form: Dict[str, Any]) -> list:
+    """Aggregation stages that keep the documents whose ``form_id`` is a key
+    of ``by_form`` and set ``field`` to its value: a composed ``$lookup`` +
+    ``$unwind``. The values are literals, so a title that looks like a field
+    path or an operator is never evaluated."""
+    keys = list(by_form)
+    return [
+        {"$match": {"form_id": {"$in": keys}}},
+        {
+            "$set": {
+                field: {
+                    "$arrayElemAt": [
+                        {"$literal": [by_form[k] for k in keys]},
+                        {"$indexOfArray": [{"$literal": keys}, "$form_id"]},
+                    ]
+                }
+            }
+        },
+    ]

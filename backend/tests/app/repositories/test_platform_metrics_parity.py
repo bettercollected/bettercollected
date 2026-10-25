@@ -115,7 +115,11 @@ async def test_workspace_form_counts(sessions):
 
 
 async def test_response_counts(sessions):
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(
         sessions, FormRepository(), WorkspaceFormRepository()
     )

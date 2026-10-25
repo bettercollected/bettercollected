@@ -113,15 +113,16 @@ def test_a_set_but_unreachable_mongo_uri_refuses_the_start(program):
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_one_group_still_on_mongo_keeps_mongo_required(program):
-    # the join map (backend.db.groups.MONGO_JOINS) lets forms stay on Mongo
-    # alone (identity, the group it joined, is served from Postgres only and
-    # read through its repositories)
+    # the join map (backend.db.groups.MONGO_JOINS): forms on Mongo keeps the
+    # responses it joins written to Mongo too (identity, which it joined
+    # before, is served from Postgres only and read through its repositories)
     result = boot(
         program,
         {
             **ALL_POSTGRES,
             "DB_READ_SOURCE__forms": "mongo",
             "DB_WRITE_MODE__forms": "dual",
+            "DB_WRITE_MODE__responses": "dual",
         },
     )
     assert result.returncode != 0
