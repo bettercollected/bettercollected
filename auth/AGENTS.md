@@ -29,9 +29,32 @@ auth/
 
 ## Tech
 
-FastAPI + **fastapi-users[beanie,oauth]** (user management on MongoDB via Beanie), `dependency-injector`,
+FastAPI, **Postgres** (SQLAlchemy async; schema `auth`), `dependency-injector`,
 `classy-fastapi`, **stripe**, `google-auth-oauthlib` + `google-api-python-client`, `pyjwt`, `fastapi-mail`.
 Shares the local `common` package. JWT + crypto helpers come from `common.services`.
+
+## Storage: Postgres only (since 4.1)
+
+- Accounts live in `auth.users` (one row per account: `id`, spine columns, the whole document in `doc`). The
+  document class is `app/schemas/user.py` `UserDocument`, a `common.records.Record` (not Beanie); ids are
+  `common.ids.RecordId` (same 422 text and OpenAPI component as `PydanticObjectId`). The only repository is
+  `app/repositories/user_repository.py` `UserRepository` (`common.records.repository.RecordRepository`); there is
+  no Mongo side, no `RoutingRepository`, no mirror outbox writes and no shadow reads any more.
+- **Flags** (`auth/db/flags.py`, the same rule as the Google integration's): auth always runs as
+  `DB_READ_SOURCE=postgres` / `DB_WRITE_MODE=postgres`. `DB_READ_SOURCE`, `DB_WRITE_MODE` or their `__auth`
+  overrides set to anything but `postgres` refuse the start, naming the setting (unset is fine); other groups'
+  overrides and `DB_SHADOW_READ_SAMPLE` are ignored. Startup also refuses without `DATABASE_URL`, and on a schema
+  behind the code's Alembic head (`DB_AUTO_MIGRATE=true` applies it first).
+- **Migrations:** `auth/migrations` (Alembic, `auth/alembic.ini`); this service owns the `auth` schema's chain.
+- **The import from 4.0** (`python -m auth.migrate preflight|backfill|verify|reconcile|status`) still reads the
+  4.0 Mongo database (`MONGO_URI` / `MONGO_DB`, `config/database.py`), with the tables it needs
+  (`migration_progress`, `store_migration`, `deletion_tombstones`, `mirror_write_failures`, the expand-only
+  `providers`). Keep them until the import path is removed; nothing else in the service may touch Mongo
+  (`tests/test_direct_db_access.py`).
+- **Tests** need the Postgres test database (`DATABASE_URL` naming a `*_test` database; migrated once per session).
+  Only `tests/db/test_migrate_tombstones.py` (the import's reconcile) needs a Mongo server (marker `mongo`). The
+  golden fixture `tests/fixtures/codec_golden/auth.json` pins the stored bytes; `UserDocument` must keep the wire
+  shape of the Beanie class it replaced (`tests/integration/app/beanie_originals.py`).
 
 ## Auth providers & flows
 
@@ -129,11 +152,10 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
 ## Run / test
 
 ```bash
-./run.sh            # uvicorn auth.app:get_application :8001  (needs Mongo up)
-make install        # poetry install
-make test           # pytest (if targets present)
-make format         # black
-poetry run flake8 . # lint
+./run.sh            # uvicorn auth.app:get_application :8001  (needs Postgres: DATABASE_URL)
+uv sync             # install
+uv run pytest       # needs DATABASE_URL on a *_test database; -m "not mongo" without a Mongo server
+uv run black .      # format
 ```
 
 ## Gotchas

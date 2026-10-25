@@ -1,11 +1,10 @@
-"""Shared fixtures: Postgres for the auth suite (plans/postgres-consolidation.md).
+"""Shared fixtures: Postgres for the auth suite.
 
-The auth suite uses an in-memory Mongo (mongomock); Postgres is real, taken
-from DATABASE_URL when it names a *test* database, migrated once per session
-with Alembic and emptied before each test that asks for it.
+auth stores its data in Postgres only (since 4.1). The database is taken from
+DATABASE_URL when it names a *test* database, migrated once per session with
+Alembic and emptied before each test that asks for it.
 """
 
-import asyncio
 import os
 from pathlib import Path
 
@@ -23,10 +22,10 @@ from auth.db.base import SCHEMA, Base
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 
-#: Test files that drive a real Mongo server themselves (the migration CLI),
-#: unlike the rest of the suite, which runs on mongomock. They get the
+#: Test files that drive a real Mongo server (the import from 4.0, ``python -m
+#: auth.migrate``); nothing else in the suite touches Mongo. They get the
 #: ``mongo`` marker: CI runs the suite with ``-m "not mongo"`` and these in a
-#: second step of the Postgres job, with a Mongo server (docs/ci.md).
+#: second step, with a Mongo server (docs/ci.md).
 MONGO_DRIVEN = ("tests/db/test_migrate_tombstones.py",)
 
 
@@ -73,15 +72,11 @@ def _postgres_schema():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _schema_when_served_from_postgres():
-    """When the flags put a repository group on Postgres the app refuses to start
-    on an unmigrated schema. Migrate up front instead of relying on an earlier
-    test, or an earlier run against the same database, to have done it: each
-    persistence mode can then run alone on a fresh database (CI runs them as
-    parallel jobs)."""
-    from common.db.flags import load_flags
-
-    if _postgres_configured() and load_flags().requires_postgres():
+def _schema_up_front():
+    """The app refuses to start on an unmigrated schema. Migrate up front
+    instead of relying on an earlier test, or an earlier run against the same
+    database, to have done it: the suite then runs alone on a fresh database."""
+    if _postgres_configured():
         _alembic_upgrade_head()
 
 

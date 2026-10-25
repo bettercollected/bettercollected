@@ -486,7 +486,8 @@ group's B meets the exit criteria.
 The `google` steps run on 4.0.x. From 4.1 on, `integrations-googleform` has no Mongo store: it
 serves from Postgres only and refuses to start while `DB_READ_SOURCE`, `DB_WRITE_MODE` or their
 `__google` overrides name anything but `postgres` (unset is fine). `googleform.migrate` still
-reads the 4.0 Mongo data for the import.
+reads the 4.0 Mongo data for the import. The same holds for `auth` and the `auth` service
+(`DB_READ_SOURCE`, `DB_WRITE_MODE` and their `__auth` overrides; `auth.migrate` for the import).
 
 **A, the read switch.** Add the read override and redeploy the service(s). Writes stay on `dual`,
 so Mongo stays primary. Shadow reads stay on and now compare Postgres answers with Mongo's. Soak
