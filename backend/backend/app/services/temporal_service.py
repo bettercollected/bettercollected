@@ -175,6 +175,14 @@ class TemporalService:
                 ).defer_async(response_id=response.response_id)
             except AlreadyEnqueued as e:
                 loguru.logger.info(e)
+            except Exception as e:  # noqa: BLE001 - as the Temporal path: never fail the submission
+                # the response is already stored: `python -m backend.migrate
+                # jobs-sweep --backend postgres` schedules what is missing
+                loguru.logger.error(
+                    "Could not queue the deletion of response {} ({})",
+                    response.response_id,
+                    type(e).__name__,
+                )
             return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()

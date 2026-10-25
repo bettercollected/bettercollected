@@ -27,14 +27,7 @@ from backend.admin.config import parse_master_key
 from backend.admin.tasks.catalog.keyset import Targets
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl import keyset_core as core
-from backend.admin.tasks.impl.responses_common import (
-    STORE_NAMES,
-    ReadOnlyDatabase,
-    check_forms_import,
-    plan_task_stores,
-    write_mode_env,
-    written_stores,
-)
+from backend.admin.tasks.impl.responses_common import plan_task_stores
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
@@ -362,25 +355,22 @@ def _clean(env: Mapping[str, str]) -> dict:
 
 @dataclass(frozen=True)
 class DataConfig:
-    mongo_uri: Optional[str]
-    mongo_db: str
-    google_mongo_db: str
-    database_url: Optional[str]
-    google_database_url: Optional[str]
-    # the runner's DB_WRITE_MODE* only: the services' write mode, which decides
-    # the stores (responses_common.plan_task_stores)
-    env: Mapping[str, str] = field(default_factory=dict, repr=False)
+    """The Postgres URLs of the targets (one role per owning schema). Postgres
+    is the only store since 4.1; a runner that still has a Mongo URI never
+    connects to it (:attr:`mongo_configured` only lets a task refuse)."""
+
+    # connection strings carry passwords: never in a repr or a log
+    database_url: Optional[str] = field(repr=False)
+    google_database_url: Optional[str] = field(repr=False)
+    mongo_configured: bool = False
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "DataConfig":
         env = _clean(os.environ if env is None else env)
         return cls(
-            mongo_uri=env.get("MONGO_URI"),
-            mongo_db=env.get("MONGO_DB", "bettercollected_backend"),
-            google_mongo_db=env.get("GOOGLE_MONGO_DB", "bettercollected_googleform"),
             database_url=env.get("DATABASE_URL"),
             google_database_url=env.get("GOOGLE_DATABASE_URL"),
-            env=write_mode_env(env),
+            mongo_configured=bool(env.get("MONGO_URI")),
         )
 
     def url_for(self, target: core.Target) -> Optional[str]:
@@ -388,63 +378,19 @@ class DataConfig:
         return self.google_database_url if target is core.GOOGLE_CREDENTIALS else self.database_url
 
     def configured(self, target: core.Target) -> List[str]:
-        return [
-            name
-            for name, ok in (("mongo", self.mongo_uri), ("postgres", self.url_for(target)))
-            if ok
-        ]
-
-    def written(self, target: core.Target) -> List[str]:
-        """The stores the services write for the target's group, primary first;
-        refuses ``write_mode_unknown`` when the runner's copy is not a write
-        mode (unset: the services' default, see ``written_stores``)."""
-        return written_stores(target.group, self.env)
-
-    def primary_store(self, target: core.Target) -> str:
-        """The store the services write first (their write mode)."""
-        return self.written(target)[0]
+        return ["postgres"] if self.url_for(target) else []
 
     def stores_for(self, target: core.Target, choice: StoreChoice) -> List[str]:
-        """Store names, primary first (``plan_task_stores``): ``auto`` is every
-        store the services still write for the target, plus any other configured
-        store; the other choices name stores. Refuses ``store_not_configured`` or
-        ``write_mode_unknown``."""
-        return plan_task_stores(choice, self.configured(target), target.group, self.env)
+        """Store names (``plan_task_stores``): Postgres, which must be configured
+        for the target (``store_not_configured``); ``mongo`` and ``both`` refuse
+        ``store_retired``."""
+        return plan_task_stores(choice, self.configured(target))
 
-    def mongo_retired(self) -> bool:
-        """Whether the runner's write mode is ``postgres`` for the default and
-        for every group a keyset target belongs to (an unset override follows
-        the default; an unset default is the services' own, ``mongo`` while
-        the backend has groups on Mongo, so not retired). The Google
-        credentials' group is Postgres only since 4.1, so only the default and
-        the responses group's mode decide."""
-        try:
-            return all(
-                written_stores(group, self.env) == ["postgres"]
-                for group in ("*", *(t.group for t in core.TARGETS.values()))
-            )
-        except Refusal:
-            return False
-
-    def drop_old_stores(self, target: core.Target, mongo_retired: bool) -> List[str]:
-        """The stores ``drop_old`` scans, primary first. It does not trust the
-        runner's copy of the write mode to leave a store out: both Mongo and
-        Postgres must be configured (``store_not_configured``) unless the
-        operator signed ``mongo_retired``, which is refused
-        (``mongo_not_retired``) unless the runner's mode is ``postgres`` for
-        every group, and then scans Postgres alone. The write mode only orders
-        the stores (the primary is the one that must hold records); an unknown
-        one refuses."""
-        if mongo_retired:
-            if not self.mongo_retired():
-                raise Refusal("mongo_not_retired")
-            names = ["postgres"]
-        else:
-            names = self.written(target)
-            names += [n for n in STORE_NAMES if n not in names]
-        if any(name not in self.configured(target) for name in names):
-            raise Refusal("store_not_configured")
-        return names
+    def drop_old_stores(self, target: core.Target) -> List[str]:
+        """The stores ``drop_old`` scans: Postgres, which must be configured
+        (``store_not_configured``). Mongo is never scanned: the operator signs
+        ``mongo_retired`` instead (``store_retired`` without it)."""
+        return self.stores_for(target, StoreChoice.postgres)
 
 
 def selected_targets(chosen: Sequence[Targets]) -> List[core.Target]:
@@ -468,63 +414,21 @@ async def open_target_stores(
     stores: list = []
     try:
         for name in names:
-            if name == "mongo":
-                from pymongo import AsyncMongoClient
+            if name != "postgres":  # a plan never names another; never connect
+                raise Refusal("store_retired")
+            from sqlalchemy.ext.asyncio import create_async_engine
 
-                client = AsyncMongoClient(config.mongo_uri, serverSelectionTimeoutMS=5000)
-                closers.append(client.close)
-                database = (
-                    config.google_mongo_db
-                    if target is core.GOOGLE_CREDENTIALS
-                    else config.mongo_db
-                )
-                db = client[database]
-                if read_only:  # any write method raises (a read-only user is still advised)
-                    db = ReadOnlyDatabase(db)
-                stores.append(core.MongoStore(db, target))
-            else:
-                from sqlalchemy.ext.asyncio import create_async_engine
-
-                settings = {"statement_timeout": "60000"}
-                if read_only:
-                    settings["default_transaction_read_only"] = "on"
-                engine = create_async_engine(
-                    config.url_for(target),
-                    pool_size=2,
-                    max_overflow=0,
-                    connect_args={"server_settings": settings},
-                )
-                closers.append(engine.dispose)
-                stores.append(core.PostgresStore(engine, target))
-        mongo_stores = [s for s in stores if s.name == "mongo"]
-        url = config.url_for(target)
-        if mongo_stores and target.needs_links and url:
-            # the forms' workspace links are in Postgres since 4.1
-            postgres = next((s for s in stores if s.name == "postgres"), None)
-            if postgres is None:
-                from sqlalchemy.ext.asyncio import create_async_engine
-
-                engine = create_async_engine(
-                    url,
-                    pool_size=1,
-                    max_overflow=0,
-                    connect_args={
-                        "server_settings": {
-                            "statement_timeout": "60000",
-                            "default_transaction_read_only": "on",
-                        }
-                    },
-                )
-                closers.append(engine.dispose)
-                postgres = core.PostgresStore(engine, target)
-            for store in mongo_stores:
-                store.links_source = postgres
-            await check_forms_import(
-                mongo_stores[0].db,
-                postgres.links,  # read only if the backfill does not settle it
-                writes=not read_only,
-                engine=postgres.engine,
+            settings = {"statement_timeout": "60000"}
+            if read_only:
+                settings["default_transaction_read_only"] = "on"
+            engine = create_async_engine(
+                config.url_for(target),
+                pool_size=2,
+                max_overflow=0,
+                connect_args={"server_settings": settings},
             )
+            closers.append(engine.dispose)
+            stores.append(core.PostgresStore(engine, target))
         yield stores
     finally:
         for close in reversed(closers):
@@ -534,12 +438,32 @@ async def open_target_stores(
                 pass
 
 
+async def check_import_finished(store, mongo_configured: bool) -> None:
+    """Refuses ``import_incomplete`` unless the 4.0 import into this store is
+    over, so that no later backfill or reconcile can bring in a value on a key
+    that was dropped (or a row that was purged):
+
+    * the runner has a Mongo connection configured (``MONGO_URI``): the import
+      tooling may still run against it;
+    * ``<schema>.migration_progress`` records a collection of the target not
+      ``done``, or finished with documents skipped;
+    * the role may not read ``migration_progress`` (``import_state_unreadable``:
+      re-run the roles script, which grants it): it fails closed.
+    A collection with no row at all (a stack that never had Mongo, or whose
+    import never started) cannot be told apart from "never imported": the
+    operator confirms the 4.0 import ran, or that the stack never had Mongo,
+    before the purge or the key drop. A clean verify marker is not used: it states that a verify was clean once,
+    not that nothing will be copied later, and the runner's role cannot read it."""
+    if mongo_configured:
+        raise Refusal("import_incomplete")
+    for _collection, progress_state, skipped in await store.import_progress():
+        if progress_state != "done" or skipped:
+            raise Refusal("import_incomplete")
+
+
 async def ping(store) -> None:
-    if store.name == "mongo":
-        await store.db.command("ping")
-    else:
-        async with store.engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
+    async with store.engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
 
 
 def parsed(value: str):
