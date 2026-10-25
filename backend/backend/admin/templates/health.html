@@ -76,6 +76,22 @@
 <p>{{ _("Names only: no value is ever shown. A setting set in a service's environment is known by name only, so the portal cannot see whether SSO_ENABLED is true there; the missing settings matter when it is. SSO_POLIS_INTERNAL_URL is not required: it falls back to SSO_POLIS_URL. Without SSO_POLIS_CLIENT_SECRET, sign-ins rely on PKCE alone.") }}</p>
 {% endif %}
 
+<h2>{{ _("Jobs worker") }}</h2>
+<p>
+  {% if health.jobs_workers_alive %}<span class="ok">{{ _("Reporting") }}</span> ({{ health.jobs_workers_alive }} {{ _("instance(s)") }}).
+  {% elif health.jobs_workers_stopped %}<span class="bad">{{ _("Stopped") }}</span>: {{ _("it reported before, but not in the last two minutes.") }}
+  {% else %}<span class="warn">{{ _("No report") }}</span>: {{ _("no jobs worker has reported. A worker from before this release does not label itself, and shows below as a backend instance.") }}{% endif %}
+  {{ _("What is waiting in the queue is not shown on this page.") }}
+</p>
+
+<h2>{{ _("MongoDB") }}</h2>
+<p>
+  {% if health.mongo_writers %}<span class="warn">{{ health.mongo_writers }} {{ _("running instance(s) still write MongoDB") }}</span> ({{ _("they report their write mode below") }}).
+  {% elif health.heartbeats %}<span class="ok">{{ _("No running service reports writing MongoDB.") }}</span>
+  {% else %}{{ _("No service has reported yet.") }}{% endif %}
+  {{ _("The admin service cannot reach MongoDB: the import of a 4.0 stack runs from the backend's own command line.") }}
+</p>
+
 <h2>{{ _("Services") }}</h2>
 {% if health.heartbeats %}
 <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Services') }}">
@@ -85,17 +101,19 @@
     <th scope="col">{{ _("Service") }}</th><th scope="col">{{ _("Instance") }}</th><th scope="col">{{ _("State") }}</th>
     <th scope="col">{{ _("Last report") }}</th><th scope="col">{{ _("Revision applied") }}</th><th scope="col">{{ _("Behind") }}</th>
     <th scope="col">{{ _("Restart pending") }}</th><th scope="col">{{ _("Rejected keys") }}</th>
+    <th scope="col">{{ _("Writes to") }}</th>
   </tr></thead>
   <tbody>
   {% for h in health.heartbeats %}
   <tr>
-    <th scope="row">{{ h.service }}</th><td>{{ h.instance }}</td>
+    <th scope="row">{{ h.service }}{% if h.component %} <span class="tag">{{ h.component }}</span>{% endif %}</th><td>{{ h.instance }}</td>
     <td>{% if h.alive %}<span class="ok">{{ _("reporting") }}</span>{% else %}<span class="bad">{{ _("stopped") }}</span>{% endif %}</td>
     <td>{{ h.age_seconds }} {{ _("s ago") }}</td>
     <td>{{ h.revision_applied }}</td>
     <td>{{ h.behind if h.behind is not none else "-" }}</td>
     <td>{% if h.restart_pending %}<span class="warn">{{ _("yes") }}</span>{% else %}{{ _("no") }}{% endif %}</td>
     <td>{{ h.rejected }}</td>
+    <td>{% if h.write_stores %}{% if h.writes_mongo %}<span class="warn">{{ h.write_stores }}</span>{% else %}{{ h.write_stores }}{% endif %}{% else %}-{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

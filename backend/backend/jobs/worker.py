@@ -11,9 +11,16 @@ from __future__ import annotations
 import asyncio
 import os
 
+from common.settings.loader.source import set_instance_role
+
+# the settings heartbeat of this process is labelled "backend.jobs:<host>", so the
+# admin portal's Health page shows the worker apart from the API (set before the
+# settings load below, which starts the heartbeat)
+set_instance_role("jobs")
+
 from loguru import logger
 
-from backend.config import settings  # first: it loads the settings snapshot
+from backend.config import settings  # first of ours: it loads the settings snapshot
 from backend.app.container import container
 from backend.app.handlers.database import close_db, open_mongo
 from backend.app.services.internal_auth import log_if_internal_key_missing
