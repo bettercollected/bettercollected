@@ -194,17 +194,22 @@ class ResponderGroupsRepository:
         )
 
     async def get_groups_by_form_ids(
-        self, form_ids: List[str]
+        self, form_ids: List[str], workspace_id: PydanticObjectId
     ) -> Dict[str, List[dict]]:
-        """form_id -> the raw responder-group documents attached to it (the
-        shape a $lookup into responder_group yields), for the forms twins."""
+        """form_id -> the raw responder-group documents of ``workspace_id``
+        attached to it (the shape a $lookup into responder_group yields), for
+        the forms twins. A form held by several workspaces carries each one's
+        own groups: another workspace's are never returned."""
         links = await ResponderGroupFormDocument.find(
             {"form_id": {"$in": form_ids}}
         ).to_list()
         groups = {
             group.id: to_bson_dict(group)
             for group in await ResponderGroupDocument.find(
-                {"_id": {"$in": list({link.group_id for link in links})}}
+                {
+                    "_id": {"$in": list({link.group_id for link in links})},
+                    "workspace_id": workspace_id,
+                }
             ).to_list()
         }
         by_form: Dict[str, List[dict]] = {form_id: [] for form_id in form_ids}
@@ -213,15 +218,43 @@ class ResponderGroupsRepository:
                 by_form.setdefault(link.form_id, []).append(groups[link.group_id])
         return by_form
 
+    async def get_linked_group_owners(
+        self, form_id: str
+    ) -> Dict[PydanticObjectId, Optional[PydanticObjectId]]:
+        """group id -> the workspace that owns it (None when it has none), for
+        every group linked to the form, whatever its workspace. Only the save
+        logic that must keep other workspaces' links reads this; nothing
+        returned to a caller may be built from it."""
+        links = await ResponderGroupFormDocument.find({"form_id": form_id}).to_list()
+        owners = {
+            group.id: group.workspace_id
+            for group in await ResponderGroupDocument.find(
+                {"_id": {"$in": [link.group_id for link in links]}}
+            ).to_list()
+        }
+        return {
+            link.group_id: owners[link.group_id]
+            for link in links
+            if link.group_id in owners
+        }
+
     async def get_form_ids_accessible_to(
-        self, form_ids: List[str], identifier: str
+        self, form_ids: List[str], identifier: str, workspace_id: PydanticObjectId
     ) -> Set[str]:
-        """The subset of ``form_ids`` whose responder groups admit ``identifier``:
-        a member with that identifier, or a group regex it matches."""
+        """The subset of ``form_ids`` whose responder groups of ``workspace_id``
+        admit ``identifier``: a member with that identifier, or a group regex it
+        matches. Another workspace's groups linked to the same form neither
+        admit nor refuse anyone here."""
         links = await ResponderGroupFormDocument.find(
             {"form_id": {"$in": form_ids}}
         ).to_list()
-        group_ids = list({link.group_id for link in links})
+        candidates = list({link.group_id for link in links})
+        if not candidates:
+            return set()
+        own_groups = await ResponderGroupDocument.find(
+            {"_id": {"$in": candidates}, "workspace_id": workspace_id}
+        ).to_list()
+        group_ids = [group.id for group in own_groups]
         if not group_ids:
             return set()
         member_of = {
@@ -230,10 +263,9 @@ class ResponderGroupsRepository:
                 {"group_id": {"$in": group_ids}, "identifier": identifier}
             ).to_list()
         }
-        regex_groups = await ResponderGroupDocument.find(
-            {"_id": {"$in": group_ids}, "regex": {"$nin": [None, ""]}}
-        ).to_list()
-        for group in regex_groups:
+        for group in own_groups:
+            if not group.regex:
+                continue
             try:
                 if re.search(group.regex, identifier):
                     member_of.add(group.id)

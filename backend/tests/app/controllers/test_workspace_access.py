@@ -11,6 +11,8 @@ from common.models.standard_form import StandardForm
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.models.workspace import WorkspaceFormSettings
+from common.models.user import User
 from tests.app.response_helpers import form_scope
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import ActionDto
@@ -661,10 +663,11 @@ class TestResponderGroupsAcrossWorkspaces:
 
 
 async def _linked_group_ids(form_id) -> set:
-    groups = await container.responder_groups_service().responder_groups_repo.get_groups_by_form_ids(
-        [form_id]
+    """Every group linked to the form, whatever its workspace."""
+    owners = await container.responder_groups_service().responder_groups_repo.get_linked_group_owners(
+        form_id
     )
-    return {PydanticObjectId(group["_id"]) for group in groups[form_id]}
+    return {PydanticObjectId(group_id) for group_id in owners}
 
 
 async def _own_group(workspace, user, name="Own"):
@@ -959,3 +962,180 @@ class TestPrivateTemplates:
             workspace.id, private_template.id, testUser
         )
         assert form.title == "Private"
+
+
+async def _group(workspace, user, name, emails=(), regex=None):
+    return await container.responder_groups_service().create_group(
+        workspace.id, name, list(emails), user, None, None, regex
+    )
+
+
+async def _set_groups(workspace, form_id, user, groups):
+    return await container.workspace_form_service().add_groups_to_form(
+        workspace.id, form_id, [group.id for group in groups], user
+    )
+
+
+async def _make_private(workspace, form_id, user):
+    await container.workspace_form_repo().save_workspace_form(
+        workspace.id, form_id, str(user.id), WorkspaceFormSettings(private=True)
+    )
+
+
+def _respondent(email) -> User:
+    return User(id=str(PydanticObjectId()), sub=email)
+
+
+async def _admitted(workspace, form_id, respondent) -> bool:
+    """Whether the workspace's copy of the form is open to the respondent."""
+    repo = container.workspace_form_repo()
+    ids = await repo.get_form_ids_in_workspace(
+        workspace.id, is_not_admin=True, user=respondent, form_id=form_id
+    )
+    listed = await repo.get_workspace_forms_in_workspace(
+        workspace.id, is_not_admin=True, user=respondent, form_id=form_id
+    )
+    assert (form_id in ids) == bool(listed)
+    return form_id in ids
+
+
+async def _group_names(workspace, form_id) -> list:
+    forms = await container.form_repo().get_forms_in_workspace(
+        workspace.id, [form_id], True
+    )
+    return sorted(group["name"] for group in forms[0]["groups"])
+
+
+class TestSharedFormGroupsPerWorkspace:
+    """One form held by two workspaces: workspace (testUser) and workspace_1
+    (testUser1). Each workspace sees, edits and is gated by its own groups
+    only."""
+
+    @pytest.fixture()
+    async def shared(self, workspace, workspace_1, workspace_form):
+        """The form is private in both workspaces; A's group admits
+        a@a.test (member) and *@a.test; B's admits b@b.test (member) and
+        *@b.test."""
+        form_id = workspace_form.form_id
+        await _share_form(workspace_1, form_id, testUser1)
+        await _make_private(workspace, form_id, testUser)
+        await _make_private(workspace_1, form_id, testUser1)
+        group_a = await _group(workspace, testUser, "Group A", ["a@x.test"], r".*@a\.test")
+        group_b = await _group(
+            workspace_1, testUser1, "Group B", ["b@x.test"], r".*@b\.test"
+        )
+        await _set_groups(workspace, form_id, testUser, [group_a])
+        await _set_groups(workspace_1, form_id, testUser1, [group_b])
+        return form_id, group_a, group_b
+
+    async def test_a_workspaces_listing_carries_its_own_groups_only(
+        self, workspace, workspace_1, shared
+    ):
+        form_id, _, _ = shared
+
+        assert await _group_names(workspace, form_id) == ["Group A"]
+        assert await _group_names(workspace_1, form_id) == ["Group B"]
+
+    async def test_the_published_listing_carries_its_own_groups_only(
+        self, workspace, workspace_1, shared
+    ):
+        form_id, _, _ = shared
+        await container.workspace_form_service().publish_form(
+            workspace.id, form_id, testUser
+        )
+
+        for ws, names in ((workspace, ["Group A"]), (workspace_1, ["Group B"])):
+            published = await container.form_repo().get_published_forms_in_workspace(
+                ws.id, [form_id], get_actions=True
+            )
+            assert sorted(group["name"] for group in published[0]["groups"]) == names
+
+    async def test_the_form_endpoint_returns_its_own_groups_only(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_1,
+        shared,
+        test_user_cookies,
+        test_user_cookies_1,
+    ):
+        form_id, _, _ = shared
+
+        for ws, cookies, names in (
+            (workspace, test_user_cookies, ["Group A"]),
+            (workspace_1, test_user_cookies_1, ["Group B"]),
+        ):
+            with patch.object(
+                FormService, "fetch_user_details", AsyncMock(return_value={})
+            ):
+                response = await client.get(
+                    f"{_url(ws)}/forms/{form_id}", cookies=cookies
+                )
+            assert response.status_code == 200
+            assert sorted(g["name"] for g in response.json()["groups"]) == names
+            other = "Group B" if names == ["Group A"] else "Group A"
+            assert other not in response.text
+
+    async def test_the_other_workspaces_groups_never_admit_a_respondent(
+        self, workspace, workspace_1, shared
+    ):
+        form_id, _, _ = shared
+
+        for email in ("b@x.test", "someone@b.test"):  # B's member, B's regex
+            respondent = _respondent(email)
+            assert await _admitted(workspace_1, form_id, respondent)
+            assert not await _admitted(workspace, form_id, respondent)
+        for email in ("a@x.test", "someone@a.test"):
+            respondent = _respondent(email)
+            assert await _admitted(workspace, form_id, respondent)
+            assert not await _admitted(workspace_1, form_id, respondent)
+
+    async def test_a_workspace_without_groups_stays_closed_whatever_the_other_has(
+        self, workspace, workspace_1, shared
+    ):
+        """B unlinks its groups: A's restriction is unchanged, and B's copy is
+        closed to A's respondents (a form with no group admits nobody)."""
+        form_id, group_a, group_b = shared
+        await _set_groups(workspace_1, form_id, testUser1, [])
+
+        assert await _group_names(workspace_1, form_id) == []
+        assert await _group_names(workspace, form_id) == ["Group A"]
+        stranger = _respondent("stranger@x.test")
+        assert not await _admitted(workspace, form_id, stranger)
+        assert not await _admitted(workspace_1, form_id, stranger)
+        assert await _admitted(workspace, form_id, _respondent("someone@a.test"))
+        assert not await _admitted(workspace_1, form_id, _respondent("someone@a.test"))
+
+    async def test_a_public_copy_stays_public_whatever_the_other_workspaces_groups(
+        self, workspace, workspace_1, shared
+    ):
+        form_id, _, _ = shared
+        await container.workspace_form_repo().save_workspace_form(
+            workspace.id, form_id, str(testUser.id), WorkspaceFormSettings(private=False)
+        )
+
+        assert await _admitted(workspace, form_id, _respondent("stranger@x.test"))
+        assert not await _admitted(workspace_1, form_id, _respondent("stranger@x.test"))
+
+    async def test_saving_one_workspaces_groups_keeps_the_other_workspaces_links(
+        self, workspace, workspace_1, shared
+    ):
+        form_id, group_a, group_b = shared
+        service = container.workspace_form_service()
+        own = await _group(workspace, testUser, "Second A")
+
+        saved = await service.add_groups_to_form(
+            workspace.id, form_id, [group_a.id, own.id], testUser
+        )
+        assert {PydanticObjectId(link.group_id) for link in saved} == {
+            group_a.id,
+            own.id,
+        }, "the reply lists the workspace's own links only"
+        assert await _linked_group_ids(form_id) == {group_a.id, own.id, group_b.id}
+
+        # a builder that loaded this workspace's groups only sends no foreign id
+        cleared = await service.add_groups_to_form(workspace.id, form_id, [], testUser)
+        assert cleared == []
+        assert await _linked_group_ids(form_id) == {group_b.id}
+        assert await _group_names(workspace_1, form_id) == ["Group B"]
+        assert await _admitted(workspace_1, form_id, _respondent("someone@b.test"))

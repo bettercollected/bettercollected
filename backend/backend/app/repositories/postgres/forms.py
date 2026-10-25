@@ -153,9 +153,13 @@ class PostgresFormRepository(PostgresRepositoryBase):
         self._responses = form_responses  # routed FormResponseRepository
 
     # -- shared enrichment ----------------------------------------------------
-    async def _attach_groups(self, forms: List[dict]) -> None:
+    async def _attach_groups(
+        self, forms: List[dict], workspace_id: PydanticObjectId
+    ) -> None:
+        """The workspace's own groups only: a form held by several workspaces
+        never carries another workspace's groups."""
         by_form = await self._groups.get_groups_by_form_ids(
-            [form["form_id"] for form in forms]
+            [form["form_id"] for form in forms], workspace_id
         )
         for form in forms:
             form["groups"] = by_form.get(form["form_id"], [])
@@ -223,7 +227,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                 form["is_published"] = bool(published)
             forms.append(form)
         if forms:
-            await self._attach_groups(forms)
+            await self._attach_groups(forms, workspace_id)
             if is_admin:
                 await self._attach_counts(forms, workspace_id)
         return forms
@@ -311,7 +315,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         if forms:
             await self._attach_counts(forms, workspace_id)
             if get_actions:
-                await self._attach_groups(forms)
+                await self._attach_groups(forms, workspace_id)
         return forms
 
     async def get_published_forms_in_workspace(
@@ -851,7 +855,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         if is_not_admin and user:
             # private forms stay visible to responders their groups admit
             admitted = await self._groups.get_form_ids_accessible_to(
-                [wf["form_id"] for wf in workspace_forms], user.sub
+                [wf["form_id"] for wf in workspace_forms], user.sub, workspace_id
             )
             workspace_forms = [
                 wf

@@ -21,7 +21,10 @@ from backend.app.repositories.metric_periods import (
     object_id_at,
 )
 from backend.app.schemas.form_versions import FormVersionsDocument
-from backend.app.schemas.responder_group import ResponderGroupDocument
+from backend.app.schemas.responder_group import (
+    ResponderGroupDocument,
+    ResponderGroupMemberDocument,
+)
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.db.routing import write_op
 
@@ -193,14 +196,6 @@ class WorkspaceFormRepository:
                             }
                         },
                         {
-                            "$lookup": {
-                                "from": "responder_group_member",
-                                "localField": "groups_form.group_id",
-                                "foreignField": "group_id",
-                                "as": "emails",
-                            }
-                        },
-                        {
                             "$match": {
                                 "$and": [
                                     {
@@ -212,7 +207,6 @@ class WorkspaceFormRepository:
                                     {
                                         "$or": [
                                             {"settings.private": False},
-                                            {"emails.identifier": user.sub},
                                             {
                                                 "groups_form.group_id": {
                                                     "$in": admitting
@@ -228,7 +222,7 @@ class WorkspaceFormRepository:
             if id_only:
                 aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             else:
-                aggregation_pipeline.append({"$unset": ["groups_form", "emails"]})
+                aggregation_pipeline.append({"$unset": ["groups_form"]})
             return (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
@@ -244,21 +238,33 @@ class WorkspaceFormRepository:
     async def _groups_admitting(
         workspace_id: PydanticObjectId, identifier: str
     ) -> List[PydanticObjectId]:
-        """Ids of the workspace's responder groups whose regex admits the
-        identifier. Matched here, not with ``$regexMatch`` in the pipeline: a
-        pattern that does not compile skips its group instead of failing the
-        whole listing, and the dialect is the one the Postgres twin uses."""
+        """Ids of the workspace's own responder groups that admit the
+        identifier: it is a member, or its regex matches. Groups of another
+        workspace linked to the same form admit nobody here. The regex is
+        matched here, not with ``$regexMatch`` in the pipeline: a pattern that
+        does not compile skips its group instead of failing the whole listing,
+        and the dialect is the one the Postgres twin uses."""
         groups = await ResponderGroupDocument.find(
-            {"workspace_id": workspace_id, "regex": {"$nin": [None, ""]}}
+            {"workspace_id": workspace_id}
         ).to_list()
-        admitting = []
+        admitting = {
+            member.group_id
+            for member in await ResponderGroupMemberDocument.find(
+                {
+                    "group_id": {"$in": [group.id for group in groups]},
+                    "identifier": identifier,
+                }
+            ).to_list()
+        }
         for group in groups:
+            if not group.regex:
+                continue
             try:
                 if re.search(group.regex, identifier):
-                    admitting.append(group.id)
+                    admitting.add(group.id)
             except re.error:
                 continue
-        return admitting
+        return list(admitting)
 
     async def get_form_ids_in_workspace(
         self,
