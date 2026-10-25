@@ -29,6 +29,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
     FormSettingsCamelModel,
@@ -1433,6 +1434,21 @@ class WorkspaceFormService:
         if action is None:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
+        if (
+            action.name == FormIntegrationType.GOOGLE_SHEET.value
+            and add_action_to_form_params.secrets
+        ):
+            # Only the OAuth callback writes the Sheets action's credential.
+            # A caller-supplied one would be encrypted here and then trusted by
+            # the Google Forms service (its token address included), and any
+            # other secret would replace the stored credential.
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content={
+                    "code": "action_secrets_not_allowed",
+                    "message": "Connect Google Sheets to set this action's credentials.",
+                },
             )
         await self.action_service.create_action_in_workspace_from_action(
             workspace_id=workspace_id, action=action, user=user

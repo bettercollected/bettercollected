@@ -87,8 +87,9 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
             for secrets in form.secrets[str(action_params.action_id)]
             if secrets.name == "Credentials"
         ]
+        # In the body, never the query string: a URL ends up in access logs.
         response = await self.http_client.post(
             create_google_sheet_url,
-            params={"title": title[0], "credential": credential[0]},
+            json={"title": title[0], "credential": credential[0]},
         )
         return ParameterValue(name="Google Sheet Id", value=response)
