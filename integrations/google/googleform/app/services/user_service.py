@@ -4,8 +4,8 @@ import jwt
 from jwt import InvalidSignatureError, ExpiredSignatureError
 from starlette.requests import Request
 
+from googleform.app.containers import Container
 from googleform.app.exceptions import HTTPException
-from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.config import settings
 
@@ -22,7 +22,9 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, content="Invalid JWT Signature"
         )
-    credential = await OauthCredentialRepository().get(jwt_response.get("sub"))
+    # The container's repository routes the read by the google group's flags
+    # (DB_READ_SOURCE / DB_WRITE_MODE and their __google overrides).
+    credential = await Container.oauth_credential_repo().get(jwt_response.get("sub"))
     if not credential:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
