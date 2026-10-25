@@ -398,6 +398,16 @@ async def test_workspace_form_visibility(sessions):
     ]
     assert imported[0] == imported[1]
     assert "pub" not in imported[0] and "imported" in imported[0]  # provider != "self"
+    # case-duplicate accounts: every provider, distinct forms, owned or imported
+    for workspaces, user_id, expected in (
+        ([ws], "nobody", 9),
+        ([], "u1", 9),
+        ([], owner.id, 1),
+        ([other], owner.id, 2),
+        ([], "nobody", 0),
+    ):
+        for repo in (mongo, postgres):
+            assert await repo.count_forms_of_account(workspaces, user_id) == expected
     await both_raise(
         HTTPException,
         lambda: mongo.check_is_form_imported_in_other_workspace(ws, "elsewhere"),

@@ -74,6 +74,10 @@ class Application(StoreBackedSettings):
     # types; services/answer_validation.py). False = "log only": problems are
     # logged (form id, count, rule codes) and the response is stored anyway.
     RESPONSE_VALIDATION_ENFORCE: bool = True
+    # The admin task runner presents this key to the internal admin-task
+    # routes (controllers/admin_tasks_router.py; the runner's
+    # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.
+    ADMIN_TASKS_API_KEY: str = ""
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()

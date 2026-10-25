@@ -90,6 +90,7 @@ from backend.app.services.actions_service import ActionService
 from backend.app.services.sheets_grant_revocation import SheetsGrantService
 from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
+from backend.app.services.case_duplicate_accounts import CaseDuplicateAccounts
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
@@ -717,6 +718,15 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         allowed_origins_repo=allowed_origins_repo,
         sso_policy=sso_policy_service,
+    )
+
+    # admin task auth.resolve_case_duplicate_accounts (admin_tasks_router)
+    case_duplicate_accounts: CaseDuplicateAccounts = providers.Singleton(
+        CaseDuplicateAccounts,
+        http_client=http_client,
+        workspace_repo=workspace_repo,
+        workspace_form_repo=workspace_form_repo,
+        auth_service=auth_service,
     )
 
     polis_admin_client: PolisAdminClient = providers.Singleton(

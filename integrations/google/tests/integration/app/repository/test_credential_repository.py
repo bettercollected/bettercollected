@@ -1,5 +1,6 @@
 """The google credential repository (Postgres only): stored encrypted,
-handed out decrypted, updated in place and erased by email or user id.
+handed out decrypted, updated in place and erased by user id (by email
+only the legacy rows without one).
 
 Postgres is the test database named by DATABASE_URL; no Mongo is used.
 """
@@ -63,9 +64,9 @@ async def test_an_update_stores_ciphertext_and_returns_plaintext(repo):
 
 
 @pytest.mark.parametrize(
-    "email,user_id", [("a@example.com", "other"), ("other@example.com", "u1")]
+    "email,user_id", [("a@example.com", "u1"), ("other@example.com", "u1")]
 )
-async def test_an_erasure_matches_the_email_or_the_user_id(repo, email, user_id):
+async def test_an_erasure_matches_the_user_id(repo, email, user_id):
     await repo.add("a@example.com", CREDS, user_id="u1")
     await repo.add("b@example.com", CREDS, user_id="u2")
 
@@ -73,6 +74,40 @@ async def test_an_erasure_matches_the_email_or_the_user_id(repo, email, user_id)
 
     assert await repo.get("a@example.com") is None
     assert (await repo.get("b@example.com")).user_id == "u2"
+
+
+async def test_an_erasure_by_email_alone_leaves_another_accounts_row(repo):
+    """The email matches only legacy rows without a user id: a row that
+    belongs to another account (same address) is not the caller's to erase."""
+    await repo.add("a@example.com", CREDS, user_id="u1")
+
+    assert not await repo.delete_oauth_credential_for_user("a@example.com", "other")
+
+    assert (await repo.get("a@example.com")).user_id == "u1"
+
+
+async def test_deleting_an_account_keeps_its_case_variants_credential(repo):
+    """Two accounts whose emails differ only in case, both connected to the
+    same Google account (the credential holds Google's spelling of the
+    address): deleting one account's credentials, by its user id, leaves the
+    other's. A legacy row without a user id still goes by its exact email."""
+    await repo.add("pat@example.com", CREDS, user_id="keeper")
+    await repo.add("pat@example.com", CREDS, user_id="dropped")
+    for legacy in (
+        {"email": "pat@example.com"},
+        {"email": "pat@example.com", "user_id": ""},
+    ):
+        await repo.save(Oauth2CredentialDocument(**legacy))
+    await repo.save(Oauth2CredentialDocument(email="Pat@example.com"))
+
+    await repo.delete_oauth_credential_for_user("pat@example.com", "dropped")
+    left = sorted((d.user_id or "", d.email) for d in await repo.list_all())
+    # the keeper's own row and a legacy row of another spelling stay
+    assert left == [("", "Pat@example.com"), ("keeper", "pat@example.com")]
+
+    # an empty user id never matches every legacy row
+    await repo.delete_oauth_credential_for_user("nobody@example.com", "")
+    assert len(await repo.list_all()) == 2
 
 
 async def test_save_stores_a_listed_document_as_it_is(repo):
