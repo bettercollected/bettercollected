@@ -400,6 +400,10 @@ class FormResponseService:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
+            # the same fixed code the submission lists carry; who declined it
+            # (closed_by) is never sent
+            reason = deletion_request.decline_reason
+            response.decline_reason = getattr(reason, "value", reason)
         form = FormDtoCamelModel(**form.model_dump())
         form.settings = workspace_form.settings
         staff_internal_fields = None
