@@ -76,14 +76,21 @@ fi
 # without it. The tests that drive Mongo themselves (marker "mongo": store
 # parity, the migration CLI, store-wide tasks) run in one more Postgres job,
 # with Mongo.
-entry() { # mode read_source write_mode group splits ignore mongo(present|absent) marker
-    echo "{\"mode\":\"$1\",\"read_source\":\"$2\",\"write_mode\":\"$3\",\"group\":$4,\"splits\":$5,\"ignore\":\"$6\",\"mongo\":\"$7\",\"marker\":\"$8\"}"
+#
+# Every job runs against POSTGRES_IMAGE (ci.yml: the oldest supported major
+# version) except one, against POSTGRES_IMAGE_NEWEST: the tests of the migration
+# chains and of the database role scripts (postgres/), where a behaviour change
+# between major versions would show.
+entry() { # mode read_source write_mode group splits ignore mongo(present|absent) marker [postgres(newest)] [paths]
+    echo "{\"mode\":\"$1\",\"read_source\":\"$2\",\"write_mode\":\"$3\",\"group\":$4,\"splits\":$5,\"ignore\":\"$6\",\"mongo\":\"$7\",\"marker\":\"$8\",\"postgres\":\"${9:-}\",\"paths\":\"${10:-}\"}"
 }
 entries=()
 for g in $(seq 1 "$BACKEND_SHARDS"); do
     entries+=("$(entry "postgres, no Mongo" postgres postgres "$g" "$BACKEND_SHARDS" "" absent "not mongo")")
 done
 entries+=("$(entry "postgres, Mongo-driven tests" postgres postgres 1 1 "" present mongo)")
+entries+=("$(entry "postgres, newest server: migrations and roles" postgres postgres 1 1 "" absent "not mongo" \
+    newest "tests/admin tests/app/db tests/app/migrate")")
 modes='["postgres"]'
 if [ "$full" = true ]; then
     for mode in mongo dual; do

@@ -43,6 +43,13 @@ concurrency:
 # pytest worker compiling the modules it imports.
 env:
     UV_COMPILE_BYTECODE: "1"
+    # The Postgres server every test job runs against (.github/scripts/test-dbs.sh):
+    # the oldest major version supported, since self-hosted deployments may run 15
+    # and a feature new in 16 would otherwise pass here and fail there.
+    POSTGRES_IMAGE: postgres:15
+    # The newest, as the compose files ship it: one backend job (the migration
+    # chains and the database role scripts) runs against it as well (ci-plan.sh).
+    POSTGRES_IMAGE_NEWEST: postgres:16-alpine
 
 jobs:
     plan:
@@ -109,6 +116,7 @@ jobs:
               working-directory: .
               env:
                   MONGO: ${{ matrix.mongo }}
+                  POSTGRES_IMAGE: ${{ matrix.postgres == 'newest' && env.POSTGRES_IMAGE_NEWEST || env.POSTGRES_IMAGE }}
               run: |
                   if [ "$MONGO" = absent ]; then
                       .github/scripts/test-dbs.sh start postgres
@@ -152,8 +160,10 @@ jobs:
                   IGNORE: ${{ matrix.ignore }}
                   MONGO: ${{ matrix.mongo }}
                   MARKER: ${{ matrix.marker }}
+                  PATHS: ${{ matrix.paths }}
               run: |
                   extra=()
+                  if [ -n "$PATHS" ]; then read -ra paths <<<"$PATHS" && extra+=("${paths[@]}"); fi
                   if [ -n "$IGNORE" ]; then extra+=("$IGNORE"); fi
                   if [ -n "$MARKER" ]; then extra+=(-m "$MARKER"); fi
                   if [ "$MONGO" = absent ]; then

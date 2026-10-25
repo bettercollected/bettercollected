@@ -7,7 +7,8 @@
 # Started from a step instead of job `services:` so that pulling and booting
 # them overlaps with installing the dependencies (a job waits for its services,
 # health checks included, before its first step). Data lives on tmpfs and
-# durability is off: a test database lives for one job.
+# durability is off: a test database lives for one job. POSTGRES_IMAGE picks the
+# Postgres server (ci.yml sets it; default postgres:16-alpine).
 set -euo pipefail
 
 LOGS=${RUNNER_TEMP:-/tmp}
@@ -35,7 +36,7 @@ start)
         postgres)
             start postgres -p 127.0.0.1:5432:5432 \
                 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bettercollected_test \
-                --tmpfs /var/lib/postgresql/data:rw postgres:16-alpine \
+                --tmpfs /var/lib/postgresql/data:rw "${POSTGRES_IMAGE:-postgres:16-alpine}" \
                 -c fsync=off -c synchronous_commit=off -c full_page_writes=off
             ;;
         mongo)
