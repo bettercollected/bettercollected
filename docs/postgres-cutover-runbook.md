@@ -1107,23 +1107,28 @@ lost.
                  'API_INTERNAL_PORT', 'API_INTERNAL_ROUTES', 'DB_DISCARD_UNIMPORTED_MONGO_DATA');
    ```
 
-   - **SSO.** On 4.0.14 or later nothing needs clearing: it reads a `release_pending` connection, and
-     the 4.0.14 changelog says how it treats one (the connection keeps the entity ID it holds, and
-     4.1's release logic carries on after a roll-forward). The count above is a confirmation, not a
-     gate. On 4.0.13 or earlier, `sso_release_pending` above 0 blocks the rollback, since it cannot
-     read those rows: run `python -m backend.sso release-pending` in a backend container (it deletes
-     those connections in Polis, then their rows); recheck. Rows that stay (Polis unreachable, or SSO
-     not configured: the command then reports `skipped`) need a manual decision by the operator
-     before the rollback, because deleting them locally gives up the entity ID they hold.
+   - **SSO.** On 4.0.14 or later nothing needs clearing. 4.0.14 reads a `release_pending` connection
+     and treats it like a disabled one: no sign-in through it, never the enforced connection, and the
+     admin enable, disable, test and delete calls on it answer 404. The release logic itself is not
+     in 4.0.x, so those rows stay as they are until 4.1 runs again, and the connection keeps the
+     entity ID it holds. The count above is a confirmation, not a gate. On 4.0.13 or earlier,
+     `sso_release_pending` above 0 blocks the rollback, since it cannot read those rows: run
+     `python -m backend.sso release-pending` in a backend container (it deletes those connections in
+     Polis, then their rows); recheck. Rows that stay (Polis unreachable, or SSO not configured: the
+     command then reports `skipped`) need a manual decision by the operator before the rollback,
+     because deleting them locally gives up the entity ID they hold.
    - **Jobs.** `purge_provider_credentials` and `revoke_google_grant` are real obligations (erasing a
-     deleted account's stored provider credentials, revoking an old Google grant). `sso_release_retry`
-     (daily) and `recheck_verified_domains` (hourly) repeat on their own and are safe to leave. On
-     4.0.14 or later the `jobs-worker` has a handler for each of the four kinds, so what is queued
-     runs there and nothing needs clearing: the query is a confirmation (after the rollback, no row
-     of these kinds may end up `failed`). On 4.0.13 or earlier a worker fails every queued row of
-     these kinds (`TaskNotFound`, no retry): let 4.1's `jobs-worker` finish the two obligations
-     first when time allows (the query shows 0 for them); otherwise note how many were failed, and
-     repeat them on 4.1 after the next roll-forward.
+     deleted account's stored provider credentials, revoking an old Google grant). On 4.0.14 or later
+     the backend's `jobs-worker` has a handler for each of the four kinds, so nothing needs clearing:
+     the two obligations rows 4.1 left really run (retried hourly, up to 48 attempts, as on 4.1), and
+     `sso_release_retry` and `recheck_verified_domains` rows complete as no-ops (a rolled-back stack
+     never schedules them again; verified domains are re-checked when 4.1 returns). Temporal has no
+     workflow for any of these, and the scheduled one-shot rows of `delete_response` exist only in
+     the Postgres queue, so **the rollback must keep `JOBS_BACKEND=postgres` and run the
+     `jobs-worker` on the 4.0.14 image** (step 2). The query above is a confirmation. On 4.0.13 or
+     earlier a worker fails every queued row of these kinds (`TaskNotFound`, no retry): let 4.1's
+     `jobs-worker` finish the two obligations first when time allows (the query shows 0 for them);
+     otherwise note how many were failed, and repeat them on 4.1 after the next roll-forward.
    - **Settings.** The cutover's rule is to leave these alone from the first 4.1 service until this
      window closes ("Hold the Google settings" in "Before you start"); this is what happens, and what
      to do, when it was not followed. 4.0.x refuses a settings row whose key it does not know (`UNKNOWN_KEY`) or whose
@@ -1155,6 +1160,8 @@ lost.
    `dual`); the task runner's `ADMIN_TASKS_BACKEND_URL` and the `SERVER_URL` of the Temporal worker
    and the actions executor back to port 8000 (4.0.13's backend has no internal listener);
    `GOOGLE_FORMS_IMPORT` and `API_INTERNAL_ROUTES` removed; any settings fix of step 1;
+   `JOBS_BACKEND=postgres` kept on `backend` and `jobs-worker` (no `JOBS_BACKEND__<job>` naming
+   `temporal`), and `jobs-worker` kept at its replicas on the 4.0.14 image;
    `mongodb` stays at 0 replicas and `MONGO_*` stay out. `integrations-typeform`, which 4.1 removed,
    stays at 0 replicas: it reads its own Mongo database, so bring it back only together with
    Mongo (below); imported Typeform forms stay readable without it.
@@ -1164,7 +1171,17 @@ lost.
    reporting and the outboxes empty; the smoke test passes; `responses.check_undecryptable`
    (`stores: postgres`) finds 0; a sign-in, a submission and its read-back by hand; a Google Forms
    import works as on any 4.0.x (the 4.1 `GOOGLE_FORMS_IMPORT` setting is ignored); no job of the
-   four kinds above is `failed`.
+   four kinds above is `failed`. **Keep the `jobs-worker` until no row is `todo` or `doing` for the
+   two obligation kinds** (read-only, task names and status counts only):
+
+   ```sql
+   SELECT task_name, status, count(*) FROM jobs.procrastinate_jobs
+   WHERE task_name IN ('purge_provider_credentials', 'revoke_google_grant')
+     AND status IN ('todo', 'doing') GROUP BY 1, 2;
+   ```
+
+   An empty result means both obligations are done; a row that keeps being retried is an erasure
+   or a revocation that has not happened yet.
 5. **Never start a service with `DB_READ_SOURCE=mongo` or any `dual`/`mongo` write mode against the
    old Mongo volume** until the next section is done: it would serve the data as of the cutover and
    mirror it over the newer Postgres rows. The keyset freeze continues.
