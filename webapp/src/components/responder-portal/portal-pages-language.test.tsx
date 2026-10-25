@@ -25,6 +25,8 @@ import SubmissionLayoutClient from './submission-layout-client';
 import SubmissionSettingsContent from './submission-settings-context';
 
 const nav = vi.hoisted(() => ({ pathname: '/acme/forms' }));
+// Whether the workspace has a pinned form (Intake); a test can clear it.
+const pins = vi.hoisted(() => ({ none: false }));
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({ push: vi.fn() }),
@@ -51,7 +53,7 @@ const submission = {
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@app/store/workspaces/api')>()),
-    useGetWorkspaceFormsQuery: (query: { pinned_only?: boolean }) => ({ isLoading: false, isError: false, data: query.pinned_only ? { items: [intake], total: 1 } : { items: [intake, survey], total: 2 } }),
+    useGetWorkspaceFormsQuery: (query: { pinned_only?: boolean }) => ({ isLoading: false, isError: false, data: query.pinned_only ? (pins.none ? { items: [], total: 0 } : { items: [intake], total: 1 }) : { items: [intake, survey], total: 2 } }),
     useLazySearchWorkspaceFormsQuery: () => [vi.fn()],
     // Signed out the list isn't fetched.
     useGetWorkspaceSubmissionsQuery: (_query: unknown, options?: { skip?: boolean }) => (options?.skip ? { isLoading: false, data: undefined } : { isLoading: false, data: { items: [submission], total: 1 } })
@@ -75,6 +77,7 @@ afterEach(() => {
     signOut();
     at('/');
     nav.pathname = '/acme/forms';
+    pins.none = false;
 });
 
 const renderPortal = (children: React.ReactNode) =>
@@ -116,11 +119,27 @@ describe('the portal forms page', () => {
         expect(within(untitled.closest('a')!).getByText('1 vraag')).toBeInTheDocument();
     });
 
+    // The list of all forms fills in a tick after the first render, so each
+    // test waits for its heading before looking at the cards.
     it('keeps a screen-reader heading over the list when nothing is pinned', async () => {
+        pins.none = true;
         at('/acme/forms?lang=en');
         renderPortal(<WorkspaceFormsTabContent workspace={workspace} />);
-        expect(await screen.findByRole('heading', { level: 2, name: 'Pinned forms (1)' })).toBeInTheDocument();
-        expect(screen.getByText('3 questions')).toBeInTheDocument();
+        const heading = await screen.findByRole('heading', { level: 2, name: 'All forms (2)' });
+        expect(heading).toHaveClass('sr-only');
+        expect(screen.queryByRole('heading', { level: 2, name: /Pinned forms/ })).toBeNull();
+        expect(await within(heading.closest('section')!).findAllByText('3 questions')).toHaveLength(1);
+        expect(screen.getAllByText('3 questions')).toHaveLength(1);
+    });
+
+    it('shows a pinned form under the pinned forms and again in the list of all forms', async () => {
+        at('/acme/forms?lang=en');
+        renderPortal(<WorkspaceFormsTabContent workspace={workspace} />);
+        const pinned = (await screen.findByRole('heading', { level: 2, name: 'Pinned forms (1)' })).closest('section')!;
+        const all = (await screen.findByRole('heading', { level: 2, name: 'All forms (2)' })).closest('section')!;
+        expect(within(all).getByRole('heading', { level: 2 })).not.toHaveClass('sr-only');
+        expect(await within(pinned).findAllByText('3 questions')).toHaveLength(1);
+        expect(await within(all).findAllByText('3 questions')).toHaveLength(1);
     });
 });
 
@@ -252,7 +271,9 @@ describe('portal links with a hostile workspace handle', () => {
         store.dispatch(setWorkspace({ ...workspace, workspaceName }));
         at('/x/forms?lang=en');
         const { unmount } = renderPortal(<WorkspaceFormsTabContent workspace={{ ...workspace, workspaceName }} />);
-        await screen.findByRole('heading', { level: 3, name: 'Intake' });
+        // Pinned, Intake shows twice once the list of all forms fills in.
+        await screen.findByRole('heading', { level: 2, name: 'All forms (2)' });
+        expect(screen.getAllByRole('heading', { level: 3, name: 'Intake' })).toHaveLength(2);
         linksStayOnSite();
         unmount();
         renderPortal(<WorkspaceResponsesTabContent workspace={{ ...workspace, workspaceName }} audience="respondent" />);
