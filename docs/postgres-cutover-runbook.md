@@ -151,7 +151,11 @@ Start on staging; repeat on production only after the staging gate.
    deleted meanwhile. Should anything still differ, `verify` shows it (a deleted record as
    `tombstoned`); then run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
    index (sessions, rate-limit counters, idempotency keys, SSO states, SCIM, flow events) treat an
-   expired copy as absent: reconcile never copies one.
+   expired copy as absent: verify never reports one and reconcile never copies one.
+   A row the application wrote to Postgres after Mongo's copy is kept and counted as
+   `newer_in_postgres`; with `reconcile --mongo-wins`, Mongo's copy replaces it in the groups
+   whose `DB_WRITE_MODE`/`DB_WRITE_MODE__g` is explicitly `mongo` or `dual` (never by default,
+   and nowhere while the Postgres-side outbox has unresolved entries).
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
 
@@ -181,7 +185,10 @@ auth and google. For each group `g`:
    instant.
 2. Soak 48–72 h: `mirror_failures` for `g` zero, error rate at baseline, `verify --group g`
    clean (Mongo is now the copy, and it should still match).
-3. Roll back: `DB_READ_SOURCE__g=mongo`, `DB_WRITE_MODE__g=dual`. One restart.
+3. Roll back: `DB_READ_SOURCE__g=mongo`, `DB_WRITE_MODE__g=dual`. One restart. First, while `g`
+   is still on `postgres_primary_dual`, run `reconcile --group g --direction postgres->mongo` if
+   the Postgres-side outbox (`status`) has open entries: after the flip it is refused, and a
+   Postgres write whose Mongo mirror failed would be the only copy.
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending

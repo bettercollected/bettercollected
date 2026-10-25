@@ -263,11 +263,16 @@ def id_range(table: Table, after: Optional[str], upto: str):
 
 def expired(document: Mapping[str, Any], ttl: Optional[tuple], now: datetime) -> bool:
     """Whether a copy of a collection Mongo expires by TTL has expired:
-    reconcile treats it as absent, like convergence does."""
+    verify and reconcile treat it as absent, like convergence does. Only a
+    date counts, as for Mongo's TTL monitor: a string (an ISO timestamp)
+    never expires there, so it is a live copy here too."""
     if ttl is None:
         return False
     field_name, seconds = ttl
-    at = timestamp_of(document.get(field_name))
+    value = document.get(field_name)
+    if not isinstance(value, datetime):
+        return False
+    at = timestamp_of(value)
     return at is not None and at + timedelta(seconds=seconds) <= now
 
 
@@ -767,24 +772,29 @@ class Runner:
         """How many Postgres rows have an id past Mongo's last one (all of
         them when Mongo has none); an expired copy is absent, so it is
         counted under ``report.expired`` instead."""
-        async with self.engine.connect() as conn:
-            if ttl is None:
+        if ttl is None:
+            async with self.engine.connect() as conn:
                 extra = select(func.count()).select_from(table)
                 if last_id:
                     extra = extra.where(table.c.id > last_id)
                 return (await conn.execute(extra)).scalar_one()
-            extra = select(table.c.id, table.c.doc)
-            if last_id:
-                extra = extra.where(table.c.id > last_id)
-            live = 0
-            for row_id, doc in (await conn.execute(extra)).all():
+        live, after = 0, last_id
+        while True:  # in id order, a batch at a time: never the whole table
+            extra = select(table.c.id, table.c.doc).order_by(table.c.id).limit(500)
+            if after:
+                extra = extra.where(table.c.id > after)
+            async with self.engine.connect() as conn:
+                rows = (await conn.execute(extra)).all()
+            if not rows:
+                return live
+            after = rows[-1][0]
+            for row_id, doc in rows:
                 if expired(from_canonical_document(doc), ttl, now):
                     report.expired += 1
                     continue
                 live += 1
                 if len(report.samples["missing_in_mongo"]) < 5:
                     report.samples["missing_in_mongo"].append(row_id)
-            return live
 
     # -- reconcile ----------------------------------------------------------
     async def reconcile(
@@ -799,7 +809,9 @@ class Runner:
         authoritative): copy missing/mismatched documents, overwriting even
         ``app`` rows when the Mongo document is at least as new — or, in a
         group named in ``mongo_primary`` (the services write Mongo first:
-        ``mongo``/``dual``), whatever their age. A row the application wrote
+        ``mongo``/``dual``; the CLI's ``--mongo-wins``), whatever their age —
+        unless the Postgres-side outbox holds unresolved entries (writes from
+        a time Postgres was primary): then in no group. A row the application wrote
         after Mongo's copy in any other group (Postgres is the primary) is
         kept and counted as ``newer_in_postgres``: run ``postgres->mongo``
         for it. ``postgres->mongo``: replace Mongo documents from rows (R2/R3
@@ -832,6 +844,21 @@ class Runner:
         mirror nothing): their entries name a repository, not a collection."""
         selected = self.tables_for(collections)
         mongo_primary = set(mongo_primary)
+        if mongo_primary and direction == "mongo->postgres":
+            pending = await self._open_postgres_outbox()
+            if pending:
+                # writes made while Postgres was primary whose Mongo mirror
+                # failed (a rollback to dual since): their rows may be the
+                # newer ones. The entries name a repository and best-effort
+                # ids, not reliably the rows, so Mongo wins nowhere.
+                logger.warning(
+                    "reconcile: %d unresolved mirror failures were recorded while "
+                    "Postgres was primary; Mongo's copy wins nowhere in this run "
+                    "(newer Postgres rows are kept). Run reconcile --direction "
+                    "postgres->mongo while Postgres is primary to copy them",
+                    pending,
+                )
+                mongo_primary = set()
         results = {}
         for name, table in selected.items():
             report = (await self.verify([name]))[0]
@@ -1285,6 +1312,21 @@ class Runner:
         resolves those (:meth:`_resolve_unverified`)."""
         if not dry_run:
             await self._resolve_outbox(only_unverified=False)
+
+    async def _open_postgres_outbox(self) -> int:
+        """Unresolved entries of the Postgres-side outbox: mirror writes to
+        Mongo that failed while Postgres was the primary."""
+        table = f'"{self.target.schema}"."mirror_write_failures"'
+        async with self.engine.connect() as conn:
+            if (
+                await conn.execute(text(f"SELECT to_regclass('{table}')"))
+            ).scalar() is None:
+                return 0
+            return (
+                await conn.execute(
+                    text(f"SELECT count(*) FROM {table} WHERE resolved_at IS NULL")
+                )
+            ).scalar_one()
 
     async def _resolve_unverified(self) -> None:
         """A clean full verify: the stores agree, unverified copies included,

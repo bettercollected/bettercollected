@@ -14,7 +14,9 @@ the CLI no longer verifies them; the engine still compares any collection it
 is given, and a Mongo restored from 4.0 still has the TTL indexes, which the
 fixture creates here. Skipped unless DATABASE_URL points at a *_test database."""
 
+import contextlib
 import datetime as dt
+import io
 import os
 
 from beanie import PydanticObjectId
@@ -23,7 +25,7 @@ from sqlalchemy import select
 from backend.app.container import container
 from pymongo import AsyncMongoClient
 
-from backend.db.models import RateLimitCounterRow, SessionRow
+from backend.db.models import RateLimitCounterRow, SessionRow, WorkspaceTagRow
 from backend.migrate.__main__ import build_target
 from common.db.base import SOURCE_APP
 from common.db.canonical import canonical_document, checksum
@@ -42,14 +44,14 @@ async def target(clean_postgres):
     target = build_target(os.environ["DATABASE_URL"])
     client = AsyncMongoClient(target.mongo_uri)
     database = client[target.mongo_db]
-    for name in ("rate_limit_counters", "sessions"):
+    for name in ("rate_limit_counters", "sessions", "workspace_tags"):
         await database[name].delete_many({})
     # 4.0 expired these by a TTL index; 4.1 no longer declares it
     await database["rate_limit_counters"].create_index(
         "expires_at", expireAfterSeconds=0
     )
     yield target
-    for name in ("rate_limit_counters", "sessions"):
+    for name in ("rate_limit_counters", "sessions", "workspace_tags"):
         await database[name].drop()
     await client.close()
 
@@ -237,3 +239,158 @@ async def test_postgres_primary_reconcile_keeps_a_newer_row_and_says_so(target):
     async with Runner(target) as runner:
         await runner.reconcile(["sessions"], direction="postgres->mongo")
     assert (await verify(target, "sessions")).clean
+
+
+# -- through the CLI: a group still migrated on 4.1 (responses) ---------------
+
+
+async def tag_edited_in_postgres_only(target):
+    """A workspace tag Mongo holds as of PAST, renamed since in Postgres alone."""
+    document = {
+        "_id": PydanticObjectId(),
+        "workspace_id": "w1",
+        "title": "before",
+        "created_at": PAST,
+        "updated_at": PAST,
+    }
+    await to_mongo(target, "workspace_tags", document)
+    await to_postgres(
+        WorkspaceTagRow, {**document, "title": "after", "updated_at": NOW}
+    )
+    assert (await verify(target, "workspace_tags")).mismatched == 1
+    return document
+
+
+async def reconcile_cli(target, env, *extra):
+    """``python -m backend.migrate reconcile`` over workspace_tags; its result."""
+    import asyncio
+    import json
+
+    from common.db.migrate.cli import main
+
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = await asyncio.to_thread(
+            main,
+            ["--collections", "workspace_tags", "reconcile", *extra],
+            target,
+            prog="python -m backend.migrate",
+            env=env,
+        )
+    assert code == 0
+    return json.loads(out.getvalue())["workspace_tags"]
+
+
+async def test_the_cli_lets_mongo_win_under_explicit_dual(target):
+    await tag_edited_in_postgres_only(target)
+    result = await reconcile_cli(target, {"DB_WRITE_MODE": "dual"}, "--mongo-wins")
+    assert result["fixed"] == 1
+    assert (await verify(target, "workspace_tags")).clean
+
+
+async def test_the_cli_keeps_a_newer_row_without_mongo_wins(target):
+    await tag_edited_in_postgres_only(target)
+    result = await reconcile_cli(target, {"DB_WRITE_MODE": "dual"})
+    assert (result["fixed"], result["newer_in_postgres"]) == (0, 1)
+
+
+async def test_the_cli_keeps_a_newer_row_when_the_flags_are_missing(target):
+    await tag_edited_in_postgres_only(target)
+    result = await reconcile_cli(target, {}, "--mongo-wins")
+    assert (result["fixed"], result["newer_in_postgres"]) == (0, 1)
+
+
+async def test_the_cli_keeps_a_newer_row_of_a_postgres_primary_group(target):
+    await tag_edited_in_postgres_only(target)
+    env = {
+        "DB_WRITE_MODE": "dual",
+        "DB_WRITE_MODE__responses": "postgres_primary_dual",
+        "DB_READ_SOURCE__responses": "postgres",
+    }
+    result = await reconcile_cli(target, env, "--mongo-wins")
+    assert (result["fixed"], result["newer_in_postgres"]) == (0, 1)
+
+
+async def test_rollback_window_writes_are_never_overwritten(target):
+    """A group rolled back from postgres_primary_dual to dual: Postgres holds
+    a write whose Mongo mirror failed (recorded in the Postgres-side outbox).
+    Mongo must not win while that entry is open."""
+    from backend.db.models import MirrorWriteFailure
+
+    document = await tag_edited_in_postgres_only(target)
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            MirrorWriteFailure(
+                table_name="workspace_tags",
+                row_id=str(document["_id"]),
+                op="update",
+                error="ConnectionError: store unreachable",
+            )
+        )
+    result = await reconcile_cli(target, {"DB_WRITE_MODE": "dual"}, "--mongo-wins")
+    assert (result["fixed"], result["newer_in_postgres"]) == (0, 1)
+    async with container.pg_sessionmaker()() as session:
+        row = await session.get(WorkspaceTagRow, str(document["_id"]))
+        assert row.doc["title"] == "after"
+        open_entries = (
+            await session.execute(
+                select(MirrorWriteFailure).where(
+                    MirrorWriteFailure.resolved_at.is_(None)
+                )
+            )
+        ).all()
+    assert len(open_entries) == 1  # not drained: the row still differs
+
+
+class WriteBeforeTheUpdate(Runner):
+    """The application writes (Mongo first, then its mirror) after reconcile
+    re-read Mongo and before it updates Postgres."""
+
+    write = None
+
+    async def _apply_to_postgres(self, table, writes):
+        write, type(self).write = type(self).write, None
+        if write is not None:
+            await write()
+        return await super()._apply_to_postgres(table, writes)
+
+
+async def test_a_write_racing_mongo_wins_is_left_as_the_application_wrote_it(
+    target,
+):
+    document = await tag_edited_in_postgres_only(target)
+    later = NOW + dt.timedelta(minutes=1)
+    raced = {**document, "title": "raced", "updated_at": later}
+
+    async def app_write():
+        client = AsyncMongoClient(target.mongo_uri)
+        await client[target.mongo_db]["workspace_tags"].replace_one(
+            {"_id": document["_id"]}, raced
+        )
+        await client.close()
+        doc = canonical_document(raced)
+        async with container.pg_sessionmaker()() as session, session.begin():
+            row = await session.get(WorkspaceTagRow, str(document["_id"]))
+            row.doc, row.bc_checksum, row.updated_at = doc, checksum(doc), later
+
+    WriteBeforeTheUpdate.write = app_write
+    async with WriteBeforeTheUpdate(target) as runner:
+        result = await runner.reconcile(["workspace_tags"], mongo_primary=["responses"])
+    assert (result["workspace_tags"]["fixed"], result["workspace_tags"]["skipped"]) == (
+        0,
+        1,
+    )
+    async with container.pg_sessionmaker()() as session:
+        row = await session.get(WorkspaceTagRow, str(document["_id"]))
+        assert row.doc == canonical_document(raced)
+    assert (await verify(target, "workspace_tags")).clean
+
+
+async def test_an_iso_string_expiry_is_a_live_copy(target):
+    """Mongo's TTL monitor expires BSON dates only: a string never expires."""
+    stringly = counter(PAST)
+    stringly["expires_at"] = PAST.isoformat()
+    await to_postgres(RateLimitCounterRow, stringly)
+    report = await verify(target, "rate_limit_counters")
+    assert report.missing_in_mongo == 1
+    assert report.expired == 0
