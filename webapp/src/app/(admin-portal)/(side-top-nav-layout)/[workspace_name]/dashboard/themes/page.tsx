@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { FormTheme, ThemeColors } from '@app/constants/theme';
 import { useModal } from '@app/components/modal-views/context';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspaceThemesMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
-import { ContrastNotes, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
+import ThemeContrastGuard, { themePassesContrast } from '@app/views/molecules/theme/theme-contrast-guard';
+import { THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-editor';
 
 type Editing = { index: number | 'new'; draft: FormTheme } | null;
@@ -38,6 +40,14 @@ export default function ThemesPage() {
     const savedThemes: FormTheme[] = workspace?.customThemes ?? [];
     const [editing, setEditing] = useState<Editing>(null);
     const [nameError, setNameError] = useState('');
+    // Set when a save was refused for contrast; cleared by any edit.
+    const [contrastBlocked, setContrastBlocked] = useState(false);
+    const guardRef = useRef<HTMLDivElement>(null);
+    const { t } = useBuilderTranslation();
+    const edit = (next: NonNullable<Editing>) => {
+        setContrastBlocked(false);
+        setEditing(next);
+    };
 
     const saveThemes = async (nextList: FormTheme[], successMessage: string) => {
         const response: any = await patchWorkspaceThemes({ workspace_id: workspace.id, body: nextList });
@@ -60,6 +70,13 @@ export default function ThemesPage() {
         const clash = savedThemes.some((theme, idx) => idx !== editing.index && theme.title.trim().toLowerCase() === name.toLowerCase());
         if (clash) {
             setNameError('You already have a theme with this name.');
+            return;
+        }
+        // A theme that fails AA contrast is never saved: the guard shows the
+        // fix, and focus goes to it so keyboard and screen-reader users land there.
+        if (!themePassesContrast(editing.draft)) {
+            setContrastBlocked(true);
+            guardRef.current?.focus();
             return;
         }
         const draft = { ...editing.draft, title: name };
@@ -103,6 +120,12 @@ export default function ThemesPage() {
                         {savedThemes.map((theme, index) => (
                             <div key={theme.title} className="border-black-300 group flex flex-col overflow-hidden rounded border bg-white">
                                 <ThemePreview color={theme} />
+                                {!themePassesContrast(theme) && (
+                                    <span className="text-brand-olive bg-brand-accent-100 flex items-center gap-1 px-3 py-1 text-[11px] font-semibold">
+                                        <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                        {t('THEME.GALLERY_LOW_CONTRAST')}
+                                    </span>
+                                )}
                                 <div className="border-t-black-300 flex items-center justify-between border-t px-3 py-2">
                                     <span className="text-black-800 truncate text-xs font-medium">{theme.title}</span>
                                     <span className="flex shrink-0 items-center gap-1">
@@ -111,7 +134,7 @@ export default function ThemesPage() {
                                             aria-label={`Edit ${theme.title}`}
                                             onClick={() => {
                                                 setNameError('');
-                                                setEditing({ index, draft: { ...theme } });
+                                                edit({ index, draft: { ...theme } });
                                             }}
                                             className="text-black-600 hover:bg-black-100 hover:text-black-800 rounded p-1.5 transition-colors"
                                         >
@@ -129,7 +152,7 @@ export default function ThemesPage() {
                             type="button"
                             onClick={() => {
                                 setNameError('');
-                                setEditing({ index: 'new', draft: { title: '', ...NEW_THEME_SEED } });
+                                edit({ index: 'new', draft: { title: '', ...NEW_THEME_SEED } });
                             }}
                             className="border-black-400 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
                         >
@@ -153,7 +176,7 @@ export default function ThemesPage() {
                                     className={`text-sm! ${nameError ? 'border-[#C43D3D]!' : ''}`}
                                     onChange={(e) => {
                                         setNameError('');
-                                        setEditing({ ...editing, draft: { ...editing.draft, title: e.target.value } });
+                                        edit({ ...editing, draft: { ...editing.draft, title: e.target.value } });
                                     }}
                                 />
                                 {nameError && <p className="text-sm text-[#C43D3D]">{nameError}</p>}
@@ -169,7 +192,7 @@ export default function ThemesPage() {
                                                 type="color"
                                                 aria-label={field.label}
                                                 value={editing.draft[field.key]}
-                                                onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, [field.key]: e.target.value } })}
+                                                onChange={(e) => edit({ ...editing, draft: { ...editing.draft, [field.key]: e.target.value } })}
                                                 className="border-black-300 h-8 w-10 cursor-pointer rounded border bg-white p-0.5"
                                             />
                                         </span>
@@ -177,19 +200,25 @@ export default function ThemesPage() {
                                 ))}
                             </div>
 
-                            <ThemeStyleEditor value={editing.draft.style} onChange={(style) => setEditing({ ...editing, draft: { ...editing.draft, style } })} />
+                            <ThemeStyleEditor value={editing.draft.style} onChange={(style) => edit({ ...editing, draft: { ...editing.draft, style } })} />
 
-                            <ThemeTypeShapeEditor theme={editing.draft} onChange={(draft) => setEditing({ ...editing, draft })} />
+                            <ThemeTypeShapeEditor theme={editing.draft} onChange={(draft) => edit({ ...editing, draft })} />
 
-                            <ThemeBackgroundEditor theme={editing.draft} onChange={(background) => setEditing({ ...editing, draft: { ...editing.draft, background } })} />
+                            <ThemeBackgroundEditor theme={editing.draft} onChange={(background) => edit({ ...editing, draft: { ...editing.draft, background } })} />
 
                             <div className="rounded-lg">
                                 <div className="text-black-600 mb-1.5 text-xs font-medium uppercase tracking-wide">Preview</div>
                                 <div className="border-black-300 overflow-hidden rounded-lg border">
                                     <ThemePreview color={editing.draft} />
                                 </div>
-                                <ContrastNotes theme={editing.draft} />
+                                <ThemeContrastGuard ref={guardRef} id="theme-contrast-guard" theme={editing.draft} onApplyFix={(draft) => edit({ ...editing, draft })} />
                             </div>
+
+                            {contrastBlocked && (
+                                <p role="alert" className="text-sm text-[#C43D3D]">
+                                    {t('THEME.CONTRAST_SAVE_BLOCKED')}
+                                </p>
+                            )}
 
                             <div className="flex items-center gap-3">
                                 <Button size="sm" variant="primary" isLoading={isLoading} onClick={handleSaveDraft}>

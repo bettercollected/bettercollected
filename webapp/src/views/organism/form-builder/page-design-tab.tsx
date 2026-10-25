@@ -1,21 +1,47 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Link from 'next/link';
 
 import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, themeTypeShape, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { FieldTypes } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { useAppSelector } from '@app/store/hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { questionText } from '@app/utils/publish-checks';
+import { themeContrastGuard } from '@app/utils/theme-contrast';
 import FormLogoSettings from '@app/views/molecules/form-builder/form-logo-settings';
-import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
+import ThemeContrastGuard from '@app/views/molecules/theme/theme-contrast-guard';
+import ThemeGallery, { ThemeGallerySection } from '@app/views/molecules/theme/theme-gallery';
+import { THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreviewSample, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-editor';
 
 const CUSTOM_TITLE = 'Custom';
 
+/** The id the publish checks' "Show the theme" link and the guard share. */
+export const DESIGN_CONTRAST_GUARD_ID = 'design-contrast-guard';
+
+/** The form's first question and one of its options, for the gallery's thumbnails. */
+function formSample(pages: Array<any> | undefined): ThemePreviewSample {
+    for (const page of pages ?? []) {
+        for (const field of page?.type === FieldTypes.SLIDE ? (page?.properties?.fields ?? []) : [page]) {
+            const question = field ? questionText(field) : '';
+            if (!question) continue;
+            const choice = (field?.properties?.choices ?? []).map((c: any) => String(c?.value || c?.label || '').trim()).find(Boolean);
+            return { question: question.length > 48 ? question.slice(0, 47).trimEnd() + '…' : question, answer: choice || undefined };
+        }
+    }
+    return {};
+}
+
 export default function PageDesignTab() {
+    const { t } = useBuilderTranslation();
     const { updateFormTheme, updateWelcomePageLayout, formState, theme } = useFormState();
+    const { getFormFields } = useBuilderActions();
+    // Read once when the tab opens: thumbnails don't follow every keystroke.
+    const sample = useMemo(() => formSample(getFormFields()), [getFormFields]);
     const workspace = useAppSelector(selectWorkspace);
     const savedThemes: FormTheme[] = workspace?.customThemes ?? [];
     const isCustom = theme?.title === CUSTOM_TITLE;
@@ -81,54 +107,22 @@ export default function PageDesignTab() {
         ...themeTypeShape(theme)
     };
 
+    const activeFails = themeContrastGuard(activeTheme).issues.length > 0;
+    const sections: ThemeGallerySection[] = [
+        { key: 'saved', label: t('THEME.GALLERY_SAVED'), entries: savedThemes.map((saved) => ({ value: `saved:${saved.title}`, label: saved.title, theme: saved })) },
+        { key: 'presets', label: t('THEME.GALLERY_PRESETS'), entries: ThemeColors.map((preset) => ({ value: `preset:${preset.title}`, label: preset.title, theme: preset })) },
+        { key: 'custom', label: t('THEME.GALLERY_ONE_OFF'), entries: [{ value: 'custom', label: t('THEME.GALLERY_CUSTOM'), theme: custom }] }
+    ];
+
     return (
         <div className="flex h-full flex-col">
             <div className="px-4 pb-3">
                 <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Theme</div>
-                <p className="text-black-600 mt-1 text-xs leading-relaxed">Every preset meets WCAG AA contrast for questions, buttons and inputs.</p>
+                <p className="text-black-600 mt-1 text-xs leading-relaxed">{t('THEME.GALLERY_HINT')}</p>
             </div>
             <ScrollArea className="max-h-design-content flex-1 overflow-y-auto border-t">
                 <div className="flex flex-col gap-3 p-3">
-                    <Select value={selectValue} onValueChange={handleSelect}>
-                        <SelectTrigger aria-label="Pick a theme by name" className="border-control h-9 w-full bg-white text-xs">
-                            <SelectValue placeholder="Pick a theme…" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                            {savedThemes.length > 0 && (
-                                <SelectGroup>
-                                    <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Your themes</SelectLabel>
-                                    {savedThemes.map((saved) => (
-                                        <SelectItem key={`saved:${saved.title}`} value={`saved:${saved.title}`} className="text-xs">
-                                            <span className="flex items-center gap-2">
-                                                <Swatch color={saved.secondary} />
-                                                {saved.title}
-                                            </span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            )}
-                            <SelectGroup>
-                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">Presets</SelectLabel>
-                                {ThemeColors.map((preset) => (
-                                    <SelectItem key={`preset:${preset.title}`} value={`preset:${preset.title}`} className="text-xs">
-                                        <span className="flex items-center gap-2">
-                                            <Swatch color={preset.secondary} />
-                                            {preset.title}
-                                        </span>
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                            <SelectGroup>
-                                <SelectLabel className="text-black-600 text-[11px] font-semibold uppercase tracking-wide">One-off</SelectLabel>
-                                <SelectItem value="custom" className="text-xs">
-                                    <span className="flex items-center gap-2">
-                                        <Swatch color={custom.secondary} />
-                                        Custom — pick your own colours
-                                    </span>
-                                </SelectItem>
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    <ThemeGallery sections={sections} value={selectValue} onSelect={handleSelect} sample={sample} />
 
                     {/* Style dresses whatever theme is active — orthogonal to colours. */}
                     <ThemeStyleEditor value={theme?.style} onChange={(style) => updateFormTheme({ ...activeTheme, style })} />
@@ -136,19 +130,9 @@ export default function PageDesignTab() {
                     {/* Faces, corners, buttons and highlight dress whatever theme is active too. */}
                     <ThemeTypeShapeEditor theme={isCustom ? custom : activeTheme} onChange={(next) => (isCustom ? applyCustom({ ...next, title: CUSTOM_TITLE }) : updateFormTheme(next))} />
 
-                    {/* Only the selected theme is previewed — the dropdown is the
-                        catalogue; this shows what the form actually wears. */}
-                    <div className="border-black-300 overflow-hidden rounded-lg border">
-                        <ThemePreview color={isCustom ? custom : activeTheme} />
-                        <div className="border-t-black-300 flex items-center justify-between border-t bg-white px-3 py-2">
-                            <span className="text-black-800 truncate text-xs font-medium">{isCustom ? 'Custom' : activeTheme.title}</span>
-                            <span className="flex shrink-0 gap-1">
-                                <Swatch color={(isCustom ? custom : activeTheme).primary} />
-                                <Swatch color={(isCustom ? custom : activeTheme).secondary} />
-                                <Swatch color={(isCustom ? custom : activeTheme).accent} />
-                            </span>
-                        </div>
-                    </div>
+                    {/* A picked saved theme (or a legacy one) that fails: the
+                        guard offers the fix, which makes it a custom palette. */}
+                    {!isCustom && activeFails && <ThemeContrastGuard id={DESIGN_CONTRAST_GUARD_ID} theme={activeTheme} onApplyFix={(next) => applyCustom({ ...next, title: CUSTOM_TITLE })} />}
 
                     {isCustom && (
                         <div className="flex flex-col gap-2.5 px-1">
@@ -168,7 +152,7 @@ export default function PageDesignTab() {
                                 </div>
                             ))}
                             <ThemeBackgroundEditor theme={custom} onChange={(background) => applyCustom({ ...custom, title: CUSTOM_TITLE, background })} />
-                            <ContrastNotes theme={custom} />
+                            <ThemeContrastGuard id={DESIGN_CONTRAST_GUARD_ID} theme={custom} onApplyFix={(next) => applyCustom({ ...next, title: CUSTOM_TITLE })} />
                         </div>
                     )}
 

@@ -9,7 +9,7 @@ import { ThemeColors } from '@app/constants/theme';
 import { REQUIRED_RED, mixHex } from '@app/views/molecules/theme/theme-shared';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn } from './color-contrast';
-import { FOCUS_RING, actionText, calendarColours, themeContrastChecks } from './theme-contrast';
+import { FOCUS_RING, actionText, calendarColours, themeContrastChecks, themeContrastGuard } from './theme-contrast';
 
 describe('contrast', () => {
     it('follows the WCAG formula', () => {
@@ -133,5 +133,64 @@ describe.each(ThemeColors.map((theme) => [theme.title, theme] as const))('the %s
     it('shows the error icon and the submit error on the background', () => {
         expect(contrast(REQUIRED_RED, theme.accent)).toBeGreaterThanOrEqual(AA_NON_TEXT); // question-wrapper error icon
         expect(contrast('#B42318', theme.accent)).toBeGreaterThanOrEqual(AA_TEXT); // form-slide submit error
+    });
+});
+
+describe('themeContrastGuard', () => {
+    const passesEverything = (theme: Parameters<typeof themeContrastGuard>[0]) => themeContrastGuard(theme).issues.length === 0;
+
+    it.each(ThemeColors.map((theme) => [theme.title, theme] as const))('lets the %s preset through untouched', (_title, theme) => {
+        expect(themeContrastGuard(theme)).toEqual({ issues: [], fix: null, imageGround: false });
+    });
+
+    it('names each failing pairing once, at its worst ratio', () => {
+        const { issues } = themeContrastGuard({ primary: '#9CA3AF', secondary: '#FDE68A', tertiary: '#E5E7EB', accent: '#FFFFFF' });
+        expect(issues.map((issue) => issue.key)).toEqual(['text', 'answer', 'button', 'border', 'action']);
+        expect(issues.find((issue) => issue.key === 'text')).toMatchObject({ minimum: AA_TEXT });
+        expect(issues.find((issue) => issue.key === 'border')).toMatchObject({ minimum: AA_NON_TEXT });
+        expect(issues.find((issue) => issue.key === 'text')!.ratio).toBeCloseTo(contrast('#9CA3AF', '#FFFFFF'), 5);
+    });
+
+    it.each(AWKWARD)('suggests colours that pass for %s', (_name, theme) => {
+        const { fix } = themeContrastGuard(theme);
+        expect(fix).not.toBeNull();
+        expect(passesEverything({ ...theme, ...fix })).toBe(true);
+    });
+
+    it('moves only the colours that fail, keeping their hue', () => {
+        const theme = { primary: '#101828', secondary: '#FDE68A', tertiary: '#818CA0', accent: '#FFFFFF' };
+        const { fix } = themeContrastGuard(theme);
+        expect(Object.keys(fix!)).toEqual(['secondary']);
+        const [r, g, b] = hexChannels(fix!.secondary!)!;
+        // still a yellow: red and green well above blue
+        expect(r).toBeGreaterThan(b);
+        expect(g).toBeGreaterThan(b);
+        expect(contrast('#FFFFFF', fix!.secondary!)).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
+    it('turns a dark page pale, since answers sit in white boxes', () => {
+        const theme = { primary: '#F9FAFB', secondary: '#60A5FA', tertiary: '#374151', accent: '#111827' };
+        const { fix } = themeContrastGuard(theme);
+        expect(contrast(fix!.accent!, '#FFFFFF')).toBeLessThan(1.5);
+        expect(passesEverything({ ...theme, ...fix })).toBe(true);
+    });
+
+    it('checks text on both stops of a gradient', () => {
+        const theme = { primary: '#101828', secondary: '#1649E2', tertiary: '#818CA0', accent: '#FFFFFF', background: { type: 'gradient' as const, gradientFrom: '#FFFFFF', gradientTo: '#101828' } };
+        const { issues, fix } = themeContrastGuard(theme);
+        expect(issues.map((issue) => issue.key)).toContain('text');
+        expect(fix!.background).toMatchObject({ type: 'gradient', gradientFrom: '#FFFFFF' });
+        expect(passesEverything({ ...theme, ...fix })).toBe(true);
+    });
+
+    it('cannot measure an image, but still checks the input boxes and buttons', () => {
+        const image = { type: 'image' as const, imageUrl: '/api/v1/media/a.png' };
+        expect(themeContrastGuard({ primary: '#FFFFFF', secondary: '#1649E2', tertiary: '#FFFFFF', accent: '#000000', background: image })).toMatchObject({ imageGround: true, issues: [{ key: 'answer' }] });
+        expect(themeContrastGuard({ ...ThemeColors[0], background: image })).toEqual({ issues: [], fix: null, imageGround: true });
+    });
+
+    it('holds the margin sheet to the same rules as the page', () => {
+        const theme = { primary: '#101828', secondary: '#1649E2', tertiary: '#F0F0F0', accent: '#1E4D3B', background: { type: 'pattern' as const, pattern: 'margin' as const } };
+        expect(themeContrastGuard(theme).issues.map((issue) => issue.key)).toContain('border');
     });
 });

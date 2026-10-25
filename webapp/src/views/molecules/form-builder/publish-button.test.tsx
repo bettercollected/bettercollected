@@ -61,3 +61,15 @@ describe('"Before you publish" dialog', () => {
         expect(dialog.className.split(' ')).toContain('z-modal');
     });
 });
+
+describe('"Before you publish" with a hard-to-read theme', () => {
+    it('blocks publishing and leads to the theme', () => {
+        const onShowQuestion = vi.fn();
+        const theme: PublishProblem = { code: 'theme_contrast', fieldId: 'theme', message: "The theme's colours are hard to read: input borders." };
+        render(<PublishProblemsDialog blocking={[theme]} recommended={[]} onClose={vi.fn()} onPublishAnyway={vi.fn()} onShowQuestion={onShowQuestion} canShowQuestion={() => true} />);
+        expect(screen.getByTestId('publish-problems')).toHaveTextContent('hard to read');
+        expect(screen.queryByRole('button', { name: 'Publish anyway' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Show the theme' }));
+        expect(onShowQuestion).toHaveBeenCalledWith('theme');
+    });
+});

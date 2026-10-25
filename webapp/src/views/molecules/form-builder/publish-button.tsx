@@ -11,9 +11,10 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
+import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { PublishProblem, getPublishProblems, problemsFromPublishError, splitPublishProblems } from '@app/utils/publish-checks';
+import { PublishProblem, THEME_PROBLEM_ID, getPublishProblems, problemsFromPublishError, splitPublishProblems, themeContrastProblems } from '@app/utils/publish-checks';
 import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
 
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
@@ -44,7 +45,8 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
     const router = useRouter();
     const pathname = usePathname();
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { setActiveSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
+    const { setPropertiesTab } = usePropertiesTab();
     const [problems, setProblems] = useState<PublishProblem[]>([]);
     const { formState } = useFormState();
     const [waiting, setWaiting] = useState(false);
@@ -90,7 +92,11 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
         const fields = getFields?.() ?? givenFields;
         // Honest defaults first: the creator sees what to fix, and where.
         // The builder's live endings with its live pages; the saved ones otherwise.
-        const found = fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null);
+        const found = [
+            ...(fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null)),
+            // The builder's live theme with its live pages; the saved one otherwise.
+            ...themeContrastProblems(fields?.length ? formState?.theme : standardForm?.theme)
+        ];
         if (found.length) {
             setProblems(found);
             return;
@@ -103,7 +109,20 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
         return fields?.length ? fields : standardForm?.fields;
     };
 
+    // The Design tab, where the contrast guard offers the fix. The inspector
+    // shows its tabs only with a page selected, so select one if none is.
+    const showTheme = () => {
+        if (!activeSlideComponent?.id) {
+            const first = shownFields()?.[0];
+            if (first?.id) setActiveSlideComponent({ id: first.id, index: 0 });
+        }
+        setActiveFieldComponent(null);
+        setPropertiesTab('design');
+        setProblems([]);
+    };
+
     const showQuestion = (fieldId: string) => {
+        if (fieldId === THEME_PROBLEM_ID) return showTheme();
         const place = locate(shownFields(), fieldId);
         if (!place) return;
         setActiveSlideComponent(place.slide);
@@ -122,7 +141,7 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
                 onClose={() => setProblems([])}
                 onPublishAnyway={publish}
                 onShowQuestion={showQuestion}
-                canShowQuestion={(fieldId) => !!locate(shownFields(), fieldId)}
+                canShowQuestion={(fieldId) => fieldId === THEME_PROBLEM_ID || !!locate(shownFields(), fieldId)}
             />
         </>
     );
@@ -157,7 +176,7 @@ export function PublishProblemsDialog({
                     <span className="text-black-800">{problem.message}</span>
                     {canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
-                            {problem.code === 'missing_ending' ? 'Show the page' : 'Show the question'}
+                            {problem.code === 'missing_ending' ? 'Show the page' : problem.code === 'theme_contrast' ? 'Show the theme' : 'Show the question'}
                         </button>
                     )}
                 </li>
