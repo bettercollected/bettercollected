@@ -27,6 +27,7 @@ from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.ai_settings import AISettings
 from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.google_forms_settings import GoogleFormsSettings
+from backend.config.google_sheets_settings import GoogleSheetsSettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -91,6 +92,7 @@ class Application(StoreBackedSettings):
     open_ai: OpenAISettings = OpenAISettings()
     google_ai: GoogleAISettings = GoogleAISettings()
     google_forms: GoogleFormsSettings = GoogleFormsSettings()
+    google_sheets: GoogleSheetsSettings = GoogleSheetsSettings()
     unsplash: UnsplashSettings = UnsplashSettings()
     umami_settings: UmamiSettings = UmamiSettings()
     pdf_import: PdfImportSettings = PdfImportSettings()
