@@ -17,6 +17,7 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
+import httpx
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -344,6 +345,27 @@ async def test_a_former_duplicate_whose_keeper_is_gone_is_left_alone(
     assert reply.json() == {"status": "not_found"}
     assert deletions == []
     assert await container.workspace_repo().find_by_id(world[B1].id) is not None
+
+
+async def test_the_runner_reaches_these_routes_without_a_redirect(
+    _initialized_app, key, world, deletions, monkeypatch
+):
+    """The task runner's client against this app's real routes: both calls
+    answer 200 (a trailing slash would be a 307 the runner does not follow)."""
+    from backend.admin.tasks.impl import case_duplicates as runner
+    from backend.app.services.internal_routes import internal_port
+
+    # the internal listener, as the runner reaches it inside the stack
+    listener = httpx.ASGITransport(app=_initialized_app, client=("172.18.0.5", 40000))
+    url = f"http://backend:{internal_port()}"
+    monkeypatch.setattr(runner, "transport", listener)
+    async with runner.Backend(url + "/api/v1", KEY) as backend:
+        groups = await backend.groups()
+        assert _decisions(groups)[A2] == "drop"
+        assert await backend.drop(A2) == "queued"
+    assert deletions == [A2]
+    async with AsyncClient(transport=listener, base_url=url) as raw:
+        assert (await raw.get(BASE + "/", headers=key)).status_code == 307
 
 
 async def test_a_whitespace_key_counts_as_unset(client: AsyncClient, auth, monkeypatch):

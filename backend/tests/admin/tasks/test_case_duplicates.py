@@ -26,6 +26,7 @@ from tests.admin.conftest import needs_postgres
 pytestmark = needs_postgres
 
 TASK = meta.META.name
+BASE_PATH = "/api/v1/internal/admin-tasks/case-duplicate-accounts"
 KEY = "runner-test-key"
 T0 = datetime(2023, 1, 1, tzinfo=timezone.utc)
 
@@ -78,6 +79,13 @@ class FakeApi:
     def handler(self, request: httpx.Request) -> httpx.Response:
         self.requests.append((request.method, request.url.path))
         self.keys.append(request.headers.get(impl.KEY_HEADER))
+        if request.url.path.endswith("/"):
+            # as FastAPI answers a route requested with a trailing slash
+            return httpx.Response(
+                307, headers={"location": str(request.url).rstrip("/")}
+            )
+        if not request.url.path.startswith(BASE_PATH):
+            return httpx.Response(404)
         if request.headers.get(impl.KEY_HEADER) != KEY:
             return httpx.Response(403)
         if request.method == "GET":
@@ -243,6 +251,38 @@ async def test_deletions_still_running_are_reported_pending(world, api, monkeypa
     _, run = await _both(world)
     assert run["state"] == "succeeded", run
     assert run["result"]["pending"] == 4 and run["result"]["remaining_groups"] == 3
+
+
+# ------------------------------------------------------------ the paths
+async def test_the_routes_are_requested_by_their_exact_path(world, api):
+    """No trailing slash: the API answers ``.../case-duplicate-accounts/``
+    with a redirect (307), which the runner does not follow."""
+    _, run = await _both(world)
+    assert run["state"] == "succeeded", run
+    paths = {(method, path) for method, path in api.requests}
+    assert ("GET", BASE_PATH) in paths
+    assert ("POST", f"{BASE_PATH}/{A2}/drop") in paths
+    assert {path for _, path in paths} <= {BASE_PATH} | {
+        f"{BASE_PATH}/{i}/drop" for i in FORMS
+    }
+
+
+@pytest.mark.parametrize("url", ["http://backend.test/api/v1", "http://backend.test/api/v1/"])
+async def test_the_exact_path_whatever_the_configured_url_ends_with(url):
+    seen = []
+
+    def handler(request):
+        seen.append((request.method, request.url.path))
+        return httpx.Response(200, json={"groups": [], "status": "queued"})
+
+    impl_transport, impl.transport = impl.transport, httpx.MockTransport(handler)
+    try:
+        async with impl.Backend(url, KEY) as backend:
+            await backend.groups()
+            await backend.drop(A2)
+    finally:
+        impl.transport = impl_transport
+    assert seen == [("GET", BASE_PATH), ("POST", f"{BASE_PATH}/{A2}/drop")]
 
 
 # --------------------------------------------------------------- refusals

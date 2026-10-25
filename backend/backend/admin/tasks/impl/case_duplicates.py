@@ -65,7 +65,10 @@ transport: Optional[httpx.AsyncBaseTransport] = None
 class Backend:
     def __init__(self, url: str, key: str):
         self._client = httpx.AsyncClient(
-            base_url=url.rstrip("/") + ROUTE,
+            # the routes are requested by their exact path: httpx ends a
+            # base_url with "/", so a route in it would be requested with a
+            # trailing slash, which the API answers with a redirect (307)
+            base_url=url.rstrip("/"),
             headers={KEY_HEADER: key},
             timeout=TIMEOUT_SECONDS,
             transport=transport,
@@ -95,11 +98,11 @@ class Backend:
             raise Refusal("backend_unreachable") from None
 
     async def groups(self) -> List[List[dict]]:
-        groups = (await self._call("GET", "")).get("groups") or []
+        groups = (await self._call("GET", ROUTE)).get("groups") or []
         return [_valid_group(group) for group in groups]
 
     async def drop(self, account_id: str) -> str:
-        return str((await self._call("POST", f"/{account_id}/drop")).get("status"))
+        return str((await self._call("POST", f"{ROUTE}/{account_id}/drop")).get("status"))
 
 
 def _valid_group(group) -> List[dict]:
