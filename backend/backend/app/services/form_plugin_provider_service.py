@@ -38,7 +38,14 @@ class FormPluginProviderService:
         if get_all:
             return providers
         if user and user.is_admin():
-            return [provider for provider in providers if _listed(provider)]
+            # a platform admin also sees disabled providers, each with its
+            # import mode like everyone else (the stored config is not sent:
+            # the response model has only these fields)
+            return [
+                self._public_view(provider)
+                for provider in providers
+                if _listed(provider)
+            ]
         return [
             self._public_view(provider)
             for provider in providers

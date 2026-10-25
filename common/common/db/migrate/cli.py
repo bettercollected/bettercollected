@@ -109,9 +109,59 @@ def valid_groups(target: Target) -> list[str]:
     return list(SERVICE_GROUPS.get(target.service) or target.group_names())
 
 
+#: commands that compare or copy between the stores, which a Postgres-only
+#: group no longer has: they skip those groups and refuse to be pointed at one
+BOTH_STORES_COMMANDS = ("verify", "reconcile")
+
+
+class PostgresOnlyGroup(ValueError):
+    """``verify``/``reconcile`` pointed at a group served from Postgres only."""
+
+
+def _listed(names: Sequence[str]) -> str:
+    """``a``, ``a and b``, ``a, b and c``."""
+    names = list(names)
+    return " and ".join(n for n in (", ".join(names[:-1]), names[-1]) if n)
+
+
+def skipped_groups(args: argparse.Namespace, target: Target) -> list[str]:
+    """The Postgres-only groups a ``verify``/``reconcile`` without a selection
+    leaves out (those that have collections here)."""
+    if args.command not in BOTH_STORES_COMMANDS or args.group or args.collections:
+        return []
+    return [g for g in target.group_names() if g in target.postgres_only_groups]
+
+
 def select_collections(args: argparse.Namespace, target: Target) -> Optional[list[str]]:
     """The collections ``--collections`` or ``--group`` select; ``None`` = all.
-    Raises :class:`UnknownGroup` for a group the service does not have."""
+    Raises :class:`UnknownGroup` for a group the service does not have.
+
+    ``verify`` and ``reconcile`` never cover a Postgres-only group
+    (``Target.postgres_only_groups``): they select every other collection by
+    default and raise :class:`PostgresOnlyGroup` when one is asked for."""
+    selected = _select(args, target)
+    if args.command not in BOTH_STORES_COMMANDS:
+        return selected
+    if selected is None:
+        if not target.postgres_only_groups:
+            return None
+        return list(target.migrating_tables())
+    named: list[str] = []
+    for group in parse_groups(args.group) + [target.group_of(c) for c in selected]:
+        if group in target.postgres_only_groups and group not in named:
+            named.append(group)
+    if named:
+        raise PostgresOnlyGroup(
+            f"{args.command} does not cover a group served from Postgres only: "
+            f"{', '.join(named)}. Such a group has no Mongo store to "
+            f"{'compare' if args.command == 'verify' else 'reconcile'} with; its "
+            "Mongo data from 4.0 is imported with `backfill` (see "
+            "docs/postgres-cutover-runbook.md, 'Upgrading to 4.1')"
+        )
+    return selected
+
+
+def _select(args: argparse.Namespace, target: Target) -> Optional[list[str]]:
     if args.group:
         groups = validate_groups(parse_groups(args.group), valid_groups(target))
         if not groups:
@@ -175,6 +225,14 @@ async def run(args: argparse.Namespace, target: Target) -> int:
             )
             _print(results)
             return 1 if any(r.get("state") == "error" for r in results.values()) else 0
+        skipped = skipped_groups(args, target)
+        if skipped:
+            print(
+                f"{args.command}: skipping the {_listed(skipped)} group(s), served "
+                "from Postgres only (their Mongo data is imported with backfill, "
+                "never verified or reconciled)",
+                file=sys.stderr,
+            )
         if args.command == "verify":
             reports = await runner.verify(collections, sample_every=args.sample_every)
             _print([r.as_dict() for r in reports])
@@ -225,7 +283,9 @@ def reconcile_to_mongo_refusal(
     if args.dry_run:
         return None
     try:
-        flags = load_flags(env)
+        # each group's effective mode: the service's own loader, which pins
+        # its Postgres-only groups to postgres whatever the global flags say
+        flags = (target.load_flags or load_flags)(env)
     except FlagError as exc:
         return f"the write-mode flags do not parse: {exc}"
     collections = select_collections(args, target) or list(target.tables)
@@ -256,7 +316,7 @@ def main(
     args = parser.parse_args(argv)
     try:
         select_collections(args, target)
-    except UnknownGroup as exc:
+    except (UnknownGroup, PostgresOnlyGroup) as exc:
         parser.error(str(exc))  # exits 2
     refusal = reconcile_to_mongo_refusal(args, target, env)
     if refusal:

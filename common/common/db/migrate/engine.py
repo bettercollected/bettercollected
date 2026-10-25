@@ -81,9 +81,27 @@ class Target:
     groups: Mapping[str, str] = field(default_factory=dict)
     marker: Optional[Table] = None  # <schema>.store_migration
     code_version: str = ""
+    # repository groups served from Postgres only: their collections are
+    # imported (preflight, backfill, status) but never verified or reconciled,
+    # and the marker covers the other groups
+    postgres_only_groups: tuple[str, ...] = ()
+    # the service's effective flags from an environment (its own loader, e.g.
+    # one that pins the Postgres-only groups); None: common.db.flags.load_flags
+    load_flags: Optional[Callable[[Mapping[str, str]], Any]] = None
 
     def group_of(self, collection: str) -> str:
         return self.groups.get(collection) or self.service or self.schema
+
+    def is_postgres_only(self, collection: str) -> bool:
+        return self.group_of(collection) in self.postgres_only_groups
+
+    def migrating_groups(self) -> list[str]:
+        """:meth:`group_names` without the Postgres-only groups."""
+        return [g for g in self.group_names() if g not in self.postgres_only_groups]
+
+    def migrating_tables(self) -> dict[str, Table]:
+        """The collections of :meth:`migrating_groups` and their tables."""
+        return {c: t for c, t in self.tables.items() if not self.is_postgres_only(c)}
 
     def group_names(self) -> list[str]:
         """The groups that have collections: in the service's declared order
@@ -734,7 +752,8 @@ class Runner:
         Postgres tombstones past their retention are pruned at the end of a
         run (Mongo expires its own). The outboxes are drained only when
         every collection was reconciled (no ``--group``/``--collections``
-        subset): their entries name a repository, not a collection."""
+        subset; the Postgres-only groups' collections need not be, they
+        mirror nothing): their entries name a repository, not a collection."""
         selected = self.tables_for(collections)
         results = {}
         for name, table in selected.items():
@@ -765,7 +784,7 @@ class Runner:
                 "changed them meanwhile; run verify, then reconcile again",
                 skipped_any,
             )
-        elif set(selected) == set(self.target.tables):
+        elif set(selected) >= set(self.target.migrating_tables()):
             await self._drain_outbox(direction, dry_run)
         else:
             logger.info(
@@ -1280,7 +1299,8 @@ class Runner:
         """Record what a ``verify`` run proved (see :mod:`common.db.marker`):
         a ``group`` row per repository group whose collections were all
         verified clean with equal counts, and the service marker when every
-        group was, in this run or by combining the latest group rows.
+        group was, in this run or by combining the latest group rows (every
+        group but the Postgres-only ones, which are never verified).
         ``subset``: the run was limited by ``--collections`` (never recorded)."""
         outcome: dict[str, Any] = {"groups": [], "marker": None, "reason": None}
         marker = self.target.marker
@@ -1315,7 +1335,7 @@ class Runner:
             report = by_name.get(name)
             return bool(report and report.clean and report.mongo == report.postgres)
 
-        all_groups = self.target.group_names()
+        all_groups = self.target.migrating_groups()
         clean_groups = [
             g
             for g in all_groups
@@ -1336,7 +1356,7 @@ class Runner:
                 self._marker_values(
                     SCOPE_SERVICE,
                     all_groups,
-                    {n: counts(n) for n in self.target.tables},
+                    {n: counts(n) for n in self.target.migrating_tables()},
                     now,
                 )
             )
@@ -1373,7 +1393,7 @@ class Runner:
         collections: dict[str, dict] = {}
         oldest = now
         async with self.engine.begin() as conn:
-            for group in self.target.group_names():
+            for group in self.target.migrating_groups():
                 row = (
                     (
                         await conn.execute(
@@ -1426,7 +1446,7 @@ class Runner:
                 marker.insert(),
                 self._marker_values(
                     SCOPE_SERVICE,
-                    self.target.group_names(),
+                    self.target.migrating_groups(),
                     collections,
                     oldest,
                     based_on,
@@ -1552,7 +1572,7 @@ class Runner:
                 conn,
                 self.target.service,
                 schema=self.target.schema,
-                collections=list(self.target.tables),
+                collections=list(self.target.migrating_tables()),
             )
         return {
             "format": 1,

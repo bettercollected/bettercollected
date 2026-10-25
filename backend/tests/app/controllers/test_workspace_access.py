@@ -521,6 +521,50 @@ class TestInvitationMail:
         assert url.endswith("/users/invite/send/mail")
         assert kwargs["headers"] == {"X-Internal-Key": "backend-internal-key"}
 
+    async def test_a_resend_asks_for_the_mail_in_the_given_language(
+        self, client: AsyncClient, workspace, test_user_cookies
+    ):
+        async def auth_service(url, **kwargs):
+            if url.endswith("/users"):  # is the invitee already a member?
+                return {"users_info": []}
+            return "Mail sent successfully!!"
+
+        sent = AsyncMock(side_effect=auth_service)
+        with patch("common.services.http_client.HttpClient.get", sent):
+            invited = await client.post(
+                f"{_url(workspace)}/members/invitations",
+                cookies=test_user_cookies,
+                json={"email": "resend@example.com", "role": "COLLABORATOR"},
+            )
+            assert invited.status_code == 200, invited.text
+            # a resend issues a new token: each one names the latest
+            token = [invited.json()["invitation_token"]]
+
+            async def resend(**params):
+                sent.reset_mock()
+                response = await client.post(
+                    f"{_url(workspace)}/members/invitations/{token[0]}/resend",
+                    cookies=test_user_cookies,
+                    params=params,
+                )
+                if response.status_code == 200:
+                    token[0] = response.json()["invitation_token"]
+                return response
+
+            dutch = await resend(locale="nl")
+            assert dutch.status_code == 200, dutch.text
+            (url,), kwargs = sent.call_args
+            assert url.endswith("/users/invite/send/mail")
+            assert kwargs["params"]["locale"] == "nl"
+
+            # without one, auth's default (English) applies, as before
+            plain = await resend()
+            assert plain.status_code == 200, plain.text
+            assert "locale" not in sent.call_args.kwargs["params"]
+
+            too_long = await resend(locale="x" * 36)
+            assert too_long.status_code == 422
+
 
 async def _refused(call) -> int:
     with pytest.raises(HTTPException) as refused:

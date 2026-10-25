@@ -96,6 +96,8 @@ STUB = textwrap.dedent(
         elif verb == "setup-token":
             print("TOKEN-SHOWN")
         sys.exit(0)
+    if "backend.seed_refdata" in argv and os.environ.get("STUB_SEED_FAILS"):
+        sys.exit(1)
     if "config" in argv:
         print("{}")
         sys.exit(0)
@@ -812,3 +814,87 @@ def test_another_projects_typeform_container_is_not_reported(site):
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     assert "integrations-typeform container" not in done.stderr
     assert ".env.typeform" not in done.stderr
+
+
+# -- reference data (allowed origins, the Google Forms provider) in Postgres ------------
+
+
+def _seed_calls(calls):
+    return [c for c in calls if "backend.seed_refdata" in c]
+
+
+def test_a_new_stack_seeds_its_reference_data_into_postgres_before_the_start(site):
+    work, state, _ = site
+    done, calls = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    [seed] = _seed_calls(calls)
+    position = calls.index(seed)
+    # after the migrations and the keys, with Mongo up (the import check reads it),
+    # before any service starts
+    assert _index(calls, "alembic") < _index(calls, "bootstrap-keys") < position
+    assert _index(calls, "up -d --wait mongodb") < position < _index(calls, "up --build")
+    assert "run --rm --no-deps backend" in seed
+    assert seed.endswith("--google-enabled false")
+    # no public domain configured: the command decides (local ports, or API_CLIENT_URL's origin)
+    assert "--origin" not in seed
+    assert "DASHBOARD_DOMAIN and FORM_DOMAIN are not set" in done.stdout
+
+
+def test_the_seeded_origins_are_the_web_apps_public_ones(site):
+    work, state, _ = site
+    (work / ".env.deployment").write_text(
+        "UMAMI_PASSWORD=\nHTTP_SCHEME=https://\nDASHBOARD_DOMAIN=admin.forms.example\n"
+        "FORM_DOMAIN=forms.example\nCLIENT_ADMIN_URL=http://localhost:3000\n"
+    )
+    done, calls = _run(site, "googleform")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    [seed] = _seed_calls(calls)
+    assert "--origin https://admin.forms.example --origin https://forms.example" in seed
+    assert "localhost" not in seed
+    assert seed.endswith("--google-enabled true")
+
+
+def test_the_web_apps_own_env_file_wins_and_a_scheme_or_path_is_understood(site):
+    work, state, _ = site
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nFORM_DOMAIN=old.example\n")
+    (work / ".env.webapp").write_text(
+        "HTTP_SCHEME=http\nDASHBOARD_DOMAIN=https://dash.example:8443/app\nFORM_DOMAIN=forms.example\n"
+    )
+    done, calls = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    [seed] = _seed_calls(calls)
+    assert "--origin http://dash.example:8443 --origin http://forms.example " in seed
+    assert "old.example" not in seed
+
+
+def test_an_upgrade_and_a_second_run_never_seed(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not _seed_calls(calls)
+    # a new stack seeds once; its next deploys leave the tables to the operator
+    shutil.rmtree(state / "store")
+    (work / ".env").unlink()
+    (state / "calls.log").unlink()
+    done, calls = _run(site)
+    assert done.returncode == 0 and len(_seed_calls(calls)) == 1
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not _seed_calls(calls)
+
+
+def test_a_failed_seed_stops_before_the_start_and_the_next_run_seeds(site):
+    work, state, _ = site
+    done, calls = _run(site, extra={"STUB_SEED_FAILS": "1"})
+    assert done.returncode != 0
+    assert "Seeding the reference data into Postgres failed" in done.stderr
+    assert not any("up --build" in c for c in calls)
+    assert _dotenv(work)["BC_FIRST_RUN_PENDING"] == "1"
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("bootstrap-keys" in c for c in calls)
+    assert len(_seed_calls(calls)) == 1
+    assert _index(calls, "backend.seed_refdata") < _index(calls, "up --build")
