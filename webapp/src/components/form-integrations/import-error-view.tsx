@@ -8,7 +8,9 @@ import CheckedCircle from '@Components/icons/checked-circle';
 import { Disclosure } from '@headlessui/react';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
+import GoogleFormsImportNotice from '@app/components/form-integrations/google-forms-import-notice';
 import environments from '@app/configs/environments';
+import { useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import ConnectWithProviderButton from '@Components/login/login-with-google-button';
 
 interface ImportErrorViewProps {
@@ -40,6 +42,9 @@ interface IDefaultContent {
 
 export default function ImportErrorView({ provider, closable = true, unauthorizedScopes }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
+    // Connecting a Google account only makes sense while imports are on: in
+    // readonly and off the backend refuses it (403 / 410), so say why instead.
+    const { mode } = useGoogleFormsImportMode();
 
     const googlePermissions: Array<IPermission> = [
         {
@@ -71,6 +76,14 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
     });
 
 
+    if (provider === 'google' && (mode === 'readonly' || mode === 'off')) {
+        return (
+            <div className="relative w-full rounded border border-black-300 bg-white px-6 pb-6 pt-14 md:max-w-[560px]">
+                {closable && <CloseModal />}
+                <GoogleFormsImportNotice mode={mode} />
+            </div>
+        );
+    }
 
     return (
         <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded border border-black-300 bg-white py-10 text-sm md:max-w-[560px]">

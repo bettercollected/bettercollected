@@ -69,11 +69,14 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const showModal = searchParams.modal;
     const [pdfImportOpen, setPdfImportOpen] = React.useState(false);
 
+    // `?modal=true` is where the Google connection used to return to; it opens
+    // the import only while imports are offered (readonly and off: the page
+    // already says why there is no Google import).
     useEffect(() => {
-        if (showModal === 'true' && canCreate) {
+        if (showModal === 'true' && canCreate && showGoogleImport) {
             openModal('IMPORT_FORMS', { nonClosable: true });
         }
-    }, [showModal, canCreate]);
+    }, [showModal, canCreate, showGoogleImport]);
 
     const { data: templates } = useGetTemplatesQuery({ v2: true }, { skip: !canCreate });
 
