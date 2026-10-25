@@ -24,6 +24,7 @@ never sends an email to the runner.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 import time
@@ -58,6 +59,15 @@ SKIPPED = {
     "refused": "refused",
 }
 
+# the API's 502 body code (its call to auth failed) -> the refusal
+AUTH_FAILURES = {
+    "auth_unreachable": "auth_unreachable",
+    "auth_refused": "auth_key_refused",
+    "auth_error": "auth_error",
+}
+
+log = logging.getLogger("backend.admin.tasks")
+
 # tests replace it with an in-process transport
 transport: Optional[httpx.AsyncBaseTransport] = None
 
@@ -81,30 +91,71 @@ class Backend:
     async def _call(self, method: str, path: str) -> dict:
         try:
             reply = await self._client.request(method, path)
+        except httpx.TransportError:
+            # no connection, or a timeout
+            raise _refused(method, None, "backend_unreachable") from None
         except httpx.HTTPError:
-            raise Refusal("backend_unreachable") from None
-        if reply.status_code == 503:
-            raise Refusal("backend_key_missing")
-        if reply.status_code in (401, 403):
-            raise Refusal("backend_key_refused")
-        if reply.status_code != 200:
-            raise Refusal("backend_unreachable")
+            raise _refused(method, None, "backend_error") from None
+        status = reply.status_code
+        if status != 200:
+            raise _refused(method, status, _refusal(reply))
         try:
-            return reply.json()
+            body = reply.json()
         except ValueError:
-            raise Refusal("backend_unreachable") from None
+            raise _refused(method, status, "backend_bad_reply") from None
+        if not isinstance(body, dict):
+            raise _refused(method, status, "backend_bad_reply")
+        return body
 
     async def groups(self) -> List[List[dict]]:
         groups = (await self._call("GET", "")).get("groups") or []
+        if not isinstance(groups, list):
+            raise Refusal("backend_bad_reply")
         return [_valid_group(group) for group in groups]
 
     async def drop(self, account_id: str) -> str:
         return str((await self._call("POST", f"/{account_id}/drop")).get("status"))
 
 
+def _refusal(reply: httpx.Response) -> str:
+    """The refusal code for a reply other than 200."""
+    status = reply.status_code
+    if status == 503:
+        return "backend_key_missing"
+    if status in (401, 403):
+        return "backend_key_refused"
+    if status == 404:
+        return "backend_route_missing"
+    if status == 502:
+        # the API's call to auth failed; a 502 without its code (a proxy in
+        # front of the API, say) is the API's own error
+        try:
+            code = reply.json().get("code")
+        except (ValueError, AttributeError):
+            code = None
+        if isinstance(code, str) and code in AUTH_FAILURES:
+            return AUTH_FAILURES[code]
+    return "backend_error"
+
+
+def _refused(method: str, status: Optional[int], code: str) -> Refusal:
+    """The refusal, logged with the HTTP status: status and code only, never
+    a body."""
+    log.warning(
+        "%s: the API call (%s) was refused: %s (HTTP status %s).",
+        catalog.META.name,
+        method,
+        code,
+        status if status is not None else "none",
+    )
+    return Refusal(code)
+
+
 def _valid_group(group) -> List[dict]:
     """Only well-formed ids, integer counts and known decisions are used: the
     reply cannot carry anything else into an event."""
+    if not isinstance(group, list) or not all(isinstance(a, dict) for a in group):
+        raise Refusal("backend_bad_reply")
     out = []
     for account in group:
         account_id = str(account.get("id"))
@@ -116,7 +167,7 @@ def _valid_group(group) -> List[dict]:
             or isinstance(forms, bool)
             or not isinstance(forms, int)
         ):
-            raise Refusal("backend_unreachable")
+            raise Refusal("backend_bad_reply")
         out.append({"id": account_id, "forms": forms, "decision": decision})
     return out
 

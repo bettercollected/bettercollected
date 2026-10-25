@@ -17,6 +17,7 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
+import httpx
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -70,6 +71,8 @@ class FakeAuth:
 
     def __init__(self):
         self.users = set(EMAILS)
+        # set by a test: how every call to auth fails (a response or an error)
+        self.failure = None
 
     def groups(self):
         by_address = {}
@@ -77,16 +80,27 @@ class FakeAuth:
             by_address.setdefault(EMAILS[user_id].lower(), []).append(user_id)
         return [ids for ids in by_address.values() if len(ids) > 1]
 
-    async def get(self, url, *args, **kwargs):
+    async def request(self, method, url, *args, **kwargs):
+        assert method == "GET", "unexpected auth call"
+        assert kwargs.get("headers") is not None
+        request = httpx.Request(method, url)
+        if isinstance(self.failure, type):
+            raise self.failure("auth down", request=request)
+        if self.failure is not None:
+            return self.failure
         if url.endswith("/users/case-duplicates"):
-            return {"groups": self.groups()}
+            return httpx.Response(200, json={"groups": self.groups()}, request=request)
         if url.endswith("/users"):
             ids = (kwargs.get("params") or {}).get("user_ids") or []
-            return {
-                "users_info": [
-                    {"_id": i, "email": EMAILS[i]} for i in ids if i in self.users
-                ]
-            }
+            return httpx.Response(
+                200,
+                json={
+                    "users_info": [
+                        {"_id": i, "email": EMAILS[i]} for i in ids if i in self.users
+                    ]
+                },
+                request=request,
+            )
         raise AssertionError("unexpected auth call")
 
 
@@ -99,7 +113,7 @@ def key(monkeypatch):
 @pytest.fixture()
 def auth(monkeypatch):
     fake = FakeAuth()
-    with patch("common.services.http_client.HttpClient.get", side_effect=fake.get):
+    with patch("common.services.http_client.HttpClient.request", side_effect=fake.request):
         yield fake
 
 
@@ -349,6 +363,36 @@ async def test_a_former_duplicate_whose_keeper_is_gone_is_left_alone(
     assert reply.json() == {"status": "not_found"}
     assert deletions == []
     assert await container.workspace_repo().find_by_id(world[B1].id) is not None
+
+
+@pytest.mark.parametrize(
+    "failure,code,status",
+    [
+        (httpx.ConnectError, "auth_unreachable", None),
+        (httpx.ReadTimeout, "auth_unreachable", None),
+        (httpx.Response(403, json={"detail": "nope"}), "auth_refused", 403),
+        (httpx.Response(401), "auth_refused", 401),
+        (httpx.Response(503, text="no key"), "auth_error", 503),
+        (httpx.Response(500, text="boom"), "auth_error", 500),
+        (httpx.Response(404, json={"detail": "x"}), "auth_error", 404),
+        (httpx.Response(200, text="<html>"), "auth_error", 200),
+        (httpx.Response(200, json=["x"]), "auth_error", 200),
+    ],
+)
+async def test_an_auth_failure_is_a_502_with_its_code_not_auths_status(
+    client: AsyncClient, key, world, deletions, auth, failure, code, status
+):
+    """A failing call to auth is reported as such (502 + a stable code and
+    auth's status), never passed through as the API's own 503/403, and never
+    with auth's body."""
+    auth.failure = failure
+    reply = await client.get(BASE, headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": code, "status": status}
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": code, "status": status}
+    assert deletions == []
 
 
 async def test_a_whitespace_key_counts_as_unset(client: AsyncClient, auth, monkeypatch):

@@ -12,6 +12,11 @@ may do: the runner names an account, never a decision.
   re-evaluates the account's group and, only if the rules still drop it,
   starts the product's account deletion
   (``services/case_duplicate_accounts.py``).
+
+When the API's call to the auth service fails, both answer 502 with
+``{"code": "auth_unreachable" | "auth_refused" | "auth_error", "status":
+<auth's status or null>}`` (never auth's body), so the runner can tell an
+auth problem from the API's own 503 (no key) and 403 (wrong key).
 """
 
 import hmac
@@ -19,11 +24,13 @@ from http import HTTPStatus
 
 from classy_fastapi import Routable, get, post
 from fastapi import Depends, Request
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
+from backend.app.services.case_duplicate_accounts import AuthCallFailed
 from backend.config import settings
 
 KEY_HEADER = "X-Admin-Tasks-Key"
@@ -43,6 +50,20 @@ def require_admin_tasks_key(request: Request) -> None:
             status_code=HTTPStatus.FORBIDDEN,
             content="You are not allowed to perform this action.",
         )
+
+
+def _auth_failed(route: str, error: AuthCallFailed) -> JSONResponse:
+    # code and status only: never auth's body, an id or an email
+    logger.warning(
+        "Admin task route {}: the auth service call failed ({}, status {}).",
+        route,
+        error.code,
+        error.status,
+    )
+    return JSONResponse(
+        status_code=HTTPStatus.BAD_GATEWAY,
+        content={"code": error.code, "status": error.status},
+    )
 
 
 def _object_id(user_id: str) -> str:
@@ -66,12 +87,18 @@ class AdminTasksRouter(Routable):
 
     @get("/case-duplicate-accounts")
     async def case_duplicate_accounts(self):
-        groups = await self.case_duplicates.plan()
+        try:
+            groups = await self.case_duplicates.plan()
+        except AuthCallFailed as error:
+            return _auth_failed("case-duplicate-accounts", error)
         return {
             "groups": [[account.as_dict() for account in group] for group in groups]
         }
 
     @post("/case-duplicate-accounts/{user_id}/drop")
     async def drop_case_duplicate_account(self, user_id: str):
-        status = await self.case_duplicates.drop(_object_id(user_id))
+        try:
+            status = await self.case_duplicates.drop(_object_id(user_id))
+        except AuthCallFailed as error:
+            return _auth_failed("case-duplicate-accounts drop", error)
         return {"status": status}
