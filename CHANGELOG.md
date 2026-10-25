@@ -13,6 +13,94 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.11] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations and no new roles or SQL.** Two new settings, both environment only, for the
+  case-duplicates task:
+  - `ADMIN_TASKS_API_KEY` on `backend` **and** `task-runner` (the same value);
+  - `ADMIN_TASKS_BACKEND_URL` on `task-runner`. The default is `http://backend:8000/api/v1`, which
+    works when `task-runner` shares a network with `backend`.
+
+  Without the key, the internal admin-task routes answer 503 and the task refuses; nothing else
+  changes.
+- **Hosted deploys:** `deploy.yml` now always updates `admin`, `document-sandbox`, `jobs-worker` and
+  `task-runner` with the backend image. Every stack the workflow deploys must run these four, or
+  Docker Manager rejects the deploy. Delete the repository variables
+  `DEVELOP_BACKEND_IMAGE_SERVICES`, `STAGING_BACKEND_IMAGE_SERVICES` and
+  `PROD_BACKEND_IMAGE_SERVICES`; they are no longer read.
+- **Accounts whose emails differ only in case** (they must be resolved before 4.1):
+  1. Set one fresh random value (`openssl rand -hex 32`) as `ADMIN_TASKS_API_KEY` on `backend` and
+     `task-runner` and redeploy those two, **only for the run**.
+  2. Check that none of the listed accounts has its own deletion already pending.
+  3. Run `auth.resolve_case_duplicate_accounts` as a dry run and review the decision per group:
+     keep, drop or manual. Then apply.
+  4. Handle the `manual` groups (two or more accounts with forms) and any `refused` drops with the
+     people concerned.
+  5. **Unset `ADMIN_TASKS_API_KEY` on both services** right after.
+
+  `auth.migrate preflight` now prints `case_variant_keys` and `case_variant_documents` (a warning on
+  4.0), so the count is visible at any time.
+- **Account deletion and Google Forms:** deleting an account now removes only its own Google
+  credentials, by user id, plus the legacy ones without a user id that carry its email. Another
+  account connected to the same Google account keeps its connection.
+- **Migration (cutover operators):**
+  - `verify` ignores copies that Mongo's TTL index has expired, and reports them under `expired`.
+  - `reconcile` (Mongo → Postgres) keeps a newer application-written Postgres row and reports it
+    as `newer_in_postgres`, instead of skipping it silently. To copy Mongo's version over such rows
+    while Mongo is the primary, run `reconcile --direction mongo->postgres --mongo-wins` with the
+    services' `DB_WRITE_MODE` (or `DB_WRITE_MODE__<group>`) **set explicitly** in the runner's
+    environment. Groups without an explicit `mongo` or `dual` are never overwritten, and nothing
+    the application wrote is overwritten while the Postgres-side outbox has unresolved entries.
+  - A `mongo->postgres` run no longer resolves Postgres-side outbox entries; `postgres->mongo` or a
+    clean full `verify` does.
+  - See `docs/postgres-cutover-runbook.md` (Phase 1 step 5, and the Phase 2 rollback step).
+- **Rollback:** 4.0.10 can run against a 4.0.11 database. The new settings go unused, and the
+  migration tools behave as in 4.0.10.
+
+### Added
+
+- **Admin task `auth.resolve_case_duplicate_accounts`** resolves accounts whose emails differ only
+  in case, which 4.1 refuses to start with. Per group: accounts without forms are dropped; if one
+  account has forms it stays; if none has, the one created last stays; if two or more have forms,
+  those are listed for manual handling. The dry run lists every group (account ids, created time,
+  forms count, decision; never an email); the apply deletes each dropped account through the
+  product's own account deletion and reports the groups that remain. It needs the same new
+  `ADMIN_TASKS_API_KEY` on the `backend` and `task-runner` services (docs/admin-service.md).
+- **`auth.migrate preflight` counts accounts whose emails differ only in letter case**
+  (`case_variant_keys`: distinct emails held by more than one account; `case_variant_documents`:
+  the accounts involved), as a warning with counts only. A later release makes an email unique
+  ignoring case, so these accounts have to be merged before upgrading; on 4.0 they keep working
+  and preflight still passes.
+
+### Changed
+
+- Deploys through `.github/workflows/deploy.yml` update the services that run the backend image under
+  their own stack service name (`admin`, `document-sandbox`, `jobs-worker`, `task-runner`) every time;
+  the `DEVELOP_`/`STAGING_`/`PROD_BACKEND_IMAGE_SERVICES` repository variables are gone. Every stack the
+  workflow deploys must run these four services. Operators: delete those repository variables after
+  upgrading; they are no longer read.
+
+### Fixed
+
+- **Deleting an account no longer deletes another account's Google Forms connection.** The Google
+  Forms integration removed every stored credential with the deleted account's email address, so
+  a second account connected to the same Google account lost its connection too. It now removes
+  the account's own credentials by user id, and by email only the legacy ones that have no user id.
+- **Migration `verify` agrees with `reconcile`.** In collections Mongo expires by a TTL index
+  (sessions, rate-limit counters, SSO states, …), `verify` now treats an expired copy in either
+  store as absent, as `reconcile` already did, so copies Mongo's TTL monitor dropped are no longer
+  reported as `missing_in_mongo` on every run; the report counts them under `expired`. Only a date
+  expires, as in Mongo: an ISO-string expiry is a live copy. And `reconcile` (Mongo → Postgres) no
+  longer skips a Postgres row the application wrote after Mongo's copy without a trace: it keeps
+  it and counts it as `newer_in_postgres`. The new `reconcile --mongo-wins` copies Mongo's version
+  over such rows instead, only in the groups whose `DB_WRITE_MODE`/`DB_WRITE_MODE__<group>` is
+  explicitly `mongo` or `dual`. While the Postgres-side outbox has unresolved entries (writes from
+  a time Postgres was primary), no row the application wrote is replaced at all; a `mongo->postgres`
+  run no longer resolves those entries (`postgres->mongo` or a clean full `verify` does).
+
 ## [4.0.10] - 2026-10-25
 
 ### Upgrade notes
@@ -1320,7 +1408,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...HEAD
+[4.0.11]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...v4.0.11
 [4.0.10]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...v4.0.10
 [4.0.9]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...v4.0.9
 [4.0.8]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...v4.0.8
