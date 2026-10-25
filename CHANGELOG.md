@@ -13,6 +13,132 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.10] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations.** No service schema changes, no new service settings and no compose change.
+- **Once, after the deploy: create the purge task's role and function.** `deploy.sh` does this
+  (it runs `postgres/ensure-admin-roles.sh`). Without `deploy.sh` (a Swarm stack, say), run the
+  statement below once **as the database superuser, connected to the application database**. It is
+  self-contained: no psql variables and no passwords, because it only creates the login-less role
+  `bc_tasks_purge_google` and the function `google.purge_unencrypted_credentials`, and grants
+  EXECUTE to `bc_tasks_data_google` (created for 4.0.8). It is safe to run again. Running the whole
+  `ensure-admin-roles.sh` as described for 4.0.8 does the same. Until it has run, the task refuses
+  with `purge_function_missing`; nothing else depends on it.
+
+  ```sql
+  DO $gpurge$
+  DECLARE
+      s text;
+  BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_tasks_purge_google') THEN
+          CREATE ROLE bc_tasks_purge_google NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+      END IF;
+      ALTER ROLE bc_tasks_purge_google NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+      ALTER ROLE bc_tasks_purge_google SET search_path = pg_catalog;
+      EXECUTE format('REVOKE ALL ON DATABASE %I FROM bc_tasks_purge_google', current_database());
+      FOREACH s IN ARRAY ARRAY['app', 'auth', 'google', 'jobs', 'admin', 'tasks', 'settings'] LOOP
+          IF to_regnamespace(s) IS NOT NULL THEN
+              EXECUTE format('REVOKE ALL ON SCHEMA %I FROM bc_tasks_purge_google', s);
+              EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM bc_tasks_purge_google', s);
+              EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA %I FROM bc_tasks_purge_google', s);
+          END IF;
+      END LOOP;
+      IF to_regnamespace('google') IS NULL THEN
+          RETURN;
+      END IF;
+      GRANT USAGE ON SCHEMA google TO bc_tasks_purge_google;
+      IF to_regclass('google.oauth_credentials') IS NOT NULL THEN
+          GRANT SELECT (user_id, doc), DELETE ON google.oauth_credentials TO bc_tasks_purge_google;
+      END IF;
+      EXECUTE $create$
+  CREATE OR REPLACE FUNCTION google.purge_unencrypted_credentials(p_apply boolean) RETURNS bigint
+  LANGUAGE plpgsql SECURITY DEFINER VOLATILE
+  SET search_path = pg_catalog, pg_temp AS $fn$
+  DECLARE
+      n bigint;
+  BEGIN
+      IF p_apply IS NULL THEN
+          RAISE EXCEPTION 'google.purge_unencrypted_credentials: apply must be true or false'
+              USING ERRCODE = 'invalid_parameter_value';
+      END IF;
+      IF p_apply THEN
+          WITH gone AS (
+              DELETE FROM google.oauth_credentials c
+               WHERE coalesce(c.user_id, '') = ''
+                  OR (jsonb_typeof(c.doc -> 'credentials') = 'object'
+                      AND NOT (c.doc -> 'credentials') ? '$binary')
+              RETURNING 1
+          )
+          SELECT count(*) INTO n FROM gone;
+      ELSE
+          SELECT count(*) INTO n FROM google.oauth_credentials c
+           WHERE coalesce(c.user_id, '') = ''
+              OR (jsonb_typeof(c.doc -> 'credentials') = 'object'
+                  AND NOT (c.doc -> 'credentials') ? '$binary');
+      END IF;
+      RETURN n;
+  END
+  $fn$
+  $create$;
+      ALTER FUNCTION google.purge_unencrypted_credentials(boolean) OWNER TO bc_tasks_purge_google;
+      REVOKE ALL ON FUNCTION google.purge_unencrypted_credentials(boolean) FROM PUBLIC;
+      GRANT EXECUTE ON FUNCTION google.purge_unencrypted_credentials(boolean) TO bc_tasks_data_google;
+  END
+  $gpurge$;
+  ```
+- **Mongo:** the task runner's Mongo user (`TASK_RUNNER_MONGO_URI`) needs `readWrite` on
+  `Oauth2CredentialDocument` in the Google integration's database. It already has that if it has run
+  `keyset.reencrypt`.
+- **Then run the purge task** in the admin portal: `google.purge_unencrypted_credentials` with
+  `stores: auto`, a dry run first (counts per store), then the apply. It replaces the manual runbook
+  step "Google credentials without a user id"; don't run both.
+- **Hosted deploys:** set the repository variable `PROD_BACKEND_IMAGE_SERVICES` to the services of the
+  production stack that run the backend image (`docker service ls`), so the next tag also updates
+  them. Empty, deploys behave as before.
+- **API keys:** a request whose key is revoked while it is in flight is now refused (401) instead of
+  bringing the key back.
+- **Before moving the identity group to `postgres_primary_dual`:** this release must be deployed
+  (workspace settings written atomically in Postgres).
+- **Rollback:** 4.0.9 can run against a 4.0.10 database. The role and function stay unused.
+
+### Added
+
+- Admin portal: a task, `google.purge_unencrypted_credentials`, replaces the manual runbook step
+  "Google credentials without a user id". It deletes the stored Google credentials that have no user
+  id or hold readable tokens, with exactly the runbook's filters: a dry run first (counts per store),
+  then the apply with the usual confirmation code, Mongo first and then Postgres, with the counts in
+  the audit log. Counts only, never ids, emails or tokens; a second run deletes nothing. An apply
+  must cover every store the services still write (`stores_incomplete` otherwise). The task
+  runner's Google data role still has no DELETE: it calls a narrow definer function,
+  `google.purge_unencrypted_credentials`, owned by a new login-less role `bc_tasks_purge_google`.
+  Both are created by `postgres/ensure-admin-roles.sh`: run it once after upgrading (`deploy.sh`
+  does; without `deploy.sh`, as described for 4.0.8). Until then the task refuses with
+  `purge_function_missing`. Mongo: the runner's Mongo user needs `readWrite` on
+  `Oauth2CredentialDocument`.
+
+### Fixed
+
+- Deploys through `.github/workflows/deploy.yml` can now also update the stack services that run the
+  backend image under their own name (`admin`, `document-sandbox`, `jobs-worker`, `task-runner`). They were
+  always left on their old image tag. Each environment lists the ones its stack runs in a new repository
+  variable (`DEVELOP_BACKEND_IMAGE_SERVICES`, `STAGING_BACKEND_IMAGE_SERVICES`, `PROD_BACKEND_IMAGE_SERVICES`;
+  empty by default, so nothing changes until it is set). See "CI deployments" in the README.
+
+### Security
+
+- A workspace API key revoked while a request using it was in flight stays revoked: recording the
+  key's last use now changes only that field, and only while the key is not revoked (a conditional
+  update in MongoDB and Postgres), instead of saving the request's copy of the whole key, which
+  could set it back to not revoked. Such a request is refused.
+- Workspace settings changed field by field (AI consent, single sign-on enforcement and default role,
+  custom-domain status) are written atomically when the workspaces are served from Postgres
+  (`DB_WRITE_MODE__identity=postgres_primary_dual` and beyond): two changes made at the same time
+  both stay, so a concurrent save can no longer switch AI back on without consent or turn off
+  required single sign-on. Upgrade before moving the identity group to Postgres.
+
 ## [4.0.9] - 2026-10-25
 
 ### Upgrade notes
@@ -1194,7 +1320,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...HEAD
+[4.0.10]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...v4.0.10
 [4.0.9]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...v4.0.9
 [4.0.8]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...v4.0.8
 [4.0.7]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...v4.0.7
