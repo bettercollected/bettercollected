@@ -533,7 +533,12 @@ class WorkspaceFormService:
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self.responder_groups_service.add_groups_to_form(
-            form_id=form_id, group_ids=group_ids
+            workspace_id=workspace_id,
+            form_id=form_id,
+            group_ids=group_ids,
+            form_workspace_ids=await self.workspace_form_repository.get_workspace_ids_for_form_id(
+                form_id
+            ),
         )
 
     async def delete_group_from_form(
@@ -548,7 +553,12 @@ class WorkspaceFormService:
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         await self.responder_groups_service.remove_group_from_form(
-            form_id=form_id, group_id=group_id
+            workspace_id=workspace_id,
+            form_id=form_id,
+            group_id=group_id,
+            form_workspace_ids=await self.workspace_form_repository.get_workspace_ids_for_form_id(
+                form_id
+            ),
         )
 
     async def delete_forms_with_ids(
