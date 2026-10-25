@@ -2,7 +2,8 @@
 registry. No writes; no secret value, length, prefix or hash ever leaves here.
 
 * Health: service heartbeats (names and numbers), the admin database and its
-  Alembic state, and the other schemas' revisions where this role can read them.
+  Alembic state, the other schemas' Alembic state and their mirror outboxes
+  (unresolved/total rows), read through narrow definer functions.
 * Configuration: the settings registry joined with ``settings.entries`` and the
   env-override *names* services report.
 * Metrics: ``admin.platform_counts()`` (counts only), cached for a minute.
@@ -25,7 +26,8 @@ from backend.admin.db import MIGRATIONS
 from backend.admin.repositories import views as repo
 from backend.admin.security.clock import Clock
 from backend.admin.services import audit as audit_service
-from common.db.schema_guard import EngineRevisionSource, check_revision, read_revisions
+from backend.admin.schema_heads import code_revisions
+from common.db.schema_guard import EngineRevisionSource, check_revision, compare_revisions
 from common.settings.inventory import all_specs
 from common.settings.registry import SettingSpec, Tier
 
@@ -33,6 +35,8 @@ HEARTBEAT_STALE_SECONDS = 120
 METRICS_CACHE_SECONDS = 60
 MAX_VALUE_SHOWN = 200
 OTHER_SCHEMAS = ("app", "auth", "google")
+# the service that owns each of those schemas (and its mirror outbox)
+SCHEMA_SERVICE = {"app": "backend", "auth": "auth", "google": "google"}
 # services that report to ``settings.service_state`` (the registry's reader names)
 REPORTING = frozenset({"backend", "auth", "google", "tasks"})
 TIERS = tuple(t.value for t in Tier)
@@ -74,9 +78,18 @@ class Heartbeat:
 @dataclass(frozen=True)
 class SchemaStatus:
     schema: str
-    state: str  # current | behind | ahead | missing | readable | unavailable
+    state: str  # current | behind | ahead | missing | unknown | unavailable
     current: str
     expected: str
+
+
+@dataclass(frozen=True)
+class OutboxStatus:
+    service: str
+    store: str
+    state: str  # clean | pending | missing | unavailable
+    unresolved: Optional[int]
+    total: Optional[int]
 
 
 @dataclass(frozen=True)
@@ -87,6 +100,16 @@ class Health:
     other_schemas: list[SchemaStatus]
     heartbeats: list[Heartbeat]
     store_revision: Optional[int]
+    outbox: list[OutboxStatus] = field(default_factory=list)
+
+    @property
+    def schemas_not_current(self) -> int:
+        schemas = ([self.admin_schema] if self.admin_schema else []) + self.other_schemas
+        return sum(1 for s in schemas if s.state != "current")
+
+    @property
+    def outbox_unresolved(self) -> int:
+        return sum(o.unresolved or 0 for o in self.outbox)
 
     @property
     def services_alive(self) -> int:
@@ -340,6 +363,7 @@ class PageService:
             except Exception:  # noqa: BLE001
                 admin = SchemaStatus("admin", "unavailable", "", "")
         others = [await self._other_schema(name) for name in OTHER_SCHEMAS] if db_ok else []
+        outbox = [await self._outbox(name) for name in OTHER_SCHEMAS] if db_ok else []
         beats: list[Heartbeat] = []
         store_revision = None
         if db_ok:
@@ -362,20 +386,40 @@ class PageService:
                     )
             except Exception:  # noqa: BLE001 - store tables unreadable: no heartbeats
                 beats = []
-        return Health(db_ok, db_ms, admin, others, beats, store_revision)
+        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox)
 
     async def _other_schema(self, schema: str) -> SchemaStatus:
-        """The revision of another service's schema when this role can read its
-        version table; otherwise "unavailable" (the role has no access to those
-        schemas on purpose and no grant is added for this page)."""
+        """Another service's schema against the head its deployed code expects.
+        The revision comes from that schema's definer function (the admin role
+        has no access to the schema itself); "unavailable" when the function
+        is missing or refuses (the roles script has not run since this release)."""
         try:
             async with self._engine.connect() as conn:
-                current = await read_revisions(conn, schema)
-        except Exception:  # noqa: BLE001 - permission denied is the normal case
-            current = None
-        if not current:
+                current = await repo.schema_revisions(conn, schema)
+        except Exception:  # noqa: BLE001 - reported as "unavailable", never the message
             return SchemaStatus(schema, "unavailable", "", "")
-        return SchemaStatus(schema, "readable", ", ".join(current), "")
+        code = code_revisions(schema)
+        if code is None:
+            shown = ", ".join(current or ()) or "none"
+            return SchemaStatus(schema, "unknown", shown, "")
+        check = compare_revisions(schema, current, code.heads, code.known)
+        return SchemaStatus(
+            schema, check.state.value, ", ".join(check.current) or "none",
+            ", ".join(check.expected) or "none",
+        )
+
+    async def _outbox(self, schema: str) -> OutboxStatus:
+        """The Postgres mirror outbox of the service owning ``schema``: counts only."""
+        service = SCHEMA_SERVICE[schema]
+        try:
+            async with self._engine.connect() as conn:
+                counts = await repo.outbox_counts(conn, schema)
+        except Exception:  # noqa: BLE001 - reported as "unavailable", never the message
+            return OutboxStatus(service, "postgres", "unavailable", None, None)
+        if counts is None:
+            return OutboxStatus(service, "postgres", "missing", None, None)
+        unresolved, total = counts
+        return OutboxStatus(service, "postgres", "pending" if unresolved else "clean", unresolved, total)
 
     # configuration
     async def config(self) -> Config:

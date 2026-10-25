@@ -37,8 +37,8 @@ than its own tombstone. Tombstone times are stored truncated as well.
 
 Retention: :data:`RETENTION_DAYS`, long enough for the cutover. Mongo expires
 its tombstones by a TTL index; Postgres ones are pruned, a bounded batch at a
-time, every :data:`PRUNE_EVERY` deletes a process records and at the end of
-each ``reconcile``. Both go with the Mongo decommission: drop the
+time, every :data:`PRUNE_EVERY` deletes a process records (after the delete
+committed, in a transaction of its own) and at the end of each ``reconcile``. Both go with the Mongo decommission: drop the
 ``deletion_tombstones`` tables and the Mongo collection then.
 """
 
@@ -156,11 +156,21 @@ async def record_postgres(session, schema: str, collection: str, ids: Iterable[A
             )
         )
     _recorded[schema] = _recorded.get(schema, 0) + 1
-    if _recorded[schema] % PRUNE_EVERY == 0:
-        await prune_postgres(session, schema)
 
 
 _recorded: dict[str, int] = {}
+_pruned_at: dict[str, int] = {}
+
+
+def prune_due(schema: str) -> bool:
+    """Whether this process has recorded :data:`PRUNE_EVERY` deletes in
+    ``schema`` since it last pruned (and so should prune now). The caller
+    prunes after the delete committed, in a transaction of its own, so a
+    delete's transaction never carries pruning work or its locks."""
+    if _recorded.get(schema, 0) - _pruned_at.get(schema, 0) < PRUNE_EVERY:
+        return False
+    _pruned_at[schema] = _recorded[schema]
+    return True
 
 
 async def prune_postgres(

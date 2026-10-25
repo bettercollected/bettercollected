@@ -60,6 +60,14 @@ class Diverged(RuntimeError):
     """The primary kept changing while its copy was brought to the mirror."""
 
 
+class CopyUnverified(Diverged):
+    """A copy was written to the mirror (or its write was cut off by the
+    overall cap) but could not be checked afterwards: the mirror may hold a
+    copy made from a read that was already stale. Its outbox entry is kept
+    open until a clean full ``verify`` (``reconcile`` alone never resolves
+    it), so the cutover's verify step must show the stores agree."""
+
+
 @dataclass
 class TouchedTable:
     """The rows of one table a routed write touched, and how to reach both copies."""
@@ -157,6 +165,7 @@ async def converge(
     rounds: Optional[int] = None,
     deadline: Optional[float] = None,
     read_timeout: Optional[float] = None,
+    cap: Optional[float] = None,
 ) -> int:
     """Make the mirror's copy of every touched row equal the primary's.
 
@@ -168,7 +177,14 @@ async def converge(
     re-check; and whenever the loop stops early, a mirror copy whose row the
     primary no longer holds is still deleted, since a delete cannot bring
     data back. A read that fails (or outlasts ``read_timeout``) raises at
-    once and changes nothing; writes are never cancelled.
+    once and changes nothing.
+
+    ``cap`` (a ``time.monotonic()`` reading after ``deadline``) bounds the
+    whole step, writes included, so a hung store cannot stall the request:
+    a write still running at the cap is cut off, and the re-check still runs
+    (bounded by ``read_timeout``). :class:`CopyUnverified` is raised when a
+    write was cut off (even if the re-check then finds the stores alike: the
+    write may still land) and when anything fails after a copy was made.
     """
     rounds = ROUNDS if rounds is None else rounds
     rewritten = 0
@@ -182,6 +198,7 @@ async def converge(
                 rounds,
                 deadline,
                 read_timeout,
+                cap,
             )
     return rewritten
 
@@ -193,45 +210,99 @@ async def _converge_ids(
     rounds: int,
     deadline: Optional[float],
     read_timeout: Optional[float],
+    cap: Optional[float],
 ) -> int:
     mirror = _other(primary)
+    name = entry.row.mongo_collection()
+    copied = False  # a copy reached (or may have reached) the mirror
 
     async def read(store):
         return await asyncio.wait_for(_read(entry, ids, store), timeout=read_timeout)
 
+    async def write(copies) -> bool:
+        """The copy, cut off at ``cap`` (then: whether it landed is unknown)."""
+        nonlocal copied
+        copied = True
+        if cap is None:
+            await _write(entry, copies, mirror)
+            return True
+        remaining = cap - time.monotonic()
+        if remaining > 0:
+            try:
+                await asyncio.wait_for(_write(entry, copies, mirror), timeout=remaining)
+                return True
+            except asyncio.TimeoutError:
+                pass
+        return False
+
     rewritten = 0
     attempt = 0
-    while True:
-        # the primary first: a copy read from it is never older than the
-        # mirror's copy read after it
-        source = await read(primary)
-        target = await read(mirror)
-        ids = [
-            i
-            for i in ids
-            if (source.get(i) or (None,))[0] != (target.get(i) or (None,))[0]
-        ]
-        if not ids:
-            return rewritten
-        out_of_time = deadline is not None and time.monotonic() >= deadline
-        if attempt >= rounds or out_of_time:
-            # stop copying, but never leave a copy of a row the primary no
-            # longer holds: deleting it cannot bring data back
-            gone = {i: None for i in ids if i not in source}
-            if gone:
-                await _write(entry, gone, mirror)
-                rewritten += len(gone)
-            left = [i for i in ids if i in source]
-            if not left:
+    capped = False
+
+    async def rounds_of_copies() -> int:
+        nonlocal ids, rewritten, attempt, capped
+        while True:
+            # the primary first: a copy read from it is never older than the
+            # mirror's copy read after it
+            source = await read(primary)
+            target = await read(mirror)
+            ids = [
+                i
+                for i in ids
+                if (source.get(i) or (None,))[0] != (target.get(i) or (None,))[0]
+            ]
+            if not ids:
                 return rewritten
-            why = "the mirror timeout passed" if out_of_time else f"{rounds} copies"
-            raise Diverged(
-                f"{entry.row.mongo_collection()}: {len(left)} document(s) still "
-                f"differ after {why}"
-            )
-        await _write(entry, {i: source.get(i) for i in ids}, mirror)
-        rewritten += len(ids)
-        attempt += 1
+            now = time.monotonic()
+            out_of_time = capped or (deadline is not None and now >= deadline)
+            if attempt >= rounds or out_of_time:
+                # stop copying, but never leave a copy of a row the primary no
+                # longer holds: deleting it cannot bring data back
+                gone = {i: None for i in ids if i not in source}
+                if gone:
+                    if cap is not None and now >= cap:
+                        # past the cap: the delete gets the read's bound
+                        await asyncio.wait_for(
+                            _write(entry, gone, mirror), timeout=read_timeout
+                        )
+                    elif not await write(gone):
+                        raise CopyUnverified(f"{name}: a delete was cut off by the cap")
+                    rewritten += len(gone)
+                left = [i for i in ids if i in source]
+                if not left:
+                    return rewritten
+                if capped:
+                    raise CopyUnverified(
+                        f"{name}: {len(left)} document(s) still differ after a copy "
+                        "was cut off by the cap"
+                    )
+                why = "the mirror timeout passed" if out_of_time else f"{rounds} copies"
+                raise Diverged(
+                    f"{name}: {len(left)} document(s) still differ after {why}"
+                )
+            if not await write({i: source.get(i) for i in ids}):
+                capped = True  # re-check what landed, then stop
+            rewritten += len(ids)
+            attempt += 1
+
+    try:
+        done = await rounds_of_copies()
+    except Diverged:
+        raise  # the stores were read after the last copy: what differs is known
+    except Exception as exc:  # noqa: BLE001 — re-raised, marked once a copy was made
+        if copied:
+            raise CopyUnverified(
+                f"{name}: {type(exc).__name__} after a copy; verify must show these "
+                "documents clean"
+            ) from exc
+        raise
+    if capped:
+        # the stores look alike now, but the cut-off write may still land
+        raise CopyUnverified(
+            f"{name}: a copy was cut off by the cap and may still land; verify must "
+            "show these documents clean"
+        )
+    return done
 
 
 async def _read(
