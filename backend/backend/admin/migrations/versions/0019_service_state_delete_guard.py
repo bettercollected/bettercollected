@@ -18,6 +18,9 @@ newer row. It does not apply to the table's owner (``settings.report_state``
 runs as its owner and prunes the stale rows of the reporting service itself) or
 to a superuser (host commands). A role that can drop or disable the trigger is
 the owner anyway; the guard narrows the portal's credential, not the owner's.
+The function names its catalogs (``pg_catalog.pg_roles``) and puts ``pg_temp``
+last on its search path, so a role with TEMPORARY rights cannot shadow them with
+a temp table of its own.
 The threshold is the retention loop's (``SERVICE_STATE_DAYS``) and
 ``report_state``'s: a row younger than that is never removed by anyone but the
 owner.
@@ -37,11 +40,11 @@ def upgrade() -> None:
     op.execute(
         """
         CREATE FUNCTION settings.service_state_delete_guard() RETURNS trigger
-        LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+        LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
         BEGIN
-            IF (SELECT r.rolsuper FROM pg_roles r WHERE r.rolname = current_user)
-               OR current_user::text = (SELECT pg_get_userbyid(c.relowner)::text
-                                        FROM pg_class c WHERE c.oid = TG_RELID) THEN
+            IF (SELECT r.rolsuper FROM pg_catalog.pg_roles r WHERE r.rolname = current_user)
+               OR current_user::text = (SELECT pg_catalog.pg_get_userbyid(c.relowner)::text
+                                        FROM pg_catalog.pg_class c WHERE c.oid = TG_RELID) THEN
                 RETURN OLD;
             END IF;
             IF OLD.reported_at < now() - interval '7 days'
@@ -58,6 +61,12 @@ def upgrade() -> None:
     op.execute(
         "CREATE TRIGGER service_state_delete_guard BEFORE DELETE ON settings.service_state "
         "FOR EACH ROW EXECUTE FUNCTION settings.service_state_delete_guard()"
+    )
+    # nobody empties the table in one statement (the portal's role has no TRUNCATE
+    # grant either; this holds for every role, as for the other settings tables)
+    op.execute(
+        "CREATE TRIGGER service_state_no_truncate BEFORE TRUNCATE ON settings.service_state "
+        "FOR EACH STATEMENT EXECUTE FUNCTION settings.refuse_change()"
     )
 
 

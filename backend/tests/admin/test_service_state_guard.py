@@ -135,3 +135,50 @@ async def test_the_guard_is_in_place_and_the_portal_cannot_remove_it(runtime_eng
         with pytest.raises(DBAPIError):
             async with runtime_engine.begin() as conn:
                 await conn.execute(text(statement))
+
+
+async def test_a_temp_table_cannot_shadow_the_catalogs_the_guard_reads(runtime_engine, superuser, seeded, server):
+    """A role with TEMPORARY rights could create ``pg_temp.pg_roles`` claiming to be a
+    superuser: the guard names ``pg_catalog`` and keeps ``pg_temp`` last."""
+    db = await scalar(superuser, "SELECT current_database()")
+    role = server.runtime_role
+    async with superuser.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(text(f'GRANT TEMPORARY ON DATABASE "{db}" TO "{role}"'))
+    try:
+        before = await left(superuser)
+        for fakes in (
+            ("CREATE TEMP TABLE pg_roles (rolname name, rolsuper boolean)",
+             "INSERT INTO pg_temp.pg_roles SELECT current_user, true"),
+            ("CREATE TEMP TABLE pg_class (oid oid, relowner oid)",
+             "INSERT INTO pg_temp.pg_class SELECT 'settings.service_state'::regclass::oid, "
+             "(SELECT oid FROM pg_catalog.pg_roles WHERE rolname = current_user)"),
+        ):
+            with pytest.raises(DBAPIError) as err:
+                async with runtime_engine.begin() as conn:
+                    for fake in fakes:
+                        await conn.execute(text(fake))
+                    await conn.execute(text("DELETE FROM settings.service_state WHERE instance = 'fresh'"))
+            assert "stopped reporting" in str(err.value)
+        assert await left(superuser) == before
+    finally:
+        async with superuser.connect() as conn:
+            await conn.execution_options(isolation_level="AUTOCOMMIT")
+            await conn.execute(text(f'REVOKE TEMPORARY ON DATABASE "{db}" FROM "{role}"'))
+
+
+async def test_the_guards_seven_days_are_the_retention_loops(superuser):
+    from backend.admin.loops.retention import SERVICE_STATE_DAYS
+
+    definition = await scalar(
+        superuser, "SELECT pg_get_functiondef('settings.service_state_delete_guard()'::regprocedure)"
+    )
+    assert SERVICE_STATE_DAYS == 7 and definition.count("interval '7 days'") == 2
+    assert "pg_catalog.pg_roles" in definition and "search_path TO 'pg_catalog', 'pg_temp'" in definition
+
+
+async def test_nobody_truncates_the_table(superuser, seeded):
+    with pytest.raises(DBAPIError):
+        async with superuser.begin() as conn:
+            await conn.execute(text("TRUNCATE settings.service_state"))
+    assert len(await left(superuser)) == len(ROWS)
