@@ -614,7 +614,7 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _int("DB_MIRROR_TIMEOUT_MS", "database", _DB, 2_000, 100, 600_000, "Mirror write time limit.", tier=T5),
     _bool("DB_ECHO", "database", _DB, False, "Logs every statement.", tier=T5),
     _spec("JOBS_BACKEND", "jobs", (BACKEND, JOBS, EXECUTOR), "Queue backend for background work.",
-          ENUM, tier=T5, default="temporal", choices=("temporal", "postgres")),
+          ENUM, tier=T5, default="postgres", choices=("temporal", "postgres")),
     _text("JOBS_QUEUES", "jobs", (JOBS,), "Comma separated queues a jobs worker serves.", tier=T5),
     _int("JOBS_CONCURRENCY", "jobs", (JOBS, EXECUTOR), 4, 1, 256, "Jobs run at once per worker.", tier=T5),
     _int("JOBS_POOL_MIN", "jobs", (JOBS,), 1, 1, 100, "Minimum queue connections.", tier=T5),

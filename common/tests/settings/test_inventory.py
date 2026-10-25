@@ -353,9 +353,11 @@ def test_every_spec_is_read_by_some_service():
 @monorepo
 def test_every_note_in_not_a_setting_is_still_listed_somewhere():
     seen = set(env_scan.all_names())
-    stale = sorted(
-        n for n in NOT_A_SETTING if n not in seen and n not in {"NODE_ENV", "BC_RENDER_MAX_SIDE"}
-    )
+    # GOOGLE_MONGO_DB: nothing reads it since 4.1 (the keyset and purge tasks cover
+    # Postgres alone); the task-runner entry in docker-compose.deployment.yml still
+    # names it, and goes with its note here
+    exempt = {"NODE_ENV", "BC_RENDER_MAX_SIDE", "GOOGLE_MONGO_DB"}
+    stale = sorted(n for n in NOT_A_SETTING if n not in seen and n not in exempt)
     assert not stale, f"NOT_A_SETTING names nothing lists any more: {stale}"
 
 

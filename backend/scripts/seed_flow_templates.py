@@ -15,9 +15,9 @@ the full writeup (env vars, what's idempotent, how to add a template).
 
 For one-off manual runs (e.g. to seed without restarting the app), run from
 backend/:  uv run python -m scripts.seed_flow_templates
-Env: the backend's own (MONGO_URI, MONGO_DB, DATABASE_URL and the DB_* flags),
-     DEFAULT_WORKSPACE_ID (required — see above). Reads and writes go through
-     the routed template repository, like the app's.
+Env: the backend's own (DATABASE_URL), DEFAULT_WORKSPACE_ID (required — see
+     above). Reads and writes go through the template repository, like the
+     app's; no Mongo is connected.
 
 Note: create_form_from_template copies template fields VERBATIM (no id
 regeneration), so the slide/field ids referenced by jumps and visibility rules
@@ -458,32 +458,23 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
 
 
 async def _main() -> None:
-    """Standalone CLI entry point: connects the stores the way the app does
-    (Mongo from MONGO_URI/MONGO_DB, Postgres from DATABASE_URL and the
-    DB_* flags) and seeds through the app's routed template repository.
-    Startup auto-seeding (asgi.py) calls seed_flow_templates() directly."""
-    from dependency_injector import providers
-    from pymongo import AsyncMongoClient
-
-    from backend.app.container import container
-    from backend.app.handlers.database import close_db, init_db
+    """Standalone CLI entry point: boots the stores the way the services do
+    (Postgres from DATABASE_URL; the forms group is Postgres only since 4.1,
+    so Mongo is never connected) and seeds through the app's template
+    repository. Startup auto-seeding (asgi.py) calls seed_flow_templates()
+    directly."""
+    from backend.cli_store import routed_repositories
     from backend.config import settings
-    from backend.db.startup import check_postgres_at_startup, dispose_postgres
+    from backend.db.startup import check_postgres_at_startup
 
     workspace_id = settings.default_workspace_settings.WORKSPACE_ID
     if not workspace_id:
         print("DEFAULT_WORKSPACE_ID is not set — refusing to seed without a stable predefined-templates workspace id.")
         return
 
-    client = AsyncMongoClient(settings.mongo_settings.URI)
-    container.database_client.override(providers.Object(client))
-    await init_db(settings.mongo_settings.DB, client)
-    await check_postgres_at_startup(container)
-    try:
+    async with routed_repositories("forms") as container:
+        await check_postgres_at_startup(container)
         result = await seed_flow_templates(workspace_id, container.form_template_repo())
-    finally:
-        await close_db(client)
-        await dispose_postgres(container)
     for title in result["seeded"]:
         print(f"seeded: {title}")
     for title in result["skipped"]:

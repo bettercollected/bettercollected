@@ -52,11 +52,13 @@ def test_libpq_url_strips_the_sqlalchemy_driver():
 
 
 def test_jobs_app_is_opened_only_when_a_job_kind_uses_postgres():
-    assert not postgres_jobs_enabled(load_flags({}))
+    assert postgres_jobs_enabled(load_flags({}))  # the default
+    assert not postgres_jobs_enabled(load_flags({"JOBS_BACKEND": "temporal"}))
     assert postgres_jobs_enabled(
-        load_flags({"JOBS_BACKEND__delete_response": "postgres"})
+        load_flags(
+            {"JOBS_BACKEND": "temporal", "JOBS_BACKEND__delete_response": "postgres"}
+        )
     )
-    assert postgres_jobs_enabled(load_flags({"JOBS_BACKEND": "postgres"}))
 
 
 async def test_response_deletion_is_scheduled_at_expiration_and_cancellable(
@@ -80,6 +82,37 @@ async def test_response_deletion_is_scheduled_at_expiration_and_cancellable(
     await svc.delete_response_delete_schedule("r1")
     assert [j for j in memory_jobs.jobs.values() if j["status"] == "todo"] == []
     await svc.delete_response_delete_schedule("r1")  # nothing to cancel is fine
+
+
+async def test_a_failed_enqueue_never_fails_the_stored_submission(
+    memory_jobs, monkeypatch
+):
+    """The response is already stored when its deletion is queued: a queue
+    failure is logged (id and error class only) and left to jobs-sweep, as the
+    Temporal path did, not turned into a 500."""
+    from loguru import logger
+
+    class Down:
+        def configure(self, **kwargs):
+            return self
+
+        async def defer_async(self, **kwargs):
+            raise ConnectionError("queue down: postgresql://user:pw-never-logged@db/x")
+
+    monkeypatch.setattr(tasks, "delete_response", Down())
+    messages = []
+    sink = logger.add(lambda m: messages.append(str(m)), level="ERROR")
+    try:
+        svc = service({"JOBS_BACKEND__delete_response": "postgres"})
+        response = StandardFormResponse(
+            response_id="r9", expiration="2031-01-02T03:04:05.000Z", answers={}
+        )
+        await svc.add_scheduled_job_for_deleting_response(response)  # no exception
+    finally:
+        logger.remove(sink)
+    logged = "".join(messages)
+    assert "r9" in logged and "ConnectionError" in logged
+    assert "pw-never-logged" not in logged
 
 
 async def test_user_deletion_is_deferred_once_with_an_encrypted_request(memory_jobs):
@@ -112,10 +145,13 @@ async def test_run_action_is_deferred_by_name_to_the_actions_queue(memory_jobs):
     assert job["args"] == params
 
 
-async def test_temporal_stays_the_default(memory_jobs):
+async def test_postgres_is_the_default_and_temporal_can_be_kept_per_job(memory_jobs):
     svc = service({})
+    assert svc._on_postgres("delete_user")
+    assert svc._on_postgres("run_action")
+    svc = service({"JOBS_BACKEND": "temporal", "JOBS_BACKEND__run_action": "postgres"})
     assert not svc._on_postgres("delete_user")
-    assert not svc._on_postgres("run_action")
+    assert svc._on_postgres("run_action")
 
 
 async def test_delete_response_job_deletes_the_response(

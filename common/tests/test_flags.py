@@ -12,9 +12,11 @@ def test_defaults_are_todays_behaviour():
     assert flags.write_mode("forms") is WriteMode.MONGO
     assert flags.primary_store("forms") is ReadSource.MONGO
     assert flags.mirror_store("forms") is None
-    assert flags.jobs_backend("delete_user") is JobsBackend.TEMPORAL
+    assert flags.jobs_backend("delete_user") is JobsBackend.POSTGRES
     assert flags.shadow_read_sample == 0.0
-    assert flags.requires_postgres() is False
+    # the job queue is in Postgres by default; with the jobs on Temporal nothing needs it
+    assert flags.requires_postgres() is True
+    assert load_flags({"JOBS_BACKEND": "temporal"}).requires_postgres() is False
 
 
 def test_dual_write_mirrors_to_postgres():
@@ -95,14 +97,14 @@ def test_shadow_read_sampling():
 
 
 def test_jobs_backend_per_job():
-    flags = load_flags({"JOBS_BACKEND__delete_user": "postgres"})
+    flags = load_flags({"JOBS_BACKEND__run_action": "temporal"})
     assert flags.jobs_backend("delete_user") is JobsBackend.POSTGRES
-    assert flags.jobs_backend("DELETE_USER") is JobsBackend.POSTGRES
     assert flags.jobs_backend("run_action") is JobsBackend.TEMPORAL
+    assert flags.jobs_backend("RUN_ACTION") is JobsBackend.TEMPORAL
     assert flags.requires_postgres() is True
     assert (
-        load_flags({"JOBS_BACKEND": "postgres"}).jobs_backend("anything")
-        is JobsBackend.POSTGRES
+        load_flags({"JOBS_BACKEND": "temporal"}).jobs_backend("anything")
+        is JobsBackend.TEMPORAL
     )
 
 
@@ -158,7 +160,7 @@ def test_mongo_joins_enforce_cutover_order():
 
 def test_describe_reports_what_is_in_effect():
     flags = load_flags(
-        {"DB_WRITE_MODE__forms": "dual", "JOBS_BACKEND__delete_user": "postgres"}
+        {"DB_WRITE_MODE__forms": "dual", "JOBS_BACKEND__run_action": "temporal"}
     )
     described = flags.describe(
         groups=["forms", "identity"], jobs=["delete_user", "run_action"]
@@ -166,7 +168,7 @@ def test_describe_reports_what_is_in_effect():
     assert described["defaults"] == {
         "read_source": "mongo",
         "write_mode": "mongo",
-        "jobs_backend": "temporal",
+        "jobs_backend": "postgres",
     }
     assert described["groups"]["forms"] == {
         "read_source": "mongo",
