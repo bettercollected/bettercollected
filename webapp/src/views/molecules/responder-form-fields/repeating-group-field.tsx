@@ -5,6 +5,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { v4 } from 'uuid';
 
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
@@ -44,11 +45,14 @@ function GroupItem({
     header,
     removable,
     onRemove,
-    renderChild
+    renderChild,
+    headerLang
 }: {
     group: StandardFormFieldDto;
     index: number;
     header: string;
+    /** The heading's language when its words are the creator's (useFormContentLanguage), else undefined. */
+    headerLang?: string;
     removable: boolean;
     onRemove: () => void;
     renderChild: (child: StandardFormFieldDto) => ReactNode;
@@ -71,7 +75,7 @@ function GroupItem({
     return (
         <section aria-labelledby={headingId} className="flex flex-col gap-8 rounded-xl border bg-white/70 p-4 md:p-6" style={{ borderColor: (theme?.tertiary ?? '#818CA0') + '55' }}>
             <div className="flex items-center justify-between gap-3">
-                <ItemHeading id={headingId} className="text-black-900 text-base font-semibold">
+                <ItemHeading id={headingId} className="text-black-900 text-base font-semibold" lang={headerLang}>
                     {header}
                 </ItemHeading>
                 {removable && (
@@ -109,7 +113,12 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
     const { theme } = useFormState();
     const standardForm = useAppSelector(selectForm);
     const { t } = useRespondentLanguage();
-    const { minItems, maxItems } = getRepeatSettings(field);
+    const { minItems, maxItems, itemTitle } = getRepeatSettings(field);
+    // The item heading is the creator's wording (their item name, or a title
+    // built from it) unless it is the translated default; the form's language
+    // marks it when it differs from the page's.
+    const contentLang = useFormContentLanguage();
+    const headerLang = field.properties?.repeat?.itemLabel?.trim() || itemTitle?.trim() ? contentLang : undefined;
     // The creator's item name as written; the default one in the respondent's language.
     const itemLabel = field.properties?.repeat?.itemLabel?.trim() || t('GROUP.ITEM');
     const answers = formResponse.answers ?? {};
@@ -157,7 +166,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
         <QuestionWrapper field={field} errorMessage={errorMessage} group>
             <div className="mt-2 flex flex-col gap-4">
                 {itemKeys.map((key, index) => (
-                    <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} />
+                    <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} headerLang={headerLang} />
                 ))}
                 <div className="flex flex-wrap items-center gap-3">
                     <button
