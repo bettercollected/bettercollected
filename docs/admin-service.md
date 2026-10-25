@@ -1041,6 +1041,9 @@ access to the other's table. Each role holds no more than the owner of its schem
 | `bc_tasks_data_google` | `google.oauth_credentials` | `id`, `user_id`, `doc` | `doc`, `_bc_checksum` |
 
 No INSERT, DELETE, TRUNCATE or TEMPORARY; nothing in `admin`, `tasks`, `settings`, `auth` or `jobs`.
+The only function granted to either role is `google.purge_unencrypted_credentials(apply)`
+(`bc_tasks_data_google`, for the task of the same name, below): a definer function owned by the
+NOLOGIN role `bc_tasks_purge_google`, which holds DELETE on `google.oauth_credentials` alone.
 The grants are in the roles script, not in a migration, because the tables belong to other roles.
 `tests/admin/tasks/test_data_role.py` pins the exact privilege set per role, that neither role can
 reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
@@ -1058,6 +1061,42 @@ credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO
 rotate `MASTER_ENCRYPTION_KEYSET`; the order and every guard are in
 [response-keyset-rotation.md](response-keyset-rotation.md). They hold the locks `keyset` and
 `responses.encryption`, so only one of them runs at a time.
+
+### Google credentials without a user id
+
+`google.purge_unencrypted_credentials` deletes the Google Forms integration's stored credentials
+that have no user id, or whose tokens are stored readable: the one-time cleanup of
+[postgres-cutover-runbook.md](postgres-cutover-runbook.md) ("Google credentials without a user
+id"), with exactly its filters (Mongo `Oauth2CredentialDocument`: `user_id` missing, null or
+empty, or `credentials.token` / `credentials.refresh_token` present; Postgres
+`google.oauth_credentials`: `user_id` empty or null, or `credentials` a JSON object without
+`$binary`).
+
+- **Dry run first** (required): the count per store; nothing changes, both stores are opened
+  read-only.
+- **Apply** (confirmation code, like every changing task): Mongo first, then Postgres, whatever
+  the services' primary store, so that neither store copies a row back to the other. One audit
+  row per store (`task.google.purged`, target `google_oauth` / the store) with the matched and
+  deleted counts. Running it again deletes nothing.
+- **Stores:** `auto` follows the store rule above (group `google`, written to Postgres alone from
+  4.1, so `auto` is Postgres plus Mongo when the runner has a Mongo connection); `mongo`,
+  `postgres` or `both` name them. An apply must cover every store the services still write, and
+  Mongo whenever the runner has a Mongo connection, else it refuses with `stores_incomplete`:
+  neither store keeps a deletion tombstone, so a row left in Mongo would come back with the next
+  backfill (on 4.1 the import from 4.0, `python -m googleform.migrate backfill`, still copies
+  whatever Mongo holds) or reconcile. A dry run may count a single store. Use `auto`.
+- **Order on 4.1:** finish the import from 4.0 (backfill, then verify) first, then run the purge.
+  A runner without a Mongo connection may apply on Postgres alone; the gate cannot see Mongo
+  then, so a purge run before the import has finished is undone by it. Alternatively purge both
+  stores on 4.0.10 before upgrading.
+- **Counts only** in the result, the events and the audit log: never an id, an email or a token.
+- **Least privilege:** Mongo through the runner's Google Mongo connection (`MONGO_URI` /
+  `TASK_RUNNER_GOOGLE_MONGO_DB`), `deleteMany` with the filter above (the user needs `readWrite`
+  on `Oauth2CredentialDocument`). Postgres through `bc_tasks_data_google`, which has no DELETE: it
+  calls `google.purge_unencrypted_credentials(apply)`, a `SECURITY DEFINER` function with a pinned
+  `search_path` that holds the filter and returns the count. Its owner `bc_tasks_purge_google` is
+  NOLOGIN and holds DELETE on that table alone; `postgres/ensure-admin-roles.sh` makes both.
+  Without the function the task refuses with `purge_function_missing`.
 
 ## Task pages
 
@@ -1127,6 +1166,7 @@ raises `lock_blocked` for it. The lock order is always `settings_writer`, then
 | `bc_tasks` (runner) | none: no read, no insert; rows only through `tasks.audit_append`, `tasks.begin_audit` and `settings.task_write_keyset` (definer functions owned by `bc_tasks_def`) | its own view; the keyset only through `settings.task_write_keyset`, for a `running` apply run of the matching `keyset.*` task whose start the function recorded, once per run | cannot insert runs |
 | `bc_tasks_def` | NOLOGIN owner of the runner's functions; holds only what they touch | | nobody can connect as it |
 | `bc_count_app`, `bc_count_auth`, `bc_count_google` | none | none | NOLOGIN owners of the count, revision and outbox functions; column `SELECT` on their own schema |
+| `bc_tasks_purge_google` | none | none | NOLOGIN owner of `google.purge_unencrypted_credentials(apply)`; `DELETE` on `google.oauth_credentials` (and `SELECT` on `user_id`, `doc`), nothing else; `EXECUTE` for `bc_tasks_data_google` only |
 
 What grants cannot close, and what detects it: the database cannot verify an HMAC.
 A holder of both the portal's and the runner's database credentials (and no master key) can

@@ -135,6 +135,12 @@ def test_the_roles_script_declares_one_data_role_per_owning_schema_without_broad
         if re.search(r"TO bc_tasks_data_(app|google);", l) and l.strip().startswith("GRANT")
     ]
     assert grants
+    # the one function the Google data role may execute: the purge of
+    # credentials without a user id (a definer function; the role itself never
+    # gets DELETE)
+    purge = "GRANT EXECUTE ON FUNCTION google.purge_unencrypted_credentials(boolean) TO bc_tasks_data_google;"
+    assert purge in grants
+    grants.remove(purge)
     for line in grants:
         assert re.match(
             r"GRANT (USAGE ON SCHEMA (app|google)|SELECT \([a-z_, ]+\) ON|UPDATE \((doc, _bc_checksum)\) ON)",
