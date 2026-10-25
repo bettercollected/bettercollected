@@ -92,8 +92,13 @@ the backend:
 - marks the action `needs_reconsent` (parameters on the form's action: `needs_reconsent`,
   `reconsent_skipped_runs`, `reconsent_mailed_at`; no migration);
 - mails the workspace's billing owner once per action ("Reconnect Google Sheets", in the form's language,
-  English or Dutch) through the auth service, with a link to the form's integrations. When the auth service
-  cannot be reached, the next use tries again.
+  English or Dutch) through the auth service, with a link to the form's integrations. The mail is sent in
+  the background: a submission never waits for the auth service. A transient failure (auth unreachable, a
+  timeout, 429 or 5xx) is retried three times within a few minutes, then a later use tries again. A 422
+  from auth (a workspace handle it cannot link to, an unset `CLIENT_ADMIN_URL` on auth) is final: the
+  `reconsent_mailed_at` marker stays, it is logged once and never retried. Form and workspace titles are
+  cut to 1000 characters. A mail in flight when the backend stops is not sent; the action stays marked
+  and the builder still shows that it needs reconnecting.
 
 Reconnecting (connect and save the action again) stores a `drive.file` credential and new parameters,
 which clears the marks. In `google_service` mode nothing is held back: reconnecting there grants the broad
@@ -107,6 +112,10 @@ python -m backend.sheets_legacy
 
 It prints `sheets_actions_with_credential`, `legacy` (including `unreadable` credentials), `drive_file`,
 `needs_reconsent_marked`, `owners_mailed`, `skipped_runs` and `forms`.
+
+Saving such an action in the builder before reconnecting is refused with 409
+`{"code": "sheets_reconsent_required"}`: the old credential is not refreshed or used to create the
+spreadsheet, and the marks stay.
 
 #### Steps to create a client in Google:
 

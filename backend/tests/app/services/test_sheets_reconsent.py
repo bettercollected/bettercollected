@@ -3,10 +3,14 @@ use, never kept silently (services/sheets_reconsent.py): the run is skipped and
 counted, the action is marked ``needs_reconsent`` and the billing owner is
 mailed once. Only while the backend runs the Sheets flow."""
 
+import asyncio
 import json
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
+from common.exceptions.http import HTTPException as UpstreamHTTPException
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -18,13 +22,19 @@ from backend.app.models.enum.form_integration import (
 from backend.app.repositories.form_repository import merge_action_parameters
 from backend.app.services.google_sheets_oauth import DRIVE_FILE_SCOPE
 from backend.app.services.sheets_reconsent import (
+    LOCALE_MAX_LENGTH,
     MAILED_AT,
     NEEDS_RECONSENT,
     NOTIFY_PATH,
+    RECONSENT_REQUIRED_CODE,
     SKIPPED_RUNS,
+    TITLE_MAX_LENGTH,
+    SheetsReconsentService,
+    clip,
     count_legacy_sheets_actions,
     is_legacy_credential,
     is_legacy_scopes,
+    notice_failure,
 )
 from backend.config import settings
 from common.models.standard_form import ActionState, ParameterValue, Trigger
@@ -153,10 +163,13 @@ def enforced(monkeypatch):
 
 @pytest.fixture()
 def auth_mail(monkeypatch):
-    """The auth service's mail endpoint, as the reconsent service calls it."""
+    """The auth service's mail endpoint, as the reconsent service calls it
+    (retries of a transient failure without the waits)."""
     http_client = MagicMock()
     http_client.post = AsyncMock(return_value={"message": "Notice queued."})
-    monkeypatch.setattr(container.sheets_reconsent_service(), "_http_client", http_client)
+    service = container.sheets_reconsent_service()
+    monkeypatch.setattr(service, "_http_client", http_client)
+    monkeypatch.setattr(service, "retry_delays_s", (0, 0, 0))
     monkeypatch.setattr(settings.auth_settings, "INTERNAL_NOTIFY_KEY", "internal-key")
     return http_client.post
 
@@ -203,10 +216,18 @@ def params(form, action) -> dict:
     return {p.name: p.value for p in (form.parameters or {}).get(str(action.id)) or []}
 
 
-async def submit(form_id, workspace):
+async def submit(form_id, workspace, settle=True):
+    """A submission; ``settle``: then wait for the reconnect mail, which
+    runs in the background."""
     await container.action_service().start_actions_for_submission(
         form=await draft(form_id), response=MagicMock(), workspace_id=workspace.id
     )
+    if settle:
+        await settled()
+
+
+async def settled():
+    await container.sheets_reconsent_service().drain()
 
 
 # --------------------------------------------------------------------- submissions
@@ -362,6 +383,235 @@ class TestSubmission:
             assert private not in text
 
 
+    async def test_the_submission_does_not_wait_for_auth(
+        self, workspace, workspace_form, sheets_action, enforced, auth_mail, dispatched
+    ):
+        """The mail runs in a task of its own: a slow or unreachable auth
+        service never holds the respondent's request."""
+        await attach(workspace_form.form_id, sheets_action)
+        release = asyncio.Event()
+
+        async def slow_auth(*args, **kwargs):
+            await release.wait()
+            return {"message": "Notice queued."}
+
+        auth_mail.side_effect = slow_auth
+
+        await asyncio.wait_for(submit(workspace_form.form_id, workspace, settle=False), 5)
+
+        dispatched.assert_not_called()
+        assert params(await draft(workspace_form.form_id), sheets_action)[SKIPPED_RUNS] == "1"
+        release.set()
+        await settled()
+        auth_mail.assert_awaited_once()
+        assert params(await draft(workspace_form.form_id), sheets_action)[MAILED_AT]
+
+    async def test_a_422_is_final_kept_and_logged_once(
+        self, workspace, workspace_form, sheets_action, enforced, auth_mail, dispatched
+    ):
+        """Auth refuses the notice for good (a handle it cannot link to, an
+        unset CLIENT_ADMIN_URL): never retried, the marker stays."""
+        from loguru import logger
+
+        await attach(workspace_form.form_id, sheets_action)
+        auth_mail.side_effect = UpstreamHTTPException(422, {"detail": "x"})
+        lines = []
+        sink = logger.add(lambda message: lines.append(str(message)), level="DEBUG")
+        try:
+            for _ in range(3):
+                await submit(workspace_form.form_id, workspace)
+        finally:
+            logger.remove(sink)
+
+        auth_mail.assert_awaited_once()
+        marks = params(await draft(workspace_form.form_id), sheets_action)
+        assert marks[MAILED_AT]
+        assert marks[SKIPPED_RUNS] == "3"
+        refused = [line for line in lines if "refused by auth" in line]
+        assert len(refused) == 1
+        assert str(sheets_action.id) in refused[0]
+
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            UpstreamHTTPException(503, "unavailable"),
+            UpstreamHTTPException(500, "error"),
+            UpstreamHTTPException(429, "too many"),
+            httpx.ConnectTimeout("slow"),
+            httpx.ReadTimeout("slow"),
+        ],
+        ids=["503", "500", "429", "connect-timeout", "read-timeout"],
+    )
+    async def test_a_transient_failure_is_retried(
+        self,
+        workspace,
+        workspace_form,
+        sheets_action,
+        enforced,
+        auth_mail,
+        dispatched,
+        failure,
+    ):
+        await attach(workspace_form.form_id, sheets_action)
+        auth_mail.side_effect = [failure, failure, {"message": "Notice queued."}]
+
+        await submit(workspace_form.form_id, workspace)
+
+        assert auth_mail.await_count == 3
+        assert params(await draft(workspace_form.form_id), sheets_action)[MAILED_AT]
+
+    async def test_a_lasting_transient_failure_releases_the_marker(
+        self, workspace, workspace_form, sheets_action, enforced, auth_mail, dispatched
+    ):
+        await attach(workspace_form.form_id, sheets_action)
+        auth_mail.side_effect = UpstreamHTTPException(503, "unavailable")
+
+        await submit(workspace_form.form_id, workspace)
+
+        assert auth_mail.await_count == 4  # the first try and three retries
+        assert MAILED_AT not in params(await draft(workspace_form.form_id), sheets_action)
+
+        auth_mail.side_effect = None
+        await submit(workspace_form.form_id, workspace)
+
+        assert auth_mail.await_count == 5
+        assert params(await draft(workspace_form.form_id), sheets_action)[MAILED_AT]
+
+    async def test_a_mailed_action_does_not_claim_again(
+        self,
+        workspace,
+        workspace_form,
+        sheets_action,
+        enforced,
+        auth_mail,
+        dispatched,
+        monkeypatch,
+    ):
+        """Once the form carries the marker, a submission writes only the
+        skip count: no claim, no task."""
+        await attach(workspace_form.form_id, sheets_action)
+        await submit(workspace_form.form_id, workspace)
+        service = container.sheets_reconsent_service()
+        writes = AsyncMock(wraps=service._form_repo.update_action_parameters)
+        monkeypatch.setattr(service._form_repo, "update_action_parameters", writes)
+
+        await submit(workspace_form.form_id, workspace)
+
+        [call] = writes.call_args_list
+        assert call.kwargs.get("increment") == SKIPPED_RUNS
+        auth_mail.assert_awaited_once()
+
+
+# --------------------------------------------------------------------- the notice
+class TestNotice:
+    """``_mail_once`` against stand-ins: what is sent to auth and when."""
+
+    def service(self, post, workspace_title="Acme"):
+        form_repo = MagicMock()
+        form_repo.update_action_parameters = AsyncMock(return_value=True)
+        workspace_repo = MagicMock()
+        workspace_repo.get_workspace_by_id = AsyncMock(
+            return_value=SimpleNamespace(
+                owner_id="owner-1", workspace_name="acme", title=workspace_title
+            )
+        )
+        http_client = MagicMock()
+        http_client.post = post
+        service = SheetsReconsentService(
+            form_repo, workspace_repo, container.crypto(), http_client
+        )
+        service.retry_delays_s = (0, 0)
+        return service
+
+    async def mail(self, service, form_title="Form", language=None):
+        return await service._mail_once(
+            form_id="f1",
+            form_title=form_title,
+            language=language,
+            action_id="a1",
+            workspace_id="w1",
+        )
+
+    async def test_titles_are_clipped_to_auths_limit(self):
+        post = AsyncMock(return_value={})
+        service = self.service(post, workspace_title="w" * 5000)
+
+        assert await self.mail(service, form_title="f" * 5000) == "sent"
+
+        body = post.call_args.kwargs["json"]
+        for key in ("form_title", "workspace_title"):
+            assert len(body[key]) == TITLE_MAX_LENGTH
+            assert body[key].endswith("\u2026")
+
+    async def test_short_titles_and_locale_are_sent_as_they_are(self):
+        post = AsyncMock(return_value={})
+        await self.mail(self.service(post), form_title="Form", language="nl")
+        body = post.call_args.kwargs["json"]
+        assert body["form_title"] == "Form"
+        assert body["workspace_title"] == "Acme"
+        assert body["locale"] == "nl"
+
+    async def test_an_over_long_locale_is_left_out(self):
+        post = AsyncMock(return_value={})
+        await self.mail(self.service(post), language="x" * (LOCALE_MAX_LENGTH + 1))
+        assert "locale" not in post.call_args.kwargs["json"]
+
+    async def test_422_keeps_the_marker(self):
+        post = AsyncMock(side_effect=UpstreamHTTPException(422, {}))
+        service = self.service(post)
+        assert await self.mail(service) == "final"
+        post.assert_awaited_once()
+        for call in service._form_repo.update_action_parameters.call_args_list:
+            assert "remove" not in call.kwargs
+
+    async def test_other_refusals_release_without_retrying(self):
+        post = AsyncMock(side_effect=UpstreamHTTPException(403, {}))
+        service = self.service(post)
+        assert await self.mail(service) == "released"
+        post.assert_awaited_once()
+        last = service._form_repo.update_action_parameters.call_args_list[-1]
+        assert last.kwargs["remove"] == [MAILED_AT]
+
+    async def test_no_billing_owner_is_final(self):
+        post = AsyncMock(return_value={})
+        service = self.service(post)
+        service._workspace_repo.get_workspace_by_id = AsyncMock(return_value=None)
+        assert await self.mail(service) == "final"
+        post.assert_not_called()
+
+    async def test_someone_else_holds_the_marker(self):
+        post = AsyncMock(return_value={})
+        service = self.service(post)
+        service._form_repo.update_action_parameters = AsyncMock(return_value=False)
+        assert await self.mail(service) == "claimed"
+        post.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "exc, kind",
+    [
+        (UpstreamHTTPException(422, {}), "final"),
+        (UpstreamHTTPException(429, {}), "transient"),
+        (UpstreamHTTPException(502, {}), "transient"),
+        (UpstreamHTTPException(503, {}), "transient"),
+        (httpx.ConnectError("x"), "transient"),
+        (TimeoutError(), "transient"),
+        (UpstreamHTTPException(401, {}), "other"),
+        (UpstreamHTTPException(404, {}), "other"),
+        (ValueError("x"), "other"),
+    ],
+)
+def test_notice_failures(exc, kind):
+    assert notice_failure(exc) == kind
+
+
+def test_clip():
+    assert clip(None) is None
+    assert clip("") is None
+    assert clip("abc", 3) == "abc"
+    assert clip("abcd", 3) == "ab\u2026"
+
+
 # --------------------------------------------------------------------- builder
 def reconsent_url(workspace, form_id, action_id):
     return (
@@ -388,6 +638,7 @@ class TestBuilder:
             response = await client.get(url, cookies=test_user_cookies)
             assert response.status_code == 200, response.text
             assert response.json() == {"needs_reconsent": True}
+            await settled()
 
         marks = params(await draft(workspace_form.form_id), sheets_action)
         assert marks[NEEDS_RECONSENT] == "true"
@@ -506,3 +757,118 @@ class TestOperatorCount:
 
         assert await main(["--apply"]) == 2
         assert "usage" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------- builder save
+def actions_url(workspace, form_id):
+    return f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/actions"
+
+
+@pytest.fixture()
+def create_spreadsheet(monkeypatch):
+    provider = container.integration_provider().google_integration_provider
+    create = AsyncMock(return_value="sheet-id")
+    monkeypatch.setattr(provider.sheets_oauth, "create_spreadsheet", create)
+    return create
+
+
+class TestBuilderSave:
+    """Saving a Sheets action creates its spreadsheet with the stored grant:
+    a grant from before drive.file is never refreshed or used for it."""
+
+    async def save(self, client, workspace, form_id, action, cookies):
+        return await client.post(
+            actions_url(workspace, form_id),
+            json={
+                "action_id": str(action.id),
+                "parameters": [{"name": "Title", "value": "New sheet"}],
+            },
+            cookies=cookies,
+        )
+
+    async def test_a_legacy_grant_is_refused_and_the_markers_stay(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        enforced,
+        auth_mail,
+        create_spreadsheet,
+    ):
+        form_id = workspace_form.form_id
+        await attach(form_id, sheets_action)
+        await container.form_repo().update_action_parameters(
+            form_id,
+            str(sheets_action.id),
+            values={NEEDS_RECONSENT: "true", MAILED_AT: "2026-10-25T00:00:00+00:00"},
+        )
+        before = params(await draft(form_id), sheets_action)
+
+        response = await self.save(
+            client, workspace, form_id, sheets_action, test_user_cookies
+        )
+
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == RECONSENT_REQUIRED_CODE
+        create_spreadsheet.assert_not_called()
+        assert params(await draft(form_id), sheets_action) == before
+
+    async def test_a_drive_file_grant_creates_the_sheet(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        enforced,
+        auth_mail,
+        create_spreadsheet,
+    ):
+        form_id = workspace_form.form_id
+        await attach(form_id, sheets_action, scopes=DRIVE_FILE_SCOPE)
+
+        response = await self.save(
+            client, workspace, form_id, sheets_action, test_user_cookies
+        )
+
+        assert response.status_code == 200, response.text
+        create_spreadsheet.assert_awaited_once()
+        assert params(await draft(form_id), sheets_action)["Google Sheet Id"] == "sheet-id"
+
+    async def test_unchanged_under_the_google_service(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        auth_mail,
+        create_spreadsheet,
+        monkeypatch,
+    ):
+        """There the Google Forms service creates the sheet, legacy grant
+        or not (reconnecting grants the same scopes again)."""
+        form_id = workspace_form.form_id
+        await attach(form_id, sheets_action)
+        provider = container.integration_provider().google_integration_provider
+        monkeypatch.setattr(
+            provider.form_provider_service,
+            "get_provider_url",
+            AsyncMock(return_value="http://google.test"),
+        )
+        service_post = AsyncMock(return_value="service-sheet-id")
+        monkeypatch.setattr(provider.http_client, "post", service_post)
+
+        response = await self.save(
+            client, workspace, form_id, sheets_action, test_user_cookies
+        )
+
+        assert response.status_code == 200, response.text
+        service_post.assert_awaited_once()
+        create_spreadsheet.assert_not_called()
+        assert (
+            params(await draft(form_id), sheets_action)["Google Sheet Id"]
+            == "service-sheet-id"
+        )

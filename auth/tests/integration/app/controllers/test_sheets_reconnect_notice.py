@@ -113,6 +113,9 @@ class TestSheetsReconnectNotice:
             {"workspace_name": "../logout"},
             {"workspace_name": "a/b"},
             {"workspace_name": "a?next=https://evil.com"},
+            # dot segments: the browser would resolve them out of the path
+            {"workspace_name": "."},
+            {"workspace_name": ".."},
             {"form_id": "x/../../y"},
             {"form_id": "x#y"},
         ],
@@ -165,6 +168,18 @@ def test_the_link_follows_the_admin_host(monkeypatch):
     )
     monkeypatch.setattr(settings, "CLIENT_ADMIN_URL", "")
     assert sheets_reconnect_link("acme", FORM_ID) is None
+
+
+@pytest.mark.parametrize("handle", [".", ".."])
+def test_no_link_for_a_dot_handle(handle):
+    assert sheets_reconnect_link(handle, FORM_ID) is None
+
+
+@pytest.mark.parametrize("handle", ["a.b", "...", ".acme", "acme.", "~a_b-c"])
+def test_handles_with_dots_inside_still_link(handle):
+    assert sheets_reconnect_link(handle, FORM_ID) == (
+        f"{ADMIN}/{handle}/dashboard/forms/{FORM_ID}/integrations"
+    )
 
 
 def test_both_languages_have_the_sheets_texts():

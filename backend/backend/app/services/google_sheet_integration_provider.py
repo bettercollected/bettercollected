@@ -1,4 +1,5 @@
 import json
+from http import HTTPStatus
 from typing import Tuple
 
 from common.configs.crypto import Crypto
@@ -6,12 +7,17 @@ from common.enums.form_provider import FormProvider
 from common.services.http_client import HttpClient
 from loguru import logger
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.workspace import ParameterValue
 from backend.app.services.base_integration_provider import BaseIntegrationProvider
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.google_sheets_oauth import GoogleSheetsOAuth
 from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.services.sheets_reconsent import (
+    RECONSENT_REQUIRED_CODE,
+    is_legacy_credential,
+)
 from backend.app.repositories.form_repository import FormRepository
 from backend.config import settings
 
@@ -103,6 +109,23 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
             if secrets.name == "Credentials"
         ]
         if backend_runs_sheets_oauth():
+            if is_legacy_credential(credential[0], self.crypto):
+                # A grant from before drive.file (services/sheets_reconsent.py)
+                # is never refreshed or used again: the user reconnects first.
+                # Raised before the form is saved, so the action's parameters,
+                # and its reconsent markers, stay as they are.
+                logger.info(
+                    "google sheet not created, reconsent required: form={} action={}",
+                    form_id,
+                    action_params.action_id,
+                )
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": RECONSENT_REQUIRED_CODE,
+                        "message": "Reconnect Google Sheets before saving this action.",
+                    },
+                )
             sheet_id = await self.sheets_oauth.create_spreadsheet(
                 title=title[0], encrypted_credential=credential[0]
             )
