@@ -1,4 +1,4 @@
-"""python -m backend.migrate [--group G] {preflight,backfill,verify,reconcile,status,jobs-sweep}
+"""python -m backend.migrate [--group G] {preflight,backfill,verify,reconcile,status,resolve-outbox,jobs-sweep}
 
 Runs as the backend's role against schema ``app`` and Mongo database
 ``MONGO_DB``. ``--group`` selects the collections of repository groups
@@ -72,6 +72,15 @@ async def jobs_sweep(backend: str) -> dict:
     }
 
 
+def repository_groups() -> dict:
+    """Routed repository name -> group, for ``resolve-outbox`` (an outbox
+    entry names the repository, not the group)."""
+    from backend.app.container import AppContainer
+    from common.db.migrate.outbox import routed_repository_groups
+
+    return routed_repository_groups(AppContainer)
+
+
 def build_target(database_url: str) -> Target:
     return Target(
         schema=SCHEMA,
@@ -84,6 +93,7 @@ def build_target(database_url: str) -> Target:
         extras={"jobs_sweep": jobs_sweep},
         service="backend",
         groups=COLLECTION_GROUPS,
+        repository_groups=repository_groups,
         marker=StoreMigration.__table__,
         code_version=code_version(backend, SCHEMA),
         postgres_only_groups=POSTGRES_ONLY_GROUPS,

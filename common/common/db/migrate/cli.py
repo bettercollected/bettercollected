@@ -26,6 +26,7 @@ from common.db.flags import (
     load_flags,
 )
 from common.db.migrate.engine import Runner, Target
+from common.db.migrate.outbox import OutboxResolver
 from common.db.schema_guard import MigrationTarget
 
 
@@ -99,6 +100,20 @@ def build_parser(prog: str) -> argparse.ArgumentParser:
         action="store_true",
         help="one machine-readable JSON document instead of the summary",
     )
+    resolve = sub.add_parser(
+        "resolve-outbox",
+        help="resolve Postgres-side outbox entries whose write Mongo holds "
+        "(after a rollback to dual); a dry run unless --apply",
+    )
+    resolve.add_argument(
+        "--apply", action="store_true", help="resolve them (default: report only)"
+    )
+    resolve.add_argument(
+        "--ids-file",
+        metavar="PATH",
+        help="also write entry and row ids with the reason each entry is kept "
+        "to this new local file (created mode 0600; never overwritten)",
+    )
     sweep = sub.add_parser(
         "jobs-sweep", help="(re)create scheduled deletions on a jobs backend"
     )
@@ -126,11 +141,13 @@ def valid_groups(target: Target) -> list[str]:
 
 #: commands that compare or copy between the stores, which a Postgres-only
 #: group no longer has: they skip those groups and refuse to be pointed at one
-BOTH_STORES_COMMANDS = ("verify", "reconcile")
+BOTH_STORES_COMMANDS = ("verify", "reconcile", "resolve-outbox")
+VERBS = {"verify": "compare", "reconcile": "reconcile", "resolve-outbox": "compare"}
 
 
 class PostgresOnlyGroup(ValueError):
-    """``verify``/``reconcile`` pointed at a group served from Postgres only."""
+    """``verify``/``reconcile``/``resolve-outbox`` pointed at a group served
+    from Postgres only."""
 
 
 def _listed(names: Sequence[str]) -> str:
@@ -169,7 +186,7 @@ def select_collections(args: argparse.Namespace, target: Target) -> Optional[lis
         raise PostgresOnlyGroup(
             f"{args.command} does not cover a group served from Postgres only: "
             f"{', '.join(named)}. Such a group has no Mongo store to "
-            f"{'compare' if args.command == 'verify' else 'reconcile'} with; its "
+            f"{VERBS[args.command]} with; its "
             "Mongo data from 4.0 is imported with `backfill` (see "
             "docs/postgres-cutover-runbook.md, 'Upgrading to 4.1')"
         )
@@ -269,6 +286,8 @@ async def run(
                 )
             )
             return 0
+        if args.command == "resolve-outbox":
+            return await resolve_outbox(args, target, runner)
         if args.command == "status":
             report = await runner.status_report(collections)
             if args.json:
@@ -284,6 +303,38 @@ async def run(
             _print(await sweep(args.backend))
             return 0
     return 2
+
+
+def selected_groups(args: argparse.Namespace, target: Target) -> Optional[list[str]]:
+    """The groups ``--group`` names (validated); ``None`` = every group."""
+    if not args.group:
+        return None
+    return validate_groups(parse_groups(args.group), valid_groups(target))
+
+
+def open_ids_file(path: str):
+    """A new file only the operator can read; an existing one is never
+    overwritten (raises ``FileExistsError``)."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    return os.fdopen(fd, "w", encoding="utf-8")
+
+
+async def resolve_outbox(
+    args: argparse.Namespace, target: Target, runner: Runner
+) -> int:
+    """Plan; write the ids file (when asked) before anything changes; then
+    resolve with ``--apply``. Prints counts only. Exit 0 when every entry in
+    scope is resolvable (or there is none), 1 when some are kept."""
+    resolver = OutboxResolver(runner)
+    plan = await resolver.plan(selected_groups(args, target))
+    if args.ids_file:
+        with open_ids_file(args.ids_file) as handle:
+            json.dump(plan.details(), handle, indent=2, sort_keys=True, default=str)
+    summary = plan.summary()
+    summary["apply"] = bool(args.apply)
+    summary["resolved"] = await resolver.apply(plan) if args.apply else 0
+    _print(summary)
+    return 0 if summary["resolvable"] == summary["in_scope"] else 1
 
 
 def mongo_primary_groups(target: Target, env: Mapping[str, str]) -> list[str]:
@@ -363,6 +414,12 @@ def main(
         select_collections(args, target)
     except (UnknownGroup, PostgresOnlyGroup) as exc:
         parser.error(str(exc))  # exits 2
+    if args.command == "resolve-outbox":
+        if args.collections:
+            # entries name a repository, so a group at the narrowest
+            parser.error("resolve-outbox selects by --group, not --collections")
+        if args.ids_file and os.path.lexists(args.ids_file):
+            parser.error("--ids-file must name a new file; it is never overwritten")
     refusal = reconcile_to_mongo_refusal(args, target, env)
     if refusal:
         parser.error(refusal)  # exits 2
