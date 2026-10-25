@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import jwt
 import requests
 from fastapi.testclient import TestClient
 
@@ -33,6 +34,7 @@ from googleform.app.services.oauth_google import (
 from googleform.app.containers import Container
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.services.oauth_credential import OauthCredentialService
 from googleform.config import settings
 from common.constants import MESSAGE_OAUTH_INVALID_CLIENT, MESSAGE_OAUTH_INVALID_GRANT
 
@@ -168,6 +170,29 @@ def test_callback_with_more_scopes_than_requested_stores_the_credential(client, 
     # the token request carried the verifier of the authorization URL's challenge
     assert google.requests and "code_verifier" in google.requests[-1]
     assert _stored_token(client, google.email) == FAKE_ACCESS_TOKEN
+
+
+def test_the_forms_routes_find_the_credential_the_callback_stored(client, google, monkeypatch):
+    """The Google Forms routes look the signed-in user's credential up through
+    the container's routed repository: in every storage mode they find what the
+    callback just stored (in the postgres mode, only Postgres holds it)."""
+
+    async def verify_oauth_token(self, email, provider=None):
+        return await self._get_oauth_credential(email, provider)
+
+    async def verify_token_validity(self, credential):
+        return credential.email  # no request to Google's tokeninfo endpoint
+
+    monkeypatch.setattr(OauthCredentialService, "verify_oauth_token", verify_oauth_token)
+    monkeypatch.setattr(OauthCredentialService, "verify_token_validity", verify_token_validity)
+    assert _round_trip(client, google).status_code == 200
+    token = jwt.encode({"sub": google.email}, settings.AUTH_JWT_SECRET, algorithm="HS256")
+    client.cookies.set("Authorization", token)
+
+    response = client.get(settings.API_ROOT_PATH + "/google/forms/oauth/verify")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == google.email
 
 
 def test_a_second_connect_updates_the_stored_credential(client, google):
