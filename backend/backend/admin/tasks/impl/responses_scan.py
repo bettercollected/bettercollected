@@ -21,7 +21,6 @@ from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tup
 
 from backend.admin.tasks.impl.responses_common import (
     CIPHERTEXT_PREFIX,
-    MongoBase,
     Opener,
     PostgresBase,
     load_keyset,
@@ -95,26 +94,6 @@ def check_record(
 
 
 # --------------------------------------------------------------------- stores
-class MongoStore(MongoBase):
-    async def batch(self, after, limit: int) -> List[dict]:
-        query: Dict[str, Any] = {}
-        if after is not None:
-            query["_id"] = {"$gt": after}
-        projection = {
-            "form_id": 1,
-            "workspace_id": 1,
-            "respondent_feedback.message": 1,
-            **{field: 1 for field in FIELDS},
-        }
-        cursor = (
-            self.db["form_responses"]
-            .find(query, projection)
-            .sort("_id", 1)
-            .limit(limit)
-        )
-        return [{**row, "key": row["_id"]} async for row in cursor]
-
-
 class PostgresStore(PostgresBase):
     async def batch(self, after, limit: int) -> List[dict]:
         from sqlalchemy import select, text
@@ -145,7 +124,7 @@ class PostgresStore(PostgresBase):
         return records
 
 
-STORE_CLASSES = {"mongo": MongoStore, "postgres": PostgresStore}
+STORE_CLASSES = {"postgres": PostgresStore}
 
 
 # ------------------------------------------------------------------------ run

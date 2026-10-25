@@ -4,13 +4,14 @@ The runner's database is the admin test server's (``world``); the Google
 credentials table is created there as the Google service's role and the roles
 script runs again, exactly as on a deploy, so the Postgres side runs as the
 runner's real data role (``bc_tasks_data_google``: no DELETE) and deletes only
-through the definer function. Mongo is the test Mongo (its own database).
+through the definer function. Mongo is never touched (``store_retired``).
 
 The tests prove: a dry run counts and deletes nothing; the apply deletes exactly
-the runbook's rows in each store, Mongo first, and leaves an encrypted row with
-a user id alone; a second run deletes nothing; results, events and audit rows
-hold counts only; and the definer role can delete nothing else while the data
-role still cannot delete at all.
+the runbook's rows and leaves an encrypted row with a user id alone; a second
+run deletes nothing; results, events and audit rows hold counts only; Mongo is
+refused before anything connects and an apply is refused while the runner still
+has a Mongo connection; and the definer role can delete nothing else while the
+data role still cannot delete at all.
 """
 
 from __future__ import annotations
@@ -20,7 +21,6 @@ import os
 
 import pytest
 import pytest_asyncio
-from bson import Binary, ObjectId
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
@@ -32,13 +32,10 @@ from common.db.ddl import helper_function_ddl
 from tests.admin.conftest import needs_postgres, roles_sql
 from tests.admin.engines import fixture_engine
 from tests.app.db.test_auto_migrate import _execute
-from tests.conftest import TEST_MONGO_DB, TEST_MONGO_URI
 
 pytestmark = needs_postgres
 
 TASK = meta.META.name
-COLLECTION = "Oauth2CredentialDocument"
-GOOGLE_MONGO_DB = f"{TEST_MONGO_DB}_gpurge"[:60]
 SECRET = "plain-refresh-token-0123"
 EMAIL = "owner@example.org"
 CIPHER = {"$binary": {"base64": "AAEC", "subType": "00"}}
@@ -63,24 +60,6 @@ PG_KEEP = {
     _hex(10): {"user_id": U1, "email": EMAIL, "credentials": CIPHER},  # encrypted, user id
     _hex(11): {"user_id": U4, "email": EMAIL},  # no stored credential at all
 }
-
-
-def _mongo_documents():
-    keep = [
-        {"_id": ObjectId(_hex(20)), "user_id": U1, "email": EMAIL,
-         "credentials": Binary(b"\x00\x01ciphertext")},
-        {"_id": ObjectId(_hex(21)), "user_id": U5, "email": EMAIL},
-    ]
-    delete = [
-        {"_id": ObjectId(_hex(30)), "email": EMAIL, "credentials": Binary(b"x")},  # missing
-        {"_id": ObjectId(_hex(31)), "user_id": None, "email": EMAIL, "credentials": Binary(b"x")},
-        {"_id": ObjectId(_hex(32)), "user_id": "", "email": EMAIL, "credentials": Binary(b"x")},
-        {"_id": ObjectId(_hex(33)), "user_id": U2, "email": EMAIL,
-         "credentials": {"token": SECRET}},
-        {"_id": ObjectId(_hex(34)), "user_id": U3, "email": EMAIL,
-         "credentials": {"refresh_token": SECRET, "client_id": "c"}},
-    ]
-    return keep, delete
 
 
 # ---------------------------------------------------------------- fixtures
@@ -129,27 +108,20 @@ async def google_table(server, migrated):
 
 @pytest.fixture
 def pg_env(server, google_table, monkeypatch):
-    """Postgres alone: the runner's Google data role; no Mongo configured."""
+    """Postgres alone: the runner's Google data role; no Mongo configured, and
+    no Mongo client may be created."""
+    import pymongo
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("a Mongo client was created")
+
     monkeypatch.setenv("GOOGLE_DATABASE_URL", server.url(google_table, "data_google"))
     monkeypatch.delenv("MONGO_URI", raising=False)
+    monkeypatch.setattr(pymongo.AsyncMongoClient, "__init__", refuse)
     for name in list(os.environ):
         if name.upper().startswith("DB_WRITE_MODE"):
             monkeypatch.delenv(name)
     monkeypatch.setenv("DB_WRITE_MODE", "postgres")
-
-
-@pytest_asyncio.fixture(loop_scope="session")
-async def mongo(pg_env, monkeypatch):
-    """Both stores: Mongo (its own database) next to Postgres."""
-    from pymongo import AsyncMongoClient
-
-    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
-    monkeypatch.setenv("GOOGLE_MONGO_DB", GOOGLE_MONGO_DB)
-    client = AsyncMongoClient(TEST_MONGO_URI, serverSelectionTimeoutMS=5000)
-    await client.drop_database(GOOGLE_MONGO_DB)
-    yield client[GOOGLE_MONGO_DB][COLLECTION]
-    await client.drop_database(GOOGLE_MONGO_DB)
-    await client.close()
 
 
 async def _seed_postgres(superuser, rows=None):
@@ -171,10 +143,6 @@ async def _pg_ids(superuser) -> set:
         return set((await conn.execute(text("SELECT id FROM google.oauth_credentials"))).scalars())
 
 
-async def _mongo_ids(collection) -> set:
-    return {str(d["_id"]) async for d in collection.find({}, {"_id": 1})}
-
-
 async def _run(world, params=None, *, dry_run=False):
     world.clock.advance(1)
     run_id = await world.enqueue(
@@ -194,8 +162,6 @@ def _no_personal_data(*things):
     dumped = json.dumps(things, default=str)
     for needle in (SECRET, EMAIL, U1, U2, U3, U4, U5, "ciphertext", *PG_DELETE, *PG_KEEP):
         assert needle not in dumped, needle
-    for n in (20, 21, 30, 31, 32, 33, 34):
-        assert _hex(n) not in dumped
 
 
 # ----------------------------------------------------------------- catalog
@@ -203,16 +169,9 @@ def test_the_task_is_in_the_catalog_and_needs_a_dry_run_and_a_confirmation():
     check_meta(meta.META)
     assert meta.META in catalog.all_meta({})
     assert meta.META.mutating and meta.META.requires_prior_dry_run and meta.META.idempotent
-    assert meta.PurgeParams().stores.value == "auto"
-    # the filters are the runbook's, word for word
-    assert impl.MONGO_FILTER == {
-        "$or": [
-            {"user_id": {"$in": [None, ""]}},
-            {"credentials.token": {"$exists": True}},
-            {"credentials.refresh_token": {"$exists": True}},
-        ]
-    }
-    assert impl._ordered(["postgres", "mongo"]) == ["mongo", "postgres"]
+    assert meta.PurgeParams().stores.value == "postgres"
+    assert meta.PurgeParams(stores="auto").stores.value == "auto"  # saved before 4.1
+    assert "store_retired" in {r.value for r in meta.Refusals}
 
 
 # --------------------------------------------------------------- Postgres
@@ -265,9 +224,13 @@ async def test_apply_needs_a_prior_dry_run(world, pg_env, superuser):
 
 
 async def test_refusals(world, server, pg_env, superuser, monkeypatch):
-    # a named store that is not configured
-    _, run = await _run(world, {"stores": "mongo"}, dry_run=True)
-    assert run["refusal_code"] == "store_not_configured", run
+    # Postgres not configured (a Mongo URI does not stand in)
+    with monkeypatch.context() as unconfigured:
+        unconfigured.setenv("GOOGLE_DATABASE_URL", "")
+        unconfigured.setenv("DATABASE_URL", "")
+        unconfigured.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+        _, run = await _run(world, dry_run=True)
+        assert run["refusal_code"] == "store_not_configured", run
     # EXECUTE taken away from the runner's role, then the function missing (the
     # roles script has not run since the upgrade)
     async with superuser.begin() as conn:
@@ -288,71 +251,42 @@ async def test_refusals(world, server, pg_env, superuser, monkeypatch):
     assert run["refusal_code"] == "store_unreachable", run
 
 
-# ------------------------------------------------------------ both stores
-async def test_dry_run_on_both_stores_counts_per_store_and_deletes_nothing(
-    world, mongo, superuser
+# ------------------------------------------------------------------ Mongo
+@pytest.mark.parametrize("stores", ["mongo", "both"])
+async def test_mongo_is_refused_and_nothing_connects(
+    world, pg_env, superuser, stores, monkeypatch
 ):
+    """``mongo`` and ``both`` are refused ``store_retired`` before anything
+    connects (``pg_env`` makes a Mongo client creation fail the test), even
+    with a Mongo URI configured; nothing is deleted."""
     await _seed_postgres(superuser)
-    keep, delete = _mongo_documents()
-    await mongo.insert_many([*keep, *delete])
-    _, run = await _run(world, dry_run=True)
-    assert run["state"] == "succeeded", run
-    assert run["result"]["mongo"] == {"matched": len(delete), "deleted": 0}
-    assert run["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
-    assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    _, run = await _run(world, {"stores": stores}, dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "store_retired", run
     assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
     assert await world.audit_rows(impl.AUDIT_ACTION) == []
 
 
-async def test_apply_on_both_stores_runs_mongo_first_and_is_idempotent(
-    world, mongo, superuser, monkeypatch
+async def test_an_apply_is_refused_while_the_runner_has_a_mongo_connection(
+    world, pg_env, superuser, monkeypatch
 ):
-    # Postgres is the services' primary (from 4.1 their only store for the
-    # google group); the purge still starts with Mongo
-    monkeypatch.setenv("DB_WRITE_MODE", "postgres_primary_dual")
+    """The services write Postgres alone from 4.1, but the import from 4.0
+    (``googleform.migrate backfill``) copies whatever Mongo holds back: while
+    the runner has a Mongo connection configured (it never uses it) an apply is
+    refused (``stores_incomplete``) and deletes nothing; a dry run counts."""
     await _seed_postgres(superuser)
-    keep, delete = _mongo_documents()
-    await mongo.insert_many([*keep, *delete])
-    run_id, run = await _both(world)
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    _, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    assert dry["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
+    _, run = await _run(world)
+    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
+    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+
+    monkeypatch.delenv("MONGO_URI")
+    _, run = await _both(world)
     assert run["state"] == "succeeded", run
-    assert run["result"]["mongo"] == {"matched": len(delete), "deleted": len(delete)}
-    assert run["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": len(PG_DELETE)}
-    assert run["result"]["deleted"] == len(delete) + len(PG_DELETE)
-    assert await _mongo_ids(mongo) == {str(d["_id"]) for d in keep}
     assert await _pg_ids(superuser) == set(PG_KEEP)
-
-    events = [e for e in await world.events(run_id) if e["code"] == "purged"]
-    assert [e["ids"][-1] for e in events] == ["mongo", "postgres"]
-    rows = await world.audit_rows(impl.AUDIT_ACTION)
-    assert [r["target_id"] for r in rows] == ["mongo", "postgres"]
-    assert [(r["detail"]["matched"], r["detail"]["deleted"]) for r in rows] == [
-        (len(delete), len(delete)),
-        (len(PG_DELETE), len(PG_DELETE)),
-    ]
-    _no_personal_data(rows, run["result"], await world.events(run_id))
-
-    _, again = await _both(world)
-    assert again["state"] == "succeeded", again
-    assert again["result"]["mongo"] == {"matched": 0, "deleted": 0}
-    assert again["result"]["postgres"] == {"matched": 0, "deleted": 0}
-    assert await _mongo_ids(mongo) == {str(d["_id"]) for d in keep}
-
-
-async def test_a_dry_run_cannot_write_to_mongo(world, mongo, superuser, monkeypatch):
-    """The dry run's Mongo handle is read-only: even a purge that tried to
-    delete would fail instead."""
-    await _seed_postgres(superuser, {})
-    keep, delete = _mongo_documents()
-    await mongo.insert_many([*keep, *delete])
-
-    async def deleting(store, apply):
-        await store.db[COLLECTION].delete_many({})
-        return {"matched": 0, "deleted": 0}
-
-    monkeypatch.setattr(impl, "_purge_mongo", deleting)
-    _, run = await _run(world, dry_run=True)
-    assert run["state"] == "failed", run
-    assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
 
 
 # ------------------------------------------------- the filter's edges
@@ -384,27 +318,6 @@ async def test_postgres_filter_edges(world, pg_env, superuser):
     assert await _pg_ids(superuser) == set(PG_EDGES) - gone
 
 
-async def test_mongo_filter_edges(world, mongo, superuser):
-    await _seed_postgres(superuser, {})
-    edges = [
-        ({"_id": ObjectId(_hex(50)), "user_id": "u6", "credentials": "gAAAAAB-fernet"}, False),
-        ({"_id": ObjectId(_hex(51)), "user_id": "u6", "credentials": None}, False),
-        ({"_id": ObjectId(_hex(52)), "user_id": "u6", "credentials": Binary(b"x")}, False),
-        # the Mongo filter looks for the token fields only (the runbook's):
-        # an empty object holds no token and stays
-        ({"_id": ObjectId(_hex(53)), "user_id": "u6", "credentials": {}}, False),
-        ({"_id": ObjectId(_hex(54)), "user_id": ObjectId(_hex(99)),
-          "credentials": Binary(b"x")}, False),
-        ({"_id": ObjectId(_hex(55)), "user_id": ObjectId(_hex(99)),
-          "credentials": {"token": SECRET}}, True),
-    ]
-    await mongo.insert_many([doc for doc, _ in edges])
-    _, run = await _both(world)
-    assert run["state"] == "succeeded", run
-    assert run["result"]["mongo"] == {"matched": 1, "deleted": 1}
-    assert await _mongo_ids(mongo) == {str(doc["_id"]) for doc, deleted in edges if not deleted}
-
-
 async def test_postgres_alone_is_complete_whatever_the_runners_write_mode(
     world, pg_env, superuser, monkeypatch
 ):
@@ -413,7 +326,7 @@ async def test_postgres_alone_is_complete_whatever_the_runners_write_mode(
     ``auto`` and ``postgres`` are complete whatever the runner's copy of
     ``DB_WRITE_MODE*`` says (unset, or a mode that would write Mongo for the
     other groups). The docs say to run it after the import from 4.0."""
-    for mode in (None, "dual", "mongo"):
+    for mode in (None, "dual", "mongo", "nonsense"):
         await _seed_postgres(superuser)
         if mode is None:
             monkeypatch.delenv("DB_WRITE_MODE", raising=False)
@@ -425,46 +338,6 @@ async def test_postgres_alone_is_complete_whatever_the_runners_write_mode(
             assert run["result"]["mongo"] is None, (mode, run)
             assert await _pg_ids(superuser) == set(PG_KEEP), mode
             await _seed_postgres(superuser)
-
-
-async def test_an_apply_must_cover_every_store_the_services_write(world, mongo, superuser):
-    """Mongo alone leaves out Postgres, which the services write: the apply
-    refuses (``stores_incomplete``), deleting nothing. The dry run may still
-    count the one store."""
-    await _seed_postgres(superuser)
-    keep, delete = _mongo_documents()
-    await mongo.insert_many([*keep, *delete])
-    _, dry = await _run(world, {"stores": "mongo"}, dry_run=True)
-    assert dry["state"] == "succeeded", dry
-    assert dry["result"]["mongo"] == {"matched": len(delete), "deleted": 0}
-    _, run = await _run(world, {"stores": "mongo"})
-    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
-    assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
-    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
-
-
-async def test_an_apply_with_a_mongo_connection_must_cover_mongo(world, mongo, superuser):
-    """The services write Postgres alone from 4.1, but the import from 4.0
-    (``googleform.migrate backfill``) still copies whatever Mongo holds: while
-    the runner has a Mongo connection, a Postgres-only apply is refused
-    (``stores_incomplete``) and deletes nothing; ``auto`` covers both stores."""
-    await _seed_postgres(superuser)
-    keep, delete = _mongo_documents()
-    await mongo.insert_many([*keep, *delete])
-    _, dry = await _run(world, {"stores": "postgres"}, dry_run=True)
-    assert dry["state"] == "succeeded", dry
-    assert dry["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
-    _, run = await _run(world, {"stores": "postgres"})
-    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
-    assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
-    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
-
-    _, run = await _both(world)
-    assert run["state"] == "succeeded", run
-    assert run["result"]["mongo"] == {"matched": len(delete), "deleted": len(delete)}
-    assert run["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": len(PG_DELETE)}
-    assert await _mongo_ids(mongo) == {str(d["_id"]) for d in keep}
-    assert await _pg_ids(superuser) == set(PG_KEEP)
 
 
 # -------------------------------------------------------- least privilege

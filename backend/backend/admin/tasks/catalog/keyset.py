@@ -10,7 +10,7 @@ The order of a rotation (docs/response-keyset-rotation.md):
 4. ``reencrypt``: every stored value moves to the primary key.
 5. ``verify``: a read-only full check that every value opens.
 6. ``drop_old``: the other keys are removed, only when a full scan of every
-   target in every store finds no value on them.
+   target (in Postgres, the only store since 4.1) finds no value on them.
 
 All five share the lock ``keyset`` (exclusive across the family) and
 ``responses.encryption``. The keyset is never a parameter, a result, an event
@@ -45,13 +45,13 @@ class Refusals(str, enum.Enum):
     keyset_not_readable_by_runner = "keyset_not_readable_by_runner"
     keyset_unverified = "keyset_unverified"
     store_not_configured = "store_not_configured"
-    write_mode_unknown = "write_mode_unknown"
-    mongo_not_retired = "mongo_not_retired"
+    # Mongo was asked for (``mongo`` or ``both``), or ``drop_old`` without the
+    # signed ``mongo_retired``: no task reads or writes Mongo any more
+    store_retired = "store_retired"
     consumer_writes_mongo = "consumer_writes_mongo"
     consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
-    forms_import_incomplete = "forms_import_incomplete"
     published_primary = "published_primary"
     published_key_to_promote = "published_key_to_promote"
     primary_mismatch = "primary_mismatch"
@@ -110,37 +110,35 @@ class ReencryptParams(_RotationParams):
     # the primary the stored keyset must have now (guards against a stale view)
     primary_id: Annotated[int, Field(ge=1, le=4294967295)]
     targets: Annotated[list[Targets], Field(max_length=2)] = []  # empty: all
-    stores: StoreChoice = StoreChoice.auto
+    stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 200
     google_in_use: bool = True
 
 
 class VerifyParams(Params):
     targets: Annotated[list[Targets], Field(max_length=2)] = []
-    stores: StoreChoice = StoreChoice.auto
+    stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
 
 
 class DropOldParams(_RotationParams):
     # No target or store selection on purpose: a key is dropped only after a
-    # full scan of every target in BOTH stores (Mongo and Postgres), unless the
-    # operator states that Mongo is retired (mongo_retired below).
+    # full scan of every target in Postgres, the only store scanned since 4.1.
 
-    # A signed, audited statement that no service writes Mongo any more: the
-    # scan then covers Postgres alone. Refused unless the runner's DB_WRITE_MODE
-    # and DB_WRITE_MODE__RESPONSES both say postgres (the Google group is
-    # Postgres only since 4.1), and while any live backend or Google instance
-    # reports writing Mongo (or does not report its write stores).
+    # A signed, audited statement that Mongo is retired: no service writes it
+    # and the values still in it (or in a backup of it) will become unreadable
+    # once the old key is dropped. Without it the task refuses
+    # ``store_retired``: Mongo cannot be scanned. Also refused while any live
+    # backend or Google instance reports writing Mongo (or does not report its
+    # write stores).
     mongo_retired: Annotated[
         bool,
         Field(
             description=(
-                "Tick only when every service runs with DB_WRITE_MODE=postgres and "
-                "Mongo is retired: the scan then skips Mongo, and values still in "
-                "Mongo (or in a Mongo backup) become unreadable once the old key is "
-                "dropped. Refused unless the runner and every running service say "
-                "they write Postgres alone. Unticked, both Mongo and Postgres must "
-                "be configured and are scanned."
+                "Tick to confirm that Mongo is retired: only Postgres is scanned, "
+                "and values still in Mongo (or in a Mongo backup) become unreadable "
+                "once the old key is dropped. Refused (store_retired) unticked, and "
+                "while any running service says it writes Mongo."
             )
         ),
     ] = False

@@ -1,6 +1,7 @@
 """What the responses data tasks and their command-line scripts share: the
-keyset and the opener built from it, the configured data stores, and the base
-store classes. Imported by the runner and by ``backend/scripts``; never by the
+keyset and the opener built from it, the configured data store (Postgres, the
+only one since 4.1; a request for Mongo is refused ``store_retired`` before
+anything connects), and the base store class. Imported by the runner and by ``backend/scripts``; never by the
 admin web process.
 
 The keyset comes from one function, :func:`load_keyset` (the environment for
@@ -94,224 +95,42 @@ def keyset_fingerprint(keyset: str) -> str:
 
 
 # ------------------------------------------------------------------- stores
-STORE_NAMES = ("mongo", "postgres")
-#: groups of other services that keep their data in Postgres only: the Google
-#: Forms integration's ``google`` (since 4.1, googleform/db/flags.py). The
-#: runner reads no write mode for them (see :func:`postgres_only_groups`).
-POSTGRES_ONLY_SERVICE_GROUPS = frozenset({"google"})
+STORE_NAMES = ("postgres",)
 
 
-def _written_by_mode() -> Dict[str, List[str]]:
-    from common.db.flags import WriteMode
+def plan_task_stores(choice: StoreChoice, configured: List[str]) -> List[str]:
+    """The stores a task covers: Postgres alone (the store rule shared by the
+    responses and keyset tasks).
 
-    return {
-        WriteMode.MONGO.value: ["mongo"],
-        WriteMode.DUAL.value: ["mongo", "postgres"],
-        WriteMode.POSTGRES_PRIMARY_DUAL.value: ["postgres", "mongo"],
-        WriteMode.POSTGRES.value: ["postgres"],
-    }
-
-
-def postgres_only_groups() -> frozenset:
-    """Groups written to Postgres alone whatever the runner's copy of the
-    write mode says: the backend's (``backend.db.groups.POSTGRES_ONLY_GROUPS``)
-    and :data:`POSTGRES_ONLY_SERVICE_GROUPS`. Their services refuse to start
-    on any other mode."""
-    from backend.db.groups import POSTGRES_ONLY_GROUPS
-
-    return frozenset(POSTGRES_ONLY_GROUPS) | POSTGRES_ONLY_SERVICE_GROUPS
-
-
-def services_default_write_mode() -> str:
-    """The write mode the services run with when none is set: the default of
-    their own flag loader (``common.db.flags.load_flags``)."""
-    from common.db.flags import load_flags
-
-    return load_flags({}).default_write.value
-
-
-def written_stores(group: str, env: Mapping[str, str]) -> List[str]:
-    """The stores the services write for ``group``, primary first, from the
-    runner's copy of the services' write mode: ``DB_WRITE_MODE__<group>`` (any
-    case), else ``DB_WRITE_MODE``, else (neither set, as on a fresh stack,
-    where the services run on their default too) the services' default
-    (:func:`services_default_write_mode`). A group of
-    :func:`postgres_only_groups` is written to Postgres alone, whatever the
-    copy says. Refuses (``write_mode_unknown``) when the value is set but not
-    a write mode: the runner never guesses what a setting meant. Never echoes
-    the value."""
-    from common.db.flags import OVERRIDE_SEP, WRITE_KEY
-
-    if group.lower() in postgres_only_groups():
-        return ["postgres"]
-    override = f"{WRITE_KEY}{OVERRIDE_SEP}{group}".lower()
-    raw = ""
-    for key, value in env.items():
-        if key.lower() == override and value and value.strip():
-            raw = value
-    if not raw:
-        raw = env.get(WRITE_KEY) or ""
-    if not raw.strip():
-        raw = services_default_write_mode()
-    stores = _written_by_mode().get(raw.strip().lower())
-    if stores is None:
-        raise Refusal("write_mode_unknown")
-    return list(stores)
-
-
-def write_mode_env(env: Mapping[str, str]) -> Dict[str, str]:
-    """Only the ``DB_WRITE_MODE*`` variables of ``env``: what the store rule
-    reads, and nothing a config object could leak in a repr or a log."""
-    from common.db.flags import WRITE_KEY
-
-    return {k: v for k, v in env.items() if k.upper().startswith(WRITE_KEY)}
-
-
-def plan_task_stores(
-    choice: StoreChoice, configured: List[str], group: str, env: Mapping[str, str]
-) -> List[str]:
-    """The stores a task covers, primary first (the store rule shared by the
-    responses and keyset tasks):
-
-    * ``auto``: every store the services still write for ``group`` (the runner's
-      ``DB_WRITE_MODE*``; ``write_mode_unknown`` when unset), each of which must
-      be configured, then any other configured store (a store the runner can
-      reach is never skipped: a service whose mode differs from the runner's
-      copy may still write it). Never fewer stores than the services write.
-    * ``mongo``, ``postgres``: that store; ``both``: both (Mongo first, as
-      before). A named store must be configured and needs no write mode.
-
-    Refuses ``store_not_configured`` when a needed store has no connection."""
-    if choice is StoreChoice.auto:
-        names = written_stores(group, env)
-        names += [n for n in configured if n not in names]
-    elif choice is StoreChoice.both:
-        names = list(STORE_NAMES)
-    else:
-        names = [choice.value]
-    if not names or any(name not in configured for name in names):
+    * ``postgres`` and ``auto`` (the default; ``auto`` is kept for parameters
+      saved before 4.1): Postgres, which must be configured
+      (``store_not_configured``);
+    * ``mongo`` and ``both``: refused ``store_retired``, whatever is
+      configured. Nothing connects to Mongo: it is read only by the import
+      from 4.0 (``python -m backend.migrate``)."""
+    if choice in (StoreChoice.mongo, StoreChoice.both):
+        raise Refusal("store_retired")
+    if "postgres" not in configured:
         raise Refusal("store_not_configured")
-    return names
+    return ["postgres"]
 
 
 @dataclass(frozen=True)
 class StoreConfig:
-    mongo_uri: Optional[str]
-    mongo_db: str
-    database_url: Optional[str]
-    # the runner's DB_WRITE_MODE* only (see write_mode_env)
-    env: Mapping[str, str] = field(default_factory=dict, repr=False)
+    # the connection string carries a password: never in a repr or a log
+    database_url: Optional[str] = field(repr=False)
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "StoreConfig":
         env = os.environ if env is None else env
-        return cls(
-            mongo_uri=(env.get("MONGO_URI") or "").strip() or None,
-            mongo_db=(env.get("MONGO_DB") or "").strip() or "bettercollected_backend",
-            database_url=(env.get("DATABASE_URL") or "").strip() or None,
-            env=write_mode_env(env),
-        )
+        return cls(database_url=(env.get("DATABASE_URL") or "").strip() or None)
 
     def configured(self) -> List[str]:
-        return [
-            name
-            for name, ok in (("mongo", self.mongo_uri), ("postgres", self.database_url))
-            if ok
-        ]
+        return ["postgres"] if self.database_url else []
 
     def resolve(self, choice: StoreChoice) -> List[str]:
-        """The stores to cover (:func:`plan_task_stores`, group ``responses``)."""
-        return plan_task_stores(choice, self.configured(), "responses", self.env)
-
-
-class ReadOnlyViolation(Exception):
-    """A dry run or read-only task attempted a write."""
-
-
-_READ_METHODS = frozenset(
-    {
-        "find",
-        "find_one",
-        "count_documents",
-        "estimated_document_count",
-        "distinct",
-        "aggregate",
-        "list_collection_names",
-    }
-)
-
-
-class ReadOnlyCollection:
-    """Only the read methods of a Mongo collection; any other attribute (every
-    write method) raises, so a dry run cannot write by mistake."""
-
-    def __init__(self, collection):
-        self._collection = collection
-
-    def aggregate(self, pipeline, *args, **kwargs):
-        """Reads only: a pipeline with ``$out`` or ``$merge`` writes a collection."""
-        for stage in pipeline or ():
-            if isinstance(stage, dict) and ({"$out", "$merge"} & set(stage)):
-                raise ReadOnlyViolation("aggregate")
-        return self._collection.aggregate(pipeline, *args, **kwargs)
-
-    def __getattr__(self, name: str):
-        if name not in _READ_METHODS:
-            raise ReadOnlyViolation(name)
-        return getattr(self._collection, name)
-
-
-class ReadOnlyDatabase:
-    def __init__(self, database):
-        self._database = database
-
-    def __getitem__(self, name: str) -> ReadOnlyCollection:
-        return ReadOnlyCollection(self._database[name])
-
-    async def command(self, command, *args, **kwargs):
-        if command != "ping":
-            raise ReadOnlyViolation("command")
-        return await self._database.command(command, *args, **kwargs)
-
-    def __getattr__(self, name: str):
-        if name not in _READ_METHODS:
-            raise ReadOnlyViolation(name)
-        return getattr(self._database, name)
-
-
-class MongoBase:
-    name = "mongo"
-
-    def __init__(self, database, links=None):
-        self.db = database  # pymongo AsyncDatabase
-        # where the workspace links of forms are read (a PostgresBase): the
-        # forms group is in Postgres only since 4.1, so ``workspace_forms`` in
-        # Mongo is a frozen 4.0 copy, read only where no Postgres is
-        # configured (a 4.0 database not imported yet)
-        self.links_source = links
-
-    def encode_key(self, key) -> str:
-        return str(key)
-
-    def decode_key(self, text: str):
-        from bson import ObjectId
-
-        return ObjectId(text)
-
-    async def ping(self) -> None:
-        await self.db.command("ping")
-
-    async def count_responses(self) -> int:
-        return await self.db["form_responses"].estimated_document_count()
-
-    async def links(self) -> Dict[str, List[str]]:
-        """form_id -> the workspaces it is linked to: from Postgres, or with
-        none configured from the 4.0 ``workspace_forms`` in Mongo."""
-        from backend.db.forms_import import mongo_links
-
-        if self.links_source is not None:
-            return await self.links_source.links()
-        return defaultdict(list, await mongo_links(self.db))
+        """The stores to cover (:func:`plan_task_stores`)."""
+        return plan_task_stores(choice, self.configured())
 
 
 class PostgresBase:
@@ -360,36 +179,6 @@ class PostgresBase:
         return links
 
 
-async def check_forms_import(
-    mongo_database, postgres_links, *, writes: bool, engine=None
-) -> None:
-    """A Mongo store reads the forms' workspace links from Postgres (4.1):
-    only once the forms import is complete (``backend.db.forms_import``: a
-    finished backfill recorded, or every link of Mongo's 4.0 copy in
-    Postgres) may anything be written from them (``forms_import_incomplete``;
-    ``store_unreachable`` when Mongo cannot be read); a read-only run goes
-    on, with a warning (its counts may name the wrong workspace)."""
-    from pymongo.errors import PyMongoError
-
-    from backend.db.forms_import import CODE, MESSAGE, unimported_links
-
-    try:
-        missing = await unimported_links(mongo_database, postgres_links, engine)
-    except PyMongoError as error:
-        if writes:
-            raise Refusal("store_unreachable") from None
-        logger.warning(
-            "The forms import could not be checked (%s): Mongo could not be read.",
-            type(error).__name__,
-        )
-        return
-    if not missing:
-        return
-    if writes:
-        raise Refusal(CODE)
-    logger.warning(MESSAGE.format(missing=missing))
-
-
 @asynccontextmanager
 async def open_stores(
     config: StoreConfig,
@@ -398,65 +187,28 @@ async def open_stores(
     *,
     read_only: bool,
 ):
-    """Connect to the named stores; closed on exit. ``read_only`` makes every
-    Postgres transaction read only at the session level, so a bug cannot write
-    and wraps the Mongo database so any write method raises. A read-only Mongo
-    user is still the recommended deployment for the check and dry runs."""
+    """Connect to the named stores (Postgres only); closed on exit.
+    ``read_only`` makes every transaction read only at the session level, so a
+    bug cannot write."""
     closers: list = []
     stores: list = []
     try:
         for name in names:
-            if name == "mongo":
-                from pymongo import AsyncMongoClient
+            if name != "postgres":  # a plan never names another; never connect
+                raise Refusal("store_retired")
+            from sqlalchemy.ext.asyncio import create_async_engine
 
-                client = AsyncMongoClient(config.mongo_uri, serverSelectionTimeoutMS=5000)
-                closers.append(client.close)
-                database = client[config.mongo_db]
-                if read_only:
-                    database = ReadOnlyDatabase(database)
-                stores.append(classes["mongo"](database))
-            else:
-                from sqlalchemy.ext.asyncio import create_async_engine
-
-                settings = {"statement_timeout": "60000"}
-                if read_only:
-                    settings["default_transaction_read_only"] = "on"
-                engine = create_async_engine(
-                    config.database_url,
-                    pool_size=2,
-                    max_overflow=0,
-                    connect_args={"server_settings": settings},
-                )
-                closers.append(engine.dispose)
-                stores.append(classes["postgres"](engine))
-        mongo_stores = [s for s in stores if s.name == "mongo"]
-        if mongo_stores and config.database_url:
-            # the forms' workspace links are in Postgres since 4.1
-            postgres = next((s for s in stores if s.name == "postgres"), None)
-            if postgres is None:
-                from sqlalchemy.ext.asyncio import create_async_engine
-
-                engine = create_async_engine(
-                    config.database_url,
-                    pool_size=1,
-                    max_overflow=0,
-                    connect_args={
-                        "server_settings": {
-                            "statement_timeout": "60000",
-                            "default_transaction_read_only": "on",
-                        }
-                    },
-                )
-                closers.append(engine.dispose)
-                postgres = PostgresBase(engine)
-            for store in mongo_stores:
-                store.links_source = postgres
-            await check_forms_import(
-                mongo_stores[0].db,
-                postgres.links,  # read only if the backfill does not settle it
-                writes=not read_only,
-                engine=postgres.engine,
+            settings = {"statement_timeout": "60000"}
+            if read_only:
+                settings["default_transaction_read_only"] = "on"
+            engine = create_async_engine(
+                config.database_url,
+                pool_size=2,
+                max_overflow=0,
+                connect_args={"server_settings": settings},
             )
+            closers.append(engine.dispose)
+            stores.append(classes["postgres"](engine))
         yield stores
     finally:
         for close in reversed(closers):

@@ -809,7 +809,7 @@ async def test_drop_old_form_offers_mongo_retired_unticked_and_signs_and_audits_
     html = (await ctx.b.get("/tasks/keyset.drop_old")).text
     assert 'name="p_mongo_retired"' in html
     assert re.search(r'name="p_mongo_retired" checked', html) is None
-    assert "DB_WRITE_MODE=postgres" in html
+    assert "Mongo is retired" in html  # the explanation next to the checkbox
     await ctx.dry_run("keyset.drop_old", {"typeform_acknowledged": "on", "mongo_retired": "on"})
     (row,) = await ctx.runs("keyset.drop_old")
     assert row["params"]["mongo_retired"] is True and signing.verify_request(dict(row))

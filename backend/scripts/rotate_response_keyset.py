@@ -8,7 +8,7 @@ Runbook with the order across services: docs/response-keyset-rotation.md.
     uv run python -m scripts.rotate_response_keyset reencrypt --keyset-file rotated.keyset --dry-run
     uv run python -m scripts.rotate_response_keyset reencrypt --keyset-file rotated.keyset
     # 3. once nothing uses the old keys
-    uv run python -m scripts.rotate_response_keyset drop-old --keyset-file rotated.keyset --out final.keyset
+    uv run python -m scripts.rotate_response_keyset drop-old --keyset-file rotated.keyset --out final.keyset --mongo-retired
 
 The keyset is read from ``--keyset-file`` (the value, optionally as a
 ``MASTER_ENCRYPTION_KEYSET=...`` line) or else from the environment, and
@@ -21,11 +21,9 @@ What is encrypted with the keyset (``common.services.crypto_service``):
   ``internal_answers`` and every ``respondent_feedback[].message``, with the
   associated data ``<workspace_id>|<form_id>|``. The workspace is the one the
   response is stamped with, else (stored before #768) each workspace its form
-  is linked to is tried. Mongo ``form_responses`` / Postgres
-  ``app.form_responses``.
+  is linked to is tried. Postgres ``app.form_responses``.
 * ``google-credentials``: the Google Forms integration's OAuth credentials
-  (``personal|<user_id>|``). Mongo ``Oauth2CredentialDocument`` in the
-  integration's database / Postgres ``google.oauth_credentials``.
+  (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
 
 ``reencrypt`` walks a target in batches by id. Tink ciphertexts start with
 the id of their key, so a value already under the primary key is skipped
@@ -34,19 +32,12 @@ resumed by running it again (``--start-after <id>`` skips the ids done). A
 value is decrypted with the full keyset, encrypted with the primary key,
 checked to decrypt back to the same bytes and written only if the stored value
 is still the one read (a value the application changed meanwhile is counted
-and left for the next run). Which stores it covers follows the store rule of
-the keyset tasks (docs/response-keyset-rotation.md, "The store rule"): with
-``--store auto`` (the default), every store the services write for the
-target's group (``DB_WRITE_MODE__RESPONSES``, else ``DB_WRITE_MODE``; the
-Google credentials are in Postgres only since 4.1, whatever
-``DB_WRITE_MODE__GOOGLE`` says), primary first, then any other store configured here
-(``MONGO_URI``; ``DATABASE_URL``, or ``GOOGLE_DATABASE_URL`` for the Google
-credentials). An unset write mode is the services' own default (``mongo``
-while the backend has groups on Mongo), as on a fresh stack; a value that is
-not a write mode is refused (``write_mode_unknown``), never guessed;
-``--store mongo|postgres|both``
-names the stores instead and needs no write mode. The primary store's new
-ciphertext is copied unchanged to the other, so the stores stay identical.
+and left for the next run). Postgres is the only store it covers (since 4.1:
+``DATABASE_URL``, or ``GOOGLE_DATABASE_URL`` for the Google credentials):
+``--store postgres`` (the default, also ``auto``); ``--store mongo`` and
+``--store both`` are refused (``store_retired``) before anything connects, as
+the keyset tasks refuse them (docs/response-keyset-rotation.md, "The store
+rule"). Values left in Mongo are not touched.
 ``--dry-run`` counts only.
 
 ``reencrypt`` (apart from ``--dry-run``) and ``drop-old`` only work with the
@@ -54,18 +45,15 @@ keyset the services run with: the primary key of ``--keyset-file`` must be the
 primary of ``MASTER_ENCRYPTION_KEYSET`` in the environment, so nothing is ever
 re-encrypted under a key the services do not have.
 
-``drop-old`` always scans every target (``--target`` / ``--store`` are
-refused) in BOTH stores, Mongo and Postgres, each configured, or refuses
-(``store_not_configured``), as ``keyset.drop_old`` does
-(``keyset_state.DataConfig.drop_old_stores``): the write mode in this
-environment only orders them (an unknown one refuses), it never leaves a store
-out, since a wrong copy of it would leave values in the other store on the
-dropped key. ``--mongo-retired`` scans Postgres alone and is refused
-(``mongo_not_retired``) unless ``DB_WRITE_MODE`` and ``DB_WRITE_MODE__RESPONSES``
-both say ``postgres`` (an unset override follows ``DB_WRITE_MODE``; an unset
-default is the services' default, ``mongo``, so it refuses). It refuses, writing nothing,
-while any value still uses a key other than the primary, or while a store the
-services write holds no records at all: a wrong or empty database would
+``drop-old`` always scans every target in Postgres (``--target`` / ``--store`` are
+refused), configured, or refuses (``store_not_configured``), as
+``keyset.drop_old`` does (``keyset_state.DataConfig.drop_old_stores``).
+``--mongo-retired`` is required: it confirms that Mongo is retired and that
+values left in Mongo or its backups become unreadable once the old key is
+dropped; without it the command refuses (``store_retired``), since Mongo is not
+scanned. It refuses, writing nothing,
+while any value still uses a key other than the primary, or while Postgres holds
+no records at all: a wrong or empty database would
 otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
 it writes a keyset holding the primary key only.
 """
@@ -78,27 +66,21 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     GOOGLE_CREDENTIALS,
     RESPONSES,
     TARGETS,
-    MongoStore,
     PostgresStore,
     Rotation,
     Target,
     run_reencrypt,
     scan,
 )
-from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.keyset_state import DataConfig
-from backend.admin.tasks.impl.responses_common import (
-    plan_task_stores,
-    write_mode_env,
-    written_stores,
-)
+from backend.admin.tasks.impl.responses_common import plan_task_stores
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
     KEYSET_ENV,
@@ -189,9 +171,9 @@ def _parse(argv: List[str]) -> argparse.Namespace:
         command.add_argument(
             "--store",
             choices=("auto", "mongo", "postgres", "both"),
-            default="auto",
-            help="auto = every store the services write (DB_WRITE_MODE*; the "
-            "services' default when unset), then any other configured store",
+            default="postgres",
+            help="postgres (auto means the same); mongo and both are refused "
+            "(store_retired): Mongo is no longer covered",
         )
         command.add_argument("--batch-size", type=int, default=200)
 
@@ -228,77 +210,55 @@ def _parse(argv: List[str]) -> argparse.Namespace:
     drop_old.add_argument(
         "--mongo-retired",
         action="store_true",
-        help="no service writes Mongo any more: scan Postgres alone (refused "
-        "unless DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES and "
-        "DB_WRITE_MODE__GOOGLE are all postgres); values left in Mongo or its "
-        "backups become unreadable",
+        help="required: Mongo is retired and only Postgres is scanned; values "
+        "left in Mongo or its backups become unreadable once the old key is "
+        "dropped (refused, store_retired, without it)",
     )
     return parser.parse_args(argv)
 
 
-def _target_settings(target: Target, env=os.environ) -> Tuple[str, str, str]:
-    """Mongo URI, Mongo database and Postgres URL a target lives in (an empty
-    URI or URL: that store is not configured here)."""
-    uri = (env.get("MONGO_URI") or "").strip()
+def _target_url(target: Target, env=os.environ) -> str:
+    """The Postgres URL a target lives in (empty: not configured here)."""
     if target is GOOGLE_CREDENTIALS:
-        database = env.get("GOOGLE_MONGO_DB", "bettercollected_googleform")
         url = env.get("GOOGLE_DATABASE_URL") or env.get("DATABASE_URL") or ""
     else:
-        database = env.get("MONGO_DB", "bettercollected_backend")
         url = env.get("DATABASE_URL") or ""
-    return uri, database, url.strip()
+    return url.strip()
 
 
 STORE_REFUSALS = {
-    "write_mode_unknown": (
-        "the write mode for {group} is not one: set DB_WRITE_MODE__{GROUP} or "
-        "DB_WRITE_MODE to the value the services run with (mongo, dual, "
-        "postgres_primary_dual or postgres), or name the stores with --store"
+    "store_retired": (
+        "Mongo is no longer covered (use --store postgres; drop-old needs "
+        "--mongo-retired)"
     ),
-    "store_not_configured": (
-        "a store it needs is not configured here (MONGO_URI, or {url_setting} "
-        "for Postgres); drop-old needs both Mongo and Postgres unless "
-        "--mongo-retired"
-    ),
-    "mongo_not_retired": (
-        "--mongo-retired needs DB_WRITE_MODE and DB_WRITE_MODE__RESPONSES "
-        "both set to postgres here (an unset override follows DB_WRITE_MODE), "
-        "as the services run"
-    ),
+    "store_not_configured": "Postgres is not configured here ({url_setting})",
 }
 
 
 def plan_stores(target: Target, store_choice: str, env=os.environ) -> List[str]:
-    """Store names for ``target``, primary first, by the keyset tasks' store
-    rule (``responses_common.plan_task_stores``), for ``reencrypt``. Raises
-    ``Refusal`` (``write_mode_unknown`` / ``store_not_configured``)."""
-    uri, _, url = _target_settings(target, env)
-    configured = [name for name, ok in (("mongo", uri), ("postgres", url)) if ok]
-    return plan_task_stores(StoreChoice(store_choice), configured, target.group, env)
+    """Store names for ``target``, by the keyset tasks' store rule
+    (``responses_common.plan_task_stores``), for ``reencrypt``. Raises
+    ``Refusal`` (``store_retired`` / ``store_not_configured``)."""
+    url = _target_url(target, env)
+    return plan_task_stores(
+        StoreChoice(store_choice), ["postgres"] if url else []
+    )
 
 
 def _data_config(env=os.environ) -> DataConfig:
     """This environment as ``keyset.drop_old`` sees its runner's (with this
     script's fallback of the Google credentials to ``DATABASE_URL``)."""
-    uri, mongo_db, url = _target_settings(RESPONSES, env)
-    _, google_mongo_db, google_url = _target_settings(GOOGLE_CREDENTIALS, env)
     return DataConfig(
-        mongo_uri=uri or None,
-        mongo_db=mongo_db,
-        google_mongo_db=google_mongo_db,
-        database_url=url or None,
-        google_database_url=google_url or None,
-        env=write_mode_env(env),
+        database_url=_target_url(RESPONSES, env) or None,
+        google_database_url=_target_url(GOOGLE_CREDENTIALS, env) or None,
     )
 
 
-def plan_drop_old(target: Target, mongo_retired: bool, env=os.environ) -> List[str]:
-    """The stores ``drop-old`` scans, primary first: exactly
-    ``keyset.drop_old``'s rule (``DataConfig.drop_old_stores``). Both stores,
-    each configured, unless ``mongo_retired``, which is refused unless the
-    write mode is ``postgres`` for every group. Raises ``Refusal``
-    (``store_not_configured`` / ``write_mode_unknown`` / ``mongo_not_retired``)."""
-    return _data_config(env).drop_old_stores(target, mongo_retired)
+def plan_drop_old(target: Target, env=os.environ) -> List[str]:
+    """The stores ``drop-old`` scans: exactly ``keyset.drop_old``'s rule
+    (``DataConfig.drop_old_stores``). Raises ``Refusal``
+    (``store_not_configured``)."""
+    return _data_config(env).drop_old_stores(target)
 
 
 def store_refusal_message(refusal: Refusal, target: Target) -> str:
@@ -314,59 +274,23 @@ def store_refusal_message(refusal: Refusal, target: Target) -> str:
     )
 
 
-class FormsImportRefused(Exception):
-    """A writing run while the forms import is incomplete (or unknown)."""
-
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
-
-
-async def _open_stores(
-    target: Target, names: List[str], closers: list, *, writes: bool = False
-) -> List:
-    uri, database, url = _target_settings(target)
+async def _open_stores(target: Target, names: List[str], closers: list) -> List:
+    url = _target_url(target)
     stores = []
     for name in names:
-        if name == "mongo":
-            from pymongo import AsyncMongoClient
+        if name != "postgres":  # a plan never names another; never connect
+            raise Refusal("store_retired")
+        if not url:
+            raise KeysetError(
+                f"{target.name}: Postgres is in use but DATABASE_URL"
+                + (" / GOOGLE_DATABASE_URL" if target is GOOGLE_CREDENTIALS else "")
+                + " is not set"
+            )
+        from sqlalchemy.ext.asyncio import create_async_engine
 
-            client = AsyncMongoClient(uri)
-            closers.append(client.close)
-            stores.append(MongoStore(client[database], target))
-        else:
-            if not url:
-                raise KeysetError(
-                    f"{target.name}: Postgres is in use but DATABASE_URL"
-                    + (" / GOOGLE_DATABASE_URL" if target is GOOGLE_CREDENTIALS else "")
-                    + " is not set"
-                )
-            from sqlalchemy.ext.asyncio import create_async_engine
-
-            engine = create_async_engine(url)
-            closers.append(engine.dispose)
-            stores.append(PostgresStore(engine, target))
-    mongo_stores = [s for s in stores if s.name == "mongo"]
-    if mongo_stores and target.needs_links and url:
-        # the forms' workspace links are in Postgres since 4.1
-        postgres = next((s for s in stores if s.name == "postgres"), None)
-        if postgres is None:
-            from sqlalchemy.ext.asyncio import create_async_engine
-
-            engine = create_async_engine(url)
-            closers.append(engine.dispose)
-            postgres = PostgresStore(engine, target)
-        for store in mongo_stores:
-            store.links_source = postgres
-        # only once the forms import is complete may anything be written from
-        # them (FormsImportRefused); a read goes on, with a warning
-        problem = await import_problem(
-            mongo_stores[0].db, postgres.links, postgres.engine
-        )
-        if problem and writes:
-            raise FormsImportRefused(*problem)
-        if problem:
-            print(f"warning: {problem[1]}", file=sys.stderr)
+        engine = create_async_engine(url)
+        closers.append(engine.dispose)
+        stores.append(PostgresStore(engine, target))
     return stores
 
 
@@ -411,24 +335,29 @@ async def _main(argv: List[str]) -> int:
         if problem:
             print(problem, file=sys.stderr)
             return 2
-    if args.command == "drop-old" and (args.target or args.store != "auto"):
+    if args.command == "drop-old" and (args.target or args.store != "postgres"):
         print(
-            "drop-old always checks every target in every store (Mongo and "
-            "Postgres, unless --mongo-retired): run it without --target and "
-            "--store. Dropping a key after "
-            "checking only part of the data would make the rest unreadable.",
+            "drop-old always checks every target in Postgres: run it without "
+            "--target and --store. Dropping a key after checking only part of "
+            "the data would make the rest unreadable.",
+            file=sys.stderr,
+        )
+        return 2
+    if args.command == "drop-old" and not args.mongo_retired:
+        print(
+            f"drop-old: refused ({Refusal('store_retired').code}): Mongo is not "
+            "scanned; pass --mongo-retired to confirm it is retired and that "
+            "values left in Mongo or its backups become unreadable.",
             file=sys.stderr,
         )
         return 2
     targets = [TARGETS[name] for name in (args.target or sorted(TARGETS))]
     # every target's stores are planned before anything is opened or written
     plans: Dict[str, List[str]] = {}
-    written: Dict[str, List[str]] = {}
     for target in targets:
         try:
             if args.command == "drop-old":
-                plans[target.name] = plan_drop_old(target, args.mongo_retired)
-                written[target.name] = written_stores(target.group, os.environ)
+                plans[target.name] = plan_drop_old(target)
             else:
                 plans[target.name] = plan_stores(target, args.store)
         except Refusal as refusal:
@@ -442,16 +371,7 @@ async def _main(argv: List[str]) -> int:
     closers: list = []
     try:
         for target in targets:
-            writes = args.command == "drop-old" or (
-                args.command == "reencrypt" and not args.dry_run
-            )
-            try:
-                stores = await _open_stores(
-                    target, plans[target.name], closers, writes=writes
-                )
-            except FormsImportRefused as refused:
-                print(f"{target.name}: refused ({refused.code}): {refused}", file=sys.stderr)
-                return 2
+            stores = await _open_stores(target, plans[target.name], closers)
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"
                 report["targets"][target.name] = await run_reencrypt(
@@ -483,13 +403,12 @@ async def _main(argv: List[str]) -> int:
             for counts in stores.values()
         )
         report["values_stale"] = stale
-        # a store the services write must hold records; another configured
-        # store (one they no longer write) may be empty
+        # Postgres must hold records
         empty = [
             f"{target} in {store}"
             for target, stores in report["records"].items()
             for store, records in stores.items()
-            if records == 0 and store in written[target]
+            if records == 0
         ]
         if stale:
             report["refused"] = (
@@ -500,8 +419,8 @@ async def _main(argv: List[str]) -> int:
             report["refused"] = (
                 "no records at all in: "
                 + ", ".join(empty)
-                + ". If the script reads the wrong or an empty database (MONGO_DB, "
-                "GOOGLE_MONGO_DB, DATABASE_URL, GOOGLE_DATABASE_URL), dropping the "
+                + ". If the script reads the wrong or an empty database "
+                "(DATABASE_URL, GOOGLE_DATABASE_URL), dropping the "
                 "old key would make the real data unreadable. Pass --allow-empty "
                 "only if these really hold nothing (e.g. Google Forms never used)."
             )

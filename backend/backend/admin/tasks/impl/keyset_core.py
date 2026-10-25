@@ -9,11 +9,9 @@ What is encrypted with the keyset (``common.services.crypto_service``):
 
 * ``responses``: in each stored response, ``answers``, ``hidden_fields``,
   ``internal_answers`` and every ``respondent_feedback[].message``, with the
-  associated data ``<workspace_id>|<form_id>|``. Mongo ``form_responses`` /
-  Postgres ``app.form_responses``.
+  associated data ``<workspace_id>|<form_id>|``. Postgres ``app.form_responses``.
 * ``google-credentials``: the Google Forms integration's OAuth credentials
-  (``personal|<user_id>|``). Mongo ``Oauth2CredentialDocument`` / Postgres
-  ``google.oauth_credentials``.
+  (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
 
 Nothing else is encrypted with it (the Fernet-encrypted values use another key).
 Never prints or returns a value or the keyset: counts and key ids only.
@@ -50,7 +48,6 @@ class Target:
 
     name: str
     group: str  # the repository group whose write mode applies
-    collection: str  # Mongo collection
     schema: str  # Postgres schema
     table: str  # Postgres table
     fields: Tuple[str, ...]  # the document fields read
@@ -97,7 +94,6 @@ def _credential_contexts(record: Dict[str, Any], _links) -> List[Tuple[str, str]
 RESPONSES = Target(
     name="responses",
     group="responses",
-    collection="form_responses",
     schema="app",
     table="form_responses",
     fields=(
@@ -115,7 +111,6 @@ RESPONSES = Target(
 GOOGLE_CREDENTIALS = Target(
     name="google-credentials",
     group="google",
-    collection="Oauth2CredentialDocument",
     schema="google",
     table="oauth_credentials",
     fields=("user_id", "credentials"),
@@ -126,10 +121,6 @@ TARGETS = {target.name: target for target in (RESPONSES, GOOGLE_CREDENTIALS)}
 
 
 # -------------------------------------------------------------------- stores
-def _dotted(path: Path) -> str:
-    return ".".join(str(part) for part in path)
-
-
 def _get(document: Any, path: Path) -> Any:
     for part in path:
         document = document[part]
@@ -143,62 +134,6 @@ def _set(document: Any, path: Path, value: Any) -> None:
 
 
 Update = Tuple[Path, bytes, bytes]  # path, the value read, its replacement
-
-
-class MongoStore:
-    name = "mongo"
-
-    def __init__(self, database, target: Target, links=None):
-        self.db = database  # pymongo AsyncDatabase
-        self.target = target
-        # where the workspace links of forms are read (a PostgresStore): the
-        # forms group is in Postgres only since 4.1, so ``workspace_forms`` in
-        # Mongo is a frozen 4.0 copy, read only where no Postgres is
-        # configured (a 4.0 database not imported yet)
-        self.links_source = links
-
-    def key(self, record_id: str):
-        from bson import ObjectId
-
-        return ObjectId(record_id) if ObjectId.is_valid(record_id) else record_id
-
-    async def links(self) -> Dict[str, List[str]]:
-        """form_id -> the workspaces it is linked to: from Postgres, or with
-        none configured from the 4.0 ``workspace_forms`` in Mongo."""
-        from backend.db.forms_import import mongo_links
-
-        if self.links_source is not None:
-            return await self.links_source.links()
-        return await mongo_links(self.db)
-
-    async def batch(self, after: Optional[str], limit: int) -> List[Dict[str, Any]]:
-        query: Dict[str, Any] = {}
-        if after is not None:
-            query["_id"] = {"$gt": self.key(after)}
-        projection = {field: 1 for field in self.target.fields}
-        cursor = (
-            self.db[self.target.collection]
-            .find(query, projection)
-            .sort("_id", 1)
-            .limit(limit)
-        )
-        return [{**row, "id": str(row["_id"])} async for row in cursor]
-
-    async def read(self, record_id: str) -> Optional[Dict[str, Any]]:
-        projection = {field: 1 for field in self.target.fields}
-        row = await self.db[self.target.collection].find_one(
-            {"_id": self.key(record_id)}, projection
-        )
-        return None if row is None else {**row, "id": str(row["_id"])}
-
-    async def write(self, record_id: str, updates: Sequence[Update]) -> bool:
-        """Compare-and-set: only if every value is still the one read."""
-        query: Dict[str, Any] = {"_id": self.key(record_id)}
-        query.update({_dotted(path): old for path, old, _ in updates})
-        result = await self.db[self.target.collection].update_one(
-            query, {"$set": {_dotted(path): new for path, _, new in updates}}
-        )
-        return result.modified_count == 1
 
 
 class PostgresStore:
@@ -450,14 +385,13 @@ async def reencrypt_store(
     store,
     target: Target,
     rotation: Rotation,
-    mirror=None,
     batch_size: int = 200,
     limit: Optional[int] = None,
     start_after: Optional[str] = None,
     on_batch: Optional[Callable[[str, Dict], Any]] = None,
     readback: bool = False,
 ) -> Tuple[Dict, Optional[str]]:
-    """Re-encrypt one store (and copy each new value to ``mirror``); returns
+    """Re-encrypt one store; returns
     the counts and the last id walked. ``readback``: read each record again
     after writing it and count it re-encrypted only if the stored values are
     the ones written. ``on_batch(last id walked, counts so far)`` is awaited
@@ -508,10 +442,6 @@ async def reencrypt_store(
                 continue
             counts["records_reencrypted"] += 1
             counts["values_reencrypted"] += len(updates)
-            if mirror is not None:
-                # the same ciphertext, where the mirror holds the same old value
-                if await mirror.write(record["id"], updates):
-                    counts["mirror_records_copied"] += 1
             if limit is not None and counts["records_reencrypted"] >= limit:
                 break
         logger.info(
@@ -550,21 +480,15 @@ async def run_reencrypt(
     limit: Optional[int] = None,
     start_after: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """``stores``: primary first, then the mirror (if any)."""
+    """``stores``: the stores to cover (Postgres only since 4.1)."""
     report: Dict[str, Any] = {}
     if dry_run:
         for store in stores:
             report[store.name] = await scan(store, target, rotation, batch_size)
         return report
-    primary, mirror = stores[0], (stores[1] if len(stores) > 1 else None)
+    (primary,) = stores
     report[primary.name], last = await reencrypt_store(
-        primary, target, rotation, mirror, batch_size, limit, start_after
+        primary, target, rotation, batch_size, limit, start_after
     )
-    if mirror is not None and limit is None:
-        # what the copy could not cover: rows only the mirror holds, or whose
-        # value differed from the primary's
-        report[mirror.name], _ = await reencrypt_store(
-            mirror, target, rotation, None, batch_size, None, start_after
-        )
     report["last_id"] = last
     return report

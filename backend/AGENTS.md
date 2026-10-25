@@ -165,10 +165,10 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
 - **Operator commands** that touch application data (`jobs-sweep`, `backend.custom_domain`,
   `backend.membership_duplicates`) go through the routed repositories, booted with `backend/cli_store.py`
   (Mongo only while one of their groups still uses it), never a raw Mongo collection, so they follow the read
-  source and write mode during and after the cutover. The admin tasks pick their stores with
-  `plan_task_stores` (`admin/tasks/impl/responses_common.py`): every store the services write, from the
-  runner's `DB_WRITE_MODE*`, never fewer; unknown mode refuses. `keyset.drop_old` never trusts that copy to skip
-  a store: both stores or refuse, Postgres alone only with the signed `mongo_retired` param.
+  source and write mode during and after the cutover. The admin tasks and the break-glass scripts cover Postgres alone
+  (`plan_task_stores`, `admin/tasks/impl/responses_common.py`): `stores: mongo` and `both` refuse
+  `store_retired` before anything connects, no write mode is read, and `keyset.drop_old` needs the signed
+  `mongo_retired` param (`store_retired` without it).
 - **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
@@ -196,8 +196,9 @@ Beanie Documents are registered in [backend/app/handlers/database.py](backend/ap
 twin as above). Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
 `common` package, not from here.
 Background jobs go through `services/temporal_service.py`, which dispatches per job kind (`JOBS_BACKEND__<job>`)
-to a Temporal workflow (default) or a procrastinate job on Postgres (`backend/jobs/`; worker:
-`python -m backend.jobs.worker`, queue tables in the `jobs` schema via `python -m backend.jobs.schema`).
+to a procrastinate job on Postgres (default; `backend/jobs/`; worker:
+`python -m backend.jobs.worker`, queue tables in the `jobs` schema via `python -m backend.jobs.schema`) or, with
+`JOBS_BACKEND__<job>=temporal`, a Temporal workflow.
 
 Response `answers` **and** `hidden_fields` (captured URL parameters, see `StandardForm.hidden_fields` for the
 declared names) are encrypted at rest via `crypto_service` in `form_response_repository.save_form_response` and
@@ -705,8 +706,8 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   never writes over the failure. `touch` sets only `heartbeat_at` (Mongo `$set`,
   Postgres row lock), never the rest of the record.
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
-  finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
-  otherwise as a background task in the API process.
+  finished ones. Runs on procrastinate (the default, `JOBS_BACKEND__import_form=postgres`),
+  with `=temporal` as a background task in the API process.
 - **AI needs two consents per import:** nothing from an uploaded document (page
   text, layout text, page images) goes to an AI provider unless the workspace has
   AI enabled (see "AI consent" below) **and** the uploader sent `ai_consent=true`
@@ -858,8 +859,8 @@ one of ours; `services/image_urls.py` is the single allow-list:
   `blacklisted_refresh_tokens` table is unused and kept until a later release drops it. After sign-in the redirect
   goes only to this instance's origins (`services/login_redirect.py`: `API_CLIENT_URL` + `allowed_origins`).
 - **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
-  deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
-  `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and
+  deletion (at the response's expiration), action-code execution — as procrastinate jobs on Postgres (default;
+  `backend/jobs/tasks.py`; per job kind `JOBS_BACKEND__<job>=temporal` selects the Temporal workflow; `run_action` is deferred by name and
   executed by `temporal/actions-executor`). See `docs/postgres-cutover-runbook.md`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
   `DELETE /auth/user`) with the `api-key` header, checked by `get_api_key` (`user_service.py`) against
@@ -885,7 +886,7 @@ DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
 uv run pytest -n 4 --dist loadgroup      # in parallel (CI): each xdist worker gets <db>_gwN in Mongo and Postgres
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
 DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
-python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres)
+python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres, the default)
 ```
 Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 

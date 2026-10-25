@@ -4,11 +4,11 @@ import enum
 
 
 class StoreChoice(str, enum.Enum):
-    """Which data stores a task covers. ``auto`` = every store the services
-    still write (the runner's ``DB_WRITE_MODE`` / ``DB_WRITE_MODE__<group>``;
-    unset, the services' default; Postgres for the groups served from Postgres
-    only; ``write_mode_unknown`` for a value that is not a write mode), plus
-    any other store the runner is configured for; ``both`` requires both."""
+    """Which data store a task covers. Postgres is the only store since 4.1:
+    ``postgres`` (the default) and ``auto`` (kept so that parameters saved
+    before 4.1 still validate) name it; ``mongo`` and ``both`` are refused with
+    ``store_retired`` before anything connects. The 4.0 data in Mongo is only
+    read by the import (``python -m backend.migrate``)."""
 
     auto = "auto"
     mongo = "mongo"
@@ -18,9 +18,10 @@ class StoreChoice(str, enum.Enum):
 
 class Refusals(str, enum.Enum):
     store_not_configured = "store_not_configured"
-    write_mode_unknown = "write_mode_unknown"
+    # the task was asked for Mongo (``mongo`` or ``both``): no task reads or
+    # writes Mongo any more
+    store_retired = "store_retired"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
     keyset_missing = "keyset_missing"
     keyset_unreadable = "keyset_unreadable"
-    forms_import_incomplete = "forms_import_incomplete"
