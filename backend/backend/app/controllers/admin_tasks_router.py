@@ -14,9 +14,12 @@ may do: the runner names an account, never a decision.
   (``services/case_duplicate_accounts.py``).
 
 When the API's call to the auth service fails, both answer 502 with
-``{"code": "auth_unreachable" | "auth_refused" | "auth_error", "status":
-<auth's status or null>}`` (never auth's body), so the runner can tell an
-auth problem from the API's own 503 (no key) and 403 (wrong key).
+``{"code": "auth_unreachable" | "auth_misconfigured" | "auth_refused" |
+"auth_error", "status": <auth's status or null>}`` (never auth's body); when
+the account deletion cannot be started, the drop answers 502 with
+``deletion_unavailable``. 503 is the API's own missing key and nothing else
+(a 503 from inside a route is answered 500), so the runner can tell these
+apart.
 """
 
 import hmac
@@ -30,7 +33,8 @@ from loguru import logger
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
-from backend.app.services.case_duplicate_accounts import AuthCallFailed
+from backend.app.services.case_duplicate_accounts import UpstreamFailed
+from common.exceptions.http import HTTPException as CommonHTTPException
 from backend.config import settings
 
 KEY_HEADER = "X-Admin-Tasks-Key"
@@ -52,18 +56,29 @@ def require_admin_tasks_key(request: Request) -> None:
         )
 
 
-def _auth_failed(route: str, error: AuthCallFailed) -> JSONResponse:
-    # code and status only: never auth's body, an id or an email
-    logger.warning(
-        "Admin task route {}: the auth service call failed ({}, status {}).",
-        route,
-        error.code,
-        error.status,
-    )
-    return JSONResponse(
-        status_code=HTTPStatus.BAD_GATEWAY,
-        content={"code": error.code, "status": error.status},
-    )
+async def _answer(route: str, call):
+    """The route's reply; what it depends on failing is a 502 with a code and
+    a status (never a body, an id or an email), and a 503 raised inside it
+    (a dependency's, not the key's) becomes a 500, so the runner's
+    ``backend_key_missing`` only ever means the key is unset."""
+    try:
+        return await call()
+    except UpstreamFailed as error:
+        logger.warning(
+            "Admin task route {}: {} (status {}).", route, error.code, error.status
+        )
+        return JSONResponse(
+            status_code=HTTPStatus.BAD_GATEWAY,
+            content={"code": error.code, "status": error.status},
+        )
+    except (HTTPException, CommonHTTPException) as error:
+        if error.status_code != HTTPStatus.SERVICE_UNAVAILABLE:
+            raise
+        logger.warning("Admin task route {}: a dependency answered 503.", route)
+        return JSONResponse(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content={"code": "backend_error", "status": error.status_code},
+        )
 
 
 def _object_id(user_id: str) -> str:
@@ -87,18 +102,19 @@ class AdminTasksRouter(Routable):
 
     @get("/case-duplicate-accounts")
     async def case_duplicate_accounts(self):
-        try:
+        async def plan():
             groups = await self.case_duplicates.plan()
-        except AuthCallFailed as error:
-            return _auth_failed("case-duplicate-accounts", error)
-        return {
-            "groups": [[account.as_dict() for account in group] for group in groups]
-        }
+            return {
+                "groups": [[account.as_dict() for account in group] for group in groups]
+            }
+
+        return await _answer("case-duplicate-accounts", plan)
 
     @post("/case-duplicate-accounts/{user_id}/drop")
     async def drop_case_duplicate_account(self, user_id: str):
-        try:
-            status = await self.case_duplicates.drop(_object_id(user_id))
-        except AuthCallFailed as error:
-            return _auth_failed("case-duplicate-accounts drop", error)
-        return {"status": status}
+        account_id = _object_id(user_id)
+
+        async def drop():
+            return {"status": await self.case_duplicates.drop(account_id)}
+
+        return await _answer("case-duplicate-accounts drop", drop)

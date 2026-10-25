@@ -28,9 +28,12 @@ and returns ids; the one email a deletion needs is read by id and handed to
 the deletion path, as for the user's own request).
 
 A failing call to the auth service raises :class:`AuthCallFailed` with a
-stable code (``auth_unreachable``, ``auth_refused``, ``auth_error``) and auth's
-status, never its body: the routes answer 502 with them, so the runner can
-tell an auth problem from one of the API's own.
+stable code (``auth_unreachable``, ``auth_misconfigured``, ``auth_refused``,
+``auth_error``) and auth's status, never its body; a deletion that cannot be
+started (the deletion workflow, Temporal, the jobs worker) raises
+:class:`DeletionUnavailable`. The routes answer 502 with the code and status,
+so the runner can tell these from the API's own 503 (its admin task key is
+unset) and 403 (another key).
 """
 
 from __future__ import annotations
@@ -45,7 +48,6 @@ from bson import ObjectId
 from common.models.user import User
 from loguru import logger
 
-from backend.app.exceptions import HTTPException
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
@@ -54,18 +56,32 @@ DROP = "drop"
 MANUAL = "manual"
 
 AUTH_UNREACHABLE = "auth_unreachable"
+AUTH_MISCONFIGURED = "auth_misconfigured"
 AUTH_REFUSED = "auth_refused"
 AUTH_ERROR = "auth_error"
+DELETION_UNAVAILABLE = "deletion_unavailable"
 
 
-class AuthCallFailed(Exception):
-    """A call to the auth service failed: ``code`` says how, ``status`` is
-    auth's HTTP status (None when it never answered)."""
+class UpstreamFailed(Exception):
+    """Something the route depends on failed: ``code`` says what, ``status``
+    is the HTTP status it reported (None when there was none). Answered as
+    502 by the routes, never with a body or message of the failure."""
 
     def __init__(self, code: str, status: Optional[int] = None):
         super().__init__(code)
         self.code = code
         self.status = status
+
+
+class AuthCallFailed(UpstreamFailed):
+    """A call to the auth service failed."""
+
+
+class DeletionUnavailable(UpstreamFailed):
+    """The account deletion could not be started."""
+
+    def __init__(self, status: Optional[int] = None):
+        super().__init__(DELETION_UNAVAILABLE, status)
 
 
 def _auth_reply(reply: httpx.Response) -> dict:
@@ -135,6 +151,10 @@ class CaseDuplicateAccounts:
                 headers=auth_service_headers(),
                 **kwargs,
             )
+        except (httpx.InvalidURL, httpx.UnsupportedProtocol):
+            # AUTH_BASE_URL is not a usable URL (InvalidURL is not an
+            # httpx.HTTPError)
+            raise AuthCallFailed(AUTH_MISCONFIGURED) from None
         except httpx.TransportError:
             raise AuthCallFailed(AUTH_UNREACHABLE) from None
         except httpx.HTTPError:
@@ -162,7 +182,9 @@ class CaseDuplicateAccounts:
         return [await self._evaluate(ids) for ids in sorted(await self._group_ids())]
 
     async def _email_of(self, user_id: str) -> Optional[str]:
-        reply = await self._auth_get("/users", params={"user_ids": [user_id]})
+        reply = await self._auth_get(
+            "/users", params={"user_ids": [user_id]}, timeout=30
+        )
         for user in reply.get("users_info") or []:
             if str(user.get("_id") or user.get("id")) == user_id:
                 return user.get("email")
@@ -191,9 +213,18 @@ class CaseDuplicateAccounts:
             started = await self._auth_service.add_workflow_to_delete_user(
                 User(id=user_id, sub=email)
             )
-        except HTTPException as error:
-            if error.status_code == HTTPStatus.CONFLICT:
+        except Exception as error:
+            status = getattr(error, "status_code", None)
+            if status == HTTPStatus.CONFLICT:
+                # the product's own refusal (billing owner of a shared workspace)
                 return "refused"
-            raise
+            # not started: Temporal, the jobs worker or the event log failed.
+            # The type only: a message could name the account.
+            logger.warning(
+                "Case-duplicate account deletion could not be started ({}, status {}).",
+                type(error).__name__,
+                status,
+            )
+            raise DeletionUnavailable(status if isinstance(status, int) else None) from None
         logger.info("Case-duplicate account {} queued for deletion.", user_id)
         return "queued" if started else "already_queued"

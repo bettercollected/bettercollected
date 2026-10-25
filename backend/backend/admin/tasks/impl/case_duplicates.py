@@ -60,11 +60,14 @@ SKIPPED = {
     "refused": "refused",
 }
 
-# the API's 502 body code (its call to auth failed) -> the refusal
-AUTH_FAILURES = {
+# the API's 502 body code (what it depends on failed) -> the refusal
+BAD_GATEWAY_CODES = {
     "auth_unreachable": "auth_unreachable",
+    "auth_misconfigured": "auth_misconfigured",
     "auth_refused": "auth_key_refused",
     "auth_error": "auth_error",
+    # the drop: the account deletion could not be started
+    "deletion_unavailable": "deletion_unavailable",
 }
 
 log = logging.getLogger("backend.admin.tasks")
@@ -148,14 +151,15 @@ def _refusal(reply: httpx.Response) -> str:
         # never followed: a redirect is a wrong URL or path, not a dead API
         return "backend_redirect"
     if status == 502:
-        # the API's call to auth failed; a 502 without its code (a proxy in
-        # front of the API, say) is the API's own error
+        # what the API depends on failed (auth, the deletion); a 502
+        # without one of its codes (a proxy in front of the API, say) is the
+        # API's own error
         try:
             code = reply.json().get("code")
         except (ValueError, AttributeError):
             code = None
-        if isinstance(code, str) and code in AUTH_FAILURES:
-            return AUTH_FAILURES[code]
+        if isinstance(code, str) and code in BAD_GATEWAY_CODES:
+            return BAD_GATEWAY_CODES[code]
     return "backend_error"
 
 
