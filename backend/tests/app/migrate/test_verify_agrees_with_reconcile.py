@@ -528,3 +528,54 @@ async def test_postgres_to_mongo_copies_rows_past_mongo_across_batches(target):
     await client.close()
     assert sorted(str(i) for i in copied) == ids
     assert (await verify(target, "rate_limit_counters")).clean
+
+
+async def test_a_clean_verify_compares_entries_on_the_database_clock(target):
+    """verify's start time comes from Postgres, the clock the outbox's
+    created_at uses: an entry recorded after it stays open, even when the
+    runner's own clock is ahead."""
+    from unittest import mock
+
+    from backend.db.models import MirrorWriteFailure
+
+    ahead = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)
+
+    class Ahead(dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return ahead
+
+    async with Runner(target) as runner:
+        with mock.patch("common.db.migrate.engine.datetime", Ahead):
+            reports = await runner.verify()
+        started = runner._verify_started
+        assert started < ahead - dt.timedelta(minutes=30)  # not the runner's clock
+        async with container.pg_sessionmaker()() as session, session.begin():
+            for row_id, at in (
+                ("before", started - dt.timedelta(seconds=1)),
+                ("after", started + dt.timedelta(seconds=1)),
+            ):
+                session.add(
+                    MirrorWriteFailure(
+                        table_name="SessionRepository",
+                        row_id=row_id,
+                        op="touch",
+                        error="E: test",
+                        created_at=at,
+                    )
+                )
+        outcome = await runner.record_verify(reports)
+    assert outcome["marker"] == "written"
+    async with container.pg_sessionmaker()() as session:
+        open_ids = (
+            (
+                await session.execute(
+                    select(MirrorWriteFailure.row_id).where(
+                        MirrorWriteFailure.resolved_at.is_(None)
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert open_ids == ["after"]
