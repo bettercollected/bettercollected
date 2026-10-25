@@ -153,14 +153,60 @@ class OauthCredentialRepository(PostgresRepositoryBase):
     ) -> Oauth2CredentialDocument:
         return await self.save_document(document)
 
-    async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
-        """The account's credentials: by its user id, and by email only the
-        legacy rows that have no user id. Another account whose email equals
-        this one (in any case) keeps its credential."""
+    @staticmethod
+    def _of_account(email: EmailStr, user_id: str):
+        """The rows that are the account's own: by its user id, and by email
+        only the legacy rows that have no user id."""
         legacy = and_(
             func.coalesce(OAuthCredentialRow.user_id, "") == "",
             OAuthCredentialRow.email == email,
         )
         if not user_id:
-            return await self.delete_where(legacy)
-        return await self.delete_where(or_(OAuthCredentialRow.user_id == user_id, legacy))
+            return legacy
+        return or_(OAuthCredentialRow.user_id == user_id, legacy)
+
+    async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
+        """The account's credentials: by its user id, and by email only the
+        legacy rows that have no user id. Another account whose email equals
+        this one (in any case) keeps its credential."""
+        return await self.delete_where(self._of_account(email, user_id))
+
+    async def credentials_to_revoke(
+        self, email: EmailStr, user_id: str
+    ) -> list[Oauth2CredentialDocument]:
+        """The account's own credentials (the rows its erasure deletes),
+        decrypted, whose grant may be revoked at Google: a revocation ends the
+        grant for every holder of that Google account, so a row is left out
+        when another account (another non-empty user id) holds a credential
+        for the same Google address, compared ignoring case. A row that cannot
+        be decrypted is left out too; the erasure deletes it anyway."""
+        try:
+            own = await self.many(self._of_account(email, user_id))
+            addresses = {d.email.lower() for d in own if d.email}
+            shared = set()
+            if addresses:
+                others = await self.many(
+                    func.lower(OAuthCredentialRow.email).in_(addresses),
+                    func.coalesce(OAuthCredentialRow.user_id, "") != "",
+                    func.coalesce(OAuthCredentialRow.user_id, "") != (user_id or ""),
+                )
+                shared = {d.email.lower() for d in others if d.email}
+        except SQLAlchemyError:
+            raise _database_error()
+        revocable = []
+        for document in own:
+            if not document.email or document.email.lower() in shared:
+                continue
+            try:
+                document.credentials = OauthCredentialRepository.decrypt_token(
+                    user_id=document.user_id, token=document.credentials
+                )
+            except Exception as exc:  # noqa: BLE001 - never blocks the erasure
+                log.warning(
+                    "credential %s not revocable: not readable (%s)",
+                    document.id,
+                    type(exc).__name__,
+                )
+                continue
+            revocable.append(document)
+        return revocable
