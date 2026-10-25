@@ -32,7 +32,7 @@ from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
     UpdateActionInFormDto,
 )
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
     FormSettingsCamelModel,
@@ -83,7 +83,7 @@ from backend.app.services.internal_fields import (
     ensure_no_internal_logic,
     strip_internal_fields,
 )
-from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
@@ -400,7 +400,7 @@ class WorkspaceFormService:
             )
 
         await event_logger_service.send_event(
-            event_type=UserEventType.FORM_IMPORTED, user_id=user.id, email=user.sub
+            event_type=UserEventType.FORM_IMPORTED, user_id=user.id
         )
 
         response_dict = {

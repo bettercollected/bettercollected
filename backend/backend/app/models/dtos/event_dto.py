@@ -1,7 +1,5 @@
 import enum
 
-from pydantic import BaseModel, EmailStr
-
 
 class UserEventType(str, enum.Enum):
     USER_CREATED = "user_created"
@@ -11,9 +9,3 @@ class UserEventType(str, enum.Enum):
     USER_UPGRADED_TO_PRO = "user_upgraded_to_pro"
     USER_DOWNGRADED = "user_downgraded"
     CUSTOM_DOMAIN_CHANGED = "custom_domain_changed"
-
-
-class UserEventDto(BaseModel):
-    event_type: UserEventType
-    user_id: str
-    email: EmailStr

@@ -5,14 +5,14 @@ from common.models.user import User
 from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.dtos.price_suggestion import PriceSuggestionRequest
 from backend.app.repositories.postgres.refdata import (
     PostgresPriceSuggestionRepository,
 )
 from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.services.auth_service import AuthService
-from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.workspace_service import WorkspaceService
 
 
@@ -46,5 +46,5 @@ class PriceSuggestionService:
         await self.workspace_service.upgrade_user_workspace(user_id=user.id)
 
         await event_logger_service.send_event(
-            UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub
+            UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id
         )

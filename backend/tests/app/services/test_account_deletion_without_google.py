@@ -206,14 +206,9 @@ async def test_erasure_comes_first_even_when_the_purge_cannot_be_queued(
         AsyncMock(side_effect=RuntimeError("queue down")),
     ) as queued, patch.object(
         container.session_service(), "delete_all_for_user", sessions
-    ), patch(
-        "backend.app.services.auth_service.event_logger_service.delete_contact",
-        AsyncMock(),
-    ) as marketing_contact:
+    ):
         with pytest.raises(CredentialPurgeNotQueued):
             await container.auth_service().delete_user(testUser)
-    # the marketing contact is erased too before the failure surfaces
-    marketing_contact.assert_awaited_once()
 
     # only the queuing was retried, after the account, sessions and workspace
     assert queued.await_count == purge_module.QUEUE_ATTEMPTS
