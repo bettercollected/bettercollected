@@ -1152,11 +1152,12 @@ auth is the cause.
 
 | Code | Likely cause | What to check |
 | --- | --- | --- |
-| `backend_not_configured` | The runner has no `ADMIN_TASKS_API_KEY`, or `ADMIN_TASKS_BACKEND_URL` is not an `http(s)` URL | The `task-runner` service's environment |
+| `backend_not_configured` | The runner has no `ADMIN_TASKS_API_KEY`, or `ADMIN_TASKS_BACKEND_URL` is not a valid `http(s)` URL | The `task-runner` service's environment |
 | `backend_unreachable` | No connection to the API, or it timed out | `ADMIN_TASKS_BACKEND_URL` (compose: `TASK_RUNNER_BACKEND_URL`); that the `backend` service is up and on the runner's network |
 | `backend_key_missing` | The API answered 503: its own `ADMIN_TASKS_API_KEY` is unset | Set the key on the `backend` service |
 | `backend_key_refused` | The API answered 401/403: the two `ADMIN_TASKS_API_KEY` values differ | The same value on `backend` and `task-runner` |
 | `backend_route_missing` | The API answered 404: the backend is older than this task, or the URL's path is wrong | The backend image version; that `ADMIN_TASKS_BACKEND_URL` ends in `/api/v1` |
+| `backend_redirect` | The API answered with a redirect (3xx), which the runner never follows; the log line has the status | `ADMIN_TASKS_BACKEND_URL` is the API's own `http(s)://host:port/api/v1` (not a proxy that redirects, for example to `https`); a task runner from before the exact-path fix requested the routes with a trailing slash and got a 307 (shown then as `backend_unreachable`) |
 | `backend_error` | The API answered 5xx or another unexpected status (a 502 from a proxy in front of it, too) | The backend's log at the time of the run |
 | `backend_bad_reply` | The API answered 200 with something other than the expected JSON | That the URL reaches the backend, not another service or a proxy page |
 | `auth_unreachable` | The API could not reach the auth service (connection or timeout) | The backend's `AUTH_BASE_URL`; that the `auth` service is up |

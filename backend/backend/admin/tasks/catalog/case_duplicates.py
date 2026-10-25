@@ -35,6 +35,9 @@ class Refusals(str, enum.Enum):
     backend_key_refused = "backend_key_refused"
     # the API has no such route (404): usually a backend older than this task
     backend_route_missing = "backend_route_missing"
+    # the API answered with a redirect (3xx, never followed): the URL or the
+    # path the runner requests is not the route's exact one
+    backend_redirect = "backend_redirect"
     # the API answered 5xx or another unexpected status
     backend_error = "backend_error"
     # the API answered 200 with a body that is not the expected JSON

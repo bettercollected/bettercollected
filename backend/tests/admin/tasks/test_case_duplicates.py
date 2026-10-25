@@ -302,6 +302,8 @@ def _raising(error):
     [
         ({impl.KEY_ENV: ""}, None, "backend_not_configured"),
         ({impl.URL_ENV: "file:///etc"}, None, "backend_not_configured"),
+        # httpx.InvalidURL is not an httpx.HTTPError: still a refusal
+        ({impl.URL_ENV: "http://[::1/api/v1"}, None, "backend_not_configured"),
         # the API itself: down or too slow; no key; another key
         ({}, _raising(httpx.ConnectError), "backend_unreachable"),
         ({}, _raising(httpx.ReadTimeout), "backend_unreachable"),
@@ -310,6 +312,10 @@ def _raising(error):
         ({}, _replying(401), "backend_key_refused"),
         # a backend without the routes (older than the task)
         ({}, _replying(404), "backend_route_missing"),
+        # a redirect is never followed, and never looks like "unreachable"
+        ({}, _replying(307, headers={"location": "http://backend.test/x"}), "backend_redirect"),
+        ({}, _replying(301), "backend_redirect"),
+        ({}, _replying(308), "backend_redirect"),
         # the API's own error, or a 502 that is not the API's auth report
         ({}, _replying(500), "backend_error"),
         ({}, _replying(400), "backend_error"),
@@ -362,6 +368,24 @@ async def test_a_refusal_during_the_apply_is_the_same_code(world, api, monkeypat
     )
     _, run = await _run(world)
     assert run["state"] == "refused" and run["refusal_code"] == "auth_unreachable", run
+
+
+async def test_an_id_with_a_trailing_newline_is_a_bad_reply_not_a_crash(world, api, monkeypatch):
+    """``^...$`` would accept "<id>\\n"; the id would then reach the drop's
+    URL, where httpx raises InvalidURL instead of the run refusing."""
+    def newline(request):
+        return httpx.Response(
+            200, json={"groups": [[{"id": A2 + "\n", "forms": 0, "decision": "drop"},
+                                   {"id": A1, "forms": 1, "decision": "keep"}]]}
+        )
+
+    monkeypatch.setattr(impl, "transport", httpx.MockTransport(newline))
+    _, run = await _run(world, dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "backend_bad_reply", run
+    async with impl.Backend("http://backend.test/api/v1", KEY) as backend:
+        with pytest.raises(impl.Refusal) as refused:
+            await backend.drop(A2 + "\n")
+    assert refused.value.code == "backend_bad_reply"
 
 
 async def test_a_malformed_reply_carries_nothing_into_events(world, api, monkeypatch):

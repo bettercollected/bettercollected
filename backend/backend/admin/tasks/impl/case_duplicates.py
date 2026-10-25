@@ -48,7 +48,8 @@ TARGET_TYPE = "accounts"
 WAIT_SECONDS = 600
 POLL_SECONDS = 5
 TIMEOUT_SECONDS = 120
-OBJECT_ID = re.compile(r"^[0-9a-f]{24}$")
+# fullmatch only: "$" would let a trailing newline through
+OBJECT_ID = re.compile(r"[0-9a-f]{24}")
 DECISIONS = ("keep", "drop", "manual")
 # what POST .../drop answers, and how the task counts it
 STARTED = {"queued": "drops_started", "already_queued": "already_running"}
@@ -74,7 +75,15 @@ transport: Optional[httpx.AsyncBaseTransport] = None
 
 class Backend:
     def __init__(self, url: str, key: str):
-        self._client = httpx.AsyncClient(
+        try:
+            self._client = self._open(url, key)
+        except (httpx.InvalidURL, ValueError):
+            # ADMIN_TASKS_BACKEND_URL is not a usable URL
+            raise _refused("-", None, "backend_not_configured") from None
+
+    @staticmethod
+    def _open(url: str, key: str) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
             # the routes are requested by their exact path: httpx ends a
             # base_url with "/", so a route in it would be requested with a
             # trailing slash, which the API answers with a redirect (307)
@@ -94,6 +103,10 @@ class Backend:
     async def _call(self, method: str, path: str) -> dict:
         try:
             reply = await self._client.request(method, path)
+        except httpx.InvalidURL:
+            # not an httpx.HTTPError: the URL could not be built (the
+            # configured URL; an id is checked before it is used)
+            raise _refused(method, None, "backend_not_configured") from None
         except httpx.TransportError:
             # no connection, or a timeout
             raise _refused(method, None, "backend_unreachable") from None
@@ -117,6 +130,8 @@ class Backend:
         return [_valid_group(group) for group in groups]
 
     async def drop(self, account_id: str) -> str:
+        if not OBJECT_ID.fullmatch(account_id):
+            raise Refusal("backend_bad_reply")
         return str((await self._call("POST", f"{ROUTE}/{account_id}/drop")).get("status"))
 
 
@@ -129,6 +144,9 @@ def _refusal(reply: httpx.Response) -> str:
         return "backend_key_refused"
     if status == 404:
         return "backend_route_missing"
+    if 300 <= status < 400:
+        # never followed: a redirect is a wrong URL or path, not a dead API
+        return "backend_redirect"
     if status == 502:
         # the API's call to auth failed; a 502 without its code (a proxy in
         # front of the API, say) is the API's own error
@@ -165,7 +183,7 @@ def _valid_group(group) -> List[dict]:
         decision = account.get("decision")
         forms = account.get("forms")
         if (
-            not OBJECT_ID.match(account_id)
+            not OBJECT_ID.fullmatch(account_id)
             or decision not in DECISIONS
             or isinstance(forms, bool)
             or not isinstance(forms, int)
