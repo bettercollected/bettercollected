@@ -24,6 +24,7 @@ applies its change to the stored copy, never to one read earlier.
 
 import datetime as dt
 import hashlib
+from contextlib import contextmanager
 import json
 import re
 from http import HTTPStatus
@@ -34,7 +35,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import EmailStr
 from sqlalchemy import and_, func, literal, or_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
@@ -42,10 +43,12 @@ from backend.app.models.filter_queries.form_responses import FormResponseFilterQ
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import (
+    LOCK_NOT_AVAILABLE,
     _contains,
     _fold,
     _oid,
     _sort_terms,
+    _sqlstate,
     _text,
 )
 from backend.app.repositories.response_scope import (
@@ -131,6 +134,25 @@ def _in_scope(row, scope: ResponseScope):
     )
 
 
+@contextmanager
+def _busy_on_lock_timeout():
+    """A lock wait that ran past the session's ``lock_timeout`` (a write of
+    the same record is holding it) is a 409 the caller may retry, not a
+    server error."""
+    try:
+        yield
+    except DBAPIError as error:
+        if _sqlstate(error) != LOCK_NOT_AVAILABLE:
+            raise
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            content={
+                "code": "busy",
+                "message": "Another change to this record is in progress; try again.",
+            },
+        ) from None
+
+
 async def _advisory_lock(session, *parts: Any) -> None:
     """Hold a transaction-scoped advisory lock named by ``parts`` until the
     transaction ends: serialises a read-then-write on a natural key (a tag's
@@ -138,7 +160,8 @@ async def _advisory_lock(session, *parts: Any) -> None:
     index to fall back on."""
     digest = hashlib.sha1("\x00".join(str(p) for p in parts).encode()).digest()
     key = int.from_bytes(digest[:8], "big", signed=True)
-    await session.execute(select(func.pg_advisory_xact_lock(key)))
+    with _busy_on_lock_timeout():
+        await session.execute(select(func.pg_advisory_xact_lock(key)))
 
 
 async def _locked_doc(session, row, *where: Any, document=None):
@@ -146,15 +169,16 @@ async def _locked_doc(session, row, *where: Any, document=None):
     returned them), locked for the rest of ``session``'s transaction, decoded
     as ``document``; None when there is none. A write applies its change to
     this copy, never to one read earlier."""
-    doc = (
-        await session.execute(
-            select(row.doc)
-            .where(*where)
-            .order_by(row.created_at, row.id)
-            .limit(1)
-            .with_for_update()
-        )
-    ).scalar_one_or_none()
+    with _busy_on_lock_timeout():
+        doc = (
+            await session.execute(
+                select(row.doc)
+                .where(*where)
+                .order_by(row.created_at, row.id)
+                .limit(1)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
     return None if doc is None else decode(document, doc)
 
 
@@ -744,22 +768,23 @@ class PostgresFormResponseRepository(RecordRepository):
         async with self._session() as session, session.begin():
             # the requests are locked while they are closed: a staff close
             # landing meanwhile is kept, never overwritten
-            docs = (
-                (
-                    await session.execute(
-                        select(dr.doc)
-                        .where(
-                            _in_scope(dr, scope),
-                            dr.provider == provider,
-                            dr.response_id.not_in(list(keep_response_ids)),
+            with _busy_on_lock_timeout():
+                docs = (
+                    (
+                        await session.execute(
+                            select(dr.doc)
+                            .where(
+                                _in_scope(dr, scope),
+                                dr.provider == provider,
+                                dr.response_id.not_in(list(keep_response_ids)),
+                            )
+                            .order_by(dr.created_at, dr.id)
+                            .with_for_update()
                         )
-                        .order_by(dr.created_at, dr.id)
-                        .with_for_update()
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            )
             for doc in docs:
                 request = decode(FormResponseDeletionRequest, doc)
                 if (
@@ -904,20 +929,42 @@ class PostgresFormResponseRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(response_document)))
         return response_document
 
-    async def delete_form_response(self, response: FormResponseDocument):
+    async def delete_form_response(
+        self,
+        response: FormResponseDocument,
+        expected_closures: Optional[int] = None,
+    ):
         """Delete the stored copy and mark its deletion request done, in one
-        transaction: the request is locked, so a staff close made meanwhile is
-        kept on it (its closures are never rewritten)."""
+        transaction on the locked request: a staff close made meanwhile is
+        kept on it (its closures are never rewritten).
+
+        ``expected_closures`` is for completing a request: the number of
+        closes the caller saw on it. When another close was recorded since
+        (a staff decline), nothing is deleted and the call is refused with 409
+        ``deletion_request_closed``, so the data is never deleted under a
+        request that stays declined."""
         response_id = response.response_id
         async with self._session() as session, session.begin():
-            await self._delete_recorded(
-                session, FormResponseRow, FormResponseRow.id == str(response.id)
-            )
             request = await _locked_doc(
                 session,
                 ResponseDeletionRequestRow,
                 *self._request_of(response),
                 document=FormResponseDeletionRequest,
+            )
+            if (
+                request is not None
+                and expected_closures is not None
+                and len(request.closures) > expected_closures
+            ):
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "deletion_request_closed",
+                        "message": "This deletion request is already closed.",
+                    },
+                )
+            await self._delete_recorded(
+                session, FormResponseRow, FormResponseRow.id == str(response.id)
             )
             if request is not None:
                 request.status = DeletionRequestStatus.SUCCESS
@@ -1329,19 +1376,23 @@ class PostgresResponderGroupsRepository(RecordRepository):
         wanted = list(dict.fromkeys(group_ids))
         async with self._session() as session, session.begin():
             await _advisory_lock(session, "responder_group_form", form_id)
-            existing = [
-                decode(ResponderGroupFormDocument, doc)
-                for doc in (
-                    await session.execute(
-                        select(ResponderGroupFormRow.doc)
-                        .where(ResponderGroupFormRow.form_id == form_id)
-                        .order_by(ResponderGroupFormRow.created_at, ResponderGroupFormRow.id)
-                        .with_for_update()
+            with _busy_on_lock_timeout():
+                locked = (
+                    (
+                        await session.execute(
+                            select(ResponderGroupFormRow.doc)
+                            .where(ResponderGroupFormRow.form_id == form_id)
+                            .order_by(
+                                ResponderGroupFormRow.created_at,
+                                ResponderGroupFormRow.id,
+                            )
+                            .with_for_update()
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            ]
+            existing = [decode(ResponderGroupFormDocument, doc) for doc in locked]
             linked = {link.group_id for link in existing}
             to_remove = [g for g in linked if g not in wanted]
             if to_remove:
@@ -1384,21 +1435,25 @@ class PostgresResponderGroupsRepository(RecordRepository):
         """Every group of the workspaces with its members and form links, in
         one transaction."""
         async with self._session() as session, session.begin():
-            group_ids = (
-                (
-                    await session.execute(
-                        select(ResponderGroupRow.id)
-                        .where(
-                            ResponderGroupRow.workspace_id.in_(
-                                [_oid(w) for w in workspace_ids]
+            # in id order: two deletes of overlapping workspaces lock the same
+            # groups in the same order and so never deadlock
+            with _busy_on_lock_timeout():
+                group_ids = (
+                    (
+                        await session.execute(
+                            select(ResponderGroupRow.id)
+                            .where(
+                                ResponderGroupRow.workspace_id.in_(
+                                    [_oid(w) for w in workspace_ids]
+                                )
                             )
+                            .order_by(ResponderGroupRow.id)
+                            .with_for_update()
                         )
-                        .with_for_update()
                     )
-                )
-                .scalars()
-                .all()
-            ) or ["-"]
+                    .scalars()
+                    .all()
+                ) or ["-"]
             await self._delete_recorded(
                 session,
                 ResponderGroupFormRow,
