@@ -285,7 +285,7 @@ described under "Settings pages" and "Task pages" below.
 | Page | What it shows |
 |---|---|
 | `/` | Cards linking to the pages below |
-| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the admin schema's Alembic state (current against the expected head) and the `app`, `auth` and `google` schemas' revisions where this role can read them (otherwise "not available to this role": the role has no access to those schemas on purpose) |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access |
 | `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
 | `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts_app()` and `admin.platform_counts_auth()` |
 | `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
@@ -318,6 +318,27 @@ Postgres store, so they are complete once the application serves from Postgres;
 before the application migrations have run the page says they are not available.
 (The earlier single `admin.platform_counts()` and its owner `bc_admin_counts` are
 dropped by the script.)
+
+The Health page reads the other schemas the same way. Per owning schema,
+`admin.schema_revision_<schema>()` returns the revision(s) in its `alembic_version`
+and `admin.outbox_counts_<schema>()` the unresolved and total rows of its
+`mirror_write_failures` (counts only), for `app`, `auth` and `google`. Each is owned
+by that schema's count role (`bc_count_app`, `bc_count_auth`, `bc_count_google`),
+which gets column-level `SELECT` on `alembic_version.version_num` and
+`mirror_write_failures.resolved_at` only; EXECUTE for `bc_admin` alone, which still
+has no `USAGE` on those schemas. They answer NULL until the schema's migrations have
+created the table, and the page shows "missing" or "no outbox table yet". They are
+not part of any service's migration chain on purpose: a function owned by the
+schema's owner role, or living in its schema, could be redefined by that owner (made
+`SECURITY INVOKER`, or dropped and recreated), and the portal's role would then run
+the owner's code with its own rights. A release that adds such a function needs
+`postgres/ensure-admin-roles.sh` run once after the upgrade (`deploy.sh` does); until
+then the page says "not available" and names the script. The heads the deployed code
+expects come from the revision files in the backend image: its own and, copied in by
+`backend/Dockerfile`, the auth service's and the Google integration's, parsed and never
+imported (`backend/admin/schema_heads.py`). The page reads the outboxes in PostgreSQL
+only; for MongoDB run `python -m backend.migrate status` (and `auth.migrate`,
+`googleform.migrate`) in the service's container.
 
 ## Settings pages (changing settings)
 
@@ -837,8 +858,8 @@ window: the deploy recreates every service and runs migrations.
 
 `deploy.sh` runs them, in this order, before the services start:
 
-- `postgres/ensure-admin-roles.sh`: creates the admin schema's roles and grants and the two
-  platform-count functions; idempotent, run before the migrations and again after them (the
+- `postgres/ensure-admin-roles.sh`: creates the admin schema's roles and grants, the two
+  platform-count functions and the Health page's revision and outbox functions; idempotent, run before the migrations and again after them (the
   task runner's data roles are granted on tables the other migrations create).
 - The **admin** schema's own chain, `0001` to `0017`, as the migration role `bc_admin_mig`.
 - The **application** schema: `0013` to `0016` (rate-limit counters, the AI notice stamp on
@@ -918,9 +939,10 @@ On the host:
 
 In the portal (through the tunnel):
 
-- [ ] `/health`: every service reports (no report for 120 s is "stopped"), the `admin` schema
-  is at its expected head, and the integrity status is ok. The `app`, `auth` and `google`
-  schemas may show "not available to this role": that role cannot read them on purpose.
+- [ ] `/health`: every service reports (no report for 120 s is "stopped"), the `admin`,
+  `app`, `auth` and `google` schemas are at their expected heads, the mirror outbox shows no
+  unresolved rows, and the integrity status is ok. A schema shown as "not available" means
+  `postgres/ensure-admin-roles.sh` has not run since this release.
 - [ ] `/config`: no unexpected source "environment" (until you prune, every value still in a
   file is one); secrets show only "set" or "not set"; `PLATFORM_ADMIN_EMAILS` lists the
   right super admins.
@@ -1101,7 +1123,7 @@ raises `lock_blocked` for it. The lock order is always `settings_writer`, then
 | `bc_admin` (portal, CLI) | `INSERT`, `SELECT`; may not write the runner's lifecycle actions (`task.run.started`, `task.run.finished`, `task.run.quarantined`, `settings.task_set`) | entries and manifest (signed rows only verify with the master key), history `INSERT`/prune, `history_wraps` `INSERT`; cannot move the keyset row to a new version, cannot change a history row | cannot read `app`, `auth`, `google`, `jobs` |
 | `bc_tasks` (runner) | none: no read, no insert; rows only through `tasks.audit_append`, `tasks.begin_audit` and `settings.task_write_keyset` (definer functions owned by `bc_tasks_def`) | its own view; the keyset only through `settings.task_write_keyset`, for a `running` apply run of the matching `keyset.*` task whose start the function recorded, once per run | cannot insert runs |
 | `bc_tasks_def` | NOLOGIN owner of the runner's functions; holds only what they touch | | nobody can connect as it |
-| `bc_count_app`, `bc_count_auth` | none | none | NOLOGIN owners of the count functions; column `SELECT` on their own schema |
+| `bc_count_app`, `bc_count_auth`, `bc_count_google` | none | none | NOLOGIN owners of the count, revision and outbox functions; column `SELECT` on their own schema |
 
 What grants cannot close, and what detects it: the database cannot verify an HMAC.
 A holder of both the portal's and the runner's database credentials (and no master key) can

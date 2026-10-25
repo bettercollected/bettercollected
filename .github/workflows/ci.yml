@@ -230,7 +230,24 @@ jobs:
                           export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
                           ;;
                   esac
-                  uv run --frozen pytest
+                  uv run --frozen pytest -m "not mongo"
+
+            # The few tests that drive a real Mongo server (the migration CLI's
+            # reconcile; marker "mongo", tests/conftest.py), once per run.
+            - name: Start MongoDB for the tests that drive it
+              if: matrix.mode == 'postgres'
+              working-directory: .
+              run: |
+                  .github/scripts/test-dbs.sh start mongo
+                  .github/scripts/test-dbs.sh wait
+
+            - name: Run the auth tests that drive Mongo (postgres)
+              if: matrix.mode == 'postgres'
+              env:
+                  DB_READ_SOURCE: postgres
+                  DB_WRITE_MODE: postgres
+                  MONGO_URI: mongodb://localhost:27017
+              run: uv run --frozen pytest -m mongo
 
     google-tests:
         name: Google integration tests (${{ matrix.mode }})
