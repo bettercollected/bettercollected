@@ -13,6 +13,75 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.9] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations.** No service schema changes, no new settings and no compose change.
+- **Deploy the backend and the Google Forms service together.** The Google Sheets credential now
+  travels in the request body, so both must run 4.0.9.
+- **Once, after the deploy: remove Google credentials without a user id.** Run the Mongo step
+  first, then the Postgres step, as described in `docs/postgres-cutover-runbook.md` ("Google
+  credentials without a user id"). Both print counts only and are safe to run again. The owners of
+  the deleted rows connect Google Forms again on their next import; imported forms and responses
+  are kept.
+- **Seeded templates move to Leaflet on the first start.** The backend updates the predefined flow
+  templates once. A theme or section title changed by hand is kept, and forms already made from a
+  template keep their own theme.
+- **Adding a Google Sheets action with caller-supplied secrets is now refused** (422
+  `action_secrets_not_allowed`). The Google Sheets connection flow is unaffected.
+- **Single sign-on:** an instance with `SSO_ENABLED=true` that lacks some SSO settings now says so.
+  The workspace SSO page shows "switched on but not fully set up", and the Health page lists the
+  missing settings by name.
+- **Rollback:** 4.0.8 can run against a 4.0.9 database. Roll back the backend and the Google Forms
+  service together. Deleted credentials stay deleted, and their owners reconnect.
+
+### Changed
+
+- The predefined flow templates (Support triage, Lead qualification, Job application with screening) use the
+  Leaflet design that new forms start with, each welcome page says in one line what the form is for, and each
+  page has a short section title, so Leaflet's section bar no longer repeats the page's first question.
+  Templates seeded by an earlier version get these on the next backend start, once; a theme or section title
+  changed by hand is kept, and forms already made from a template keep their own theme.
+
+### Fixed
+
+- Google Forms: the import routes now look up the signed-in user's Google credential
+  through the routed credential repository, so they follow `DB_READ_SOURCE` /
+  `DB_WRITE_MODE` (and their `__google` overrides) like the rest of the service. They
+  always read MongoDB before, which would have missed credentials once the google group
+  reads from Postgres.
+- Single sign-on switched on (`SSO_ENABLED=true`) but not fully set up no longer claims to be off: the workspace
+  SSO page now says it is switched on but not fully set up yet (English and Dutch; the overview API answers
+  `reason: "not_configured"`, and `reason: "disabled"` when it is off), the backend and auth log the missing
+  settings by name at startup, and the admin portal's Health page lists them per service. Names only, never values.
+- Forms made from the predefined flow templates no longer start with field borders too faint to see
+  (1.6:1 against the page); the templates' old theme is replaced by Leaflet, which meets WCAG 2.2 AA.
+- Templates page: the Default section no longer cuts off its second row of templates; the cards wrap in a
+  grid that fits the screen, titles use the full card width, the section looks the same in every language,
+  and each preview shows the template's own title instead of an empty page with only a Start button.
+
+### Security
+
+- Google Forms: a stored Google credential is never written unencrypted. Legacy rows
+  connected by older versions have no user id to derive the encryption key from, and every
+  token refresh stored their access and refresh tokens in plain text; such an update now
+  writes nothing, and reconnecting gives the row the signed-in user's id. An update without
+  a stored credential no longer fails. Operators: delete the remaining legacy rows once, as
+  described in `docs/postgres-cutover-runbook.md` ("Google credentials without a user id").
+- Google Sheets action: adding the action with caller-supplied secrets is refused (422
+  `action_secrets_not_allowed`, nothing is written); only the Google Sheets connection flow
+  stores its credential. Other actions still take secrets.
+- Google Forms service and actions executor: Google access tokens are refreshed only at Google's
+  token endpoint (the configured `GOOGLE_TOKEN_URI` in the Google Forms service, including
+  google-auth's own refresh; in the actions executor, Google's documented endpoints). The token
+  address stored inside a credential is no longer trusted, so a forged credential cannot make
+  either service send a client secret and refresh token to another host.
+- The Google Sheets credential now travels from the backend to the Google Forms service in the
+  request body instead of the query string, so it no longer reaches access logs. Backend and
+  Google Forms service must run the same release.
+
 ## [4.0.8] - 2026-10-25
 
 ### Upgrade notes
@@ -1125,7 +1194,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...HEAD
+[4.0.9]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...v4.0.9
 [4.0.8]: https://github.com/bettercollected/bettercollected/compare/v4.0.7...v4.0.8
 [4.0.7]: https://github.com/bettercollected/bettercollected/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/bettercollected/bettercollected/compare/v4.0.5...v4.0.6
