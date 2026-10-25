@@ -96,7 +96,7 @@ def load_keyset(keyset_value):
         [
             sys.executable,
             "-c",
-            "import backend.app.repositories.form_response_repository\n"
+            "import backend.app.repositories.postgres.responses\n"
             "from common.services.crypto_service import crypto_service\n"
             "crypto_service.load()",
         ],

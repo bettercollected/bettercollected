@@ -651,8 +651,9 @@ def test_auto_is_every_store_the_services_write_never_fewer(monkeypatch, default
     # runs leave it empty); nothing here connects
     monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI or "mongodb://localhost")
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
-    # unset: the services' own default (mongo while the backend has groups on it)
-    mode = responses or default or "mongo"
+    # every backend group is Postgres only since 4.1 (backend.db.groups): the
+    # services write Postgres whatever the runner's copy of the mode says
+    mode = "postgres"
     config = StoreConfig.from_env()
     written = WRITTEN[mode]
     names = config.resolve(StoreChoice.auto)

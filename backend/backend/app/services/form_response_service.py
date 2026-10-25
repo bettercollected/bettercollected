@@ -41,7 +41,7 @@ from backend.app.models.dtos.response_dtos import (
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.response_scope import (
     ResponseScope,
     find_response_in_workspace,
@@ -122,7 +122,7 @@ def _log_unreadable(response: Any, field: str) -> None:
 class FormResponseService:
     def __init__(
         self,
-        form_response_repo: FormResponseRepository,
+        form_response_repo: PostgresFormResponseRepository,
         form_repo: PostgresFormRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,

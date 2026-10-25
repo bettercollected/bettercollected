@@ -1,11 +1,12 @@
-"""Repository groups and the order they may leave Mongo in.
+"""Repository groups, all served from Postgres only since 4.1.
 
-A group's Mongo repositories may ``$lookup`` into another group's collections.
-Such a join finds nothing once the joined group stops writing Mongo, so while
-the joining group still reads from Mongo, the joined groups must keep writing
-it (``dual`` / ``postgres_primary_dual``). ``load_flags`` enforces the map at
-boot; the Postgres twins compose over routed repositories instead of joining,
-so a group served from Postgres frees the groups it used to join into.
+Their Mongo collections are read only by the import from 4.0
+(``python -m backend.migrate``). Until the last group left Mongo, a group's
+Mongo repositories could ``$lookup`` into another group's collections, which
+found nothing once the joined group stopped writing Mongo; ``MONGO_JOINS``
+recorded those joins and ``load_flags`` enforced the map at boot. The
+repositories now compose over each other instead of joining, and the map is
+empty.
 """
 
 import os
@@ -29,7 +30,15 @@ GROUPS = BACKEND_GROUPS
 #: Groups served from Postgres only: their repositories have no Mongo side and
 #: no routing any more. Their collections are read only by the import from 4.0
 #: (``python -m backend.migrate``).
-POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions", "identity", "forms")
+POSTGRES_ONLY_GROUPS = (
+    "refdata",
+    "analytics",
+    "ai",
+    "actions",
+    "identity",
+    "forms",
+    "responses",
+)
 
 #: The routed repositories of the Postgres-only groups as 4.0 named them (an
 #: outbox entry names the repository, not the group). They are routed no
@@ -60,6 +69,14 @@ RETIRED_REPOSITORIES = {
             "WorkspaceFormRepository",
         ),
         "forms",
+    ),
+    **dict.fromkeys(
+        (
+            "FormResponseRepository",
+            "ResponderGroupsRepository",
+            "WorkspaceRespondersRepository",
+        ),
+        "responses",
     ),
     **dict.fromkeys(
         (
@@ -153,9 +170,10 @@ COLLECTION_GROUPS = {
 }
 
 #: Group -> the groups its Mongo repositories ``$lookup`` into. Empty since
-#: the forms group is served from Postgres only: the responses repositories,
-#: the last ones with a Mongo side, read a form's title and importer through
-#: the forms repositories (backend.app.repositories.response_scope).
+#: the forms group is served from Postgres only (the responses repositories
+#: read a form's title and importer through the forms repositories,
+#: backend.app.repositories.response_scope), and no group has a Mongo
+#: repository any more.
 MONGO_JOINS: Mapping[str, Sequence[str]] = {}
 
 

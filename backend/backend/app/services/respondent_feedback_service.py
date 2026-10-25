@@ -23,7 +23,7 @@ from backend.app.models.dtos.respondent_feedback_dto import (
     StaffFeedback,
 )
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.response_scope import find_response_in_workspace
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.services.respondent_feedback import (
@@ -50,7 +50,7 @@ NOTIFY_TIMEOUT_SECONDS = 10
 class RespondentFeedbackService:
     def __init__(
         self,
-        form_response_repo: FormResponseRepository,
+        form_response_repo: PostgresFormResponseRepository,
         form_repo: PostgresFormRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,

@@ -10,7 +10,6 @@ from dependency_injector import containers, providers
 from pymongo import AsyncMongoClient
 
 from common.db import DatabaseSettings, RoutingMetrics
-from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
 from backend.db.groups import load_backend_flags
@@ -19,7 +18,6 @@ from backend.db.session import (
     LazyRepository,
     build_engine,
     build_sessionmaker,
-    postgres_repository,
 )
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.ai import (
@@ -72,13 +70,6 @@ from backend.app.repositories.postgres.refdata import (
     PostgresUserFeedbackRepo,
 )
 
-from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.responder_groups_repository import (
-    ResponderGroupsRepository,
-)
-from backend.app.repositories.workspace_responders_repository import (
-    WorkspaceRespondersRepository,
-)
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.sheets_grant_revocation import SheetsGrantService
@@ -262,42 +253,17 @@ class AppContainer(containers.DeclarativeContainer):
         PostgresFormPluginProviderRepository, pg_sessionmaker
     )
 
-    # the forms twins compose over this one and it over theirs: resolved lazily
-    form_response_repo: FormResponseRepository = providers.Singleton(
-        RoutingRepository,
-        group="responses",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        # both compose a form's title and importer over the forms group's
-        # repositories (no join across groups)
-        mongo=providers.Singleton(
-            FormResponseRepository,
-            crypto=crypto,
-            form_repo=LazyRepository(lambda: container.form_repo()),
-            workspace_form_repo=LazyRepository(lambda: container.workspace_form_repo()),
-        ),
-        postgres=providers.Singleton(
-            postgres_repository,
-            PostgresFormResponseRepository,
-            pg_sessionmaker,
-            LazyRepository(lambda: container.form_repo()),
-            LazyRepository(lambda: container.workspace_form_repo()),
-        ),
+    # the forms repositories compose over this one and it over theirs
+    # (a form's title and importer): resolved lazily
+    form_response_repo: PostgresFormResponseRepository = providers.Singleton(
+        PostgresFormResponseRepository,
+        pg_sessionmaker,
+        LazyRepository(lambda: container.form_repo()),
+        LazyRepository(lambda: container.workspace_form_repo()),
     )
 
-    responder_groups_repository = providers.Singleton(
-        RoutingRepository,
-        group="responses",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ResponderGroupsRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresResponderGroupsRepository, pg_sessionmaker
-        ),
+    responder_groups_repository: PostgresResponderGroupsRepository = providers.Singleton(
+        PostgresResponderGroupsRepository, pg_sessionmaker
     )
     # after responder_groups_repository / form_response_repo: the forms
     # repositories compose over them
@@ -802,17 +768,8 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
     )
 
-    workspace_responders_repo = providers.Singleton(
-        RoutingRepository,
-        group="responses",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceRespondersRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceRespondersRepository, pg_sessionmaker
-        ),
+    workspace_responders_repo: PostgresWorkspaceRespondersRepository = (
+        providers.Singleton(PostgresWorkspaceRespondersRepository, pg_sessionmaker)
     )
     workspace_responders_service = providers.Singleton(
         WorkspaceRespondersService,

@@ -44,7 +44,7 @@ from backend.app.repositories.postgres.forms import (
 )
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.postgres.ai import PostgresFormAIInsightRepository
-from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.response_scope import response_scope
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -344,7 +344,7 @@ class FormAIInsightsService:
         provider_resolver: Callable,
         form_repo: PostgresFormRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
-        form_response_repo: FormResponseRepository,
+        form_response_repo: PostgresFormResponseRepository,
         insight_repo: PostgresFormAIInsightRepository,
         ai_consent_service: Optional[AIConsentService] = None,
         form_response_service: Optional[FormResponseService] = None,

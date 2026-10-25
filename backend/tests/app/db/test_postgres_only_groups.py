@@ -1,11 +1,16 @@
-"""refdata, analytics, ai, actions, identity and forms are served from Postgres
-only (4.1): the backend's
+"""Every backend group (refdata, analytics, ai, actions, identity, forms and
+responses) is served from Postgres only (4.1): the backend's
 flags pin them there, a stale per-group flag refuses the start, and a fresh
 store gets its reference data from ``python -m backend.seed_refdata``."""
 
 import pytest
 
-from backend.db.groups import MONGO_JOINS, POSTGRES_ONLY_GROUPS, load_backend_flags
+from backend.db.groups import (
+    GROUPS,
+    MONGO_JOINS,
+    POSTGRES_ONLY_GROUPS,
+    load_backend_flags,
+)
 from backend.seed_refdata import (
     DEFAULT_ORIGINS,
     build_parser,
@@ -29,6 +34,7 @@ from common.db.flags import FlagError
         {"DB_READ_SOURCE__Actions": "postgres", "DB_WRITE_MODE__actions": ""},
         {"DB_READ_SOURCE__identity": "postgres", "DB_WRITE_MODE__Identity": ""},
         {"DB_READ_SOURCE__forms": "postgres", "DB_WRITE_MODE__FORMS": "postgres"},
+        {"DB_READ_SOURCE__responses": "postgres", "DB_WRITE_MODE__Responses": ""},
     ],
 )
 def test_the_groups_are_on_postgres_whatever_the_defaults(env):
@@ -40,29 +46,20 @@ def test_the_groups_are_on_postgres_whatever_the_defaults(env):
     assert flags.requires_postgres()
 
 
-def test_the_other_groups_keep_their_flags():
-    flags = load_backend_flags(
-        {"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__responses": "postgres"}
-    )
-    assert flags.write_mode("responses") is WriteMode.DUAL
-    assert flags.read_source("responses") is ReadSource.POSTGRES
-    flags = load_backend_flags({"DB_WRITE_MODE": "dual"})
-    assert flags.read_source("responses") is ReadSource.MONGO
+def test_no_group_is_left_to_route():
+    assert set(POSTGRES_ONLY_GROUPS) == set(GROUPS)
+    flags = load_backend_flags({"DB_WRITE_MODE": "dual", "DB_READ_SOURCE": "mongo"})
+    assert flags.uses_mongo(GROUPS) is False
 
 
 def test_no_mongo_query_joins_across_groups():
     """A ``$lookup`` into a group served from Postgres only would find nothing
     (its Mongo collections are no longer written). The last ones went with
     the forms group: the responses repositories read a form's title and
-    importer through the forms repositories, and the forms repositories,
-    Postgres only, read responses and responder groups through the responses
-    group's."""
+    importer through the forms repositories, and the forms repositories read
+    responses and responder groups through the responses group's. With the
+    responses group on Postgres too no group has a Mongo store."""
     assert MONGO_JOINS == {}
-    flags = load_backend_flags(
-        {"DB_READ_SOURCE__responses": "mongo", "DB_WRITE_MODE__responses": "dual"}
-    )
-    assert flags.read_source("responses") is ReadSource.MONGO
-    assert flags.write_mode("forms") is WriteMode.POSTGRES
 
 
 @pytest.mark.parametrize(
@@ -81,6 +78,8 @@ def test_no_mongo_query_joins_across_groups():
         ("DB_WRITE_MODE__IDENTITY", "dual"),
         ("DB_READ_SOURCE__forms", "mongo"),
         ("DB_WRITE_MODE__Forms", "dual"),
+        ("DB_READ_SOURCE__responses", "mongo"),
+        ("DB_WRITE_MODE__Responses", "postgres_primary_dual"),
     ],
 )
 def test_a_stale_group_flag_refuses_the_start(key, value):
@@ -88,8 +87,9 @@ def test_a_stale_group_flag_refuses_the_start(key, value):
         load_backend_flags({key: value})
     assert f"{key}={value!r}" in str(refused.value)
     assert "served from Postgres only" in str(refused.value)
-    assert "the refdata, analytics, ai, actions, identity and forms groups" in str(
-        refused.value
+    assert (
+        "the refdata, analytics, ai, actions, identity, forms and responses groups"
+        in str(refused.value)
     )
 
 

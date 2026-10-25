@@ -2,14 +2,12 @@ import datetime as dt
 import enum
 from typing import Optional
 
-from beanie import PydanticObjectId
-
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 
 
-class ResponderGroupDocument(MongoDocument):
+class ResponderGroupDocument(Record):
     name: Optional[str] = None
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     description: Optional[str] = None
     regex: Optional[str] = None
 
@@ -26,8 +24,8 @@ class IdentifierType(str, enum.Enum):
     EMAIL = "EMAIL"
 
 
-class ResponderGroupMemberDocument(MongoDocument):
-    group_id: PydanticObjectId
+class ResponderGroupMemberDocument(Record):
+    group_id: RecordId
     identifier: str
     identifierType: IdentifierType = IdentifierType.EMAIL
 
@@ -44,8 +42,8 @@ class GroupRoles(str, enum.Enum):
     VIEW = "VIEW"
 
 
-class ResponderGroupFormDocument(MongoDocument):
-    group_id: PydanticObjectId
+class ResponderGroupFormDocument(Record):
+    group_id: RecordId
     form_id: str
     role: GroupRoles = GroupRoles.VIEW
 

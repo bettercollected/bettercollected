@@ -1,26 +1,40 @@
-"""Postgres twins of the responses-group repositories.
+"""The responses group's repositories: Postgres only (its Mongo collections are
+read only by the import from 4.0, ``python -m backend.migrate``).
 
-Within the group (form_responses ⋈ responses_deletion_requests ⋈
-workspace_responder ⋈ workspace_tags, responder_group ⋈ members ⋈ forms) the
-Mongo ``$lookup``s are SQL joins. Into the forms group (a form's title, the
-workspace that imported it) they *compose* through the routed forms
-repositories — see plans/postgres-consolidation.md §4 — restricted to the
-form ids those repositories know, because the Mongo ``$unwind`` drops
+Form responses and their deletion requests, workspace responders and tags,
+responder groups with their members and form links. Queries use the spine
+columns of the rows in :mod:`backend.db.models`; the documents are
+:class:`common.records.Record` classes, encoded and decoded by
+:mod:`common.records.codec`. Answers are stored encrypted (``save_form_response``)
+and are never decrypted, logged or queried here.
+
+Within the group (form_responses, responses_deletion_requests,
+workspace_responder, workspace_tags, responder_group and its members and
+links) the 4.0 Mongo ``$lookup``s are SQL joins. Into the forms group (a
+form's title, the workspace that imported it) they *compose* through the
+forms repositories (:mod:`backend.app.repositories.response_scope`), restricted
+to the form ids those repositories know, because the 4.0 ``$unwind`` dropped
 responses whose form is gone.
+
+Every read-then-write that depends on what it read runs in one transaction on
+the stored row, locked (``SELECT ... FOR UPDATE``) or, where no row exists yet
+to lock, under a transaction-scoped advisory lock on the natural key: a write
+applies its change to the stored copy, never to one read earlier.
 """
 
 import datetime as dt
+import hashlib
 import json
 import re
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from uuid import uuid4
 
-from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import EmailStr
 from sqlalchemy import and_, func, literal, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
@@ -66,15 +80,16 @@ from backend.db.models import (
     WorkspaceResponderRow,
     WorkspaceTagRow,
 )
-from common.constants import MESSAGE_FORBIDDEN
-from common.db import (
-    PostgresRepositoryBase,
-    derived_object_id,
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.records import (
+    RecordId,
+    decode,
+    derived_id,
     from_canonical_document,
-    from_row_doc,
-    to_bson_dict,
+    row_values,
+    to_bson,
 )
-from common.db.beanie_bridge import row_values
+from common.records.repository import RecordRepository
 from common.models.standard_form import (
     RespondentFeedback,
     StandardFormResponse,
@@ -116,7 +131,34 @@ def _in_scope(row, scope: ResponseScope):
     )
 
 
-class PostgresFormResponseRepository(PostgresRepositoryBase):
+async def _advisory_lock(session, *parts: Any) -> None:
+    """Hold a transaction-scoped advisory lock named by ``parts`` until the
+    transaction ends: serialises a read-then-write on a natural key (a tag's
+    title, a responder's email) that has no row to lock yet and no unique
+    index to fall back on."""
+    digest = hashlib.sha1("\x00".join(str(p) for p in parts).encode()).digest()
+    key = int.from_bytes(digest[:8], "big", signed=True)
+    await session.execute(select(func.pg_advisory_xact_lock(key)))
+
+
+async def _locked_doc(session, row, *where: Any, document=None):
+    """The first row matching ``where`` (in the order the 4.0 ``find_one``
+    returned them), locked for the rest of ``session``'s transaction, decoded
+    as ``document``; None when there is none. A write applies its change to
+    this copy, never to one read earlier."""
+    doc = (
+        await session.execute(
+            select(row.doc)
+            .where(*where)
+            .order_by(row.created_at, row.id)
+            .limit(1)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    return None if doc is None else decode(document, doc)
+
+
+class PostgresFormResponseRepository(RecordRepository):
     row = FormResponseRow
     document = FormResponseDocument
     # add_deletion_request
@@ -124,8 +166,8 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     def __init__(self, session_factory, form_repo, workspace_form_repo):
         super().__init__(session_factory)
-        self._forms = form_repo  # routed FormRepository
-        self._workspace_forms = workspace_form_repo  # routed WorkspaceFormRepository
+        self._forms = form_repo  # PostgresFormRepository
+        self._workspace_forms = workspace_form_repo  # PostgresWorkspaceFormRepository
 
     # -- composition over the forms group ---------------------------------
     async def _form_titles(self, form_ids: List[str]) -> Dict[str, Any]:
@@ -133,7 +175,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return await form_titles(self._forms, form_ids)
 
     async def _form_importers(
-        self, form_ids: List[str], workspace_id: PydanticObjectId
+        self, form_ids: List[str], workspace_id: RecordId
     ) -> Dict[str, str]:
         """form_id -> the user who imported it into ``workspace_id``
         (``$lookup workspace_forms`` of that workspace + ``$unwind``)."""
@@ -379,7 +421,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def get_user_submissions(
         self, scope: ResponseScope, user: User, request_for_deletion: bool = False
     ):
-        # see FormResponseRepository.get_user_submissions
+        # the 4.0 get_user_submissions
         if request_for_deletion:
             return await self.get_deletion_requests(
                 scope,
@@ -509,7 +551,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 .limit(limit)
             )
             docs = (await session.execute(stmt)).scalars().all()
-        return [from_row_doc(FormResponseDocument, d) for d in docs]
+        return [decode(FormResponseDocument, d) for d in docs]
 
     @staticmethod
     def _ai_notice_where(
@@ -588,9 +630,10 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await self.save_document(response)
 
-    async def find_deletion_request_for(
-        self, response: FormResponseDocument
-    ) -> Optional[FormResponseDeletionRequest]:
+    @staticmethod
+    def _request_of(response: FormResponseDocument):
+        """The deletion request of this stored copy: same response and form,
+        in its workspace (or stored before #768 without one)."""
         dr = ResponseDeletionRequestRow
         in_workspace = (
             dr.workspace_id.is_(None)
@@ -599,29 +642,46 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 dr.workspace_id == str(response.workspace_id), dr.workspace_id.is_(None)
             )
         )
-        return await self.one_of(
-            dr,
-            FormResponseDeletionRequest,
+        return (
             dr.response_id == response.response_id,
             dr.form_id == str(response.form_id),
             in_workspace,
         )
 
+    async def find_deletion_request_for(
+        self, response: FormResponseDocument
+    ) -> Optional[FormResponseDeletionRequest]:
+        return await self.one_of(
+            ResponseDeletionRequestRow,
+            FormResponseDeletionRequest,
+            *self._request_of(response),
+        )
+
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
-        return await self.save_document(
-            FormResponseDeletionRequest(
-                form_id=response.form_id,
-                response_id=response_id,
-                dataOwnerIdentifier=response.dataOwnerIdentifier,
-                anonymous_identity=response.anonymous_identity,
-                provider=response.provider,
-                workspace_id=response.workspace_id,
-                deleted_at=None,
-            ),
-            row=ResponseDeletionRequestRow,
-        )
+        try:
+            return await self.save_document(
+                FormResponseDeletionRequest(
+                    form_id=response.form_id,
+                    response_id=response_id,
+                    dataOwnerIdentifier=response.dataOwnerIdentifier,
+                    anonymous_identity=response.anonymous_identity,
+                    provider=response.provider,
+                    workspace_id=response.workspace_id,
+                    deleted_at=None,
+                ),
+                row=ResponseDeletionRequestRow,
+            )
+        except IntegrityError:
+            # one request per response, provider and workspace (the unique
+            # index of app revision 0020): a second one filed while the first
+            # was being stored
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="Error: Deletion request already exists for the response : "
+                + str(response_id),
+            )
 
     async def close_deletion_request(
         self,
@@ -630,16 +690,43 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         closed_by: str,
         decline_reason: Optional[DeclineReason] = None,
     ) -> FormResponseDeletionRequest:
-        now = utcnow()
-        request.status = status
-        request.closed_by = closed_by
-        request.closed_at = now
-        request.decline_reason = decline_reason
-        request.closures = [
-            *request.closures,
-            staff_closure(status, closed_by, now, decline_reason),
-        ]
-        return await self.save_document(request, row=ResponseDeletionRequestRow)
+        """Staff closed ``request`` by hand: its outcome, who and when, applied
+        to the stored request under its row lock. Refused with 409 when
+        another close was recorded since ``request`` was read (a second staff
+        member, an import that no longer has the response); completing a
+        request by deleting its response (``delete_form_response``) records no
+        close and is no conflict."""
+        async with self._session() as session, session.begin():
+            stored = await _locked_doc(
+                session,
+                ResponseDeletionRequestRow,
+                ResponseDeletionRequestRow.id == str(request.id),
+                document=FormResponseDeletionRequest,
+            )
+            if stored is None:
+                raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+            if len(stored.closures) > len(request.closures):
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "deletion_request_closed",
+                        "message": "This deletion request is already closed.",
+                    },
+                )
+            now = utcnow()
+            stored.status = status
+            stored.closed_by = closed_by
+            stored.closed_at = now
+            stored.decline_reason = decline_reason
+            stored.closures = [
+                *stored.closures,
+                staff_closure(status, closed_by, now, decline_reason),
+            ]
+            stored.touch()
+            await session.execute(
+                self._upsert_statement(row_values(stored), ResponseDeletionRequestRow)
+            )
+        return stored
 
     async def delete_by_form_id_except(
         self, scope: ResponseScope, keep_response_ids: List[str]
@@ -653,26 +740,41 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         self, scope: ResponseScope, provider: str, keep_response_ids: List[str], now
     ) -> int:
         dr = ResponseDeletionRequestRow
-        requests = await self.many(
-            _in_scope(dr, scope),
-            dr.provider == provider,
-            dr.response_id.not_in(list(keep_response_ids)),
-            row=dr,
-            document=FormResponseDeletionRequest,
-        )
         modified = 0
-        for request in requests:
-            if (
-                request.status != DeletionRequestStatus.SUCCESS
-                or request.updated_at != now
-            ):
-                modified += 1
-            if request.status != DeletionRequestStatus.SUCCESS:
-                # a new close; an earlier one (a decline) is kept
-                request.closures = [*request.closures, import_closure(now)]
-            request.status = DeletionRequestStatus.SUCCESS
-            request.updated_at = now
-        await self.upsert_many(requests, row=dr)
+        async with self._session() as session, session.begin():
+            # the requests are locked while they are closed: a staff close
+            # landing meanwhile is kept, never overwritten
+            docs = (
+                (
+                    await session.execute(
+                        select(dr.doc)
+                        .where(
+                            _in_scope(dr, scope),
+                            dr.provider == provider,
+                            dr.response_id.not_in(list(keep_response_ids)),
+                        )
+                        .order_by(dr.created_at, dr.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for doc in docs:
+                request = decode(FormResponseDeletionRequest, doc)
+                if (
+                    request.status != DeletionRequestStatus.SUCCESS
+                    or request.updated_at != now
+                ):
+                    modified += 1
+                if request.status != DeletionRequestStatus.SUCCESS:
+                    # a new close; an earlier one (a decline) is kept
+                    request.closures = [*request.closures, import_closure(now)]
+                request.status = DeletionRequestStatus.SUCCESS
+                request.updated_at = now
+                await session.execute(
+                    self._upsert_statement(row_values(request), dr)
+                )
         return modified
 
     async def delete_in_scope(self, scope: ResponseScope):
@@ -702,9 +804,9 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def save_form_response(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         response: StandardFormResponse,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ):
         response_document = FormResponseDocument(**response.model_dump(mode="json"))
         response_document.submission_uuid = str(uuid4())
@@ -725,7 +827,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
                 )
         response_document.form_id = str(form_id)
         # collected in this workspace (#768)
-        response_document.workspace_id = PydanticObjectId(workspace_id)
+        response_document.workspace_id = RecordId(workspace_id)
         response_document.provider = "self"
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
@@ -736,70 +838,96 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def patch_form_response(
         self,
-        form_id: PydanticObjectId,
-        document_id: PydanticObjectId,
+        form_id: RecordId,
+        document_id: RecordId,
         response: StandardFormResponse,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user=User,
     ):
-        response_document = await self.one(
-            FormResponseRow.id == str(document_id),
-            FormResponseRow.form_id == _oid(form_id),
-        )
-        if response_document is None:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, content="Response not found"
+        """Merge the sent answers into the stored response, decrypting and
+        re-encrypting under the response's row lock: two edits made at once
+        both keep their answers, and one landing on top of a respondent
+        feedback or an internal-answers write keeps those."""
+        async with self._session() as session, session.begin():
+            response_document = await _locked_doc(
+                session,
+                FormResponseRow,
+                FormResponseRow.id == str(document_id),
+                FormResponseRow.form_id == _oid(form_id),
+                document=FormResponseDocument,
             )
-        # only the verified respondent who submitted it may edit a response
-        if not user or response_document.dataOwnerIdentifier != user.sub:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
-            )
-        answers = response_document.answers
-        if not isinstance(answers, dict):
-            try:
-                answers = (
-                    json.loads(
-                        crypto_service.decrypt(
-                            workspace_id=workspace_id, form_id=form_id, data=answers
-                        )
-                    )
-                    if answers
-                    else {}
-                )
-            except UnreadableCiphertext:
-                # merging into nothing would drop the stored answers
+            if response_document is None:
                 raise HTTPException(
-                    status_code=HTTPStatus.CONFLICT,
-                    content="This submission can't be read, so it can't be edited.",
+                    status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
-        for k, v in (response.answers or {}).items():
-            answers[k] = (
-                v.model_dump(mode="json")
-                if isinstance(v, StandardFormResponseAnswer)
-                else v
+            # only the verified respondent who submitted it may edit a response
+            if not user or response_document.dataOwnerIdentifier != user.sub:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+                )
+            answers = response_document.answers
+            if not isinstance(answers, dict):
+                try:
+                    answers = (
+                        json.loads(
+                            crypto_service.decrypt(
+                                workspace_id=workspace_id, form_id=form_id, data=answers
+                            )
+                        )
+                        if answers
+                        else {}
+                    )
+                except UnreadableCiphertext:
+                    # merging into nothing would drop the stored answers
+                    raise HTTPException(
+                        status_code=HTTPStatus.CONFLICT,
+                        content="This submission can't be read, so it can't be edited.",
+                    )
+            for k, v in (response.answers or {}).items():
+                answers[k] = (
+                    v.model_dump(mode="json")
+                    if isinstance(v, StandardFormResponseAnswer)
+                    else v
+                )
+            response_document.answers = crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(answers),
             )
-        response_document.answers = crypto_service.encrypt(
-            workspace_id=workspace_id,
-            form_id=form_id,
-            data=json.dumps(answers),
-        )
-        # only answers are merged: the AI notice stamp stays as submitted (#752)
-        # an edit keeps the submission time and records when it changed
-        response_document.updated_at = utcnow()
-        # the workspace it was collected in stays; one stored before #768
-        # gets the workspace the caller checked it against
-        if response_document.workspace_id is None:
-            response_document.workspace_id = PydanticObjectId(workspace_id)
-        return await self.save_document(response_document)
+            # only answers are merged: the AI notice stamp stays as submitted (#752)
+            # the workspace it was collected in stays; one stored before #768
+            # gets the workspace the caller checked it against
+            if response_document.workspace_id is None:
+                response_document.workspace_id = RecordId(workspace_id)
+            # an edit keeps the submission time and records when it changed
+            response_document.touch()
+            await session.execute(self._upsert_statement(row_values(response_document)))
+        return response_document
 
     async def delete_form_response(self, response: FormResponseDocument):
+        """Delete the stored copy and mark its deletion request done, in one
+        transaction: the request is locked, so a staff close made meanwhile is
+        kept on it (its closures are never rewritten)."""
         response_id = response.response_id
-        await self.delete_where(FormResponseRow.id == str(response.id))
-        deletion_request = await self.find_deletion_request_for(response)
-        if deletion_request:
-            deletion_request.status = DeletionRequestStatus.SUCCESS
-            await self.save_document(deletion_request, row=ResponseDeletionRequestRow)
+        async with self._session() as session, session.begin():
+            await self._delete_recorded(
+                session, FormResponseRow, FormResponseRow.id == str(response.id)
+            )
+            request = await _locked_doc(
+                session,
+                ResponseDeletionRequestRow,
+                *self._request_of(response),
+                document=FormResponseDeletionRequest,
+            )
+            if request is not None:
+                request.status = DeletionRequestStatus.SUCCESS
+                request.touch()
+                await session.execute(
+                    self._upsert_statement(
+                        row_values(request), ResponseDeletionRequestRow
+                    )
+                )
+        await self._prune_tombstones_if_due(FormResponseRow)
         return response_id
 
     async def get_all_expiring_responses(self):
@@ -842,7 +970,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return None
-            stored = from_row_doc(FormResponseDocument, doc)
+            stored = decode(FormResponseDocument, doc)
             if (stored.internal_answers_version or 0) != expected_version:
                 return None
             stored.internal_answers = response.internal_answers
@@ -866,7 +994,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return None
-            stored = from_row_doc(FormResponseDocument, doc)
+            stored = decode(FormResponseDocument, doc)
             stored.respondent_feedback = [*(stored.respondent_feedback or []), entry]
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
@@ -875,23 +1003,33 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         return await self.one(FormResponseRow.submission_uuid == submission_uuid)
 
 
-class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
+class PostgresWorkspaceRespondersRepository(RecordRepository):
     row = WorkspaceResponderRow
     document = WorkspaceResponderDocument
     document_rows = {WorkspaceTags: WorkspaceTagRow}  # create_workspace_tag
 
-    async def create_workspace_tag(self, workspace_id: PydanticObjectId, title: str):
-        workspace_tag = await self.one_of(
-            WorkspaceTagRow,
-            WorkspaceTags,
-            WorkspaceTagRow.workspace_id == _oid(workspace_id),
-            WorkspaceTagRow.title == title,
-        )
-        if not workspace_tag:
-            workspace_tag = WorkspaceTags(workspace_id=workspace_id, title=title)
-        return await self.save_document(workspace_tag, row=WorkspaceTagRow)
+    async def create_workspace_tag(self, workspace_id: RecordId, title: str):
+        """The workspace's tag of this title (created when there is none), its
+        ``updated_at`` moved: a title is stored once per workspace even when
+        two requests create it at once."""
+        async with self._session() as session, session.begin():
+            await _advisory_lock(session, "workspace_tags", workspace_id, title)
+            workspace_tag = await _locked_doc(
+                session,
+                WorkspaceTagRow,
+                WorkspaceTagRow.workspace_id == _oid(workspace_id),
+                WorkspaceTagRow.title == title,
+                document=WorkspaceTags,
+            )
+            if not workspace_tag:
+                workspace_tag = WorkspaceTags(workspace_id=workspace_id, title=title)
+            workspace_tag.touch()
+            await session.execute(
+                self._upsert_statement(row_values(workspace_tag), WorkspaceTagRow)
+            )
+        return workspace_tag
 
-    async def get_workspace_tags(self, workspace_id: PydanticObjectId):
+    async def get_workspace_tags(self, workspace_id: RecordId):
         return await self.many(
             WorkspaceTagRow.workspace_id == _oid(workspace_id),
             row=WorkspaceTagRow,
@@ -899,58 +1037,73 @@ class PostgresWorkspaceRespondersRepository(PostgresRepositoryBase):
         )
 
     async def get_responder_by_email_and_workspace_id(
-        self, workspace_id: PydanticObjectId, email: str
+        self, workspace_id: RecordId, email: str
     ):
-        workspace_responder = await self.one(
-            WorkspaceResponderRow.workspace_id == _oid(workspace_id),
-            WorkspaceResponderRow.email == email,
-        )
-        if not workspace_responder:
-            workspace_responder = WorkspaceResponderDocument(
-                workspace_id=workspace_id, email=email
-            )
-        return await self.save_document(workspace_responder)
+        return await self._write_responder(workspace_id, email)
 
     async def patch_responder(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         email: str,
         metadata: Optional[Dict[str, str]] = None,
-        tags: Optional[List[PydanticObjectId]] = None,
+        tags: Optional[List[RecordId]] = None,
     ):
-        workspace_responder = await self.one(
-            WorkspaceResponderRow.workspace_id == _oid(workspace_id),
-            WorkspaceResponderRow.email == email,
-        )
-        if not workspace_responder:
-            workspace_responder = WorkspaceResponderDocument(
-                workspace_id=workspace_id, email=email
+        return await self._write_responder(workspace_id, email, metadata, tags)
+
+    async def _write_responder(
+        self,
+        workspace_id: RecordId,
+        email: str,
+        metadata: Optional[Dict[str, str]] = None,
+        tags: Optional[List[RecordId]] = None,
+    ):
+        """The workspace's responder of this email (created when there is
+        none) with ``metadata`` and ``tags`` set when given, applied to the
+        stored copy: a responder exists once per workspace and email even when
+        two requests create it at once, and a write of one field keeps the
+        other."""
+        async with self._session() as session, session.begin():
+            await _advisory_lock(session, "workspace_responder", workspace_id, email)
+            workspace_responder = await _locked_doc(
+                session,
+                WorkspaceResponderRow,
+                WorkspaceResponderRow.workspace_id == _oid(workspace_id),
+                WorkspaceResponderRow.email == email,
+                document=WorkspaceResponderDocument,
             )
-        if metadata:
-            workspace_responder.metadata = metadata
-        if tags:
-            workspace_responder.tags = tags
-        return await self.save_document(workspace_responder)
+            if not workspace_responder:
+                workspace_responder = WorkspaceResponderDocument(
+                    workspace_id=workspace_id, email=email
+                )
+            if metadata:
+                workspace_responder.metadata = metadata
+            if tags:
+                workspace_responder.tags = tags
+            workspace_responder.touch()
+            await session.execute(
+                self._upsert_statement(row_values(workspace_responder))
+            )
+        return workspace_responder
 
 
-class PostgresResponderGroupsRepository(PostgresRepositoryBase):
+class PostgresResponderGroupsRepository(RecordRepository):
     row = ResponderGroupRow
     document = ResponderGroupDocument
 
     @staticmethod
     def member(
-        group_id: PydanticObjectId, identifier: str
+        group_id: RecordId, identifier: str
     ) -> ResponderGroupMemberDocument:
         return ResponderGroupMemberDocument(
-            id=derived_object_id("responder_group_member", group_id, identifier),
+            id=derived_id("responder_group_member", group_id, identifier),
             group_id=group_id,
             identifier=identifier,
         )
 
     @staticmethod
-    def link(group_id: PydanticObjectId, form_id: str) -> ResponderGroupFormDocument:
+    def link(group_id: RecordId, form_id: str) -> ResponderGroupFormDocument:
         return ResponderGroupFormDocument(
-            id=derived_object_id("responder_group_form", group_id, form_id),
+            id=derived_id("responder_group_form", group_id, form_id),
             group_id=group_id,
             form_id=form_id,
         )
@@ -967,7 +1120,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
 
     async def create_group(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         name: str,
         description: Optional[str] = None,
         regex: Optional[str] = None,
@@ -985,33 +1138,52 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
 
     async def update_group(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         name: Optional[str] = None,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
-        group_id: PydanticObjectId = None,
+        group_id: RecordId = None,
         regex: Optional[str] = None,
     ):
-        responder_group = await self.get_group_in_workspace(workspace_id, group_id)
-        if emails and len(emails) != 0:
-            await self.delete_where(
-                ResponderGroupMemberRow.group_id == _oid(group_id),
-                row=ResponderGroupMemberRow,
+        """The group's fields (and its members, when ``emails`` are given)
+        changed in one transaction on the locked stored group: a failure
+        part-way leaves the members as they were, and a concurrent edit of
+        another field is kept."""
+        async with self._session() as session, session.begin():
+            responder_group = await _locked_doc(
+                session,
+                ResponderGroupRow,
+                ResponderGroupRow.workspace_id == _oid(workspace_id),
+                ResponderGroupRow.id == _oid(group_id),
+                document=ResponderGroupDocument,
             )
-            await self.upsert_many(
-                [self.member(group_id, email) for email in set(emails)],
-                row=ResponderGroupMemberRow,
-            )
-        if responder_group:
+            if responder_group is None:
+                raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+            if emails and len(emails) != 0:
+                await self._delete_recorded(
+                    session,
+                    ResponderGroupMemberRow,
+                    ResponderGroupMemberRow.group_id == _oid(group_id),
+                )
+                for email in set(emails):
+                    await session.execute(
+                        self._upsert_statement(
+                            row_values(self.member(group_id, email)),
+                            ResponderGroupMemberRow,
+                        )
+                    )
             if name:
                 responder_group.name = name
             if description:
                 responder_group.description = description
             responder_group.regex = regex
-        return await self.save_document(responder_group)
+            responder_group.touch()
+            await session.execute(self._upsert_statement(row_values(responder_group)))
+        await self._prune_tombstones_if_due(ResponderGroupMemberRow)
+        return responder_group
 
     async def get_group_in_workspace(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
+        self, workspace_id: RecordId, group_id: RecordId
     ):
         return await self.one(
             ResponderGroupRow.workspace_id == _oid(workspace_id),
@@ -1019,7 +1191,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         )
 
     async def add_emails_to_group(
-        self, group_id: PydanticObjectId, emails: List[EmailStr]
+        self, group_id: RecordId, emails: List[EmailStr]
     ):
         emails = list(set(emails))
         existing = {
@@ -1034,7 +1206,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             await self.upsert_many(new_members, row=ResponderGroupMemberRow)
 
     async def remove_emails_from_group(
-        self, group_id: PydanticObjectId, emails: List[EmailStr]
+        self, group_id: RecordId, emails: List[EmailStr]
     ):
         await self.delete_where(
             ResponderGroupMemberRow.group_id == _oid(group_id),
@@ -1062,23 +1234,31 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             )
         return out
 
-    async def get_emails_in_group(self, group_id: PydanticObjectId):
+    async def get_emails_in_group(self, group_id: RecordId):
         group = await self.one(ResponderGroupRow.id == _oid(group_id))
         if group is None:
             return None
         return (await self._projected([group]))[0]
 
-    async def remove_responder_group(self, group_id: PydanticObjectId):
-        await self.delete_by_id(group_id)
-        await self.delete_where(
-            ResponderGroupMemberRow.group_id == _oid(group_id),
-            row=ResponderGroupMemberRow,
-        )
-        await self.delete_where(
-            ResponderGroupFormRow.group_id == _oid(group_id), row=ResponderGroupFormRow
-        )
+    async def remove_responder_group(self, group_id: RecordId):
+        """The group, its members and its form links, in one transaction."""
+        async with self._session() as session, session.begin():
+            await self._delete_recorded(
+                session, ResponderGroupRow, ResponderGroupRow.id == _oid(group_id)
+            )
+            await self._delete_recorded(
+                session,
+                ResponderGroupMemberRow,
+                ResponderGroupMemberRow.group_id == _oid(group_id),
+            )
+            await self._delete_recorded(
+                session,
+                ResponderGroupFormRow,
+                ResponderGroupFormRow.group_id == _oid(group_id),
+            )
+        await self._prune_tombstones_if_due(ResponderGroupRow)
 
-    async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
+    async def get_groups_in_workspace(self, workspace_id: RecordId):
         groups = await self.many(ResponderGroupRow.workspace_id == _oid(workspace_id))
         return [ResponderGroupDto(**row) for row in await self._projected(groups)]
 
@@ -1087,7 +1267,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
     ) -> Dict[str, List[dict]]:
         links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
         groups = {
-            group.id: to_bson_dict(group)
+            group.id: to_bson(group)
             for group in await self.many(
                 ResponderGroupRow.id.in_([_oid(l.group_id) for l in links] or ["-"])
             )
@@ -1102,7 +1282,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         self,
         form_ids: List[str],
         identifier: str,
-        workspace_id: Optional[PydanticObjectId] = None,
+        workspace_id: Optional[RecordId] = None,
     ) -> Set[str]:
         """The subset of ``form_ids`` whose responder groups admit
         ``identifier``: a member with that identifier in any of the form's
@@ -1131,7 +1311,7 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
                 continue
         return {link.form_id for link in links if link.group_id in member_of}
 
-    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
+    async def add_group_to_form(self, form_id: str, group_id: RecordId):
         existing = await self._links(
             ResponderGroupFormRow.form_id == form_id,
             ResponderGroupFormRow.group_id == _oid(group_id),
@@ -1141,21 +1321,54 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
                 self.link(group_id, form_id), row=ResponderGroupFormRow
             )
 
-    async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
-        ids_to_add = list(group_ids)
-        existing_groups = await self._links(ResponderGroupFormRow.form_id == form_id)
-        ids_to_remove = [group.group_id for group in existing_groups]
-        for group_id in list(ids_to_remove):
-            if group_id in ids_to_add:
-                ids_to_remove.remove(group_id)
-                ids_to_add.remove(group_id)
-        for group_id in ids_to_remove:
-            await self.remove_group_from_form(form_id, group_id)
-        for group_id in ids_to_add:
-            await self.add_group_to_form(form_id, group_id)
-        return await self._links(ResponderGroupFormRow.form_id == form_id)
+    async def add_groups_to_form(self, form_id: str, group_ids: List[RecordId]):
+        """Set the form's groups to ``group_ids``: the links not listed are
+        removed, the missing ones added, in one transaction that holds the
+        form's links locked (two saves of one form's groups apply one after
+        the other, each against the links the other left)."""
+        wanted = list(dict.fromkeys(group_ids))
+        async with self._session() as session, session.begin():
+            await _advisory_lock(session, "responder_group_form", form_id)
+            existing = [
+                decode(ResponderGroupFormDocument, doc)
+                for doc in (
+                    await session.execute(
+                        select(ResponderGroupFormRow.doc)
+                        .where(ResponderGroupFormRow.form_id == form_id)
+                        .order_by(ResponderGroupFormRow.created_at, ResponderGroupFormRow.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            ]
+            linked = {link.group_id for link in existing}
+            to_remove = [g for g in linked if g not in wanted]
+            if to_remove:
+                await self._delete_recorded(
+                    session,
+                    ResponderGroupFormRow,
+                    ResponderGroupFormRow.form_id == form_id,
+                    ResponderGroupFormRow.group_id.in_([_oid(g) for g in to_remove]),
+                )
+            for group_id in wanted:
+                if group_id not in linked:
+                    link = self.link(group_id, form_id)
+                    link.touch()
+                    await session.execute(
+                        self._upsert_statement(row_values(link), ResponderGroupFormRow)
+                    )
+            links = (
+                await session.execute(
+                    select(ResponderGroupFormRow.doc)
+                    .where(ResponderGroupFormRow.form_id == form_id)
+                    .order_by(ResponderGroupFormRow.created_at, ResponderGroupFormRow.id)
+                )
+            ).scalars().all()
+        await self._prune_tombstones_if_due(ResponderGroupFormRow)
+        return [decode(ResponderGroupFormDocument, doc) for doc in links]
 
-    async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
+    async def remove_group_from_form(self, form_id: str, group_id: RecordId):
         await self.delete_one_where(
             ResponderGroupFormRow.form_id == form_id,
             ResponderGroupFormRow.group_id == _oid(group_id),
@@ -1167,15 +1380,36 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
             ResponderGroupFormRow.form_id == form_id, row=ResponderGroupFormRow
         )
 
-    async def delete_responder_groups(self, workspace_ids: List[PydanticObjectId]):
-        groups = await self.many(
-            ResponderGroupRow.workspace_id.in_([_oid(w) for w in workspace_ids])
-        )
-        group_ids = [_oid(group.id) for group in groups] or ["-"]
-        await self.delete_where(
-            ResponderGroupFormRow.group_id.in_(group_ids), row=ResponderGroupFormRow
-        )
-        await self.delete_where(
-            ResponderGroupMemberRow.group_id.in_(group_ids), row=ResponderGroupMemberRow
-        )
-        await self.delete_where(ResponderGroupRow.id.in_(group_ids))
+    async def delete_responder_groups(self, workspace_ids: List[RecordId]):
+        """Every group of the workspaces with its members and form links, in
+        one transaction."""
+        async with self._session() as session, session.begin():
+            group_ids = (
+                (
+                    await session.execute(
+                        select(ResponderGroupRow.id)
+                        .where(
+                            ResponderGroupRow.workspace_id.in_(
+                                [_oid(w) for w in workspace_ids]
+                            )
+                        )
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            ) or ["-"]
+            await self._delete_recorded(
+                session,
+                ResponderGroupFormRow,
+                ResponderGroupFormRow.group_id.in_(group_ids),
+            )
+            await self._delete_recorded(
+                session,
+                ResponderGroupMemberRow,
+                ResponderGroupMemberRow.group_id.in_(group_ids),
+            )
+            await self._delete_recorded(
+                session, ResponderGroupRow, ResponderGroupRow.id.in_(group_ids)
+            )
+        await self._prune_tombstones_if_due(ResponderGroupRow)

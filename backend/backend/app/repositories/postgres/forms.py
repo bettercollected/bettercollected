@@ -345,8 +345,8 @@ class PostgresFormRepository(RecordRepository):
 
     def __init__(self, session_factory, responder_groups, form_responses):
         super().__init__(session_factory)
-        self._groups = responder_groups  # routed ResponderGroupsRepository
-        self._responses = form_responses  # routed FormResponseRepository
+        self._groups = responder_groups  # PostgresResponderGroupsRepository
+        self._responses = form_responses  # PostgresFormResponseRepository
 
     # -- shared enrichment ----------------------------------------------------
     async def _attach_groups(self, forms: List[dict]) -> None:
@@ -986,7 +986,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
 
     def __init__(self, session_factory, responder_groups):
         super().__init__(session_factory)
-        self._groups = responder_groups  # routed ResponderGroupsRepository
+        self._groups = responder_groups  # PostgresResponderGroupsRepository
 
     async def find_workspace_form(
         self, workspace_id: RecordId, form_id: str

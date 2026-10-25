@@ -8,8 +8,8 @@ from pydantic import EmailStr
 from backend.app.constants.messages import not_found
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
-from backend.app.repositories.responder_groups_repository import (
-    ResponderGroupsRepository,
+from backend.app.repositories.postgres.responses import (
+    PostgresResponderGroupsRepository,
 )
 from backend.app.services.form_service import FormService
 from backend.app.services.authorization_service import AuthorizationService
@@ -43,7 +43,7 @@ def _other_workspaces(workspace_id, form_workspace_ids) -> set:
 class ResponderGroupsService:
     def __init__(
         self,
-        responder_groups_repo: ResponderGroupsRepository,
+        responder_groups_repo: PostgresResponderGroupsRepository,
         authorization_service: AuthorizationService,
         form_service: FormService,
     ):

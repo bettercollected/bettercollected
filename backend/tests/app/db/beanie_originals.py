@@ -6,24 +6,36 @@ as they were before the move (test support; removed together with Beanie).
   schema) and serialise every pinned document exactly as these did.
 * They still name the 4.0 collections, so the tests of the migration and
   routing machinery keep exercising ``allowed_origins``,
-  ``rate_limit_counters``, ``forms`` and ``form_templates`` through the
-  repositories below, as they were before the move, and plant 4.0 documents
-  (``workspaces``) in Mongo for the import's tests.
+  ``rate_limit_counters``, ``forms``, ``form_templates`` and the responder
+  groups and workspace tags of ``responses`` (the last routed group, the
+  routed fixture of ``tests/app/migrate/routed.py``) through the repositories
+  below, as they were before the move, and plant 4.0 documents
+  (``workspaces``, ``form_responses``) in Mongo for the import's tests.
 """
 
 import datetime as dt
+import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional, Set, Union
 
 from beanie import Indexed, PydanticObjectId
 from bson import ObjectId
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
-from common.db import PostgresRepositoryBase, write_op
+from common.db import (
+    PostgresRepositoryBase,
+    derived_object_id,
+    to_bson_dict,
+    write_op,
+)
 from common.models.consent import Consent
-from common.models.standard_form import ParameterValue, StandardForm
+from common.models.standard_form import (
+    ParameterValue,
+    StandardForm,
+    StandardFormResponse,
+)
 from common.enums.workspace_invitation_status import InvitationStatus
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 import pymongo
 from pymongo import IndexModel, ReturnDocument
 
@@ -38,19 +50,33 @@ from backend.app.models.enum.update_status import UpdateStatus
 from backend.app.models.template import StandardFormTemplate
 from backend.app.models.workspace import Workspace, WorkspaceFormSettings
 from backend.app.schemas.form_import import ImportStatus, PageAnalysis
+from backend.app.schemas.responder_group import GroupRoles, IdentifierType
+from backend.app.schemas.standard_form_response import (
+    DeclineReason,
+    DeletionRequestClosure,
+    DeletionRequestStatus,
+)
 from backend.app.schemas.action_document import ActionSettings
 from backend.app.schemas.scim import ScimUserState
 from backend.app.schemas.sso_connection import SsoConnectionStatus, SsoConnectionType
 from backend.app.schemas.workspace_domain import DomainStatus
 from backend.app.schemas.workspace_user import DISABLED_BY_PLAN
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.postgres.forms import apply_form_update
+from backend.app.models.dtos.response_group_dto import ResponderGroupDto
+from backend.app.repositories.postgres.forms import _oid, apply_form_update
 from backend.app.services.form_concurrency import (
     ensure_not_changed_since,
     form_changed,
     next_updated_at,
 )
-from backend.db.models import AllowedOriginRow, FormRow, FormTemplateRow
+from backend.db.models import (
+    AllowedOriginRow,
+    FormRow,
+    FormTemplateRow,
+    ResponderGroupFormRow,
+    ResponderGroupMemberRow,
+    ResponderGroupRow,
+)
 from beanie.odm.utils.dump import get_dict
 from beanie.odm.utils.parsing import parse_obj
 from common.db import from_row_doc
@@ -1034,6 +1060,86 @@ class WorkspaceConsentDocument(Consent, MongoDocument):
         bson_encoders = _ISO_ENCODERS
 
 
+# -- responses -----------------------------------------------------------------------
+
+
+class FormResponseDocument(MongoDocument, StandardFormResponse):
+    workspace_id: Optional[PydanticObjectId] = None
+
+    class Settings:
+        name = "form_responses"
+        bson_encoders = _ISO_ENCODERS
+
+
+class FormResponseDeletionRequest(MongoDocument):
+    form_id: str
+    response_id: str
+    provider: Optional[str] = None
+    dataOwnerIdentifier: Optional[str] = None
+    anonymous_identity: Optional[str] = None
+    status: DeletionRequestStatus = DeletionRequestStatus.PENDING
+    workspace_id: Optional[PydanticObjectId] = None
+    deleted_at: Optional[str] = None
+    closed_by: Optional[str] = None
+    closed_at: Optional[dt.datetime] = None
+    decline_reason: Optional[DeclineReason] = None
+    closures: List[DeletionRequestClosure] = Field(default_factory=list)
+
+    class Settings:
+        name = "responses_deletion_requests"
+        bson_encoders = _ISO_ENCODERS
+
+
+class WorkspaceTags(MongoDocument):
+    workspace_id: PydanticObjectId
+    title: str
+
+    class Settings:
+        name = "workspace_tags"
+
+
+class WorkspaceResponderDocument(MongoDocument):
+    workspace_id: PydanticObjectId
+    user_id: Optional[str] = None
+    email: str
+    tags: Optional[List[PydanticObjectId]] = None
+    metadata: Optional[Dict[str, str]] = None
+
+    class Settings:
+        name = "workspace_responder"
+
+
+class ResponderGroupDocument(MongoDocument):
+    name: Optional[str] = None
+    workspace_id: PydanticObjectId
+    description: Optional[str] = None
+    regex: Optional[str] = None
+
+    class Settings:
+        name = "responder_group"
+        bson_encoders = _ISO_ENCODERS
+
+
+class ResponderGroupMemberDocument(MongoDocument):
+    group_id: PydanticObjectId
+    identifier: str
+    identifierType: IdentifierType = IdentifierType.EMAIL
+
+    class Settings:
+        name = "responder_group_member"
+        bson_encoders = _ISO_ENCODERS
+
+
+class ResponderGroupFormDocument(MongoDocument):
+    group_id: PydanticObjectId
+    form_id: str
+    role: GroupRoles = GroupRoles.VIEW
+
+    class Settings:
+        name = "responder_group_form"
+        bson_encoders = _ISO_ENCODERS
+
+
 ORIGINALS = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -1073,6 +1179,13 @@ ORIGINALS = (
     FormImportDocument,
     MediaLibraryDocument,
     WorkspaceConsentDocument,
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+    WorkspaceTags,
+    WorkspaceResponderDocument,
+    ResponderGroupDocument,
+    ResponderGroupMemberDocument,
+    ResponderGroupFormDocument,
 )
 
 for _original in ORIGINALS:
@@ -1338,3 +1451,382 @@ def _apply_template(template, body: StandardFormTemplate) -> None:
     template.button_text = body.button_text
     template.logo = body.logo
     template.cover_image = body.cover_image
+
+
+# -- responses: the Mongo repositories of the routed fixture ---------------------------
+
+
+class WorkspaceRespondersRepository:
+    """The Mongo repository of ``workspace_tags`` and ``workspace_responder``
+    before 4.1 (the routed fixture of tests/app/migrate/routed.py)."""
+
+    @write_op(replay=True)
+    async def create_workspace_tag(self, workspace_id: PydanticObjectId, title: str):
+        workspace_tag = await WorkspaceTags.find_one(
+            {"workspace_id": workspace_id, "title": title}
+        )
+        if not workspace_tag:
+            workspace_tag = WorkspaceTags(workspace_id=workspace_id, title=title)
+        return await workspace_tag.save()
+
+    async def get_workspace_tags(self, workspace_id: PydanticObjectId):
+        return await WorkspaceTags.find({"workspace_id": workspace_id}).to_list()
+
+    @write_op(replay=True)
+    async def get_responder_by_email_and_workspace_id(
+        self, workspace_id: PydanticObjectId, email: str
+    ):
+        workspace_responder = await WorkspaceResponderDocument.find_one(
+            {"workspace_id": workspace_id, "email": email}
+        )
+        if not workspace_responder:
+            workspace_responder = WorkspaceResponderDocument(
+                workspace_id=workspace_id, email=email
+            )
+        return await workspace_responder.save()
+
+
+class ResponderGroupsRepository:
+    """The Mongo repository of the responder groups before 4.1 (the writes the
+    routed fixture's tests use)."""
+
+    @staticmethod
+    def member(
+        group_id: PydanticObjectId, identifier: str
+    ) -> ResponderGroupMemberDocument:
+        """A member's identity is the (group, identifier) pair; its id follows."""
+        return ResponderGroupMemberDocument(
+            id=derived_object_id("responder_group_member", group_id, identifier),
+            group_id=group_id,
+            identifier=identifier,
+        )
+
+    @staticmethod
+    def link(group_id: PydanticObjectId, form_id: str) -> ResponderGroupFormDocument:
+        return ResponderGroupFormDocument(
+            id=derived_object_id("responder_group_form", group_id, form_id),
+            group_id=group_id,
+            form_id=form_id,
+        )
+
+    @write_op(replay=True)
+    async def create_group(
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str] = None,
+        regex: Optional[str] = None,
+    ):
+        return await ResponderGroupDocument(
+            name=name, workspace_id=workspace_id, description=description, regex=regex
+        ).save()
+
+    @write_op
+    async def update_group(
+        self,
+        workspace_id: PydanticObjectId,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        emails: List[EmailStr] = None,
+        group_id: PydanticObjectId = None,
+        regex: Optional[str] = None,
+    ):
+        responder_group = await ResponderGroupDocument.find_one(
+            {"workspace_id": workspace_id, "_id": group_id}
+        )
+        if emails and len(emails) != 0:
+            # replace the membership wholesale
+            await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
+            await ResponderGroupMemberDocument.insert_many(
+                [self.member(group_id, email) for email in set(emails)]
+            )
+        if responder_group:
+            if name:
+                responder_group.name = name
+            if description:
+                responder_group.description = description
+            responder_group.regex = regex
+        return await responder_group.save()
+
+    @write_op
+    async def add_emails_to_group(
+        self, group_id: PydanticObjectId, emails: List[EmailStr]
+    ):
+        emails = list(set(emails))
+        existing = [
+            m.identifier
+            for m in await ResponderGroupMemberDocument.find(
+                {"group_id": group_id, "identifier": {"$in": emails}}
+            ).to_list()
+        ]
+        new_members = [self.member(group_id, e) for e in emails if e not in existing]
+        if new_members:
+            await ResponderGroupMemberDocument.insert_many(new_members)
+
+    @write_op
+    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
+        existing = await ResponderGroupFormDocument.find_one(
+            {"form_id": form_id, "group_id": group_id}
+        )
+        if not existing:
+            return await self.link(group_id, form_id).save()
+
+    async def get_emails_in_group(self, group_id: PydanticObjectId):
+        members = await ResponderGroupMemberDocument.find(
+            {"group_id": group_id}
+        ).to_list()
+        group = await ResponderGroupDocument.find_one({"_id": group_id})
+        if group is None:
+            return None
+        return {"emails": [m.identifier for m in members], "name": group.name}
+
+
+class PostgresResponderGroupsRepository(PostgresRepositoryBase):
+    """The Postgres twin of the responder groups before 4.1 (Beanie documents,
+    through the bridge): the routed fixture's twin."""
+
+    row = ResponderGroupRow
+    document = ResponderGroupDocument
+
+    @staticmethod
+    def member(
+        group_id: PydanticObjectId, identifier: str
+    ) -> ResponderGroupMemberDocument:
+        return ResponderGroupMemberDocument(
+            id=derived_object_id("responder_group_member", group_id, identifier),
+            group_id=group_id,
+            identifier=identifier,
+        )
+
+    @staticmethod
+    def link(group_id: PydanticObjectId, form_id: str) -> ResponderGroupFormDocument:
+        return ResponderGroupFormDocument(
+            id=derived_object_id("responder_group_form", group_id, form_id),
+            group_id=group_id,
+            form_id=form_id,
+        )
+
+    async def _members(self, *where) -> List[ResponderGroupMemberDocument]:
+        return await self.many(
+            *where, row=ResponderGroupMemberRow, document=ResponderGroupMemberDocument
+        )
+
+    async def _links(self, *where) -> List[ResponderGroupFormDocument]:
+        return await self.many(
+            *where, row=ResponderGroupFormRow, document=ResponderGroupFormDocument
+        )
+
+    async def create_group(
+        self,
+        workspace_id: PydanticObjectId,
+        name: str,
+        description: Optional[str] = None,
+        regex: Optional[str] = None,
+    ):
+        if description and len(description) > 280:
+            return {"message": "description should be less than 280 characters"}
+        return await self.save_document(
+            ResponderGroupDocument(
+                name=name,
+                workspace_id=workspace_id,
+                description=description,
+                regex=regex,
+            )
+        )
+
+    async def update_group(
+        self,
+        workspace_id: PydanticObjectId,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        emails: List[EmailStr] = None,
+        group_id: PydanticObjectId = None,
+        regex: Optional[str] = None,
+    ):
+        responder_group = await self.get_group_in_workspace(workspace_id, group_id)
+        if emails and len(emails) != 0:
+            await self.delete_where(
+                ResponderGroupMemberRow.group_id == _oid(group_id),
+                row=ResponderGroupMemberRow,
+            )
+            await self.upsert_many(
+                [self.member(group_id, email) for email in set(emails)],
+                row=ResponderGroupMemberRow,
+            )
+        if responder_group:
+            if name:
+                responder_group.name = name
+            if description:
+                responder_group.description = description
+            responder_group.regex = regex
+        return await self.save_document(responder_group)
+
+    async def get_group_in_workspace(
+        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId
+    ):
+        return await self.one(
+            ResponderGroupRow.workspace_id == _oid(workspace_id),
+            ResponderGroupRow.id == _oid(group_id),
+        )
+
+    async def add_emails_to_group(
+        self, group_id: PydanticObjectId, emails: List[EmailStr]
+    ):
+        emails = list(set(emails))
+        existing = {
+            member.identifier
+            for member in await self._members(
+                ResponderGroupMemberRow.group_id == _oid(group_id),
+                ResponderGroupMemberRow.identifier.in_(emails),
+            )
+        }
+        new_members = [self.member(group_id, e) for e in emails if e not in existing]
+        if new_members:
+            await self.upsert_many(new_members, row=ResponderGroupMemberRow)
+
+    async def remove_emails_from_group(
+        self, group_id: PydanticObjectId, emails: List[EmailStr]
+    ):
+        await self.delete_where(
+            ResponderGroupMemberRow.group_id == _oid(group_id),
+            ResponderGroupMemberRow.identifier.in_(list(emails)),
+            row=ResponderGroupMemberRow,
+        )
+
+    async def _projected(self, groups: List[ResponderGroupDocument]) -> List[dict]:
+        """The $project of get_emails_in_group / get_groups_in_workspace."""
+        ids = [_oid(g.id) for g in groups]
+        members = await self._members(ResponderGroupMemberRow.group_id.in_(ids))
+        links = await self._links(ResponderGroupFormRow.group_id.in_(ids))
+        out = []
+        for group in groups:
+            out.append(
+                {
+                    "_id": group.id,
+                    "name": group.name,
+                    "workspace_id": group.workspace_id,
+                    "emails": [m.identifier for m in members if m.group_id == group.id],
+                    "description": group.description,
+                    "regex": group.regex,
+                    "forms": [l.form_id for l in links if l.group_id == group.id],
+                }
+            )
+        return out
+
+    async def get_emails_in_group(self, group_id: PydanticObjectId):
+        group = await self.one(ResponderGroupRow.id == _oid(group_id))
+        if group is None:
+            return None
+        return (await self._projected([group]))[0]
+
+    async def remove_responder_group(self, group_id: PydanticObjectId):
+        await self.delete_by_id(group_id)
+        await self.delete_where(
+            ResponderGroupMemberRow.group_id == _oid(group_id),
+            row=ResponderGroupMemberRow,
+        )
+        await self.delete_where(
+            ResponderGroupFormRow.group_id == _oid(group_id), row=ResponderGroupFormRow
+        )
+
+    async def get_groups_in_workspace(self, workspace_id: PydanticObjectId):
+        groups = await self.many(ResponderGroupRow.workspace_id == _oid(workspace_id))
+        return [ResponderGroupDto(**row) for row in await self._projected(groups)]
+
+    async def get_groups_by_form_ids(
+        self, form_ids: List[str]
+    ) -> Dict[str, List[dict]]:
+        links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
+        groups = {
+            group.id: to_bson_dict(group)
+            for group in await self.many(
+                ResponderGroupRow.id.in_([_oid(l.group_id) for l in links] or ["-"])
+            )
+        }
+        by_form: Dict[str, List[dict]] = {form_id: [] for form_id in form_ids}
+        for link in links:
+            if link.group_id in groups:
+                by_form.setdefault(link.form_id, []).append(groups[link.group_id])
+        return by_form
+
+    async def get_form_ids_accessible_to(
+        self,
+        form_ids: List[str],
+        identifier: str,
+        workspace_id: Optional[PydanticObjectId] = None,
+    ) -> Set[str]:
+        """The subset of ``form_ids`` whose responder groups admit
+        ``identifier``: a member with that identifier in any of the form's
+        groups, or a regex it matches of one of ``workspace_id``'s groups (any
+        group's when None), as 4.0's listing did."""
+        links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
+        group_ids = [_oid(g) for g in {link.group_id for link in links}]
+        if not group_ids:
+            return set()
+        member_of = {
+            member.group_id
+            for member in await self._members(
+                ResponderGroupMemberRow.group_id.in_(group_ids),
+                ResponderGroupMemberRow.identifier == identifier,
+            )
+        }
+        for group in await self.many(ResponderGroupRow.id.in_(group_ids)):
+            if not group.regex:
+                continue
+            if workspace_id is not None and str(group.workspace_id) != str(workspace_id):
+                continue
+            try:
+                if re.search(group.regex, identifier):
+                    member_of.add(group.id)
+            except re.error:
+                continue
+        return {link.form_id for link in links if link.group_id in member_of}
+
+    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
+        existing = await self._links(
+            ResponderGroupFormRow.form_id == form_id,
+            ResponderGroupFormRow.group_id == _oid(group_id),
+        )
+        if not existing:
+            return await self.save_document(
+                self.link(group_id, form_id), row=ResponderGroupFormRow
+            )
+
+    async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
+        ids_to_add = list(group_ids)
+        existing_groups = await self._links(ResponderGroupFormRow.form_id == form_id)
+        ids_to_remove = [group.group_id for group in existing_groups]
+        for group_id in list(ids_to_remove):
+            if group_id in ids_to_add:
+                ids_to_remove.remove(group_id)
+                ids_to_add.remove(group_id)
+        for group_id in ids_to_remove:
+            await self.remove_group_from_form(form_id, group_id)
+        for group_id in ids_to_add:
+            await self.add_group_to_form(form_id, group_id)
+        return await self._links(ResponderGroupFormRow.form_id == form_id)
+
+    async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
+        await self.delete_one_where(
+            ResponderGroupFormRow.form_id == form_id,
+            ResponderGroupFormRow.group_id == _oid(group_id),
+            row=ResponderGroupFormRow,
+        )
+
+    async def delete_workspace_form_groups(self, form_id: str):
+        await self.delete_where(
+            ResponderGroupFormRow.form_id == form_id, row=ResponderGroupFormRow
+        )
+
+    async def delete_responder_groups(self, workspace_ids: List[PydanticObjectId]):
+        groups = await self.many(
+            ResponderGroupRow.workspace_id.in_([_oid(w) for w in workspace_ids])
+        )
+        group_ids = [_oid(group.id) for group in groups] or ["-"]
+        await self.delete_where(
+            ResponderGroupFormRow.group_id.in_(group_ids), row=ResponderGroupFormRow
+        )
+        await self.delete_where(
+            ResponderGroupMemberRow.group_id.in_(group_ids), row=ResponderGroupMemberRow
+        )
+        await self.delete_where(ResponderGroupRow.id.in_(group_ids))
