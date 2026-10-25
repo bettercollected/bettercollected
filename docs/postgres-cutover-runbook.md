@@ -288,6 +288,40 @@ GROUP BY workspace_id, user_id HAVING count(*) > 1;
 Keep the row Mongo holds if Mongo is still written, else the most recently updated one, delete the
 others (by `id`), and migrate again.
 
+## Accounts whose emails differ only in case
+
+auth revision `0005` makes `auth.users` unique by `lower(email)` in place of the exact `email`
+constraint: every sign-in path matches emails ignoring case, so `Jane@Example.com` and
+`jane@example.com` are one account. Older versions matched the code sign-in exactly, so a store
+can hold two accounts for one address. Then the migration refuses before changing anything,
+naming only the counts (and the read-only query below), and auth does not start until they are
+resolved; on the import from 4.0, `python -m auth.migrate preflight` counts them as duplicate keys
+and `backfill` stops the `users` collection on the first one. Nothing is merged automatically:
+each account has its own workspaces, forms, memberships, sessions and billing, and no rule can
+pick one without taking from the other. List them by id (Postgres, or the same grouping in Mongo
+before the import):
+
+```sql
+SELECT lower(email), count(*), array_agg(id ORDER BY id) AS ids
+FROM auth.users WHERE email IS NOT NULL
+GROUP BY lower(email) HAVING count(*) > 1;
+```
+
+```js
+// mongosh, auth's 4.0 database
+db.users.aggregate([{$match:{email:{$type:"string"}}},
+  {$group:{_id:{$toLower:"$email"}, ids:{$push:"$_id"}}}, {$match:{"ids.1":{$exists:true}}}])
+```
+
+Run the query **before upgrading**, while the previous version still serves: the new auth does not
+start on a schema behind its code. If the migration already refused, go back to the previous
+image (the refusal changed nothing) and resolve them there. For each group, find out with the
+person which account they use (in the backend: the workspaces each id owns or belongs to, its last
+sign-in, a Stripe customer id). Move what they need to the account that stays (invite it to the
+other account's workspaces, transfer ownership), then delete the other account through the
+product's account deletion, so its sessions, memberships and billing go with it. Never delete a
+row only in `auth.users`. Then upgrade again (or run `preflight` and `backfill` again).
+
 ## Google credentials without a user id (once, after upgrading)
 
 The Google Forms integration encrypts a stored Google credential with a key derived from the
