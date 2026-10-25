@@ -244,6 +244,9 @@ class OauthGoogleService:
                 if db_credentials:
                     db_credentials.updated_at = datetime.now()
                     db_credentials.credentials = json.loads(json_credentials)
+                    # a legacy row connected by an older version has no user id
+                    # to derive the encryption key from: take the signed-in one
+                    db_credentials.user_id = db_credentials.user_id or user_id
                     await self.oauth_credential_repo.update(email, db_credentials)
                 else:
                     await self.oauth_credential_repo.add(

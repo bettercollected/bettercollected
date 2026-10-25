@@ -277,6 +277,27 @@ GROUP BY workspace_id, user_id HAVING count(*) > 1;
 Keep the row Mongo holds if Mongo is still written, else the most recently updated one, delete the
 others (by `id`), and migrate again.
 
+## Google credentials without a user id (once, after upgrading)
+
+The Google Forms integration encrypts a stored Google credential with a key derived from the
+user's id. Legacy rows connected by older versions have no `user_id`; before this fix every token
+refresh stored their access and refresh tokens unencrypted. The integration no longer writes a
+credential it cannot encrypt, and reconnecting Google Forms gives such a row the signed-in user's
+id. Delete the rows that are left: no `user_id`, or tokens stored in plain text. Their owners
+connect Google Forms again on their next import; nothing else is lost (imported forms and
+responses live in the backend). The step is safe to run again and prints counts only. Run it after
+the import from 4.0 (`python -m googleform.migrate`), which copies whatever Mongo held.
+
+```sql
+-- Postgres, as the google service's role:
+SELECT count(*) AS to_delete FROM google.oauth_credentials
+WHERE coalesce(user_id, '') = ''
+   OR (jsonb_typeof(doc->'credentials') = 'object' AND NOT doc->'credentials' ? '$binary');
+DELETE FROM google.oauth_credentials
+WHERE coalesce(user_id, '') = ''
+   OR (jsonb_typeof(doc->'credentials') = 'object' AND NOT doc->'credentials' ? '$binary');
+```
+
 ## Phase 3 — remove Mongo and Temporal
 
 Only after two weeks fully on Postgres with everything at `postgres`/`postgres`:
