@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { usePathname } from 'next/navigation';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -45,6 +47,29 @@ const fadeVariants = {
     exit: { x: 0, opacity: 0 }
 };
 
+/**
+ * Where focus goes when the respondent moves to another page: the element
+ * marked `data-page-start` in the new page ("Page x of y" on a question page,
+ * the title on the welcome and ending pages). Without it, focus stayed on the
+ * Continue button of the page that slid away and fell to the document when it
+ * unmounted, so a keyboard user started again from the top of the document
+ * and a screen reader announced nothing (WCAG 2.4.3). Focus already inside the
+ * new page (a question focused for its error) is left where it is.
+ */
+export function focusPageStart(page: HTMLElement | null) {
+    if (!page) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && page.contains(active)) return;
+    const start = page.querySelector<HTMLElement>('[data-page-start]') ?? page.querySelector<HTMLElement>('h1');
+    if (!start) return;
+    // A heading is a place to start reading, not a control: no focus ring.
+    if (!start.hasAttribute('tabindex')) {
+        start.setAttribute('tabindex', '-1');
+        start.classList.add('outline-none');
+    }
+    start.focus({ preventScroll: true });
+}
+
 const slideTransition = { duration: 0.35, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
 const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
@@ -90,10 +115,22 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const direction = ordinalOf(currentSlide) >= ordinalOf(previousSlide) ? 1 : -1;
     const variants = prefersReducedMotion ? fadeVariants : slideVariants;
 
+    // Focus follows the respondent to each new page (focusPageStart), in
+    // previews too; not on the first page shown. The new page is found by its
+    // slide, not by a ref: while the old page slides out both are mounted.
+    const formRef = useRef<HTMLDivElement>(null);
+    const shownSlide = useRef(currentSlide);
+    useEffect(() => {
+        if (shownSlide.current === currentSlide) return;
+        shownSlide.current = currentSlide;
+        const frame = requestAnimationFrame(() => focusPageStart(formRef.current?.querySelector<HTMLElement>(`[data-slide="${currentSlide}"]`) ?? null));
+        return () => cancelAnimationFrame(frame);
+    }, [currentSlide]);
+
     return (
         // overflow-hidden clips the ±100% fly-in/out — without it the document
         // grows sideways mid-transition and a horizontal scrollbar flashes.
-        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')} lang={language}>
+        <div ref={formRef} className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen', 'relative h-full w-full overflow-hidden')} lang={language}>
             {currentSlide !== -1 && (
                 // Decorative: "Page x of y" in the header says the same in words.
                 <div className="absolute top-0 right-0 left-0 z-80!" aria-hidden="true">
@@ -113,7 +150,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                         className: 'absolute inset-0 z-10 flex h-full w-full flex-1 flex-col items-center justify-center'
                     } as any)}
                 >
-                    <div className="relative h-full w-full">
+                    <div data-slide={currentSlide} className="relative h-full w-full">
                         {currentSlide === -1 && (
                             <LayoutWrapper
                                 showDesktopLayout={showDesktopLayout}

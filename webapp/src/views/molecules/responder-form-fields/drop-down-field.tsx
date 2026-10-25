@@ -13,7 +13,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { moveOnFrom } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { WithQuestionLabel } from './question-label-context';
@@ -53,7 +53,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
         setTimeout(() => {
-            if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+            if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) moveOnFrom(field.id, form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
     };
 
