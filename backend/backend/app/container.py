@@ -133,6 +133,7 @@ from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.template_service import FormTemplateService
+from backend.app.services.credential_purge import CredentialPurgeService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_consent_service import WorkspaceConsentService
@@ -814,8 +815,17 @@ class AppContainer(containers.DeclarativeContainer):
         SessionService, session_repo=session_repo, sso_policy=sso_policy_service
     )
 
+    # a deleted account's stored provider credentials (services/credential_purge.py)
+    credential_purge_service: CredentialPurgeService = providers.Singleton(
+        CredentialPurgeService,
+        form_provider_service=form_provider_service,
+        temporal_service=temporal_service,
+        pg_engine=pg_engine,
+    )
+
     auth_service: AuthService = providers.Singleton(
         AuthService,
+        credential_purge_service=credential_purge_service,
         http_client=http_client,
         plugin_proxy_service=plugin_proxy_service,
         form_provider_service=form_provider_service,

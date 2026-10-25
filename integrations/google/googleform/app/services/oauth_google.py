@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta
 from http import HTTPStatus
 from urllib import parse
 
+import aiohttp
 import google_auth_oauthlib.flow
 from common.configs.crypto import Crypto
 from common.constants import (
@@ -30,6 +32,7 @@ from googleform.app.exceptions import HTTPException
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.services.forms_mode import google_forms_import_mode
 from googleform.app.utils import AiohttpClient
 from googleform.app.utils.google import dict_to_credential
 from googleform.config import settings
@@ -447,9 +450,47 @@ class OauthGoogleService:
             raise HTTPException(401, "Invalid Grant error.")
 
     async def delete_oauth_credentials_for_user(self, email: EmailStr, user_id: str):
+        """Erase the user's stored credentials (account deletion). In
+        GOOGLE_FORMS_IMPORT=on and readonly the grant is revoked at Google
+        first: one call that ends our access, not further processing. In off
+        nothing calls Google. The local delete happens whatever the
+        revocation's outcome."""
+        if google_forms_import_mode() != "off":
+            await self._revoke_stored_grant(email)
         return await self.oauth_credential_repo.delete_oauth_credential_for_user(
             email=email, user_id=user_id
         )
+
+    async def _revoke_stored_grant(self, email: EmailStr) -> None:
+        """POST the stored refresh token (or else the access token) to Google's
+        revocation endpoint. Best effort; logs ids and the status only."""
+        if not email:
+            return
+        try:
+            credential = await self.oauth_credential_repo.get(email=email)
+        except Exception as exc:  # noqa: BLE001 - never blocks the erasure
+            log.warning("credential revocation skipped: not readable (%s)", type(exc).__name__)
+            return
+        tokens = getattr(credential, "credentials", None) if credential else None
+        token = tokens and (tokens.refresh_token or tokens.token)
+        if not token:
+            return
+        try:
+            response = await AiohttpClient.post(
+                settings.GOOGLE_REVOKE_CREDENTIALS_URL,
+                data={"token": token},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            status = response.status
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError):
+            status = None
+        if status != HTTPStatus.OK:
+            # 400 = already revoked or expired at Google; the local copy goes anyway
+            log.warning(
+                "credential revocation for user %s answered %s; deleting locally",
+                credential.user_id,
+                status if status is not None else "unreachable",
+            )
 
     async def get_oauth_credentials_for_user(self, email: EmailStr):
         return await self.oauth_credential_repo.get(email=email)

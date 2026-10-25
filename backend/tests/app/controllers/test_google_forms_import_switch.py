@@ -334,13 +334,14 @@ class TestSheets:
 class TestAccountDeletion:
     @pytest.fixture()
     def aiohttp_delete(self):
+        # the Google service's erase is a POST (the email in its body)
         session = MagicMock()
-        session.delete = AsyncMock(return_value=MagicMock(status=200))
+        session.post = AsyncMock(return_value=MagicMock(status=200))
         with patch(
             "backend.app.services.auth_service.AiohttpClient.get_aiohttp_client",
             return_value=session,
         ):
-            yield session.delete
+            yield session.post
 
     @pytest.mark.parametrize("value", ["on", "readonly"])
     async def test_on_and_readonly_delete_the_stored_credentials(
@@ -351,13 +352,21 @@ class TestAccountDeletion:
 
         assert aiohttp_delete.await_count == 1
         assert aiohttp_delete.await_args.args[0] == (
-            f"{GOOGLE_URL}/google/oauth/credentials"
+            f"{GOOGLE_URL}/google/oauth/credentials/erase"
         )
 
-    async def test_off_skips_the_google_service(
+    async def test_off_skips_the_google_service_and_queues_a_purge(
         self, google_provider_config, aiohttp_delete, mode
     ):
         mode("off")
-        await container.auth_service().delete_credentials_from_integrations(testUser)
+        with patch.object(
+            container.temporal_service(),
+            "queue_credential_purge",
+            AsyncMock(return_value="queued"),
+        ) as queue:
+            await container.auth_service().delete_credentials_from_integrations(
+                testUser
+            )
 
         aiohttp_delete.assert_not_awaited()
+        assert queue.await_count == 1

@@ -95,6 +95,24 @@ class TemporalService:
                     content="Cannot connect to temporal server",
                 )
 
+    async def queue_credential_purge(self, purge) -> str:
+        """Queue the retryable purge of a deleted account's stored provider
+        credentials (services/credential_purge.py). Procrastinate only: there
+        is no Temporal workflow for it, so ``JOBS_BACKEND__purge_provider_credentials``
+        must be ``postgres``; otherwise this raises and the deletion job fails
+        visibly. The email travels encrypted."""
+        from backend.app.services.credential_purge import PURGE_JOB, seal
+
+        if not self._on_postgres(PURGE_JOB):
+            raise RuntimeError(f"{PURGE_JOB} is not routed to the Postgres job queue")
+        try:
+            await tasks.purge_provider_credentials.configure(
+                queueing_lock=f"{PURGE_JOB}:{purge.provider}:{purge.user_id}"
+            ).defer_async(sealed=seal(self.crypto, purge), user_id=purge.user_id)
+            return "queued"
+        except AlreadyEnqueued:
+            return "already_queued"
+
     async def start_user_deletion_workflow(self, deletion: UserDeletion):
         # the argument keeps its historical name (queued jobs, the workflow);
         # it carries no tokens any more, only whose account to delete

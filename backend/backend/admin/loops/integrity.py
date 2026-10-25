@@ -4,8 +4,11 @@ Every pass it runs the settings store's ``verify()`` (signatures, manifest,
 audit cross-check), verifies the next bounded slice of the audit chain from a
 stored checkpoint (``audit_chain_broken`` / ``audit_checkpoint_bad``), probes the
 two row locks the admin writes depend on (``lock_blocked``: a holder that keeps
-one for longer than the 5 s lock timeout) and reads the keys that running
-services reported as rejected (only names the registry knows). Any problem is shown on the shell banner (through the shared status
+one for longer than the 5 s lock timeout), reads the keys that running
+services reported as rejected (only names the registry knows) and asks
+``admin.credential_purges_overdue()`` whether a deleted account's stored
+provider credentials are still not purged a day later (``CREDENTIAL_PURGE``,
+``overdue``; a count only). Any problem is shown on the shell banner (through the shared status
 board) and mailed once per incident: the same set of problems is not mailed
 again within 24 hours (kept in memory, and, after a restart, in the outbox row's
 ``dedupe_key``). When the problems are gone the status returns to ok, and a
@@ -120,7 +123,37 @@ class IntegrityMonitor(Loop):
                     found.add((key, "rejected_by_reader"))
         if await self._store_behind_services(since):
             found.add(("*", "store_behind_services"))
+        if await self._credential_purges_overdue():
+            found.add(("CREDENTIAL_PURGE", "overdue"))
         return tuple(sorted(found))[:MAX_PROBLEMS]
+
+    async def _credential_purges_overdue(self) -> bool:
+        """A deleted account's stored provider credentials not purged a day
+        after the purge was queued (or the purge, or the deletion job, failed):
+        ``admin.credential_purges_overdue()`` (postgres/ensure-admin-roles.sh),
+        a count only. A stack without it (or without the job queue) has none."""
+        try:
+            async with self._engine.connect() as conn:
+                present = (
+                    await conn.execute(
+                        text(
+                            "SELECT to_regprocedure('admin.credential_purges_overdue()') "
+                            "IS NOT NULL"
+                        )
+                    )
+                ).scalar()
+                if not present:
+                    return False
+                overdue = (
+                    await conn.execute(text("SELECT admin.credential_purges_overdue()"))
+                ).scalar()
+        except DBAPIError as exc:
+            log.warning(
+                "integrity: credential purge check unavailable (%s)",
+                type(exc.orig).__name__ if exc.orig is not None else "error",
+            )
+            return False
+        return bool(overdue)
 
     async def _lock_blocked(self) -> bool:
         """Whether the audit chain's or the settings writer's lock cannot be taken

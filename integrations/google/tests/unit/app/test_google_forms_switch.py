@@ -97,9 +97,52 @@ def test_deleting_stored_credentials_always_works(client, mode, value):
         "googleform.app.services.oauth_google.OauthGoogleService.delete_oauth_credentials_for_user",
         AsyncMock(return_value=None),
     ) as delete:
-        response = client.delete(
-            ROOT + "/google/oauth/credentials",
-            params={"user_id": "u1", "email": "user@example.com"},
+        response = client.post(
+            ROOT + "/google/oauth/credentials/erase",
+            json={"user_id": "u1", "email": "user@example.com"},
         )
     assert response.status_code == 200
     assert delete.await_count == 1
+    assert delete.await_args.kwargs == {"email": "user@example.com", "user_id": "u1"}
+
+
+ERASE_BODIES = [
+    pytest.param({}, id="empty"),
+    pytest.param({"user_id": "u1"}, id="no-email"),
+    pytest.param({"email": "user@example.com"}, id="no-user-id"),
+    pytest.param({"user_id": "", "email": "user@example.com"}, id="blank-user-id"),
+    pytest.param({"user_id": "u1", "email": ""}, id="blank-email"),
+]
+
+
+@pytest.mark.parametrize("body", ERASE_BODIES)
+def test_an_erasure_names_both_the_user_id_and_the_email(client, body):
+    """The store deletes rows matching either: an erasure without both never
+    reaches it (an empty one would match unrelated rows)."""
+    with patch(
+        "googleform.app.services.oauth_google.OauthGoogleService.delete_oauth_credentials_for_user",
+        AsyncMock(return_value=None),
+    ) as delete:
+        response = client.post(ROOT + "/google/oauth/credentials/erase", json=body)
+    assert response.status_code == 422
+    delete.assert_not_awaited()
+
+
+def test_the_email_is_not_accepted_in_the_url(client):
+    """The former DELETE with the email in its query string is gone: URLs are
+    access-logged, and an erasure must leave ids only in the logs."""
+    with patch(
+        "googleform.app.services.oauth_google.OauthGoogleService.delete_oauth_credentials_for_user",
+        AsyncMock(return_value=None),
+    ) as delete:
+        old_form = client.delete(
+            ROOT + "/google/oauth/credentials",
+            params={"user_id": "u1", "email": "user@example.com"},
+        )
+        query_form = client.post(
+            ROOT + "/google/oauth/credentials/erase",
+            params={"user_id": "u1", "email": "user@example.com"},
+        )
+    assert old_form.status_code in (404, 405)
+    assert query_form.status_code == 422
+    delete.assert_not_awaited()

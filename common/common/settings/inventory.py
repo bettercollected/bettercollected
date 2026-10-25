@@ -562,12 +562,12 @@ INVENTORY: Tuple[SettingSpec, ...] = (
 # R until the consumer reads them at call time. Value: file and line.
 TODO_LIVE: Dict[str, str] = {
     "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/services/flow_event_service.py:117",
-    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:90",
-    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:106",
+    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:109",
+    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:125",
     "API_ROOT_PATH": "backend/backend/app/asgi.py:201",
     "API_DOCS_ENABLED": "backend/backend/app/asgi.py:201",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:532",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:533",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:533",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:534",
 }
 
 # ------------------------------------------------------- environment only
