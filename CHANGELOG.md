@@ -63,6 +63,54 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
   release still exists and never removes it; existing `.env.typeform` files are left alone.
 
+## [4.0.12] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations, roles, SQL or new settings,** and no compose change.
+- **Case-duplicate accounts:** 4.0.11's `auth.resolve_case_duplicate_accounts` could not reach the
+  API and refused every run with `backend_unreachable`. After this deploy, run it as the 4.0.11
+  notes describe:
+  1. Set one fresh `ADMIN_TASKS_API_KEY` on `backend` and `task-runner`, only for the run.
+  2. Check that none of the listed accounts has its own deletion pending.
+  3. Run the dry run and review it, then apply.
+  4. Handle the `manual` groups and any `refused` drops with the people concerned.
+  5. Unset the key on both services.
+
+  A refused run now names its cause; `docs/admin-service.md` has a troubleshooting table.
+- **Cutover operators:** `resolve-outbox` is new. It is only needed after a group is rolled back
+  from `postgres_primary_dual` to `dual` (Phase 2); see the runbook's "Stuck case". Stage 0 does
+  not need it.
+- **Rollback:** 4.0.11 can run against a 4.0.12 database; nothing is stored differently.
+
+### Added
+
+- `python -m <service>.migrate [--group g] resolve-outbox [--apply]`: after a group rolls back
+  from `postgres_primary_dual` to `dual`, it resolves the Postgres-side outbox entries whose
+  write Mongo provably holds (the same checksum for every row the entry names and every row of
+  the group, in both stores), so `reconcile` and `verify` can get clean again. Rows where Mongo
+  only has a later-stamped, different version (`superseded`) are kept unless the operator adds
+  `--accept-superseded` after confirming Mongo's version should win. A dry run by default, it
+  prints counts only; `--ids-file` writes ids to a new local file. The runbook's "stuck case"
+  uses it instead of manual SQL.
+
+### Fixed
+
+- Admin task `auth.resolve_case_duplicate_accounts`: a refused run now says why. The runner
+  refuses with `backend_unreachable` (connection or timeout only), `backend_route_missing`
+  (404), `backend_redirect` (3xx, never followed), `backend_error` (5xx or another status) or
+  `backend_bad_reply` (not the expected JSON), and logs the HTTP status. When the API's call to
+  the auth service fails, the internal admin-task routes answer 502 with a stable code instead
+  of passing auth's status through, and the run refuses with `auth_unreachable`,
+  `auth_key_refused` (the backend's `AUTH_INTERNAL_NOTIFY_KEY` does not match auth's),
+  `auth_misconfigured` or `auth_error`; an account deletion that cannot be started (Temporal or
+  the jobs worker down) refuses with `deletion_unavailable` instead of `backend_key_missing`.
+  The admin service guide has a troubleshooting table for these codes.
+- Admin task `auth.resolve_case_duplicate_accounts` no longer refuses every run with
+  `backend_unreachable`: the runner requested the API's routes with a trailing slash, which the
+  API answers with a redirect the runner does not follow. It now requests their exact paths.
+
 ## [4.0.11] - 2026-10-25
 
 ### Upgrade notes
@@ -1458,7 +1506,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...HEAD
+[4.0.12]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...v4.0.12
 [4.0.11]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...v4.0.11
 [4.0.10]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...v4.0.10
 [4.0.9]: https://github.com/bettercollected/bettercollected/compare/v4.0.8...v4.0.9
