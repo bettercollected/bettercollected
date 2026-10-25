@@ -2,7 +2,7 @@
 
 See common/common/db/codec_golden.py. The fixture is regenerated only on
 purpose: ``scripts/regenerate-codec-golden.sh``. Beanie is set up without a
-server (``init_db(required=False)``); no Mongo is needed.
+server (``init_db()``); no Mongo is needed.
 """
 
 from pathlib import Path
@@ -33,7 +33,7 @@ NO_DOCUMENT_CLASS = ["GoogleFormDocument", "GoogleFormResponseDocument"]
 @pytest_asyncio.fixture
 async def documents():
     # the codecs need the document classes set up, not a server
-    await database_service.init_db(required=False)
+    await database_service.init_db()
     rows = [m.class_ for m in Base.registry.mappers if issubclass(m.class_, BaseRow)]
     yield mirrored_documents(rows, database_service.document_models)
     await database_service.close_db()

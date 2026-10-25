@@ -1,8 +1,9 @@
-"""No Beanie reads or writes outside the repositories (common/db/access_guard.py).
+"""No Beanie reads or writes anywhere (common/db/access_guard.py).
 
-A document saved or queried directly talks to Mongo alone, so dual and
-postgres modes never see it. Add a module to ``ALLOWED`` only with the reason
-it may bypass the routed repositories.
+The service is served from Postgres only: a document saved or queried
+directly would talk to a Mongo client that never connects. Everything goes
+through the Postgres repository. Add a module to ``ALLOWED`` only with the
+reason it may bypass it.
 """
 
 from pathlib import Path
@@ -15,7 +16,6 @@ PACKAGE = Path(__file__).resolve().parents[2] / "googleform"
 COMMON = Path(common.__file__).resolve().parent
 
 ALLOWED = {
-    "app/repositories/": "the repositories: the Mongo side of each routed pair",
     "migrate/": "the Mongo -> Postgres migration CLI reads and writes both stores by design",
 }
 
@@ -25,8 +25,7 @@ def test_documents_are_only_touched_by_repositories():
         PACKAGE, document_roots=[PACKAGE, COMMON], allowed=ALLOWED
     )
     assert hits == [], (
-        "route these through a repository method (marked @write_op for writes, "
-        "with a Postgres twin):\n  " + "\n  ".join(str(h) for h in hits)
+        "route these through the Postgres repository:\n  " + "\n  ".join(str(h) for h in hits)
     )
 
 

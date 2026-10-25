@@ -1,6 +1,7 @@
-"""The Google Forms service starts and serves without Mongo once the google
-group is on Postgres (common/db/mongo.py), and still refuses to start on an
-unreachable Mongo while the group uses it.
+"""The Google Forms service is served from Postgres only (since 4.1): it
+starts and serves without Mongo whatever the defaults, and a storage flag left
+from the cutover that names another store refuses the start, naming it
+(googleform/db/flags.py).
 
 Each case boots the app factory in a fresh process, as a deployment does, with
 MONGO_URI pointing at a closed port: a start that tried to reach Mongo would
@@ -26,7 +27,7 @@ from googleform.app.services import database_service
 from googleform.config import settings
 
 with TestClient(get_application()) as client:
-    # a write through the routed credential repository
+    # a write through the credential repository
     deleted = client.post(
         settings.API_ROOT_PATH + "/google/oauth/credentials/erase",
         json={"user_id": "nobody", "email": "nobody@example.com"},
@@ -54,10 +55,18 @@ def boot(flags: dict) -> subprocess.CompletedProcess:
     )
 
 
-def test_starts_and_serves_without_mongo_when_the_group_is_on_postgres(
-    _postgres_schema,
-):
-    result = boot({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"})
+@pytest.mark.parametrize(
+    "flags",
+    [
+        {},  # the defaults
+        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
+        {"DB_READ_SOURCE__google": "postgres", "DB_WRITE_MODE__GOOGLE": "postgres"},
+        # other services' groups and shadow reads mean nothing here
+        {"DB_READ_SOURCE__forms": "mongo", "DB_SHADOW_READ_SAMPLE": "0.5"},
+    ],
+)
+def test_starts_and_serves_without_mongo(_postgres_schema, flags):
+    result = boot(flags)
     assert result.returncode == 0, result.stderr[-3000:]
     assert "credentials status: 200" in result.stdout, result.stdout
     assert "mongo used: False" in result.stdout
@@ -65,14 +74,22 @@ def test_starts_and_serves_without_mongo_when_the_group_is_on_postgres(
 
 
 @pytest.mark.parametrize(
-    "flags",
+    "flags,named",
     [
-        {},  # the default: Mongo
-        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres_primary_dual"},
-        {"DB_READ_SOURCE__google": "mongo", "DB_WRITE_MODE__google": "dual"},
+        ({"DB_READ_SOURCE": "mongo"}, "DB_READ_SOURCE='mongo'"),
+        ({"DB_WRITE_MODE": "dual"}, "DB_WRITE_MODE='dual'"),
+        (
+            {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres_primary_dual"},
+            "DB_WRITE_MODE='postgres_primary_dual'",
+        ),
+        (
+            {"DB_READ_SOURCE__google": "mongo", "DB_WRITE_MODE__google": "dual"},
+            "DB_READ_SOURCE__google='mongo', DB_WRITE_MODE__google='dual'",
+        ),
     ],
 )
-def test_still_needs_mongo_while_the_group_uses_it(_postgres_schema, flags):
+def test_a_stale_store_flag_refuses_the_start(_postgres_schema, flags, named):
     result = boot(flags)
     assert result.returncode != 0
-    assert "ServerSelectionTimeoutError" in result.stderr
+    assert named in result.stderr
+    assert "Postgres only since 4.1" in result.stderr

@@ -1,62 +1,57 @@
+"""The google integration's credential repository: Postgres only.
+
+The Mongo original and the routing between the two stores are gone since
+4.1; Mongo is read only by the import from 4.0 (``python -m
+googleform.migrate``).
+"""
+
 import json
 from http import HTTPStatus
 from typing import Any
 
 from fastapi import HTTPException
 from pydantic.networks import EmailStr
-from pymongo.errors import (
-    InvalidOperation,
-    InvalidURI,
-    NetworkTimeout,
-    OperationFailure,
-)
+from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 
+from common.clock import utcnow
 from common.constants import MESSAGE_DATABASE_EXCEPTION
-from common.db import WriteResult, write_op
+from common.db import PostgresRepositoryBase
 from common.enums.form_provider import FormProvider
 from common.services.crypto_service import crypto_service
-from common.clock import utcnow
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.db.models import OAuthCredentialRow
 
 
-class OauthCredentialRepository:
+def _database_error():
+    return HTTPException(
+        status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=MESSAGE_DATABASE_EXCEPTION
+    )
+
+
+class OauthCredentialRepository(PostgresRepositoryBase):
+    row = OAuthCredentialRow
+    document = Oauth2CredentialDocument
+
     async def get(
         self,
         email: str,
         provider: FormProvider = FormProvider.GOOGLE,
         user_id: str = None,
     ) -> Oauth2CredentialDocument | None:
-        """
-        Get an OAuth2 credential document by email and provider.
-
-        Args:
-            email (str): The email of the user to get the credential for.
-            provider (FormProvider): The provider of the form.
-            user_id (str): The user_id of user to get credential for
-
-        Returns:
-            Oauth2CredentialDocument | None: An OAuth2 credential
-                document if found, otherwise None.
-
-        Raises:
-            HTTPException: If there is an error connecting to the database.
-        """
+        """The credential stored for ``email``, decrypted, or None."""
         try:
-            document = await Oauth2CredentialDocument.find_one({"email": email})
+            document = await self.one(OAuthCredentialRow.email == email)
             if document:
                 document.credentials = OauthCredentialRepository.decrypt_token(
                     user_id=document.user_id, token=document.credentials
                 )
                 return document
             return None
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_DATABASE_EXCEPTION,
-            )
+        except SQLAlchemyError:
+            raise _database_error()
 
-    @write_op(replay=True)
     async def add(
         self,
         email: str,
@@ -64,65 +59,31 @@ class OauthCredentialRepository:
         user_id: str,
         provider: FormProvider = FormProvider.GOOGLE,
     ) -> Oauth2CredentialDocument:
-        """
-        Adds an OAuth2 credential document.
-
-        Args:
-            email (str): The email of the user to update the credential.
-            credentials (Any): The credential object returned after
-                google authorization.
-            provider (FormProvider): A form provider. Defaults to "google".
-            user_id (str): The user_id of user to get credential for
-
-
-        Returns:
-            Oauth2CredentialDocument: The added OAuth2 credential document.
-
-        Raises:
-            HTTPException: If there is an error connecting to the database.
-        """
+        """Store a new credential (encrypted) and return what was stored."""
         try:
             credentials = OauthCredentialRepository.encrypt_token(
                 user_id=user_id, token=json.dumps(dict(credentials))
             )
-            oauth_credential_document = Oauth2CredentialDocument(
-                user_id=user_id,
-                email=email,
-                provider=provider,
-                credentials=credentials,
-                created_at=utcnow(),
-                updated_at=utcnow(),
+            return await self.save_document(
+                Oauth2CredentialDocument(
+                    user_id=user_id,
+                    email=email,
+                    provider=provider,
+                    credentials=credentials,
+                    created_at=utcnow(),
+                    updated_at=utcnow(),
+                )
             )
-            return await oauth_credential_document.save()
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_DATABASE_EXCEPTION,
-            )
+        except SQLAlchemyError:
+            raise _database_error()
 
-    @write_op(replay=True)
     async def update(
         self, email: str, item: Oauth2CredentialDocument
     ) -> Oauth2CredentialDocument:
-        """
-        Update an OAuth2 credential document.
-
-        If an OAuth2 credential document with the given email and provider
-        already exists, it will be updated. Otherwise, a new document will be created.
-
-        Args:
-            email (str): The email of the user to update the credential for.
-            item (Oauth2CredentialDocument): The OAuth2 credential document to update.
-            user_id (str): The user_id of user to get credential for
-
-        Returns:
-            Oauth2CredentialDocument: The updated OAuth2 credential document.
-
-        Raises:
-            HTTPException: If there is an error connecting to the database.
-        """
+        """Store ``item`` over the credential of ``email`` (encrypted); the
+        caller gets it back decrypted."""
         try:
-            provider: FormProvider | None = item.provider or FormProvider.GOOGLE
+            provider = item.provider or FormProvider.GOOGLE
             document = await self.get(email, provider)
             credentials = item.credentials
             if document:
@@ -131,17 +92,11 @@ class OauthCredentialRepository:
                 item.credentials = OauthCredentialRepository.encrypt_token(
                     user_id=document.user_id, token=json.dumps(dict(item.credentials))
                 )
-            await item.save()
-            # what was stored (encrypted) is not what the caller gets (decrypted)
-            stored = item.model_copy(deep=True)
+            await self.save_document(item)
             item.credentials = credentials
-            return WriteResult(item, [stored])
-
-        except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=MESSAGE_DATABASE_EXCEPTION,
-            )
+            return item
+        except SQLAlchemyError:
+            raise _database_error()
 
     @staticmethod
     def encrypt_token(user_id: str, token: str):
@@ -159,16 +114,16 @@ class OauthCredentialRepository:
 
     async def list_all(self) -> list[Oauth2CredentialDocument]:
         """Every credential, as stored (encrypted) — for housekeeping."""
-        return await Oauth2CredentialDocument.find().to_list()
+        return await self.many()
 
-    @write_op
     async def save(
         self, document: Oauth2CredentialDocument
     ) -> Oauth2CredentialDocument:
-        return await document.save()
+        return await self.save_document(document)
 
-    @write_op
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
-        return await Oauth2CredentialDocument.find(
-            {"$or": [{"email": email}, {"user_id": user_id}]}
-        ).delete()
+        return await self.delete_where(
+            or_(
+                OAuthCredentialRow.email == email, OAuthCredentialRow.user_id == user_id
+            )
+        )
