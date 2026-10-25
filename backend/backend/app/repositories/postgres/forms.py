@@ -44,7 +44,11 @@ from backend.app.repositories.form_import_repository import (
     lock_wait_s,
     workspaces_with_stale_imports,
 )
-from backend.app.repositories.form_repository import apply_form_update, detach_action
+from backend.app.repositories.form_repository import (
+    apply_form_update,
+    detach_action,
+    merge_action_parameters,
+)
 from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.metric_periods import (
     object_id_at,
@@ -69,7 +73,7 @@ from backend.db.models import (
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 from common.db import PostgresRepositoryBase, from_canonical_document, from_row_doc
 from common.db.beanie_bridge import row_values
-from common.models.standard_form import StandardForm, Trigger
+from common.models.standard_form import ParameterValue, StandardForm, Trigger
 from common.models.user import User
 from common.clock import utcnow
 
@@ -591,6 +595,56 @@ class PostgresFormRepository(PostgresRepositoryBase):
                     await session.execute(
                         self._upsert_statement(row_values(stored), row)
                     )
+
+    async def update_action_parameters(
+        self,
+        form_id: str,
+        action_id: str,
+        values: Optional[Dict[str, str]] = None,
+        increment: Optional[str] = None,
+        only_if_absent: Optional[str] = None,
+        remove: Optional[List[str]] = None,
+    ) -> bool:
+        """See the Mongo original: one action's parameters on the draft,
+        changed under a row lock; ``updated_at`` stays as stored."""
+        key = str(action_id)
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormRow.doc)
+                    .where(FormRow.form_id == str(form_id))
+                    .order_by(FormRow.created_at, FormRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return False
+            stored = from_row_doc(FormDocument, doc)
+            current = [
+                parameter.model_dump(mode="json")
+                for parameter in (stored.parameters or {}).get(key) or []
+            ]
+            merged = merge_action_parameters(
+                current, values, increment, only_if_absent, remove
+            )
+            if merged is None:
+                return False
+            stored.parameters = {
+                **(stored.parameters or {}),
+                key: [ParameterValue(**parameter) for parameter in merged],
+            }
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
+    async def get_forms_with_action_secrets(
+        self, action_ids: List[str]
+    ) -> List[FormDocument]:
+        if not action_ids:
+            return []
+        return await self.many(
+            or_(*(FormRow.doc["secrets"].has_key(str(key)) for key in action_ids))
+        )
 
     async def update_form_actions(
         self,

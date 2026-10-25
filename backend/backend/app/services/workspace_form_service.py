@@ -1556,6 +1556,44 @@ class WorkspaceFormService:
 
         return cleaned_string
 
+    async def action_reconsent_status(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+        user: User,
+    ) -> dict:
+        """Opening an action in the builder: whether it must be reconnected
+        (a Google Sheets grant from before ``drive.file``; see
+        services/sheets_reconsent.py). Marks it and mails the billing owner
+        once, as the next submission would."""
+        await self.authorization_service.authorize(
+            user, Permission.FORM_EDIT, workspace_id
+        )
+        await self.check_form_exists_in_workspace(
+            workspace_id=workspace_id, form_id=str(form_id)
+        )
+        form = await self._form_repo.get_form_document_by_id(str(form_id))
+        attached = form is not None and any(
+            str(state.id) == str(action_id)
+            for states in (form.actions or {}).values()
+            for state in states or []
+        )
+        action = (
+            await self.action_service.get_action_by_id(action_id=action_id)
+            if attached
+            else None
+        )
+        if action is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
+        reconsent = self.action_service.sheets_reconsent
+        needs = reconsent is not None and await reconsent.check_in_builder(
+            form, action, workspace_id
+        )
+        return {"needs_reconsent": bool(needs)}
+
     async def update_action_from_temporal(
         self,
         workspace_id: PydanticObjectId,

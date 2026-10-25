@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
@@ -158,6 +158,44 @@ def detach_action(form: FormDocument, action_id: str) -> None:
     for bag in (form.parameters, form.secrets):
         if isinstance(bag, dict):
             bag.pop(action_id, None)
+
+
+def merge_action_parameters(
+    current: Optional[list],
+    values: Optional[Dict[str, str]] = None,
+    increment: Optional[str] = None,
+    only_if_absent: Optional[str] = None,
+    remove: Optional[List[str]] = None,
+) -> Optional[list]:
+    """One action's parameters (plain ``{name, value, ...}`` dicts) with
+    ``values`` set by name (replaced or appended), the counter ``increment``
+    raised by one (a missing or unreadable count starts at 0) and the names in
+    ``remove`` dropped. ``None`` when nothing changes, or when a parameter
+    named ``only_if_absent`` already exists (a marker claimed once)."""
+    params = [dict(p) for p in (current or []) if isinstance(p, dict)]
+    names = {p.get("name") for p in params}
+    if only_if_absent and only_if_absent in names:
+        return None
+    changes = dict(values or {})
+    if increment:
+        stored = next(
+            (p.get("value") for p in params if p.get("name") == increment), None
+        )
+        try:
+            count = int(stored or 0)
+        except (TypeError, ValueError):
+            count = 0
+        changes[increment] = str(count + 1)
+    dropped = set(remove or [])
+    merged = [dict(p) for p in params if p.get("name") not in dropped]
+    for name, value in changes.items():
+        for p in merged:
+            if p.get("name") == name:
+                p["value"] = value
+                break
+        else:
+            merged.append({"name": name, "value": value, "required": False})
+    return None if merged == params else merged
 
 
 class FormRepository:
@@ -619,6 +657,58 @@ class FormRepository:
                 await document.find({path: {"$exists": True}}).update(
                     {"$unset": {path: ""}}
                 )
+
+    @write_op
+    async def update_action_parameters(
+        self,
+        form_id: str,
+        action_id: str,
+        values: Optional[Dict[str, str]] = None,
+        increment: Optional[str] = None,
+        only_if_absent: Optional[str] = None,
+        remove: Optional[List[str]] = None,
+    ) -> bool:
+        """Change one action's parameters on the draft (``merge_action_parameters``)
+        and nothing else: not ``updated_at`` (the builder's conflict check),
+        not other actions. A compare-and-set on the stored list, so concurrent
+        calls neither lose a count nor both claim a marker. True when it
+        changed something."""
+        collection = FormDocument.get_pymongo_collection()
+        path = f"parameters.{action_id}"
+        for _ in range(5):
+            raw = await collection.find_one({"form_id": str(form_id)})
+            if raw is None:
+                return False
+            stored = (raw.get("parameters") or {}).get(str(action_id))
+            merged = merge_action_parameters(
+                stored, values, increment, only_if_absent, remove
+            )
+            if merged is None:
+                return False
+            if not isinstance(raw.get("parameters"), dict):
+                # no parameters at all yet (null or missing)
+                result = await collection.update_one(
+                    {"_id": raw["_id"], "parameters": raw.get("parameters")},
+                    {"$set": {"parameters": {str(action_id): merged}}},
+                )
+            else:
+                # null matches a missing list too
+                result = await collection.update_one(
+                    {"_id": raw["_id"], path: stored}, {"$set": {path: merged}}
+                )
+            if result.matched_count == 1:
+                return True
+        return False
+
+    async def get_forms_with_action_secrets(
+        self, action_ids: List[str]
+    ) -> List[FormDocument]:
+        """Drafts holding secrets for any of ``action_ids``."""
+        if not action_ids:
+            return []
+        return await FormDocument.find(
+            {"$or": [{f"secrets.{key}": {"$exists": True}} for key in action_ids]}
+        ).to_list()
 
     @write_op
     async def update_form_actions(
