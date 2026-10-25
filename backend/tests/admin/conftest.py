@@ -62,6 +62,7 @@ def roles_sql(
     sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
     sql = re.sub(r"\bbc_tasks_def\b", f"bc_tasks_def_{suffix}", sql)
+    sql = re.sub(r"\bbc_tasks_purge_google\b", f"bc_tasks_purge_google_{suffix}", sql)
     sql = re.sub(r"\bbc_count_(app|auth|google)\b", rf"bc_count_\1_{suffix}", sql)
     sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
@@ -178,6 +179,11 @@ class Server:
     def data_google_role(self) -> str:
         return f"bc_tasks_data_google_{self.suffix}"
 
+    @property
+    def purge_google_role(self) -> str:
+        """Owner of google.purge_unencrypted_credentials (NOLOGIN)."""
+        return f"bc_tasks_purge_google_{self.suffix}"
+
 
 async def _create_from_template(postgres_url: str, name: str, template: str) -> None:
     """``CREATE DATABASE name TEMPLATE template``, retried while the template still
@@ -270,6 +276,7 @@ async def server():
             *(f"bc_{r}_{suffix}" for r in {*INIT_ROLES, *READER_ROLES}),
             f"bc_admin_counts_{suffix}",
             srv.definer_role,
+            srv.purge_google_role,
             f"bc_count_app_{suffix}",
             f"bc_count_auth_{suffix}",
             f"bc_count_google_{suffix}",

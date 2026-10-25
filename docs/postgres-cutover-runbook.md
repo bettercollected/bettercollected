@@ -285,8 +285,26 @@ refresh stored their access and refresh tokens unencrypted. The integration no l
 credential it cannot encrypt, and reconnecting Google Forms gives such a row the signed-in user's
 id. Delete the rows that are left: no `user_id`, or tokens stored in plain text. Their owners
 connect Google Forms again on their next import; nothing else is lost (imported forms and
-responses live in the backend). Both steps are safe to run again and print counts only. Run them
-on Mongo first, then Postgres, so that neither store copies a row back to the other.
+responses live in the backend).
+
+**Use the admin portal task `google.purge_unencrypted_credentials`** (Tasks page; from 4.0.10).
+It applies exactly the filters below, Mongo first and then Postgres. Its dry run (required first)
+shows the count per store; the apply needs the usual confirmation code, deletes, and records the
+counts in the audit log. Counts only, never ids, emails or tokens, and running it again deletes
+nothing. `stores: auto` covers the stores the runner's `DB_WRITE_MODE*` says the services write
+(plus any other store the runner is configured for), like the other data tasks; an apply that
+leaves out a store the services still write is refused (`stores_incomplete`). It needs:
+
+- the runner's Google Mongo connection while Mongo still holds the credentials
+  (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`), with a user that may delete from
+  `Oauth2CredentialDocument` (`readWrite` on it, as for the keyset tasks);
+- the function `google.purge_unencrypted_credentials` in Postgres, created by
+  `postgres/ensure-admin-roles.sh` (run it once after upgrading to 4.0.10; `deploy.sh` does). Until
+  then the task refuses with `purge_function_missing`. The runner's `bc_tasks_data_google` role
+  still has no DELETE: it may only execute that function.
+
+The manual steps below remain as a fallback. Both are safe to run again and print counts only. Run
+them on Mongo first, then Postgres, so that neither store copies a row back to the other.
 
 ```bash
 # Mongo (while the google group still writes it), against the service's MONGO_DB:

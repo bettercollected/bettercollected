@@ -186,7 +186,10 @@ KEYSET = [
     "keyset.verify",
     "keyset.drop_old",
 ]
-REAL = sorted(["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET])
+GOOGLE = ["google.purge_unencrypted_credentials"]
+REAL = sorted(
+    ["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET, *GOOGLE]
+)
 
 
 def test_selftest_tasks_are_registered_only_when_flagged():
@@ -194,11 +197,13 @@ def test_selftest_tasks_are_registered_only_when_flagged():
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *GOOGLE,
     ]
     assert [m.name for m in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *GOOGLE,
     ]
     assert impl_package.build_registry({}).names() == REAL
     flagged = {"ADMIN_TASKS_SELFTEST": "1"}
@@ -206,6 +211,7 @@ def test_selftest_tasks_are_registered_only_when_flagged():
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *GOOGLE,
         "selftest",
         "selftest_slow",
         "selftest_guarded",
