@@ -17,10 +17,16 @@ from common.db.migrate.cli import main, open_ids_file
 from common.db.migrate.engine import Target
 from common.db.migrate.outbox import (
     DELETE_PENDING,
+    EXPIRED_ONE_SIDE,
+    GROUP_DIFFERS,
     MISSING_IN_MONGO,
+    MISSING_IN_POSTGRES,
     OLDER_IN_MONGO,
+    SUPERSEDED,
     Entry,
+    GroupScan,
     Plan,
+    decide,
     mongo_holds,
     object_ids,
     repository_group,
@@ -52,31 +58,33 @@ def holds(row_, doc, deleted_at=None, since=None, ttl=None):
     return mongo_holds(row_, doc, deleted_at, ttl, NOW, since)
 
 
-# -- the per-row rule -------------------------------------------------------------
-def test_the_same_version_in_mongo_holds():
+# -- the per-row rule: proof only -------------------------------------------------
+def test_the_same_version_in_mongo_is_proof():
     doc = document(name="a")
     assert holds(row(doc), dict(doc)) is None
 
 
-def test_a_row_missing_in_mongo_does_not_hold():
+def test_a_row_missing_in_mongo_is_kept():
     assert holds(row(document(name="a")), None) == MISSING_IN_MONGO
 
 
-def test_a_differing_mongo_copy_holds_only_when_newer_than_the_row_and_the_entry():
+def test_a_later_mongo_copy_is_superseded_never_proof():
+    """A Mongo save built from a copy that never got the Postgres write stamps
+    a later time too: a later stamp is classed ``superseded`` (the opt-in),
+    never resolved by default."""
     pg = row(document(name="written in postgres"), updated_at=T1)
-    assert holds(pg, document(T2, name="later in mongo"), since=T1) is None
-    # older than the Postgres row
+    assert holds(pg, document(T2, name="later in mongo"), since=T1) == SUPERSEDED
+    # older than the Postgres row, or the same time
     assert holds(pg, document(T0, name="x"), since=T0) == OLDER_IN_MONGO
-    # the same time is not newer: the write may not be in it
     assert holds(pg, document(T1, name="x")) == OLDER_IN_MONGO
-    # newer than the row, but older than the entry's time
+    # later than the row, but older than the entry's time
     assert (
         holds(pg, document(T2, name="x"), since=T2 + dt.timedelta(seconds=1))
         == OLDER_IN_MONGO
     )
 
 
-def test_a_missing_timestamp_never_counts_as_newer():
+def test_a_missing_timestamp_is_never_superseded():
     pg = row(document(name="a"), updated_at=None)
     assert holds(pg, document(T2, name="b")) == OLDER_IN_MONGO
     pg = row(document(name="a"))
@@ -86,32 +94,77 @@ def test_a_missing_timestamp_never_counts_as_newer():
 def test_a_row_copied_from_mongo_holds_no_postgres_write():
     pg = row(document(name="a"), source=SOURCE_BACKFILL)
     assert holds(pg, None) is None
+    assert holds(pg, document(T0, name="other")) is None
 
 
-def test_absent_in_both_stores_holds():
+def test_absent_in_both_stores_is_proof():
     assert holds(None, None) is None
 
 
-def test_a_mongo_only_copy_holds_unless_it_is_older_than_a_delete():
-    assert holds(None, document(T0)) is None
+def test_a_mongo_only_copy_is_kept():
+    """Postgres lacks a copy Mongo holds: without a tombstone it is no proof
+    of anything (an unnamed delete would look the same)."""
+    assert holds(None, document(T0)) == MISSING_IN_POSTGRES
     assert holds(None, document(T0), deleted_at=T1) == DELETE_PENDING
-    assert holds(None, document(T2), deleted_at=T1) is None  # written again since
+    # written again after the delete: still a copy Postgres lacks
+    assert holds(None, document(T2), deleted_at=T1) == MISSING_IN_POSTGRES
 
 
 def test_a_row_deleted_since_needs_no_mongo_copy():
     pg = row(document(name="a"), updated_at=T0)
     assert holds(pg, None, deleted_at=T1) is None
     assert holds(pg, document(T0, name="old"), deleted_at=T1) == DELETE_PENDING
+    # a row written after the tombstone is a live write Mongo lacks
+    assert holds(row(document(name="a"), updated_at=T2), None, deleted_at=T1) == (
+        MISSING_IN_MONGO
+    )
 
 
-def test_expired_copies_are_absent():
+def test_ttl_counts_only_when_both_sides_are_expired_or_absent():
     ttl = ("expires_at", 60)
     gone = T0 - dt.timedelta(days=1)
-    pg = row(document(name="a", expires_at=gone))
-    assert holds(pg, None, ttl=ttl) is None
-    live = row(document(name="a", expires_at=NOW + dt.timedelta(days=1)))
-    # Mongo's copy expired while the row is live: a write Mongo lacks
-    assert holds(live, document(T2, expires_at=gone), ttl=ttl) == MISSING_IN_MONGO
+    live_at = NOW + dt.timedelta(days=1)
+    expired_row = row(document(name="a", expires_at=gone))
+    assert holds(expired_row, None, ttl=ttl) is None
+    assert holds(expired_row, document(T2, name="b", expires_at=gone), ttl=ttl) is None
+    # expired on one side only: kept
+    live_row = row(document(name="a", expires_at=live_at))
+    assert holds(live_row, document(T2, expires_at=gone), ttl=ttl) == EXPIRED_ONE_SIDE
+    assert (
+        holds(expired_row, document(T2, name="b", expires_at=live_at), ttl=ttl)
+        == EXPIRED_ONE_SIDE
+    )
+
+
+def test_an_entry_is_resolved_on_proof_or_with_the_opt_in_only():
+    entry = lambda rows=(): Entry(  # noqa: E731
+        1, "R", [], T1, group="g", rows=list(rows)
+    )
+    clean = GroupScan()
+    e = entry()
+    decide(e, clean, accept_superseded=False)
+    assert e.reason is None and not e.superseded
+    named = [{"collection": "c", "id": "x", "reason": SUPERSEDED}]
+    e = entry(named)
+    decide(e, clean, accept_superseded=False)
+    assert e.reason == SUPERSEDED
+    e = entry(named)
+    decide(e, clean, accept_superseded=True)
+    assert e.reason is None and e.superseded
+    # an unnamed superseded row: only when its Mongo copy is not older than the entry
+    e = entry()
+    decide(e, GroupScan(superseded=1, superseded_since=T2), accept_superseded=True)
+    assert e.reason is None and e.superseded
+    e = entry()
+    decide(e, GroupScan(superseded=1, superseded_since=T0), accept_superseded=True)
+    assert e.reason == GROUP_DIFFERS
+    # anything not proven and not superseded keeps it, flag or not
+    e = entry()
+    decide(e, GroupScan(differing=1), accept_superseded=True)
+    assert e.reason == GROUP_DIFFERS
+    e = entry([{"collection": "c", "id": "x", "reason": MISSING_IN_MONGO}] + named)
+    decide(e, clean, accept_superseded=True)
+    assert e.reason == MISSING_IN_MONGO
 
 
 # -- entries --------------------------------------------------------------------
@@ -208,8 +261,12 @@ def test_the_summary_holds_counts_only():
             ],
         ),
     ]
-    plan.scans = {"identity": {"rows_compared": 4, "rows_differing": 0}}
-    plan.blocking = {"identity": []}
+    plan.scans = {
+        "identity": GroupScan(
+            compared=4,
+            listed=[{"collection": "sessions", "id": secret_id, "reason": "x"}],
+        )
+    }
     summary = plan.summary()
     assert secret_id not in repr(summary)
     assert summary["resolvable"] == 1 and summary["in_scope"] == 2
@@ -219,6 +276,7 @@ def test_the_summary_holds_counts_only():
         "resolvable": 1,
         "rows_compared": 4,
         "rows_differing": 0,
+        "rows_superseded": 0,
     }
     assert plan.resolvable == [1]
     assert secret_id in repr(plan.details())
@@ -232,6 +290,26 @@ def test_the_ids_file_is_new_and_private(tmp_path):
     assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
     with pytest.raises(FileExistsError):
         open_ids_file(str(path))
+
+
+def test_a_symlink_at_the_ids_file_path_is_refused(tmp_path):
+    victim = tmp_path / "victim"
+    victim.write_text("keep me")
+    link = tmp_path / "ids.json"
+    link.symlink_to(victim)
+    with pytest.raises(FileExistsError):
+        open_ids_file(str(link))
+    dangling = tmp_path / "dangling.json"
+    dangling.symlink_to(tmp_path / "nowhere")
+    with pytest.raises(FileExistsError):
+        open_ids_file(str(dangling))
+    assert not (tmp_path / "nowhere").exists()
+    assert victim.read_text() == "keep me"
+    target = _target({"workspaces": "identity"})
+    for path in (link, dangling):
+        with pytest.raises(SystemExit) as exc:
+            main(["resolve-outbox", "--ids-file", str(path)], target, prog="m", env={})
+        assert exc.value.code == 2
 
 
 def test_the_cli_refuses_collections_and_an_existing_ids_file(tmp_path, capsys):

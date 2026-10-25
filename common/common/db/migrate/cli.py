@@ -102,11 +102,19 @@ def build_parser(prog: str) -> argparse.ArgumentParser:
     )
     resolve = sub.add_parser(
         "resolve-outbox",
-        help="resolve Postgres-side outbox entries whose write Mongo holds "
+        help="resolve Postgres-side outbox entries whose write Mongo provably holds "
         "(after a rollback to dual); a dry run unless --apply",
     )
     resolve.add_argument(
         "--apply", action="store_true", help="resolve them (default: report only)"
+    )
+    resolve.add_argument(
+        "--accept-superseded",
+        action="store_true",
+        help="also resolve entries whose rows Mongo holds only in a different, "
+        "later-stamped version. Only after confirming the newer Mongo version "
+        "should win: the Postgres changes of these entries will be discarded by "
+        "reconcile",
     )
     resolve.add_argument(
         "--ids-file",
@@ -266,7 +274,9 @@ async def resolve_outbox(
     resolve with ``--apply``. Prints counts only. Exit 0 when every entry in
     scope is resolvable (or there is none), 1 when some are kept."""
     resolver = OutboxResolver(runner)
-    plan = await resolver.plan(selected_groups(args, target))
+    plan = await resolver.plan(
+        selected_groups(args, target), accept_superseded=args.accept_superseded
+    )
     if args.ids_file:
         with open_ids_file(args.ids_file) as handle:
             json.dump(plan.details(), handle, indent=2, sort_keys=True, default=str)

@@ -19,13 +19,19 @@ from pymongo import AsyncMongoClient
 from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
-from backend.db.models import DeletionTombstone, MirrorWriteFailure, SessionRow
+from backend.db.models import (
+    DeletionTombstone,
+    MirrorWriteFailure,
+    RateLimitCounterRow,
+    SessionRow,
+)
 from backend.migrate.__main__ import build_target, repository_groups
 from common.db import RoutingRepository
 from common.db.base import SOURCE_APP
 from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner
 from common.db.migrate.cli import main
+from common.db.migrate.outbox import OutboxResolver
 
 UTC = dt.timezone.utc
 PAST = dt.datetime.now(UTC).replace(microsecond=0) - dt.timedelta(hours=1)
@@ -148,25 +154,41 @@ def test_every_routed_repository_has_its_group():
     assert groups["SessionRepository"] == "identity"
 
 
-# -- resolving ----------------------------------------------------------------------
-async def test_entries_whose_writes_are_in_mongo_are_resolved(target):
+# -- resolving: proof only by default --------------------------------------------
+async def test_entries_whose_writes_are_proven_in_mongo_are_resolved(target):
     same = session_document(user_agent="same in both")
     await to_mongo(target, same)
     await to_postgres(same)
-    # written in Postgres, then overwritten in Mongo by a later write
-    overtaken = session_document(user_agent="the Postgres write")
-    await to_postgres(overtaken)
     await open_entry(f"{same['_id']},jti")
-    await open_entry(str(overtaken["_id"]))
     await open_entry("-")  # names nothing: the group's rows decide
-    await to_mongo(
-        target,
-        {**overtaken, "user_agent": "a later Mongo write", "updated_at": later()},
-    )
     code, result = await resolve(target, "--apply")
     assert code == 0, result
-    assert (result["in_scope"], result["resolvable"], result["resolved"]) == (3, 3, 3)
+    assert (result["in_scope"], result["resolvable"], result["resolved"]) == (2, 2, 2)
+    assert result["resolvable_as_superseded"] == 0
     assert result["groups"]["identity"]["rows_differing"] == 0
+    assert await open_ids() == []
+
+
+async def test_a_later_mongo_copy_lacking_the_write_is_kept_unless_accepted(target):
+    """Write W (Postgres primary) failed to mirror; after the rollback a
+    Mongo-first save built from Mongo's copy, which lacks W, stamps a later
+    time. That is no proof W is in Mongo: kept as ``superseded`` by default,
+    resolved only with --accept-superseded."""
+    before = session_document(user_agent="before W")
+    await to_mongo(target, before)
+    await to_postgres({**before, "user_agent": "W"})
+    entry = await open_entry(str(before["_id"]))
+    await to_mongo(
+        target,
+        {**before, "revoked_at": later(), "updated_at": later()},  # no W in it
+    )
+    code, result = await resolve(target, "--apply")
+    assert (code, result["resolved"]) == (1, 0)
+    assert result["kept"]["superseded"] == 1
+    assert result["groups"]["identity"]["rows_superseded"] == 1
+    assert await open_ids() == [entry]
+    code, result = await resolve(target, "--apply", "--accept-superseded")
+    assert (code, result["resolved"], result["resolvable_as_superseded"]) == (0, 1, 1)
     assert await open_ids() == []
 
 
@@ -184,19 +206,53 @@ async def test_entries_whose_writes_are_missing_stay_open(target):
     unnamed = await open_entry("-")
     other_group = await open_entry("-", repository="AllowedOriginsRepository")
     unknown = await open_entry("-", repository="NoSuchRepository")
-    code, result = await resolve(target, "--apply")
+    code, result = await resolve(target, "--apply", "--accept-superseded")
     assert code == 1
-    assert result["kept"] == {
+    assert {k: v for k, v in result["kept"].items() if v} == {
         "unknown_repository": 1,
         "missing_in_mongo": 1,
         "older_in_mongo": 1,
-        "delete_pending": 0,
         "group_differs": 1,
     }
     assert result["groups"]["identity"]["rows_differing"] == 2
     assert result["resolved"] == 1  # the refdata entry: nothing differs there
     assert await open_ids() == sorted([missing, older, unnamed, unknown])
     assert other_group not in await open_ids()
+
+
+async def test_an_unnamed_newer_mongo_copy_older_than_the_entry_keeps_it(target):
+    """A row the entry does not name, whose Mongo copy is later than the row
+    but older than the entry: not even ``superseded`` for that entry."""
+    document = session_document()
+    await to_mongo(
+        target,
+        {
+            **document,
+            "user_agent": "a Mongo write before the entry",
+            "updated_at": PAST + dt.timedelta(minutes=10),
+        },
+    )
+    await to_postgres(document)
+    entry = await open_entry("-")
+    code, result = await resolve(target, "--apply", "--accept-superseded")
+    assert (code, result["kept"]["group_differs"], result["resolved"]) == (1, 1, 0)
+    assert await open_ids() == [entry]
+
+
+async def test_an_unnamed_delete_without_a_tombstone_keeps_the_entry(target):
+    """Mongo holds a copy Postgres lacks and no store recorded a delete:
+    possibly a Postgres delete Mongo never got. Kept, named or not."""
+    document = session_document()
+    await to_mongo(target, document)
+    unnamed = await open_entry("-")
+    named = await open_entry(str(document["_id"]))
+    code, result = await resolve(target, "--apply", "--accept-superseded")
+    assert code == 1
+    assert (result["kept"]["group_differs"], result["kept"]["missing_in_postgres"]) == (
+        1,
+        1,
+    )
+    assert await open_ids() == sorted([unnamed, named])
 
 
 async def test_a_mongo_copy_older_than_a_delete_keeps_the_entry(target):
@@ -214,6 +270,61 @@ async def test_a_mongo_copy_older_than_a_delete_keeps_the_entry(target):
     code, result = await resolve(target)
     assert code == 1
     assert result["kept"]["delete_pending"] == 1
+
+
+async def test_a_copy_expired_on_one_side_only_keeps_the_entry(target):
+    """rate_limit_counters (analytics) expire by a TTL index: a Postgres row
+    past it while Mongo's copy is live (renewed) is no proof."""
+    async with mongo(target) as db:
+        await db["rate_limit_counters"].create_index("expires_at", expireAfterSeconds=0)
+    counter = {
+        "_id": PydanticObjectId(),
+        "hits": 1,
+        "expires_at": PAST,
+        "created_at": PAST,
+        "updated_at": PAST,
+    }
+    doc = canonical_document(counter)
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            RateLimitCounterRow(
+                id=str(counter["_id"]),
+                doc=doc,
+                created_at=PAST,
+                updated_at=PAST,
+                bc_source=SOURCE_APP,
+                bc_checksum=checksum(doc),
+            )
+        )
+    async with mongo(target) as db:
+        await db["rate_limit_counters"].insert_one(
+            {**counter, "hits": 2, "expires_at": later() + dt.timedelta(days=1)}
+        )
+    entry = await open_entry(str(counter["_id"]), repository="RateLimitRepository")
+    code, result = await resolve(target, "--apply", "--accept-superseded")
+    assert (code, result["kept"]["expired_one_side"], result["resolved"]) == (1, 1, 0)
+    assert await open_ids() == [entry]
+
+
+async def test_entries_recorded_or_resolved_between_plan_and_apply(target):
+    """apply resolves only the entries the plan proved, and only while they
+    are still open: one recorded after the plan stays open, one resolved
+    meanwhile is not counted again."""
+    document = session_document(user_agent="same in both")
+    await to_mongo(target, document)
+    await to_postgres(document)
+    first = await open_entry(str(document["_id"]))
+    second = await open_entry("-")
+    async with Runner(target) as runner:
+        resolver = OutboxResolver(runner)
+        plan = await resolver.plan()
+        assert plan.resolvable == [first, second]
+        recorded_after = await open_entry(str(document["_id"]))
+        async with container.pg_sessionmaker()() as session, session.begin():
+            entry = await session.get(MirrorWriteFailure, second)
+            entry.resolved_at = dt.datetime.now(UTC)
+        assert await resolver.apply(plan) == 1
+    assert await open_ids() == [recorded_after]
 
 
 async def test_the_dry_run_changes_nothing_and_ids_go_only_to_the_file(
@@ -251,9 +362,10 @@ async def test_after_the_tool_reconcile_and_verify_come_back_clean(target):
     """A group rolled back to dual after the ``--group`` postgres->mongo copy:
     its Postgres-side entry is still open, and a Mongo-first write whose
     Postgres mirror failed left an older application row. reconcile keeps
-    that row while the entry is open, so verify never gets clean. After
-    resolve-outbox --apply, reconcile copies Mongo's version and verify is
-    clean."""
+    that row while the entry is open, so verify never gets clean. By default
+    the tool keeps the entry (``superseded``: a later stamp is no proof);
+    once the operator accepts Mongo's newer version, reconcile copies it and
+    verify is clean."""
     dual = {"DB_WRITE_MODE": "dual"}
     document = session_document(user_agent="copied back by the --group run")
     await to_mongo(target, document)
@@ -271,6 +383,8 @@ async def test_after_the_tool_reconcile_and_verify_come_back_clean(target):
         assert not all(r.clean for r in await runner.verify())
 
     code, result = await resolve(target, "--apply")
+    assert (code, result["resolved"], result["kept"]["superseded"]) == (1, 0, 1)
+    code, result = await resolve(target, "--apply", "--accept-superseded")
     assert (code, result["resolved"]) == (0, 1)
 
     code, out = await cli(target, "reconcile", env=dual)
