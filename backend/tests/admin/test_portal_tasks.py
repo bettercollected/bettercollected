@@ -480,9 +480,17 @@ async def test_the_apply_confirmation_says_it_changes_data_and_shows_the_dry_run
     # the page that asks for the code (no token yet) carries both as well
     asked = await ctx.post("/tasks/prepare", {"action": "apply", "task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
     assert "This changes data." in asked.text and "<code>batches</code>" in asked.text
-    # a dry run of other parameters is not the one shown
-    other = await ctx.prepare("apply", {"task": SLOW, "p_items": "10"})
-    assert "No dry run with exactly these parameters" in _confirmation_counts(other.text)[1]
+    # a dry run of the SAME task with other parameters is not the one shown (the params hash separates them)
+    await ctx.dry_run(GUARDED, {"items": "20", "batch_size": "5"})
+    assert await ctx.drain() == 1
+    again = await ctx.prepare("apply", {"task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
+    counts_again, section_again = _confirmation_counts(again.text)
+    assert f"/tasks/runs/{dry_id}" in section_again and counts_again["batches"] == "2"  # 10 items, not the 4 batches of 20
+    other = await ctx.prepare("apply", {"task": GUARDED, "p_items": "30", "p_batch_size": "5"})
+    assert other.status_code == 409 and "dry run" in other.text  # nothing with those params: refused before any confirmation
+    # a task that needs no prior dry run says there is none for these parameters
+    unmatched = await ctx.prepare("apply", {"task": SLOW, "p_items": "10"})
+    assert "No dry run with exactly these parameters" in _confirmation_counts(unmatched.text)[1]
 
 
 async def test_a_dry_run_older_than_a_day_is_shown_as_such_where_none_is_required(ctx):
