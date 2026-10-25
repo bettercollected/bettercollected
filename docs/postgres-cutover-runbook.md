@@ -195,6 +195,15 @@ auth and google. For each group `g`:
    row of this service in any group. Resolve them with a full `reconcile --direction
    postgres->mongo` (when every group is on `postgres_primary_dual`) or, after the flip, with a
    clean full `verify` (it resolves the entries recorded before it started).
+   **Stuck case:** after such a rollback, a write that went to Mongo first but whose Postgres mirror
+   failed leaves an older application row in Postgres. Every `mongo->postgres` run keeps that row
+   while the Postgres-side outbox is open, so `verify` never gets clean and the entries never
+   resolve. You can tell because `newer_in_postgres` keeps growing and `verify` keeps reporting
+   mismatches in that group. The safe way out is manual. For each open Postgres-side entry, check
+   that its write is in Mongo by comparing the rows it names in both stores. Then resolve those
+   entries by hand (`UPDATE <schema>.mirror_write_failures SET resolved_at = now() WHERE id IN
+   (…)`), and run `reconcile` (`mongo->postgres`). A dedicated tool for this is planned before
+   any group goes to Phase 2.
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending

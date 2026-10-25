@@ -661,7 +661,10 @@ class Runner:
         round-trip deep compare of the first ``deep_per_batch`` rows of each
         batch. ``sample_every=k`` checks every k-th batch (large collections)."""
         # what a clean result can vouch for: only what existed when it started
-        self._verify_started = now = datetime.now(timezone.utc)
+        # the database server's clock, as the outbox's created_at (now()):
+        # a clean run resolves only entries recorded before it started
+        self._verify_started = await self._database_now()
+        now = datetime.now(timezone.utc)
         reports = []
         for name, table in self.tables_for(collections).items():
             report = CollectionReport(name)
@@ -767,6 +770,12 @@ class Runner:
                 report.tombstoned,
             )
         return reports
+
+    async def _database_now(self) -> datetime:
+        """The Postgres server's current time (``now()``)."""
+        async with self.engine.connect() as conn:
+            at = (await conn.execute(select(func.now()))).scalar_one()
+        return at if at.tzinfo else at.replace(tzinfo=timezone.utc)
 
     async def _rows_beyond(self, table, last_id, ttl, now, report) -> int:
         """How many Postgres rows have an id past Mongo's last one (all of
