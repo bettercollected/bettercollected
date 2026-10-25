@@ -47,7 +47,7 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.models.standard_form import StandardForm
+from common.models.standard_form import ParameterValue, StandardForm
 from common.models.user import User
 from tests.app.repositories.test_identity_parity import both_raise
 from tests.app.repositories.parity import parity, strip
@@ -564,3 +564,64 @@ async def test_workspace_consent(sessions):
             ("get_workspace_consents", lambda: (ws,)),
         ],
     )
+
+
+async def test_action_parameters_and_secrets(sessions):
+    """The Sheets re-consent markers (services/sheets_reconsent.py): one
+    action's parameters change, nothing else does (not ``updated_at``), and
+    a marker is claimed once."""
+    groups, responses = ResponderGroupsRepository(), FormResponseRepository(
+        crypto=container.crypto()
+    )
+    mongo = FormRepository()
+    postgres = PostgresFormRepository(sessions, groups, responses)
+    a1, a2 = str(PydanticObjectId()), str(PydanticObjectId())
+    forms = (
+        form(
+            "p1",
+            "With",
+            1,
+            parameters={
+                a1: [ParameterValue(name="Title", value="Sheet")],
+                a2: [ParameterValue(name="Url", value="u")],
+            },
+            secrets={a1: [ParameterValue(name="Credentials", value="c")]},
+        ),
+        form("p2", "Without", 2),
+    )
+    await seed_both((mongo, postgres), "save_form", *forms)
+    before = {
+        repo: (await repo.get_form_document_by_id("p1")).updated_at
+        for repo in (mongo, postgres)
+    }
+
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("update_action_parameters", lambda: ("p1", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("p1", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("p1", a1, None, "skipped")),
+            ("update_action_parameters", lambda: ("p1", a1, None, "skipped")),
+            ("update_action_parameters", lambda: ("p1", a1, {"m": "t"}, None, "m")),
+            ("update_action_parameters", lambda: ("p1", a1, {"m": "t2"}, None, "m")),
+            ("update_action_parameters", lambda: ("p1", a1, None, None, None, ["m"])),
+            # no parameters at all yet, and an unknown form
+            ("update_action_parameters", lambda: ("p2", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("nope", a1, {"x": "y"})),
+            ("get_forms_with_action_secrets", lambda: ([a1],)),
+            ("get_forms_with_action_secrets", lambda: ([a2],)),
+            ("get_forms_with_action_secrets", lambda: ([],)),
+            ("get_form_document_by_id", lambda: ("p1",)),
+            ("get_form_document_by_id", lambda: ("p2",)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        stored = await repo.get_form_document_by_id("p1")
+        assert {p.name: p.value for p in stored.parameters[a1]} == {
+            "Title": "Sheet",
+            "needs_reconsent": "true",
+            "skipped": "2",
+        }
+        assert [p.value for p in stored.parameters[a2]] == ["u"]
+        assert stored.updated_at == before[repo]
