@@ -55,6 +55,12 @@
 #                 and only the superuser may grant on them. This script runs
 #                 again after the other services' migrations (deploy.sh), so
 #                 the grants reach tables created on first deploy.
+#   bc_tasks_purge_google
+#                 NOLOGIN owner of google.purge_unencrypted_credentials(apply),
+#                 the SECURITY DEFINER function behind the admin task of the same
+#                 name: DELETE (and SELECT on user_id, doc) on
+#                 google.oauth_credentials, nothing else. EXECUTE for
+#                 bc_tasks_data_google only, which itself still has no DELETE.
 #
 # Schema `tasks` (the runner's state) is created here, owned by bc_admin_mig,
 # like `admin`.
@@ -755,6 +761,79 @@ REVOKE ALL ON FUNCTION admin.schema_revision_app(), admin.schema_revision_auth()
 GRANT EXECUTE ON FUNCTION admin.schema_revision_app(), admin.schema_revision_auth(),
     admin.schema_revision_google(), admin.outbox_counts_app(), admin.outbox_counts_auth(),
     admin.outbox_counts_google() TO bc_admin;
+
+-- The admin task google.purge_unencrypted_credentials (docs/admin-service.md): the
+-- runner's bc_tasks_data_google holds no DELETE and keeps it that way. It may only
+-- execute google.purge_unencrypted_credentials(apply), a SECURITY DEFINER function
+-- that counts, or with apply deletes, exactly the rows of the cutover runbook's
+-- "Google credentials without a user id" (no user_id, or credentials stored as a
+-- readable JSON object instead of a ciphertext) and returns the number, nothing
+-- else. It is owned by bc_tasks_purge_google: NOLOGIN, USAGE on schema google and
+-- DELETE (plus SELECT on the two columns the filter reads) on
+-- google.oauth_credentials, nothing else. A DELETE runs the table owner's
+-- triggers with the definer's privileges, which are no more than bc_google, the
+-- table's owner, already has. Until the google schema and table exist (the first
+-- run of a fresh deploy) the grants are skipped; the run after the migrations
+-- (deploy.sh) makes them.
+DO $gpurge$
+DECLARE
+    s text;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bc_tasks_purge_google') THEN
+        CREATE ROLE bc_tasks_purge_google NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+    END IF;
+    ALTER ROLE bc_tasks_purge_google NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE bc_tasks_purge_google SET search_path = pg_catalog;
+    EXECUTE format('REVOKE ALL ON DATABASE %I FROM bc_tasks_purge_google', current_database());
+    FOREACH s IN ARRAY ARRAY['app', 'auth', 'google', 'jobs', 'admin', 'tasks', 'settings'] LOOP
+        IF to_regnamespace(s) IS NOT NULL THEN
+            EXECUTE format('REVOKE ALL ON SCHEMA %I FROM bc_tasks_purge_google', s);
+            EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM bc_tasks_purge_google', s);
+            EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA %I FROM bc_tasks_purge_google', s);
+        END IF;
+    END LOOP;
+    IF to_regnamespace('google') IS NULL THEN
+        RETURN;
+    END IF;
+    GRANT USAGE ON SCHEMA google TO bc_tasks_purge_google;
+    IF to_regclass('google.oauth_credentials') IS NOT NULL THEN
+        GRANT SELECT (user_id, doc), DELETE ON google.oauth_credentials TO bc_tasks_purge_google;
+    END IF;
+    EXECUTE $create$
+CREATE OR REPLACE FUNCTION google.purge_unencrypted_credentials(p_apply boolean) RETURNS bigint
+LANGUAGE plpgsql SECURITY DEFINER VOLATILE
+SET search_path = pg_catalog, pg_temp AS $fn$
+DECLARE
+    n bigint;
+BEGIN
+    IF p_apply IS NULL THEN
+        RAISE EXCEPTION 'google.purge_unencrypted_credentials: apply must be true or false'
+            USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+    IF p_apply THEN
+        WITH gone AS (
+            DELETE FROM google.oauth_credentials c
+             WHERE coalesce(c.user_id, '') = ''
+                OR (jsonb_typeof(c.doc -> 'credentials') = 'object'
+                    AND NOT (c.doc -> 'credentials') ? '$binary')
+            RETURNING 1
+        )
+        SELECT count(*) INTO n FROM gone;
+    ELSE
+        SELECT count(*) INTO n FROM google.oauth_credentials c
+         WHERE coalesce(c.user_id, '') = ''
+            OR (jsonb_typeof(c.doc -> 'credentials') = 'object'
+                AND NOT (c.doc -> 'credentials') ? '$binary');
+    END IF;
+    RETURN n;
+END
+$fn$
+$create$;
+    ALTER FUNCTION google.purge_unencrypted_credentials(boolean) OWNER TO bc_tasks_purge_google;
+    REVOKE ALL ON FUNCTION google.purge_unencrypted_credentials(boolean) FROM PUBLIC;
+    GRANT EXECUTE ON FUNCTION google.purge_unencrypted_credentials(boolean) TO bc_tasks_data_google;
+END
+$gpurge$;
 
 RESET bc.admin_pw;
 RESET bc.mig_pw;
