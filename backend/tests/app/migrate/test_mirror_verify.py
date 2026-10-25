@@ -17,8 +17,6 @@ import pytest
 from beanie import PydanticObjectId
 
 from backend.app.container import container
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.postgres.forms import PostgresFormRepository
 from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
 from backend.app.repositories.postgres.responses import (
     PostgresResponderGroupsRepository,
@@ -27,7 +25,6 @@ from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
 from backend.app.models.template import StandardFormTemplate
-from backend.app.schemas.standard_form import FormDocument
 from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import MigrationProgress
@@ -37,6 +34,11 @@ from common.db.migrate import Runner, Target
 from common.models.standard_form import StandardForm
 from tests.app.controllers.data import testUser
 from tests.app.db.beanie_originals import (
+    FormDocument,
+    FormRepository,
+    FormTemplateRepository,
+    PostgresFormRepository,
+    PostgresFormTemplateRepository,
     AllowedOriginsRepository,
     PostgresAllowedOriginsRepository,
     RateLimitRepository,
@@ -99,11 +101,7 @@ def forms_repo(mode, **kw):
         "forms",
         mode,
         FormRepository(),
-        PostgresFormRepository(
-            sessions,
-            container.responder_groups_repository(),
-            container.form_response_repo(),
-        ),
+        PostgresFormRepository(sessions),
         **kw,
     )
 
@@ -160,12 +158,11 @@ async def test_a_save_of_a_document_each_store_loads_itself_verifies_clean(
 ):
     """Each store loads the template and saves it; ``MongoDocument.save``
     moves updated_at, and the Postgres twin now does the same."""
-    routed_templates = container.form_template_repo()
     repo = routed(
         "forms",
         mode,
-        routed_templates.store(ReadSource.MONGO),
-        routed_templates.store(ReadSource.POSTGRES),
+        FormTemplateRepository(),
+        PostgresFormTemplateRepository(container.pg_sessionmaker()),
     )
     template = await repo.create_new_template(
         PydanticObjectId(), StandardFormTemplate(title="T"), testUser
@@ -279,7 +276,7 @@ async def test_a_replayed_document_is_stored_exactly_on_mongo(clean_postgres):
     )
     raw = await collection.find_one({"_id": created.id})
     row = await PostgresFormRepository(
-        container.pg_sessionmaker(), None, None
+        container.pg_sessionmaker()
     ).get_form_document_by_id(created.form_id)
     assert "stale_key" not in raw
     assert raw["title"] == "Again"

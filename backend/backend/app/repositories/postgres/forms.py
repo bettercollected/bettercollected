@@ -1,15 +1,25 @@
-"""Postgres twins of the forms-group repositories.
+"""The forms group's repositories: Postgres only (its Mongo collections are
+read only by the import from 4.0, ``python -m backend.migrate``).
 
-The Mongo originals build aggregation pipelines whose ``$lookup``s fall into
-two kinds, handled differently here (plans/postgres-consolidation.md §4):
+Forms and their published versions, the workspace links of forms, templates,
+media libraries, workspace consents and PDF imports. Queries use the spine
+columns of the rows in :mod:`backend.db.models`; the documents are
+:class:`common.records.Record` classes, encoded and decoded by
+:mod:`common.records.codec`. The methods keep the behaviour of the 4.0 Mongo
+repositories they replace, including their quirks.
 
-* **within the group** — forms ⋈ workspace_forms ⋈ form_versions — become SQL
+The 4.0 aggregation pipelines' ``$lookup``s fall into two kinds
+(plans/postgres-consolidation.md §4):
+
+* **within the group** (forms ⋈ workspace_forms ⋈ form_versions) are SQL
   joins on the spine columns;
-* **into another group** — responder groups, response and deletion-request
-  counts (``responses``), the workspace a template was imported from
-  (``identity``) — are *composed*: the twin reads its own tables, then asks the
-  other group's *routed* repository in one batched call, so the answer comes
-  from whichever store currently serves that group.
+* **into another group** (responder groups, response and deletion-request
+  counts in ``responses``; the workspace a template was imported from in
+  ``identity``) are *composed*: the repository reads its own tables, then asks
+  the other group's repository in one batched call, so the answer comes from
+  whichever store serves that group. The responses group's repositories read
+  forms the same way (``response_scope.form_titles``): no Mongo query joins
+  into forms (``backend.db.groups.MONGO_JOINS``).
 
 Results keep the raw-document shape of the aggregations (``FormDtoCamelModel``
 and friends consume dicts), rebuilt from the row's canonical ``doc``.
@@ -19,7 +29,6 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from beanie import PydanticObjectId
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import and_, exists, func, not_, or_, select, text, update
@@ -38,21 +47,7 @@ from backend.app.services.form_concurrency import (
     form_changed,
     next_updated_at,
 )
-from backend.app.repositories.form_import_repository import (
-    ImportLimitReached,
-    check_import_limits,
-    lock_wait_s,
-    workspaces_with_stale_imports,
-)
-from backend.app.repositories.form_repository import (
-    apply_form_update,
-    detach_action,
-    merge_action_parameters,
-    replace_credential_secret,
-    replace_version_credentials,
-)
 from backend.app.repositories.response_scope import ResponseScope
-from backend.app.repositories.template import with_origin_titles
 from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
@@ -74,11 +69,198 @@ from backend.db.models import (
     WorkspaceFormRow,
 )
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
-from common.db import PostgresRepositoryBase, from_canonical_document, from_row_doc
-from common.db.beanie_bridge import row_values
+from common.records import RecordId, decode, from_canonical_document, row_values
+from common.records.repository import RecordRepository
 from common.models.standard_form import ParameterValue, StandardForm, Trigger
 from common.models.user import User
 from common.clock import utcnow
+
+
+# -- rules shared by the repositories below (and the services) -----------------
+def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
+    """Copy a whole-form save onto the stored draft (both stores)."""
+    form_document.fields = form.fields
+    # None means "the client didn't send hidden fields" (e.g. an older
+    # webapp bundle) — preserve what's stored. An explicit [] clears them.
+    if form.hidden_fields is not None:
+        form_document.hidden_fields = form.hidden_fields
+    form_document.title = form.title
+    form_document.logo = form.logo
+    form_document.cover_image = form.cover_image
+    form_document.description = form.description
+    form_document.welcome_page = form.welcome_page
+    form_document.thankyou_page = form.thankyou_page
+    form_document.theme = form.theme
+    # The logo settings: None means "not sent" (an older client); keep them.
+    for name in ("logo_position", "logo_alt", "use_workspace_logo"):
+        if getattr(form, name, None) is not None:
+            setattr(form_document, name, getattr(form, name))
+    form_document.consent = form.consent if form.consent else form_document.consent
+    if form.settings:
+        _apply_settings_update(form_document, form.settings)
+
+
+def _apply_settings_update(form_document: FormDocument, sent) -> None:
+    """The settings a whole-form save sends, onto the form's own settings:
+    each setting the save gives (``model_fields_set``, null included, which
+    clears it); what it leaves out stays. The builder's save gives the
+    language alone; a spec replace gives the form's whole settings."""
+    if form_document.settings is None:
+        form_document.settings = sent
+        return
+    stored = form_document.settings
+    for key in sent.model_fields_set:
+        setattr(stored, key, getattr(sent, key))
+
+
+def detach_action(form: FormDocument, action_id: str) -> None:
+    """Drop one action from a form's triggers, parameters and secrets, in
+    place; every other action keeps its own (the repository applies it to
+    rows it holds locked)."""
+    for trigger, states in (form.actions or {}).items():
+        form.actions[trigger] = [s for s in states or [] if str(s.id) != action_id]
+    for bag in (form.parameters, form.secrets):
+        if isinstance(bag, dict):
+            bag.pop(action_id, None)
+
+
+def merge_action_parameters(
+    current: Optional[list],
+    values: Optional[Dict[str, str]] = None,
+    increment: Optional[str] = None,
+    only_if_absent: Optional[str] = None,
+    remove: Optional[List[str]] = None,
+) -> Optional[list]:
+    """One action's parameters (plain ``{name, value, ...}`` dicts) with
+    ``values`` set by name (replaced or appended), the counter ``increment``
+    raised by one (a missing or unreadable count starts at 0) and the names in
+    ``remove`` dropped. ``None`` when nothing changes, or when a parameter
+    named ``only_if_absent`` already exists (a marker claimed once)."""
+    params = [dict(p) for p in (current or []) if isinstance(p, dict)]
+    names = {p.get("name") for p in params}
+    if only_if_absent and only_if_absent in names:
+        return None
+    changes = dict(values or {})
+    if increment:
+        stored = next(
+            (p.get("value") for p in params if p.get("name") == increment), None
+        )
+        try:
+            count = int(stored or 0)
+        except (TypeError, ValueError):
+            count = 0
+        changes[increment] = str(count + 1)
+    dropped = set(remove or [])
+    merged = [dict(p) for p in params if p.get("name") not in dropped]
+    for name, value in changes.items():
+        for p in merged:
+            if p.get("name") == name:
+                p["value"] = value
+                break
+        else:
+            merged.append({"name": name, "value": value, "required": False})
+    return None if merged == params else merged
+
+
+CREDENTIALS_SECRET = "Credentials"
+
+
+def replace_credential_secret(
+    current: Optional[list], credential: str
+) -> tuple:
+    """One action's secrets (plain ``{name, value, ...}`` dicts) with the
+    ``Credentials`` entry set to ``credential`` (appended when there was none;
+    any other secret kept), and the ciphertext it replaced (``None`` when
+    there was none)."""
+    secrets = [dict(s) for s in (current or []) if isinstance(s, dict)]
+    previous = None
+    kept = []
+    for secret in secrets:
+        if secret.get("name") == CREDENTIALS_SECRET:
+            previous = previous or secret.get("value") or None
+            continue
+        kept.append(secret)
+    kept.append({"name": CREDENTIALS_SECRET, "value": credential, "required": False})
+    return kept, previous
+
+
+def replace_version_credentials(current: Optional[list], credential: str) -> Optional[list]:
+    """A published version's copy of one action's secrets with every
+    ``Credentials`` value set to ``credential``; ``None`` when it holds none
+    (or only that one already)."""
+    secrets = [dict(s) for s in (current or []) if isinstance(s, dict)]
+    changed = False
+    for secret in secrets:
+        if secret.get("name") == CREDENTIALS_SECRET and secret.get("value") != credential:
+            secret["value"] = credential
+            changed = True
+    return secrets if changed else None
+
+
+# how long a PDF import's start waits for another start in the same workspace
+# before it is refused as "an import is already running"
+LOCK_WAIT_S = 10.0
+
+
+class ImportLimitReached(Exception):
+    """A workspace limit refused a new import (``code``: import_in_progress,
+    daily_limit)."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+def workspaces_with_stale_imports(records, stale_before) -> List[RecordId]:
+    seen = []
+    for record in records:
+        if record.is_stale(stale_before) and record.workspace_id not in seen:
+            seen.append(record.workspace_id)
+    return seen
+
+
+def lock_wait_s() -> float:
+    """Read at call time, so tests can lengthen it on a loaded machine."""
+    return LOCK_WAIT_S
+
+
+def check_import_limits(
+    active: int, today: int, max_active: int, max_per_day: int
+) -> None:
+    if active >= max_active:
+        raise ImportLimitReached("import_in_progress")
+    if today >= max_per_day:
+        raise ImportLimitReached("daily_limit")
+
+
+async def with_origin_titles(
+    workspaces, templates: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """``templates`` (stored template documents) as the listings return them:
+    ``id`` set, and ``imported_from`` (the id of the workspace a template was
+    imported from) replaced by that workspace's title, or left out when the
+    workspace no longer exists. The workspaces are read through
+    ``workspaces`` (the identity group's repository): in 4.0 this was a
+    ``$lookup`` into ``workspaces``, which both template repositories now
+    compose instead (a join across groups finds nothing once the joined
+    group leaves Mongo)."""
+    origins = {
+        t["imported_from"] for t in templates if t.get("imported_from") is not None
+    }
+    titles = {}
+    if origins:
+        for workspace in await workspaces.get_workspace_by_ids(list(origins)):
+            titles[workspace.id] = workspace.title
+    for template in templates:
+        template["id"] = template["_id"]
+        # $lookup + $unwind(preserveNull) + $set imported_from: "$workspace.title"
+        origin = template.get("imported_from")
+        if origin is not None and origin in titles:
+            template["imported_from"] = titles[origin]
+        else:
+            template.pop("imported_from", None)
+    return templates
+
 
 _fn = getattr(func, SCHEMA)
 TIMESTAMP_FIELDS = {"created_at", "updated_at", "published_at"}
@@ -134,8 +316,8 @@ def _fold(target: dict, source: dict, mapping: Dict[str, str]) -> None:
 def _fold_settings(form: dict, workspace_form: dict) -> None:
     """``settings``: the workspace association's, plus the form's own declared
     language (``StandardFormSettings.language``), which only the form
-    document keeps. Mirrors ``_SETTINGS_WITH_FORM_LANGUAGE`` in
-    repositories/form_repository.py."""
+    document keeps (the 4.0 Mongo pipeline's ``_SETTINGS_WITH_FORM_LANGUAGE``).
+    When the association has no settings, the language alone."""
     own = form.get("settings")
     _fold(form, workspace_form, {"settings": "settings"})
     settings = form.get("settings")
@@ -149,7 +331,7 @@ def _fold_settings(form: dict, workspace_form: dict) -> None:
         form["settings"] = {"language": own["language"]}
 
 
-class PostgresFormRepository(PostgresRepositoryBase):
+class PostgresFormRepository(RecordRepository):
     row = FormRow
     document = FormDocument
     document_rows = {FormVersionsDocument: FormVersionRow}  # publish_form
@@ -168,7 +350,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             form["groups"] = by_form.get(form["form_id"], [])
 
     async def _attach_counts(
-        self, forms: List[dict], workspace_id: PydanticObjectId
+        self, forms: List[dict], workspace_id: RecordId
     ) -> None:
         """The workspace's own response and deletion-request counts (#768)."""
         ids = [form["form_id"] for form in forms]
@@ -184,7 +366,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         for form_id, linked_workspace in links:
             owners.setdefault(form_id, set()).add(linked_workspace)
         scope = ResponseScope(
-            workspace_id=PydanticObjectId(workspace_id),
+            workspace_id=RecordId(workspace_id),
             form_ids=tuple(ids),
             legacy_form_ids=tuple(
                 f for f in ids if owners.get(f) == {_oid(workspace_id)}
@@ -218,7 +400,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         )
 
     async def _drafts(
-        self, rows: Iterable[Any], is_admin: bool, workspace_id: PydanticObjectId
+        self, rows: Iterable[Any], is_admin: bool, workspace_id: RecordId
     ) -> List[dict]:
         forms = []
         for form_doc, workspace_form_doc, published in rows:
@@ -237,7 +419,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def get_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id_list: List[str],
         is_admin: bool,
         sort=None,
@@ -252,7 +434,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def paginate_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id_list: List[str],
         is_admin: bool,
         sort=None,
@@ -296,7 +478,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         return stmt.order_by(*_sort_terms(latest.c.doc, sort, natural))
 
     async def _published_forms(
-        self, rows: Iterable[Any], get_actions: bool, workspace_id: PydanticObjectId
+        self, rows: Iterable[Any], get_actions: bool, workspace_id: RecordId
     ):
         forms = []
         for version_doc, workspace_form_doc, form_doc in rows:
@@ -323,7 +505,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def get_published_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id_list: List[str],
         sort=None,
         get_actions=False,
@@ -340,7 +522,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def paginate_published_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id_list: List[str],
         sort=None,
         get_actions=False,
@@ -361,7 +543,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
     # -- search ---------------------------------------------------------------
     async def search_form_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_ids: List[str],
         query: str,
         published: bool = False,
@@ -459,13 +641,13 @@ class PostgresFormRepository(PostgresRepositoryBase):
     async def create_form(self, form: StandardForm) -> FormDocument:
         return await self.save_document(FormDocument(**form.model_dump(mode="json")))
 
-    async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
+    async def update_form(self, form_id: RecordId, form: StandardForm):
         form_document = await self.one(FormRow.form_id == _oid(form_id))
         apply_form_update(form_document, form)
         form_document.updated_at = utcnow()
         return await self.upsert(form_document)
 
-    async def _stored_draft(self, form_id: PydanticObjectId):
+    async def _stored_draft(self, form_id: RecordId):
         """The draft row's id, document and stored ``updated_at``."""
         async with self._session() as session:
             return (
@@ -479,18 +661,20 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def update_form_if_unchanged(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         form: StandardForm,
         expected_updated_at: datetime,
     ):
-        """The conditional ``update_form`` (see the Mongo original):
-        ``UPDATE ... WHERE id = :id AND updated_at = :stored``, the stored
-        value being the one that passed the check; when no row matches the
-        save is refused with 409."""
+        """``update_form`` as a conditional write: refused with 409 when the
+        stored draft is newer than ``expected_updated_at``
+        (services/form_concurrency.py), including when another save lands
+        between this read and this write: ``UPDATE ... WHERE id = :id AND
+        updated_at = :stored``, the stored value being the one that passed
+        the check."""
         found = await self._stored_draft(form_id)
         if found is None:
             return None
-        form_document = from_row_doc(FormDocument, found.doc)
+        form_document = decode(FormDocument, found.doc)
         ensure_not_changed_since(form_document.updated_at, expected_updated_at)
         apply_form_update(form_document, form)
         form_document.updated_at = next_updated_at(form_document.updated_at)
@@ -529,7 +713,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
     async def get_form_document_by_id(self, form_id: str):
         return await self.one(FormRow.form_id == form_id)
 
-    async def get_latest_version_of_form(self, form_id: PydanticObjectId):
+    async def get_latest_version_of_form(self, form_id: RecordId):
         return await self.one_of(
             FormVersionRow,
             FormVersionsDocument,
@@ -537,7 +721,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
         )
 
-    async def get_versions_of_form(self, form_id: PydanticObjectId):
+    async def get_versions_of_form(self, form_id: RecordId):
         """Every published version of a form, oldest first."""
         return await self.many(
             FormVersionRow.form_id == _oid(form_id),
@@ -547,7 +731,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         )
 
     async def get_form_by_by_version(
-        self, form_id: PydanticObjectId, version: FormVersion | int
+        self, form_id: RecordId, version: FormVersion | int
     ):
         if version == FormVersion.latest:
             return await self.get_latest_version_of_form(form_id=form_id)
@@ -565,10 +749,10 @@ class PostgresFormRepository(PostgresRepositoryBase):
         new_form_version.id = None
         return await self.save_document(new_form_version, row=FormVersionRow)
 
-    async def get_form_by_id(self, form_id: PydanticObjectId):
+    async def get_form_by_id(self, form_id: RecordId):
         return await self.one(FormRow.form_id == _oid(form_id))
 
-    async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
+    async def remove_action_from_all_forms(self, action_id: RecordId):
         # Forms and published versions. Triggers hold {id, enabled}; ObjectIds
         # sit in the canonical doc as {"$oid": hex}, so @> finds them; rows
         # holding the action's parameters or secrets (OAuth runs before
@@ -593,7 +777,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                     )
                 ).scalars()
                 for doc in docs.all():
-                    stored = from_row_doc(document, doc)
+                    stored = decode(document, doc)
                     detach_action(stored, key)
                     await session.execute(
                         self._upsert_statement(row_values(stored), row)
@@ -608,8 +792,10 @@ class PostgresFormRepository(PostgresRepositoryBase):
         only_if_absent: Optional[str] = None,
         remove: Optional[List[str]] = None,
     ) -> bool:
-        """See the Mongo original: one action's parameters on the draft,
-        changed under a row lock; ``updated_at`` stays as stored."""
+        """Change one action's parameters on the draft (``merge_action_parameters``)
+        and nothing else: not ``updated_at`` (the builder's conflict check),
+        not other actions. Under a row lock, so concurrent calls neither lose
+        a count nor both claim a marker. True when it changed something."""
         key = str(action_id)
         async with self._session() as session, session.begin():
             doc = (
@@ -623,7 +809,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return False
-            stored = from_row_doc(FormDocument, doc)
+            stored = decode(FormDocument, doc)
             current = [
                 parameter.model_dump(mode="json")
                 for parameter in (stored.parameters or {}).get(key) or []
@@ -647,8 +833,13 @@ class PostgresFormRepository(PostgresRepositoryBase):
         credential: str,
         clear_parameters: Optional[List[str]] = None,
     ) -> dict:
-        """See the Mongo original. The draft and every published version's
-        copy change in one transaction, under row locks."""
+        """Store a new credential for one action and drop the named parameters
+        (the Sheets re-consent markers) on the draft (``updated_at`` and other
+        actions untouched); every published version's copy of the action's
+        credential is replaced too, so no stored copy of the old ciphertext is
+        left. One transaction, under row locks. Returns ``{"stored": bool,
+        "previous": str|None}``: the ciphertext the draft held before
+        (``stored`` is False for an unknown form)."""
         key = str(action_id)
         async with self._session() as session, session.begin():
             doc = (
@@ -662,7 +853,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return {"stored": False, "previous": None}
-            stored = from_row_doc(FormDocument, doc)
+            stored = decode(FormDocument, doc)
             current = [
                 secret.model_dump(mode="json")
                 for secret in (stored.secrets or {}).get(key) or []
@@ -694,7 +885,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
                 )
             ).scalars()
             for version_doc in versions.all():
-                version = from_row_doc(FormVersionsDocument, version_doc)
+                version = decode(FormVersionsDocument, version_doc)
                 replaced = replace_version_credentials(
                     [
                         secret.model_dump(mode="json")
@@ -724,8 +915,8 @@ class PostgresFormRepository(PostgresRepositoryBase):
 
     async def update_form_actions(
         self,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        form_id: RecordId,
+        action_id: RecordId,
         form: StandardForm,
         payload: FormActionsDto,
     ):
@@ -737,7 +928,7 @@ class PostgresFormRepository(PostgresRepositoryBase):
         return await self.save_document(form)
 
 
-class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
+class PostgresWorkspaceFormRepository(RecordRepository):
     row = WorkspaceFormRow
     document = WorkspaceFormDocument
 
@@ -746,7 +937,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         self._groups = responder_groups  # routed ResponderGroupsRepository
 
     async def find_workspace_form(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ) -> Optional[WorkspaceFormDocument]:
         return await self.one(
             WorkspaceFormRow.form_id == form_id,
@@ -754,7 +945,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         )
 
     async def list_in_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> List[WorkspaceFormDocument]:
         return await self.many(WorkspaceFormRow.workspace_id == _oid(workspace_id))
 
@@ -772,7 +963,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
 
     async def save_workspace_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
@@ -812,7 +1003,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         )
 
     async def get_workspace_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str, is_admin=True
+        self, workspace_id: RecordId, query: str, is_admin=True
     ):
         where = [
             WorkspaceFormRow.workspace_id == _oid(workspace_id),
@@ -830,7 +1021,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
 
     async def get_workspace_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         is_not_admin: bool = False,
         user: User = None,
         form_id: Optional[str] = None,
@@ -899,7 +1090,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
 
     async def get_form_ids_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         is_not_admin: bool = False,
         user: User = None,
         pinned_only: bool = False,
@@ -920,7 +1111,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         return list(set([a["form_id"] for a in workspace_forms]))
 
     async def get_workspace_form_with_custom_slug_form_id(
-        self, workspace_id: PydanticObjectId, custom_url: str
+        self, workspace_id: RecordId, custom_url: str
     ):
         return await self.one(
             WorkspaceFormRow.workspace_id == _oid(workspace_id),
@@ -934,7 +1125,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         ]
 
     async def delete_form_in_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ):
         workspace_form = await self.find_workspace_form(workspace_id, form_id)
         if not workspace_form:
@@ -943,7 +1134,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         return workspace_form
 
     async def check_is_form_imported_in_other_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ):
         for workspace_form in await self.many(WorkspaceFormRow.form_id == form_id):
             if workspace_form.workspace_id != workspace_id:
@@ -953,7 +1144,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
                 )
 
     async def get_form_ids_imported_by_user(
-        self, workspace_id: PydanticObjectId, user_id: str
+        self, workspace_id: RecordId, user_id: str
     ):
         forms = await self.many(
             WorkspaceFormRow.workspace_id == _oid(workspace_id),
@@ -962,7 +1153,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         return [form.form_id for form in forms]
 
     async def get_form_ids_in_workspaces_and_imported_by_user(
-        self, workspace_ids: List[PydanticObjectId], user: User
+        self, workspace_ids: List[RecordId], user: User
     ):
         forms = await self.many(
             or_(
@@ -980,7 +1171,7 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         return await self.many(WorkspaceFormRow.form_id.in_(form_ids))
 
     async def check_if_form_exists_in_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ):
         workspace_form = await self.find_workspace_form(workspace_id, form_id)
         return True if workspace_form is not None else False
@@ -1036,22 +1227,22 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         )
 
 
-class PostgresWorkspaceConsentRepo(PostgresRepositoryBase):
+class PostgresWorkspaceConsentRepo(RecordRepository):
     row = WorkspaceConsentRow
     document = WorkspaceConsentDocument
 
-    async def get_workspace_consents(self, workspace_id: PydanticObjectId):
+    async def get_workspace_consents(self, workspace_id: RecordId):
         return await self.many(WorkspaceConsentRow.workspace_id == _oid(workspace_id))
 
     async def create_workspace_consent(
-        self, workspace_id: PydanticObjectId, consent: ConsentCamelModel
+        self, workspace_id: RecordId, consent: ConsentCamelModel
     ):
         consent_document = WorkspaceConsentDocument(**consent.model_dump(mode="json"))
         consent_document.workspace_id = workspace_id
         return await self.save_document(consent_document)
 
 
-class PostgresFormTemplateRepository(PostgresRepositoryBase):
+class PostgresFormTemplateRepository(RecordRepository):
     row = FormTemplateRow
     document = FormTemplateDocument
 
@@ -1062,8 +1253,8 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
     async def get_templates_with_creator(
         self,
         v2: Optional[bool] = None,
-        workspace_id: PydanticObjectId = None,
-        template_id: PydanticObjectId = None,
+        workspace_id: RecordId = None,
+        template_id: RecordId = None,
         predefined_workspace: bool = False,
     ):
         builder_version = _text(FormTemplateRow.doc["builder_version"])
@@ -1095,7 +1286,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
             self._workspaces, [from_canonical_document(doc) for doc in docs]
         )
 
-    async def get_template_by_id(self, template_id: PydanticObjectId):
+    async def get_template_by_id(self, template_id: RecordId):
         return await self.one(FormTemplateRow.id == _oid(template_id))
 
     async def get_v2_template_by_title(
@@ -1107,7 +1298,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         )
 
     async def get_template_by_workspace_id_n_template_id(
-        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: RecordId, template_id: RecordId
     ):
         return await self.one(
             FormTemplateRow.id == _oid(template_id),
@@ -1115,7 +1306,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         )
 
     async def get_template_by_id_with_creator(
-        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: RecordId, template_id: RecordId
     ):
         templates = await self.get_templates_with_creator(
             workspace_id=workspace_id, template_id=template_id
@@ -1125,7 +1316,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         raise HTTPException(HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
 
     async def import_template_to_workspace(
-        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: RecordId, template_id: RecordId
     ):
         template = await self.get_template_by_id(template_id)
         imported_template = FormTemplateDocument(**template.model_dump(mode="json"))
@@ -1137,7 +1328,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
 
     async def create_new_template(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         template_body: StandardFormTemplate,
         user: User,
     ):
@@ -1147,7 +1338,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         return await self.save_document(template)
 
     async def update_template(
-        self, template_id: PydanticObjectId, template_body: StandardFormTemplate
+        self, template_id: RecordId, template_body: StandardFormTemplate
     ):
         template = await self.get_template_by_id(template_id)
         template.fields = template_body.fields
@@ -1162,7 +1353,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
     async def save(self, template: FormTemplateDocument) -> FormTemplateDocument:
         return await self.save_document(template)
 
-    async def delete_template(self, template_id: PydanticObjectId):
+    async def delete_template(self, template_id: RecordId):
         template = await self.get_template_by_id(template_id)
         if not template:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Template not found")
@@ -1170,7 +1361,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
         return str(template_id)
 
 
-class PostgresMediaLibraryRepository(PostgresRepositoryBase):
+class PostgresMediaLibraryRepository(RecordRepository):
     row = MediaLibraryRow
     document = MediaLibraryDocument
 
@@ -1185,7 +1376,7 @@ class PostgresMediaLibraryRepository(PostgresRepositoryBase):
         )
 
     async def get_single_media_from_workspace_library(
-        self, workspace_id: str, media_id: PydanticObjectId
+        self, workspace_id: str, media_id: RecordId
     ):
         return await self.one(
             MediaLibraryRow.workspace_id == workspace_id,
@@ -1201,7 +1392,7 @@ class PostgresMediaLibraryRepository(PostgresRepositoryBase):
         s3_key: str,
     ):
         media = MediaLibraryDocument(
-            media_id=PydanticObjectId(),
+            media_id=RecordId(),
             workspace_id=workspace_id,
             media_type=media_type,
             media_name=media_name,
@@ -1211,18 +1402,18 @@ class PostgresMediaLibraryRepository(PostgresRepositoryBase):
         return await self.save_document(media)
 
     async def delete_media_from_library(
-        self, workspace_id: str, media_id: PydanticObjectId
+        self, workspace_id: str, media_id: RecordId
     ):
         media = await self.get_single_media_from_workspace_library(
             workspace_id, media_id
         )
         await self.delete_by_id(
             media.id
-        )  # AttributeError when missing, as the original
+        )  # AttributeError when missing, as in 4.0
         return media_id
 
 
-class PostgresFormImportRepository(PostgresRepositoryBase):
+class PostgresFormImportRepository(RecordRepository):
     row = FormImportRow
     document = FormImportDocument
 
@@ -1236,11 +1427,11 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
         max_per_day: int,
         since: datetime,
     ) -> FormImportDocument:
-        """Twin of the Mongo lock document: a transaction-scoped advisory lock
-        per workspace serialises starts, then the counts and the insert run in
-        the same transaction. A start that waits longer than the Mongo lock
-        would is refused as busy, like there (not the session's lock_timeout
-        error)."""
+        """Store a new import unless a workspace limit refuses it
+        (``ImportLimitReached``): a transaction-scoped advisory lock per
+        workspace serialises starts, then the counts and the insert run in the
+        same transaction. A start that waits longer than ``LOCK_WAIT_S`` is
+        refused as busy (not the session's lock_timeout error)."""
         self._check_collection(document, FormImportRow)
         workspace_id = _oid(document.workspace_id)
         async with self._session() as session, session.begin():
@@ -1253,7 +1444,7 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
     @staticmethod
     async def _lock_workspace(session, workspace_id: str) -> None:
         """The workspace's advisory lock for the rest of the transaction; a
-        start that waits longer than the Mongo lock would is refused as busy."""
+        start that waits longer than ``LOCK_WAIT_S`` is refused as busy."""
         wait_ms = max(1, int(lock_wait_s() * 1000))
         await session.execute(text(f"SET LOCAL lock_timeout = '{wait_ms}ms'"))
         try:
@@ -1269,8 +1460,8 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
                 raise ImportLimitReached("import_in_progress") from None
             raise
 
-    async def touch(self, import_id: PydanticObjectId, at: datetime) -> bool:
-        """Twin of the Mongo ``$set``: the row is locked while only its
+    async def touch(self, import_id: RecordId, at: datetime) -> bool:
+        """Move an active import's heartbeat: the row is locked while only its
         heartbeat changes, so a concurrent pipeline save is never undone."""
         async with self._session() as session, session.begin():
             doc = (
@@ -1285,15 +1476,15 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return False
-            stored = from_row_doc(FormImportDocument, doc)
+            stored = decode(FormImportDocument, doc)
             stored.heartbeat_at = at
             await session.execute(self._upsert_statement(row_values(stored)))
         return True
 
     async def expire_stale(
-        self, workspace_id: PydanticObjectId, stale_before: datetime, now: datetime
+        self, workspace_id: RecordId, stale_before: datetime, now: datetime
     ) -> List[FormImportDocument]:
-        """Twin of the Mongo expiry: under the workspace's advisory lock, the
+        """Under the workspace's advisory lock, the
         active rows are locked, and those without progress since
         ``stale_before`` are marked failed (``interrupted``)."""
         expired = []
@@ -1315,7 +1506,7 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
                 .all()
             )
             for doc in docs:
-                record = from_row_doc(FormImportDocument, doc)
+                record = decode(FormImportDocument, doc)
                 if not record.is_stale(stale_before):
                     continue
                 record.mark_interrupted(now)
@@ -1323,7 +1514,7 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
                 expired.append(record)
         return expired
 
-    async def stale_workspaces(self, stale_before: datetime) -> List[PydanticObjectId]:
+    async def stale_workspaces(self, stale_before: datetime) -> List[RecordId]:
         active = await self.many(FormImportRow.status.in_(list(ImportStatus.ACTIVE)))
         return workspaces_with_stale_imports(active, stale_before)
 
@@ -1352,11 +1543,11 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
         ).scalar_one()
         return active, today
 
-    async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
+    async def get(self, import_id: RecordId) -> Optional[FormImportDocument]:
         return await self.one(FormImportRow.id == _oid(import_id))
 
     async def list_by_workspace(
-        self, workspace_id: PydanticObjectId, limit: int = 20
+        self, workspace_id: RecordId, limit: int = 20
     ) -> List[FormImportDocument]:
         return await self.many(
             FormImportRow.workspace_id == _oid(workspace_id),
@@ -1365,14 +1556,14 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
         )
 
     async def count_created_since(
-        self, workspace_id: PydanticObjectId, since: datetime
+        self, workspace_id: RecordId, since: datetime
     ) -> int:
         return await self.count(
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.created_at >= since,
         )
 
-    async def count_active(self, workspace_id: PydanticObjectId) -> int:
+    async def count_active(self, workspace_id: RecordId) -> int:
         return await self.count(
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.status.in_(list(ImportStatus.ACTIVE)),

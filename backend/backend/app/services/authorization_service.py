@@ -19,6 +19,9 @@ from bson import ObjectId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 
+from backend.app.repositories.postgres.forms import (
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import (
@@ -27,7 +30,6 @@ from backend.app.models.enum.workspace_roles import (
     has_owner_role,
     is_owner_membership,
 )
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
@@ -156,7 +158,7 @@ class AuthorizationService:
         self,
         workspace_repo: PostgresWorkspaceRepository,
         workspace_user_repo: PostgresWorkspaceUserRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
     ):
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo

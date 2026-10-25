@@ -495,6 +495,29 @@ async def open_target_stores(
                 )
                 closers.append(engine.dispose)
                 stores.append(core.PostgresStore(engine, target))
+        mongo_stores = [s for s in stores if s.name == "mongo"]
+        url = config.url_for(target)
+        if mongo_stores and target.needs_links and url:
+            # the forms' workspace links are in Postgres since 4.1
+            postgres = next((s for s in stores if s.name == "postgres"), None)
+            if postgres is None:
+                from sqlalchemy.ext.asyncio import create_async_engine
+
+                engine = create_async_engine(
+                    url,
+                    pool_size=1,
+                    max_overflow=0,
+                    connect_args={
+                        "server_settings": {
+                            "statement_timeout": "60000",
+                            "default_transaction_read_only": "on",
+                        }
+                    },
+                )
+                closers.append(engine.dispose)
+                postgres = core.PostgresStore(engine, target)
+            for store in mongo_stores:
+                store.links_source = postgres
         yield stores
     finally:
         for close in reversed(closers):

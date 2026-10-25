@@ -96,14 +96,17 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
   `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
   per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
-- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai`, `actions` and `identity` (`POSTGRES_ONLY_GROUPS` in
-  `backend/db/groups.py`) have no Mongo repository and no routing: their documents are `common.records.Record` classes,
-  their repositories the `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` / `postgres/actions.py` /
-  `postgres/identity.py` classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the
-  start. No Mongo query may join into one of them (its collections are no longer written): the workspace repository
-  reads a workspace's copy of an action through the actions repository, and both template repositories read the title
-  of the workspace a template was imported from through the workspace repository (`with_origin_titles` in
-  `app/repositories/template.py`). A fresh store gets its reference data from `python -m backend.seed_refdata`.
+- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai`, `actions`, `identity` and `forms`
+  (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`) have no Mongo repository and no routing: their documents are
+  `common.records.Record` classes, their repositories the `postgres/refdata.py` / `postgres/analytics.py` /
+  `postgres/ai.py` / `postgres/actions.py` / `postgres/identity.py` / `postgres/forms.py` classes on
+  `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may join into
+  one of them (its collections are no longer written; `MONGO_JOINS` is empty): the workspace repository reads a
+  workspace's copy of an action through the actions repository, the template repository reads the title of the
+  workspace a template was imported from through the workspace repository (`with_origin_titles` in
+  `postgres/forms.py`), and both responses repositories read a form's title and importer through the forms
+  repositories (`form_titles` / `form_importers` in `app/repositories/response_scope.py`). A fresh store gets its
+  reference data from `python -m backend.seed_refdata`.
   Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
   an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
   <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
@@ -119,7 +122,7 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   twin uses `self.save_document(...)`, and `self.upsert(...)` where Mongo inserts or updates fields.
   `tests/app/migrate/test_mirror_verify.py` checks that `verify` is clean right after a routed write.
 - **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
-  group's routed repository (see `postgres/forms.py`). Never query Mongo or Postgres from a service or controller.
+  group's repository (see `postgres/forms.py`, `response_scope.py`). Never query Mongo or Postgres from a service or controller.
 - **No Beanie calls outside the repositories.** `document.save()`, `SomeDocument.find_one(...)` and friends in a
   service, controller or script reach Mongo only: dual mode never mirrors them and a group read from Postgres loses
   them. `tests/app/test_direct_db_access.py` (and its auth and google copies, over `common/db/access_guard.py`) fails

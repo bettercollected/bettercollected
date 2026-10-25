@@ -1,12 +1,10 @@
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
-from backend.app.handlers.database import entity
 from backend.app.models.template import StandardFormTemplate
 import datetime as dt
 
 
-@entity
-class FormTemplateDocument(StandardFormTemplate, MongoDocument):
+class FormTemplateDocument(StandardFormTemplate, Record):
     class Settings:
         name = "form_templates"
         bson_encoders = {

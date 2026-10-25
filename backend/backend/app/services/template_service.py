@@ -8,11 +8,13 @@ from common.models.user import User
 from fastapi import UploadFile
 from typing import Optional
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormTemplateRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
-from backend.app.repositories.template import FormTemplateRepository
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_logo import logo_key, read_logo_upload
 from backend.app.services.temporal_service import TemporalService
@@ -26,7 +28,7 @@ class FormTemplateService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        form_template_repo: FormTemplateRepository,
+        form_template_repo: PostgresFormTemplateRepository,
         aws_service: AWSS3Service,
         workspace_form_service: WorkspaceFormService,
         temporal_service: TemporalService,

@@ -5,8 +5,10 @@ from common.records import RecordId
 from common.services.http_client import HttpClient
 from starlette.requests import Request
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+)
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.standard_form import FormDocument
@@ -22,7 +24,7 @@ class ActionService:
     def __init__(
         self,
         action_repository: PostgresActionRepository,
-        form_repo: FormRepository,
+        form_repo: PostgresFormRepository,
         temporal_service: TemporalService,
         http_client: HttpClient,
         form_provider_service: FormPluginProviderService,

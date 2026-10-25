@@ -43,6 +43,13 @@ from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.schemas.consent import WorkspaceConsentDocument
+from backend.app.schemas.form_import import FormImportDocument
+from backend.app.schemas.form_versions import FormVersionsDocument
+from backend.app.schemas.media_library import MediaLibraryDocument
+from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.template import FormTemplateDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.db.base import Base
 from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
 from common.db.codec_golden import (
@@ -94,6 +101,13 @@ RECORD_CLASSES = (
     BlackListedRefreshTokens,
     SessionDocument,
     UserTagsDocument,
+    FormDocument,
+    FormVersionsDocument,
+    FormTemplateDocument,
+    WorkspaceFormDocument,
+    FormImportDocument,
+    MediaLibraryDocument,
+    WorkspaceConsentDocument,
 )
 
 # Values the synthesizer cannot guess (a field validator with a checksum).

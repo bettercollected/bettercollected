@@ -2,8 +2,8 @@
 from the auth service in one call that names each importer once, and every
 form shows its own importer. Drafts and importer details (members' names and
 emails) are for members who may read the workspace's forms only. The list's
-response counts treat a form linked twice to the same workspace as that
-workspace's only form, in every store."""
+response counts treat a form linked to one workspace only as that
+workspace's form."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -14,11 +14,9 @@ from common.models.user import User
 from httpx import AsyncClient
 
 from backend.app.container import container
-from backend.app.handlers.database import ensure_workspace_form_unique_index
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import FormResponseDocument
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.form_service import FormService
 from tests.app.auth_helpers import access_token
@@ -155,41 +153,24 @@ async def test_no_importer_no_auth_call(
     auth_users.assert_not_awaited()
 
 
-async def test_a_duplicated_link_still_counts_the_workspaces_own_responses(
+async def test_a_re_saved_link_still_counts_the_workspaces_own_responses(
     client: AsyncClient, workspace, test_user_cookies, auth_users
 ):
-    """A form linked twice to one workspace is linked to that workspace only:
-    a response stored before responses carried their workspace is its own.
-    Postgres counts distinct workspaces; Mongo must too. The duplicate is
-    written where it can exist, the Mongo store (Postgres keeps one link per
-    workspace and form)."""
+    """A form whose link to the workspace is saved again is still linked to
+    that workspace only (one link per workspace and form): a response stored
+    before responses carried their workspace is its own."""
     (form,) = await _own_forms(workspace, 1)
     await container.form_response_repo().save(
         FormResponseDocument(
             form_id=form.form_id, response_id="importers-unstamped", answers={}
         )
     )
-    links = None
-    if container.flags().writes_mongo("forms"):
-        # a Mongo database holding a duplicate has no unique link index
-        # (startup skips it and logs an error): drop it for this test
-        links = WorkspaceFormDocument.get_pymongo_collection()
-        await links.drop_index("uq_workspace_forms_workspace_form")
-        await WorkspaceFormDocument(
-            id=PydanticObjectId(),
-            workspace_id=workspace.id,
-            form_id=form.form_id,
-            user_id=testUser.id,
-        ).insert()
-
-    try:
-        listed = await client.get(
-            f"/api/v1/workspaces/{workspace.id}/forms", cookies=test_user_cookies
-        )
-    finally:
-        if links is not None:
-            await links.delete_many({"form_id": form.form_id})
-            assert await ensure_workspace_form_unique_index(links.database)
+    await container.workspace_form_repo().save_workspace_form(
+        workspace.id, form.form_id, testUser.id, WorkspaceFormSettings()
+    )
+    listed = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms", cookies=test_user_cookies
+    )
 
     assert listed.status_code == 200, listed.text
     counts = [

@@ -19,7 +19,7 @@ from backend.app.models.enum.form_integration import (
     FormActionType,
     FormIntegrationType,
 )
-from backend.app.repositories.form_repository import merge_action_parameters
+from backend.app.repositories.postgres.forms import merge_action_parameters
 from backend.app.services.google_sheets_oauth import DRIVE_FILE_SCOPE
 from backend.app.services.sheets_reconsent import (
     LOCALE_MAX_LENGTH,

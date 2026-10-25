@@ -29,7 +29,7 @@ GROUPS = BACKEND_GROUPS
 #: Groups served from Postgres only: their repositories have no Mongo side and
 #: no routing any more. Their collections are read only by the import from 4.0
 #: (``python -m backend.migrate``).
-POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions", "identity")
+POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions", "identity", "forms")
 
 #: Mongo collection -> the repository group whose flags move it. Matches the
 #: ``group=`` of the routed repository serving it (a test keeps them in step);
@@ -91,14 +91,11 @@ COLLECTION_GROUPS = {
     "user_feedback": "refdata",
 }
 
-MONGO_JOINS = {
-    # FormRepository (a form's responses, deletion requests and responder
-    # groups) and WorkspaceFormRepository (responder groups) → responses.
-    # The responses repositories read a form's title and importer through the
-    # forms repositories (backend.app.repositories.response_scope): no join
-    # into forms.
-    "forms": ("responses",),
-}
+#: Group -> the groups its Mongo repositories ``$lookup`` into. Empty since
+#: the forms group is served from Postgres only: the responses repositories,
+#: the last ones with a Mongo side, read a form's title and importer through
+#: the forms repositories (backend.app.repositories.response_scope).
+MONGO_JOINS: Mapping[str, Sequence[str]] = {}
 
 
 def _listed(names: Sequence[str]) -> str:

@@ -19,6 +19,10 @@ from fastapi_pagination import Page
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.form_response_dto import (
@@ -37,7 +41,6 @@ from backend.app.models.dtos.response_dtos import (
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import (
     ResponseScope,
@@ -46,7 +49,6 @@ from backend.app.repositories.response_scope import (
     response_in_workspace,
     response_scope,
 )
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.models.dtos.deletion_request_dto import DeletionRequestOutcome
 from backend.app.schemas.standard_form_response import (
@@ -121,8 +123,8 @@ class FormResponseService:
     def __init__(
         self,
         form_response_repo: FormResponseRepository,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,
         aws_service: AWSS3Service,
         workspace_repo: PostgresWorkspaceRepository,

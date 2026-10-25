@@ -6,11 +6,12 @@ import json
 import os
 
 import pytest
+from beanie import PydanticObjectId
 from dependency_injector import providers
 from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
-from backend.app.schemas.template import FormTemplateDocument
+from backend.app.schemas.workspace_responder import WorkspaceTags
 from backend.db.groups import COLLECTION_GROUPS, GROUPS, POSTGRES_ONLY_GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
 from backend.migrate.__main__ import _tables, build_target
@@ -66,9 +67,12 @@ async def add_origins(*origins):
     return [await mongo.add(o) for o in origins]
 
 
-async def add_templates(*titles):
-    """Form templates in Mongo only (the forms group, which verify covers)."""
-    return [await FormTemplateDocument(title=t).save() for t in titles]
+async def add_tags(*titles):
+    """Workspace tags in Mongo only (the responses group, which verify covers)."""
+    return [
+        await WorkspaceTags(workspace_id=PydanticObjectId(), title=t).save()
+        for t in titles
+    ]
 
 
 # -- the group map ------------------------------------------------------------
@@ -98,12 +102,12 @@ def test_the_group_map_matches_the_routed_repositories():
                 COLLECTION_GROUPS[row.mongo_collection()] == group
             ), f"{name}: {row.__tablename__} is in group {group!r}"
             checked += 1
-    assert checked > 10
+    assert checked >= 5
 
 
 # -- the marker ---------------------------------------------------------------
 async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(target):
-    await add_templates("w1", "w2")
+    await add_tags("w1", "w2")
     async with Runner(target) as runner:
         await runner.backfill()
         assert await marker_rows() == []
@@ -112,8 +116,8 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
     assert outcome["marker"] == "written" and outcome["groups"] == MIGRATING
     marker = await current_marker()
     assert marker is not None and not marker.combined
-    assert marker.collections["form_templates"] == {
-        "group": "forms",
+    assert marker.collections["workspace_tags"] == {
+        "group": "responses",
         "mongo": 2,
         "postgres": 2,
     }
@@ -133,16 +137,16 @@ async def test_a_dirty_group_blocks_the_marker_until_reconciled(target):
     async with Runner(target) as runner:
         await runner.backfill()
     # written to Mongo only, after the backfill: missing in Postgres
-    await FormTemplateDocument(title="W").save()
+    await WorkspaceTags(workspace_id=PydanticObjectId(), title="W").save()
     async with Runner(target) as runner:
         outcome = await runner.record_verify(await runner.verify())
-        assert "forms" not in outcome["groups"] and "responses" in outcome["groups"]
+        assert "responses" not in outcome["groups"]
         assert outcome["marker"] is None
         assert await current_marker() is None
-        await runner.reconcile(["form_templates"])
+        await runner.reconcile(["workspace_tags"])
         outcome = await runner.record_verify(await runner.verify())
     assert outcome["marker"] == "written"
-    assert (await current_marker()).collections["form_templates"]["postgres"] == 1
+    assert (await current_marker()).collections["workspace_tags"]["postgres"] == 1
 
 
 async def test_sampled_and_collection_subset_verifies_are_not_recorded(target):
@@ -154,46 +158,24 @@ async def test_sampled_and_collection_subset_verifies_are_not_recorded(target):
     assert await marker_rows() == []
 
 
-async def test_per_group_verifies_combine_into_the_marker(target):
-    await add_templates("w1")
+async def test_the_last_groups_verify_is_a_full_verify(target):
+    """responses is the only group verify still covers (the others are served
+    from Postgres only): its group verify covers every migrating collection,
+    so it writes the marker itself. (Combining several group verifies:
+    common/tests/test_marker_pg.py.)"""
+    assert MIGRATING == ["responses"]
+    await add_tags("w1")
     async with Runner(target) as runner:
         await runner.backfill()
-    outcomes = []
-    for group in MIGRATING:
-        async with Runner(target) as runner:
-            outcomes.append(
-                await runner.record_verify(await runner.verify(collections_of(group)))
-            )
-    assert [o["groups"] for o in outcomes] == [[g] for g in MIGRATING]
-    assert [o["marker"] for o in outcomes] == [None] * (len(MIGRATING) - 1) + [
-        "combined"
-    ]
+    async with Runner(target) as runner:
+        outcome = await runner.record_verify(
+            await runner.verify(collections_of("responses"))
+        )
+    assert outcome["groups"] == ["responses"] and outcome["marker"] == "written"
     marker = await current_marker()
-    assert marker.combined and [b["group"] for b in marker.based_on] == MIGRATING
-    group_rows = [r for r in await marker_rows() if r["scope"] == SCOPE_GROUP]
-    assert marker.verified_at == min(r["verified_at"] for r in group_rows)
-    assert marker.collections["form_templates"]["mongo"] == 1
+    assert not marker.combined and list(marker.groups) == MIGRATING
+    assert marker.collections["workspace_tags"]["mongo"] == 1
     assert not set(marker.collections) & POSTGRES_ONLY_COLLECTIONS
-
-
-async def test_a_backfill_after_a_group_verify_keeps_it_out_of_the_combination(
-    target,
-):
-    await add_templates("w1")
-    async with Runner(target) as runner:
-        await runner.backfill()
-    first, *rest = MIGRATING
-    async with Runner(target) as runner:
-        await runner.record_verify(await runner.verify(collections_of(first)))
-        # the first group is backfilled again after its verify
-        await runner.backfill(collections_of(first), restart=True)
-        for group in rest:
-            outcome = await runner.record_verify(
-                await runner.verify(collections_of(group))
-            )
-    assert outcome["marker"] is None
-    assert "backfilled after its last clean verify" in outcome["reason"]
-    assert await current_marker() is None
 
 
 async def test_verify_sees_a_postgres_row_before_the_first_mongo_id(target):
@@ -271,7 +253,7 @@ async def test_a_partial_reconcile_leaves_the_outbox_alone(target):
     async with container.pg_sessionmaker()() as session, session.begin():
         session.add(
             MirrorWriteFailure(
-                table_name="FormTemplateRepository", row_id="x", op="save", error="E"
+                table_name="FormResponseRepository", row_id="x", op="save", error="E"
             )
         )
     async with Runner(target) as runner:
@@ -290,46 +272,46 @@ def _args(*argv):
 
 
 async def test_cli_group_verify_records_the_group_and_status_json(target, capsys):
-    await add_templates("w1")
+    await add_tags("w1")
     async with container.pg_sessionmaker()() as session, session.begin():
         session.add(
             MirrorWriteFailure(
-                table_name="FormTemplateRepository", row_id="x", op="save", error="E"
+                table_name="FormResponseRepository", row_id="x", op="save", error="E"
             )
         )
-    assert await run(_args("--group", "forms", "backfill"), target) == 0
-    assert await run(_args("--group", "forms", "verify"), target) == 0
+    assert await run(_args("--group", "responses", "backfill"), target) == 0
+    assert await run(_args("--group", "responses", "verify"), target) == 0
     capsys.readouterr()
-    rows = await marker_rows()
-    assert [(r["scope"], r["groups"]) for r in rows] == [(SCOPE_GROUP, ["forms"])]
+    # the only group verify still covers: a full verify, so the marker too
+    rows = [r for r in await marker_rows() if r["scope"] == SCOPE_GROUP]
+    assert [r["groups"] for r in rows] == [["responses"]]
 
     assert await run(_args("status", "--json"), target) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["format"] == 1 and report["service"] == "backend"
-    assert report["collections"]["form_templates"] == {
-        "group": "forms",
+    assert report["collections"]["workspace_tags"] == {
+        "group": "responses",
         "mongo": 1,
         "postgres": 1,
-        "backfill": report["collections"]["form_templates"]["backfill"],
+        "backfill": report["collections"]["workspace_tags"]["backfill"],
     }
-    assert report["collections"]["form_templates"]["backfill"]["state"] == "done"
-    assert report["groups"]["forms"]["last_verify"]["run_id"] == rows[0]["run_id"]
-    assert report["groups"]["responses"]["last_verify"] is None
+    assert report["collections"]["workspace_tags"]["backfill"]["state"] == "done"
+    assert report["groups"]["responses"]["last_verify"]["run_id"] == rows[0]["run_id"]
     # status still covers the Postgres-only groups (their import)
     assert report["collections"]["allowed_origins"]["group"] == "refdata"
-    assert report["last_verify"]["scope"] == SCOPE_GROUP
-    assert report["marker"] is None
-    assert report["outbox"] == {"mongo": 0, "postgres": 1}
+    assert report["marker"] is not None
+    # recorded before the clean full verify: resolved by it
+    assert report["outbox"] == {"mongo": 0, "postgres": 0}
     assert report["mirror_failures"]["postgres"] == {
         "total": 1,
-        "unresolved": 1,
-        "unresolved_by_method": {"FormTemplateRepository.save": 1},
+        "unresolved": 0,
+        "unresolved_by_method": {},
     }
     assert report["mirror_failures"]["mongo"]["unresolved"] == 0
 
-    assert await run(_args("--group", "forms", "status"), target) == 0
+    assert await run(_args("--group", "responses", "status"), target) == 0
     text = capsys.readouterr().out
-    assert "group forms: last clean verify" in text and "group responses" not in text
+    assert "group responses: last clean verify" in text and "group forms" not in text
 
 
 # -- verify and reconcile leave the Postgres-only groups alone -----------------
@@ -357,7 +339,8 @@ async def test_verify_and_reconcile_skip_the_postgres_only_groups_and_say_so(
     await run(args, target)
     captured = capsys.readouterr()
     assert (
-        f"{name}: skipping the refdata, identity, actions, ai and analytics group(s), "
+        f"{name}: skipping the refdata, identity, forms, actions, ai and analytics "
+        "group(s), "
         "served from Postgres only" in captured.err
     )
     covered = (

@@ -1,15 +1,10 @@
 import datetime as dt
 
-import pymongo
-from pymongo import IndexModel
-
-from backend.app.handlers.database import entity
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 from common.models.standard_form import StandardForm
 
 
-@entity
-class FormVersionsDocument(MongoDocument, StandardForm):
+class FormVersionsDocument(Record, StandardForm):
     version: int
     form_id: str
 
@@ -20,9 +15,4 @@ class FormVersionsDocument(MongoDocument, StandardForm):
             dt.date: lambda o: dt.date.isoformat(o),
             dt.time: lambda o: dt.time.isoformat(o),
         }
-        indexes = [
-            IndexModel(
-                [("form_id", pymongo.DESCENDING), ("version", pymongo.DESCENDING)],
-                unique=True,
-            )
-        ]
+        # (form_id, version) is unique: app revision 0001

@@ -18,6 +18,10 @@ from common.services.http_client import HttpClient
 from fastapi_pagination import Page
 from starlette.requests import Request
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.constants.consents import default_consents
 from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
@@ -38,8 +42,6 @@ from backend.app.models.enum.form_integration import FormActionType, FormIntegra
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.notice_token import (
@@ -78,8 +80,8 @@ class FormService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
         user_tags_service: UserTagsService,
         crypto: Crypto,
         http_client: HttpClient,

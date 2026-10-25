@@ -462,7 +462,13 @@ class TestUnlinkWithUnattributedResponses:
 
         flags, stores = container.flags(), []
         if flags.writes_mongo("responses"):
-            stores.append(MongoStore(container.database_client()[TEST_MONGO_DB]))
+            # the forms' links are in Postgres only (4.1)
+            stores.append(
+                MongoStore(
+                    container.database_client()[TEST_MONGO_DB],
+                    links=PostgresStore(container.pg_engine()),
+                )
+            )
         if flags.writes_postgres("responses"):
             stores.append(PostgresStore(container.pg_engine()))
         await run(stores, apply=True, opens=default_opener())

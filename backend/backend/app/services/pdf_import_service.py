@@ -17,11 +17,11 @@ from typing import Optional, Set
 from beanie import PydanticObjectId
 from loguru import logger
 
-from backend.app.exceptions import HTTPException
-from backend.app.repositories.form_import_repository import (
+from backend.app.repositories.postgres.forms import (
     ImportLimitReached,
     check_import_limits,
 )
+from backend.app.exceptions import HTTPException
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.services.pdf_import.compile import clean_label
 from backend.app.services.pdf_import.analysis import DocumentRefused

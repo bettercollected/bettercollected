@@ -91,9 +91,16 @@ def _documents():
 
 async def _mongo_store():
     links, responses, requests = _documents()
-    for document in (*links, *responses, *requests):
+    for document in (*responses, *requests):
         await document.save()
-    return MongoStore(container.database_client()[TEST_MONGO_DB])
+    # the forms' links are in Postgres only (4.1): the Mongo store reads them there
+    workspace_forms = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    for link in links:
+        await workspace_forms.upsert(link)
+    return MongoStore(
+        container.database_client()[TEST_MONGO_DB],
+        links=PostgresStore(container.pg_engine()),
+    )
 
 
 async def _postgres_store():
@@ -138,10 +145,10 @@ async def _stamped(store):
 
 @pytest.fixture(params=["mongo", "postgres"])
 async def store(request):
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
     if request.param == "postgres":
-        if not _postgres_configured():
-            pytest.skip("DATABASE_URL not set to a *_test database")
-        await _truncate_postgres()
         return await _postgres_store()
     return await _mongo_store()
 
@@ -230,3 +237,20 @@ async def test_after_the_backfill_each_workspace_reads_its_own(store):
         scope = await response_scope(links, workspace, ["shared"])
         listed = await repo.list_by_form_id(scope)
         assert {r.response_id for r in listed} == expected
+
+
+async def test_mongo_reads_the_links_from_postgres_not_its_frozen_copy():
+    """The forms group is in Postgres only since 4.1: a Mongo store reads the
+    forms' workspace links there, not the 4.0 copy left in Mongo; that copy
+    only where no Postgres is configured (a 4.0 database not imported yet)."""
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    store = await _mongo_store()
+    await store.db["workspace_forms"].insert_one(
+        {"workspace_id": WS_B, "form_id": "single", "user_id": "u-4.0"}
+    )
+    links = await store.links()
+    assert links["single"] == [str(WS_A)]
+    assert links["shared"] == [str(WS_A), str(WS_B)]
+    assert (await MongoStore(store.db).links())["single"] == [str(WS_B)]

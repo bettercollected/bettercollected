@@ -279,8 +279,13 @@ class ReadOnlyDatabase:
 class MongoBase:
     name = "mongo"
 
-    def __init__(self, database):
+    def __init__(self, database, links=None):
         self.db = database  # pymongo AsyncDatabase
+        # where the workspace links of forms are read (a PostgresBase): the
+        # forms group is in Postgres only since 4.1, so ``workspace_forms`` in
+        # Mongo is a frozen 4.0 copy, read only where no Postgres is
+        # configured (a 4.0 database not imported yet)
+        self.links_source = links
 
     def encode_key(self, key) -> str:
         return str(key)
@@ -297,6 +302,10 @@ class MongoBase:
         return await self.db["form_responses"].estimated_document_count()
 
     async def links(self) -> Dict[str, List[str]]:
+        """form_id -> the workspaces it is linked to: from Postgres, or with
+        none configured from the 4.0 ``workspace_forms`` in Mongo."""
+        if self.links_source is not None:
+            return await self.links_source.links()
         links: Dict[str, List[str]] = defaultdict(list)
         cursor = (
             self.db["workspace_forms"]
@@ -396,6 +405,28 @@ async def open_stores(
                 )
                 closers.append(engine.dispose)
                 stores.append(classes["postgres"](engine))
+        mongo_stores = [s for s in stores if s.name == "mongo"]
+        if mongo_stores and config.database_url:
+            # the forms' workspace links are in Postgres since 4.1
+            postgres = next((s for s in stores if s.name == "postgres"), None)
+            if postgres is None:
+                from sqlalchemy.ext.asyncio import create_async_engine
+
+                engine = create_async_engine(
+                    config.database_url,
+                    pool_size=1,
+                    max_overflow=0,
+                    connect_args={
+                        "server_settings": {
+                            "statement_timeout": "60000",
+                            "default_transaction_read_only": "on",
+                        }
+                    },
+                )
+                closers.append(engine.dispose)
+                postgres = PostgresBase(engine)
+            for store in mongo_stores:
+                store.links_source = postgres
         yield stores
     finally:
         for close in reversed(closers):

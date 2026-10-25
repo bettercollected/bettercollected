@@ -19,6 +19,7 @@ from backend.app.repositories.postgres.forms import PostgresWorkspaceFormReposit
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.records import to_bson
 from common.db.canonical import canonical_document, checksum
 from common.models.standard_form import RespondentFeedback
 from common.services.crypto_service import crypto_service
@@ -190,8 +191,14 @@ class Data:
 
     async def to_mongo(self, responses=True, credentials=True):
         db = container.database_client()[TEST_MONGO_DB]
-        for document in (*self.links, *self.responses) if responses else ():
+        for document in self.responses if responses else ():
             await document.save()
+        # the forms' links: Postgres since 4.1 (read for Mongo too when it
+        # is configured), and the 4.0 copy in Mongo (read where it is not)
+        links = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+        for link in self.links if responses else ():
+            await links.upsert(link)
+            await db["workspace_forms"].insert_one(to_bson(link))
         if self.credentials and credentials:
             await db[GOOGLE_CREDENTIALS.collection].insert_many(
                 [dict(c) for c in self.credentials]
@@ -355,7 +362,11 @@ def store_objects(store_choice):
     for target in (RESPONSES, GOOGLE_CREDENTIALS):
         for name in store_names(store_choice, target.name):
             if name == "mongo":
-                yield MongoStore(container.database_client()[TEST_MONGO_DB], target)
+                yield MongoStore(
+                    container.database_client()[TEST_MONGO_DB],
+                    target,
+                    links=PostgresStore(container.pg_engine(), target),
+                )
             else:
                 yield PostgresStore(container.pg_engine(), target)
 

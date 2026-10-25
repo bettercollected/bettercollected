@@ -68,14 +68,18 @@ STORES = ["mongo", "postgres"]
 
 # --------------------------------------------------------------------- helpers
 def _stores():
+    postgres = BackfillPostgres(container.pg_engine())
     return {
-        "mongo": BackfillMongo(container.database_client()[TEST_MONGO_DB]),
-        "postgres": BackfillPostgres(container.pg_engine()),
+        # the forms' links are in Postgres only (4.1): Mongo reads them there
+        "mongo": BackfillMongo(
+            container.database_client()[TEST_MONGO_DB], links=postgres
+        ),
+        "postgres": postgres,
     }
 
 
 async def _seed(links, responses, requests=()):
-    for document in (*links, *responses, *requests):
+    for document in (*responses, *requests):
         await document.save()
     sessions = container.pg_sessionmaker()
     workspace_forms = PostgresWorkspaceFormRepository(sessions, None)
@@ -737,8 +741,8 @@ async def test_check_does_not_change_the_data(world):
     stores = _stores()
     from tests.scripts.test_check_undecryptable_values import MongoStore, PostgresStore
 
-    mongo = MongoStore(stores["mongo"].db)
     postgres = PostgresStore(stores["postgres"].engine)
+    mongo = MongoStore(stores["mongo"].db, links=postgres)
     before = (await mongo.batch(None, 100), await postgres.batch(None, 100))
     _, run = await _run(world, "responses.check_undecryptable", {"stores": "both"})
     assert run["state"] == "succeeded"
@@ -877,3 +881,41 @@ async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(wor
     _, again = await _run(world, "responses.backfill_workspaces", params)
     assert again["state"] == "succeeded"
     assert backfill_meta.BackfillResult.model_validate(again["result"]).postgres.responses.conflict == 1
+
+
+# ------------------------------------------------- the forms' links (4.1)
+async def test_mongo_stores_read_the_forms_links_from_postgres():
+    """The forms group is in Postgres only since 4.1: a task's Mongo store
+    reads the forms' workspace links there, never the frozen 4.0 copy in
+    Mongo, for the responses tasks and the keyset tasks."""
+    from backend.admin.tasks.impl import keyset_core
+    from backend.admin.tasks.impl.keyset_state import DataConfig, open_target_stores
+    from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
+
+    await _truncate_postgres()
+    links, _, _ = _documents()
+    workspace_forms = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    for link in links:
+        await workspace_forms.upsert(link)
+    expected = {"single": [str(WS_A)], "shared": [str(WS_A), str(WS_B)]}
+    # a Mongo the stores never reach: any read of its links would fail
+    NEVER_CONNECTED = "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=500"
+
+    config = StoreConfig(
+        mongo_uri=NEVER_CONNECTED, mongo_db=TEST_MONGO_DB, database_url=TEST_DATABASE_URL
+    )
+    classes = {"mongo": BackfillMongo, "postgres": BackfillPostgres}
+    async with open_stores(config, ["mongo"], classes, read_only=True) as (mongo,):
+        assert dict(await mongo.links()) == expected
+
+    data = DataConfig(
+        mongo_uri=NEVER_CONNECTED,
+        mongo_db=TEST_MONGO_DB,
+        google_mongo_db=TEST_MONGO_DB,
+        database_url=TEST_DATABASE_URL,
+        google_database_url=TEST_DATABASE_URL,
+    )
+    async with open_target_stores(
+        data, keyset_core.RESPONSES, ["mongo"], read_only=True
+    ) as (mongo,):
+        assert await mongo.links() == expected

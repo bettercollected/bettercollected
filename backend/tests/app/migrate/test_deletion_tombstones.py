@@ -15,9 +15,6 @@ from beanie import PydanticObjectId
 from sqlalchemy import select
 
 from backend.app.container import container
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.postgres.forms import PostgresFormRepository
-from backend.app.schemas.standard_form import FormDocument
 from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import DeletionTombstone, FormRow, MigrationProgress
@@ -33,6 +30,11 @@ from common.db import tombstones
 from common.db.canonical import from_canonical_document
 from common.db.migrate import Runner, Target
 from common.models.standard_form import StandardForm
+from tests.app.db.beanie_originals import (
+    FormDocument,
+    FormRepository,
+    PostgresFormRepository,
+)
 
 READ = {
     "mongo": "mongo",
@@ -74,11 +76,7 @@ class Down:
 def forms_repo(mode, *, mirror_down=False):
     flags = load_flags({"DB_WRITE_MODE": mode, "DB_READ_SOURCE": READ[mode]})
     mongo = FormRepository()
-    postgres = PostgresFormRepository(
-        container.pg_sessionmaker(),
-        container.responder_groups_repository(),
-        container.form_response_repo(),
-    )
+    postgres = PostgresFormRepository(container.pg_sessionmaker())
     if mirror_down:
         if flags.mirror_store("forms") is ReadSource.POSTGRES:
             postgres = Down(postgres)
@@ -233,7 +231,7 @@ async def test_copies_on_both_sides_of_a_deleted_record_are_reported_not_deleted
     await repo.delete_form(created.form_id)
     # brought back on both sides as they were before the delete
     await FormDocument.get_pymongo_collection().wrapped.insert_one(raw)
-    await PostgresFormRepository(container.pg_sessionmaker(), None, None).upsert(
+    await PostgresFormRepository(container.pg_sessionmaker()).upsert(
         FormDocument.model_validate(from_canonical_document(doc))
     )
     assert await copies(created.id) == (True, True)

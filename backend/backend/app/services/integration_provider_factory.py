@@ -3,19 +3,21 @@ from http import HTTPStatus
 from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.google_sheet_integration_provider import GoogleSheetIntegrationProvider
 from backend.app.services.integration_action_service import IntegrationActionService
-from backend.app.repositories.form_repository import FormRepository
 
 
 class IntegrationProviderFactory:
     def __init__(self, form_provider_service: FormPluginProviderService,
                  crypto: Crypto,
                  http_client: HttpClient, integration_action_service: IntegrationActionService,
-                 form_repo: FormRepository) -> None:
+                 form_repo: PostgresFormRepository) -> None:
         self.google_integration_provider = GoogleSheetIntegrationProvider(form_provider_service, crypto, http_client,
                                                                           integration_action_service, form_repo)
 

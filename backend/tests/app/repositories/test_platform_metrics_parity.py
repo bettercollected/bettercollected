@@ -1,6 +1,7 @@
 """The platform-metrics counts agree between each Mongo repository and its
 Postgres twin, and count what the dashboard says they count. (The workspace
-counts, identity group, Postgres only since 4.1: test_identity_repositories.py.)
+counts, identity group, Postgres only since 4.1: test_identity_repositories.py;
+the forms group's, Postgres only too, are pinned below.)
 
 Workspaces and forms are dated by ObjectId, responses by ``created_at``.
 Skipped unless DATABASE_URL points at a *_test database.
@@ -14,14 +15,12 @@ from beanie import PydanticObjectId
 
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresWorkspaceFormRepository,
 )
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -53,8 +52,10 @@ async def seed(repositories, method, *documents):
 
 
 async def test_workspace_form_counts(sessions):
-    mongo = WorkspaceFormRepository()
-    postgres = PostgresWorkspaceFormRepository(sessions, None)
+    """The forms group is Postgres only since 4.1; these counts agreed with
+    the 4.0 Mongo repository while both stores existed."""
+    links = PostgresWorkspaceFormRepository(sessions, None)
+    forms = PostgresFormRepository(sessions, None, None)
     workspace_id = PydanticObjectId()
 
     def workspace_form(form_id, user_id, created, provider):
@@ -70,7 +71,7 @@ async def test_workspace_form_counts(sessions):
         )
 
     await seed(
-        (mongo, postgres),
+        (links,),
         "save",
         workspace_form("f1", "alice", days_ago(60), "self"),
         workspace_form("f2", "alice", days_ago(2), "google"),
@@ -78,50 +79,35 @@ async def test_workspace_form_counts(sessions):
         workspace_form("f4", "carol", days_ago(45), None),
     )
     # f1 is published twice, f3 once; f2 and f4 never
-    for repository in (FormRepository(), PostgresFormRepository(sessions, None, None)):
-        for form_id, version in (("f1", 1), ("f1", 2), ("f3", 1)):
-            await repository.save_form_version(
-                FormVersionsDocument(form_id=form_id, version=version, title=form_id)
-            )
-    await parity(
-        mongo,
-        postgres,
-        [
-            ("count_workspace_forms", lambda: ()),
-            ("count_workspace_forms", lambda: (days_ago(30),)),
-            ("count_published_workspace_forms", lambda: ()),
-            ("count_workspace_forms_by_provider", lambda: ()),
-            ("count_form_creators", lambda: ()),
-            ("count_form_creators", lambda: (days_ago(30),)),
-            ("count_workspace_forms_created_per_period", lambda: (WEEKS,)),
-        ],
-    )
-    for repository in (mongo, postgres):
-        assert await repository.count_workspace_forms() == 4
-        assert await repository.count_workspace_forms(days_ago(30)) == 2
-        assert await repository.count_published_workspace_forms() == 2
-        assert await repository.count_workspace_forms_by_provider() == {
-            "self": 2,
-            "google": 1,
-            None: 1,
-        }
-        assert await repository.count_form_creators() == 3
-        assert await repository.count_form_creators(days_ago(30)) == 2  # alice, bob
-        assert await repository.count_workspace_forms_created_per_period(WEEKS) == [
-            1,  # 8 March (f3)
-            0,
-            1,  # 16 March (f2)
-        ]
+    for form_id, version in (("f1", 1), ("f1", 2), ("f3", 1)):
+        await forms.save_form_version(
+            FormVersionsDocument(form_id=form_id, version=version, title=form_id)
+        )
+    assert await links.count_workspace_forms() == 4
+    assert await links.count_workspace_forms(days_ago(30)) == 2
+    assert await links.count_published_workspace_forms() == 2
+    assert await links.count_workspace_forms_by_provider() == {
+        "self": 2,
+        "google": 1,
+        None: 1,
+    }
+    assert await links.count_form_creators() == 3
+    assert await links.count_form_creators(days_ago(30)) == 2  # alice, bob
+    assert await links.count_workspace_forms_created_per_period(WEEKS) == [
+        1,  # 8 March (f3)
+        0,
+        1,  # 16 March (f2)
+    ]
 
 
 async def test_response_counts(sessions):
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(
-        sessions, FormRepository(), WorkspaceFormRepository()
+        sessions, container.form_repo(), container.workspace_form_repo()
     )
 
     def response(response_id, submitted, **extra):

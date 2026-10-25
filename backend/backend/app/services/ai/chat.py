@@ -23,11 +23,13 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic.alias_generators import to_camel
 from starlette.concurrency import run_in_threadpool
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.repositories.postgres.ai import PostgresFormAISessionRepository
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.memory import AIMemoryService
@@ -241,8 +243,8 @@ class FormAIChatService:
         self,
         authorization_service: AuthorizationService,
         provider_resolver: Callable,
-        workspace_form_repo: WorkspaceFormRepository,
-        form_repo: FormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
         session_repo: PostgresFormAISessionRepository,
     ):
         self._authorization = authorization_service

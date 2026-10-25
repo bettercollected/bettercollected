@@ -1,11 +1,9 @@
 import datetime as dt
 from backend.app.models.dtos.media_libraries_dto import MediaLibrary
-from common.configs.mongo_document import MongoDocument
-from backend.app.handlers.database import entity
+from common.records import Record
 
 
-@entity
-class MediaLibraryDocument(MongoDocument, MediaLibrary):
+class MediaLibraryDocument(Record, MediaLibrary):
 
     class Settings:
         name = "media_libraries"

@@ -19,7 +19,6 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
@@ -30,7 +29,6 @@ from backend.app.repositories.response_scope import ResponseScope
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
@@ -92,11 +90,11 @@ async def pages_equal(mongo_call, postgres_call, size=10):
 async def test_responses_with_the_ai_notice(sessions):
     """#752: only responses submitted here whose page showed the notice for
     this provider name since the setting was turned on."""
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 
@@ -138,7 +136,7 @@ async def test_responses_with_the_ai_notice(sessions):
 async def test_response_listings_compose_over_forms(sessions):
     ws = PydanticObjectId()
     # forms-group data, in Mongo only: the twin composes over it
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     for form_id, title in (("f1", "Alpha"), ("f2", "Beta")):
         await forms.save_form(FormDocument(form_id=form_id, title=title))
         await workspace_forms.save(
@@ -146,8 +144,8 @@ async def test_response_listings_compose_over_forms(sessions):
         )
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     await seed_both(
@@ -202,7 +200,7 @@ async def test_response_listings_compose_over_forms(sessions):
     )
     await pages_equal(  # the Mongo original: DeletionRequestsRepository
         lambda: DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(ids),
         lambda: postgres.get_deletion_requests(ids),
     )
@@ -385,11 +383,11 @@ async def test_save_internal_answers_is_conditional_on_the_version(sessions):
     and return None on a stale version."""
     from common.models.standard_form import InternalAnswerMeta
 
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
@@ -435,11 +433,11 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
     response that is gone."""
     from common.models.standard_form import RespondentFeedback
 
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
@@ -482,7 +480,7 @@ async def test_responses_are_read_per_workspace(sessions):
     in both stores; unstamped ones count only where the form is the
     workspace's alone (``legacy_form_ids``)."""
     a, b = PydanticObjectId(), PydanticObjectId()
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     await forms.save_form(FormDocument(form_id="p1", title="Provider"))
     for workspace, user in ((a, "ua"), (b, "ub")):
         await workspace_forms.save(
@@ -490,8 +488,8 @@ async def test_responses_are_read_per_workspace(sessions):
         )
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 
@@ -529,7 +527,7 @@ async def test_responses_are_read_per_workspace(sessions):
         assert {i["response_id"] for i in page.items} == own
         requests = await pages_equal(
             lambda: DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(scope),
             lambda: postgres.get_deletion_requests(scope),
         )
@@ -596,11 +594,11 @@ async def test_writes_to_one_workspaces_copy_never_touch_anothers(sessions):
     from common.models.standard_form import InternalAnswerMeta, RespondentFeedback
 
     a, b = PydanticObjectId(), PydanticObjectId()
-    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    forms, workspace_forms = container.form_repo(), container.workspace_form_repo()
     mongo = FormResponseRepository(
         crypto=container.crypto(),
-        form_repo=FormRepository(),
-        workspace_form_repo=WorkspaceFormRepository(),
+        form_repo=container.form_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
     )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 

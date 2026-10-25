@@ -24,6 +24,11 @@ from fastapi import UploadFile
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresFormTemplateRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
@@ -41,9 +46,6 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormResponseCamelModel,
 )
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
-from backend.app.repositories.template import FormTemplateRepository
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.models.template import StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
@@ -278,8 +280,8 @@ class WorkspaceFormService:
         plugin_proxy_service: PluginProxyService,
         authorization_service: AuthorizationService,
         form_service: FormService,
-        workspace_form_repository: WorkspaceFormRepository,
-        form_repo: FormRepository,
+        workspace_form_repository: PostgresWorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
         form_import_service: FormImportService,
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
@@ -288,7 +290,7 @@ class WorkspaceFormService:
         aws_service: AWSS3Service,
         action_service: ActionService,
         crypto: Crypto,
-        form_template_repo: FormTemplateRepository,
+        form_template_repo: PostgresFormTemplateRepository,
         pdf_import_repo=None,
     ):
         self.form_provider_service = form_provider_service

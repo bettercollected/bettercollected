@@ -11,7 +11,7 @@ from backend.app.repositories.responder_groups_repository import (
 )
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.db.models import ResponderGroupFormRow
-from tests.app.repositories.test_forms_parity import sessions  # noqa: F401
+from tests.app.repositories.parity import sessions  # noqa: F401
 
 
 async def _links(repo, form_id):
