@@ -22,10 +22,7 @@ a code change — and by the migration CLI, which runs out of band as a one-off 
 | `DB_AUTO_MIGRATE` (default `false`) | backend (+ jobs-worker), auth, google | `true`: each service runs `alembic upgrade head` for its own schema at startup (backend: plus procrastinate's `jobs` tables), under a per-schema Postgres advisory lock |
 
 Groups (backend): `refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`.
-Auth and google each have one group (`auth`, `google`). From 4.1 the auth service is served from
-Postgres only: it ignores these flags (a `DB_*__auth` naming another store refuses its start), so
-move `auth` through the phases below on 4.0.x; on 4.1 only `python -m auth.migrate` still reads its
-Mongo database. Which collections belong to which backend
+Auth and google each have one group (`auth`, `google`). Which collections belong to which backend
 group is declared in `backend/backend/db/groups.py` (`COLLECTION_GROUPS`); it matches the `group`
 of the repository that serves each collection, so `--group g` on the migration CLI covers exactly
 what `DB_READ_SOURCE__g` / `DB_WRITE_MODE__g` move. `--group` accepts several groups (repeated or
@@ -468,7 +465,8 @@ group's B meets the exit criteria.
 The `google` steps run on 4.0.x. From 4.1 on, `integrations-googleform` has no Mongo store: it
 serves from Postgres only and refuses to start while `DB_READ_SOURCE`, `DB_WRITE_MODE` or their
 `__google` overrides name anything but `postgres` (unset is fine). `googleform.migrate` still
-reads the 4.0 Mongo data for the import.
+reads the 4.0 Mongo data for the import. The same holds for `auth` and the `auth` service
+(`DB_READ_SOURCE`, `DB_WRITE_MODE` and their `__auth` overrides; `auth.migrate` for the import).
 
 **A, the read switch.** Add the read override and redeploy the service(s). Writes stay on `dual`,
 so Mongo stays primary. Shadow reads stay on and now compare Postgres answers with Mongo's. Soak

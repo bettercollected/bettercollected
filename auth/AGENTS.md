@@ -40,10 +40,10 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   `common.ids.RecordId` (same 422 text and OpenAPI component as `PydanticObjectId`). The only repository is
   `app/repositories/user_repository.py` `UserRepository` (`common.records.repository.RecordRepository`); there is
   no Mongo side, no `RoutingRepository`, no mirror outbox writes and no shadow reads any more.
-- **Flags** (`auth/db/flags.py`): auth always runs as `DB_READ_SOURCE=postgres` / `DB_WRITE_MODE=postgres`. The
-  global `DB_READ_SOURCE` / `DB_WRITE_MODE` / `DB_SHADOW_READ_SAMPLE` are ignored (deployments share one env file
-  with the backend, whose groups read them). A stale `DB_READ_SOURCE__auth` / `DB_WRITE_MODE__auth` naming any
-  other store refuses the start, naming the setting. Startup also refuses without `DATABASE_URL`, and on a schema
+- **Flags** (`auth/db/flags.py`, the same rule as the Google integration's): auth always runs as
+  `DB_READ_SOURCE=postgres` / `DB_WRITE_MODE=postgres`. `DB_READ_SOURCE`, `DB_WRITE_MODE` or their `__auth`
+  overrides set to anything but `postgres` refuse the start, naming the setting (unset is fine); other groups'
+  overrides and `DB_SHADOW_READ_SAMPLE` are ignored. Startup also refuses without `DATABASE_URL`, and on a schema
   behind the code's Alembic head (`DB_AUTO_MIGRATE=true` applies it first).
 - **Migrations:** `auth/migrations` (Alembic, `auth/alembic.ini`); this service owns the `auth` schema's chain.
 - **The import from 4.0** (`python -m auth.migrate preflight|backfill|verify|reconcile|status`) still reads the

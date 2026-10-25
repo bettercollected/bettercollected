@@ -18,7 +18,7 @@ class AppContainer(containers.DeclarativeContainer):
     # Define non-decorated objects here
     http_client: HttpClient = providers.Singleton(HttpClient)
 
-    # Postgres only since 4.1 (auth/db/flags.py): a stale per-group flag
+    # Postgres only since 4.1 (auth/db/flags.py): a stale DB_* flag
     # naming Mongo refuses the start. Without DATABASE_URL the engine is None
     # and startup refuses (app/asgi.py).
     flags = providers.Singleton(load_auth_flags)

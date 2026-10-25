@@ -43,7 +43,7 @@ async def on_startup():
     """
     log.debug("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
-    flags = container.flags()  # refuses a stale DB_*__auth flag (auth/db/flags.py)
+    flags = container.flags()  # refuses a stale DB_* flag (auth/db/flags.py)
     log.info(
         "persistence flags: %s", json.dumps(flags.describe([GROUP]), sort_keys=True)
     )

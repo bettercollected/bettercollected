@@ -1,7 +1,7 @@
-"""auth is served from Postgres only (4.1): it starts and serves without Mongo
-whatever the global DB_* flags say (they are the backend's, in a shared env
-file), refuses to start on a stale ``DB_*__auth`` flag naming another store,
-and refuses to start without DATABASE_URL.
+"""auth is served from Postgres only (4.1): it starts and serves without Mongo,
+refuses to start on a stale ``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` (or their
+``__auth`` overrides) naming another store, and refuses to start without
+DATABASE_URL.
 
 The boots run the app factory in a fresh process, as a deployment does, with
 MONGO_URI pointing at a closed port: a start that tried to reach Mongo would
@@ -64,15 +64,15 @@ def boot(env_changes: dict) -> subprocess.CompletedProcess:
     "env",
     [
         {},
-        {"DB_READ_SOURCE": "mongo", "DB_WRITE_MODE": "dual"},
-        {"DB_WRITE_MODE": "postgres_primary_dual", "DB_SHADOW_READ_SAMPLE": "0.5"},
+        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
+        {"DB_READ_SOURCE": "", "DB_WRITE_MODE__auth": " Postgres "},
         {"DB_READ_SOURCE__auth": "postgres", "DB_WRITE_MODE__AUTH": "postgres"},
-        {"DB_WRITE_MODE__auth": ""},
-        {"DB_READ_SOURCE__identity": "mongo", "DB_WRITE_MODE__forms": "dual"},
-        {"DB_READ_SOURCE": "not-a-store"},  # the backend's to refuse, not ours
+        # another service's group, and shadow reads: no store of this service
+        {"DB_READ_SOURCE__identity": "mongo", "DB_WRITE_MODE__google": "dual"},
+        {"DB_SHADOW_READ_SAMPLE": "0.5"},
     ],
 )
-def test_auth_is_on_postgres_whatever_the_other_flags(env):
+def test_auth_is_on_postgres(env):
     flags = load_auth_flags(env)
     assert flags == POSTGRES_ONLY
     assert flags.read_source("auth") is ReadSource.POSTGRES
@@ -84,6 +84,9 @@ def test_auth_is_on_postgres_whatever_the_other_flags(env):
 @pytest.mark.parametrize(
     "key, value",
     [
+        ("DB_READ_SOURCE", "mongo"),
+        ("DB_WRITE_MODE", "dual"),
+        ("DB_WRITE_MODE", "postgres_primary_dual"),
         ("DB_READ_SOURCE__auth", "mongo"),
         ("DB_WRITE_MODE__auth", "dual"),
         ("DB_WRITE_MODE__AUTH", "postgres_primary_dual"),
@@ -91,11 +94,11 @@ def test_auth_is_on_postgres_whatever_the_other_flags(env):
         ("DB_READ_SOURCE__Auth", "nonsense"),
     ],
 )
-def test_a_stale_auth_flag_is_refused(key, value):
+def test_a_stale_flag_is_refused_naming_the_setting(key, value):
     with pytest.raises(FlagError) as refused:
         load_auth_flags({key: value})
     assert f"{key}={value!r}" in str(refused.value)
-    assert "served from Postgres only" in str(refused.value)
+    assert "Postgres only since 4.1" in str(refused.value)
 
 
 # -- the process -----------------------------------------------------------------
@@ -104,12 +107,12 @@ def test_a_stale_auth_flag_is_refused(key, value):
     [
         {},
         {
-            "DB_READ_SOURCE": "mongo",
-            "DB_WRITE_MODE": "dual",
+            "DB_READ_SOURCE": "postgres",
+            "DB_WRITE_MODE": "postgres",
             "DB_SHADOW_READ_SAMPLE": "0.5",
         },
     ],
-    ids=["no flags", "the backend's mongo flags"],
+    ids=["no flags", "postgres flags"],
 )
 def test_starts_and_serves_without_mongo(_postgres_schema, flags):
     result = boot(flags)
@@ -119,10 +122,11 @@ def test_starts_and_serves_without_mongo(_postgres_schema, flags):
     assert "mongo clients: 0" in result.stdout
 
 
-def test_refuses_to_start_on_a_stale_auth_flag(_postgres_schema):
-    result = boot({"DB_WRITE_MODE__auth": "dual"})
+@pytest.mark.parametrize("key", ["DB_WRITE_MODE", "DB_WRITE_MODE__auth"])
+def test_refuses_to_start_on_a_stale_flag(_postgres_schema, key):
+    result = boot({key: "dual"})
     assert result.returncode != 0
-    assert "DB_WRITE_MODE__auth='dual'" in result.stderr
+    assert f"{key}='dual'" in result.stderr
     assert "ready" not in result.stdout
 
 
