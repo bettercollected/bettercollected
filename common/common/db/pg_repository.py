@@ -7,6 +7,8 @@ the boundary as documents, through :mod:`common.db.beanie_bridge`.
 
 from __future__ import annotations
 
+import logging
+
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Type
 
 from sqlalchemy import delete, func, select
@@ -18,7 +20,9 @@ from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db.beanie_bridge import from_row_doc, row_values
 from common.db.convergence import active, touch, ttl_of
-from common.db.tombstones import record_postgres
+from common.db.tombstones import prune_due, prune_postgres, record_postgres
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresNotConfigured(RuntimeError):
@@ -242,10 +246,29 @@ class PostgresRepositoryBase:
         self._touch(row, ids)
         return len(ids)
 
+    async def _prune_tombstones_if_due(self, row: Type[Any]) -> None:
+        """Every so many recorded deletes, drop a bounded batch of expired
+        tombstones: after the delete committed, in a transaction of its own,
+        and never failing the delete."""
+        schema = row.__table__.schema
+        if not prune_due(schema):
+            return
+        try:
+            async with self._session() as session, session.begin():
+                await prune_postgres(session, schema)
+        except Exception as exc:  # noqa: BLE001 — pruning is housekeeping
+            logger.warning(
+                "pruning tombstones failed: schema=%s error=%s",
+                schema,
+                type(exc).__name__,
+            )
+
     async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
         row = row or self.row
         async with self._session() as session, session.begin():
-            return await self._delete_recorded(session, row, *where)
+            deleted = await self._delete_recorded(session, row, *where)
+        await self._prune_tombstones_if_due(row)
+        return deleted
 
     async def delete_one_where(
         self, *where: Any, row: Optional[Type[Any]] = None
@@ -262,7 +285,9 @@ class PostgresRepositoryBase:
                 .limit(1)
                 .scalar_subquery()
             )
-            return await self._delete_recorded(session, row, row.id == target)
+            deleted = await self._delete_recorded(session, row, row.id == target)
+        await self._prune_tombstones_if_due(row)
+        return deleted
 
     async def delete_by_id(self, document_id: Any) -> int:
         return await self.delete_where(self.row.id == str(document_id))

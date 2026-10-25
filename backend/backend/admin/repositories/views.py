@@ -158,6 +158,37 @@ async def platform_counts(conn: AsyncConnection) -> dict:
     return combine_counts(app, auth)
 
 
+# The other services' schemas, each read through its own definer functions
+# (postgres/ensure-admin-roles.sh); the admin role has no access to the schemas.
+OTHER_SCHEMA_FUNCTIONS = {
+    "app": ("admin.schema_revision_app()", "admin.outbox_counts_app()"),
+    "auth": ("admin.schema_revision_auth()", "admin.outbox_counts_auth()"),
+    "google": ("admin.schema_revision_google()", "admin.outbox_counts_google()"),
+}
+_REVISION = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+async def schema_revisions(conn: AsyncConnection, schema: str) -> Optional[tuple[str, ...]]:
+    """The schema's Alembic revision(s); ``None`` before its first migration.
+    The answer is data from another owner: anything that is not a plain
+    revision id is dropped."""
+    function = OTHER_SCHEMA_FUNCTIONS[schema][0]
+    raw = (await conn.execute(text(f"SELECT {function}"))).scalar_one()
+    if raw is None:
+        return None
+    return tuple(sorted(v for v in raw if isinstance(v, str) and _REVISION.match(v)))
+
+
+async def outbox_counts(conn: AsyncConnection, schema: str) -> Optional[tuple[int, int]]:
+    """(unresolved, total) rows of the schema's mirror outbox; ``None`` before the
+    table exists."""
+    function = OTHER_SCHEMA_FUNCTIONS[schema][1]
+    row = (await conn.execute(text(f"SELECT unresolved, total FROM {function}"))).one()
+    if row.unresolved is None or row.total is None:
+        return None
+    return max(int(row.unresolved), 0), max(int(row.total), 0)
+
+
 _AUDIT_COLUMNS = (
     audit_log.c.seq, audit_log.c.id, audit_log.c.at, audit_log.c.actor_kind,
     audit_log.c.actor_email, audit_log.c.ip, audit_log.c.action,
