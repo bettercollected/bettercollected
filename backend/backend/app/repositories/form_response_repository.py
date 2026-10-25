@@ -162,6 +162,12 @@ class FormResponseRepository(BaseRepository):
                     "from": "workspace_responder",
                     "localField": "email",
                     "foreignField": "email",
+                    # this workspace's record only, the oldest if it has several
+                    "pipeline": [
+                        {"$match": {"workspace_id": scope.workspace_id}},
+                        {"$sort": {"_id": 1}},
+                        {"$limit": 1},
+                    ],
                     "as": "responder",
                 }
             },
@@ -183,6 +189,7 @@ class FormResponseRepository(BaseRepository):
                     "from": "workspace_tags",
                     "localField": "tags",
                     "foreignField": "_id",
+                    "pipeline": [{"$match": {"workspace_id": scope.workspace_id}}],
                     "as": "tags",
                 }
             },

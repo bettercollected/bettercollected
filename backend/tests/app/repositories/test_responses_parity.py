@@ -37,6 +37,7 @@ from backend.app.repositories.postgres.ai import (
     PostgresMcpAuditLogRepository,
     PostgresWorkspaceAIProfileRepository,
 )
+from backend.db.models import WorkspaceTagRow
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
     PostgresResponderGroupsRepository,
@@ -64,7 +65,10 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from backend.app.schemas.workspace_responder import WorkspaceResponderDocument
+from backend.app.schemas.workspace_responder import (
+    WorkspaceResponderDocument,
+    WorkspaceTags,
+)
 from common.exceptions import NotFoundError
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
@@ -603,6 +607,86 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
         assert stored.respondent_feedback[1].created_at == at(12)
         assert "respondent" in str(stored.answers)
         assert await repo.add_respondent_feedback(gone, entry(4)) is None
+
+
+async def test_responders_are_listed_per_workspace(sessions):
+    """Two workspaces hold responses from one email, each with its own
+    responder record (metadata, tags). Each listing carries its own record
+    and only its own workspace's tags, one row per email even where a
+    workspace has two records for it, the same in both stores."""
+    a, b = PydanticObjectId(), PydanticObjectId()
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    await forms.save_form(FormDocument(form_id="p1", title="Provider"))
+    for workspace, user in ((a, "ua"), (b, "ub")):
+        await workspace_forms.save(
+            WorkspaceFormDocument(workspace_id=workspace, form_id="p1", user_id=user)
+        )
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+    mongo_responders = WorkspaceRespondersRepository()
+    postgres_responders = PostgresWorkspaceRespondersRepository(sessions)
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        response("p1", "a1", 1, answers={}, workspace_id=a, dataOwnerIdentifier="r@x"),
+        response("p1", "a2", 2, answers={}, workspace_id=a, dataOwnerIdentifier="s@x"),
+        response("p1", "b1", 3, answers={}, workspace_id=b, dataOwnerIdentifier="r@x"),
+    )
+    tag_a = WorkspaceTags(id=PydanticObjectId(), workspace_id=a, title="alpha-tag")
+    tag_b = WorkspaceTags(id=PydanticObjectId(), workspace_id=b, title="beta-tag")
+    records = [  # oldest first: the first of a workspace's duplicates is the one read
+        WorkspaceResponderDocument(
+            id=PydanticObjectId(),
+            workspace_id=a,
+            email="r@x",
+            metadata={"team": "alpha"},
+            # a tag of another workspace that got stored (before it was refused)
+            tags=[tag_a.id, tag_b.id],
+        ),
+        WorkspaceResponderDocument(
+            id=PydanticObjectId(),
+            workspace_id=b,
+            email="r@x",
+            metadata={"team": "beta"},
+            tags=[tag_b.id],
+        ),
+        WorkspaceResponderDocument(
+            id=PydanticObjectId(),
+            workspace_id=a,
+            email="r@x",
+            metadata={"team": "duplicate"},
+            tags=[],
+        ),
+    ]
+    for tag in (tag_a, tag_b):
+        await tag.save()
+        await postgres_responders.save_document(tag, row=WorkspaceTagRow)
+    for record in records:
+        await record.save()
+        await postgres_responders.save_document(record)
+
+    expected = {
+        a: [
+            ("r@x", {"team": "alpha"}, ["alpha-tag"]),
+            ("s@x", None, []),
+        ],
+        b: [("r@x", {"team": "beta"}, ["beta-tag"])],
+    }
+    for workspace, rows in expected.items():
+        scope = ResponseScope(workspace, ("p1",))
+        page = await pages_equal(
+            lambda: mongo.list(scope, False, data_subjects=True),
+            lambda: postgres.list(scope, False, data_subjects=True),
+        )
+        assert page.total == len(rows)
+        assert [
+            (
+                i["email"],
+                i.get("metadata"),
+                [t["title"] for t in i["tags"]],
+            )
+            for i in page.items
+        ] == rows
 
 
 async def test_responses_are_read_per_workspace(sessions):
