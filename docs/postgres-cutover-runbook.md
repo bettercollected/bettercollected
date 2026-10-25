@@ -7,6 +7,14 @@ step. Code conventions: `backend/AGENTS.md` "Persistence".
 Everything below is driven by environment variables read at boot — **a flip is a restart**, never
 a code change — and by the migration CLI, which runs out of band as a one-off process.
 
+**Two routes.** The phases below (1 to 3) and the Swarm stages are the *staged* route: group by
+group on 4.0.x, with soaks, ending on Postgres with Mongo off before 4.1. A stack that already
+mirrors everything on 4.0.x (`DB_WRITE_MODE=dual`, verified clean) can instead take the *straight*
+route, where the 4.1 deploy is the cutover and nothing soaks: "Cutover at the 4.1 deploy", with
+its rollback, "Rolling back to 4.0.x after the 4.1 deploy", in the Swarm section. The read and
+primary switches (A, B), C, D and every soak are superseded on the straight route; Phase 1 and
+Stage 0 (mirror, backfill, verify) are its prerequisite.
+
 ## The moving parts
 
 | piece | where | what it does |
@@ -452,12 +460,13 @@ Mongo up from the dump plus the outbox.
 
 ## Upgrading to 4.1 — the Postgres-only groups
 
-From 4.1 the `refdata`, `analytics`, `ai` and `actions` groups are served from Postgres only
-(`POSTGRES_ONLY_GROUPS` in `backend/backend/db/groups.py`): their Mongo collections are read by
+From 4.1 the `refdata`, `analytics`, `ai`, `actions`, `identity` and `forms` groups are served from
+Postgres only, and `responses` follows before the release (`POSTGRES_ONLY_GROUPS` in
+`backend/backend/db/groups.py` is the list in force): their Mongo collections are read by
 nothing but the import, and a `DB_READ_SOURCE__<g>`/`DB_WRITE_MODE__<g>` other than `postgres` for
 one of them refuses the start. A stack whose data for these groups is still only in Mongo must
 import it, or it would run with no allowed origins, coupon codes, price suggestions, feedback, flow
-events, AI memories and profiles, or actions.
+events, AI memories and profiles, actions, workspaces, members, sessions, forms or templates.
 
 **The start refuses until the import is done.** The backend API, its job worker and
 `python -m backend.scim` check at startup, after the schema check
@@ -471,7 +480,8 @@ in Postgres and were never imported. After an import an empty table counts as th
 doing (rows deleted or expired since), so the check never blocks a stack that imported. Without
 `MONGO_URI` (a new 4.1 install) Mongo is never contacted. With `MONGO_URI` set, a Mongo that cannot
 be read refuses the start too: the check cannot tell whether data would be lost. Remove
-`MONGO_URI` only when Mongo holds nothing to keep (stage D below). `python -m
+`MONGO_URI` only when Mongo holds nothing to keep (stage D below, or step 7 of "Cutover at the 4.1
+deploy"). `python -m
 backend.seed_refdata` runs the same check for `refdata` before it seeds the empty tables, since
 seeded rows would hide unimported ones from the check.
 
@@ -520,8 +530,8 @@ stopped (deploy.sh reminds you). The backend and the jobs worker default to
 with the 4.0 images (the CLI is the same):
 
 ```bash
-python -m backend.migrate --group refdata,analytics,ai,actions preflight
-python -m backend.migrate --group refdata,analytics,ai,actions backfill   # resumable; re-run until done
+python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms preflight
+python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms backfill   # resumable; re-run until done
 python -m backend.migrate status                                          # backfill=done per collection
 ```
 
@@ -558,7 +568,13 @@ things:
 - **an admin task** in the portal, where one exists (`responses.*`, `keyset.verify`). `verify` and
   `reconcile` are not tasks: they run from the CLI only.
 
-The stages: **Stage 0** is Phase 1 plus a week of shadow reads. For each group, **A** (read
+Two routes. **Straight to 4.1** ("Cutover at the 4.1 deploy", then "Rolling back to 4.0.x after the
+4.1 deploy"): the 4.1 deploy is the cutover, after a final clean `verify`, a fresh backup and a
+short stop of the writers; no soaks. **Staged** (Stage 0 to Decommission, further down): for
+operators who want to move group by group on 4.0.x first, with the soaks listed there. The two share
+the ground rules, the one-off commands and what to watch.
+
+The staged stages: **Stage 0** is Phase 1 plus a week of shadow reads. For each group, **A** (read
 switch) and **B** (primary switch) split Phase 2 step 1 into two restarts, so each restart changes
 one thing. **C**, **D** and **decommission** take Phase 3 in three steps. The jobs flips run
 alongside A and B. Placeholders: `<stack>` is the stack name and `<g>` a group. Services have their
@@ -626,6 +642,11 @@ docker exec "$C" /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini curr
 #   <stack>_integrations-googleform /api/integrations/google/.venv/bin/python -m googleform.migrate …
 ```
 
+When the stack runs the settings store (`SETTINGS_STORE=required`), the CLI needs the master key
+as well. If it is a Swarm secret, export it inside the container before the command, and never
+print it: `export SETTINGS_MASTER_KEY="$(cat /run/secrets/<the secret's name>)"`. Paste only the
+counts a command prints.
+
 A long `backfill` can run as a one-off Swarm job (Docker 20.10 or later), so a rolling service
 does not cut it off:
 
@@ -679,6 +700,290 @@ done.
 Exit criteria for every A and B: 0 unexplained shadow diffs, from at least 1000 shadow reads of the
 group or the whole soak for a low-volume group; 5xx at baseline; p95 at most 1.2× baseline;
 `verify --group <g>` clean; 0 mirror failures for the group.
+
+### Cutover at the 4.1 deploy (straight from 4.0.x on `dual`)
+
+For a stack that already writes both stores on 4.0.x (`DB_WRITE_MODE=dual`, Stage 0 done) the 4.1
+deploy itself is the cutover. Nothing is flipped group by group and nothing soaks: Postgres already
+holds a mirrored copy of everything, a clean `verify` has proved it, 4.1 serves from Postgres only,
+and Mongo stops being written at the deploy and is kept, volume and all, as the copy as of that
+moment. The only waits are the commands' own run times.
+
+**Before you start**
+
+- The stack runs 4.0.13 or later 4.0.x with Stage 0's values on `backend`, `jobs-worker`, `auth`,
+  `integrations-googleform` and `task-runner` (`DB_WRITE_MODE=dual`, `DB_AUTO_MIGRATE=true`). Before
+  4.0.13 a clean `verify` could not write the `backend` marker.
+- **Save the rollback definition:** a copy of the stored stack definition as it is deployed now (image
+  tags, flags, `MONGO_*`, the task runner's `ADMIN_TASKS_BACKEND_URL`), outside the stack manager's
+  history. "Rolling back to 4.0.x" below starts from it.
+- The keyset freeze is in force (Ground rules): no `keyset.reencrypt`, no `keyset.drop_old`, until the
+  rollback window below has closed.
+- **Gate:** the 4.1 section of `CHANGELOG.md` has its "Upgrade notes" and they match the stack
+  changes in step 5 below. Also compare the compose file of the 4.1 tag with the one of the tag you
+  run (`git diff <4.0 tag> <4.1 tag> -- docker-compose.deployment.yml`). A difference is a step this
+  section is missing: do not start before it is settled.
+
+**Steps**
+
+1. **Final `verify` on 4.0.x**, per service, with the services running (one-off commands below).
+   It must exit 0 on all three. Output is counts only; paste that, nothing else.
+
+   ```bash
+   docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate verify
+   docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate status --json
+   # auth: /api/auth/.venv/bin/python -m auth.migrate …
+   # Google: /api/integrations/google/.venv/bin/python -m googleform.migrate …
+   ```
+
+   In each service's `status --json`: `marker` is not `null`; the backfill checkpoint of every
+   collection is `done` (4.1's start check relies on it); `outbox` is 0 for both stores and
+   `mirror_failures.<store>.unresolved` is 0. Anything else: Phase 1 step 5 (`reconcile`, then
+   `verify` again) and do not go on until it is clean. Two more gates, so that nothing is found only
+   during the outage:
+   - the `workspace_forms` checkpoint in the backend's `status --json` is `done` with `skipped` 0
+     (4.1's response tools refuse with `forms_import_incomplete` otherwise;
+     `backend/backend/db/forms_import.py`);
+   - `python -m auth.migrate preflight` reports no values that differ only in letter case (it logs
+     the counts as a warning). auth revision 0005 refuses to migrate while any exist, and 4.1's
+     `auth` would then not start: resolve them first ("Accounts whose emails differ only in case").
+2. **Stop the writers.** Put the proxy on a maintenance page if you have one, then scale `backend`,
+   `jobs-worker`, `auth`, `integrations-googleform`, `task-runner` and the workers that call the API
+   (`actions-executor`, the Temporal worker) to 0 (`docker service scale <stack>_<service>=0 …`).
+   Stop `integrations-typeform` too if the stack still has it (its own Mongo database; 4.1 removes
+   the service), and keep it in the saved rollback definition. Check that no one-off CLI is still
+   running (a `bc-migrate` job, an exec session). Leave Postgres, Mongo and the admin service up. This is a short outage on purpose: a rolling
+   update would run a 4.0.x task (it reads Mongo and mirrors every write to Postgres) next to a 4.1
+   task (Postgres only), and the old task saving a document it read from the older Mongo copy would
+   overwrite the newer Postgres one. The next stack deploy brings every service back to the replicas
+   of the definition.
+3. **Backups, now that nothing writes.** A fresh Postgres backup of the application database (every
+   schema) from your backup tool, confirmed finished and listed; and
+   `mongodump --archive --gzip` of every Mongo database (backend, auth, the Google integration),
+   encrypted and kept off the host. These are the restore points. The restore test of "Backups and a
+   restore test before D" applies here too: do it once before the cutover if it has never been done.
+4. **Flags that 4.0.x and 4.1 both accept.** The release tag updates images only (the deploy workflow
+   changes the image of every service and nothing else), and 4.1's `auth` and `integrations-googleform`
+   refuse a start with `DB_WRITE_MODE=dual`. So edit the stored definition first and deploy it with
+   the services still on their 4.0.x images:
+
+   | service | change |
+   |---|---|
+   | `backend`, `jobs-worker`, `auth`, `integrations-googleform` | `DB_READ_SOURCE=postgres`, `DB_WRITE_MODE=postgres`; remove every `DB_READ_SOURCE__*`, `DB_WRITE_MODE__*` and `DB_SHADOW_READ_SAMPLE`; `DB_AUTO_MIGRATE=true` stays |
+   | `task-runner` | `DB_WRITE_MODE=postgres`; remove `DB_WRITE_MODE__RESPONSES` and `DB_WRITE_MODE__GOOGLE`; stays at 0 replicas until step 5 |
+   | `actions-executor`, the Temporal worker | stay at 0 replicas until step 5 |
+   | `mongo-seed` | 0 replicas, for good |
+
+   Keep `MONGO_*` where it is for now (4.1's start check may still look at Mongo). On 4.0.x
+   `postgres` for every group is the combination the CI suites of the backend, auth and the Google
+   integration run, and those services start without Mongo being read. **Every replica must log
+   `persistence flags` with `postgres` everywhere before you go on**, and
+   `GET /api/v1/persistence/status` must show Mongo as not used: a `failure_action: rollback` in the
+   next step would otherwise put a `dual` spec back. This deploy is where Mongo stops being written;
+   it holds the data of step 3. Do not push the release tag before this step is done and checked.
+5. **Deploy 4.1**, in this order:
+   1. **Roles and grants, before the tag.** Run `postgres/ensure-admin-roles.sh` of the 4.1 tag as the
+      database superuser inside the `app-postgres` container, the way the stack ran it for earlier
+      releases (`deploy.sh` does `docker compose exec -T app-postgres bash -s < postgres/ensure-admin-roles.sh`;
+      on Swarm, `docker exec -i <app-postgres container> bash -s < postgres/ensure-admin-roles.sh`:
+      `-i`, not `-t`). The script refuses to run unless the container's environment holds
+      `BC_ADMIN_PASSWORD`, `BC_ADMIN_MIG_PASSWORD`, `BC_TASKS_PASSWORD`,
+      `BC_TASKS_DATA_APP_PASSWORD` and `BC_TASKS_DATA_GOOGLE_PASSWORD` (letters, digits and
+      `. _ ~ -` only): the Swarm `app-postgres` service must carry all five, as it does when the
+      stack has run the script before (since 4.0.10). Check that they are set; never print their
+      values. The script is idempotent. 4.1 adds `admin.credential_purges_overdue()`, a column
+      `SELECT` on `jobs.procrastinate_*` for `bc_count_app`, and a `SELECT` on
+      `app.migration_progress` for the task runner's data role; without them Health's integrity
+      monitor and the response tools' `forms_import_incomplete` check fail. Run it again once the
+      4.1 services have migrated, as `deploy.sh` does.
+   2. **Edit the stored definition for 4.1** (do not deploy it yet). It carries the 4.1 image
+      tags (a definition still on the 4.0.x tags, deployed after the images were updated, would put
+      every image back), the replicas of the writers still at 0, and the 4.1 changes the upgrade
+      notes (the gate above) must agree with:
+      - **The internal listener** (docs/admin-service.md, "Internal routes"; never publish port
+        8001): the task runner's `ADMIN_TASKS_BACKEND_URL` and the `SERVER_URL` of the Temporal
+        worker and the actions executor (both call the API's key-only routes) point at
+        `http://backend:8001/api/v1`, and the backend gets `API_INTERNAL_ROUTES=internal_port`. A
+        Swarm stack must set the last: with the default `direct`, Swarm's ingress mesh lets outside
+        callers reach the worker routes on port 8000, and only their key stops them. The
+        admin-task routes exist on port 8001 only.
+      - Whatever else the upgrade notes name.
+   3. **Push the release tag.** CI updates the images of every service: `backend`, `jobs-worker`,
+      `task-runner`, `admin` and `document-sandbox` run the backend image. The 4.1 `backend`,
+      `jobs-worker`, `auth`, `integrations-googleform` and `admin` start now, still with the step 4
+      environment. Until sub-step 4 the backend runs without `API_INTERNAL_ROUTES=internal_port`,
+      which is harmless for that window: the callers of those routes (the workers and the task
+      runner) are still at 0 replicas, and `direct` still requires each route's key.
+   4. **Deploy the stored definition of sub-step 2**, with the writers' replicas restored.
+
+   `DB_AUTO_MIGRATE=true` migrates `auth` and `google` to revision 0005 on the first 4.1 start (each
+   service logs `schema … migrated`; `auth` 0005 refuses, with counts, while two accounts differ only
+   in the case of their email). A service that refuses to start rolls back by itself under the
+   `update_config` of Ground rules.
+6. **Smoke test and Health.** Run the production smoke test (docs/smoke-test.md): its "standing
+   responses export and decrypt" check is the canary for keys and codec. Portal → Health: every
+   instance reporting, the `admin`, `app`, `auth` and `google` schemas current, no unresolved outbox
+   row. `responses.check_undecryptable` (`stores: postgres`) finds 0. A sign-in, a submission and
+   its read-back by hand.
+7. **Mongo off, volume kept.** In the stored definition set `mongodb` (and `mongo-seed`, if present)
+   to `deploy.replicas: 0` and remove `MONGO_URI`, `MONGO_DB` and any other `MONGO_*` from
+   `backend`, `jobs-worker`, `auth`, `integrations-googleform` and `task-runner` (`GOOGLE_MONGO_DB`
+   as well). If the settings store holds `MONGO_URI`, clear it in the portal (Settings →
+   `MONGO_URI`; the store keeps its versions). Deploy and wait until every service is healthy and
+   reporting. Keep the volume and the encrypted dump: retention is in "Decommission".
+
+Step 4 is where Mongo stops being written and step 5 swaps the code: those two are the cutover.
+Up to the end of step 3 nothing has changed but the outage. The rollback below undoes step 5 (the
+image tags, and the 4.1-only settings) and keeps step 4's flags.
+
+### Rolling back to 4.0.x after the 4.1 deploy
+
+Writes since the deploy exist only in Postgres, so a rollback keeps Postgres as the store and never
+reads Mongo as it is. What the code allows, checked against `v4.0.13` and `develop`:
+
+- **Schema.** 4.0.13 starts on a database migrated by 4.1. Its schema check refuses only a schema
+  *behind* the code; one *ahead* (a revision the image does not know) logs a warning and starts
+  (`common/db/schema_guard.py:215-222, 442-445`), and `DB_AUTO_MIGRATE` then applies nothing
+  (`:350-351`). Against 4.0.13's heads (`app` 0021, `admin` 0018, `auth` 0004, `google` 0004), 4.1
+  adds `auth` 0005 (unique `lower(email)` index in place of the exact constraint) and `google` 0005
+  (the `purge_user_credentials` function). Both leave 4.0.13's tables and columns as they were.
+  Never run `alembic downgrade` for a rollback: `auth` 0005's downgrade would fail on accounts that
+  differ only in case, and nothing in 4.0.13 needs it. Effect of 0005 that remains: on 4.0.x a
+  sign-in whose email differs only in case from an existing account's now fails instead of creating
+  a second account. If 4.1 ships further migrations, this paragraph has to be redone before the tag.
+- **Stored documents.** 4.1 writes the same `doc` bytes 4.0.13 reads
+  (`common/records/codec.py:1-26`, pinned by the codec golden tests), and the stored document models
+  are the same in both releases. Four things 4.1 can leave behind that 4.0.13 does not know, all
+  checked in step 1 below: SSO connections in the new `release_pending` status (4.0.13's status enum
+  has no such value, so reading the row fails); queued jobs of kinds a 4.0.13 worker has no task for
+  (procrastinate marks them failed, with no retry); settings rows written on 4.1 that 4.0.13 refuses
+  (a startup refusal for a secret); and `GOOGLE_FORMS_IMPORT`, which 4.0.13 ignores (Google imports
+  and calls with a stored credential work again). Google Sheets actions reconnected on 4.1 under
+  `GOOGLE_SHEETS_OAUTH=backend` (the `drive.file` scope, through the sign-in client) may hold
+  credentials 4.0.13's Google service cannot use: reconnect them after the rollback if a sheet stops
+  filling.
+- **Mongo** was last written at step 4 of the cutover. 4.0.13 starts without it
+  (`common/db/mongo.py:3-9`; the CI suites of the backend, auth and the Google integration run this
+  way), so the rollback does not need it at all.
+
+**Rollback (images back; Postgres stays the only store).** No Mongo, no `reconcile`; nothing is
+lost.
+
+1. **Check what 4.1 wrote that 4.0.13 cannot use**, on the 4.1 stack, counts and key names only
+   (read-only SQL as the admin service's role or a superuser):
+
+   ```sql
+   -- SSO connections 4.0.13 cannot read
+   SELECT count(*) AS sso_release_pending FROM app.sso_connections WHERE status = 'release_pending';
+   -- queued jobs of kinds a 4.0.13 worker does not know
+   SELECT task_name, status, count(*) FROM jobs.procrastinate_jobs
+   WHERE task_name IN ('purge_provider_credentials', 'revoke_google_grant',
+                       'sso_release_retry', 'recheck_verified_domains')
+     AND status IN ('todo', 'doing') GROUP BY 1, 2;
+   -- settings 4.1 may have written in a form 4.0.13 refuses
+   SELECT key, version, readers, updated_at FROM settings.entries
+   WHERE key IN ('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_AUTH_URI', 'GOOGLE_TOKEN_URI',
+                 'GOOGLE_SHEET_REDIRECT_URL', 'GOOGLE_FORMS_IMPORT', 'GOOGLE_SHEETS_OAUTH',
+                 'API_INTERNAL_PORT', 'API_INTERNAL_ROUTES', 'DB_DISCARD_UNIMPORTED_MONGO_DATA');
+   ```
+
+   - **SSO.** `sso_release_pending` above 0: run `python -m backend.sso release-pending` in a backend
+     container (it deletes those connections in Polis, then their rows); recheck. Rows that stay
+     block the rollback, since 4.0.13 cannot read them: when Polis stays unreachable, or SSO is not
+     configured (the command then reports `skipped`), they need a manual decision by the
+     operator before the rollback, because deleting them locally gives up the entity ID they hold.
+   - **Jobs.** `purge_provider_credentials` and `revoke_google_grant` are real obligations (erasing a
+     deleted account's stored provider credentials, revoking an old Google grant). `sso_release_retry`
+     (daily) and `recheck_verified_domains` (hourly) repeat on their own and are safe to leave. A
+     4.0.13 worker fails every queued row of these kinds (`TaskNotFound`, no retry). Let 4.1's
+     `jobs-worker` finish the two obligations first when time allows (the query shows 0 for them);
+     otherwise note how many were failed, and repeat them on 4.1 after the next roll-forward.
+   - **Settings.** 4.0.13 refuses a settings row whose key it does not know (`UNKNOWN_KEY`) or whose
+     readers are not a subset of its own (`SPEC_MISMATCH`: `common/settings/snapshot.py:170-186`).
+     4.1 added `BACKEND` to the readers of `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+     `GOOGLE_AUTH_URI`, `GOOGLE_TOKEN_URI` and `GOOGLE_SHEET_REDIRECT_URL`, and the readers of a row
+     are stamped from the running release's spec when the row is written
+     (`backend/admin/services/settings_store.py:544`). So a set, restore or clear of one of those in
+     the portal on 4.1 makes a row that 4.0.13 refuses, and that includes a restore: it stamps the
+     4.1 readers again. A service on `SETTINGS_STORE=required` refuses to start when a refused row is
+     a critical key (every secret, and every key of tier T3 or T4) with no value in its environment
+     (`common/settings/loader/runtime.py:220-230`). All five keys are critical: `GOOGLE_CLIENT_SECRET`
+     is a secret, and `GOOGLE_CLIENT_ID`, `GOOGLE_AUTH_URI`, `GOOGLE_TOKEN_URI` and
+     `GOOGLE_SHEET_REDIRECT_URL` are tier T3 (`common/settings/inventory.py:118, 439-442, 465`). So a
+     refused row of any of them stops `auth` and `integrations-googleform` at start
+     (`GOOGLE_SHEET_REDIRECT_URL`: the Google integration only, the one that reads it in 4.0.13). Keys
+     only 4.1 knows (`GOOGLE_FORMS_IMPORT`, `GOOGLE_SHEETS_OAUTH`, `API_INTERNAL_*`,
+     `DB_DISCARD_UNIMPORTED_MONGO_DATA`) are refused and ignored, which is harmless. If any of the
+     five widened keys has a version written since the cutover (`updated_at`, or the key's history in
+     the portal), put it right **before the services of the rollback start**, either by setting the
+     value in the rollback definition's environment (an environment value wins over the store
+     and exempts the key from the startup check; for the secret the operator must have its value
+     to hand, the portal never shows it), or by rolling back `admin` first and setting the
+     key again in its portal (4.0.13's `admin` stamps the readers 4.0.13 accepts).
+2. **Edit the rollback definition** (the copy saved before the cutover): image tags back to the 4.0.x
+   tag for every service the 4.1 deploy changed (the list is in `.github/workflows/deploy.yml`,
+   including `webapp`); flags **as in step 4 of the cutover** (`postgres` everywhere, not the saved
+   `dual`); the task runner's `ADMIN_TASKS_BACKEND_URL` and the `SERVER_URL` of the Temporal worker
+   and the actions executor back to port 8000 (4.0.13's backend has no internal listener);
+   `GOOGLE_FORMS_IMPORT` and `API_INTERNAL_ROUTES` removed; any settings fix of step 1;
+   `mongodb` stays at 0 replicas and `MONGO_*` stay out. `integrations-typeform`, which 4.1 removed,
+   stays at 0 replicas: it reads its own Mongo database, so bring it back only together with
+   Mongo (below); imported Typeform forms stay readable without it.
+3. **Deploy it.** Both releases write Postgres only, so a rolling update is safe. Services log
+   `schema 'auth' is ahead` and `schema 'google' is ahead` (expected, `schema_guard.py:215-222`).
+4. **Check:** `persistence flags` shows `postgres` on every replica; Health shows every instance
+   reporting and the outboxes empty; the smoke test passes; `responses.check_undecryptable`
+   (`stores: postgres`) finds 0; a sign-in, a submission and its read-back by hand.
+5. **Never start a service with `DB_READ_SOURCE=mongo` or any `dual`/`mongo` write mode against the
+   old Mongo volume** until the next section is done: it would serve the data as of the cutover and
+   mirror it over the newer Postgres rows. The keyset freeze continues.
+
+Rolling forward again is an image update: the flags already suit 4.1.
+
+**Making Mongo a current copy again** (only to go back to the staged path on `dual`, or to keep a
+Mongo copy while you decide). It is available while the Postgres tombstones cover the time since the
+cutover: they are kept 120 days (`common/db/tombstones.py:62`) and dropped by a later release's
+migration ("Decommission", step 5). `reconcile --direction postgres->mongo` deletes a Mongo copy
+only when a tombstone says the record was deleted; a Mongo-only row without one stays
+(`missing_in_postgres`) and would come back under `dual`
+(`common/db/migrate/engine.py:981-1024`). Past the retention, stay on the rollback above.
+
+1. **Start Mongo, unread.** `mongodb` back to `replicas: 1` on the same volume, wait until healthy.
+   Restore `MONGO_URI`, `MONGO_DB` (and `GOOGLE_MONGO_DB`) on `backend`, `jobs-worker`, `auth`,
+   `integrations-googleform` and `task-runner` from the rollback definition, and the portal's
+   `MONGO_URI` if you cleared it. The flags stay `postgres`, so nothing connects. Deploy.
+2. **Postgres primary, Mongo mirrored.** `DB_READ_SOURCE=postgres` and
+   `DB_WRITE_MODE=postgres_primary_dual` on `backend`, `jobs-worker`, `auth` and
+   `integrations-googleform`; `DB_WRITE_MODE=postgres_primary_dual` on `task-runner`. Deploy. Every
+   write now goes to Postgres first and is copied to Mongo; every read is Postgres, so the stale
+   Mongo copy is never served. (4.0.x accepts this combination: `common/db/flags.py:51-58`.)
+3. **Copy Postgres into Mongo**, in each service's container, with the service's own flags (the CLI
+   refuses unless every group it covers is on `postgres_primary_dual`, `cli.py:327-350`; there is no
+   `--mongo-wins` in this direction, `cli.py:380-382`). Dry run first, then the real run over every
+   collection (no `--group`; only a full run drains the Postgres-side outbox):
+
+   ```bash
+   … python -m backend.migrate reconcile --direction postgres->mongo --dry-run
+   … python -m backend.migrate reconcile --direction postgres->mongo
+   # auth.migrate and googleform.migrate the same way
+   ```
+
+   Read the counts per collection: `skipped` above 0 (the application changed the record meanwhile):
+   run it again. `tombstoned` above 0 (copies of a deleted record on both sides): delete them by id
+   after checking ("Reconcile and deleted rows"), then run it again. Outbox entries at 0 afterwards.
+4. **`verify`** per service exits 0 and `status --json` shows the marker, 0 open outbox entries and
+   0 unresolved `mirror_failures.mongo`. A replayed record may show as mismatched (see "Reconcile
+   and deleted rows"): reconcile again, verify again.
+5. **Stay or go back to `dual`.** On `postgres_primary_dual` Postgres is primary and Mongo a current
+   copy: the usual rollback window, and a fine place to stay. To return to Mongo as primary, run the
+   step 3 reconcile once more first (the CLI refuses after the flip) and confirm the Postgres-side
+   outbox is 0, then set `DB_READ_SOURCE=mongo`, `DB_WRITE_MODE=dual` (no overrides) on the same
+   services and deploy, as in Phase 2 step 3. Then `verify` again and watch
+   `mirror_failures.postgres` and the outbox.
+
+Whatever you ran last is the new stored definition. To roll forward again after the plain rollback,
+move the image tags to 4.1. After "Making Mongo a current copy again", stop the writers as in step 2,
+set the flags back to `postgres`, then move the tags, and take Mongo off as in step 7.
 
 ### Stage 0 — mirror, backfill, verify, shadow
 
@@ -836,6 +1141,11 @@ Stored definition: save it with `replicas: 0` and without `MONGO_*`. A stale cop
 
 ### Decommission (Postgres-only release stable for 30 days)
 
+While the Mongo volume and the tombstones exist, Mongo can still be made a current copy again
+("Rolling back to 4.0.x after the 4.1 deploy", "Making Mongo a current copy again"). Deleting the
+volume, or the later migration that drops the tombstone tables (step 5), ends that; the plain
+rollback of that section, which needs neither, stays.
+
 1. Take a final encrypted `mongodump`, store it off the host, and restore-test it (counts only).
    Delete the Typeform and Google credential databases before archiving, or keep that archive only
    briefly.
@@ -869,7 +1179,7 @@ docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
   /api/backend/.venv/bin/python -m backend.migrate status
 … status --json | preflight | backfill --max-minutes 30 | verify | reconcile | jobs-sweep --backend postgres
 … --group refdata backfill | --group identity verify | --group identity,forms reconcile
-# 4.1: verify/reconcile skip refdata, analytics, ai and actions (--group naming one exits 2)
+# 4.1: verify/reconcile skip every Postgres-only group (--group naming one exits 2)
 … --group forms resolve-outbox [--apply] [--accept-superseded] [--ids-file <new path>]   # Phase 2 "stuck case"
 ```
 
