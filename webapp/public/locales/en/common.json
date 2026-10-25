@@ -988,7 +988,8 @@
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).",
-    "NOT_CONFIGURED": "Single sign-on is switched on but not fully set up on this instance yet. The operator still needs to finish the setup (see docs/sso.md)."
+    "NOT_CONFIGURED": "Single sign-on is switched on but not fully set up on this instance yet. Ask the administrator or support team of this instance to finish the setup.",
+    "SELF_HOSTING": "Running this instance yourself? See the <1>single sign-on setup guide</1>."
   },
   "SCIM": {
     "TITLE": "Directory sync (SCIM)",
@@ -996,7 +997,7 @@
     "LOAD_FAILED": "Directory sync couldn't be loaded.",
     "TRY_AGAIN": "Try again",
     "NOT_ENABLED": "Directory sync is not enabled on this instance. The operator turns it on (SSO_ENABLED and SCIM_WEBHOOK_URL, see docs/sso.md).",
-    "NOT_CONFIGURED": "Directory sync needs single sign-on, which is switched on but not fully set up on this instance yet. The operator still needs to finish the setup (see docs/sso.md).",
+    "NOT_CONFIGURED": "Directory sync needs single sign-on, which is switched on but not fully set up on this instance yet. Ask the administrator or support team of this instance to finish the setup.",
     "OWNER_ONLY": "Only a workspace owner can change directory sync. You can see its status.",
     "NO_DIRECTORY": "No directory is connected.",
     "CREDENTIALS_NOTICE": "Enter these in your identity provider's SCIM provisioning settings now. The token is shown only once: if you lose it, rotate it.",
