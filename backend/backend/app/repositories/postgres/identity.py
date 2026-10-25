@@ -523,6 +523,33 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
     ) -> Optional[WorkspaceAPIKeyDocument]:
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
 
+    async def touch_last_used(
+        self, key_id: PydanticObjectId, now: datetime.datetime
+    ) -> bool:
+        """Twin of the conditional ``$set``: the row is locked and only
+        ``last_used_at`` changes, only while the key is not revoked. When
+        nothing matches (revoked, or no row here) the row is still reported
+        to a routed write, so convergence copies the primary's version (or
+        confirms both agree) instead of leaving a stale mirror row."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.doc)
+                    .where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                self._touch(WorkspaceApiKeyRow, [_oid(key_id)])
+                return False
+            stored = from_row_doc(WorkspaceAPIKeyDocument, doc)
+            stored.last_used_at = now
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
 
 class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
     row = WorkspaceDomainRow

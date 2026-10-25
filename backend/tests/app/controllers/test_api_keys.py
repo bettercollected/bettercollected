@@ -2,6 +2,7 @@
 
 from typing import Any, Coroutine
 
+from beanie import PydanticObjectId
 from httpx import AsyncClient
 
 from backend.app.exceptions import HTTPException
@@ -98,3 +99,43 @@ class TestAPIKeys:
                 assert False
             except HTTPException as e:
                 assert e.status_code == 401
+
+
+async def test_a_request_in_flight_never_brings_a_revoked_key_back(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    test_user_cookies: dict[str, str],
+    monkeypatch,
+):
+    """A request that read the key before it was revoked records its use
+    without saving its stale copy: the key stays revoked (in every store the
+    services write) and the request is refused."""
+    from backend.app.container import container
+
+    created = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/api-keys",
+        cookies=test_user_cookies,
+        json={"name": "in flight", "scopes": ["forms:read"]},
+    )
+    token, key_id = created.json()["token"], created.json()["id"]
+    repo = container.workspace_api_key_repo()
+    stale = await repo.get_or_404(PydanticObjectId(key_id))  # read before the revoke
+    revoked = await client.delete(
+        f"/api/v1/workspaces/{workspace.id}/api-keys/{key_id}",
+        cookies=test_user_cookies,
+    )
+    assert revoked.status_code == 200
+
+    async def stale_read(_key_hash):
+        return stale
+
+    monkeypatch.setattr(repo, "find_by_key_hash", stale_read)
+    try:
+        await APIKeyService.authenticate(token)
+        assert False, "a key revoked meanwhile must not authenticate"
+    except HTTPException as e:
+        assert e.status_code == 401
+    monkeypatch.undo()
+    stored = await repo.get_or_404(PydanticObjectId(key_id))
+    assert stored.revoked is True
+    assert stored.last_used_at is None
