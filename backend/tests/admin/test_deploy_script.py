@@ -695,7 +695,7 @@ def test_a_fresh_checkout_gets_env_deployment_from_the_template(site):
     assert created.read_text() == (ROOT / ".env.deployment.example").read_text()
     assert stat.S_IMODE(created.stat().st_mode) == 0o600
     assert stat.S_IMODE((work / ".env.deployment.example").stat().st_mode) == 0o644  # left alone
-    assert "SERVER_URL=http://backend:8000/api/v1" in _tail(work, ".env.worker")
+    assert "SERVER_URL=http://backend:8001/api/v1" in _tail(work, ".env.worker")
     assert "UMAMI_PASSWORD" not in _tail(work, ".env.webapp")  # empty values are left out
     assert any("up --build" in c for c in calls)
     # never overwritten afterwards, and not announced again

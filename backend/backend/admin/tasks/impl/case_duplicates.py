@@ -38,7 +38,7 @@ from backend.admin.tasks.spec import Refusal
 
 URL_ENV = "ADMIN_TASKS_BACKEND_URL"
 KEY_ENV = "ADMIN_TASKS_API_KEY"
-DEFAULT_URL = "http://backend:8000/api/v1"
+DEFAULT_URL = "http://backend:8001/api/v1"
 KEY_HEADER = "X-Admin-Tasks-Key"
 ROUTE = "/internal/admin-tasks/case-duplicate-accounts"
 AUDIT_ACTION = "task.accounts.case_duplicates_resolved"

@@ -227,7 +227,7 @@ environment, whatever the tier.
 | `ADMIN_PORT` | admin | admin | int 1..65535 |  | R | T5 |  |
 | `ADMIN_RETENTION_INTERVAL_SECONDS` | admin | admin | int 10..86400 |  | R | T5 | `3600` |
 | `ADMIN_TASKS_API_KEY` | admin | backend, tasks | str | yes | R | T5 |  |
-| `ADMIN_TASKS_BACKEND_URL` | admin | tasks | str |  | R | T5 | `http://backend:8000/api/v1` |
+| `ADMIN_TASKS_BACKEND_URL` | admin | tasks | str |  | R | T5 | `http://backend:8001/api/v1` |
 | `ADMIN_TASKS_MAX_REQUEST_AGE_HOURS` | admin | admin | int 1..24 |  | R | T5 | `24` |
 | `ADMIN_TASKS_SELFTEST` | admin | admin | bool |  | R | T5 | `false` |
 | `ADMIN_TRUSTED_PROXIES` | admin | admin | str |  | R | T5 |  |
@@ -268,6 +268,8 @@ environment, whatever the tier.
 | `ELASTIC_APM_SECRET_TOKEN` | monitoring | webapp | str | yes | R | T5 |  |
 | `ELASTIC_APM_SERVER_URL` | monitoring | backend, auth, google, temporal_worker, actions_executor, webapp | url |  | R | T5 |  |
 | `ELASTIC_APM_SERVICE_NAME` | monitoring | backend, auth, google, temporal_worker, actions_executor, webapp | str |  | R | T5 |  |
+| `API_INTERNAL_PORT` | network | backend | int 0..65535 |  | R | T5 | `8001` |
+| `API_INTERNAL_ROUTES` | network | backend | enum direct/internal_port |  | R | T5 | `direct` |
 | `DOC_SANDBOX_MAX_DOCUMENT_BYTES` | pdf_import | backend | int 1024..1e+09 |  | R | T5 | `33554432` |
 | `DOC_SANDBOX_PARALLEL` | pdf_import | backend | int 1..64 |  | R | T5 | `2` |
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
@@ -281,7 +283,7 @@ environment, whatever the tier.
 | `FRONTEND_URL` | services | actions_executor | str |  | R | T5 | `http://localhost:3000` |
 | `MAX_THREAD_POOL_EXECUTORS` | services | google, temporal_worker, actions_executor | int 1..10000 |  | R | T5 |  |
 | `NAMESPACE` | services | temporal_worker, actions_executor | str |  | R | T5 | `default` |
-| `SERVER_URL` | services | temporal_worker, actions_executor | str |  | R | T5 | `http://backend:8000/api/v1` |
+| `SERVER_URL` | services | temporal_worker, actions_executor | str |  | R | T5 | `http://backend:8001/api/v1` |
 | `TEMPORAL_ACTION_QUEUE` | services | backend | str |  | R | T5 | `actions` |
 | `TEMPORAL_CSV_QUEUE` | services | backend | str |  | R | T5 | `csv_worker` |
 | `TEMPORAL_NAMESPACE` | services | backend | str |  | R | T5 | `default` |
