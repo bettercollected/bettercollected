@@ -4,6 +4,7 @@ environment is made strict here), no format field or template tag is left in
 the output, and the language of one mail never leaks into the other. The
 sender is the instance in both languages, whatever the caller supplies."""
 
+import re
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -14,6 +15,7 @@ from auth.app.services import mail_service
 from auth.app.services.auth_service import AuthService
 from auth.app.services.mail_text import TEXTS
 from auth.app.services.notification_service import (
+    NotificationService,
     render_sheets_reconnect,
     render_submission_update,
 )
@@ -85,18 +87,24 @@ async def invitation_mail(locale, title="Acme Zorg", first_name="Ann", role="Edi
     return mail.return_value.send_message.await_args.args[0]
 
 
-async def update_mail(locale, workspace="Acme Zorg"):
-    return SimpleNamespace(
-        subject=TEXTS[locale]["update_subject"],
-        body=render_submission_update("Aanvraag", workspace, LINK, locale),
-    )
+async def update_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
+    with patch("auth.app.services.notification_service.MailService") as mail:
+        mail.return_value.send_message = AsyncMock()
+        await NotificationService().send_submission_update(
+            "r@example.com", form, workspace, LINK, locale=locale
+        )
+    mail.assert_called_once_with()
+    return mail.return_value.send_message.await_args.args[0]
 
 
-async def sheets_mail(locale, workspace="Acme Zorg"):
-    return SimpleNamespace(
-        subject=TEXTS[locale]["sheets_subject"],
-        body=render_sheets_reconnect("Aanvraag", workspace, FORM_LINK, locale),
-    )
+async def sheets_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
+    with patch("auth.app.services.notification_service.MailService") as mail:
+        mail.return_value.send_message = AsyncMock()
+        await NotificationService().send_sheets_reconnect(
+            "o@example.com", form, workspace, FORM_LINK, locale=locale
+        )
+    mail.assert_called_once_with()
+    return mail.return_value.send_message.await_args.args[0]
 
 
 MAILS = {
@@ -108,10 +116,6 @@ MAILS = {
 
 # words that are the same in both languages or are brand, link or legal text
 SHARED = {"Sireto", "BetterCollected", "Google", "Sheets"}
-
-
-def _words_of(locale, *keys):
-    return [TEXTS[locale][key] for key in keys]
 
 
 @pytest.mark.asyncio
@@ -130,9 +134,12 @@ async def test_every_mail_renders_with_nothing_missing(name, locale):
     # every text of the mail is in this language: none of the other one's
     # distinctive sentences appears
     other = "nl" if locale == "en" else "en"
+    # what the reader sees: template comments are not part of it
+    squashed = " ".join(re.sub(r"<!--.*?-->", "", body, flags=re.S).split())
     for key, text in TEXTS[other].items():
-        if len(text) > 20 and text != TEXTS[locale][key] and "{" not in text:
-            assert text not in " ".join(body.split()), key
+        if text == TEXTS[locale][key] or text in SHARED or "{" in text:
+            continue
+        assert text not in squashed, key
 
 
 @pytest.mark.asyncio
@@ -149,20 +156,46 @@ async def test_every_text_a_mail_shows_is_in_the_table(locale):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("locale", LANGUAGES)
 async def test_the_sender_is_the_instance_whatever_is_supplied(locale):
-    """From display name and subject never carry a workspace or inviter name,
-    and no header takes a line break from them."""
+    """From display name and subject never carry a workspace, form or inviter
+    name, and no header takes a line break from them."""
     for message in (
         await code_mail(locale, title=SPOOF),
         await invitation_mail(locale, title=SPOOF, first_name=SPOOF),
+        await update_mail(locale, workspace=SPOOF, form=SPOOF),
+        await sheets_mail(locale, workspace=SPOOF, form=SPOOF),
     ):
         assert "PayPal" not in message.subject
+        assert "Bcc" not in message.subject
         assert "\r" not in message.subject and "\n" not in message.subject
-        assert "BetterCollected" in message.subject
+        assert message.subject in {
+            TEXTS[locale][key].format(product="BetterCollected")
+            for key in (
+                "code_subject",
+                "invite_subject",
+                "update_subject",
+                "sheets_subject",
+            )
+        }
+        # recipients are the ones the caller named, nothing from the titles
+        assert all("victim" not in str(recipient) for recipient in message.recipients)
+
+
+def _from_name(monkeypatch, organization_name):
+    monkeypatch.setattr(settings, "ORGANIZATION_NAME", organization_name)
     with patch("auth.app.services.mail_service.ConnectionConfig") as config, patch(
         "auth.app.services.mail_service.FastMail"
     ):
         mail_service.MailService()
-    assert config.call_args.kwargs["MAIL_FROM_NAME"] == "BetterCollected"
+    return config.call_args.kwargs["MAIL_FROM_NAME"]
+
+
+def test_the_from_display_name_is_the_instance(monkeypatch):
+    assert _from_name(monkeypatch, "BetterCollected") == "BetterCollected"
+
+
+def test_a_hostile_organization_name_is_one_line_in_the_from_name(monkeypatch):
+    name = _from_name(monkeypatch, "Better\r\nBcc: victim@example.com")
+    assert "\r" not in name and "\n" not in name
 
 
 @pytest.mark.asyncio
