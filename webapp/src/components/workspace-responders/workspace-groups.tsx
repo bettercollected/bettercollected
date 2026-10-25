@@ -103,6 +103,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
             selector: (group: ResponderGroupDto) => (
                 <div className="flex w-full justify-end">
                     <DeleteDropDown
+                        itemName={group.name}
                         onDropDownItemClick={(event) => {
                             event.stopPropagation();
                             event.preventDefault();

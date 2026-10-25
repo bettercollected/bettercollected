@@ -1,4 +1,9 @@
 {
+  "A11Y": {
+    "MORE_ACTIONS": "Meer acties",
+    "MORE_ACTIONS_FOR": "Meer acties voor {{name}}",
+    "TURN_ON_OFF": "{{name}} aan- of uitzetten"
+  },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
     "POINT_1": "Al je werkruimte wordt verwijderd.",

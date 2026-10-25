@@ -1,4 +1,9 @@
 {
+  "A11Y": {
+    "MORE_ACTIONS": "More actions",
+    "MORE_ACTIONS_FOR": "More actions for {{name}}",
+    "TURN_ON_OFF": "Turn {{name}} on or off"
+  },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Are you sure you want to delete Account?",
     "POINT_1": "All your workspace will be deleted.",

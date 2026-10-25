@@ -1,12 +1,15 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@app/shadcn/components/ui/button';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import SheetsReconnectNotice, { SheetsReconnectBadge, useSheetsNeedsReconnect } from '@app/components/form-integrations/sheets-reconnect-notice';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
+import { localesCommon } from '@app/constants/locales/common';
 import { Action } from '@app/models/dtos/actions';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -29,6 +32,7 @@ function ReconnectNotice({ onReconnect, ...target }: ReconnectTarget & { onRecon
 }
 
 export default function FormIntegrations() {
+    const { t } = useTranslation();
     const { data } = useGetAllIntegrationsQuery({});
     const { toast } = useToast();
     const [removeActionFromForm] = useRemoveActionFromFormMutation();
@@ -64,7 +68,7 @@ export default function FormIntegrations() {
                                 <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:min-w-0 sm:flex-1 sm:items-center">
                                         {/*logo */}
-                                        <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
+                                        <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4" />
                                         {/* Title and description */}
                                         <div className="mt-2 sm:mt-0">
                                             <div className="flex flex-wrap items-center gap-2">
@@ -94,6 +98,7 @@ export default function FormIntegrations() {
                                     {/* Connect Button */}
                                     <div className="mt-4 flex items-center gap-2 sm:mt-0">
                                         <Switch
+                                            aria-label={t(localesCommon.turnOnOff, { name: integration?.title || 'Untitled Integration' })}
                                             checked={getIntegrationEnabled(integration)}
                                             onCheckedChange={async (checked) => {
                                                 const update_type = checked ? 'enable' : 'disable';
@@ -116,6 +121,7 @@ export default function FormIntegrations() {
                                         />
                                         {/* Three dots dropdown */}
                                         <DeleteDropDown
+                                            itemName={integration?.title || 'Untitled Integration'}
                                             onDropDownItemClick={async () => {
                                                 const response: any = await removeActionFromForm({
                                                     workspaceId: workspace.id,
@@ -153,7 +159,7 @@ export default function FormIntegrations() {
                                 <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/* logo */}
-                                        <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
+                                        <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4" />
                                         {/* title and description */}
                                         <div className="mt-2 sm:mt-0">
                                             <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>

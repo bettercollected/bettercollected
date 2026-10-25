@@ -105,7 +105,7 @@ describe('MembersTable', () => {
         expect(screen.getAllByRole('combobox', { name: 'MEMBERS.ROLE' })).toHaveLength(1);
         expect(screen.getByTestId('member-role-co').textContent).toBe('WORKSPACE_ROLES.OWNER.NAME');
         // and has no actions on them: menus for themselves and the editor only
-        expect(screen.getAllByText('Open menu')).toHaveLength(2);
+        expect(screen.getAllByText('A11Y.MORE_ACTIONS_FOR')).toHaveLength(2);
     });
 
     it('lets an owner change another owner, never the billing owner', () => {
@@ -125,7 +125,7 @@ describe('MembersTable', () => {
 
         expect(screen.queryByRole('combobox')).toBeNull();
         expect(screen.getByTestId('member-role-editor').textContent).toBe('WORKSPACE_ROLES.EDITOR.NAME');
-        expect(screen.queryByText('Open menu')).toBeNull();
+        expect(screen.queryByText('A11Y.MORE_ACTIONS_FOR')).toBeNull();
     });
 
     it('lists a deleted account by id only, without a role picker', () => {
@@ -242,7 +242,7 @@ describe('resending an invitation', () => {
         const invitation = { workspaceId: 'w1', email: 'pending@example.com', invitationToken: 't1', invitationStatus: 'PENDING', role: 'EDITOR' } as any;
         renderWith(<MemberOptions invitation={invitation} workspaceId="w1" />);
 
-        fireEvent.pointerDown(screen.getByRole('button', { name: 'Open menu' }), { button: 0, ctrlKey: false });
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'A11Y.MORE_ACTIONS_FOR' }), { button: 0, ctrlKey: false });
         fireEvent.click(await screen.findByText('Resend invitation'));
         fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
 

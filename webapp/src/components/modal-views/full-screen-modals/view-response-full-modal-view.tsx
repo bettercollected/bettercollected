@@ -5,6 +5,7 @@ import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useModal } from '@app/components/modal-views/context';
+import { localesCommon } from '@app/constants/locales/common';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -22,6 +23,7 @@ import { getItemAnswer } from '@app/utils/response-export';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useFullScreenModal } from '../full-screen-modal-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 
@@ -237,6 +239,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
     const { openModal: openConfirmModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
     const { can } = useWorkspacePermissions();
+    const { t } = useTranslation();
 
     // Deleting is permanent, so it goes through the DELETE_RESPONSE confirm.
     // Only one modal layer renders at a time (full-screen wins), so the drawer
@@ -249,16 +252,16 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
     if (!can(WorkspacePermission.RESPONSE_DELETE)) return null;
     return (
         <Popover>
-            <PopoverTrigger>
+            <PopoverTrigger aria-label={t(localesCommon.moreActions)}>
                 <div className="hover:bg-black-200 flex h-fit w-fit items-center justify-center rounded-md p-2">
-                    <MoreVertical className={cn('cursor-pointer')} width={16} height={16} />
+                    <MoreVertical className={cn('cursor-pointer')} width={16} height={16} aria-hidden="true" />
                 </div>
             </PopoverTrigger>
             <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-large">
-                <div className=" p2 my-2!  flex cursor-pointer items-center gap-2 px-4 py-2 text-[#C43D3D]! hover:bg-[#FBEFEF]" onClick={handleDelete}>
-                    <DeleteIcon className="text-[#C43D3D]" />
+                <button type="button" className=" p2 my-2!  flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[#C43D3D]! hover:bg-[#FBEFEF]" onClick={handleDelete}>
+                    <DeleteIcon className="text-[#C43D3D]" aria-hidden="true" />
                     Delete response
-                </div>
+                </button>
             </PopoverContent>
         </Popover>
     );

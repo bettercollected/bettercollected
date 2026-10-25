@@ -14,6 +14,7 @@ import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/mem
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceRole, isBillingOwnerOf, memberRole } from '@app/models/enums/workspace-role';
+import { localesCommon } from '@app/constants/locales/common';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { useAppSelector } from '@app/store/hooks';
 import { browserMailLocale } from '@app/utils/mail-locale';
@@ -85,8 +86,8 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-black-200">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">{member?.email || invitation?.email ? t(localesCommon.moreActionsFor, { name: member?.email || invitation?.email }) : t(localesCommon.moreActions)}</span>
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-white" align="end">
