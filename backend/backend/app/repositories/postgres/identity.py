@@ -1,16 +1,22 @@
-"""Postgres twins of the identity-group repositories.
+"""The identity group's repositories: Postgres only (its Mongo collections are
+read only by the import from 4.0, ``python -m backend.migrate``).
 
-Each class mirrors the public surface of its Mongo original method for method,
-including its quirks (404 vs None, the document layer's NotFoundError), so the
-RoutingRepository can serve either store. Queries use the spine columns of the
-rows in :mod:`backend.db.models`; documents cross the boundary unchanged.
+Workspaces, their members, invitations, API keys and email domains, single
+sign-on connections and used sign-in states, the SCIM directory sync
+collections, sessions and user tags. Queries use the spine columns of the
+rows in :mod:`backend.db.models`; the documents are
+:class:`common.records.Record` classes, encoded and decoded by
+:mod:`common.records.codec`. The methods keep the behaviour of the 4.0 Mongo
+repositories they replace, including their quirks (404 vs None, the
+document layer's NotFoundError).
 
 One method crosses a group boundary: ``get_workspace_with_action_by_id``
 reads workspaces (identity) and workspace_actions (actions). In 4.0 Mongo
-joined them with ``$lookup``; the actions group is served from Postgres only
-since 4.1, so both workspace repositories compose the two reads through the
-actions repository instead of a join. Joins stay SQL only within a group;
-this one can become SQL once identity lives in Postgres only too.
+joined them with ``$lookup``; it composes the two reads through the actions
+repository (:func:`with_workspace_action`). The forms group's Mongo
+repositories, which still serve the forms group in the mongo and dual modes,
+read workspaces through this group's repositories too (no join into
+identity is left, see ``backend.db.groups.MONGO_JOINS``).
 """
 
 import datetime
@@ -19,7 +25,6 @@ from datetime import timedelta, timezone
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
-from beanie import PydanticObjectId
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -31,13 +36,6 @@ from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
-)
-from backend.app.repositories.sso_connection_repository import SsoConnectionExists
-from backend.app.repositories.workspace_repository import with_workspace_action
-from backend.app.repositories.sso_used_state_repository import StateAlreadyUsed
-from backend.app.repositories.scim_repository import (
-    ScimDirectoryExists,
-    ScimEventSeen,
 )
 from backend.app.schemas.scim import (
     ScimDirectoryDocument,
@@ -54,10 +52,6 @@ from backend.app.schemas.sso_connection import (
 )
 from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.repositories.workspace_domain_repository import (
-    DomainAlreadyClaimed,
-    DomainVerifiedElsewhere,
-)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
@@ -84,14 +78,40 @@ from backend.db.models import (
     WorkspaceUserRow,
 )
 from common.constants import MESSAGE_NOT_FOUND
-from common.db import (
-    PostgresRepositoryBase,
+from common.records import (
+    RecordId,
+    decode,
     from_canonical_document,
-    from_row_doc,
     row_values,
+    to_bson,
 )
+from common.records.repository import RecordRepository
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.clock import utcnow
+
+
+class SsoConnectionExists(Exception):
+    """A connection with this Polis clientID is already recorded."""
+
+
+class StateAlreadyUsed(Exception):
+    """This sign-in's nonce was accepted before (a replayed callback)."""
+
+
+class ScimDirectoryExists(Exception):
+    """The workspace already has a directory (or the Polis id is taken)."""
+
+
+class ScimEventSeen(Exception):
+    """This event was accepted before (a retry or a replay)."""
+
+
+class DomainAlreadyClaimed(Exception):
+    """The workspace already has a claim for this domain."""
+
+
+class DomainVerifiedElsewhere(Exception):
+    """Another workspace holds this domain verified."""
 
 
 def _oid(value: Any) -> str:
@@ -99,7 +119,46 @@ def _oid(value: Any) -> str:
     return str(value)
 
 
-class PostgresWorkspaceRepository(PostgresRepositoryBase):
+def _set_paths(target: Any, fields: Dict[str, Any]) -> None:
+    """Apply ``{"a.b": value}`` to a model (attributes) or dict (keys)."""
+    for path, value in fields.items():
+        *parents, leaf = path.split(".")
+        node: Any = target
+        for part in parents:
+            node = node[part] if isinstance(node, dict) else getattr(node, part)
+        if isinstance(node, dict):
+            node[leaf] = value
+        else:
+            setattr(node, leaf, value)
+
+
+async def with_workspace_action(
+    actions, workspace: Optional[Dict[str, Any]], workspace_id, action_id
+) -> Dict[str, Any]:
+    """``workspace`` (a stored workspace document, or ``None``) as the action
+    runner gets it: ``parameters.<action_id>`` / ``secrets.<action_id>`` set
+    from the workspace's copy of the action (read through ``actions``) and
+    ``id`` set. 404 when there is no such workspace or copy. The shape of the
+    4.0 ``$lookup`` aggregation."""
+    workspace_action = (
+        None
+        if workspace is None
+        else await actions.get_workspace_action(
+            workspace_id=RecordId(str(workspace_id)),
+            action_id=RecordId(str(action_id)),
+        )
+    )
+    if workspace is None or workspace_action is None:
+        raise HTTPException(status_code=404, content="Workspace not found")
+    action = to_bson(workspace_action)
+    for key in ("parameters", "secrets"):
+        if key in action:  # $set of a missing path adds nothing
+            workspace.setdefault(key, {})[str(action_id)] = action[key]
+    workspace["id"] = RecordId(str(workspace_id))
+    return workspace
+
+
+class PostgresWorkspaceRepository(RecordRepository):
     row = WorkspaceRow
     document = WorkspaceDocument
 
@@ -107,7 +166,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         super().__init__(session_factory)
         self._actions = action_repository
 
-    # BaseRepository stubs, unused — kept so both stores expose the same surface.
+    # BaseRepository stubs, unused (the interface the services were typed with)
     async def list(self):
         pass
 
@@ -121,14 +180,14 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         pass
 
     async def update(
-        self, item_id: PydanticObjectId, item: WorkspaceDocument
+        self, item_id: RecordId, item: WorkspaceDocument
     ) -> WorkspaceDocument:
         if await self.one(WorkspaceRow.id == _oid(item_id)) is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Workspace not found")
         return await self.save_document(item)
 
     async def get_workspace_by_id(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> WorkspaceDocument:
         workspace = await self.one(WorkspaceRow.id == _oid(workspace_id))
         if not workspace:
@@ -136,7 +195,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         return workspace
 
     async def find_by_id(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> Optional[WorkspaceDocument]:
         return await self.one(WorkspaceRow.id == _oid(workspace_id))
 
@@ -164,7 +223,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
             rows = (await session.execute(stmt)).all()
         return sorted(((domain, str(ws)) for domain, ws in rows), key=lambda row: row[1])
 
-    async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
+    async def get_or_404(self, workspace_id: RecordId) -> WorkspaceDocument:
         return await self.get_or_raise(workspace_id)
 
     async def save(self, workspace: WorkspaceDocument) -> WorkspaceDocument:
@@ -173,22 +232,31 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     async def set_fields(
         self, workspace: WorkspaceDocument, fields: Dict[str, Any]
     ) -> None:
-        # Beanie's document.update({"$set": ...}) also refreshes the instance.
-        for path, value in fields.items():
-            *parents, leaf = path.split(".")
-            target: Any = workspace
-            for part in parents:
-                target = (
-                    target[part] if isinstance(target, dict) else getattr(target, part)
+        """Set ``fields`` (dotted paths) on the stored workspace, atomically:
+        the row is locked while they are applied to the stored copy, so a
+        concurrent change of other fields is kept (Mongo's partial ``$set``),
+        never overwritten from ``workspace``, which may be stale. Then
+        ``workspace`` is refreshed from what was stored (as Beanie's
+        ``document.update`` did). A workspace that is not stored stays so."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceRow.doc)
+                    .where(WorkspaceRow.id == _oid(workspace.id))
+                    .with_for_update()
                 )
-            if isinstance(target, dict):
-                target[leaf] = value
-            else:
-                setattr(target, leaf, value)
-        await self.upsert(workspace)
+            ).scalar_one_or_none()
+            if doc is None:
+                _set_paths(workspace, fields)
+                return
+            stored = decode(WorkspaceDocument, doc)
+            _set_paths(stored, fields)
+            await session.execute(self._upsert_statement(row_values(stored)))
+        for name in type(stored).model_fields:
+            setattr(workspace, name, getattr(stored, name))
 
     async def set_owner_if(
-        self, workspace_id: PydanticObjectId, expected_owner_id: str, new_owner_id: str
+        self, workspace_id: RecordId, expected_owner_id: str, new_owner_id: str
     ) -> Optional[WorkspaceDocument]:
         """Twin of the Mongo conditional ``$set``: the row is locked while the
         owner is compared and replaced."""
@@ -202,7 +270,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return None
-            stored = from_row_doc(WorkspaceDocument, doc)
+            stored = decode(WorkspaceDocument, doc)
             if str(stored.owner_id) != str(expected_owner_id):
                 return None
             stored.owner_id = str(new_owner_id)
@@ -233,7 +301,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     async def get_user_workspaces(self, owner_id: str):
         return await self.many(WorkspaceRow.owner_id == owner_id)
 
-    async def get_workspace_by_ids(self, workspace_ids: List[PydanticObjectId]):
+    async def get_workspace_by_ids(self, workspace_ids: List[RecordId]):
         return await self.many(WorkspaceRow.id.in_([_oid(i) for i in workspace_ids]))
 
     async def get_default_workspace_by_owner_id(
@@ -260,17 +328,16 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
             self, WorkspaceRow.id, [str(object_id_at(b)) for b in boundaries]
         )
 
-    async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
+    async def delete_workspaces_with_ids(self, workspace_ids: List[RecordId]):
         return await self.delete_where(
             WorkspaceRow.id.in_([_oid(i) for i in workspace_ids])
         )
 
     async def get_workspace_with_action_by_id(
-        self, workspace_id: PydanticObjectId, action_id: PydanticObjectId
+        self, workspace_id: RecordId, action_id: RecordId
     ):
         """The workspace with its copy of the action, read through the actions
-        repository (``with_workspace_action``, shared with the Mongo original;
-        see the module docstring)."""
+        repository (``with_workspace_action``; see the module docstring)."""
         async with self._session() as session:
             raw = (
                 await session.execute(
@@ -287,15 +354,15 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         )
 
 
-class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
+class PostgresWorkspaceUserRepository(RecordRepository):
     row = WorkspaceUserRow
     document = WorkspaceUserDocument
 
-    async def get_workspace_users(self, workspace_id: PydanticObjectId):
+    async def get_workspace_users(self, workspace_id: RecordId):
         return await self.many(WorkspaceUserRow.workspace_id == _oid(workspace_id))
 
     async def find_workspace_user(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ) -> Optional[WorkspaceUserDocument]:
         return await self.one(
             WorkspaceUserRow.workspace_id == _oid(workspace_id),
@@ -324,7 +391,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
             return existing
 
     async def disable_other_users_in_workspace(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ):
         for workspace_user in await self.get_workspace_users(workspace_id):
             if (
@@ -334,7 +401,7 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
             ):
                 await self.save_document(workspace_user)
 
-    async def enable_all_user_in_workspace(self, workspace_id: PydanticObjectId):
+    async def enable_all_user_in_workspace(self, workspace_id: RecordId):
         enabled = 0
         for workspace_user in await self.get_workspace_users(workspace_id):
             if workspace_user.enable_for(DISABLED_BY_PLAN):
@@ -356,13 +423,13 @@ class PostgresWorkspaceUserRepository(PostgresRepositoryBase):
     async def delete_user_form_all_workspaces(self, user):
         return await self.delete_where(WorkspaceUserRow.user_id == _oid(user.id))
 
-    async def delete_all_workspaces_users(self, workspaces_ids: List[PydanticObjectId]):
+    async def delete_all_workspaces_users(self, workspaces_ids: List[RecordId]):
         return await self.delete_where(
             WorkspaceUserRow.workspace_id.in_([_oid(i) for i in workspaces_ids])
         )
 
 
-class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
+class PostgresWorkspaceInvitationRepo(RecordRepository):
     row = WorkspaceInviteRow
     document = WorkspaceUserInvitesDocument
 
@@ -381,7 +448,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
 
     async def create_workspace_invitation(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation: InvitationRequest,
         invited_by: Optional[str] = None,
     ):
@@ -407,7 +474,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             )
         return await self.save_document(existing_invitation)
 
-    async def get_workspace_invitations(self, workspace_id: PydanticObjectId):
+    async def get_workspace_invitations(self, workspace_id: RecordId):
         statuses = [InvitationStatus.PENDING.value, InvitationStatus.EXPIRED.value]
         stmt = (
             select(WorkspaceInviteRow.doc)
@@ -421,13 +488,13 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             return await apaginate(
                 session,
                 stmt,
-                transformer=lambda docs: [from_row_doc(self.document, d) for d in docs],
+                transformer=lambda docs: [decode(self.document, d) for d in docs],
                 unwrap_mode="unwrap",  # hand the transformer the doc column itself
                 unique=False,  # JSONB rows are not hashable; the id is unique anyway
             )
 
     async def get_workspace_invitation_by_token(
-        self, workspace_id: PydanticObjectId, invitation_token: str
+        self, workspace_id: RecordId, invitation_token: str
     ) -> WorkspaceUserInvitesDocument | None:
         invitation_request = await self.one(
             WorkspaceInviteRow.invitation_token == invitation_token,
@@ -440,7 +507,7 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
         return invitation_request
 
     async def delete_invitation_by_token_if_pending_state(
-        self, workspace_id: PydanticObjectId, invitation_token: str
+        self, workspace_id: RecordId, invitation_token: str
     ):
         # Scoped to the workspace: a token from another workspace reads as
         # "not found", the same as a token that does not exist.
@@ -458,15 +525,33 @@ class PostgresWorkspaceInvitationRepo(PostgresRepositoryBase):
             )
 
     async def update_status_to_removed(
-        self, workspace_id: PydanticObjectId, email: str
+        self, workspace_id: RecordId, email: str
     ):
-        invitation = await self._find(workspace_id, email)
-        if invitation is not None:  # find_one(...).update() on no match is a no-op
+        """Mark the invitation removed, atomically (Mongo's ``$set`` of the
+        status): the row is locked and only its status changes, so a
+        concurrent re-invitation's token and expiry are kept. No match: a
+        no-op."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceInviteRow.doc)
+                    .where(
+                        WorkspaceInviteRow.workspace_id == _oid(workspace_id),
+                        WorkspaceInviteRow.email == email,
+                    )
+                    .order_by(*self._order())
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            invitation = decode(WorkspaceUserInvitesDocument, doc)
             invitation.invitation_status = InvitationStatus.REMOVED
-            await self.upsert(invitation)
+            await session.execute(self._upsert_statement(row_values(invitation)))
 
 
-class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
+class PostgresWorkspaceAPIKeyRepository(RecordRepository):
     row = WorkspaceApiKeyRow
     document = WorkspaceAPIKeyDocument
 
@@ -474,11 +559,11 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
     async def list_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> List[WorkspaceAPIKeyDocument]:
         return await self.many(WorkspaceApiKeyRow.workspace_id == _oid(workspace_id))
 
-    async def get_or_404(self, key_id: PydanticObjectId) -> WorkspaceAPIKeyDocument:
+    async def get_or_404(self, key_id: RecordId) -> WorkspaceAPIKeyDocument:
         return await self.get_or_raise(key_id)
 
     async def find_by_key_hash(
@@ -487,7 +572,7 @@ class PostgresWorkspaceAPIKeyRepository(PostgresRepositoryBase):
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
 
 
-class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
+class PostgresWorkspaceDomainRepository(RecordRepository):
     row = WorkspaceDomainRow
     document = WorkspaceDomainDocument
 
@@ -509,14 +594,14 @@ class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
         return await self.one(WorkspaceDomainRow.id == str(domain_id))
 
     async def list_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> List[WorkspaceDomainDocument]:
         return await self.many(
             WorkspaceDomainRow.workspace_id == _oid(workspace_id),
             order_by=(WorkspaceDomainRow.domain,),
         )
 
-    async def count_by_workspace(self, workspace_id: PydanticObjectId) -> int:
+    async def count_by_workspace(self, workspace_id: RecordId) -> int:
         return await self.count(WorkspaceDomainRow.workspace_id == _oid(workspace_id))
 
     async def find_verified(self, domain: str) -> Optional[WorkspaceDomainDocument]:
@@ -532,18 +617,18 @@ class PostgresWorkspaceDomainRepository(PostgresRepositoryBase):
             limit=limit,
         )
 
-    async def delete(self, domain_id: PydanticObjectId) -> int:
+    async def delete(self, domain_id: RecordId) -> int:
         return await self.delete_by_id(domain_id)
 
     async def delete_by_workspace_ids(
-        self, workspace_ids: List[PydanticObjectId]
+        self, workspace_ids: List[RecordId]
     ) -> int:
         return await self.delete_where(
             WorkspaceDomainRow.workspace_id.in_([_oid(w) for w in workspace_ids])
         )
 
 
-class PostgresSsoConnectionRepository(PostgresRepositoryBase):
+class PostgresSsoConnectionRepository(RecordRepository):
     row = SsoConnectionRow
     document = SsoConnectionDocument
 
@@ -565,11 +650,11 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
         return await self.one(SsoConnectionRow.polis_client_id == client_id)
 
     async def list_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> List[SsoConnectionDocument]:
         return await self.many(SsoConnectionRow.workspace_id == _oid(workspace_id))
 
-    async def count_by_workspace(self, workspace_id: PydanticObjectId) -> int:
+    async def count_by_workspace(self, workspace_id: RecordId) -> int:
         return await self.count(SsoConnectionRow.workspace_id == _oid(workspace_id))
 
     async def _enabled(self, workspace_id) -> List[SsoConnectionDocument]:
@@ -589,35 +674,54 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
         )
 
     async def find_enabled(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> Optional[SsoConnectionDocument]:
         enabled = await self._enabled(workspace_id)
         return enabled[0] if enabled else None
 
     async def disable_others(
         self,
-        workspace_id: PydanticObjectId,
-        keep_id: PydanticObjectId,
+        workspace_id: RecordId,
+        keep_id: RecordId,
         disabled_by: str,
         now: datetime.datetime,
     ) -> int:
-        changed = 0
-        for connection in await self._enabled(workspace_id):
-            if str(connection.id) == str(keep_id):
-                continue
-            connection.status = SsoConnectionStatus.DISABLED
-            connection.disabled_at = now
-            connection.disabled_by = disabled_by
-            connection.updated_at = now
-            await self.upsert(connection)
-            changed += 1
-        return changed
+        """Disable the workspace's other enabled connections, atomically: their
+        rows are locked and re-read, so only connections still enabled change
+        and nothing else of theirs is overwritten (Mongo's ``update_many``
+        with ``$set``)."""
+        async with self._session() as session, session.begin():
+            docs = (
+                (
+                    await session.execute(
+                        select(SsoConnectionRow.doc)
+                        .where(
+                            SsoConnectionRow.workspace_id == _oid(workspace_id),
+                            SsoConnectionRow.status
+                            == SsoConnectionStatus.ENABLED.value,
+                            SsoConnectionRow.id != str(keep_id),
+                        )
+                        .order_by(SsoConnectionRow.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for doc in docs:
+                connection = decode(SsoConnectionDocument, doc)
+                connection.status = SsoConnectionStatus.DISABLED
+                connection.disabled_at = now
+                connection.disabled_by = disabled_by
+                connection.updated_at = now
+                await session.execute(self._upsert_statement(row_values(connection)))
+        return len(docs)
 
-    async def delete(self, connection_id: PydanticObjectId) -> int:
+    async def delete(self, connection_id: RecordId) -> int:
         return await self.delete_by_id(connection_id)
 
     async def mark_release_pending(
-        self, workspace_ids: List[PydanticObjectId], now: datetime.datetime
+        self, workspace_ids: List[RecordId], now: datetime.datetime
     ) -> int:
         changed = 0
         for connection in await self.many(
@@ -640,7 +744,7 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
         )
 
     async def touch_release_pending(
-        self, workspace_ids: List[PydanticObjectId], now: datetime.datetime
+        self, workspace_ids: List[RecordId], now: datetime.datetime
     ) -> int:
         changed = 0
         for connection in await self.many(
@@ -653,14 +757,14 @@ class PostgresSsoConnectionRepository(PostgresRepositoryBase):
         return changed
 
     async def delete_by_workspace_ids(
-        self, workspace_ids: List[PydanticObjectId]
+        self, workspace_ids: List[RecordId]
     ) -> int:
         return await self.delete_where(
             SsoConnectionRow.workspace_id.in_([_oid(w) for w in workspace_ids])
         )
 
 
-class PostgresSsoUsedStateRepository(PostgresRepositoryBase):
+class PostgresSsoUsedStateRepository(RecordRepository):
     row = SsoUsedStateRow
     document = SsoUsedStateDocument
 
@@ -675,7 +779,7 @@ class PostgresSsoUsedStateRepository(PostgresRepositoryBase):
             raise StateAlreadyUsed(document.nonce_hash)
 
 
-class PostgresScimDirectoryRepository(PostgresRepositoryBase):
+class PostgresScimDirectoryRepository(RecordRepository):
     row = ScimDirectoryRow
     document = ScimDirectoryDocument
 
@@ -689,7 +793,7 @@ class PostgresScimDirectoryRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
     async def update_fields(
-        self, directory_id: PydanticObjectId, fields: Dict[str, Any]
+        self, directory_id: RecordId, fields: Dict[str, Any]
     ) -> int:
         """The row is locked while ``fields`` are set on what is stored."""
         async with self._session() as session, session.begin():
@@ -702,7 +806,7 @@ class PostgresScimDirectoryRepository(PostgresRepositoryBase):
             ).scalar_one_or_none()
             if doc is None:
                 return 0
-            stored = from_row_doc(ScimDirectoryDocument, doc)
+            stored = decode(ScimDirectoryDocument, doc)
             for name, value in fields.items():
                 setattr(stored, name, value)
             await session.execute(self._upsert_statement(row_values(stored)))
@@ -712,18 +816,18 @@ class PostgresScimDirectoryRepository(PostgresRepositoryBase):
         return await self.one(ScimDirectoryRow.id == str(directory_id))
 
     async def find_by_workspace(
-        self, workspace_id: PydanticObjectId
+        self, workspace_id: RecordId
     ) -> Optional[ScimDirectoryDocument]:
         return await self.one(ScimDirectoryRow.workspace_id == _oid(workspace_id))
 
     async def list_all(self) -> List[ScimDirectoryDocument]:
         return await self.many(order_by=(ScimDirectoryRow.id,))
 
-    async def delete(self, directory_id: PydanticObjectId) -> int:
+    async def delete(self, directory_id: RecordId) -> int:
         return await self.delete_by_id(directory_id)
 
 
-class PostgresScimUserRepository(PostgresRepositoryBase):
+class PostgresScimUserRepository(RecordRepository):
     row = ScimUserRow
     document = ScimUserDocument
 
@@ -734,7 +838,7 @@ class PostgresScimUserRepository(PostgresRepositoryBase):
         return await self.one(ScimUserRow.id == str(scim_user_id))
 
     async def find(
-        self, directory_id: PydanticObjectId, polis_user_id: str
+        self, directory_id: RecordId, polis_user_id: str
     ) -> Optional[ScimUserDocument]:
         return await self.one(
             ScimUserRow.directory_id == _oid(directory_id),
@@ -742,27 +846,27 @@ class PostgresScimUserRepository(PostgresRepositoryBase):
         )
 
     async def find_by_email(
-        self, workspace_id: PydanticObjectId, email: str
+        self, workspace_id: RecordId, email: str
     ) -> List[ScimUserDocument]:
         return await self.many(
             ScimUserRow.workspace_id == _oid(workspace_id), ScimUserRow.email == email
         )
 
     async def list_by_directory(
-        self, directory_id: PydanticObjectId
+        self, directory_id: RecordId
     ) -> List[ScimUserDocument]:
         return await self.many(ScimUserRow.directory_id == _oid(directory_id))
 
-    async def list_by_ids(self, ids: List[PydanticObjectId]) -> List[ScimUserDocument]:
+    async def list_by_ids(self, ids: List[RecordId]) -> List[ScimUserDocument]:
         if not ids:
             return []
         return await self.many(ScimUserRow.id.in_([_oid(i) for i in ids]))
 
-    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+    async def delete_by_directory(self, directory_id: RecordId) -> int:
         return await self.delete_where(ScimUserRow.directory_id == _oid(directory_id))
 
 
-class PostgresScimGroupRepository(PostgresRepositoryBase):
+class PostgresScimGroupRepository(RecordRepository):
     row = ScimGroupRow
     document = ScimGroupDocument
 
@@ -773,7 +877,7 @@ class PostgresScimGroupRepository(PostgresRepositoryBase):
         return await self.one(ScimGroupRow.id == str(group_id))
 
     async def find(
-        self, directory_id: PydanticObjectId, polis_group_id: str
+        self, directory_id: RecordId, polis_group_id: str
     ) -> Optional[ScimGroupDocument]:
         return await self.one(
             ScimGroupRow.directory_id == _oid(directory_id),
@@ -781,18 +885,18 @@ class PostgresScimGroupRepository(PostgresRepositoryBase):
         )
 
     async def list_by_directory(
-        self, directory_id: PydanticObjectId
+        self, directory_id: RecordId
     ) -> List[ScimGroupDocument]:
         return await self.many(ScimGroupRow.directory_id == _oid(directory_id))
 
-    async def delete(self, group_id: PydanticObjectId) -> int:
+    async def delete(self, group_id: RecordId) -> int:
         return await self.delete_by_id(group_id)
 
-    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+    async def delete_by_directory(self, directory_id: RecordId) -> int:
         return await self.delete_where(ScimGroupRow.directory_id == _oid(directory_id))
 
 
-class PostgresScimGroupMemberRepository(PostgresRepositoryBase):
+class PostgresScimGroupMemberRepository(RecordRepository):
     row = ScimGroupMemberRow
     document = ScimGroupMemberDocument
 
@@ -800,7 +904,7 @@ class PostgresScimGroupMemberRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
     async def remove(
-        self, group_id: PydanticObjectId, scim_user_id: PydanticObjectId
+        self, group_id: RecordId, scim_user_id: RecordId
     ) -> int:
         return await self.delete_where(
             ScimGroupMemberRow.group_id == _oid(group_id),
@@ -808,35 +912,35 @@ class PostgresScimGroupMemberRepository(PostgresRepositoryBase):
         )
 
     async def list_by_user(
-        self, scim_user_id: PydanticObjectId
+        self, scim_user_id: RecordId
     ) -> List[ScimGroupMemberDocument]:
         return await self.many(ScimGroupMemberRow.scim_user_id == _oid(scim_user_id))
 
     async def list_by_group(
-        self, group_id: PydanticObjectId
+        self, group_id: RecordId
     ) -> List[ScimGroupMemberDocument]:
         return await self.many(ScimGroupMemberRow.group_id == _oid(group_id))
 
     async def list_by_directory(
-        self, directory_id: PydanticObjectId
+        self, directory_id: RecordId
     ) -> List[ScimGroupMemberDocument]:
         return await self.many(ScimGroupMemberRow.directory_id == _oid(directory_id))
 
-    async def delete_by_group(self, group_id: PydanticObjectId) -> int:
+    async def delete_by_group(self, group_id: RecordId) -> int:
         return await self.delete_where(ScimGroupMemberRow.group_id == _oid(group_id))
 
-    async def delete_by_user(self, scim_user_id: PydanticObjectId) -> int:
+    async def delete_by_user(self, scim_user_id: RecordId) -> int:
         return await self.delete_where(
             ScimGroupMemberRow.scim_user_id == _oid(scim_user_id)
         )
 
-    async def delete_by_directory(self, directory_id: PydanticObjectId) -> int:
+    async def delete_by_directory(self, directory_id: RecordId) -> int:
         return await self.delete_where(
             ScimGroupMemberRow.directory_id == _oid(directory_id)
         )
 
 
-class PostgresScimEventRepository(PostgresRepositoryBase):
+class PostgresScimEventRepository(RecordRepository):
     row = ScimEventRow
     document = ScimEventDocument
 
@@ -854,7 +958,7 @@ class PostgresScimEventRepository(PostgresRepositoryBase):
         return await self.delete_where(ScimEventRow.event_key == event_key)
 
 
-class PostgresSessionRepository(PostgresRepositoryBase):
+class PostgresSessionRepository(RecordRepository):
     row = SessionRow
     document = SessionDocument
 
@@ -863,7 +967,7 @@ class PostgresSessionRepository(PostgresRepositoryBase):
 
     async def get(self, session_id: str) -> Optional[SessionDocument]:
         try:
-            session_id = str(PydanticObjectId(session_id))
+            session_id = str(RecordId(session_id))
         except Exception:  # noqa: BLE001 — not an ObjectId: no such session
             return None
         return await self.one(SessionRow.id == session_id)
@@ -894,7 +998,7 @@ class PostgresSessionRepository(PostgresRepositoryBase):
             )
             stored = []
             for doc in docs:
-                document = from_row_doc(SessionDocument, doc)
+                document = decode(SessionDocument, doc)
                 change(document)
                 await session.execute(self._upsert_statement(row_values(document)))
                 stored.append(document)
@@ -973,11 +1077,11 @@ class PostgresSessionRepository(PostgresRepositoryBase):
         return len(await self._update_live(self._revoker(reason, now), *where))
 
 
-class PostgresUserTagsRepository(PostgresRepositoryBase):
+class PostgresUserTagsRepository(RecordRepository):
     row = UserTagsRow
     document = UserTagsDocument
 
-    # BaseRepository stubs, unused — kept so both stores expose the same surface.
+    # BaseRepository stubs, unused (the interface the services were typed with)
     async def get(self, item_id, provider):
         pass
 
@@ -991,13 +1095,13 @@ class PostgresUserTagsRepository(PostgresRepositoryBase):
         pass
 
     async def get_tags_by_id(self, user_id: str):
-        return await self.one(UserTagsRow.user_id == _oid(PydanticObjectId(user_id)))
+        return await self.one(UserTagsRow.user_id == _oid(RecordId(user_id)))
 
     async def list(self, **kwargs) -> List[UserTagsDocument]:
         return await self.many()
 
     async def insert_user_tag(self, user_id: str, tag: UserTagType) -> UserTagsDocument:
-        user_id = PydanticObjectId(user_id)
+        user_id = RecordId(user_id)
         user_tags = await self.one(UserTagsRow.user_id == _oid(user_id))
         if user_tags is None:
             user_tags = UserTagsDocument(user_id=user_id, tags=[tag])

@@ -1,7 +1,7 @@
 from common.models.user import User
 
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
 
 
@@ -9,7 +9,7 @@ class AnalyticsService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
     ):
         self._authorization = authorization_service
         self._workspace_repo = workspace_repo

@@ -10,7 +10,7 @@ from beanie import PydanticObjectId
 from sqlalchemy import select, text
 
 from backend.app.container import container
-from backend.app.schemas.workspace import WorkspaceDocument
+from tests.app.db.beanie_originals import WorkspaceDocument  # the 4.0 Beanie class
 from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import AllowedOriginRow, MigrationProgress, WorkspaceRow

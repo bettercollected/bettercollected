@@ -2,10 +2,8 @@ import calendar
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
 from common.enums.workspace_invitation_status import InvitationStatus
-from pymongo import IndexModel
+from common.records import Record, RecordId
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 
@@ -26,7 +24,7 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
     return calendar.timegm((datetime.now(timezone.utc) + time_delta).utctimetuple())
 
 
-class WorkspaceUserInvitesDocument(MongoDocument):
+class WorkspaceUserInvitesDocument(Record):
     """
     WorkspaceUserInvitesDocument is a subclass of MongoDocument. It
     represents a collection of user invites for workspaces stored in
@@ -49,7 +47,7 @@ class WorkspaceUserInvitesDocument(MongoDocument):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     # A role this code doesn't know loads as a string and grants nothing
@@ -62,7 +60,6 @@ class WorkspaceUserInvitesDocument(MongoDocument):
 
     class Settings:
         name = "workspace_invites"
-        indexes = [IndexModel([("workspace_id", 1), ("email", 1)], unique=True)]
         bson_encoders = {
             datetime: lambda o: datetime.isoformat(o),
         }

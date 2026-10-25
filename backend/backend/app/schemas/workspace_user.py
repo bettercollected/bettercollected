@@ -1,10 +1,8 @@
 import datetime as dt
 from typing import List, Optional, Union
 
-from beanie import PydanticObjectId
-
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 
 
 DISABLED_BY_PLAN = "plan"
@@ -14,7 +12,7 @@ DISABLED_BY_DIRECTORY = "directory"
 DISABLED_BY_SEAT_LIMIT = "seat_limit"
 
 
-class WorkspaceUserDocument(MongoDocument):
+class WorkspaceUserDocument(Record):
     """
     WorkspaceUsers is a subclass of MongoDocument. It represents a
     collection of users in a workspace stored in a MongoDB database.
@@ -37,8 +35,8 @@ class WorkspaceUserDocument(MongoDocument):
                 specific data types.
     """
 
-    workspace_id: PydanticObjectId
-    user_id: PydanticObjectId
+    workspace_id: RecordId
+    user_id: RecordId
     roles: List[Union[WorkspaceRoles, str]] = []
     disabled: bool = False
     # who created the membership when not an invitation: "sso" (a first

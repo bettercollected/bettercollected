@@ -72,13 +72,6 @@ from backend.app.repositories.postgres.refdata import (
     PostgresUserFeedbackRepo,
 )
 
-from backend.app.repositories.workspace_api_key_repository import (
-    WorkspaceAPIKeyRepository,
-)
-from backend.app.repositories.workspace_domain_repository import (
-    WorkspaceDomainRepository,
-)
-from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.form_import_repository import FormImportRepository
@@ -87,15 +80,11 @@ from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
 from backend.app.repositories.template import FormTemplateRepository
-from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.sheets_grant_revocation import SheetsGrantService
@@ -150,15 +139,6 @@ from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
-from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
-from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
-from backend.app.repositories.scim_repository import (
-    ScimDirectoryRepository,
-    ScimEventRepository,
-    ScimGroupMemberRepository,
-    ScimGroupRepository,
-    ScimUserRepository,
-)
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
 from backend.app.services.sso.policy import SsoPolicyService
@@ -203,24 +183,15 @@ class AppContainer(containers.DeclarativeContainer):
         RoutingMetrics
     )  # shared: counters keyed by group
 
-    user_tags_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(UserTagsRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresUserTagsRepository, pg_sessionmaker
-        ),
+    user_tags_repo: PostgresUserTagsRepository = providers.Singleton(
+        PostgresUserTagsRepository, pg_sessionmaker
     )
     user_tags_service = providers.Singleton(
         UserTagsService, user_tags_repo=user_tags_repo
     )
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
-    # defined early: both workspace repositories compose over it (identity →
-    # actions, WorkspaceRepository.get_workspace_with_action_by_id)
+    # defined early: the workspace repository composes over it (identity →
+    # actions, get_workspace_with_action_by_id)
     action_repository: PostgresActionRepository = providers.Singleton(
         PostgresActionRepository, pg_sessionmaker, crypto
     )
@@ -230,49 +201,17 @@ class AppContainer(containers.DeclarativeContainer):
     coupon_repository: PostgresCouponRepository = providers.Singleton(
         PostgresCouponRepository, pg_sessionmaker
     )
-    workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceUserRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceUserRepository, pg_sessionmaker
-        ),
+    workspace_user_repo: PostgresWorkspaceUserRepository = providers.Singleton(
+        PostgresWorkspaceUserRepository, pg_sessionmaker
     )
-    workspace_repo: WorkspaceRepository = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(
-            WorkspaceRepository, action_repository=action_repository
-        ),
-        postgres=providers.Singleton(
-            postgres_repository,
-            PostgresWorkspaceRepository,
-            pg_sessionmaker,
-            action_repository,
-        ),
+    workspace_repo: PostgresWorkspaceRepository = providers.Singleton(
+        PostgresWorkspaceRepository, pg_sessionmaker, action_repository
     )
     allowed_origins_repo: PostgresAllowedOriginsRepository = providers.Singleton(
         PostgresAllowedOriginsRepository, pg_sessionmaker
     )
-    session_repo: SessionRepository = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(SessionRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresSessionRepository, pg_sessionmaker
-        ),
+    session_repo: PostgresSessionRepository = providers.Singleton(
+        PostgresSessionRepository, pg_sessionmaker
     )
 
     flow_event_repo: PostgresFlowEventRepository = providers.Singleton(
@@ -302,113 +241,32 @@ class AppContainer(containers.DeclarativeContainer):
             postgres_repository, PostgresFormImportRepository, pg_sessionmaker
         ),
     )
-    workspace_domain_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceDomainRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceDomainRepository, pg_sessionmaker
-        ),
+    workspace_domain_repo: PostgresWorkspaceDomainRepository = providers.Singleton(
+        PostgresWorkspaceDomainRepository, pg_sessionmaker
     )
-    sso_connection_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(SsoConnectionRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresSsoConnectionRepository, pg_sessionmaker
-        ),
+    sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
+        PostgresSsoConnectionRepository, pg_sessionmaker
     )
-    sso_used_state_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(SsoUsedStateRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresSsoUsedStateRepository, pg_sessionmaker
-        ),
+    sso_used_state_repo: PostgresSsoUsedStateRepository = providers.Singleton(
+        PostgresSsoUsedStateRepository, pg_sessionmaker
     )
-    scim_directory_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ScimDirectoryRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresScimDirectoryRepository, pg_sessionmaker
-        ),
+    scim_directory_repo: PostgresScimDirectoryRepository = providers.Singleton(
+        PostgresScimDirectoryRepository, pg_sessionmaker
     )
-    scim_user_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ScimUserRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresScimUserRepository, pg_sessionmaker
-        ),
+    scim_user_repo: PostgresScimUserRepository = providers.Singleton(
+        PostgresScimUserRepository, pg_sessionmaker
     )
-    scim_group_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ScimGroupRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresScimGroupRepository, pg_sessionmaker
-        ),
+    scim_group_repo: PostgresScimGroupRepository = providers.Singleton(
+        PostgresScimGroupRepository, pg_sessionmaker
     )
-    scim_group_member_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ScimGroupMemberRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresScimGroupMemberRepository, pg_sessionmaker
-        ),
+    scim_group_member_repo: PostgresScimGroupMemberRepository = providers.Singleton(
+        PostgresScimGroupMemberRepository, pg_sessionmaker
     )
-    scim_event_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(ScimEventRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresScimEventRepository, pg_sessionmaker
-        ),
+    scim_event_repo: PostgresScimEventRepository = providers.Singleton(
+        PostgresScimEventRepository, pg_sessionmaker
     )
-    workspace_api_key_repo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceAPIKeyRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
-        ),
+    workspace_api_key_repo: PostgresWorkspaceAPIKeyRepository = providers.Singleton(
+        PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
     )
     ai_preference_memory_repo: PostgresAIPreferenceMemoryRepository = providers.Singleton(
         PostgresAIPreferenceMemoryRepository, pg_sessionmaker
@@ -937,17 +795,8 @@ class AppContainer(containers.DeclarativeContainer):
         used_state_repo=sso_used_state_repo,
     )
 
-    workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
-        RoutingRepository,
-        group="identity",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceInvitationRepo),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceInvitationRepo, pg_sessionmaker
-        ),
+    workspace_invitation_repo: PostgresWorkspaceInvitationRepo = providers.Singleton(
+        PostgresWorkspaceInvitationRepo, pg_sessionmaker
     )
 
     workspace_members_service: WorkspaceMembersService = providers.Singleton(

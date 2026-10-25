@@ -1,15 +1,10 @@
 import datetime as dt
 from typing import List, Optional
 
-from beanie import Indexed, PydanticObjectId
-from common.configs.mongo_document import MongoDocument
-from typing_extensions import Annotated
-
-from backend.app.handlers.database import entity
+from common.records import Record, RecordId
 
 
-@entity
-class WorkspaceAPIKeyDocument(MongoDocument):
+class WorkspaceAPIKeyDocument(Record):
     """A workspace-scoped API key (plan §2.5) — the credential MCP and the
     public API authenticate with.
 
@@ -19,9 +14,9 @@ class WorkspaceAPIKeyDocument(MongoDocument):
     key may do; ``created_by`` is the acting user for authorization checks.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     name: str
-    key_hash: Annotated[str, Indexed(unique=True)]
+    key_hash: str  # unique
     prefix: str
     scopes: List[str] = []
     created_by: str

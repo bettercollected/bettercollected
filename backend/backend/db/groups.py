@@ -29,7 +29,7 @@ GROUPS = BACKEND_GROUPS
 #: Groups served from Postgres only: their repositories have no Mongo side and
 #: no routing any more. Their collections are read only by the import from 4.0
 #: (``python -m backend.migrate``).
-POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions")
+POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions", "identity")
 
 #: Mongo collection -> the repository group whose flags move it. Matches the
 #: ``group=`` of the routed repository serving it (a test keeps them in step);

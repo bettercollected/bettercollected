@@ -1,12 +1,13 @@
-"""The operator commands read through the routed repositories, so they follow
-the services' read source and write mode before, during and after the move to
-Postgres: ``python -m backend.migrate jobs-sweep``, ``python -m
+"""The operator commands read through the container's repositories, so they
+follow the services' read source and write mode before, during and after the
+move to Postgres: ``python -m backend.migrate jobs-sweep``, ``python -m
 backend.custom_domain export-reference-map`` and ``python -m
 backend.membership_duplicates``.
 
 The read methods they use behave the same on both stores (parity), and a
 routed repository reads them from the store its flags name, whatever the suite's
-own mode (mongo, dual or postgres in CI)."""
+own mode (mongo, dual or postgres in CI). The identity group (workspaces,
+memberships) is served from Postgres only since 4.1."""
 
 from __future__ import annotations
 
@@ -21,7 +22,6 @@ from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.cli_store import needs_mongo
@@ -160,41 +160,34 @@ async def test_jobs_sweep_schedules_through_the_jobs_backend(sessions, monkeypat
     assert sorted(j["args"]["response_id"] for j in jobs) == ["r-date", "r-days"]
 
 
-async def test_custom_domain_references_are_the_same_on_both_stores(sessions):
-    mongo = WorkspaceRepository()
+async def test_custom_domain_references(sessions):
     postgres = PostgresWorkspaceRepository(
         sessions, PostgresActionRepository(sessions, None)
     )
     rows = workspaces()
     for document in rows:
-        await document.save()
         await postgres.save(document)
     expected = sorted(
         [("Forms.Example.org.", str(rows[0].id)), ("b.example", str(rows[1].id))],
         key=lambda row: row[1],
     )
-    assert await mongo.list_custom_domain_references() == expected
     assert await postgres.list_custom_domain_references() == expected
 
 
-@pytest.mark.parametrize("read", ["mongo", "postgres"])
-async def test_export_reference_map_reads_the_workspaces_from_the_read_source(
-    sessions, monkeypatch, tmp_path, read
+async def test_export_reference_map_reads_the_workspaces_from_postgres(
+    sessions, monkeypatch, tmp_path
 ):
     from backend.custom_domain import __main__ as command
 
-    mongo = WorkspaceRepository()
     postgres = PostgresWorkspaceRepository(
         sessions, PostgresActionRepository(sessions, None)
     )
-    in_mongo = workspace("m", custom_domain="m.example")
-    in_postgres = workspace("p", custom_domain="P.Example.")
-    await in_mongo.save()
-    await postgres.save(in_postgres)
+    stored = workspace("p", custom_domain="P.Example.")
+    await postgres.save(stored)
 
     class Container:
         def workspace_repo(self):
-            return routed("identity", mongo, postgres, read)
+            return postgres
 
     @asynccontextmanager
     async def booted(*groups):
@@ -205,12 +198,7 @@ async def test_export_reference_map_reads_the_workspaces_from_the_read_source(
     monkeypatch.setattr(command, "container", Container())
     out = tmp_path / "map.json"
     assert await command.export_reference_map(str(out)) == 0
-    expected = (
-        {"m.example": str(in_mongo.id)}
-        if read == "mongo"
-        else {"p.example": str(in_postgres.id)}
-    )
-    assert json.loads(out.read_text()) == expected
+    assert json.loads(out.read_text()) == {"p.example": str(stored.id)}
 
 
 # ----------------------------------------------------------- which stores to open
@@ -226,7 +214,7 @@ def test_mongo_is_opened_only_while_a_group_still_uses_it(read, write):
     expected = read == "mongo" or write != "postgres"
     assert needs_mongo(flags, ["responses"]) is expected
     # another group still on Mongo keeps it open for a command that uses both
-    assert needs_mongo(flags, ["responses", "identity"]) is True
+    assert needs_mongo(flags, ["responses", "forms"]) is True
 
 
 def test_mongo_is_not_opened_once_every_group_is_on_postgres():
@@ -236,49 +224,45 @@ def test_mongo_is_not_opened_once_every_group_is_on_postgres():
 
 # -------------------------------------------------------- membership duplicates
 @pytest.mark.parametrize(
-    "env, mongo",
+    "env",
     [
-        ({}, True),
-        ({"DB_WRITE_MODE": "dual"}, True),
-        (
-            {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres_primary_dual"},
-            True,
-        ),
-        ({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, False),
-        (
-            {
-                "DB_WRITE_MODE": "dual",
-                "DB_READ_SOURCE__identity": "postgres",
-                "DB_WRITE_MODE__identity": "postgres",
-            },
-            False,
-        ),
+        {},
+        {"DB_WRITE_MODE": "dual"},
+        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
     ],
 )
-def test_membership_duplicates_skips_mongo_once_identity_is_off_it(
-    monkeypatch, capsys, env, mongo
-):
+def test_membership_duplicates_reads_postgres_only(monkeypatch, capsys, env):
+    """The identity group has no Mongo store since 4.1: Mongo is never
+    contacted, whatever the flags, and listed under ``skipped``."""
     from backend import membership_duplicates as command
 
-    assert command.mongo_in_use(env) is mongo
-    for name in (
-        "DB_READ_SOURCE",
-        "DB_WRITE_MODE",
-        "DB_READ_SOURCE__identity",
-        "DB_WRITE_MODE__identity",
-    ):
+    for name in ("DB_READ_SOURCE", "DB_WRITE_MODE"):
         monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     monkeypatch.delenv("DATABASE_URL", raising=False)
-
-    def no_mongo():
-        raise AssertionError("Mongo must not be contacted")
-
-    monkeypatch.setattr(
-        command, "mongo_duplicates", (lambda: []) if mongo else no_mongo
-    )
     assert command.main() == 0
     report = json.loads(capsys.readouterr().out)
-    assert ("mongo" in report) is mongo
-    assert report["skipped"] == (["postgres"] if mongo else ["mongo", "postgres"])
+    assert report == {"skipped": ["mongo", "postgres"]}
+
+
+async def test_membership_duplicates_reads_the_postgres_store(sessions):
+    from sqlalchemy import text
+
+    from backend import membership_duplicates as command
+    from tests.conftest import TEST_DATABASE_URL
+
+    """Postgres keeps one membership per workspace and user (revision 0011's
+    unique index), so the report of a migrated store is empty."""
+    assert await command.postgres_duplicates(TEST_DATABASE_URL) == []
+    async with sessions() as session:
+        index = (
+            await session.execute(
+                text(
+                    "SELECT indexname FROM pg_indexes WHERE schemaname = 'app' "
+                    "AND tablename = 'workspace_users' AND indexdef LIKE '%UNIQUE%'"
+                    " AND indexdef LIKE '%user_id%'"
+                )
+            )
+        ).scalar_one()
+    assert index == "uq_workspace_users_workspace_user"

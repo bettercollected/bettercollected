@@ -122,10 +122,6 @@ MONGO_DRIVEN = {
         "test_startup_drops_the_superseded_key_and_builds_the_new_one",
         "test_index_failures_are_logged_and_the_start_goes_on",
     },
-    "tests/app/controllers/test_scim_review.py": {
-        "test_a_legacy_row_in_both_stores",
-        "test_the_unique_index_and_the_duplicate_report",
-    },
     "tests/app/db/test_outbox.py": ALL,
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
@@ -136,12 +132,8 @@ MONGO_DRIVEN = {
     "tests/app/repositories/test_beanie_pagination.py": ALL,
     "tests/app/repositories/test_form_groups.py": ALL,
     "tests/app/repositories/test_forms_parity.py": ALL,
-    "tests/app/repositories/test_identity_parity.py": ALL,
     "tests/app/repositories/test_platform_metrics_parity.py": ALL,
     "tests/app/repositories/test_responses_parity.py": ALL,
-    "tests/app/repositories/test_scim_parity.py": ALL,
-    "tests/app/repositories/test_sso_connection_parity.py": ALL,
-    "tests/app/repositories/test_workspace_domain_parity.py": ALL,
     "tests/app/repositories/test_workspace_form_links_unique.py": {
         "test_mongo_refuses_a_second_link_of_the_same_form",
         "test_mongo_links_without_a_workspace_are_not_indexed",
@@ -151,9 +143,7 @@ MONGO_DRIVEN = {
         "test_a_mongo_holding_duplicate_links_still_starts",
     },
     "tests/app/test_operator_tools.py": {
-        "test_custom_domain_references_are_the_same_on_both_stores",
         "test_expiration_schedules_are_the_same_on_both_stores",
-        "test_export_reference_map_reads_the_workspaces_from_the_read_source",
         "test_jobs_sweep_reads_the_responses_from_the_read_source",
     },
     "tests/scripts/test_backfill_response_workspaces.py": ALL,

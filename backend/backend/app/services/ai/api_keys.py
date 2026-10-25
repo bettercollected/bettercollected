@@ -11,15 +11,13 @@ import secrets
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.workspace_api_key_repository import (
-    WorkspaceAPIKeyRepository,
-)
+from backend.app.repositories.postgres.identity import PostgresWorkspaceAPIKeyRepository
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
@@ -99,13 +97,13 @@ class APIKeyService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        api_key_repo: WorkspaceAPIKeyRepository,
+        api_key_repo: PostgresWorkspaceAPIKeyRepository,
     ):
         self._authorization = authorization_service
         self._api_key_repo = api_key_repo
 
     async def create_key(
-        self, workspace_id: PydanticObjectId, dto: CreateAPIKeyDto, user: User
+        self, workspace_id: RecordId, dto: CreateAPIKeyDto, user: User
     ) -> CreatedAPIKeyDto:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
@@ -142,7 +140,7 @@ class APIKeyService:
         return CreatedAPIKeyDto(**_to_dto(document).model_dump(), token=token)
 
     async def list_keys(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> List[APIKeyDto]:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
@@ -151,12 +149,12 @@ class APIKeyService:
         return [_to_dto(d) for d in documents]
 
     async def revoke_key(
-        self, workspace_id: PydanticObjectId, key_id: str, user: User
+        self, workspace_id: RecordId, key_id: str, user: User
     ) -> List[APIKeyDto]:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
-        document = await self._api_key_repo.get_or_404(PydanticObjectId(key_id))
+        document = await self._api_key_repo.get_or_404(RecordId(key_id))
         if not document or str(document.workspace_id) != str(workspace_id):
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="API key not found"

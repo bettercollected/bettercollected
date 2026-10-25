@@ -1,9 +1,9 @@
 import datetime as dt
 
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
 
-class BlackListedRefreshTokens(MongoDocument):
+class BlackListedRefreshTokens(Record):
     token: str
     expiry: dt.datetime
 

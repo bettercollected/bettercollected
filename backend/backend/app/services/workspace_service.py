@@ -5,7 +5,7 @@ from http import HTTPStatus
 from typing import List, Optional
 
 import bson
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 from common.exceptions.http import HTTPException as CommonHTTPException
@@ -33,8 +33,10 @@ from backend.app.models.workspace import (
 from backend.app.repositories.postgres.refdata import (
     PostgresAllowedOriginsRepository,
 )
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresWorkspaceRepository,
+    PostgresWorkspaceUserRepository,
+)
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import AuthorizationService
@@ -114,8 +116,8 @@ class WorkspaceService:
     def __init__(
         self,
         http_client: HttpClient,
-        workspace_repo: WorkspaceRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        workspace_repo: PostgresWorkspaceRepository,
+        workspace_user_repo: PostgresWorkspaceUserRepository,
         allowed_origins_repo: PostgresAllowedOriginsRepository,
         aws_service: AWSS3Service,
         workspace_user_service: WorkspaceUserService,
@@ -147,7 +149,7 @@ class WorkspaceService:
         self.responder_groups_service = responder_groups_service
         self.user_tags_service = user_tags_service
 
-    async def get_workspace_by_id(self, workspace_id: PydanticObjectId):
+    async def get_workspace_by_id(self, workspace_id: RecordId):
         workspace = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -207,7 +209,7 @@ class WorkspaceService:
         )
         workspace_document = await self._workspace_repo.save(workspace_document)
         existing_workspace_user = await self._workspace_user_repo.find_workspace_user(
-            workspace_document.id, PydanticObjectId(user.id)
+            workspace_document.id, RecordId(user.id)
         )
         if not existing_workspace_user:
             workspace_user = WorkspaceUserDocument(
@@ -337,7 +339,7 @@ class WorkspaceService:
 
     async def update_custom_themes(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         custom_themes: list[WorkspaceThemeDto],
         user: User,
     ):
@@ -384,7 +386,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode="json"))
 
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ):
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
@@ -429,7 +431,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode="json"))
 
     async def generate_unique_names_from_the_workspace_handle(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
+        self, workspace_name: str, workspace_id: Optional[RecordId] = None
     ):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", workspace_name)
@@ -452,7 +454,7 @@ class WorkspaceService:
         return suggestions
 
     async def check_if_workspace_handle_is_unique(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
+        self, workspace_name: str, workspace_id: Optional[RecordId] = None
     ):
         if is_reserved_workspace_name(workspace_name):
             return False
@@ -488,7 +490,7 @@ class WorkspaceService:
 
     async def send_otp_for_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         receiver_email: EmailStr,
         locale: Optional[str] = None,
     ):
@@ -511,7 +513,7 @@ class WorkspaceService:
         )
         return {"message": "Otp sent successfully"}
 
-    async def get_workspace_stats(self, workspace_id: PydanticObjectId, user: User):
+    async def get_workspace_stats(self, workspace_id: RecordId, user: User):
         await self._authorization.authorize(
             user, Permission.ANALYTICS_READ, workspace_id
         )
@@ -544,7 +546,7 @@ class WorkspaceService:
             workspace.custom_domain_disabled = True
             await self._workspace_repo.save(workspace)
             await self._workspace_user_service.disable_other_users_in_workspace(
-                workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
+                workspace_id=workspace.id, user_id=RecordId(user_id)
             )
 
     async def upgrade_user_workspace(self, user_id: str):
@@ -642,7 +644,7 @@ class WorkspaceService:
         await sync_custom_domain_origin(self._allowed_origins_repo, hostname, verified)
 
     async def recheck_workspace_domain(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ):
         """Bring the next lifecycle check forward (rate limited by the service)."""
         workspace = await self._require_custom_domain_admin(workspace_id, user)
@@ -657,7 +659,7 @@ class WorkspaceService:
         return domain_payload(domain)
 
     async def _require_custom_domain_admin(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> WorkspaceDocument:
         await self._authorization.authorize(
             user, Permission.WORKSPACE_MANAGE, workspace_id
@@ -922,7 +924,7 @@ async def create_workspace(user: User):
         await workspace_repo.save(workspace)
     # Save new workspace user if it is not associated yet
     existing_workspace_user = await workspace_user_repo.find_workspace_user(
-        workspace.id, PydanticObjectId(user.id)
+        workspace.id, RecordId(user.id)
     )
     if not existing_workspace_user:
         workspace_user = WorkspaceUserDocument(

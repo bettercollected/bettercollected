@@ -27,7 +27,7 @@ See docs/sso.md.
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -36,8 +36,10 @@ from backend.app.models.enum.workspace_roles import (
     canonical_role,
     is_owner_membership,
 )
-from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresSsoConnectionRepository,
+    PostgresWorkspaceRepository,
+)
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.domains.names import display_domain, domain_of
 from backend.app.services.internal_auth import auth_service_headers
@@ -92,9 +94,9 @@ def sso_required_error(domain: str) -> HTTPException:
 class SsoPolicyService:
     def __init__(
         self,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         domain_service: WorkspaceDomainService,
-        connection_repo: SsoConnectionRepository,
+        connection_repo: PostgresSsoConnectionRepository,
         http_client=None,
         workspace_user_repo=None,
     ):
@@ -226,7 +228,7 @@ class SsoPolicyService:
         return False
 
     async def sso_users_of(
-        self, workspace_id: PydanticObjectId, user_ids: List[str]
+        self, workspace_id: RecordId, user_ids: List[str]
     ) -> List[str]:
         """Of ``user_ids``, those whose email is on one of the workspace's SSO
         domains (to offer revoking their sessions)."""

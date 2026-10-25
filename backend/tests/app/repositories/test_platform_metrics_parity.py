@@ -1,5 +1,6 @@
 """The platform-metrics counts agree between each Mongo repository and its
-Postgres twin, and count what the dashboard says they count.
+Postgres twin, and count what the dashboard says they count. (The workspace
+counts, identity group, Postgres only since 4.1: test_identity_repositories.py.)
 
 Workspaces and forms are dated by ObjectId, responses by ``created_at``.
 Skipped unless DATABASE_URL points at a *_test database.
@@ -13,20 +14,16 @@ from beanie import PydanticObjectId
 
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresWorkspaceFormRepository,
 )
-from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from tests.app.repositories.parity import parity
 
@@ -53,47 +50,6 @@ async def seed(repositories, method, *documents):
     for repository in repositories:
         for document in documents:
             await getattr(repository, method)(document)
-
-
-async def test_workspace_counts(sessions):
-    mongo = WorkspaceRepository()
-    postgres = PostgresWorkspaceRepository(
-        sessions, PostgresActionRepository(sessions, None)
-    )
-    owner = str(PydanticObjectId())
-
-    def workspace(name, created, **extra):
-        return WorkspaceDocument(
-            id=minted_at(created), workspace_name=name, owner_id=owner, **extra
-        )
-
-    await seed(
-        (mongo, postgres),
-        "save",
-        workspace("old", days_ago(40)),
-        workspace("week-one", WEEKS[0]),  # exactly on a boundary
-        workspace("week-two", days_ago(5), disabled=True),
-        workspace("today", days_ago(0.5), disabled=False),
-    )
-    await parity(
-        mongo,
-        postgres,
-        [
-            ("count_workspaces", lambda: ()),
-            ("count_workspaces", lambda: (days_ago(30),)),
-            ("count_disabled_workspaces", lambda: ()),
-            ("count_workspaces_created_per_period", lambda: (WEEKS,)),
-            ("count_workspaces_created_per_period", lambda: (WEEKS[:1],)),
-        ],
-    )
-    for repository in (mongo, postgres):
-        assert await repository.count_workspaces() == 4
-        assert await repository.count_workspaces(days_ago(30)) == 3
-        assert await repository.count_disabled_workspaces() == 1
-        # 2–9 March holds the boundary one; 9–16 March the one 5 days back
-        # (13 March); 16–23 March the one from this morning.
-        assert await repository.count_workspaces_created_per_period(WEEKS) == [1, 1, 1]
-        assert await repository.count_workspaces_created_per_period(WEEKS[:1]) == []
 
 
 async def test_workspace_form_counts(sessions):

@@ -8,7 +8,7 @@ from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.workspace import WorkspaceResponseDto
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import response_scope
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDocument,
@@ -23,7 +23,7 @@ class FormImportService:
     def __init__(
         self,
         form_service: FormService,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         form_response_repo: FormResponseRepository,
         workspace_form_repo=None,
     ):

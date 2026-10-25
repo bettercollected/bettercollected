@@ -1,10 +1,8 @@
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
-from backend.app.handlers.database import entity
 from backend.app.models.user_tags import UserTags
 
 
-@entity
-class UserTagsDocument(MongoDocument, UserTags):
+class UserTagsDocument(Record, UserTags):
     class Settings:
         name = "user_tags"

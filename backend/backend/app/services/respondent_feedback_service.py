@@ -23,7 +23,7 @@ from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import find_response_in_workspace
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.services.respondent_feedback import (
     current_status,
     decrypt_feedback,
@@ -52,7 +52,7 @@ class RespondentFeedbackService:
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         authorization_service: AuthorizationService,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         http_client: HttpClient,
     ):
         self._form_response_repo = form_response_repo

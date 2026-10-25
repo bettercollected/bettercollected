@@ -28,6 +28,20 @@ def strip(value: Any) -> Any:
     return value
 
 
+async def both_raise(exc_type, mongo_call, postgres_call):
+    """Both calls raise ``exc_type``, with the same status or message."""
+    from backend.app.exceptions import HTTPException
+
+    with pytest.raises(exc_type) as m:
+        await mongo_call()
+    with pytest.raises(exc_type) as p:
+        await postgres_call()
+    if exc_type is HTTPException:
+        assert m.value.status_code == p.value.status_code
+    else:
+        assert str(m.value) == str(p.value)
+
+
 async def parity(mongo, postgres, steps):
     for name, args in steps:
         m = await getattr(mongo, name)(*args())

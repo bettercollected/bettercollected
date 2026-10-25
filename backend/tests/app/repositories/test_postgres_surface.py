@@ -33,61 +33,11 @@ from backend.app.repositories.responder_groups_repository import (
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
-from backend.app.repositories.postgres.identity import (
-    PostgresSessionRepository,
-    PostgresUserTagsRepository,
-    PostgresWorkspaceAPIKeyRepository,
-    PostgresWorkspaceDomainRepository,
-    PostgresSsoConnectionRepository,
-    PostgresSsoUsedStateRepository,
-    PostgresScimDirectoryRepository,
-    PostgresScimEventRepository,
-    PostgresScimGroupMemberRepository,
-    PostgresScimGroupRepository,
-    PostgresScimUserRepository,
-    PostgresWorkspaceInvitationRepo,
-    PostgresWorkspaceRepository,
-    PostgresWorkspaceUserRepository,
-)
-from backend.app.repositories.session_repository import SessionRepository
-from backend.app.repositories.user_tags_repository import UserTagsRepository
-from backend.app.repositories.workspace_api_key_repository import (
-    WorkspaceAPIKeyRepository,
-)
-from backend.app.repositories.workspace_domain_repository import (
-    WorkspaceDomainRepository,
-)
-from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
-from backend.app.repositories.sso_used_state_repository import SsoUsedStateRepository
-from backend.app.repositories.scim_repository import (
-    ScimDirectoryRepository,
-    ScimEventRepository,
-    ScimGroupMemberRepository,
-    ScimGroupRepository,
-    ScimUserRepository,
-)
-from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from common.db import is_write_op
 
 # The groups served from Postgres only (backend.db.groups.POSTGRES_ONLY_GROUPS)
 # have no Mongo original left.
 PAIRS = [
-    (WorkspaceRepository, PostgresWorkspaceRepository),
-    (WorkspaceUserRepository, PostgresWorkspaceUserRepository),
-    (WorkspaceInvitationRepo, PostgresWorkspaceInvitationRepo),
-    (WorkspaceAPIKeyRepository, PostgresWorkspaceAPIKeyRepository),
-    (SessionRepository, PostgresSessionRepository),
-    (WorkspaceDomainRepository, PostgresWorkspaceDomainRepository),
-    (SsoConnectionRepository, PostgresSsoConnectionRepository),
-    (SsoUsedStateRepository, PostgresSsoUsedStateRepository),
-    (ScimDirectoryRepository, PostgresScimDirectoryRepository),
-    (ScimUserRepository, PostgresScimUserRepository),
-    (ScimGroupRepository, PostgresScimGroupRepository),
-    (ScimGroupMemberRepository, PostgresScimGroupMemberRepository),
-    (ScimEventRepository, PostgresScimEventRepository),
-    (UserTagsRepository, PostgresUserTagsRepository),
     (FormRepository, PostgresFormRepository),
     (WorkspaceFormRepository, PostgresWorkspaceFormRepository),
     (WorkspaceConsentRepo, PostgresWorkspaceConsentRepo),

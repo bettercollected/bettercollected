@@ -2,10 +2,8 @@ import datetime as dt
 import enum
 from typing import Optional
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 from pydantic import field_validator
-from pymongo import IndexModel
 
 
 class DomainStatus(str, enum.Enum):
@@ -14,7 +12,7 @@ class DomainStatus(str, enum.Enum):
     FAILED = "failed"  # not verified, the last check failed
 
 
-class WorkspaceDomainDocument(MongoDocument):
+class WorkspaceDomainDocument(Record):
     """An email domain a workspace claims, proven by a DNS TXT record.
 
     ``verified_domain`` equals ``domain`` while the claim is verified and is
@@ -23,7 +21,7 @@ class WorkspaceDomainDocument(MongoDocument):
     the same domain by other workspaces can never verify while it is held.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     domain: str  # canonical ASCII (punycode), lower case
     verification_token: str
     method: str = "dns_txt"
@@ -52,13 +50,3 @@ class WorkspaceDomainDocument(MongoDocument):
 
     class Settings:
         name = "workspace_domains"
-        indexes = [
-            IndexModel([("workspace_id", 1), ("domain", 1)], unique=True),
-            IndexModel([("domain", 1)]),
-            IndexModel(
-                [("verified_domain", 1)],
-                unique=True,
-                partialFilterExpression={"verified_domain": {"$type": "string"}},
-            ),
-            IndexModel([("status", 1), ("last_checked_at", 1)]),
-        ]

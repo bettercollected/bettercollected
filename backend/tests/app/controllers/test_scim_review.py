@@ -14,7 +14,6 @@ from beanie import PydanticObjectId
 from common.models.user import User
 
 from backend.app.container import container
-from backend.app.handlers.database import ensure_membership_unique_index
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.scim import ScimUserState
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -427,39 +426,6 @@ async def test_a_second_membership_for_the_same_user_is_not_created(workspace):
     assert str(added.id) == str(first.id)
 
 
-async def test_the_unique_index_and_the_duplicate_report(monkeypatch):
-    client = container.database_client()
-    app_db = settings.mongo_settings.DB
-    name = app_db + "_dups"
-    db = client[name]
-    try:
-        ws, user = PydanticObjectId(), PydanticObjectId()
-        await db["workspace_users"].insert_many(
-            [
-                {"workspace_id": ws, "user_id": user, "roles": ["ADMIN"]},
-                {"workspace_id": ws, "user_id": user, "roles": ["VIEWER"]},
-            ]
-        )
-        assert await ensure_membership_unique_index(db) is False  # logged, no crash
-
-        from backend import membership_duplicates
-
-        monkeypatch.setattr(settings.mongo_settings, "DB", name)
-        found = membership_duplicates.mongo_duplicates()
-        assert [(d["workspace_id"], d["user_id"]) for d in found] == [
-            (str(ws), str(user))
-        ]
-        assert len(found[0]["memberships"]) == 2
-
-        await db["workspace_users"].delete_many({"roles": ["VIEWER"]})
-        assert await ensure_membership_unique_index(db) is True
-    finally:
-        await client.drop_database(name)
-    # the application's database got the index at startup
-    info = await client[app_db]["workspace_users"].index_information()
-    assert info["uq_workspace_users_workspace_user"]["unique"] is True
-
-
 # -- rotation ----------------------------------------------------------------------
 async def test_a_rotation_that_could_not_delete_the_old_directory_says_so(
     client, workspace, directory, scim_on
@@ -617,30 +583,24 @@ def test_a_legacy_row_keeps_the_plans_reason():
     assert legacy.holds_seat
 
 
-async def test_a_legacy_row_in_both_stores(clean_postgres):
+async def test_a_legacy_row_keeps_its_plan_reason(clean_postgres):
     from backend.app.repositories.postgres.identity import (
         PostgresWorkspaceUserRepository,
     )
-    from backend.app.repositories.workspace_user_repository import (
-        WorkspaceUserRepository,
-    )
 
     workspace_id = PydanticObjectId()
-    for repo in (
-        WorkspaceUserRepository(),
-        PostgresWorkspaceUserRepository(container.pg_sessionmaker()),
-    ):
-        legacy = await repo.add_if_absent(_legacy(workspace_id))
-        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
-        assert stored.disabled and stored.disabled_reasons == []
-        stored.disable_for("directory")
-        await repo.save(stored)
-        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
-        stored.enable_for("directory")
-        await repo.save(stored)
-        stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
-        assert stored.disabled and stored.disabled_reasons == ["plan"]
-        await repo.delete(workspace_id, legacy.user_id)
+    repo = PostgresWorkspaceUserRepository(container.pg_sessionmaker())
+    legacy = await repo.add_if_absent(_legacy(workspace_id))
+    stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+    assert stored.disabled and stored.disabled_reasons == []
+    stored.disable_for("directory")
+    await repo.save(stored)
+    stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+    stored.enable_for("directory")
+    await repo.save(stored)
+    stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
+    assert stored.disabled and stored.disabled_reasons == ["plan"]
+    await repo.delete(workspace_id, legacy.user_id)
 
 
 async def test_the_directory_does_not_re_enable_a_legacy_plan_disable(

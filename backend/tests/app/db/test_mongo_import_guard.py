@@ -87,7 +87,8 @@ def test_the_guard_covers_exactly_the_postgres_only_groups_collections():
         c for c, g in COLLECTION_GROUPS.items() if g in POSTGRES_ONLY_GROUPS
     }
     assert "allowed_origins" in guarded_collections()
-    assert "workspaces" not in guarded_collections()
+    assert "workspaces" in guarded_collections()
+    assert "forms" not in guarded_collections()
 
 
 # -- per group --------------------------------------------------------------
@@ -188,7 +189,7 @@ async def test_the_override_covers_only_the_groups_it_names(group):
 async def test_an_override_naming_an_unknown_group_refuses():
     client, _ = fake_client({})
     with pytest.raises(UnimportedMongoData, match="unknown group"):
-        await check(client, env={OVERRIDE_KEY: "refdata,identity"})
+        await check(client, env={OVERRIDE_KEY: "refdata,forms"})
     with pytest.raises(UnimportedMongoData, match="unknown group"):
         await check(client, env={OVERRIDE_KEY: "true"})
 
