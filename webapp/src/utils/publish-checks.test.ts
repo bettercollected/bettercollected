@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems } from './publish-checks';
+import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, themeContrastProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -122,5 +123,32 @@ describe('problemsFromPublishError', () => {
         const error = { status: 422, data: { code: 'form_not_publishable', message: 'x', problems: [{ code: 'missing_why_we_ask', fieldId: 'e', message: 'Add a reason' }] } };
         expect(problemsFromPublishError(error)).toEqual([{ code: 'missing_why_we_ask', fieldId: 'e', message: 'Add a reason' }]);
         expect(problemsFromPublishError({ status: 500, data: 'oops' })).toEqual([]);
+    });
+});
+
+describe('themeContrastProblems', () => {
+    it('lets every preset publish', () => {
+        for (const theme of ThemeColors) expect(themeContrastProblems(theme)).toEqual([]);
+    });
+
+    it('stops a theme whose colours are hard to read, naming what fails', () => {
+        expect(themeContrastProblems({ title: 'Pastel', primary: '#9CA3AF', secondary: '#1649E2', tertiary: '#E5E7EB', accent: '#FFFFFF' })).toEqual([
+            {
+                code: 'theme_contrast',
+                fieldId: THEME_PROBLEM_ID,
+                message: "The theme's colours are hard to read: questions and text on the page, answers in the input boxes and input borders. Use the suggested colours on the Design tab, or pick others."
+            }
+        ]);
+    });
+
+    it('blocks for every form, old or new', () => {
+        const problems = themeContrastProblems({ title: 'Custom', primary: '#101828', secondary: '#FDE68A', tertiary: '#818CA0', accent: '#FFFFFF' });
+        expect(splitPublishProblems(problems, undefined).blocking).toEqual(problems);
+        expect(problems[0].message).toContain('white text on buttons and chosen answers and progress');
+    });
+
+    it('leaves a form without its own colours alone', () => {
+        expect(themeContrastProblems(undefined)).toEqual([]);
+        expect(themeContrastProblems({ title: 'Default' })).toEqual([]);
     });
 });
