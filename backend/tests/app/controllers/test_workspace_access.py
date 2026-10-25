@@ -17,6 +17,8 @@ from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.template import FormTemplateDocument
+from backend.app.services.form_service import FormService
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from tests.app.controllers.data import formData, testUser, testUser1
@@ -503,6 +505,7 @@ class TestInvitationMail:
         monkeypatch.setattr(
             settings.auth_settings, "INTERNAL_NOTIFY_KEY", "backend-internal-key"
         )
+
         async def auth_service(url, **kwargs):
             if url.endswith("/users"):  # is the invitee already a member?
                 return {"users_info": []}
@@ -699,6 +702,282 @@ class TestResponderGroupsAcrossWorkspaces:
 
         await service.remove_responder_group(workspace.id, workspace_group.id, testUser)
         assert await _group_emails(workspace_group.id) is None
+
+
+async def _linked_group_ids(form_id) -> set:
+    groups = await container.responder_groups_service().responder_groups_repo.get_groups_by_form_ids(
+        [form_id]
+    )
+    return {PydanticObjectId(group["_id"]) for group in groups[form_id]}
+
+
+async def _own_group(workspace, user, name="Own"):
+    return await container.responder_groups_service().create_group(
+        workspace.id, name, [], user, None, None, None
+    )
+
+
+async def _stray_link(form_id, group_id):
+    """A link made before links were checked (the repository doesn't check)."""
+    await container.responder_groups_service().responder_groups_repo.add_group_to_form(
+        form_id=form_id, group_id=group_id
+    )
+
+
+async def _share_form(workspace, form_id, user):
+    """The form is held by ``workspace`` as well."""
+    await container.workspace_form_repo().save(
+        WorkspaceFormDocument(
+            workspace_id=workspace.id, form_id=form_id, user_id=str(user.id)
+        )
+    )
+
+
+class TestFormGroupLinksAcrossWorkspaces:
+    """testUser1 owns workspace_1 and its form workspace_form_1; workspace_group
+    belongs to testUser's workspace (and is linked to its form workspace_form)."""
+
+    async def test_another_workspaces_group_is_refused_and_nothing_linked(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        attaching = container.workspace_form_service().add_groups_to_form(
+            workspace_1.id, workspace_form_1.form_id, [workspace_group.id], testUser1
+        )
+
+        assert await _refused(attaching) == 404
+        assert await _linked_group_ids(workspace_form_1.form_id) == set()
+
+    async def test_unknown_group_is_refused_like_a_foreign_one(
+        self, workspace_1, workspace_form_1
+    ):
+        attaching = container.workspace_form_service().add_groups_to_form(
+            workspace_1.id, workspace_form_1.form_id, [PydanticObjectId()], testUser1
+        )
+
+        assert await _refused(attaching) == 404
+        assert await _linked_group_ids(workspace_form_1.form_id) == set()
+
+    async def test_a_mixed_list_is_refused_entirely(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        service = container.workspace_form_service()
+        own = await _own_group(workspace_1, testUser1)
+        other_own = await _own_group(workspace_1, testUser1, "Other")
+        await service.add_groups_to_form(
+            workspace_1.id, workspace_form_1.form_id, [own.id], testUser1
+        )
+
+        # the foreign id last: nothing before it is linked or unlinked either
+        attaching = service.add_groups_to_form(
+            workspace_1.id,
+            workspace_form_1.form_id,
+            [other_own.id, workspace_group.id],
+            testUser1,
+        )
+
+        assert await _refused(attaching) == 404
+        assert await _linked_group_ids(workspace_form_1.form_id) == {own.id}
+
+    async def test_own_groups_are_linked(
+        self, client: AsyncClient, workspace_1, workspace_form_1, test_user_cookies_1
+    ):
+        own = await _own_group(workspace_1, testUser1)
+
+        response = await client.patch(
+            f"{_url(workspace_1)}/forms/{workspace_form_1.form_id}/groups/add",
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(own.id)]},
+        )
+
+        assert response.status_code == 200
+        assert await _linked_group_ids(workspace_form_1.form_id) == {own.id}
+
+    async def test_the_endpoint_refuses_another_workspaces_group(
+        self,
+        client: AsyncClient,
+        workspace_1,
+        workspace_form_1,
+        workspace_group,
+        test_user_cookies_1,
+    ):
+        response = await client.patch(
+            f"{_url(workspace_1)}/forms/{workspace_form_1.form_id}/groups/add",
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(workspace_group.id)]},
+        )
+
+        assert response.status_code == 404
+        assert await _linked_group_ids(workspace_form_1.form_id) == set()
+
+    async def test_another_workspaces_group_on_a_shared_form_cannot_be_unlinked(
+        self, workspace_1, workspace_form, workspace_group
+    ):
+        """workspace_form is held by both workspaces; workspace_group (the
+        other workspace's) is linked to it."""
+        await _share_form(workspace_1, workspace_form.form_id, testUser1)
+
+        removing = container.workspace_form_service().delete_group_from_form(
+            workspace_1.id, workspace_form.form_id, workspace_group.id, testUser1
+        )
+
+        assert await _refused(removing) == 404
+        assert await _linked_group_ids(workspace_form.form_id) == {workspace_group.id}
+
+    async def test_on_a_shared_form_resending_the_linked_groups_saves(
+        self,
+        client: AsyncClient,
+        workspace_1,
+        workspace_form,
+        workspace_group,
+        test_user_cookies_1,
+    ):
+        """The builder sends every group linked to the form, the other
+        workspace's included."""
+        await _share_form(workspace_1, workspace_form.form_id, testUser1)
+        own = await _own_group(workspace_1, testUser1)
+
+        response = await client.patch(
+            f"{_url(workspace_1)}/forms/{workspace_form.form_id}/groups/add",
+            cookies=test_user_cookies_1,
+            json={"group_ids": [str(workspace_group.id), str(own.id)]},
+        )
+
+        assert response.status_code == 200
+        assert await _linked_group_ids(workspace_form.form_id) == {
+            own.id,
+            workspace_group.id,
+        }
+
+    async def test_resending_a_stray_link_saves_and_drops_it(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        own = await _own_group(workspace_1, testUser1)
+        await _stray_link(workspace_form_1.form_id, workspace_group.id)
+
+        await container.workspace_form_service().add_groups_to_form(
+            workspace_1.id,
+            workspace_form_1.form_id,
+            [workspace_group.id, own.id],
+            testUser1,
+        )
+
+        assert await _linked_group_ids(workspace_form_1.form_id) == {own.id}
+
+    async def test_a_foreign_group_not_linked_is_refused_with_the_linked_ones(
+        self, workspace, workspace_1, workspace_form, workspace_group
+    ):
+        """On a shared form, resending the linked groups plus a group of the
+        other workspace that isn't linked is refused and changes nothing."""
+        await _share_form(workspace_1, workspace_form.form_id, testUser1)
+        own = await _own_group(workspace_1, testUser1)
+        service = container.workspace_form_service()
+        await service.add_groups_to_form(
+            workspace_1.id, workspace_form.form_id, [own.id], testUser1
+        )
+        unlinked = await _own_group(workspace, testUser, "Not linked")
+
+        attaching = service.add_groups_to_form(
+            workspace_1.id,
+            workspace_form.form_id,
+            [workspace_group.id, own.id, unlinked.id],
+            testUser1,
+        )
+
+        assert await _refused(attaching) == 404
+        assert await _linked_group_ids(workspace_form.form_id) == {
+            own.id,
+            workspace_group.id,
+        }
+
+    async def test_unlinking_a_group_that_isnt_linked_is_refused(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        removing = container.workspace_form_service().delete_group_from_form(
+            workspace_1.id, workspace_form_1.form_id, workspace_group.id, testUser1
+        )
+
+        assert await _refused(removing) == 404
+        assert await _linked_group_ids(workspace_form_1.form_id) == set()
+
+    async def test_own_group_is_unlinked(
+        self, workspace, workspace_form, workspace_group
+    ):
+        await container.workspace_form_service().delete_group_from_form(
+            workspace.id, workspace_form.form_id, workspace_group.id, testUser
+        )
+
+        assert await _linked_group_ids(workspace_form.form_id) == set()
+
+    async def test_a_stray_link_to_another_workspaces_group_can_be_removed(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        await _stray_link(workspace_form_1.form_id, workspace_group.id)
+
+        await container.workspace_form_service().delete_group_from_form(
+            workspace_1.id, workspace_form_1.form_id, workspace_group.id, testUser1
+        )
+
+        assert await _linked_group_ids(workspace_form_1.form_id) == set()
+
+    async def test_saving_the_groups_drops_a_stray_link(
+        self, workspace_1, workspace_form_1, workspace_group
+    ):
+        own = await _own_group(workspace_1, testUser1)
+        await _stray_link(workspace_form_1.form_id, workspace_group.id)
+
+        await container.workspace_form_service().add_groups_to_form(
+            workspace_1.id, workspace_form_1.form_id, [own.id], testUser1
+        )
+
+        assert await _linked_group_ids(workspace_form_1.form_id) == {own.id}
+
+    async def test_on_a_shared_form_the_other_workspaces_groups_stay(
+        self, workspace_1, workspace_form, workspace_group
+    ):
+        """A form both workspaces hold: each sets and removes only its own
+        groups on it."""
+        await _share_form(workspace_1, workspace_form.form_id, testUser1)
+        own = await _own_group(workspace_1, testUser1)
+        service = container.workspace_form_service()
+
+        await service.add_groups_to_form(
+            workspace_1.id, workspace_form.form_id, [own.id], testUser1
+        )
+        assert await _linked_group_ids(workspace_form.form_id) == {
+            own.id,
+            workspace_group.id,
+        }
+
+        removing = service.delete_group_from_form(
+            workspace_1.id, workspace_form.form_id, workspace_group.id, testUser1
+        )
+        assert await _refused(removing) == 404
+
+        await service.add_groups_to_form(
+            workspace_1.id, workspace_form.form_id, [], testUser1
+        )
+        assert await _linked_group_ids(workspace_form.form_id) == {workspace_group.id}
+
+    async def test_group_listings_skip_a_stray_link_to_another_workspaces_form(
+        self, workspace, workspace_form, workspace_group, workspace_form_1
+    ):
+        await _stray_link(workspace_form_1.form_id, workspace_group.id)
+        service = container.responder_groups_service()
+
+        with patch.object(
+            FormService, "fetch_user_details", AsyncMock(return_value={})
+        ):
+            groups = await service.get_groups_in_workspace(workspace.id, testUser)
+            group = await service.get_users_in_group(
+                workspace.id, workspace_group.id, testUser
+            )
+
+        assert [_form_id(form) for form in groups[0].forms] == [workspace_form.form_id]
+        assert [_form_id(form) for form in group.forms] == [workspace_form.form_id]
+
+
+def _form_id(form) -> str:
+    return form["form_id"] if isinstance(form, dict) else form.form_id
 
 
 @pytest.fixture()
