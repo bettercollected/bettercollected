@@ -51,6 +51,7 @@ class Refusals(str, enum.Enum):
     consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
+    forms_import_incomplete = "forms_import_incomplete"
     published_primary = "published_primary"
     published_key_to_promote = "published_key_to_promote"
     primary_mismatch = "primary_mismatch"

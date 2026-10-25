@@ -11,6 +11,7 @@ shared ``crypto_service`` singleton.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -20,6 +21,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import KEYSET_ENV, CryptoService, UnreadableCiphertext
+
+logger = logging.getLogger(__name__)
 
 CIPHERTEXT_PREFIX = b"v1:"
 Opener = Callable[[str, str, bytes], bool]
@@ -304,20 +307,11 @@ class MongoBase:
     async def links(self) -> Dict[str, List[str]]:
         """form_id -> the workspaces it is linked to: from Postgres, or with
         none configured from the 4.0 ``workspace_forms`` in Mongo."""
+        from backend.db.forms_import import mongo_links
+
         if self.links_source is not None:
             return await self.links_source.links()
-        links: Dict[str, List[str]] = defaultdict(list)
-        cursor = (
-            self.db["workspace_forms"]
-            .find({}, {"form_id": 1, "workspace_id": 1})
-            .sort("_id", 1)
-        )
-        async for row in cursor:
-            workspace = str(row.get("workspace_id"))
-            form_id = str(row.get("form_id"))
-            if row.get("workspace_id") and workspace not in links[form_id]:
-                links[form_id].append(workspace)
-        return links
+        return defaultdict(list, await mongo_links(self.db))
 
 
 class PostgresBase:
@@ -364,6 +358,21 @@ class PostgresBase:
                 if workspace and workspace not in links[str(form_id)]:
                     links[str(form_id)].append(workspace)
         return links
+
+
+async def check_forms_import(mongo_database, postgres_links, *, writes: bool) -> None:
+    """A Mongo store reads the forms' workspace links from Postgres (4.1):
+    only once Postgres holds every link Mongo's 4.0 copy holds may anything
+    be written from them (``forms_import_incomplete``); a read-only run goes
+    on, with a warning (its counts may name the wrong workspace)."""
+    from backend.db.forms_import import CODE, MESSAGE, missing_links
+
+    missing = await missing_links(mongo_database, postgres_links)
+    if not missing:
+        return
+    if writes:
+        raise Refusal(CODE)
+    logger.warning(MESSAGE.format(missing=missing))
 
 
 @asynccontextmanager
@@ -427,6 +436,9 @@ async def open_stores(
                 postgres = PostgresBase(engine)
             for store in mongo_stores:
                 store.links_source = postgres
+            await check_forms_import(
+                mongo_stores[0].db, await postgres.links(), writes=not read_only
+            )
         yield stores
     finally:
         for close in reversed(closers):

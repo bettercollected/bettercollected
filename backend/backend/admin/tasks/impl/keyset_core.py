@@ -165,21 +165,11 @@ class MongoStore:
     async def links(self) -> Dict[str, List[str]]:
         """form_id -> the workspaces it is linked to: from Postgres, or with
         none configured from the 4.0 ``workspace_forms`` in Mongo."""
+        from backend.db.forms_import import mongo_links
+
         if self.links_source is not None:
             return await self.links_source.links()
-        links: Dict[str, List[str]] = {}
-        cursor = (
-            self.db["workspace_forms"]
-            .find({}, {"form_id": 1, "workspace_id": 1})
-            .sort("_id", 1)
-        )
-        async for row in cursor:
-            if not row.get("workspace_id"):
-                continue
-            workspaces = links.setdefault(str(row.get("form_id")), [])
-            if str(row["workspace_id"]) not in workspaces:
-                workspaces.append(str(row["workspace_id"]))
-        return links
+        return await mongo_links(self.db)
 
     async def batch(self, after: Optional[str], limit: int) -> List[Dict[str, Any]]:
         query: Dict[str, Any] = {}

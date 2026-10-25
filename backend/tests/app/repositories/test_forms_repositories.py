@@ -709,3 +709,37 @@ async def test_replace_action_credential(sessions):
             "Other": "kept",
         }
         assert [s.value for s in published.secrets[a2]] == ["other-action"]
+
+
+async def test_search_matches_the_typed_text_literally(sessions):
+    """Search text is a literal, ignoring case: regex and LIKE characters
+    match themselves, and a pattern that is not a valid regex (``[``, ``(``)
+    finds nothing instead of failing."""
+    ws = oid(1)
+    _, forms, links = form_repos(sessions)
+    for n, title in enumerate(("C++ (beta) 50%_off", "Plain survey", "a.b*c")):
+        await forms.save_form(form(f"s{n}", title, n))
+        await links.save(workspace_form(ws, f"s{n}", "u1", n))
+    ids = ["s0", "s1", "s2"]
+
+    async def found(query, published=False):
+        rows = await forms.search_form_in_workspace(ws, ids, query, published)
+        return sorted(r["form_id"] for r in rows)
+
+    assert await found("c++ (BETA)") == ["s0"]
+    assert await found("50%_") == ["s0"]
+    assert await found("%") == ["s0"]
+    assert await found("_") == ["s0"]
+    assert await found(".*") == []
+    assert await found("a.b*") == ["s2"]
+    assert await found("[") == []
+    assert await found("(") == ["s0"]
+    assert await found("survey") == ["s1"]
+
+    media = PostgresMediaLibraryRepository(sessions)
+    for name in ("logo (dark)", "logo.png"):
+        await media.add_media_in_workspace_library(str(ws), "http://x", "IMAGE", name, "k")
+    names = [m.media_name for m in await media.get_media_library_by_worksapce_id(str(ws), "(")]
+    assert names == ["logo (dark)"]
+    assert await media.get_media_library_by_worksapce_id(str(ws), "[") == []
+    assert len(await media.get_media_library_by_worksapce_id(str(ws), ".")) == 1

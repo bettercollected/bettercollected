@@ -33,6 +33,8 @@ import os
 import sys
 from typing import List
 
+from backend.db.forms_import import MESSAGE as FORMS_IMPORT_MESSAGE
+from backend.db.forms_import import missing_links
 from backend.admin.tasks.impl.responses_scan import (  # noqa: F401 - the CLI's public names
     FEEDBACK,
     FIELDS,
@@ -93,6 +95,13 @@ async def _main(argv: List[str]) -> int:
             store.links_source = postgres
         if args.store in ("all", "postgres"):
             stores.append(postgres)
+        if stores and stores[0].name == "mongo":
+            # the forms' links: an incomplete import may name the wrong
+            # workspace for a value; this read-only check goes on, warned
+            missing = await missing_links(stores[0].db, await postgres.links())
+            if missing:
+                message = FORMS_IMPORT_MESSAGE.format(missing=missing)
+                print(f"warning: {message}", file=sys.stderr)
     try:
         report = await run(stores, default_opener(), args.batch_size)
     finally:

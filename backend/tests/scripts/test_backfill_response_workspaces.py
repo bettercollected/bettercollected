@@ -254,3 +254,35 @@ async def test_mongo_reads_the_links_from_postgres_not_its_frozen_copy():
     assert links["single"] == [str(WS_A)]
     assert links["shared"] == [str(WS_A), str(WS_B)]
     assert (await MongoStore(store.db).links())["single"] == [str(WS_B)]
+
+
+async def test_the_script_applies_only_after_a_complete_forms_import(monkeypatch, capsys):
+    """A link of a form still only in Mongo (an incomplete forms import):
+    the dry run goes on with a warning, ``--apply`` refuses (exit 2) and
+    writes nothing; once Postgres holds the link it applies."""
+    from common.records import to_bson
+    from scripts.backfill_response_workspaces import _main
+    from tests.conftest import TEST_DATABASE_URL, TEST_MONGO_URI
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    store = await _mongo_store()
+    lost = WorkspaceFormDocument(
+        id=PydanticObjectId(), workspace_id=PydanticObjectId(), form_id="shared", user_id="u3"
+    )
+    await store.db["workspace_forms"].insert_one(to_bson(lost))
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    before = await _stamped(store)
+
+    assert await _main(["--store", "mongo"]) == 0
+    assert "forms_import_incomplete" not in capsys.readouterr().err
+    assert await _main(["--store", "mongo", "--apply"]) == 2
+    assert "refused (forms_import_incomplete)" in capsys.readouterr().err
+    assert await _stamped(store) == before
+
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    assert await _main(["--store", "mongo", "--apply"]) == 0
+    assert await _stamped(store) != before

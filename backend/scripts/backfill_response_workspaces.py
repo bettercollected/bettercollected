@@ -49,6 +49,9 @@ import os
 import sys
 from typing import List
 
+from backend.db.forms_import import CODE as FORMS_IMPORT_CODE
+from backend.db.forms_import import MESSAGE as FORMS_IMPORT_MESSAGE
+from backend.db.forms_import import missing_links
 from backend.admin.tasks.impl.responses_backfill import (  # noqa: F401 - the CLI's public names
     ENCRYPTED_FIELDS,
     Attributor,
@@ -125,6 +128,18 @@ async def _main(argv: List[str]) -> int:
             store.links_source = postgres
         if args.store in ("all", "postgres"):
             stores.append(postgres)
+        if stores and stores[0].name == "mongo":
+            # the forms' links: only once their import is complete may
+            # anything be written from them; a read goes on, with a warning
+            missing = await missing_links(stores[0].db, await postgres.links())
+            if missing:
+                message = FORMS_IMPORT_MESSAGE.format(missing=missing)
+                if args.apply:
+                    print(f"refused ({FORMS_IMPORT_CODE}): {message}", file=sys.stderr)
+                    for close in closers:
+                        await close()
+                    return 2
+                print(f"warning: {message}", file=sys.stderr)
     try:
         report = await run(
             stores,

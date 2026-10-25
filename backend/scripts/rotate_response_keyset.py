@@ -92,6 +92,9 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     run_reencrypt,
     scan,
 )
+from backend.db.forms_import import CODE as FORMS_IMPORT_CODE
+from backend.db.forms_import import MESSAGE as FORMS_IMPORT_MESSAGE
+from backend.db.forms_import import FormsImportIncomplete, missing_links
 from backend.admin.tasks.impl.keyset_state import DataConfig
 from backend.admin.tasks.impl.responses_common import (
     plan_task_stores,
@@ -313,7 +316,9 @@ def store_refusal_message(refusal: Refusal, target: Target) -> str:
     )
 
 
-async def _open_stores(target: Target, names: List[str], closers: list) -> List:
+async def _open_stores(
+    target: Target, names: List[str], closers: list, *, writes: bool = False
+) -> List:
     uri, database, url = _target_settings(target)
     stores = []
     for name in names:
@@ -347,6 +352,13 @@ async def _open_stores(target: Target, names: List[str], closers: list) -> List:
             postgres = PostgresStore(engine, target)
         for store in mongo_stores:
             store.links_source = postgres
+        # only once the forms import is complete may anything be written from
+        # them (FormsImportIncomplete); a read goes on, with a warning
+        missing = await missing_links(mongo_stores[0].db, await postgres.links())
+        if missing and writes:
+            raise FormsImportIncomplete(missing)
+        if missing:
+            print(f"warning: {FORMS_IMPORT_MESSAGE.format(missing=missing)}", file=sys.stderr)
     return stores
 
 
@@ -422,7 +434,16 @@ async def _main(argv: List[str]) -> int:
     closers: list = []
     try:
         for target in targets:
-            stores = await _open_stores(target, plans[target.name], closers)
+            writes = args.command == "drop-old" or (
+                args.command == "reencrypt" and not args.dry_run
+            )
+            try:
+                stores = await _open_stores(
+                    target, plans[target.name], closers, writes=writes
+                )
+            except FormsImportIncomplete as error:
+                print(f"{target.name}: refused ({FORMS_IMPORT_CODE}): {error}", file=sys.stderr)
+                return 2
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"
                 report["targets"][target.name] = await run_reencrypt(

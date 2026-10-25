@@ -30,6 +30,7 @@ from backend.admin.tasks.impl import keyset_core as core
 from backend.admin.tasks.impl.responses_common import (
     STORE_NAMES,
     ReadOnlyDatabase,
+    check_forms_import,
     plan_task_stores,
     write_mode_env,
     written_stores,
@@ -518,6 +519,9 @@ async def open_target_stores(
                 postgres = core.PostgresStore(engine, target)
             for store in mongo_stores:
                 store.links_source = postgres
+            await check_forms_import(
+                mongo_stores[0].db, await postgres.links(), writes=not read_only
+            )
         yield stores
     finally:
         for close in reversed(closers):

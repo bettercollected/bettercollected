@@ -23,6 +23,12 @@ revoked, then the deletion job removes the workspaces, forms, memberships,
 integration credentials, the auth account and its billing customer, in every
 store the services write. Every drop re-evaluates the account's group first.
 
+While a Mongo store is configured for the backend, both routes refuse with
+409 and code ``forms_import_incomplete`` until the 4.0 forms import is
+complete (``backend.db.forms_import``): the forms are counted in Postgres
+only, and before the import every account would count none, so the newest
+of each group would be kept and the others dropped.
+
 Ids only: no email leaves this module (the auth service groups the accounts
 and returns ids; the one email a deletion needs is read by id and handed to
 the deletion path, as for the user's own request).
@@ -38,8 +44,11 @@ from typing import Dict, List, Optional, Sequence
 from bson import ObjectId
 from common.models.user import User
 from loguru import logger
+from pymongo.errors import PyMongoError
 
 from backend.app.exceptions import HTTPException
+from backend.db.forms_import import CODE as FORMS_IMPORT_INCOMPLETE
+from backend.db.forms_import import FormsImportIncomplete, ensure_imported
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
@@ -81,12 +90,50 @@ def decide(forms: Dict[str, int]) -> Dict[str, str]:
     return {i: KEEP if i == keeper else DROP for i in forms}
 
 
+def backend_mongo_database():
+    """The backend's Mongo database while one is configured (``MONGO_URI``),
+    else None."""
+    if not (settings.mongo_settings.URI or "").strip():
+        return None
+    from backend.app.container import container
+
+    client = container.database_client()
+    return None if client is None else client[settings.mongo_settings.DB]
+
+
 class CaseDuplicateAccounts:
-    def __init__(self, http_client, workspace_repo, workspace_form_repo, auth_service):
+    def __init__(
+        self,
+        http_client,
+        workspace_repo,
+        workspace_form_repo,
+        auth_service,
+        mongo_database=backend_mongo_database,
+    ):
         self._http = http_client
         self._workspaces = workspace_repo
         self._workspace_forms = workspace_form_repo
         self._auth_service = auth_service
+        self._mongo_database = mongo_database
+
+    async def ensure_forms_imported(self) -> None:
+        """409 ``forms_import_incomplete`` while Mongo holds workspace links
+        of forms that Postgres does not (or, configured, cannot be read)."""
+        database = self._mongo_database()
+        if database is None:
+            return
+        try:
+            await ensure_imported(database, await self._workspace_forms.links_by_form())
+        except FormsImportIncomplete as error:
+            reason = str(error)
+        except PyMongoError:
+            reason = "Mongo could not be read: the forms import cannot be checked."
+        else:
+            return
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            content={"code": FORMS_IMPORT_INCOMPLETE, "message": reason},
+        )
 
     async def _group_ids(self) -> List[List[str]]:
         reply = await self._http.get(
@@ -110,6 +157,7 @@ class CaseDuplicateAccounts:
 
     async def plan(self) -> List[List[Account]]:
         """Every group, in a stable order (by its smallest id)."""
+        await self.ensure_forms_imported()
         return [await self._evaluate(ids) for ids in sorted(await self._group_ids())]
 
     async def _email_of(self, user_id: str) -> Optional[str]:
@@ -131,6 +179,7 @@ class CaseDuplicateAccounts:
         group of case variants), ``kept`` / ``manual`` (the rules no longer
         drop it), or ``refused`` (the account deletion itself refused, e.g.
         the account is the billing owner of a workspace with other owners)."""
+        await self.ensure_forms_imported()
         group = next((g for g in await self._group_ids() if user_id in g), None)
         if group is None:
             return "not_found"

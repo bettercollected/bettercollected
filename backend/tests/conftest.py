@@ -124,6 +124,8 @@ MONGO_DRIVEN = {
         "test_the_backfill_waits_for_another_mutating_task",
         "test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none",
         "test_the_run_checkpoints_and_reports_progress",
+        "test_an_incomplete_forms_import_refuses_the_backfill_apply",
+        "test_writes_from_the_forms_links_wait_for_a_complete_import",
     },
     "tests/app/controllers/test_deletion_requests_per_workspace.py": {
         "test_mongo_one_request_per_response_provider_and_workspace",
@@ -141,6 +143,9 @@ MONGO_DRIVEN = {
     "tests/app/repositories/test_form_groups.py": ALL,
     "tests/app/repositories/test_platform_metrics_parity.py": {"test_response_counts"},
     "tests/app/repositories/test_responses_parity.py": ALL,
+    "tests/app/services/test_case_duplicates_forms_import.py": {
+        "test_the_plan_and_drops_wait_for_a_complete_forms_import",
+    },
     "tests/app/test_operator_tools.py": {
         "test_expiration_schedules_are_the_same_on_both_stores",
         "test_jobs_sweep_reads_the_responses_from_the_read_source",

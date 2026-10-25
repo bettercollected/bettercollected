@@ -287,6 +287,13 @@ def _bool(expr):
     return _fn.bc_bool(expr)
 
 
+def _contains(expr, text: str):
+    """``expr`` contains ``text``, ignoring case. The searched text is a
+    literal: its ``%``, ``_`` and regex characters match themselves, so a
+    search can neither fail on a bad pattern nor run an expensive one."""
+    return expr.icontains(text, autoescape=True)
+
+
 def _missing(container, key: str):
     """``{"path.key": {"$exists": False}}`` — also true when the container is null."""
     return func.coalesce(container.has_key(key), False).is_(False)
@@ -555,8 +562,8 @@ class PostgresFormRepository(RecordRepository):
                 .where(
                     FormVersionRow.form_id.in_(form_ids),
                     or_(
-                        _text(FormVersionRow.doc["title"]).op("~*")(query),
-                        _text(FormVersionRow.doc["description"]).op("~*")(query),
+                        _contains(_text(FormVersionRow.doc["title"]), query),
+                        _contains(_text(FormVersionRow.doc["description"]), query),
                     ),
                 )
                 .order_by(FormVersionRow.form_id, FormVersionRow.version.desc())
@@ -588,8 +595,8 @@ class PostgresFormRepository(RecordRepository):
                 .where(
                     FormRow.form_id.in_(form_ids),
                     or_(
-                        _text(FormRow.doc["title"]).op("~*")(query),
-                        _text(FormRow.doc["description"]).op("~*")(query),
+                        _contains(_text(FormRow.doc["title"]), query),
+                        _contains(_text(FormRow.doc["description"]), query),
                     ),
                 )
                 .order_by(FormRow.created_at.desc(), FormRow.id)
@@ -1175,6 +1182,24 @@ class PostgresWorkspaceFormRepository(RecordRepository):
         )
         return len({form.form_id for form in forms})
 
+    async def links_by_form(self) -> Dict[str, List[str]]:
+        """``{form_id: [workspace ids]}`` of every link, in insertion order
+        (the import check of ``backend.db.forms_import``)."""
+        links: Dict[str, List[str]] = {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(WorkspaceFormRow.form_id, WorkspaceFormRow.workspace_id).order_by(
+                    WorkspaceFormRow.created_at, WorkspaceFormRow.id
+                )
+            )
+            for form_id, workspace in rows:
+                if not workspace:
+                    continue
+                workspaces = links.setdefault(str(form_id), [])
+                if workspace not in workspaces:
+                    workspaces.append(workspace)
+        return links
+
     async def delete_forms(self, form_ids):
         return await self.delete_where(WorkspaceFormRow.form_id.in_(list(form_ids)))
 
@@ -1381,7 +1406,7 @@ class PostgresMediaLibraryRepository(RecordRepository):
     ):
         where = [MediaLibraryRow.workspace_id == workspace_id]
         if media_query is not None:
-            where.append(MediaLibraryRow.media_name.op("~*")(media_query))
+            where.append(_contains(MediaLibraryRow.media_name, media_query))
         return await self.many(
             *where, order_by=(MediaLibraryRow.created_at.desc(), MediaLibraryRow.id)
         )

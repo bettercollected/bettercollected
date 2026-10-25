@@ -902,7 +902,8 @@ async def test_drop_old_scans_a_configured_store_the_services_no_longer_write(
     monkeypatch.setenv("GOOGLE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
     _no_write_mode(monkeypatch)
     monkeypatch.setenv("DB_WRITE_MODE", "mongo")
-    await seed("both", Data())
+    data = Data()
+    await seed("both", data)
     rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
     final_file = tmp_path / "final.keyset"
     drop = ["drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)]
@@ -923,6 +924,10 @@ async def test_drop_old_scans_a_configured_store_the_services_no_longer_write(
     code, _ = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
     assert code == 0
     await _truncate_postgres()
+    # (the forms stay imported: Mongo's responses are read with their links)
+    links = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    for link in data.links:
+        await links.upsert(link)
     code, dropped = await cli(capsys, *drop)
     assert code == 0, dropped
     assert dropped["records"]["responses"]["postgres"] == 0
