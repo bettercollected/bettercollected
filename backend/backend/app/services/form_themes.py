@@ -1,17 +1,28 @@
-"""Theme checks for whole-form saves.
+"""Theme checks for whole-form saves and a workspace's saved themes.
 
 A form's theme (and a page's own theme) may carry type, shape and highlight
 keys (``titleFont``, ``radius``, ``highlight``, ...). Each must be absent or
 one of its listed values (common.models.standard_form.theme_problems); the
 edit operations check the same in ops.py.
+
+A workspace's saved themes are also held to the publish check's contrast
+rules (services/theme_contrast.py): a theme whose own colours fail WCAG AA
+would fail every form that uses it at publish, so it is refused when saved,
+as the Themes page already does. Colours the workspace already has stored are
+kept as they are, so deleting or renaming one theme never trips on another.
 """
 
 from http import HTTPStatus
-from typing import Any, Iterator, List, Optional, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, Iterator, List, Optional, Tuple
 
 from common.models.standard_form import theme_problems
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.publish_checks import (
+    THEME_CONTRAST,
+    theme_contrast_problems,
+)
+from backend.app.services.theme_contrast import theme_contrast_guard
 
 ERROR_CODE = "theme_not_allowed"
 
@@ -69,5 +80,71 @@ def refuse_theme_problems(problems: List[str]) -> None:
                 "code": ERROR_CODE,
                 "message": " ".join(problems),
                 "errors": problems,
+            },
+        )
+
+
+def _colour(value: Any) -> Any:
+    return value.upper() if isinstance(value, str) else value
+
+
+def contrast_key(theme: Any) -> Tuple[Any, ...]:
+    """Everything the contrast check reads from a theme: its four colours
+    and what its background puts behind the text."""
+    bg = _get(theme, "background")
+    return (
+        *(
+            _colour(_get(theme, role))
+            for role in ("primary", "secondary", "tertiary", "accent")
+        ),
+        _get(bg, "type"),
+        _colour(_get(bg, "gradientFrom")),
+        _colour(_get(bg, "gradientTo")),
+        _get(bg, "pattern"),
+        bool(_get(bg, "imageUrl")),
+    )
+
+
+def ensure_readable_saved_themes(
+    themes: List[Any], stored: Optional[Iterable[Any]] = None
+) -> None:
+    """422 ``theme_contrast`` when a saved theme's colours fail WCAG AA where
+    the respondent form shows them, naming each theme (``customThemes.<i>``)
+    with its failing pairings and the nearest colours that pass. A theme
+    whose colours the workspace already stores (``stored``) is kept as it is.
+    The body holds only what was sent and what is computed from it."""
+    kept: FrozenSet[Tuple[Any, ...]] = frozenset(
+        contrast_key(theme) for theme in (stored or [])
+    )
+    errors: List[str] = []
+    details: List[Dict[str, Any]] = []
+    for i, theme in enumerate(themes or []):
+        if contrast_key(theme) in kept:
+            continue
+        problems = theme_contrast_problems(theme)
+        if not problems:
+            continue
+        path = f"customThemes.{i}"
+        guard = theme_contrast_guard(theme)
+        errors += [f"{path}: {problem['message']}" for problem in problems]
+        details.append(
+            {
+                "index": i,
+                "path": path,
+                "issues": [
+                    {"key": issue.key, "ratio": issue.ratio, "minimum": issue.minimum}
+                    for issue in guard.issues
+                ],
+                "fix": guard.fix,
+            }
+        )
+    if errors:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": THEME_CONTRAST,
+                "message": " ".join(errors),
+                "errors": errors,
+                "themes": details,
             },
         )
