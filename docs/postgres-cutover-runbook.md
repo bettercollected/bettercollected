@@ -773,6 +773,11 @@ What the code does in each, checked against `v4.0.13`:
 
 **Before you start**
 
+- **Do not start until 4.0.14 is released** and the rollback section below has been re-checked
+  against its code (the two things it adds, the job handlers and `release_pending`, are described
+  there from their intent; the 4.0.14 changelog entry is the authority and wins over this text where
+  they differ). Cutting over without a 4.0.14 to roll back to means the 4.0.13 caveats of the
+  rollback apply.
 - The stack runs 4.0.14 or later 4.0.x with Stage 0's values on `backend`, `jobs-worker`, `auth`,
   `integrations-googleform` and `task-runner` (`DB_WRITE_MODE=dual`, `DB_AUTO_MIGRATE=true`). 4.0.14
   is the rollback target below: it is the first 4.0.x that runs what 4.1 leaves queued and reads what
@@ -826,8 +831,11 @@ What the code does in each, checked against `v4.0.13`:
    point as of when it started; what was written after it is in the live stores (Mongo is a current
    copy until step 4 has finished). The restore test of "Backups and a restore test before D"
    applies here too: do it once before the cutover if it has never been done.
-3. **Roll 1: Postgres primary, Mongo still mirrored** (`dual` → `postgres_primary_dual`). Edit the
-   stored definition (image tags unchanged, no replica count changed) and deploy:
+3. **Roll 1: Postgres primary, Mongo still mirrored** (`dual` → `postgres_primary_dual`). Step 1
+   ran before the backups, with the writes continuing: repeat its `status --json` check
+   (`outbox` 0 for both stores, `mirror_failures.<store>.unresolved` 0 on every service) right now,
+   so that whatever is open after the roll is from the roll. Then edit the stored definition (image
+   tags unchanged, no replica count changed) and deploy:
 
    | service | change |
    |---|---|
@@ -841,12 +849,49 @@ What the code does in each, checked against `v4.0.13`:
    `persistence flags` with `read_source: postgres` and `write_mode: postgres_primary_dual` for every
    group. Watch `mirror write failed` in the logs of the four services while it rolls.
 
-   **Check, before anything else changes** (no service rolling, no one-off CLI running): per service,
-   `verify` over every collection (no `--group`) exits 0, and `status --json` shows `outbox` 0 for
-   both stores and `mirror_failures.mongo.unresolved` and `mirror_failures.postgres.unresolved` 0.
-   Counts only. Both are the evidence that no record was read stale during the roll: a copy that
-   could not land is recorded with the record's id, and any record the two stores hold differently
-   shows in `verify`.
+   **What the roll cannot protect, said plainly.** The route is a choice not to stop the writers, and
+   it has windows nothing detects:
+   - An old task reads a record from Mongo in the moment before a new task's write to it has been
+     copied to Mongo (the copy follows within the same request, bounded by `DB_MIRROR_TIMEOUT_MS`,
+     2 s), and saves it. The old task's write wins on both stores. No outbox entry, no log line and
+     no `verify` shows it.
+   - A copy that failed (`mirror write failed`) leaves the other store stale until something
+     rewrites it. If a task of the other generation reads that stale copy and saves it, that save
+     wins on both stores, a later `verify` is clean, and a clean full `verify` marks every
+     Postgres-side outbox entry recorded before it started as resolved
+     (`common/db/migrate/engine.py:1361-1377`). The lost write then leaves no trace except the
+     entry, which is why the entries are listed *before* `verify` (below).
+   - Two writes to one record at once, one from each generation, run their post-copy convergence in
+     opposite directions (an old task treats Mongo as primary, a new one Postgres): each copies its
+     primary over the other store and re-reads, up to three rounds (`common/db/convergence.py:49`).
+     It ends with one value on both stores (the other write is lost, silently) or with `Diverged`,
+     which is recorded in the primary's outbox (`convergence.py:320`, `routing.py:348-354`): the
+     Mongo side for an old task, the Postgres side for a new one, so "both above 0" below catches it.
+   - A write that touched more than 500 rows (a bulk delete or update, `MAX_CONVERGED_IDS`,
+     `convergence.py:54`; the log says `mirror convergence skipped`, `routing.py:328-336`) is not
+     converged and records no entry. Only the `verify` after the roll covers those rows.
+
+   **Check, before anything else changes** (no service rolling, no one-off CLI running):
+   1. **List first, then `verify`.** Per service, collect the `mirror write failed` lines of the
+      roll's time (group, repository, method; they carry no ids) and the open outbox rows on both
+      sides: `SELECT table_name, op, row_id, left(error, 60), created_at FROM
+      <schema>.mirror_write_failures WHERE resolved_at IS NULL` (Postgres-side, as the service's role
+      or a superuser) and, in the service's Mongo database, `db.mirror_write_failures.find({resolved_at:
+      null}, {table_name: 1, op: 1, row_id: 1, error: 1, created_at: 1})`. Counts and ids only, never
+      record contents. The `row_id` is best-effort: up to 20 ids, an address replaced by a hash, or
+      `-` when the failed call named none (`common/db/runtime.py:121-145`); a `-` row names only
+      its repository and method. Keep the list outside the stores.
+   2. **Look at each listed record** before `verify` resolves anything: compare its two copies. A
+      record whose copies still differ holds a write the other store lacks. A record whose copies
+      agree but whose `updated_at` is later than the entry's `created_at` was saved again after
+      the failed copy, possibly from the stale copy; what was written in between is not recoverable
+      from the stores, and the step 2 backups predate it. Decide each with the people who own the data.
+      For a `-` row, treat the whole repository method as suspect and review that repository's
+      recent changes.
+   3. **Then, per service:** `verify` over every collection (no `--group`) exits 0, and `status
+      --json` shows `outbox` 0 for both stores and `mirror_failures.mongo.unresolved` and
+      `mirror_failures.postgres.unresolved` 0. Counts only. This shows that the two stores agree now,
+      not that nothing was lost; the accepted residual risk is the list above.
 
    If it is not clean, do not go on, and do not run a `reconcile` blindly: its two directions decide
    differently which store wins. Every task is on `postgres_primary_dual` now, so Postgres is what
@@ -859,20 +904,26 @@ What the code does in each, checked against `v4.0.13`:
      the CLI allows only while every group it covers is on `postgres_primary_dual`
      (`common/db/migrate/cli.py:315-350`).
    - only `mirror_failures.mongo.unresolved` above 0 (an old task could not copy a write to
-     Postgres; Mongo holds a write Postgres lacks): plain `reconcile` (`mongo->postgres`) first. It
-     copies Mongo's version where it is at least as new as Postgres's and keeps a row the application
-     wrote to Postgres after it, counted as `newer_in_postgres`
-     (`common/db/migrate/engine.py:1097-1121`). Do not run `postgres->mongo` first: it would write
-     Postgres's older copy over the only copy of that write.
+     Postgres; Mongo holds a write Postgres lacks): plain `reconcile` (`mongo->postgres`) first, but
+     **only if `verify`'s differences are limited to the ids of that Mongo-side outbox**: per
+     collection, its `mismatched` and `missing_in_*` counts do not exceed the distinct ids listed for
+     that repository, and the sampled ids it prints (at most 5 per kind, `engine.py:716-740`) are
+     among them. Otherwise stop and decide per record. The reason: plain `reconcile` compares
+     `updated_at` (copies Mongo's version where it is at least as new as Postgres's and keeps a row
+     the application wrote to Postgres after it, counted as `newer_in_postgres`,
+     `engine.py:1097-1121`), and not every Postgres write moves `updated_at` (for the form imports
+     the Mongo store alone bumps it, `backend/backend/app/schemas/form_import.py:98`), so a newer
+     Postgres row with an equal `updated_at` could be overwritten by an older Mongo copy. Do not run
+     `postgres->mongo` first: it would write Postgres's older copy over the only copy of that write.
    - both above 0: stop and decide per record. While the Postgres-side outbox has an open entry,
      `mongo->postgres` replaces no row the application wrote (`engine.py:839-857`), and
-     `postgres->mongo` replaces Mongo's copy whatever it holds (`engine.py:1140-1195`). The
-     ids are in the outbox rows (`SELECT table_name, op, row_id, created_at FROM
-     <schema>.mirror_write_failures WHERE resolved_at IS NULL`, as the service's role or a
-     superuser; ids only), and the question per record is which of the two writes should stand.
+     `postgres->mongo` replaces Mongo's copy whatever it holds (`engine.py:1140-1195`). The ids are
+     in the listed rows (best-effort, as above), and the question per record is which of the two
+     writes should stand.
    A clean full `verify` resolves the Postgres-side entries recorded before it started and the
    unverified copies; a full `reconcile` of the matching direction resolves the rest
-   (`engine.py:1332-1346`, `:1361-1377`). Go on only with `verify` at exit 0 and both outboxes at 0.
+   (`engine.py:1332-1346`, `:1361-1377`). Go on only with `verify` at exit 0 and both outboxes at 0,
+   after the listed records have been looked at.
 4. **Roll 2: Postgres only** (`postgres_primary_dual` → `postgres`), as a second rolling update:
 
    | service | change |
@@ -915,7 +966,13 @@ What the code does in each, checked against `v4.0.13`:
       the admin-task routes on its internal listener only, while the runner points at port 8000 until
       then. Start no admin task meanwhile. The Temporal worker and the actions executor stay up: until
       sub-step 6 the 4.1 backend takes their key-only routes on port 8000 from private addresses (the
-      `direct` default), as the 4.0.x backend does.
+      `direct` default), as the 4.0.x backend does. 4.0.x workers therefore call a 4.1 backend between
+      the tag and sub-step 5: the route modules they call (`temporal_router.py`, `template_router.py`
+      and `workspace_forms.py` under `backend/backend/app/controllers/`) are unchanged between
+      `v4.0.13` and `develop` apart from one added signed-in-user route, so the call shapes are
+      the same; what runs behind them is not
+      compared here, and the first run of each kind (an action, a deletion) after the tag is the
+      check.
    3. **Edit the stored definition for 4.1** (do not deploy it yet). It carries the 4.1 image
       tags (a definition still on the 4.0.x tags, deployed after the images were updated, would put
       every image back), the task runner's replicas restored, `integrations-typeform` at
