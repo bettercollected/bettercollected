@@ -47,4 +47,13 @@ describe('ImportErrorView and the Google Forms import switch', () => {
         expect(screen.queryByText('Authorize Google')).toBeNull();
         expect(screen.getByRole('note').textContent).toContain('GOOGLE_FORMS_IMPORT.OFF.TITLE');
     });
+
+    it('can be closed in readonly and off even where the authorize view is not closable', () => {
+        providers.data = [{ providerName: 'google', importMode: 'readonly' }];
+        const { container, rerender } = render(<ImportErrorView provider="google" closable={false} />);
+        expect(container.querySelector('svg')).toBeTruthy();
+        providers.data = [];
+        rerender(<ImportErrorView provider="google" closable={false} />);
+        expect(container.querySelector('svg')).toBeTruthy();
+    });
 });

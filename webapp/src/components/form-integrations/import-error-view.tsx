@@ -77,9 +77,11 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
 
 
     if (provider === 'google' && (mode === 'readonly' || mode === 'off')) {
+        // Nothing to authorize here, so the view can always be closed (the
+        // OAUTH_ERROR_VIEW modal passes closable={false} while a connection is due).
         return (
             <div className="relative w-full rounded border border-black-300 bg-white px-6 pb-6 pt-14 md:max-w-[560px]">
-                {closable && <CloseModal />}
+                <CloseModal />
                 <GoogleFormsImportNotice mode={mode} />
             </div>
         );
