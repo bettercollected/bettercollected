@@ -33,6 +33,7 @@ SHEETS_RECONNECT_TEMPLATE = "sheets_reconnect.html"
 # a workspace handle and a form id, as path segments of the admin client
 WORKSPACE_NAME = re.compile(r"[A-Za-z0-9._~-]{1,200}")
 FORM_ID = re.compile(r"[A-Za-z0-9-]{1,64}")
+DOT_SEGMENTS = (".", "..")
 # /<workspace handle>/submissions/<response id>, as the backend builds it
 _SUBMISSION_PATH = re.compile(
     r"/[A-Za-z0-9._~%-]{1,200}/submissions/[A-Za-z0-9-]{1,64}"
@@ -109,11 +110,15 @@ def render_submission_update(
 def sheets_reconnect_link(workspace_name: str, form_id: str) -> Optional[str]:
     """The form's integrations page on the admin client
     (``CLIENT_ADMIN_URL``); None for a malformed handle or id or without the
-    setting. Built here, never taken from the caller."""
+    setting, and for the ``.`` and ``..`` handles. Built here, never taken
+    from the caller."""
     base = _origin_and_prefix(settings.CLIENT_ADMIN_URL)
     if (
         base is None
         or not WORKSPACE_NAME.fullmatch(workspace_name or "")
+        # dot segments: a browser resolves them away, the link would leave
+        # the workspace's pages
+        or workspace_name in DOT_SEGMENTS
         or not FORM_ID.fullmatch(form_id or "")
     ):
         return None
