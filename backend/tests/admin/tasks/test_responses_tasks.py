@@ -640,6 +640,10 @@ def test_auto_is_every_store_the_services_write_never_fewer(monkeypatch, default
     from backend.admin.tasks.spec import Refusal
 
     _write_mode(monkeypatch, default, responses)
+    # both stores configured (whatever the run's own MONGO_URI: the Mongo-less
+    # runs leave it empty); nothing here connects
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI or "mongodb://localhost")
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     mode = responses or default
     config = StoreConfig.from_env()
     if mode is None:
@@ -660,7 +664,10 @@ def test_auto_is_every_store_the_services_write_never_fewer(monkeypatch, default
     assert StoreConfig.from_env().resolve(StoreChoice.auto) == written
     # a written store the runner has no connection for: refused
     for missing in written:
-        monkeypatch.setenv("MONGO_URI", "" if missing == "mongo" else TEST_MONGO_URI)
+        monkeypatch.setenv(
+            "MONGO_URI",
+            "" if missing == "mongo" else TEST_MONGO_URI or "mongodb://localhost",
+        )
         monkeypatch.setenv("DATABASE_URL", "" if missing == "postgres" else TEST_DATABASE_URL)
         with pytest.raises(Refusal) as caught:
             StoreConfig.from_env().resolve(StoreChoice.auto)

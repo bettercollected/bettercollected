@@ -283,6 +283,37 @@ class TestProviders:
             assert response.status_code == 200
             assert {"providerName": "google", "importMode": value} in response.json()
 
+    async def test_a_platform_admin_gets_the_mode_too(
+        self, client, google_provider_config, mode, test_user_cookies
+    ):
+        # testUser holds the platform ADMIN role
+        for value in ("on", "readonly"):
+            mode(value)
+            response = await client.get(
+                f"{ROOT}/providers", cookies=test_user_cookies
+            )
+            assert response.status_code == 200
+            assert {"providerName": "google", "importMode": value} in response.json()
+
+    async def test_a_platform_admin_also_sees_a_disabled_provider(
+        self, client, mode, test_user_cookies
+    ):
+        await container.form_provider_service().add_provider(
+            FormProviderConfigDto(
+                enabled=False,
+                provider_name="google",
+                provider_url=GOOGLE_URL,
+                auth_callback_url=f"{GOOGLE_URL}/google/oauth/callback",
+            )
+        )
+        mode("readonly")
+
+        admin = await client.get(f"{ROOT}/providers", cookies=test_user_cookies)
+        public = await client.get(f"{ROOT}/providers")
+
+        assert admin.json() == [{"providerName": "google", "importMode": "readonly"}]
+        assert public.json() == []
+
     async def test_off_does_not_list_google(self, client, google_provider_config, mode):
         mode("off")
         response = await client.get(f"{ROOT}/providers")

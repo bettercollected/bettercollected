@@ -1,17 +1,10 @@
-"""Account changes go through the routed user repository, so a group served
-from Postgres sees them.
+"""Account changes reach the store the next request reads: sign-in codes,
+names, Stripe ids and plans of an existing account.
 
-Two layers:
-
-* the services wired to a routing repository with Postgres as the read source
-  and both stores written (the auth read switch), whatever mode the suite runs
-  in — needs the Postgres test database;
-* the HTTP routes in the suite's own mode (CI runs it on mongo, dual and
-  postgres).
-
-Before these writes were routed, an existing account's sign-in code, Stripe
-ids and plan were saved to Mongo only, so after the read switch a code sent to
-an existing user could never be validated.
+Two layers: the services on the user repository, and the HTTP routes.
+(Until 4.1 these ran on the routing repository between Mongo and Postgres;
+an existing account's code, Stripe ids and plan were once saved to Mongo
+only, so a code sent to an existing user could never be validated.)
 """
 
 import uuid
@@ -21,22 +14,18 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import pytest_asyncio
 import stripe
-from mongomock_motor import AsyncMongoMockClient
 
 from auth.app.container import container
-from auth.app.repositories.postgres import PostgresUserRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_service import AuthService
-from auth.app.services.database_service import init_db
 from auth.app.services.stripe_service import StripeService
 from auth.app.services.user_service import UserService
-from common.db import DbFlags, ReadSource, RoutingRepository, WriteMode
 from common.enums.plan import Plans
 from common.models.user import UserInfo
 
 
 def unique_email() -> str:
-    return f"routed-{uuid.uuid4().hex[:12]}@example.com"
+    return f"repo-{uuid.uuid4().hex[:12]}@example.com"
 
 
 @pytest.fixture
@@ -46,26 +35,10 @@ def no_mail():
         yield mail_service
 
 
-@pytest_asyncio.fixture(
-    params=[WriteMode.DUAL, WriteMode.POSTGRES_PRIMARY_DUAL], ids=lambda m: m.value
-)
-async def read_switched(request, clean_postgres):
-    """(routed repository reading Postgres and writing both, mongo, postgres):
-    the read switch (stage A, Mongo primary) and the primary switch (stage B)."""
-    await init_db(AsyncMongoMockClient())
-    mongo, postgres = UserRepository(), PostgresUserRepository(
-        container.pg_sessionmaker()
-    )
-    routed = RoutingRepository(
-        group="auth",
-        flags=DbFlags(
-            default_read=ReadSource.POSTGRES,
-            default_write=request.param,
-        ),
-        mongo=mongo,
-        postgres=postgres,
-    )
-    yield routed, mongo, postgres
+@pytest_asyncio.fixture
+async def repo(clean_postgres):
+    yield UserRepository(container.pg_sessionmaker())
+    # pooled connections belong to this test's event loop; drop them
     await container.pg_engine().dispose()
 
 
@@ -79,42 +52,37 @@ async def run_webhook(service: StripeService, event: dict):
         return await service.webhooks(request)
 
 
-# -- services on the read switch --------------------------------------------------
+# -- the services -----------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_otp_sign_in_of_an_existing_user_reads_postgres(read_switched, no_mail):
-    routed, mongo, postgres = read_switched
+async def test_otp_sign_in_of_an_existing_user_in_the_service(repo, no_mail):
     email = unique_email()
-    await routed.save_user(email)  # an existing account, in both stores
-    service = AuthService(None, routed, None)
+    await repo.save_user(email)  # an existing account
+    service = AuthService(None, repo, None)
 
     await service.send_otp_to_mail(email, None, None, creator=True)
 
-    stored = await postgres.get_user_by_email(email)
+    stored = await repo.get_user_by_email(email)
     assert stored.otp_code and stored.otp_expiry
     assert stored.otp_code_for == "FORM_CREATOR"
-    # the mirror got the same code
-    assert (await mongo.get_user_by_email(email)).otp_code == stored.otp_code
 
     signed_in = await service.validate_otp(email, stored.otp_code)
     assert signed_in is not None and signed_in.sub == email
-    assert (await postgres.get_user_by_email(email)).otp_code is None
+    assert (await repo.get_user_by_email(email)).otp_code is None
 
 
 @pytest.mark.asyncio
-async def test_a_wrong_code_is_still_refused(read_switched, no_mail):
-    routed, _, _ = read_switched
+async def test_a_wrong_code_is_still_refused(repo, no_mail):
     email = unique_email()
-    await routed.save_user(email)
-    service = AuthService(None, routed, None)
+    await repo.save_user(email)
+    service = AuthService(None, repo, None)
     await service.send_otp_to_mail(email, None, None, creator=False)
     assert await service.validate_otp(email, "WRONG-1") is None
 
 
 @pytest.mark.asyncio
-async def test_stripe_ids_and_plan_are_visible_on_postgres(read_switched, monkeypatch):
-    routed, mongo, postgres = read_switched
-    user = await routed.save_user(unique_email())
-    service = StripeService(routed)
+async def test_stripe_ids_and_plan_are_stored(repo, monkeypatch):
+    user = await repo.save_user(unique_email())
+    service = StripeService(repo)
 
     monkeypatch.setattr(
         stripe.checkout.Session,
@@ -125,56 +93,54 @@ async def test_stripe_ids_and_plan_are_visible_on_postgres(read_switched, monkey
         await service.create_checkout_session(str(user.id), "price_1")
         == "https://checkout.example"
     )
-    assert (await postgres.get_user_by_id(user.id)).stripe_payment_id == "cs_test_1"
+    assert (await repo.get_user_by_id(user.id)).stripe_payment_id == "cs_test_1"
 
     result = await run_webhook(
         service,
         webhook_event("checkout.session.completed", id="cs_test_1", customer="cus_1"),
     )
     assert result["upgrade"] is True
-    for store in (postgres, mongo):
-        stored = await store.get_user_by_id(user.id)
-        assert (stored.plan, stored.stripe_customer_id) == (Plans.PRO, "cus_1")
+    stored = await repo.get_user_by_id(user.id)
+    assert (stored.plan, stored.stripe_customer_id) == (Plans.PRO, "cus_1")
 
     await run_webhook(
         service, webhook_event("customer.subscription.deleted", customer="cus_1")
     )
-    assert (await postgres.get_user_by_id(user.id)).plan == Plans.FREE
+    assert (await repo.get_user_by_id(user.id)).plan == Plans.FREE
 
     await run_webhook(
         service, webhook_event("invoice.payment_succeeded", customer="cus_1")
     )
-    assert (await postgres.get_user_by_id(user.id)).plan == Plans.PRO
+    assert (await repo.get_user_by_id(user.id)).plan == Plans.PRO
 
-    await run_webhook(service, webhook_event("invoice.payment_failed", customer="cus_1"))
-    assert (await postgres.get_user_by_id(user.id)).plan == Plans.FREE
+    await run_webhook(
+        service, webhook_event("invoice.payment_failed", customer="cus_1")
+    )
+    assert (await repo.get_user_by_id(user.id)).plan == Plans.FREE
 
 
 @pytest.mark.asyncio
-async def test_pro_upgrade_is_visible_on_postgres(read_switched):
-    routed, mongo, postgres = read_switched
-    user = await routed.save_user(unique_email())
-    upgraded = await UserService(routed, None).upgrade_user_to_pro(user.id)
+async def test_pro_upgrade_is_stored(repo):
+    user = await repo.save_user(unique_email())
+    upgraded = await UserService(repo, None).upgrade_user_to_pro(user.id)
     assert upgraded.plan == Plans.PRO
-    assert (await postgres.get_user_by_id(user.id)).plan == Plans.PRO
-    assert (await mongo.get_user_by_id(user.id)).plan == Plans.PRO
+    assert (await repo.get_user_by_id(user.id)).plan == Plans.PRO
 
 
 @pytest.mark.asyncio
-async def test_names_from_the_callback_are_visible_on_postgres(read_switched):
-    routed, _, postgres = read_switched
+async def test_names_from_the_callback_are_stored(repo):
     email = unique_email()
-    await routed.save_user(email)
+    await repo.save_user(email)
     token = container.jwt_service().encode(
         UserInfo(email=email, first_name="Ada", last_name="Lovelace")
     )
-    await AuthService(None, routed, None).handle_auth_callback(token)
-    stored = await postgres.get_user_by_email(email)
+    await AuthService(None, repo, None).handle_auth_callback(token)
+    stored = await repo.get_user_by_email(email)
     assert (stored.first_name, stored.last_name) == ("Ada", "Lovelace")
 
 
-# -- the routes, in the suite's mode ----------------------------------------------
-def test_otp_sign_in_of_an_existing_user(app_runner, no_mail):
+# -- the routes -------------------------------------------------------------------
+def test_otp_sign_in_of_an_existing_user_over_http(app_runner, no_mail):
     email = unique_email()
     repo = container.user_repository()
     app_runner.portal.call(repo.save_user, email)

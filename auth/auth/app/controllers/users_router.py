@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, delete, patch
 from fastapi import Query
 from pydantic import EmailStr
@@ -23,7 +23,7 @@ class UserRouter(Routable):
     @get("")
     async def get_details_of_users_with_ids(
         self,
-        user_ids: List[PydanticObjectId] = Query(None),
+        user_ids: List[RecordId] = Query(None),
         emails: List[EmailStr] = Query(None),
     ):
         if not (bool(user_ids) ^ bool(emails)):
@@ -64,10 +64,10 @@ class UserRouter(Routable):
         return "Mail sent successfully!!"
 
     @delete("/{user_id}")
-    async def delete_user(self, user_id: PydanticObjectId):
+    async def delete_user(self, user_id: RecordId):
         await self.user_service.delete_user(user_id=user_id)
         return "User deleted"
 
     @patch("/{user_id}/upgrade")
-    async def upgrade_user_to_pro(self, user_id: PydanticObjectId):
+    async def upgrade_user_to_pro(self, user_id: RecordId):
         return await self.user_service.upgrade_user_to_pro(user_id=user_id)

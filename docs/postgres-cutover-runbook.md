@@ -29,6 +29,17 @@ what `DB_READ_SOURCE__g` / `DB_WRITE_MODE__g` move. `--group` accepts several gr
 comma-separated); an unknown group stops the CLI with exit code 2 and the list of valid groups.
 `--group` and `--collections` cannot be combined.
 
+**Reference data on a new stack (4.1).** The `refdata` group (allowed origins, the Google Forms
+provider, coupon codes, price suggestions, feedback) is served from Postgres only. A new stack gets
+its allowed origins and the Google Forms provider from `python -m backend.seed_refdata`, which
+`deploy.sh` runs once, after the migrations and the keys and before any service starts, with the
+web app's public origins (`HTTP_SCHEME` + `DASHBOARD_DOMAIN` / `FORM_DOMAIN`). The `mongo-seed`
+job no longer writes reference data to Mongo. An upgraded stack is never seeded: its reference data
+is imported from Mongo (`--group refdata backfill`). On a stack without `deploy.sh` (Swarm), run
+the command once on an empty store, in a one-off backend container, with your origins:
+`python -m backend.seed_refdata --origin https://<dashboard host> --origin https://<forms host>`
+(each table is seeded only while it is empty).
+
 **Cutover-order rule, enforced at boot:** while a group still *reads* Mongo, the groups its Mongo
 repositories join into must keep *writing* Mongo. In practice: never set `DB_WRITE_MODE=postgres`
 for `forms` while `responses` reads Mongo, for `identity` while `forms` reads Mongo, or for
@@ -306,6 +317,58 @@ env, docs). Keep the Mongo volume and dump for 30 days. Regression after removal
 R2 images (they still know both stores) and `reconcile --direction postgres->mongo` to catch
 Mongo up from the dump plus the outbox.
 
+## Upgrading to 4.1 — the Postgres-only groups
+
+From 4.1 the `refdata`, `analytics`, `ai` and `actions` groups are served from Postgres only
+(`POSTGRES_ONLY_GROUPS` in `backend/backend/db/groups.py`): their Mongo collections are read by
+nothing but the import, and a `DB_READ_SOURCE__<g>`/`DB_WRITE_MODE__<g>` other than `postgres` for
+one of them refuses the start. A stack whose data for these groups is still only in Mongo must
+import it, or it would run with no allowed origins, coupon codes, price suggestions, feedback, flow
+events, AI memories and profiles, or actions.
+
+**The start refuses until the import is done.** The backend API, its job worker and
+`python -m backend.scim` check at startup, after the schema check
+(`backend/backend/db/mongo_import_guard.py`), every collection of those groups
+(`COLLECTION_GROUPS`) and refuse to start when one has documents in Mongo, its Postgres table has
+no row, and no finished backfill of it is recorded (`migration_progress`, `state = done`). The
+log names each group and collection with its Mongo count, and the command to run. The check is a
+`SELECT EXISTS` per table and one read of the backfill checkpoints; Mongo is asked (one `find_one`
+per collection, plus an estimated count for the message) only about the collections that are empty
+in Postgres and were never imported. After an import an empty table counts as the application's
+doing (rows deleted or expired since), so the check never blocks a stack that imported. Without
+`MONGO_URI` (a new 4.1 install) Mongo is never contacted. With `MONGO_URI` set, a Mongo that cannot
+be read refuses the start too: the check cannot tell whether data would be lost. Remove
+`MONGO_URI` only when Mongo holds nothing to keep (stage D below). `python -m
+backend.seed_refdata` runs the same check for `refdata` before it seeds the empty tables, since
+seeded rows would hide unimported ones from the check.
+
+**What to run.** Best before the upgrade, with the 4.0 images (the CLI is the same):
+
+```bash
+python -m backend.migrate --group refdata,analytics,ai,actions preflight
+python -m backend.migrate --group refdata,analytics,ai,actions backfill   # resumable; re-run until done
+python -m backend.migrate status                                          # backfill=done per collection
+```
+
+After an upgrade that refused to start, run the same `backfill` in a one-off container of the 4.1
+backend image (the CLI does not start the app, so the check does not stop it; see "One-off
+commands" and "Quick reference"), then start the services again. A collection whose backfill
+stopped with `error` (or documents whose `_id` is not an ObjectId, which `preflight` counts) keeps
+the start refused until it is fixed and re-run.
+
+`verify` and `reconcile` no longer cover these groups: without `--group` they skip them and say
+so on stderr; `--group refdata` (or `--collections` naming one of their collections) exits with
+code 2 and names the group. The verified marker covers the other groups. `reconcile --direction
+postgres->mongo` checks each group's effective write mode (the backend's own flags), not the global
+`DB_WRITE_MODE`.
+
+**Override.** To start anyway and leave a group's Mongo data behind, set
+`DB_DISCARD_UNIMPORTED_MONGO_DATA` on the backend and jobs-worker to the groups to give up
+(`refdata,ai`) or `all`; an unknown name refuses the start. Every start with it set logs a warning,
+and one per collection it lets through, with its count. It is never set by default: use it only when
+that data is known to be worthless (a test stack), and remove it after the start. The data stays in
+Mongo, so a later `backfill` can still bring it in.
+
 ## Running the cutover on an orchestrated (Docker Swarm) stack
 
 A Swarm stack has no `deploy.sh`. The phases above still apply; on Swarm each step is one of three
@@ -382,7 +445,7 @@ docker service ps <stack>_backend --filter desired-state=running   # which node 
 # on that node:
 C=$(docker ps -q -f name=<stack>_backend. | head -n1)
 docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate status
-docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate --group refdata verify
+docker exec "$C" /api/backend/.venv/bin/python -m backend.migrate --group identity verify
 docker exec "$C" /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini current
 # auth and the Google integration, the same way:
 #   <stack>_auth                    /api/auth/.venv/bin/python -m auth.migrate …
@@ -486,7 +549,8 @@ group's B meets the exit criteria.
 The `google` steps run on 4.0.x. From 4.1 on, `integrations-googleform` has no Mongo store: it
 serves from Postgres only and refuses to start while `DB_READ_SOURCE`, `DB_WRITE_MODE` or their
 `__google` overrides name anything but `postgres` (unset is fine). `googleform.migrate` still
-reads the 4.0 Mongo data for the import.
+reads the 4.0 Mongo data for the import. The same holds for `auth` and the `auth` service
+(`DB_READ_SOURCE`, `DB_WRITE_MODE` and their `__auth` overrides; `auth.migrate` for the import).
 
 **A, the read switch.** Add the read override and redeploy the service(s). Writes stay on `dual`,
 so Mongo stays primary. Shadow reads stay on and now compare Postgres answers with Mongo's. Soak
@@ -630,7 +694,8 @@ docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
 docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
   /api/backend/.venv/bin/python -m backend.migrate status
 … status --json | preflight | backfill --max-minutes 30 | verify | reconcile | jobs-sweep --backend postgres
-… --group refdata backfill | --group refdata verify | --group refdata,analytics reconcile
+… --group refdata backfill | --group identity verify | --group identity,forms reconcile
+# 4.1: verify/reconcile skip refdata, analytics, ai and actions (--group naming one exits 2)
 ```
 
 `status --json` prints one JSON document (`format: 1`): per collection its group, the counts in

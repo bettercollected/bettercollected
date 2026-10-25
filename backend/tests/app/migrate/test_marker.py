@@ -17,7 +17,12 @@ from backend.migrate.__main__ import _tables, build_target
 from common.db import RoutingRepository, load_flags, write_op
 from common.db.marker import SCOPE_GROUP, SCOPE_SERVICE, migration_verified
 from common.db.migrate import Runner
-from common.db.migrate.cli import build_parser, run
+from common.db.migrate.cli import (
+    build_parser,
+    main,
+    reconcile_to_mongo_refusal,
+    run,
+)
 from tests.app.db.beanie_originals import (
     AllowedOriginsDocument,
     AllowedOriginsRepository,
@@ -49,9 +54,24 @@ def collections_of(group):
     return [c for c, g in COLLECTION_GROUPS.items() if g == group]
 
 
+#: the groups verify covers and the marker rests on: all but the Postgres-only
+MIGRATING = [g for g in GROUPS if g not in POSTGRES_ONLY_GROUPS]
+POSTGRES_ONLY_COLLECTIONS = {
+    c for c, g in COLLECTION_GROUPS.items() if g in POSTGRES_ONLY_GROUPS
+}
+
+
 async def add_origins(*origins):
     mongo = AllowedOriginsRepository()
     return [await mongo.add(o) for o in origins]
+
+
+async def add_workspaces(*names):
+    """Workspaces in Mongo only (the identity group, which verify covers)."""
+    return [
+        await WorkspaceDocument(title=n, workspace_name=n, owner_id="o").save()
+        for n in names
+    ]
 
 
 # -- the group map ------------------------------------------------------------
@@ -86,25 +106,27 @@ def test_the_group_map_matches_the_routed_repositories():
 
 # -- the marker ---------------------------------------------------------------
 async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(target):
-    await add_origins("https://a.example", "https://b.example")
+    await add_workspaces("w1", "w2")
     async with Runner(target) as runner:
         await runner.backfill()
         assert await marker_rows() == []
-        reports = await runner.verify()
+        reports = await runner.verify(list(target.migrating_tables()))
         outcome = await runner.record_verify(reports)
-    assert outcome["marker"] == "written" and outcome["groups"] == list(GROUPS)
+    assert outcome["marker"] == "written" and outcome["groups"] == MIGRATING
     marker = await current_marker()
     assert marker is not None and not marker.combined
-    assert marker.collections["allowed_origins"] == {
-        "group": "refdata",
+    assert marker.collections["workspaces"] == {
+        "group": "identity",
         "mongo": 2,
         "postgres": 2,
     }
-    assert set(marker.collections) == set(_tables())
+    # the Postgres-only groups are imported, never verified: not in the marker
+    assert set(marker.collections) == set(_tables()) - POSTGRES_ONLY_COLLECTIONS
+    assert list(marker.groups) == MIGRATING
     assert "+schema.0021" in marker.code_version
     assert marker.run_id == runner.run_id
     rows = await marker_rows()
-    assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(GROUPS) + [
+    assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(MIGRATING) + [
         SCOPE_SERVICE
     ]
 
@@ -117,7 +139,7 @@ async def test_a_dirty_group_blocks_the_marker_until_reconciled(target):
     await WorkspaceDocument(title="W", workspace_name="w1", owner_id="o").save()
     async with Runner(target) as runner:
         outcome = await runner.record_verify(await runner.verify())
-        assert "identity" not in outcome["groups"] and "refdata" in outcome["groups"]
+        assert "identity" not in outcome["groups"] and "forms" in outcome["groups"]
         assert outcome["marker"] is None
         assert await current_marker() is None
         await runner.reconcile(["workspaces"])
@@ -136,31 +158,34 @@ async def test_sampled_and_collection_subset_verifies_are_not_recorded(target):
 
 
 async def test_per_group_verifies_combine_into_the_marker(target):
-    await add_origins("https://a.example")
+    await add_workspaces("w1")
     async with Runner(target) as runner:
         await runner.backfill()
     outcomes = []
-    for group in GROUPS:
+    for group in MIGRATING:
         async with Runner(target) as runner:
             outcomes.append(
                 await runner.record_verify(await runner.verify(collections_of(group)))
             )
-    assert [o["groups"] for o in outcomes] == [[g] for g in GROUPS]
-    assert [o["marker"] for o in outcomes] == [None] * (len(GROUPS) - 1) + ["combined"]
+    assert [o["groups"] for o in outcomes] == [[g] for g in MIGRATING]
+    assert [o["marker"] for o in outcomes] == [None] * (len(MIGRATING) - 1) + [
+        "combined"
+    ]
     marker = await current_marker()
-    assert marker.combined and [b["group"] for b in marker.based_on] == list(GROUPS)
+    assert marker.combined and [b["group"] for b in marker.based_on] == MIGRATING
     group_rows = [r for r in await marker_rows() if r["scope"] == SCOPE_GROUP]
     assert marker.verified_at == min(r["verified_at"] for r in group_rows)
-    assert marker.collections["allowed_origins"]["mongo"] == 1
+    assert marker.collections["workspaces"]["mongo"] == 1
+    assert not set(marker.collections) & POSTGRES_ONLY_COLLECTIONS
 
 
 async def test_a_backfill_after_a_group_verify_keeps_it_out_of_the_combination(
     target,
 ):
-    await add_origins("https://a.example")
+    await add_workspaces("w1")
     async with Runner(target) as runner:
         await runner.backfill()
-    first, *rest = GROUPS
+    first, *rest = MIGRATING
     async with Runner(target) as runner:
         await runner.record_verify(await runner.verify(collections_of(first)))
         # the first group is backfilled again after its verify
@@ -265,44 +290,121 @@ def _args(*argv):
 
 
 async def test_cli_group_verify_records_the_group_and_status_json(target, capsys):
-    await add_origins("https://a.example")
+    await add_workspaces("w1")
     async with container.pg_sessionmaker()() as session, session.begin():
         session.add(
             MirrorWriteFailure(
-                table_name="CouponRepository", row_id="x", op="add", error="E"
+                table_name="WorkspaceRepository", row_id="x", op="save", error="E"
             )
         )
-    assert await run(_args("--group", "refdata", "backfill"), target) == 0
-    assert await run(_args("--group", "refdata", "verify"), target) == 0
+    assert await run(_args("--group", "identity", "backfill"), target) == 0
+    assert await run(_args("--group", "identity", "verify"), target) == 0
     capsys.readouterr()
     rows = await marker_rows()
-    assert [(r["scope"], r["groups"]) for r in rows] == [(SCOPE_GROUP, ["refdata"])]
+    assert [(r["scope"], r["groups"]) for r in rows] == [(SCOPE_GROUP, ["identity"])]
 
     assert await run(_args("status", "--json"), target) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["format"] == 1 and report["service"] == "backend"
-    assert report["collections"]["allowed_origins"] == {
-        "group": "refdata",
+    assert report["collections"]["workspaces"] == {
+        "group": "identity",
         "mongo": 1,
         "postgres": 1,
-        "backfill": report["collections"]["allowed_origins"]["backfill"],
+        "backfill": report["collections"]["workspaces"]["backfill"],
     }
-    assert report["collections"]["allowed_origins"]["backfill"]["state"] == "done"
-    assert report["groups"]["refdata"]["last_verify"]["run_id"] == rows[0]["run_id"]
+    assert report["collections"]["workspaces"]["backfill"]["state"] == "done"
+    assert report["groups"]["identity"]["last_verify"]["run_id"] == rows[0]["run_id"]
     assert report["groups"]["forms"]["last_verify"] is None
+    # status still covers the Postgres-only groups (their import)
+    assert report["collections"]["allowed_origins"]["group"] == "refdata"
     assert report["last_verify"]["scope"] == SCOPE_GROUP
     assert report["marker"] is None
     assert report["outbox"] == {"mongo": 0, "postgres": 1}
     assert report["mirror_failures"]["postgres"] == {
         "total": 1,
         "unresolved": 1,
-        "unresolved_by_method": {"CouponRepository.add": 1},
+        "unresolved_by_method": {"WorkspaceRepository.save": 1},
     }
     assert report["mirror_failures"]["mongo"]["unresolved"] == 0
 
-    assert await run(_args("--group", "refdata", "status"), target) == 0
+    assert await run(_args("--group", "identity", "status"), target) == 0
     text = capsys.readouterr().out
-    assert "group refdata: last clean verify" in text and "group forms" not in text
+    assert "group identity: last clean verify" in text and "group forms" not in text
+
+
+# -- verify and reconcile leave the Postgres-only groups alone -----------------
+DIRECTIONS = ["mongo->postgres", "postgres->mongo"]
+PPD = {"DB_WRITE_MODE": "postgres_primary_dual", "DB_READ_SOURCE": "postgres"}
+
+
+def _command(name, direction):
+    return ["verify"] if name == "verify" else ["reconcile", "--direction", direction]
+
+
+@pytest.mark.parametrize(
+    "name,direction",
+    [("verify", None)] + [("reconcile", d) for d in DIRECTIONS],
+    ids=["verify"] + [f"reconcile {d}" for d in DIRECTIONS],
+)
+async def test_verify_and_reconcile_skip_the_postgres_only_groups_and_say_so(
+    target, capsys, name, direction
+):
+    """Mongo data of a Postgres-only group (here: allowed origins never
+    imported) is neither compared nor copied, and the output says so."""
+    await add_origins("https://a.example")
+    args = _args(*_command(name, direction))
+    assert reconcile_to_mongo_refusal(args, target, PPD) is None
+    await run(args, target)
+    captured = capsys.readouterr()
+    assert (
+        f"{name}: skipping the refdata, actions, ai and analytics group(s), served "
+        "from Postgres only" in captured.err
+    )
+    covered = (
+        {r["collection"] for r in json.loads(captured.out)}
+        if (name == "verify")
+        else set(json.loads(captured.out))
+    )
+    assert covered == set(target.migrating_tables())
+    assert not covered & POSTGRES_ONLY_COLLECTIONS
+    async with container.pg_engine().connect() as conn:
+        origins = (await conn.execute(select(AllowedOriginRow.id))).all()
+    assert origins == []  # never copied
+    if name == "verify":
+        assert list((await current_marker()).groups) == MIGRATING
+
+
+@pytest.mark.parametrize("group", POSTGRES_ONLY_GROUPS)
+@pytest.mark.parametrize(
+    "name,direction",
+    [("verify", None)] + [("reconcile", d) for d in DIRECTIONS],
+    ids=["verify"] + [f"reconcile {d}" for d in DIRECTIONS],
+)
+def test_verify_and_reconcile_refuse_a_postgres_only_group_by_name(
+    target, capsys, name, direction, group
+):
+    """Exit 2, naming the group, before anything is opened; also under the
+    services' postgres_primary_dual flags, which used to let it through."""
+    for env in ({}, PPD):
+        with pytest.raises(SystemExit) as exit_:
+            main(
+                ["--group", group, *_command(name, direction)],
+                target,
+                prog="python -m backend.migrate",
+                env=env,
+            )
+        assert exit_.value.code == 2
+        assert f"served from Postgres only: {group}" in capsys.readouterr().err
+
+
+def test_reconcile_to_mongo_reads_the_backend_flags(target):
+    """The backend's own loader decides each group's mode: a stale flag for a
+    Postgres-only group refuses, as it refuses the services' start."""
+    args = _args("reconcile", "--direction", "postgres->mongo")
+    refusal = reconcile_to_mongo_refusal(
+        args, target, {**PPD, "DB_WRITE_MODE__ai": "dual"}
+    )
+    assert refusal and "DB_WRITE_MODE__ai='dual'" in refusal
 
 
 async def test_progress_is_untouched_by_verify(target):

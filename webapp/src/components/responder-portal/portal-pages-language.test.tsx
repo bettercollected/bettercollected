@@ -28,8 +28,10 @@ const nav = vi.hoisted(() => ({ pathname: '/acme/forms' }));
 // Whether the workspace has a pinned form (Intake); a test can clear it.
 const pins = vi.hoisted(() => ({ none: false }));
 
+const router = vi.hoisted(() => ({ push: vi.fn() }));
+
 vi.mock('next/navigation', () => ({
-    useRouter: () => ({ push: vi.fn() }),
+    useRouter: () => router,
     usePathname: () => nav.pathname,
     useSearchParams: () => new URLSearchParams(window.location.search)
 }));
@@ -171,6 +173,20 @@ describe('the portal submission lists', () => {
         expect(screen.getByText(/Anonieme inzendingen zijn niet gekoppeld aan je account/)).toBeInTheDocument();
         expect(levelsInOrder(outline())).toBe(true);
         expect(await axeViolations(document, { page: true })).toEqual([]);
+    });
+
+    it('sends "Verify email" to the sign-in page in the respondent’s language', async () => {
+        signOut();
+        router.push.mockClear();
+        at('/acme/my-submissions?lang=nl');
+        nav.pathname = '/acme/my-submissions';
+        render(
+            <ReduxProvider store={store}>
+                <WorkspaceResponsesTabContent workspace={workspace} audience="respondent" />
+            </ReduxProvider>
+        );
+        (await screen.findByRole('button', { name: 'E-mailadres bevestigen' })).click();
+        expect(router.push).toHaveBeenCalledWith('/login?type=responder&workspace_id=w1&redirect_to=%2Facme%2Fmy-submissions&lang=nl');
     });
 
     it("stays in the app's language on the team's dashboard", async () => {

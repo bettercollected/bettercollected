@@ -243,6 +243,7 @@ environment, whatever the tier.
 | `DATABASE_URL` | database | backend, auth, google, jobs, admin, actions_executor | str | yes | R | T5 |  |
 | `DB_AUTO_MIGRATE` | database | backend, auth, google | bool |  | R | T5 | `false` |
 | `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS` | database | backend, auth, google | float 0..3600 |  | R | T5 |  |
+| `DB_DISCARD_UNIMPORTED_MONGO_DATA` | database | backend, jobs | str |  | R | T5 |  |
 | `DB_ECHO` | database | backend, auth, google, jobs, admin | bool |  | R | T5 | `false` |
 | `DB_IDLE_IN_TRANSACTION_MS` | database | backend, auth, google, jobs, admin | int 1000..3.6e+06 |  | R | T5 | `60000` |
 | `DB_LOCK_TIMEOUT_MS` | database | backend, auth, google, jobs, admin | int 100..3.6e+06 |  | R | T5 | `5000` |
@@ -326,7 +327,6 @@ environment, whatever the tier.
 | `BC_RENDER_MAX_SIDE` | set by the import runner for its own sandbox child |
 | `ENABLE_COMMAND_FORM_BUILDERS` | listed in the deployment env file; no service reads it |
 | `ENABLE_FORM_BUILDER` | listed in the deployment env file; no service reads it |
-| `GOOGLE_ENABLED` | compose profile switch |
 | `GOOGLE_MONGO_DB` | the Google integration's Mongo database, read by the keyset rotation tasks and script |
 | `MOCK_SAML_IMAGE` | compose image selection for the development identity provider |
 | `NEXT_PUBLIC_APP_VERSION` | build-time version, set by the image build (never stored) |
