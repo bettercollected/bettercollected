@@ -1,7 +1,9 @@
 """The settings inventory: every spec is consistent, every environment name a
 service reads is classified, and the committed table is current."""
 
+import ast
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -177,16 +179,115 @@ def test_every_hot_key_has_a_live_read_test():
     assert not missing, f"no live-read test names {missing}"
 
 
+ANCHOR = re.compile(r"^(?P<path>[\w./-]+\.py)::(?P<qualname>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$")
+
+
+def _symbol(tree: ast.Module, qualname: str) -> ast.AST:
+    """The module or class level function, class or assignment named by the
+    dotted ``qualname`` (no local variables); exactly one must match."""
+    body, node = tree.body, None
+    for i, part in enumerate(qualname.split(".")):
+        found = []
+        for child in body:
+            if isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                if child.name == part:
+                    found.append(child)
+            elif isinstance(child, (ast.Assign, ast.AnnAssign)) and (
+                node is None or isinstance(node, ast.ClassDef)
+            ):
+                targets = child.targets if isinstance(child, ast.Assign) else [child.target]
+                if any(isinstance(t, ast.Name) and t.id == part for t in targets):
+                    found.append(child)
+        assert len(found) == 1, f"{qualname}: {len(found)} symbols named {part!r}"
+        node = found[0]
+        body = getattr(node, "body", [])
+        if i < len(qualname.split(".")) - 1:
+            assert isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)), qualname
+    return node
+
+
+def _reads(node: ast.AST, key: str) -> bool:
+    """Whether the code of ``node`` (decorators included, docstrings and
+    comments not) reads ``key``: as the string ``key`` or as an attribute or
+    name that is the key or the key without leading prefixes (a prefixed
+    settings field: ``api_settings.ROOT_PATH`` reads ``API_ROOT_PATH``)."""
+    parts = key.split("_")
+    names = {"_".join(parts[i:]) for i in range(len(parts))}
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Attribute) and sub.attr in names:
+            return True
+        if isinstance(sub, ast.Name) and sub.id in names:
+            return True
+        if isinstance(sub, ast.Constant) and sub.value == key:
+            return True
+    return False
+
+
+def _check_anchor(key: str, where: str, root: Path = ROOT) -> None:
+    match = ANCHOR.match(where)
+    assert match, f"{key}: {where!r} is not path::qualname"
+    path = root / match["path"]
+    assert path.is_file(), f"{key}: {match['path']} does not exist"
+    tree = ast.parse(path.read_text(), filename=str(path))
+    try:
+        node = _symbol(tree, match["qualname"])
+    except AssertionError as missing:
+        raise AssertionError(f"{key}: {missing}") from None
+    assert _reads(node, key), f"{key}: {where} does not read it"
+
+
 @monorepo
-def test_import_time_keys_name_a_real_line():
+def test_import_time_keys_name_a_symbol_that_reads_them():
     for key, where in TODO_LIVE.items():
         spec = next(s for s in INVENTORY if s.key == key)
         assert spec.reload_class is Reload.R, key
-        path, _, number = where.rpartition(":")
-        line = (ROOT / path).read_text().splitlines()[int(number) - 1]
-        parts = key.split("_")
-        suffixes = ["_".join(parts[i:]) for i in range(1, len(parts))]
-        assert any(s in line for s in suffixes), f"{key}: line {number} of {path} does not read it"
+        _check_anchor(key, where)
+
+
+def test_the_anchor_check_ignores_line_shifts_and_catches_a_removed_read(tmp_path):
+    source = (
+        "import settings\n\n\n"
+        "class Box:\n"
+        "    held = make(settings.aws.ACCESS_KEY_ID)\n\n"
+        "    def sweep(self):\n"
+        "        \"\"\"Mentions API_FLOW_EVENTS_RETENTION_DAYS only in prose.\"\"\"\n"
+        "        return settings.api.FLOW_EVENTS_RETENTION_DAYS\n\n\n"
+        "@app.periodic(cron=settings.scim.RECONCILE_CRON)\n"
+        "def reconcile():\n"
+        "    return os.environ.get(\"DB_ECHO\")\n"
+    )
+    anchors = {
+        "AWS_ACCESS_KEY_ID": "pkg/mod.py::Box.held",
+        "API_FLOW_EVENTS_RETENTION_DAYS": "pkg/mod.py::Box.sweep",
+        "SCIM_RECONCILE_CRON": "pkg/mod.py::reconcile",
+        "DB_ECHO": "pkg/mod.py::reconcile",
+    }
+    module = tmp_path / "pkg/mod.py"
+    module.parent.mkdir()
+    for text in (source, "\n\n# moved\n\n" + source.replace("    def", "\n\n    def")):
+        module.write_text(text)
+        for key, where in anchors.items():
+            _check_anchor(key, where, tmp_path)
+
+    removed = {
+        "AWS_ACCESS_KEY_ID": source.replace("settings.aws.ACCESS_KEY_ID", "None"),
+        "API_FLOW_EVENTS_RETENTION_DAYS": source.replace(
+            "settings.api.FLOW_EVENTS_RETENTION_DAYS", "30"
+        ),
+        "SCIM_RECONCILE_CRON": source.replace("settings.scim.RECONCILE_CRON", '"0 3 * * *"'),
+    }
+    for key, text in removed.items():
+        module.write_text(text)
+        with pytest.raises(AssertionError, match="does not read it"):
+            _check_anchor(key, anchors[key], tmp_path)
+    module.write_text(source.replace("def sweep", "def swept"))
+    key = "API_FLOW_EVENTS_RETENTION_DAYS"
+    with pytest.raises(AssertionError, match="0 symbols"):
+        _check_anchor(key, anchors[key], tmp_path)
+    with pytest.raises(AssertionError, match="not path::qualname"):
+        _check_anchor("DB_ECHO", "pkg/mod.py:12", tmp_path)
+    with pytest.raises(AssertionError, match="0 symbols"):
+        _check_anchor("DB_ECHO", "pkg/mod.py::reconcile.value", tmp_path)
 
 
 # --------------------------------------------------------------- secrets
