@@ -6,4 +6,6 @@
   longer skips a Postgres row the application wrote after Mongo's copy without a trace: it keeps
   it and counts it as `newer_in_postgres`. The new `reconcile --mongo-wins` copies Mongo's version
   over such rows instead, only in the groups whose `DB_WRITE_MODE`/`DB_WRITE_MODE__<group>` is
-  explicitly `mongo` or `dual`, and nowhere while the Postgres-side outbox has unresolved entries.
+  explicitly `mongo` or `dual`. While the Postgres-side outbox has unresolved entries (writes from
+  a time Postgres was primary), no row the application wrote is replaced at all; a `mongo->postgres`
+  run no longer resolves those entries (`postgres->mongo` or a clean full `verify` does).
