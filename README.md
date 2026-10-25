@@ -145,6 +145,10 @@ portal) to the address(es) or CIDR(s) it connects to the backend from
 (comma-separated). The backend takes the client address from `X-Forwarded-For`
 only for requests from those proxies; without it every client looks like the
 proxy (and shares its rate limits).
+Route the proxy to the backend's port `8000` only, and let it add
+`X-Forwarded-For`. Never publish or proxy port `8001`: it is the backend's
+internal listener, where the task runner and the workers reach their key-only
+routes (see "Internal routes" in [docs/admin-service.md](docs/admin-service.md)).
 Do not put a reverse proxy in front of the admin portal's port (`8100`): behind a
 proxy on the host every client would look like the Docker gateway, which the
 portal's address check admits. Reach the portal with an SSH tunnel (see

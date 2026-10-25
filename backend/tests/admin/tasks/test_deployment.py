@@ -72,7 +72,7 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     # the case-duplicates task reaches the API's internal routes only
     assert env["ADMIN_TASKS_API_KEY"] == "${ADMIN_TASKS_API_KEY:-}"
     assert env["ADMIN_TASKS_BACKEND_URL"] == (
-        "${TASK_RUNNER_BACKEND_URL:-http://backend:8000/api/v1}"
+        "${TASK_RUNNER_BACKEND_URL:-http://backend:8001/api/v1}"
     )
     assert env["TASKS_DATABASE_URL"].startswith("postgresql+asyncpg://bc_tasks:")
     assert "@app-postgres:" in env["TASKS_DATABASE_URL"]
