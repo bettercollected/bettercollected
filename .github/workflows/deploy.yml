@@ -190,6 +190,10 @@ jobs:
                       SERVICE_TAG="${SERVICE//\//-}"
                       echo "${SERVICE_TAG}=bettercollected/${SERVICE_TAG}:${IMAGE_TAG}"
                     done
+                    # These run the backend image under their own stack service names.
+                    for SERVICE in admin document-sandbox jobs-worker task-runner; do
+                      echo "${SERVICE}=bettercollected/backend:${IMAGE_TAG}"
+                    done
                     echo "EOF"
                   } >> "$GITHUB_OUTPUT"
 
