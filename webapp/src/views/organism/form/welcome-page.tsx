@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react';
 import { FormTheme } from '@app/constants/theme';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -44,7 +45,7 @@ export default function WelcomePage({
     accountInStrip?: boolean;
 }>) {
     const standardForm = useAppSelector(selectResponderForm);
-    const { t } = useRespondentLanguage();
+    const { t, language } = useRespondentLanguage();
     // The author's title and introduction, marked when in another language than the page.
     const contentLang = useFormContentLanguage();
     const { nextSlide } = useResponderState();
@@ -52,7 +53,7 @@ export default function WelcomePage({
     const pathname = usePathname();
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const responderSignInUrl = `/login?type=responder&workspace_id=${workspace.id}&redirect_to=${pathname}`;
+    const responderSignInUrl = respondentSignInUrl(workspace.id, pathname, language);
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;

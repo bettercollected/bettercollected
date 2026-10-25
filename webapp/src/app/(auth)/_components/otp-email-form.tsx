@@ -17,6 +17,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 import { capitalize } from '@app/utils/string-utils';
 
@@ -37,6 +38,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     const { t } = useTranslation();
     const { toast } = useToast();
     const [postSendOtp, { isLoading }] = usePostSendOtpMutation();
+    const { language: respondentLanguage } = useRespondentLanguage();
     const [email, setEmail] = useState('');
     const searchParams = useSearchParams();
     const fromProPlan = searchParams?.get('fromProPlan');
@@ -74,9 +76,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         e.preventDefault();
         if (!email) return;
 
-        // a creator's code mail follows the browser's language (a respondent's
-        // code is sent through the workspace, in the form's language)
-        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', ...(workspace_id ? {} : { locale: browserMailLocale() }) });
+        // The code mail's language: a respondent's (the workspace's code) is in
+        // their language, as the form and portal are; a creator's follows the browser.
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale: workspace_id ? respondentLanguage : browserMailLocale() });
 
         if ('data' in res && !!res.data) {
             toast({ description: constants.otpSuccessMessage });
