@@ -111,3 +111,167 @@ export function themeContrastChecks(theme: ThemeColours): ContrastCheck[] {
         return { ...pair, ratio, passes: ratio >= pair.minimum };
     });
 }
+
+/** A pairing the creator chose that fails AA, by the role that would fix it. */
+export type ContrastIssueKey = 'text' | 'answer' | 'button' | 'border' | 'action';
+
+export interface ContrastIssue {
+    key: ContrastIssueKey;
+    /** The lowest ratio the pairing reaches, over every ground it sits on. */
+    ratio: number;
+    minimum: number;
+}
+
+type GuardedTheme = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent' | 'background'>;
+
+export interface ContrastGuard {
+    /** The failing pairings, in a fixed order; empty when the theme passes. */
+    issues: ContrastIssue[];
+    /**
+     * The nearest colours that pass every check: only the roles that change,
+     * each moved as little as it can. Null when the theme passes.
+     */
+    fix: Partial<GuardedTheme> | null;
+    /** The page is an image: text on it can't be measured, only previewed. */
+    imageGround: boolean;
+}
+
+const WHITE = '#FFFFFF';
+const BLACK = '#000000';
+
+/**
+ * The colours the form's page puts text and controls on: the background
+ * colour, both stops of a gradient, the white sheet of the `margin` pattern.
+ * An image can't be measured, so it has none (the white input boxes and the
+ * buttons are still checked).
+ */
+function pageGrounds(theme: GuardedTheme): string[] {
+    const bg = theme.background;
+    if (bg?.type === 'image' && bg.imageUrl) return [];
+    const grounds = [theme.accent];
+    if (bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo) grounds.push(bg.gradientFrom, bg.gradientTo);
+    if (bg?.type === 'pattern' && bg.pattern === 'margin' && contrast(theme.primary, WHITE) >= AA_TEXT) grounds.push(WHITE);
+    return grounds;
+}
+
+/** What each role must reach, and on what (one list per role the creator picks). */
+function roleRules(grounds: string[]) {
+    return {
+        // questions on the page, answers in the white input boxes
+        primary: [...grounds.map((ground) => ({ key: 'text' as const, ground, minimum: AA_TEXT })), { key: 'answer' as const, ground: WHITE, minimum: AA_TEXT }],
+        // white text on the button; the chosen answer, icons and progress on the page
+        secondary: [{ key: 'button' as const, ground: WHITE, minimum: AA_TEXT }, ...grounds.map((ground) => ({ key: 'action' as const, ground, minimum: AA_NON_TEXT }))],
+        // input borders on the page
+        tertiary: grounds.map((ground) => ({ key: 'border' as const, ground, minimum: AA_NON_TEXT }))
+    };
+}
+
+const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'border', 'action'];
+
+function failures(theme: GuardedTheme, grounds: string[]): ContrastIssue[] {
+    const rules = roleRules(grounds);
+    const worst = new Map<ContrastIssueKey, ContrastIssue>();
+    for (const role of ['primary', 'secondary', 'tertiary'] as const) {
+        for (const rule of rules[role]) {
+            const raw = contrast(theme[role], rule.ground);
+            const ratio = Number.isNaN(raw) ? 1 : raw;
+            if (ratio >= rule.minimum) continue;
+            const seen = worst.get(rule.key);
+            if (!seen || ratio < seen.ratio) worst.set(rule.key, { key: rule.key, ratio, minimum: rule.minimum });
+        }
+    }
+    return ISSUE_ORDER.filter((key) => worst.has(key)).map((key) => worst.get(key)!);
+}
+
+/** Hue, saturation and lightness (0–1) of a hex colour. */
+function toHsl(hex: string): [number, number, number] {
+    const [r, g, b] = (hexChannels(hex) ?? [128, 128, 128]).map((c) => c / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    if (max === min) return [0, 0, l];
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+}
+
+function fromHsl(h: number, s: number, l: number): string {
+    const hue = (p: number, q: number, t: number) => {
+        const u = t < 0 ? t + 1 : t > 1 ? t - 1 : t;
+        if (u < 1 / 6) return p + (q - p) * 6 * u;
+        if (u < 1 / 2) return q;
+        if (u < 2 / 3) return p + (q - p) * (2 / 3 - u) * 6;
+        return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    const channels = s === 0 ? [l, l, l] : [hue(p, q, h + 1 / 3), hue(p, q, h), hue(p, q, h - 1 / 3)];
+    return '#' + channels.map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+/**
+ * `colour`, or the nearest shade of it (same hue and saturation, darker or
+ * lighter) that meets every rule; null when no shade does (the grounds pull
+ * both ways). Keeping the hue keeps the creator's colour recognisable: a
+ * yellow button becomes a deep gold, not a brown.
+ */
+function nearestPassing(colour: string, rules: Array<{ ground: string; minimum: number }>): string | null {
+    const passes = (candidate: string) => rules.every((rule) => contrast(candidate, rule.ground) >= rule.minimum);
+    const start = hexChannels(colour) ? colour : '#808080';
+    if (passes(start)) return start;
+    const [h, s, l] = toHsl(start);
+    for (let step = 1; step <= 40; step++) {
+        for (const lightness of [l - step / 40, l + step / 40]) {
+            if (lightness < 0 || lightness > 1) continue;
+            const candidate = fromHsl(h, s, lightness);
+            if (passes(candidate)) return candidate;
+        }
+    }
+    return passes(BLACK) ? BLACK : passes(WHITE) ? WHITE : null;
+}
+
+/** The page colours `weight` of the way to white (a pale ground the roles can pass on). */
+function lightenGround(theme: GuardedTheme, weight: number): Pick<GuardedTheme, 'accent' | 'background'> {
+    const lift = (colour: string) => (hexChannels(colour) ? mixColours(WHITE, colour, weight) : WHITE);
+    const bg = theme.background;
+    const background = bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo ? { ...bg, gradientFrom: lift(bg.gradientFrom), gradientTo: lift(bg.gradientTo) } : bg;
+    return { accent: lift(theme.accent), ...(background ? { background } : {}) };
+}
+
+/**
+ * The contrast guard for a theme a creator picks or makes: every pairing of
+ * its own colours that fails WCAG 2.2 AA (text 4.5:1, controls 3:1) where the
+ * respondent form shows it, and the nearest colours that pass. The fix moves
+ * the questions, button and border colours first, each only as far as it
+ * must (keeping its hue), and lightens the page only when no colour reads on it and in the
+ * white input boxes at once (a dark page). Presets pass by construction
+ * (theme-contrast.test.ts); a theme with a failing pairing can't be saved or
+ * published.
+ */
+export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
+    const grounds = pageGrounds(theme);
+    const imageGround = grounds.length === 0;
+    const issues = failures(theme, grounds);
+    if (issues.length === 0) return { issues, fix: null, imageGround };
+
+    // The page changes only when it must, and then to a pale tint of itself
+    // (like the presets' grounds), not to a mid grey.
+    for (const weight of [0, 0.85, 0.92, 1]) {
+        const ground = weight === 0 ? { accent: theme.accent, background: theme.background } : lightenGround(theme, weight);
+        const candidate: GuardedTheme = { ...theme, ...ground };
+        const rules = roleRules(pageGrounds(candidate));
+        const primary = nearestPassing(theme.primary, rules.primary);
+        const secondary = nearestPassing(theme.secondary, rules.secondary);
+        const tertiary = nearestPassing(theme.tertiary, rules.tertiary);
+        if (!primary || !secondary || !tertiary) continue;
+        const fixed: GuardedTheme = { ...candidate, primary, secondary, tertiary };
+        if (failures(fixed, pageGrounds(fixed)).length) continue;
+        const fix: Partial<GuardedTheme> = {};
+        for (const role of ['primary', 'secondary', 'tertiary', 'accent'] as const) if (fixed[role] !== theme[role]) fix[role] = fixed[role];
+        if (fixed.background !== theme.background) fix.background = fixed.background;
+        return { issues, fix, imageGround };
+    }
+    // Unreachable for hex colours: on white, black text and a black border pass.
+    return { issues, fix: null, imageGround };
+}

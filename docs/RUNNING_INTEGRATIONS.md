@@ -64,8 +64,8 @@ Google Drive. Who runs its OAuth flow (connecting the account and creating the s
 
 The redirect address is the web app's callback page in both modes, `GOOGLE_SHEET_REDIRECT_URL`
 (for example `https://app.example.com/integrations/google/callback`); in `backend` mode the backend reads it.
-The stored credential has the same format either way, so actions connected before keep running, and the
-actions executor needs no change.
+The stored credential has the same format either way, so the actions executor needs no change. In
+`backend` mode, actions connected before with the broad grant must be reconnected (below).
 
 Before setting `GOOGLE_SHEETS_OAUTH=backend`:
 
@@ -78,6 +78,35 @@ Before setting `GOOGLE_SHEETS_OAUTH=backend`:
    have it yet) and restart it.
 
 Going back is setting `google_service` again. Actions connected in `backend` mode keep running in either mode.
+
+##### Grants from before `drive.file`: reconnect on next use
+
+A stored Sheets credential whose `scopes` is anything other than exactly
+`https://www.googleapis.com/auth/drive.file` (the Google Forms service's flow granted `spreadsheets` and
+full `drive` access) is never used again in `backend` mode. On its next use (a submission that would run
+the action, or opening it in the builder, `GET /workspaces/{workspace_id}/forms/{form_id}/actions/{action_id}/reconsent`)
+the backend:
+
+- does not run the action for that submission and counts the skipped run; the submission itself is stored
+  as usual and other actions run;
+- marks the action `needs_reconsent` (parameters on the form's action: `needs_reconsent`,
+  `reconsent_skipped_runs`, `reconsent_mailed_at`; no migration);
+- mails the workspace's billing owner once per action ("Reconnect Google Sheets", in the form's language,
+  English or Dutch) through the auth service, with a link to the form's integrations. When the auth service
+  cannot be reached, the next use tries again.
+
+Reconnecting (connect and save the action again) stores a `drive.file` credential and new parameters,
+which clears the marks. In `google_service` mode nothing is held back: reconnecting there grants the broad
+scopes again. Logs carry form, action and workspace ids and counts only.
+
+Before switching, count the actions concerned (read-only, counts only):
+
+```bash
+python -m backend.sheets_legacy
+```
+
+It prints `sheets_actions_with_credential`, `legacy` (including `unreadable` credentials), `drive_file`,
+`needs_reconsent_marked`, `owners_mailed`, `skipped_runs` and `forms`.
 
 #### Steps to create a client in Google:
 
@@ -110,9 +139,10 @@ Going back is setting `google_service` again. Actions connected in `backend` mod
 ### Typeform
 
 The Typeform integration was removed in 4.1. Forms and responses imported from Typeform before
-that stay readable as ordinary forms; `./deploy.sh typeform` and `./deploy.sh both` still work and
-start the stack without it (with Google Forms for `both`). Any `TYPEFORM_*` value left in an env
-file or the settings store is ignored.
+that stay readable as ordinary forms. `./deploy.sh typeform` and `./deploy.sh both` are refused
+(exit code 2, nothing changed): run `./deploy.sh` instead of `typeform`, and
+`./deploy.sh googleform` instead of `both`. Any `TYPEFORM_*` value left in an env file or the
+settings store is ignored.
 
 ## Running the project
 

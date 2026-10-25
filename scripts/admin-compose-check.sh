@@ -252,7 +252,8 @@ print("umami_ports=" + pub("umami"))
 print("nginx_ports=" + pub("nginx"))
 print("stored_keys_empty=%s" % all(env("backend")[k] == "" for k in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET")))
 '
-props="$(dc config --format json 2>/dev/null | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$props_py" 2>/dev/null)"
+# the legacy-mongo profile renders MongoDB too (4.1: started only for the import from 4.0)
+props="$(dc --profile legacy-mongo config --format json 2>/dev/null | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$props_py" 2>/dev/null)"
 gotp() { printf '%s\n' "$props" | grep "^$1="; }
 expect "only the intended services publish a port" "published=admin,backend,nginx,umami,webapp" "$(gotp published)"
 expect "temporal publishes no port" "temporal_ports=0" "$(gotp temporal_ports)"
@@ -500,7 +501,7 @@ rm -rf "$outdir"
 
 echo "== (k) the Mongo seed leaves no built-in user, seeds no data and keeps its password off the command line"
 envfile="$skeleton_env"
-dc up -d --wait mongodb >"$work/mongo-up.log" 2>&1
+dc --profile legacy-mongo up -d --wait mongodb >"$work/mongo-up.log" 2>&1
 mongo_rc=$?
 sleep 1
 if [ "$mongo_rc" -eq 0 ]; then
@@ -511,7 +512,7 @@ if [ "$mongo_rc" -eq 0 ]; then
   # and the reference data an earlier release seeded (it waits there for the import into Postgres)
   mongo_cli 'db.getSiblingDB("bettercollected_backend").allowed_origins.insertOne({origin:"http://localhost:3000"})' >/dev/null
   for _ in 1 2; do
-    dc run --rm --no-deps -T mongo-seed >"$work/seed.log" 2>&1
+    dc --profile legacy-mongo run --rm --no-deps -T mongo-seed >"$work/seed.log" 2>&1
     expect "mongo-seed runs against the generated root password" "0" "$?"
   done
   expect "the seed removed the built-in user and created none" "0" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").getUsers().users.length')"

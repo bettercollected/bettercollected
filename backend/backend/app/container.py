@@ -98,6 +98,7 @@ from backend.app.repositories.workspace_responders_repository import (
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
+from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
@@ -613,6 +614,14 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
     )
 
+    sheets_reconsent_service = providers.Singleton(
+        SheetsReconsentService,
+        form_repo=form_repo,
+        workspace_repo=workspace_repo,
+        crypto=crypto,
+        http_client=http_client,
+    )
+
     action_service = providers.Singleton(
         ActionService,
         action_repository=action_repository,
@@ -623,6 +632,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         form_response_service=form_response_service,
         workspace_repo=workspace_repo,
+        sheets_reconsent=sheets_reconsent_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(

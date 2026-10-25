@@ -634,6 +634,28 @@ async def test_host_restore_and_history(svc, server, migrated):
     assert await svc.verify() == []
 
 
+async def test_host_clear_keeps_the_versions_and_needs_the_confirmation(svc, server, migrated):
+    """deploy.sh clears MONGO_URI after the import from 4.0: a T3 setting, so the
+    key is typed again; the value is gone for the services, its versions stay."""
+    url = server.url(migrated, "runtime")
+    await svc.set(SECRET, PLANT, CLI, confirmation=SECRET)
+    assert run_cli(url, "settings-clear", SECRET, "--confirm", SECRET).returncode == 2  # no --yes
+    unconfirmed = run_cli(url, "settings-clear", SECRET, "--yes")
+    assert unconfirmed.returncode == 1 and "confirmation_required" in unconfirmed.stderr
+    cleared = run_cli(url, "settings-clear", SECRET, "--confirm", SECRET, "--yes")
+    assert cleared.returncode == 0, cleared.stdout + cleared.stderr
+    assert f"cleared {SECRET} version=2" in cleared.stdout and PLANT not in cleared.stdout + cleared.stderr
+    assert SECRET not in (await svc.stored()).values
+    history = run_cli(url, "settings-history", SECRET)
+    assert "versions=2" in history.stdout and "cleared" in history.stdout
+    again = run_cli(url, "settings-clear", SECRET, "--confirm", SECRET, "--yes")
+    assert again.returncode == 1 and "not_set" in again.stderr
+    restored = run_cli(url, "settings-restore", SECRET, "--version", "1", "--confirm", SECRET, "--yes")
+    assert restored.returncode == 0, restored.stdout + restored.stderr
+    assert (await svc.stored()).values[SECRET] == PLANT
+    assert await svc.verify() == []
+
+
 # ------------------------------------------------------------- setup token
 
 

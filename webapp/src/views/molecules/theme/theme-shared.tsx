@@ -97,8 +97,17 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>, { compact = fal
  * a bordered input, a button with white text. Real contrast, visible at a
  * glance — not four abstract boxes.
  */
-export const ThemePreview = ({ color }: { color: FormTheme }) => {
+export interface ThemePreviewSample {
+    /** The form's own first question, in place of "Question". */
+    question?: string;
+    /** One of its options, in place of "Answer". */
+    answer?: string;
+}
+
+export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words from the form itself, so a thumbnail shows this form. */ sample?: ThemePreviewSample }) => {
     const { primary, secondary, tertiary } = color;
+    const question = sample?.question?.trim() || 'Question';
+    const answer = sample?.answer?.trim() || 'Answer';
     const tokens = styleTokens(color.style);
     if (tokens.key === 'leaflet') {
         // The Leaflet miniature: section bar with its serif numeral, a
@@ -127,11 +136,11 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
                     <span className="text-[11px]" style={{ ...serif, color: contrast(secondary, color.accent) >= 4.5 ? secondary : primary }}>
                         1.1
                     </span>
-                    Question
+                    <span className="line-clamp-2">{question}</span>
                 </span>
                 <span className="mx-4 ml-9 flex items-center gap-1.5 border-b py-1 text-[11px] leading-tight" style={{ borderColor: rule, color: primary }}>
                     <span className="h-2.5 w-2.5 rounded-full border-[1.5px] bg-white" style={{ borderColor: tertiary, ...(color.highlight || color.selection ? { borderColor: 'var(--form-highlight-edge)', background: 'var(--form-highlight-edge)' } : {}) }} aria-hidden="true" />
-                    Answer
+                    <span className="truncate">{answer}</span>
                 </span>
                 <span style={formButtonStyle(secondary, '2px')} className="mt-2 ml-9 self-start px-2 py-0.5 text-[10px] leading-tight font-semibold text-white">
                     Continue
@@ -144,13 +153,13 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
     const root = themeRootProps(color);
     return (
         <div {...root.attributes} style={{ ...themeBackgroundStyle(color, { compact: true }), ...root.style, ...(color.bodyFont ? { fontFamily: 'var(--font-form)' } : {}) }} className="flex flex-col items-start gap-1.5 px-4 py-3">
-            <span style={{ color: primary }} className={cn('form-title-face text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
-                Question
+            <span style={{ color: primary }} className={cn('form-title-face text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold', 'line-clamp-2')}>
+                {question}
             </span>
             {/* Answer text wears primary on a white input, exactly like the
                 runtime — so an illegible combination is visible right here. */}
-            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.fieldRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
-                Answer
+            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.fieldRadius }} className="w-full truncate border bg-white px-2 py-1 text-[11px] leading-tight">
+                {answer}
             </span>
             <span style={formButtonStyle(secondary, tokens.inputRadius)} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
                 Continue
@@ -164,46 +173,6 @@ export const Swatch = ({ color }: { color: string }) => <span className="border-
 // WCAG contrast ratio (utils/color-contrast.ts), kept exported here for the
 // theme code that already reads it from this module.
 export { contrast };
-
-/**
- * Live legibility read for a custom palette — the same roles the presets are
- * held to. Non-alarmist: it tells the creator what to fix, in plain terms.
- * A gradient is checked against both stops; an image can't be checked at all,
- * so it gets an honest advisory instead of false confidence.
- */
-export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
-    const notes: string[] = [];
-    const bg = theme.background;
-    const isGradient = bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo;
-    const isImage = bg?.type === 'image' && bg.imageUrl;
-
-    if (isGradient) {
-        if (Math.min(contrast(theme.primary, bg!.gradientFrom!), contrast(theme.primary, bg!.gradientTo!)) < 4.5) notes.push('Question text may be hard to read on part of this gradient.');
-        if (Math.min(contrast(theme.tertiary, bg!.gradientFrom!), contrast(theme.tertiary, bg!.gradientTo!)) < 3) notes.push('Input outlines may be hard to see on part of this gradient.');
-    } else if (!isImage) {
-        if (contrast(theme.primary, theme.accent) < 4.5) notes.push('Question text may be hard to read on this background.');
-        if (contrast(theme.tertiary, theme.accent) < 3) notes.push('Input outlines may be hard to see on this background.');
-    }
-    // Inputs are always white at runtime and answers render in the primary
-    // colour — a light primary is invisible there even if it reads fine on a
-    // dark page (this is why there is no dark preset).
-    if (contrast(theme.primary, '#FFFFFF') < 4.5) notes.push('Answer text may be hard to read inside the white input boxes.');
-    if (contrast('#FFFFFF', theme.secondary) < 4.5) notes.push('White button text may be hard to read on this button colour.');
-    if (isImage) notes.push('Contrast can’t be checked over an image — preview the form to confirm the text stays readable.');
-
-    if (notes.length === 0) {
-        return <p className="mt-1 text-[11px] font-medium text-success-700">Looks legible — contrast passes everywhere it matters.</p>;
-    }
-    return (
-        <div className="mt-1 flex flex-col gap-1 rounded-md bg-brand-accent-100 px-2.5 py-2">
-            {notes.map((note) => (
-                <p key={note} className="text-[11px] leading-relaxed text-brand-olive">
-                    {note}
-                </p>
-            ))}
-        </div>
-    );
-};
 
 /**
  * Appearance tokens per theme STYLE — how the form is dressed, resolved in one
