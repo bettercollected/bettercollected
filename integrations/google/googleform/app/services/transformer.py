@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 
-from beanie import PydanticObjectId
 from common.enums.form_provider import FormProvider
+from common.ids import new_id
 from common.models.standard_form import (
     EmbedProvider,
     StandardAttachmentType,
@@ -61,7 +61,7 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.properties.allow_multiple_selection = False
                     field.properties.choices = [
                         StandardChoice(
-                            value=option.get("value"), id=str(PydanticObjectId())
+                            value=option.get("value"), id=str(new_id())
                         )
                         for option in question.choiceQuestion.options
                         if option.get("value")
@@ -71,7 +71,7 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.properties.allow_multiple_selection = True
                     field.properties.choices = [
                         StandardChoice(
-                            value=option.get("value"), id=str(PydanticObjectId())
+                            value=option.get("value"), id=str(new_id())
                         )
                         for option in question.choiceQuestion.options
                         if option.get("value")
@@ -81,7 +81,7 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.properties.allow_multiple_selection = False
                     field.properties.choices = [
                         StandardChoice(
-                            value=option.get("value"), id=str(PydanticObjectId())
+                            value=option.get("value"), id=str(new_id())
                         )
                         for option in question.choiceQuestion.options
                         if option.get("value")
@@ -119,7 +119,7 @@ class GoogleFormTransformerService(FormTransformerService):
                         choices=[
                             StandardChoice(
                                 label=option.value,
-                                id=str(PydanticObjectId()),
+                                id=str(new_id()),
                                 value=option.value,
                             )
                             for option in item.questionGroupItem.grid.columns.options
@@ -157,7 +157,7 @@ class GoogleFormTransformerService(FormTransformerService):
 
     def create_new_slide(self, index: int):
         slide = StandardFormField()
-        slide.id = str(PydanticObjectId())
+        slide.id = str(new_id())
         slide.index = index
         slide.type = StandardFormFieldType.SLIDE
         slide.properties.layout = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
@@ -229,7 +229,7 @@ class GoogleFormTransformerService(FormTransformerService):
             slides, field_id_and_fields_map = self._transform_fields(googleform.items)
             standard_form = StandardForm(
                 builder_version="v2",
-                form_id=str(PydanticObjectId()),
+                form_id=str(new_id()),
                 imported_form_id=googleform.formId,
                 title=googleform.info.documentTitle or "Untitled",
                 description=googleform.info.description,
@@ -270,7 +270,7 @@ class GoogleFormTransformerService(FormTransformerService):
         try:
             google_response = GoogleFormResponseDto(**google_response_data)
             response = StandardFormResponse(
-                response_id=str(PydanticObjectId()),
+                response_id=str(new_id()),
                 provider=FormProvider.GOOGLE,
                 respondent_email=google_response.respondentEmail,
                 created_at=google_response.createTime,

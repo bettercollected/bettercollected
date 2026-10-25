@@ -28,8 +28,8 @@ keyset does not hide one.
 
 | target (`--target`) | what | where |
 |---|---|---|
-| `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Mongo `form_responses` (`MONGO_DB`), Postgres `app.form_responses` |
-| `google-credentials` | the Google Forms integration's OAuth credentials | Mongo `Oauth2CredentialDocument` (`GOOGLE_MONGO_DB`, default `bettercollected_googleform`), Postgres `google.oauth_credentials` |
+| `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Postgres `app.form_responses` |
+| `google-credentials` | the Google Forms integration's OAuth credentials | Postgres `google.oauth_credentials` |
 
 The services that load the keyset: **backend**, **jobs-worker** and **integrations-googleform**.
 Auth, the Temporal workers, the actions-executor and the webapp do not use it. (The Typeform
@@ -37,38 +37,33 @@ integration, a separate image that also loaded it, was removed in 4.1.)
 
 ## Before you start
 
-- **Back up both databases** right before you begin, and keep the backups until the rotation is
+- **Back up the database** right before you begin, and keep the backup until the rotation is
   finished and checked:
 
   ```bash
   umask 077 && mkdir -p keyset-rotation
-  docker compose -f docker-compose.deployment.yml exec -T mongodb \
-    mongodump --username root --password root --authenticationDatabase admin --archive --gzip \
-    > keyset-rotation/mongo-before-rotation.archive.gz
   docker compose -f docker-compose.deployment.yml exec -T app-postgres \
     pg_dump -U bettercollected -Fc bettercollected > keyset-rotation/postgres-before-rotation.dump
   ```
 
-  (Use your own Mongo credentials if you changed them. `keyset-rotation/` is ignored by git.) These backups hold data encrypted with
-  the published key: anyone with a copy and the repository can read them. Store them like the
-  live data and delete them as soon as you no longer need them. Older backups have the same
+  (`keyset-rotation/` is ignored by git. A Mongo backup or archive left from the 4.0 import is not
+  covered by the rotation: see "Dropping a key once Mongo is retired".) The backup holds data encrypted with
+  the published key: anyone with a copy and the repository can read it. Store it like the
+  live data and delete it as soon as you no longer need it. Older backups have the same
   problem.
-- **Drain the Postgres mirror outbox** if you run in a dual write mode
-  (`python -m backend.migrate reconcile`, see `docs/postgres-cutover-runbook.md`), and do not
-  change `DB_WRITE_MODE` during the rotation.
 - **Keyset files are secrets.** The script writes them only to new files with mode 600 and never
   prints them. Don't paste them into tickets or chat, and keep them out of shell history.
 
 Every command below runs from the checkout `deploy.sh` runs from (the directory holding the root
 `.env`). `rotate` runs the script in a one-off backend container. That container has the backend's
-environment (the current keyset, `MONGO_URI`, `DATABASE_URL`, `DB_WRITE_MODE`) and the stack's
+environment (the current keyset, `DATABASE_URL`) and the stack's
 network, with `keyset-rotation/` mounted for the keyset files:
 
 ```bash
 umask 077
 mkdir -p keyset-rotation
 # The Google credentials live in the integration's own Postgres schema: let the script reach it
-# as the integration's role. Skip this if the stack does not use Postgres yet.
+# as the integration's role.
 export GOOGLE_DATABASE_URL="postgresql+asyncpg://bc_google:$(sed -n 's/^BC_GOOGLE_PASSWORD=//p' .env)@app-postgres:5432/bettercollected"
 rotate() {
   docker compose -f docker-compose.deployment.yml run --rm --no-deps -T \
@@ -78,25 +73,15 @@ rotate() {
 ```
 
 Each command prints a JSON report with key ids and counts only, and logs record ids and counts.
-By default (`--store auto`) it covers both targets and follows the same store rule as the keyset
-tasks ("The store rule" below): every store the services write, from `DB_WRITE_MODE` and its
-`__RESPONSES` override in the container's environment (the Google credentials are in Postgres
-only since 4.1), primary first, then any
-other store the container is configured for (`MONGO_URI`; `DATABASE_URL`, or `GOOGLE_DATABASE_URL`
-for the Google credentials). An unset write mode is the services' own default (`mongo` while the
-backend has groups on Mongo), as on a fresh stack where the services run on it too; a value that is
-not a write mode stops it before anything is opened (`write_mode_unknown`). If the
-container has none (the services read it from the settings store), add
-`-e DB_WRITE_MODE=<the services' value>` (and any override they use) to `rotate`. For
-`reencrypt`, `--target` and `--store mongo|postgres|both` narrow or override that; a named store
-needs no write mode, only its connection. `drop-old` refuses both options and follows
-`keyset.drop_old`'s rule instead (see "`drop_old` does not rely on the runner's copy of the write
-mode" below): it checks every target in BOTH stores, Mongo and Postgres, each configured, or
-refuses (`store_not_configured`); the write mode only orders them, and it refuses an empty store
-only when the services write it. `--mongo-retired` scans Postgres alone and is refused
-(`mongo_not_retired`) unless `DB_WRITE_MODE` and `DB_WRITE_MODE__RESPONSES` in the container
-both say `postgres` (an unset override follows
-`DB_WRITE_MODE`; an unset default is the services' `mongo`, so it refuses). Unlike the task, the script cannot check the services'
+By default (`--store postgres`, which `auto` also means) it covers both targets in Postgres, the
+only store since 4.1 (`DATABASE_URL`, or `GOOGLE_DATABASE_URL` for the Google credentials); no
+write mode is read. `--store mongo` and `--store both` are refused (`store_retired`) before anything
+connects, and values left in Mongo are not touched. For `reencrypt`, `--target` narrows the targets.
+`drop-old` refuses both options and follows `keyset.drop_old`'s rule instead: it checks every target in
+Postgres, configured, or refuses (`store_not_configured`), and refuses an empty store. It needs
+`--mongo-retired`, which confirms that Mongo is retired and that values left in Mongo or its
+backups become unreadable once the old key is dropped; without it the command refuses
+(`store_retired`), since Mongo is not scanned. Unlike the task, the script cannot check the services'
 heartbeats (`write_stores` in `settings.service_state`) itself: before passing `--mongo-retired`,
 check there that no live backend or Google integration instance still writes Mongo (or reports
 nothing), for example with a dry run of `keyset.drop_old` with `mongo_retired`, which checks it.
@@ -171,9 +156,6 @@ same bytes, and writes it back only if the stored value has not changed since it
   decrypted, because a Tink ciphertext starts with its key id. After an interruption, run the same
   command again. `--start-after <id>` skips the ids an earlier run logged as done, and `--limit N`
   re-encrypts at most N records, for a first careful run.
-- **Dual write modes.** The primary store's new ciphertext is copied byte for byte to the mirror,
-  so the two stores stay identical (`backend.migrate verify` stays clean). The mirror is then swept
-  for rows that differed or exist only there.
 - `records_changed_concurrently`: the application changed a value meanwhile. Run again.
 - Each value finds its own context. A response stored before responses carried their workspace is
   tried against each workspace its form is linked to, value by value, so a record whose values
@@ -192,14 +174,14 @@ Repeat the dry run until it reports `values_stale` as 0 (or absent) for every ta
 ### 5. Drop the old key
 
 ```bash
-rotate drop-old --keyset-file /rotation/rotated.keyset --out /rotation/final.keyset
+rotate drop-old --keyset-file /rotation/rotated.keyset --out /rotation/final.keyset --mongo-retired
 ```
 
-This scans every target in every store the services write. It **refuses**, writing nothing, when:
+This scans every target in Postgres. It **refuses**, writing nothing, when:
 
 - any value still uses a key other than the primary (the report shows the counts per key id);
-- any target in any store holds **no records at all**. An empty store may mean the script is
-  reading the wrong database, for example a custom `MONGO_DB`, `GOOGLE_MONGO_DB` or
+- any target holds **no records at all**. An empty store may mean the script is
+  reading the wrong database, for example a `DATABASE_URL` or
   `GOOGLE_DATABASE_URL` that didn't reach the container. Dropping the old key then would make the
   real data unreadable. The report's `records` lists each target's count per store. If a store
   really is empty (for example, the stack never used the Google Forms integration), check that
@@ -248,50 +230,29 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
 | 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
 | 4 | (restart the services) | |
-| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: auto` (the default) follows the store rule below (every store the services still write, primary first, plus any other store the runner is configured for), and the primary's new ciphertext is copied to the other; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: postgres` (the default; `auto` means the same) follows the store rule below; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
 | 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
-| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in BOTH stores (Mongo and Postgres, both configured, else `store_not_configured`) finds no value on them, whatever the runner's write mode says; Postgres alone only with `mongo_retired` (see "Dropping a key once Mongo is retired" below). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store must hold records |
+| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in Postgres (configured, else `store_not_configured`) finds no value on them, and only with `mongo_retired` (see "Dropping a key once Mongo is retired" below; `store_retired` without it). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). The responses must be there (an empty Google credentials store needs `allow_empty_google`) |
 
-**The store rule.** The runner works out which stores the services write from its own copy of
-their write mode: `DB_WRITE_MODE__RESPONSES` (responses), else `DB_WRITE_MODE`, from the root
-`.env`. Give it the values the services run with, and change them together during the move to
-Postgres. The Google credentials are written to Postgres alone since 4.1 (the Google Forms
-integration refuses to start on any other mode), so the runner reads no write mode for them and
-ignores a `DB_WRITE_MODE__GOOGLE` left in its environment.
+**The store rule.** Postgres is the only store the tasks read or write (since 4.1): `DATABASE_URL`
+for the responses and `GOOGLE_DATABASE_URL` for the Google credentials, which must be configured
+(else `store_not_configured`). `stores: postgres` (the default) and `stores: auto` (kept so that
+parameters saved before 4.1 still validate) cover it. `stores: mongo` and `stores: both` are refused with
+`store_retired` before anything connects, even when the runner still has a `MONGO_URI` (which it
+never uses). No write mode is read: the runner's `DB_WRITE_MODE*` are ignored. The same rule applies
+to `reencrypt`, `verify` and the `responses.*` and `google.*` tasks and to the break-glass scripts.
 
-| Write mode of the target's group | Stores the services write (primary first) | Runner needs |
-|---|---|---|
-| `mongo` | Mongo | `MONGO_URI` |
-| `dual` | Mongo, then Postgres | `MONGO_URI` and the Postgres URL |
-| `postgres_primary_dual` | Postgres, then Mongo | the Postgres URL and `MONGO_URI` |
-| `postgres` | Postgres | the Postgres URL (`DATABASE_URL` for responses, `GOOGLE_DATABASE_URL` for the Google credentials) |
-| unset | the services' default (`mongo` while the backend has groups on Mongo) | as for that mode |
-| not a write mode | unknown | refused: `write_mode_unknown` |
-
-`stores: auto` (on `reencrypt`, `verify` and the `responses.*` tasks, group `responses`) covers
-every store in that list, each of which must be configured (else `store_not_configured`), and then
-any other store the runner is configured for. An unset write mode is the services' own default,
-as on a fresh stack where the services run on it too; a value that is not a write mode is never
-guessed at (`write_mode_unknown`). `stores: mongo`, `postgres` or `both` name the stores instead and
-need no write mode.
-
-**`drop_old` does not rely on the runner's copy of the write mode to leave a store out.** A copy
-that is wrong (the services still on `dual`, the runner told `postgres`, no Mongo connection for
-the runner) would otherwise scan Postgres alone and drop a key that values in Mongo still use. So
-`drop_old` scans BOTH stores, each configured and reachable, or refuses; the write mode only says
-which one is the primary (the store that must hold records, and an unknown mode refuses with
-`write_mode_unknown`).
-
-**Dropping a key once Mongo is retired.** After the move, when no service writes Mongo any more,
-tick `mongo_retired`: a signed, audited statement (it is part of the signed run request and of the
-request's audit row, and needs its own dry run). The runner accepts it only when its
-`DB_WRITE_MODE` and `DB_WRITE_MODE__RESPONSES` both say `postgres` (an unset override follows
-`DB_WRITE_MODE`; anything else refuses with `mongo_not_retired`) and
-when every live backend and Google integration instance reports, in its settings heartbeat, that it
-writes Postgres alone (`write_stores`, from the service's own `DB_WRITE_MODE*`; admin revision 0018).
+**Dropping a key once Mongo is retired.** `drop_old` scans Postgres alone, so it needs `mongo_retired`:
+a signed, audited statement (it is part of the signed run request and of the
+request's audit row, and needs its own dry run) that Mongo is retired. Without it the task refuses
+with `store_retired`. It also needs every live backend and Google integration instance to report, in
+its settings heartbeat, that it writes Postgres alone (`write_stores`, from the service's own
+`DB_WRITE_MODE*`; admin revision 0018).
 An instance that still writes Mongo refuses with `consumer_writes_mongo`, one that does not report
 it (a build from before) with `consumer_write_stores_unknown`; the check runs again right before
-the key is written. It then scans Postgres alone; Mongo is not needed. Values left in Mongo, or in a Mongo backup or archive,
+the key is written. It also refuses (`import_incomplete`) until the import from 4.0 is over: while the runner has a
+`MONGO_URI`, or while `migration_progress` records an unfinished backfill of the responses (or of
+the forms' links), since a later backfill could bring in a value on the dropped key (checked again right before the write). A data role that cannot read `migration_progress` refuses `import_state_unreadable` (re-run the roles script); a store with no record at all cannot be told apart from one never imported, so confirm that the 4.0 import ran, or that the stack never had Mongo, first. Values left in Mongo, or in a Mongo backup or archive,
 are unreadable once the old key is dropped: keep the old keyset for as long as such an archive is
 kept.
 
