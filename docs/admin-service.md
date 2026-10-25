@@ -1225,6 +1225,35 @@ stated. "Has forms" means the account's deletion would take at least one form: a
   refuses with `backend_not_configured`, `backend_key_missing` (the API has no key) or
   `backend_key_refused` (the keys differ). Unset the key on both once the task is done.
 
+#### Troubleshooting refusals
+
+A refused run records one of these codes. The task-runner's log has a line per refused call
+with the HTTP status (`... was refused: <code> (HTTP status <n>)`); status and code only, never
+a body. The backend logs `the auth service call failed (<code>, status <n>)` when its call to
+auth is the cause.
+
+| Code | Likely cause | What to check |
+| --- | --- | --- |
+| `backend_not_configured` | The runner has no `ADMIN_TASKS_API_KEY`, or `ADMIN_TASKS_BACKEND_URL` is not a valid `http(s)` URL | The `task-runner` service's environment |
+| `backend_unreachable` | No connection to the API, or it timed out | `ADMIN_TASKS_BACKEND_URL` (compose: `TASK_RUNNER_BACKEND_URL`); that the `backend` service is up and on the runner's network |
+| `backend_key_missing` | The API answered 503: its own `ADMIN_TASKS_API_KEY` is unset | Set the key on the `backend` service |
+| `backend_key_refused` | The API answered 401/403: the two `ADMIN_TASKS_API_KEY` values differ | The same value on `backend` and `task-runner` |
+| `backend_route_missing` | The API answered 404: the URL is not the backend's internal listener (the admin-task routes answer there only), the backend is older than this task, or the URL's path is wrong | That `ADMIN_TASKS_BACKEND_URL` is `http://backend:8001/api/v1` (the internal listener, `API_INTERNAL_PORT`); the backend image version |
+| `backend_redirect` | The API answered with a redirect (3xx), which the runner never follows; the log line has the status | `ADMIN_TASKS_BACKEND_URL` is the API's own `http(s)://host:port/api/v1` (not a proxy that redirects, for example to `https`); a task runner from before the exact-path fix requested the routes with a trailing slash and got a 307 (shown then as `backend_unreachable`) |
+| `backend_error` | The API answered 5xx or another unexpected status (a 502 from a proxy in front of it, too) | The backend's log at the time of the run |
+| `backend_bad_reply` | The API answered 200 with something other than the expected JSON | That the URL reaches the backend, not another service or a proxy page |
+| `auth_unreachable` | The API could not reach the auth service (connection or timeout) | The backend's `AUTH_BASE_URL`; that the `auth` service is up |
+| `auth_key_refused` | Auth answered 401/403 to the API: the backend's `AUTH_INTERNAL_NOTIFY_KEY` is not the one auth holds | The same `AUTH_INTERNAL_NOTIFY_KEY` on `backend` and `auth` |
+| `auth_misconfigured` | The API's `AUTH_BASE_URL` is not a usable URL | The backend's `AUTH_BASE_URL` (compose: `http://auth:8000/api/v1`) |
+| `deletion_unavailable` | Apply only: the API could not start an account deletion (the deletion workflow: Temporal, or the jobs worker on Postgres) | The backend's log (`deletion could not be started`, with the error type and status); Temporal or the jobs worker; run the apply again once it is back: accounts already started are skipped |
+| `auth_error` | Auth answered another error (503: auth has no `AUTH_INTERNAL_NOTIFY_KEY`) or an unreadable reply | The status in the backend's log line; the auth service's log |
+
+A backend from before this change passes auth's failures through as its own status, so with
+it an auth problem can still show as `backend_key_missing`, `backend_key_refused` or
+`backend_error`; check the backend's log for a failed call to auth. The API answers 503 for
+its own missing `ADMIN_TASKS_API_KEY` only: a 503 from anything inside the routes is answered
+500, so `backend_key_missing` always means that key.
+
 ## Task pages
 
 `/tasks` lists the registered tasks (title, version, whether it changes data,

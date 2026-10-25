@@ -14,6 +14,14 @@ may do: the runner names an account, never a decision.
   re-evaluates the account's group and, only if the rules still drop it,
   starts the product's account deletion
   (``services/case_duplicate_accounts.py``).
+
+When the API's call to the auth service fails, both answer 502 with
+``{"code": "auth_unreachable" | "auth_misconfigured" | "auth_refused" |
+"auth_error", "status": <auth's status or null>}`` (never auth's body); when
+the account deletion cannot be started, the drop answers 502 with
+``deletion_unavailable``. 503 is the API's own missing key and nothing else
+(a 503 from inside a route is answered 500), so the runner can tell these
+apart.
 """
 
 import hmac
@@ -21,11 +29,14 @@ from http import HTTPStatus
 
 from classy_fastapi import Routable, get, post
 from fastapi import Depends, Request
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
+from backend.app.services.case_duplicate_accounts import UpstreamFailed
+from common.exceptions.http import HTTPException as CommonHTTPException
 from backend.app.services.internal_routes import require_internal_listener
 from backend.config import settings
 
@@ -50,6 +61,31 @@ def require_admin_tasks_key(request: Request) -> None:
         )
 
 
+async def _answer(route: str, call):
+    """The route's reply; what it depends on failing is a 502 with a code and
+    a status (never a body, an id or an email), and a 503 raised inside it
+    (a dependency's, not the key's) becomes a 500, so the runner's
+    ``backend_key_missing`` only ever means the key is unset."""
+    try:
+        return await call()
+    except UpstreamFailed as error:
+        logger.warning(
+            "Admin task route {}: {} (status {}).", route, error.code, error.status
+        )
+        return JSONResponse(
+            status_code=HTTPStatus.BAD_GATEWAY,
+            content={"code": error.code, "status": error.status},
+        )
+    except (HTTPException, CommonHTTPException) as error:
+        if error.status_code != HTTPStatus.SERVICE_UNAVAILABLE:
+            raise
+        logger.warning("Admin task route {}: a dependency answered 503.", route)
+        return JSONResponse(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content={"code": "backend_error", "status": error.status_code},
+        )
+
+
 def _object_id(user_id: str) -> str:
     if len(user_id) != 24 or any(c not in "0123456789abcdef" for c in user_id):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Invalid id.")
@@ -71,12 +107,19 @@ class AdminTasksRouter(Routable):
 
     @get("/case-duplicate-accounts")
     async def case_duplicate_accounts(self):
-        groups = await self.case_duplicates.plan()
-        return {
-            "groups": [[account.as_dict() for account in group] for group in groups]
-        }
+        async def plan():
+            groups = await self.case_duplicates.plan()
+            return {
+                "groups": [[account.as_dict() for account in group] for group in groups]
+            }
+
+        return await _answer("case-duplicate-accounts", plan)
 
     @post("/case-duplicate-accounts/{user_id}/drop")
     async def drop_case_duplicate_account(self, user_id: str):
-        status = await self.case_duplicates.drop(_object_id(user_id))
-        return {"status": status}
+        account_id = _object_id(user_id)
+
+        async def drop():
+            return {"status": await self.case_duplicates.drop(account_id)}
+
+        return await _answer("case-duplicate-accounts drop", drop)

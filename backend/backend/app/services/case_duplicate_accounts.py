@@ -32,6 +32,14 @@ of each group would be kept and the others dropped.
 Ids only: no email leaves this module (the auth service groups the accounts
 and returns ids; the one email a deletion needs is read by id and handed to
 the deletion path, as for the user's own request).
+
+A failing call to the auth service raises :class:`AuthCallFailed` with a
+stable code (``auth_unreachable``, ``auth_misconfigured``, ``auth_refused``,
+``auth_error``) and auth's status, never its body; a deletion that cannot be
+started (the deletion workflow, Temporal, the jobs worker) raises
+:class:`DeletionUnavailable`. The routes answer 502 with the code and status,
+so the runner can tell these from the API's own 503 (its admin task key is
+unset) and 403 (another key).
 """
 
 from __future__ import annotations
@@ -41,6 +49,7 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Dict, List, Optional, Sequence
 
+import httpx
 from bson import ObjectId
 from common.models.user import User
 from loguru import logger
@@ -54,6 +63,50 @@ from backend.config import settings
 KEEP = "keep"
 DROP = "drop"
 MANUAL = "manual"
+
+AUTH_UNREACHABLE = "auth_unreachable"
+AUTH_MISCONFIGURED = "auth_misconfigured"
+AUTH_REFUSED = "auth_refused"
+AUTH_ERROR = "auth_error"
+DELETION_UNAVAILABLE = "deletion_unavailable"
+
+
+class UpstreamFailed(Exception):
+    """Something the route depends on failed: ``code`` says what, ``status``
+    is the HTTP status it reported (None when there was none). Answered as
+    502 by the routes, never with a body or message of the failure."""
+
+    def __init__(self, code: str, status: Optional[int] = None):
+        super().__init__(code)
+        self.code = code
+        self.status = status
+
+
+class AuthCallFailed(UpstreamFailed):
+    """A call to the auth service failed."""
+
+
+class DeletionUnavailable(UpstreamFailed):
+    """The account deletion could not be started."""
+
+    def __init__(self, status: Optional[int] = None):
+        super().__init__(DELETION_UNAVAILABLE, status)
+
+
+def _auth_reply(reply: httpx.Response) -> dict:
+    status = reply.status_code
+    if status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
+        # the backend's AUTH_INTERNAL_NOTIFY_KEY is not the one auth holds
+        raise AuthCallFailed(AUTH_REFUSED, status)
+    if status != HTTPStatus.OK:
+        raise AuthCallFailed(AUTH_ERROR, status)
+    try:
+        body = reply.json()
+    except ValueError:
+        raise AuthCallFailed(AUTH_ERROR, status) from None
+    if not isinstance(body, dict):
+        raise AuthCallFailed(AUTH_ERROR, status)
+    return body
 
 
 @dataclass(frozen=True)
@@ -149,13 +202,30 @@ class CaseDuplicateAccounts:
             content={"code": FORMS_IMPORT_INCOMPLETE, "message": problem[1]},
         )
 
+    async def _auth_get(self, path: str, **kwargs) -> dict:
+        """GET from the auth service; any failure is an :class:`AuthCallFailed`
+        (the raw request, not ``HttpClient.get``, which would pass auth's
+        status through as the backend's own)."""
+        try:
+            reply = await self._http.request(
+                "GET",
+                settings.auth_settings.BASE_URL + path,
+                headers=auth_service_headers(),
+                **kwargs,
+            )
+        except (httpx.InvalidURL, httpx.UnsupportedProtocol):
+            # AUTH_BASE_URL is not a usable URL (InvalidURL is not an
+            # httpx.HTTPError)
+            raise AuthCallFailed(AUTH_MISCONFIGURED) from None
+        except httpx.TransportError:
+            raise AuthCallFailed(AUTH_UNREACHABLE) from None
+        except httpx.HTTPError:
+            raise AuthCallFailed(AUTH_ERROR) from None
+        return _auth_reply(reply)
+
     async def _group_ids(self) -> List[List[str]]:
-        reply = await self._http.get(
-            settings.auth_settings.BASE_URL + "/users/case-duplicates",
-            headers=auth_service_headers(),
-            timeout=60,
-        )
-        groups = (reply or {}).get("groups") or []
+        reply = await self._auth_get("/users/case-duplicates", timeout=60)
+        groups = reply.get("groups") or []
         return [[str(i) for i in group] for group in groups if len(group) > 1]
 
     async def forms_of(self, user_id: str) -> int:
@@ -175,12 +245,10 @@ class CaseDuplicateAccounts:
         return [await self._evaluate(ids) for ids in sorted(await self._group_ids())]
 
     async def _email_of(self, user_id: str) -> Optional[str]:
-        reply = await self._http.get(
-            settings.auth_settings.BASE_URL + "/users",
-            params={"user_ids": [user_id]},
-            headers=auth_service_headers(),
+        reply = await self._auth_get(
+            "/users", params={"user_ids": [user_id]}, timeout=30
         )
-        for user in (reply or {}).get("users_info") or []:
+        for user in reply.get("users_info") or []:
             if str(user.get("_id") or user.get("id")) == user_id:
                 return user.get("email")
         return None
@@ -209,9 +277,18 @@ class CaseDuplicateAccounts:
             started = await self._auth_service.add_workflow_to_delete_user(
                 User(id=user_id, sub=email)
             )
-        except HTTPException as error:
-            if error.status_code == HTTPStatus.CONFLICT:
+        except Exception as error:
+            status = getattr(error, "status_code", None)
+            if status == HTTPStatus.CONFLICT:
+                # the product's own refusal (billing owner of a shared workspace)
                 return "refused"
-            raise
+            # not started: Temporal, the jobs worker or the event log failed.
+            # The type only: a message could name the account.
+            logger.warning(
+                "Case-duplicate account deletion could not be started ({}, status {}).",
+                type(error).__name__,
+                status,
+            )
+            raise DeletionUnavailable(status if isinstance(status, int) else None) from None
         logger.info("Case-duplicate account {} queued for deletion.", user_id)
         return "queued" if started else "already_queued"
