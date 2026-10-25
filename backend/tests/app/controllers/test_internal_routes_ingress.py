@@ -43,6 +43,13 @@ PROXY_HEADER_SAMPLES = [
     {"CF-Connecting-IP": "203.0.113.9"},
     {"True-Client-IP": "203.0.113.9"},
     {"Via": "1.1 proxy"},
+    # vendor client-address headers, in any case
+    {"X-Envoy-External-Address": "203.0.113.9"},
+    {"x-azure-clientip": "203.0.113.9"},
+    {"X-CLUSTER-CLIENT-IP": "203.0.113.9"},
+    {"x-client-ip": "203.0.113.9"},
+    {"Fastly-Client-IP": "203.0.113.9"},
+    {"X-Original-Forwarded-For": "203.0.113.9"},
 ]
 
 
@@ -126,6 +133,8 @@ async def test_internal_port_mode_takes_only_the_internal_listener(make, monkeyp
     monkeypatch.setenv("API_INTERNAL_ROUTES", "internal_port")
     assert (await _call(make(peer="172.18.0.5", port=8000), route)).status_code == 404
     assert (await _call(make(peer="127.0.0.1", port=8000), route)).status_code == 404
+    # an ingress-mesh source (Swarm rewrites outside clients to the overlay)
+    assert (await _call(make(peer="10.0.0.2", port=8000), route)).status_code == 404
     assert (await _call(make(peer="172.18.0.5", port=8001), route)).status_code == 403
 
 
@@ -248,3 +257,34 @@ def test_main_listens_on_both_ports(monkeypatch):
     assert seen["ports"] == [8000]
     for s in seen["sockets"]:
         s.close()
+
+
+@pytest.mark.parametrize("route", WORKER_ROUTES + ADMIN_TASK_ROUTES)
+async def test_a_vendor_header_from_a_private_peer_is_refused(make, route):
+    # a load balancer that names the client only in its own header
+    for port in (8000, 8001):
+        reply = await _call(
+            make(peer="10.0.0.2", port=port), route, {"X-Envoy-External-Address": "198.51.100.7"}
+        )
+        assert reply.status_code == 404
+
+
+@pytest.mark.parametrize("raw, warned", [(None, True), ("direct", True), ("internal_port", False)])
+def test_direct_mode_warns_once_at_startup(monkeypatch, raw, warned):
+    from loguru import logger
+
+    if raw is not None:
+        monkeypatch.setenv("API_INTERNAL_ROUTES", raw)
+    monkeypatch.setattr(internal_routes, "_direct_warned", False)
+    seen = []
+    sink = logger.add(lambda m: seen.append(m.record), level="WARNING")
+    try:
+        internal_routes.log_internal_routes_setup()
+        internal_routes.log_internal_routes_setup()
+    finally:
+        logger.remove(sink)
+    hits = [r for r in seen if "API_INTERNAL_ROUTES=internal_port" in r["message"]]
+    assert len(hits) == (1 if warned else 0)
+    for record in hits:
+        assert record["level"].name == "WARNING"
+        assert "ingress mesh" in record["message"]

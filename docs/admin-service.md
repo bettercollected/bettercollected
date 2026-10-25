@@ -640,10 +640,12 @@ key, when the request did not come from inside the stack:
 - **Worker routes**: `API_INTERNAL_ROUTES` decides. `direct` (the default, for the transition)
   also accepts them on the public port 8000 for a direct request from a loopback or private
   address (10/8, 172.16/12, 192.168/16, fc00::/7). `internal_port` accepts the internal listener
-  only.
+  only. While the mode is `direct` the backend logs a warning at startup. `direct` is a
+  transition setting: a later release makes `internal_port` the default.
 - **Any port**: a request carrying a proxy header (`X-Forwarded-For`, `X-Real-IP`, `Forwarded`,
-  `X-Forwarded-Proto`/`-Host`, `CF-Connecting-IP`, `True-Client-IP`, `Via`, ...) is refused. The
-  task runner and the workers never send one.
+  `X-Forwarded-Proto`/`-Host`, `CF-Connecting-IP`, `True-Client-IP`, `X-Client-IP`,
+  `X-Cluster-Client-IP`, `Fastly-Client-IP`, `X-Envoy-External-Address`, `X-Azure-ClientIP`,
+  `Via`, ...; any case) is refused. The task runner and the workers never send one.
 
 The listener is chosen by the socket the request arrived on, not by a header, so it cannot be
 faked from outside. Both settings are environment only (`docker-compose.deployment.yml` passes
@@ -668,10 +670,17 @@ service, then switch to `internal_port`.
   $proxy_add_x_forwarded_for;`). In `direct` mode that header is what tells a proxied request
   from a worker's: a proxy that adds none and connects from a private address passes for an
   in-stack caller. `internal_port` does not depend on it.
-- Publishing port 8000 directly (as `docker-compose.deployment.yml` does) is covered when the
-  client keeps its own address (Docker's default bridge networking). Swarm's ingress mesh
-  replaces it with a private one, so a Swarm stack that publishes 8000 should use
-  `internal_port`.
+- `direct` relies on two things: every proxy in front of port 8000 adds a forwarding header, and
+  no path to port 8000 rewrites an outside client's address to a private one. Several common
+  paths do rewrite it: Docker's userland-proxy (an IPv6 client of a published port arrives as the
+  bridge gateway, 172.x.0.1), a proxy on the host that adds no `X-Forwarded-For` (it arrives as
+  127.0.0.1), and Swarm's ingress mesh (it arrives as an overlay address, 10.x). Through any of
+  them an outside caller passes the edge check and only the key stops it.
+- So **Swarm or any ingress-mesh stack, and any stack where port 8000 can be reached from
+  outside the host (published directly, as `docker-compose.deployment.yml` does, or behind a
+  proxy), MUST use `API_INTERNAL_ROUTES=internal_port`** once its workers call port 8001.
+  `internal_port` decides by the socket the request arrived on, so none of these rewrites
+  matter.
 
 The SCIM webhook (`POST /scim/webhook/{directory}`, called by Polis) is not one of these routes:
 each event is signed with its directory's own secret, and Polis may run outside the stack.

@@ -38,7 +38,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 DEFAULT_INTERNAL_PORT = 8001
 
-# Headers a reverse proxy, load balancer or CDN adds; an in-stack caller sends none.
+# Headers a reverse proxy, load balancer or CDN adds; an in-stack caller sends
+# none. Lower case: Starlette's header lookup ignores case.
 PROXY_HEADERS = (
     "forwarded",
     "x-forwarded-for",
@@ -53,6 +54,14 @@ PROXY_HEADERS = (
     "true-client-ip",
     "cf-connecting-ip",
     "fastly-client-ip",
+    "akamai-origin-hop",
+    "x-envoy-external-address",
+    "x-envoy-original-path",
+    "x-azure-clientip",
+    "x-azure-socketip",
+    "x-appengine-user-ip",
+    "x-arr-clientip",
+    "x-proxyuser-ip",
     "via",
 )
 
@@ -161,6 +170,9 @@ def require_in_network(request: Request) -> None:
     raise _not_found()
 
 
+_direct_warned = False
+
+
 def log_internal_routes_setup() -> None:
     """At startup: say where the internal routes are served."""
     port = internal_port()
@@ -170,10 +182,15 @@ def log_internal_routes_setup() -> None:
             "port): the admin-task routes are unreachable, and the worker routes "
             "only accept direct requests from private addresses on the public port."
         )
-    if mode() is InternalRoutesMode.DIRECT:
-        logger.info(
-            "Internal worker routes: the internal listener, and direct requests "
-            "from private addresses on the public port (API_INTERNAL_ROUTES=direct). "
-            "Once SERVER_URL on the workers points at the internal port, set "
-            "API_INTERNAL_ROUTES=internal_port."
+    global _direct_warned
+    if mode() is InternalRoutesMode.DIRECT and not _direct_warned:
+        _direct_warned = True
+        logger.warning(
+            "API_INTERNAL_ROUTES=direct: the workers' key-only routes also answer on "
+            "the public port to requests from private addresses without proxy "
+            "headers. Anything that rewrites an outside client's address to a "
+            "private one (Swarm's ingress mesh, Docker's userland-proxy, a host "
+            "proxy that adds no X-Forwarded-For) lets outside callers through to "
+            "the key check. Point the workers' SERVER_URL at the internal port and "
+            "set API_INTERNAL_ROUTES=internal_port."
         )
