@@ -1402,7 +1402,15 @@ touched.
 | `settings.service_state` | rows older than 7 days of a service with no newer row (a service that still reports prunes its own) |
 
 The admin role holds DELETE on `tasks.run_events`, `tasks.checkpoints` and
-`settings.service_state` for this; the runner role still can only append.
+`settings.service_state` for this; the runner role still can only append. A table grant
+cannot say "only old rows", so a `BEFORE DELETE` trigger on `settings.service_state`
+(`settings.service_state_delete_guard`, admin revision 0019) refuses, for any role that is
+neither the table's owner nor a superuser, the delete of a row that is not exactly what the
+loop removes: older than 7 days and of a service with no newer row. A stolen portal credential
+therefore cannot erase live heartbeats (the keyset gates and the integrity monitor read them);
+it can still delete the stale rows of a service that stopped reporting. `settings.report_state`
+runs as the owner and prunes the reporting service's own stale rows as before. Whoever owns the
+table can drop the trigger, as for the other guards in this schema.
 
 **Integrity.** Each pass runs the settings store check, verifies the next slice of the
 audit chain (up to 5000 rows) from a checkpoint kept in `admin.audit_verify_state` (the last
