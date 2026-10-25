@@ -176,8 +176,16 @@ class APIKeyService:
                 status_code=HTTPStatus.UNAUTHORIZED,
                 content="Invalid or revoked API key",
             )
-        document.last_used_at = dt.datetime.now(dt.timezone.utc)
-        await _c().workspace_api_key_repo().save(document)
+        # only last_used_at changes, and only while the key is still live: a
+        # whole-document save would write a stale ``revoked=False`` back over
+        # a revocation made while this request was in flight
+        now = dt.datetime.now(dt.timezone.utc)
+        if not await _c().workspace_api_key_repo().touch_last_used(document.id, now):
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                content="Invalid or revoked API key",
+            )
+        document.last_used_at = now
         return document
 
     @staticmethod
