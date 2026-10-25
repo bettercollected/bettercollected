@@ -120,6 +120,8 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
         "group": "responses",
         "mongo": 2,
         "postgres": 2,
+        "expired_mongo": 0,
+        "expired_postgres": 0,
     }
     # the Postgres-only groups are imported, never verified: not in the marker
     assert set(marker.collections) == set(_tables()) - POSTGRES_ONLY_COLLECTIONS

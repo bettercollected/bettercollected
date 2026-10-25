@@ -15,6 +15,7 @@ is given, and a Mongo restored from 4.0 still has the TTL indexes, which the
 fixture creates here. Skipped unless DATABASE_URL points at a *_test database."""
 
 import contextlib
+import dataclasses
 import datetime as dt
 import io
 import os
@@ -103,6 +104,7 @@ async def test_expired_copies_only_in_postgres_are_absent(target):
     report = await verify(target, "rate_limit_counters")
     assert report.clean, report.as_dict()
     assert report.expired == 3
+    assert (report.expired_mongo, report.expired_postgres) == (0, 3)
     assert report.postgres == 3  # the raw count still shows them
 
 
@@ -123,6 +125,7 @@ async def test_expired_copies_between_and_after_mongo_documents(target):
     report = await verify(target, "rate_limit_counters")
     assert report.clean, report.as_dict()
     assert report.expired == 4  # the copy in both stores counts twice
+    assert (report.expired_mongo, report.expired_postgres) == (1, 3)
 
 
 async def test_an_expired_copy_only_in_mongo_is_absent(target):
@@ -548,6 +551,7 @@ async def test_rows_past_mongo_are_counted_across_batches(target):
     ids = await bulk_counters(1203, lambda i: PAST if i % 3 == 0 else FUTURE)
     report = await verify(target, "rate_limit_counters")
     assert report.expired == 401
+    assert report.expired_postgres == 401
     assert report.missing_in_mongo == 802
     assert report.samples["missing_in_mongo"] == [
         i for i in ids if i in set(report.samples["missing_in_mongo"])
@@ -617,3 +621,92 @@ async def test_a_clean_verify_compares_entries_on_the_database_clock(target):
             .all()
         )
     assert open_ids == ["after"]
+
+
+# -- recording a verify with expired copies ------------------------------------
+
+
+def migrating_analytics(target):
+    """``target`` with the analytics group (rate-limit counters, a TTL
+    collection) still migrating, as on 4.0: the CLI verifies it there."""
+    return dataclasses.replace(
+        target,
+        postgres_only_groups=tuple(
+            g for g in target.postgres_only_groups if g != "analytics"
+        ),
+    )
+
+
+async def stored_marker_rows():
+    from backend.db.models import StoreMigration
+
+    table = StoreMigration.__table__
+    async with container.pg_engine().connect() as conn:
+        rows = await conn.execute(select(table).order_by(table.c.id))
+        return [dict(r) for r in rows.mappings().all()]
+
+
+async def test_expired_postgres_only_copies_do_not_block_the_record(target):
+    """Mongo's TTL monitor dropped every copy, Postgres still holds them: the
+    group (and the marker) is recorded on the live counts."""
+    target = migrating_analytics(target)
+    for _ in range(3):
+        await to_postgres(RateLimitCounterRow, counter(PAST))
+    async with Runner(target) as runner:
+        outcome = await runner.record_verify(await runner.verify())
+    assert outcome["marker"] == "written", outcome
+    assert "analytics" in outcome["groups"]
+    service = [r for r in await stored_marker_rows() if r["scope"] == "service"]
+    assert service[-1]["collections"]["rate_limit_counters"] == {
+        "group": "analytics",
+        "mongo": 0,
+        "postgres": 0,
+        "expired_mongo": 0,
+        "expired_postgres": 3,
+    }
+
+
+async def test_expired_copies_in_both_stores_do_not_block_the_record(target):
+    """Live copies in both stores, expired ones in both (one held by both,
+    the others by one store each): recorded, live counts equal."""
+    target = migrating_analytics(target)
+    for _ in range(2):
+        live = counter(FUTURE)
+        await to_mongo(target, "rate_limit_counters", live)
+        await to_postgres(RateLimitCounterRow, live)
+    both = counter(PAST)
+    await to_mongo(target, "rate_limit_counters", both)
+    await to_postgres(RateLimitCounterRow, both)
+    await to_mongo(target, "rate_limit_counters", counter(PAST))
+    for _ in range(4):
+        await to_postgres(RateLimitCounterRow, counter(PAST))
+    async with Runner(target) as runner:
+        reports = await runner.verify(target.collections_of("analytics"))
+        (report,) = [r for r in reports if r.collection == "rate_limit_counters"]
+        assert report.clean, report.as_dict()
+        assert (report.mongo, report.postgres) == (4, 7)
+        assert (report.expired_mongo, report.expired_postgres) == (2, 5)
+        outcome = await runner.record_verify(reports)
+    assert outcome["groups"] == ["analytics"], outcome
+    (row,) = [r for r in await stored_marker_rows() if r["scope"] == "group"]
+    recorded = row["collections"]["rate_limit_counters"]
+    assert (recorded["mongo"], recorded["postgres"]) == (2, 2)
+    assert (recorded["expired_mongo"], recorded["expired_postgres"]) == (2, 5)
+
+
+async def test_unequal_live_counts_still_refuse_the_record(target):
+    """A live count that differs (here: a copy written between the count and
+    the merge-join) still keeps the group from being recorded."""
+    target = migrating_analytics(target)
+    live = counter(FUTURE)
+    await to_mongo(target, "rate_limit_counters", live)
+    await to_postgres(RateLimitCounterRow, live)
+    await to_postgres(RateLimitCounterRow, counter(PAST))
+    async with Runner(target) as runner:
+        reports = await runner.verify()
+        (report,) = [r for r in reports if r.collection == "rate_limit_counters"]
+        assert report.clean and report.expired_postgres == 1
+        report.mongo += 1
+        outcome = await runner.record_verify(reports)
+    assert "analytics" not in outcome["groups"], outcome
+    assert outcome["marker"] is None
