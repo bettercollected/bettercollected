@@ -26,7 +26,10 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 #: auth.migrate``); nothing else in the suite touches Mongo. They get the
 #: ``mongo`` marker: CI runs the suite with ``-m "not mongo"`` and these in a
 #: second step, with a Mongo server (docs/ci.md).
-MONGO_DRIVEN = ("tests/db/test_migrate_tombstones.py",)
+MONGO_DRIVEN = (
+    "tests/db/test_migrate_tombstones.py",
+    "tests/db/test_migrate_email_case.py",
+)
 
 
 def pytest_configure(config):

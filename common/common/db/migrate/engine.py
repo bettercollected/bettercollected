@@ -29,6 +29,7 @@ from pymongo.errors import DuplicateKeyError
 from sqlalchemy import Table, and_, func, literal, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.sql.elements import ColumnClause
 
 from common.db import tombstones
 from common.db.base import SOURCE_APP, SOURCE_BACKFILL
@@ -194,11 +195,35 @@ def unique_key_paths(table: Table) -> list[list[list[str]]]:
     paths = spine_paths(table)
     keys = []
     uniques = [c for c in table.constraints if type(c).__name__ == "UniqueConstraint"]
-    uniques += [i for i in table.indexes if i.unique]
+    # an index over expressions (lower(email)) is checked by
+    # casefold_unique_key_paths; its columns alone are not its key
+    uniques += [
+        i
+        for i in table.indexes
+        if i.unique and all(isinstance(e, ColumnClause) for e in i.expressions)
+    ]
     for unique in uniques:
         cols = [c.name for c in getattr(unique, "columns", [])]
         if cols and all(c in paths for c in cols):
             keys.append([paths[c] for c in cols])
+    return keys
+
+
+def casefold_unique_key_paths(table: Table) -> list[list[str]]:
+    """The document path of every unique index over ``lower(<column>)``
+    (e.g. emails unique ignoring case): preflight groups those keys
+    lower-cased, as Postgres will compare them."""
+    paths = spine_paths(table)
+    keys = []
+    for index in table.indexes:
+        if not index.unique or len(index.expressions) != 1:
+            continue
+        expression = index.expressions[0]
+        if getattr(expression, "name", "").lower() != "lower":
+            continue
+        arguments = list(getattr(expression, "clauses", []))
+        if len(arguments) == 1 and getattr(arguments[0], "name", None) in paths:
+            keys.append(paths[arguments[0].name])
     return keys
 
 
@@ -345,6 +370,21 @@ class Runner:
                 pipeline = [
                     {"$match": present},
                     {"$group": {"_id": group, "n": {"$sum": 1}}},
+                    {"$match": {"n": {"$gt": 1}}},
+                    {"$count": "groups"},
+                ]
+                dupes = await (await coll.aggregate(pipeline)).to_list()
+                report.duplicates += dupes[0]["groups"] if dupes else 0
+            for path in casefold_unique_key_paths(table):
+                field_path = ".".join(path)
+                pipeline = [
+                    {"$match": {field_path: {"$nin": [None, ""], "$type": "string"}}},
+                    {
+                        "$group": {
+                            "_id": {"$toLower": "$" + field_path},
+                            "n": {"$sum": 1},
+                        }
+                    },
                     {"$match": {"n": {"$gt": 1}}},
                     {"$count": "groups"},
                 ]

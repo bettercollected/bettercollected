@@ -25,13 +25,12 @@ class UserRepository(RecordRepository):
     async def get_user_by_id(self, user_id: RecordId):
         return await self.get_or_raise(user_id)
 
-    async def get_user_by_email(self, email: str) -> UserDocument:
-        return await self.one(UserRow.email == email)
-
-    async def find_users_by_email_ci(self, email: str) -> List[UserDocument]:
-        """Accounts whose email equals ``email`` ignoring case (single
-        sign-on's lookup; the other sign-ins still match exactly)."""
-        return await self.many(func.lower(UserRow.email) == email.lower())
+    async def get_user_by_email(self, email: str) -> Optional[UserDocument]:
+        """The account for ``email``, ignoring case: addresses differing only
+        in case are one account (``uq_users_email_lower``, revision 0005)."""
+        if not email:
+            return None
+        return await self.one(func.lower(UserRow.email) == func.lower(email))
 
     async def get_user_by_stripe_payment_id(
         self, stripe_payment_id: str
@@ -44,7 +43,11 @@ class UserRepository(RecordRepository):
         return await self.one(UserRow.stripe_customer_id == stripe_customer_id)
 
     async def get_users_by_emails(self, emails: List[EmailStr]):
-        return await self.many(UserRow.email.in_(list(emails)))
+        """The accounts for ``emails``, ignoring case (as ``get_user_by_email``)."""
+        wanted = [func.lower(e) for e in emails or [] if e]
+        if not wanted:
+            return []
+        return await self.many(func.lower(UserRow.email).in_(wanted))
 
     async def get_users_by_ids(self, user_ids: List[RecordId]):
         return await self.many(UserRow.id.in_([str(i) for i in user_ids]))

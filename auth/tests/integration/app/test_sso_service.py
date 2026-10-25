@@ -69,6 +69,7 @@ class FakeUsers:
     def __init__(self, *emails):
         self.users = [self._doc(e, i) for i, e in enumerate(emails, start=1)]
         self.saved = []
+        self.lookups = []
 
     @staticmethod
     def _doc(email, n, roles=("FORM_RESPONDER",)):
@@ -80,10 +81,9 @@ class FakeUsers:
         )
 
     async def get_user_by_email(self, email):
-        return next((u for u in self.users if u.email == email), None)
-
-    async def find_users_by_email_ci(self, email):
-        return [u for u in self.users if u.email.lower() == email.lower()]
+        # the repository matches ignoring case (one account per address)
+        self.lookups.append(email)
+        return next((u for u in self.users if u.email.lower() == email.lower()), None)
 
     async def save_user(self, email, **kwargs):
         self.saved.append((email, kwargs))
@@ -222,27 +222,7 @@ def test_an_existing_account_is_matched_ignoring_case():
 
     assert result["existing_user_id"] == users.users[0].id
     assert result["account_conflict"] is False
-
-
-def test_several_case_variants_are_a_conflict():
-    users = FakeUsers("Bob@Example.com", "BOB@example.com")
-    svc = service(users, FakePolis(profile("bob@example.com")))
-    _, query = start(svc)
-
-    result = callback(svc, query)
-
-    assert result["existing_user_id"] is None
-    assert result["account_conflict"] is True
-
-
-def test_an_exact_match_wins_over_case_variants():
-    users = FakeUsers("Bob@Example.com", "bob@example.com")
-    svc = service(users, FakePolis(profile("BOB@example.com")))
-    _, query = start(svc)
-
-    result = callback(svc, query)
-
-    assert result["existing_user_id"] == users.users[1].id
+    assert users.lookups == ["bob@example.com"]  # one lookup, no fallback scan
 
 
 @pytest.mark.parametrize("email", ["", "not-an-email", None])
@@ -573,14 +553,6 @@ def test_directory_account_creates_a_verified_account_without_admin(monkeypatch)
     assert user.sub == "root@example.com" and user.email_verified is True
     assert "ADMIN" not in user.roles and "FORM_CREATOR" in user.roles
     assert users.saved[0][1]["first_name"] == "Ro"
-
-
-def test_directory_account_reports_a_case_conflict():
-    users = FakeUsers("Jane@Example.com", "JANE@example.com")
-    svc = service(users)
-    reply = asyncio.run(svc.directory_account("jane@example.com", create=True))
-    assert reply == {"user": None, "conflict": True}
-    assert users.saved == []
 
 
 @pytest.mark.parametrize("email", ["", "not-an-email", "a b@example.com"])
