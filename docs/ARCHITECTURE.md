@@ -98,9 +98,10 @@ creates **Schedules** on the Temporal server (PostgreSQL-backed). Three worker s
 | `temporal/csv-worker` | `ExportCSVWorkflow` | `export_as_csv` | Export form responses to CSV |
 | `temporal/actions-executor` | `RunActionCode` | `run_action_code` | Execute user-defined form-action / automation code |
 
-Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACKEND__<job>=postgres`, tables in the
+By default (`JOBS_BACKEND=postgres`) each job kind runs as a **procrastinate** job on Postgres (tables in the
 `jobs` schema): the backend's `jobs-worker` consumes `delete_user` / `delete_response`, the actions-executor consumes
-`run_action` (`JOBS_BACKEND=postgres` in its entrypoint). Temporal stays the default until the cutover
+`run_action` (its entrypoint follows `JOBS_BACKEND`). `JOBS_BACKEND__<job>=temporal` keeps a job kind on the Temporal
+workflows above, which stay for jobs queued there before the switch
 (see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)).
 
 ## Example end-to-end flows

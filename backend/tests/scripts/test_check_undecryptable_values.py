@@ -1,6 +1,6 @@
 """The read-only check counts stored values with the ciphertext prefix that do
-not decrypt, per store and field, without printing ids or values and without
-changing anything."""
+not decrypt, per store (Postgres, the only one since 4.1) and field, without
+printing ids or values and without changing anything. Mongo is refused."""
 
 import json
 
@@ -15,13 +15,13 @@ from backend.app.repositories.postgres.responses import PostgresFormResponseRepo
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from scripts.check_undecryptable_values import (
-    MongoStore,
     PostgresStore,
+    _main,
     _parse,
     default_opener,
     run,
 )
-from tests.conftest import TEST_MONGO_DB, _postgres_configured, _truncate_postgres
+from tests.conftest import _postgres_configured, _truncate_postgres
 
 pytestmark = pytest.mark.asyncio
 
@@ -79,18 +79,6 @@ def _documents():
     return link, responses
 
 
-async def _mongo_store():
-    link, responses = _documents()
-    for document in responses:
-        await document.save()
-    # the form's link is in Postgres only (4.1): the Mongo store reads it there
-    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(link)
-    return MongoStore(
-        container.database_client()[TEST_MONGO_DB],
-        links=PostgresStore(container.pg_engine()),
-    )
-
-
 async def _postgres_store():
     link, responses = _documents()
     sessions = container.pg_sessionmaker()
@@ -101,14 +89,12 @@ async def _postgres_store():
     return PostgresStore(container.pg_engine())
 
 
-@pytest.fixture(params=["mongo", "postgres"])
-async def store(request):
+@pytest.fixture
+async def store():
     if not _postgres_configured():
         pytest.skip("DATABASE_URL not set to a *_test database")
     await _truncate_postgres()
-    if request.param == "postgres":
-        return await _postgres_store()
-    return await _mongo_store()
+    return await _postgres_store()
 
 
 async def test_counts_values_that_do_not_decrypt(store):
@@ -142,5 +128,12 @@ async def test_counts_values_that_do_not_decrypt(store):
 
 
 def test_arguments():
-    assert _parse([]).store == "all"
+    assert _parse([]).store == "postgres"
     assert _parse(["--store", "postgres", "--batch-size", "10"]).batch_size == 10
+
+
+@pytest.mark.parametrize("choice", ["mongo", "all"])
+async def test_mongo_is_refused_before_anything_connects(choice, monkeypatch, capsys):
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    assert await _main(["--store", choice]) == 2
+    assert "store_retired" in capsys.readouterr().err

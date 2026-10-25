@@ -63,6 +63,7 @@ jobs:
             common: ${{ steps.plan.outputs.common }}
             webapp: ${{ steps.plan.outputs.webapp }}
             smoke: ${{ steps.plan.outputs.smoke }}
+            executor: ${{ steps.plan.outputs.executor }}
             modes: ${{ steps.plan.outputs.modes }}
             backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
@@ -312,6 +313,41 @@ jobs:
                   DB_WRITE_MODE: postgres
               run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m mongo
 
+    # The actions executor (temporal/actions-executor): its entry point picks the
+    # Postgres queue or Temporal (JOBS_BACKEND), and its mail, token and key
+    # checks have tests. No database or Temporal server is needed.
+    executor-tests:
+        name: Actions executor tests (pytest)
+        needs: plan
+        if: needs.plan.outputs.executor == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        defaults:
+            run:
+                working-directory: temporal/actions-executor
+        env:
+            VIRTUAL_ENV: ""
+            # scratch values for the settings the tests read (not secrets)
+            API_KEY: ci-test-only-api-key
+            AES_HEX_KEY: "O-_wZyOtEjETmtamsaMMQkHJ3UIR2YqG7KrcmcQsKU8="
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              run: uv sync --frozen
+
+            - name: Run the actions executor tests
+              run: uv run --frozen pytest
+
     common-tests:
         name: Common tests (pytest)
         needs: plan
@@ -486,6 +522,7 @@ jobs:
             - backend-tests
             - auth-tests
             - google-tests
+            - executor-tests
             - common-tests
             - webapp-build
             - webapp-tests

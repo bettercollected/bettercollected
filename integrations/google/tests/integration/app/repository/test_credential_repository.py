@@ -13,7 +13,6 @@ from googleform.app.containers import Container
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
-from googleform.app.services import database_service
 from googleform.db.models import OAuthCredentialRow
 
 pytestmark = pytest.mark.asyncio
@@ -23,9 +22,7 @@ CREDS = {"token": "t", "refresh_token": "r", "expiry": "2030-01-01T00:00:00Z"}
 
 @pytest_asyncio.fixture
 async def repo(clean_postgres):
-    await database_service.init_db()
     yield OauthCredentialRepository(Container.pg_sessionmaker())
-    await database_service.close_db()
     await Container.pg_engine().dispose()
 
 

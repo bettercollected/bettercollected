@@ -101,6 +101,31 @@ def test_the_job_worker_starts_without_mongo_when_every_group_is_on_postgres():
     assert "mongo-not-used.invalid" in result.stdout
 
 
+def operator_cli(module: str, *argv: str) -> str:
+    return (
+        "import asyncio, sys\n"
+        f"from {module} import main\n"
+        f"sys.exit(asyncio.run(main({list(argv)!r})))\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "program, expected",
+    [
+        (operator_cli("backend.scim", "resync", "--all"), '"directories": 0'),
+        (operator_cli("backend.sheets_legacy"), '"legacy": 0'),
+    ],
+    ids=["scim", "sheets_legacy"],
+)
+def test_the_operator_commands_run_without_mongo(program, expected):
+    """Commands that read the identity and forms groups boot the container
+    through ``backend.cli_store``: with every group on Postgres they never
+    create a Mongo connection, whatever else the process knows about it."""
+    result = boot(program, ALL_POSTGRES, mongo_uri="")
+    assert result.returncode == 0, result.stderr[-3000:]
+    assert expected in result.stdout, result.stdout
+
+
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_a_set_but_unreachable_mongo_uri_refuses_the_start(program):
     """MONGO_URI set means Mongo may hold 4.0 data of the Postgres-only groups:

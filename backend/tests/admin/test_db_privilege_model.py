@@ -653,17 +653,3 @@ def test_the_roles_script_never_puts_a_password_on_a_command_line(tmp_path):
         assert value not in argv and value not in stdin and value not in done.stdout + done.stderr
     assert "ON_ERROR_STOP=1" in argv and "_pw=" not in argv
     assert "\\getenv admin_pw BC_ADMIN_PASSWORD" in stdin
-
-
-def test_a_read_only_collection_refuses_an_aggregation_that_writes():
-    from backend.admin.tasks.impl.responses_common import ReadOnlyCollection, ReadOnlyViolation
-
-    class Collection:
-        def aggregate(self, pipeline, *args, **kwargs):
-            return list(pipeline)
-
-    safe = ReadOnlyCollection(Collection())
-    assert safe.aggregate([{"$match": {"a": 1}}]) == [{"$match": {"a": 1}}]
-    for stage in ({"$out": "x"}, {"$merge": {"into": "x"}}):
-        with pytest.raises(ReadOnlyViolation):
-            safe.aggregate([{"$match": {}}, stage])

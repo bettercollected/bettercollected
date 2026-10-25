@@ -10,12 +10,12 @@ a provider service (Google Forms) come last and never hold that back:
    ``readonly``);
 2. when that fails, or in ``GOOGLE_FORMS_IMPORT=off`` (nothing calls the
    service), a retryable ``purge_provider_credentials`` job is queued
-   (``JOBS_BACKEND__purge_provider_credentials=postgres``, procrastinate). Only
+   (procrastinate: ``JOBS_BACKEND``, default ``postgres``). Only
    the queuing is retried in the deletion itself; if it still can't be queued
    the deletion job fails after the erasure (``CredentialPurgeNotQueued``) and
-   is retried. On procrastinate (``JOBS_BACKEND__delete_user=postgres``) that
-   failing deletion job is reported by the integrity monitor; on Temporal (the
-   default) the workflow's activity fails and Temporal retries it, which shows
+   is retried. On procrastinate (``JOBS_BACKEND__delete_user=postgres``, the default) that
+   failing deletion job is reported by the integrity monitor; on Temporal
+   (``JOBS_BACKEND__delete_user=temporal``) the workflow's activity fails and Temporal retries it, which shows
    in the Temporal UI and as an error log line, not in the integrity monitor.
 
 The job (``backend/jobs/tasks.py``) retries for two days: through the
