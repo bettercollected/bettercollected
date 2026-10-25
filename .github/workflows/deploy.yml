@@ -141,18 +141,23 @@ jobs:
                   DEVELOP_MANAGER: ${{ vars.DEVELOP_MANAGER }}
                   STAGING_MANAGER: ${{ vars.STAGING_MANAGER }}
                   PROD_MANAGER: ${{ vars.PROD_MANAGER }}
+                  DEVELOP_BACKEND_IMAGE_SERVICES: ${{ vars.DEVELOP_BACKEND_IMAGE_SERVICES }}
+                  STAGING_BACKEND_IMAGE_SERVICES: ${{ vars.STAGING_BACKEND_IMAGE_SERVICES }}
+                  PROD_BACKEND_IMAGE_SERVICES: ${{ vars.PROD_BACKEND_IMAGE_SERVICES }}
               run: |
                   set -euo pipefail
                   if [[ "${GIT_REF}" == "refs/heads/develop" ]]; then
                     ENVIRONMENT="development"
                     DOCKER_STACK="${DEVELOP_STACK}"
                     DOCKER_MANAGER="${DEVELOP_MANAGER}"
+                    BACKEND_IMAGE_SERVICES="${DEVELOP_BACKEND_IMAGE_SERVICES}"
                     IMAGE_TAG="${GIT_SHA}"
 
                   elif [[ "${GIT_REF}" == "refs/heads/master" ]]; then
                     ENVIRONMENT="staging"
                     DOCKER_STACK="${STAGING_STACK}"
                     DOCKER_MANAGER="${STAGING_MANAGER}"
+                    BACKEND_IMAGE_SERVICES="${STAGING_BACKEND_IMAGE_SERVICES}"
                     IMAGE_TAG="${GIT_SHA}"
 
                   elif [[ "${GIT_REF}" == "refs/tags/"* ]]; then
@@ -164,6 +169,7 @@ jobs:
                     ENVIRONMENT="production"
                     DOCKER_STACK="${PROD_STACK}"
                     DOCKER_MANAGER="${PROD_MANAGER}"
+                    BACKEND_IMAGE_SERVICES="${PROD_BACKEND_IMAGE_SERVICES}"
                     IMAGE_TAG="${REF_NAME}"
 
                   else
@@ -181,7 +187,25 @@ jobs:
                     exit 1
                   fi
 
+                  # Stack services that run the backend image under their own name
+                  # (admin, jobs-worker, ...). Only the ones this target's stack runs
+                  # are listed in its variable: never send a service the stack lacks.
+                  read -r -d '' -a BACKEND_IMAGE_SERVICE_NAMES <<< "${BACKEND_IMAGE_SERVICES}" || true
+                  for SERVICE in "${BACKEND_IMAGE_SERVICE_NAMES[@]}"; do
+                    if [[ ! "${SERVICE}" =~ ^[a-z0-9-]+$ ]]; then
+                      echo "${ENVIRONMENT} backend image services: names may only use a-z, 0-9 and -" >&2
+                      exit 1
+                    fi
+                    case " auth backend integrations-google webapp temporal-worker temporal-actions-executor " in
+                      *" ${SERVICE} "*)
+                        echo "${ENVIRONMENT} backend image services: ${SERVICE} is deployed with its own image" >&2
+                        exit 1
+                        ;;
+                    esac
+                  done
+
                   echo "Deploying all service images to ${ENVIRONMENT} stack ${DOCKER_STACK} using its configured Docker Manager"
+                  echo "Backend image also deployed as: ${BACKEND_IMAGE_SERVICE_NAMES[*]:-none}"
                   {
                     echo "manager=${DOCKER_MANAGER}"
                     echo "stack=${DOCKER_STACK}"
@@ -189,6 +213,9 @@ jobs:
                     for SERVICE in auth backend integrations/google webapp temporal/worker temporal/actions-executor; do
                       SERVICE_TAG="${SERVICE//\//-}"
                       echo "${SERVICE_TAG}=bettercollected/${SERVICE_TAG}:${IMAGE_TAG}"
+                    done
+                    for SERVICE in "${BACKEND_IMAGE_SERVICE_NAMES[@]}"; do
+                      echo "${SERVICE}=bettercollected/backend:${IMAGE_TAG}"
                     done
                     echo "EOF"
                   } >> "$GITHUB_OUTPUT"
