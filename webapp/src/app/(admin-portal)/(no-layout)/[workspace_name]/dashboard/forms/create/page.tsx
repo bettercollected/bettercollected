@@ -158,7 +158,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                             >
                                                 <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
                                                     <LayoutWrapper showDesktopLayout theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
-                                                        <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
+                                                        <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} formTitle={template?.title} />
                                                     </LayoutWrapper>
                                                 </div>
                                                 <div className="absolute inset-0 z-10 bg-black-800 opacity-0 hover:opacity-20" />

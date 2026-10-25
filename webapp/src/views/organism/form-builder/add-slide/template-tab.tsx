@@ -73,7 +73,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                     <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
                                         <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.116666667]" style={{ transformOrigin: 'top left' }}>
                                             <LayoutWrapper theme={theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
-                                                <WelcomePage isPreviewMode welcomePageData={template?.welcomePage} />
+                                                <WelcomePage isPreviewMode welcomePageData={template?.welcomePage} formTitle={template?.title} />
                                             </LayoutWrapper>
                                         </div>
                                         <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>

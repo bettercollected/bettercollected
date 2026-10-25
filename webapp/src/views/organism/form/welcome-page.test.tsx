@@ -48,3 +48,19 @@ describe('WelcomePage layout', () => {
         expect(column.className).toContain('mr-auto');
     });
 });
+
+describe('WelcomePage as a preview of another form', () => {
+    it('shows the given title and button text, not the form in the store', () => {
+        store.dispatch(setForm({ formId: 'answered', title: 'Visit feedback', fields: [], welcomePage: { buttonText: 'Begin' } }));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode formTitle="Support triage" welcomePageData={{ layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, buttonText: 'Get help' }} />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.getByRole('heading', { level: 1, name: 'Support triage' })).toBeDefined();
+        expect(screen.queryByText('Visit feedback')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Get help' })).toBeDefined();
+    });
+});
