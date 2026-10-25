@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import type { ScimOverviewDto } from '@app/models/dtos/workspace-scim-dto';
 import '@app/shared/hocs/i18n-provider';
 import { store } from '@app/store/store';
 
+import { SSO_SETUP_GUIDE_URL } from './sso-self-hosting-guide';
 import WorkspaceScimSection from './workspace-scim-section';
 
 const refetchMock = vi.fn();
@@ -84,12 +85,16 @@ describe('WorkspaceScimSection', () => {
         const box = screen.getByTestId('scim-unavailable');
         expect(box.textContent).toContain('switched on but not fully set up');
         expect(box.textContent).not.toContain('SSO_ENABLED');
+        expect(box.textContent).toContain('administrator or support team of this instance');
+        expect(box.textContent).not.toContain('docs/sso.md');
+        expect(within(box).getByRole('link', { name: 'single sign-on setup guide' }).getAttribute('href')).toBe(SSO_SETUP_GUIDE_URL);
     });
 
     it('keeps the not-enabled text when SSO is off', () => {
         query.data = overview({ available: false, reason: 'disabled', directory: null });
         renderSection();
         expect(screen.getByTestId('scim-unavailable').textContent).toContain('not enabled on this instance');
+        expect(screen.queryByTestId('sso-self-hosting')).toBeNull();
     });
 
     beforeEach(() => {

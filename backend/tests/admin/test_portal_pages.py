@@ -379,6 +379,27 @@ def test_sso_status_from_store_and_environment_names_only():
     assert pg.sso_status("auth", [_Row("backend")], {}).enabled == "unknown"
 
 
+@pytest.mark.parametrize(
+    "stored, enabled",
+    [("true", "on"), ("True", "on"), ("1", "on"), (" YES ", "on"), ("false", "off"), ("", "off"), ("maybe", "off")],
+)
+def test_sso_status_reads_a_stored_string_like_the_services_do(stored, enabled):
+    """SSO_ENABLED stored as a JSON string: Health and the overview parse it
+    the way the services' settings do (registry.coerce_value)."""
+    from common.settings.inventory import full_registry
+    from common.settings.registry import ValidationError
+
+    try:
+        service_sees = full_registry().coerce("SSO_ENABLED", stored)
+    except ValidationError:
+        service_sees = False  # unusable: the services keep the default, off
+    assert ("on" if service_sees else "off") == enabled
+    entries = {"SSO_ENABLED": _Entry(json.dumps(stored))}
+    status = pg.sso_status("backend", [_Row("backend")], entries)
+    assert status.enabled == enabled
+    assert status.incomplete is (enabled == "on")
+
+
 # -- metrics ---------------------------------------------------------------------------------
 async def test_metrics_page_without_application_tables_says_unavailable(portal, app):
     b = await signed_in(portal, app)

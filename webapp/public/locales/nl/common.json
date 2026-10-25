@@ -987,7 +987,8 @@
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is niet ingeschakeld op deze installatie. De beheerder schakelt het in (SSO_ENABLED, zie docs/sso.md).",
-    "NOT_CONFIGURED": "Single sign-on staat aan, maar is op deze installatie nog niet helemaal ingesteld. De beheerder moet de instelling nog afmaken (zie docs/sso.md)."
+    "NOT_CONFIGURED": "Single sign-on staat aan, maar is op deze installatie nog niet helemaal ingesteld. Vraag de beheerder of de supportafdeling van deze installatie om de instelling af te maken.",
+    "SELF_HOSTING": "Beheert u deze installatie zelf? Zie de <1>handleiding voor single sign-on</1>."
   },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",
@@ -995,7 +996,7 @@
     "LOAD_FAILED": "De synchronisatie met gebruikersbeheer kon niet worden geladen.",
     "TRY_AGAIN": "Opnieuw proberen",
     "NOT_ENABLED": "Synchronisatie met gebruikersbeheer is niet ingeschakeld op deze installatie. De beheerder schakelt die in (SSO_ENABLED en SCIM_WEBHOOK_URL, zie docs/sso.md).",
-    "NOT_CONFIGURED": "Synchronisatie met gebruikersbeheer heeft single sign-on nodig. Dat staat aan, maar is op deze installatie nog niet helemaal ingesteld. De beheerder moet de instelling nog afmaken (zie docs/sso.md).",
+    "NOT_CONFIGURED": "Synchronisatie met gebruikersbeheer heeft single sign-on nodig. Dat staat aan, maar is op deze installatie nog niet helemaal ingesteld. Vraag de beheerder of de supportafdeling van deze installatie om de instelling af te maken.",
     "OWNER_ONLY": "Alleen een eigenaar van de werkruimte kan de synchronisatie wijzigen. U kunt de status bekijken.",
     "NO_DIRECTORY": "Er is geen gebruikersbeheer gekoppeld.",
     "CREDENTIALS_NOTICE": "Voer deze nu in bij de SCIM-instellingen van uw identiteitsprovider. Het token wordt maar één keer getoond: bent u het kwijt, vernieuw het dan.",

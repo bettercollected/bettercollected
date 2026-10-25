@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AlertTriangle, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import SsoSelfHostingGuide from '@app/components/workspace-sso/sso-self-hosting-guide';
 import { CopyField, Section, errorMessage, formatTime, inputClass } from '@app/components/workspace-sso/workspace-sso-section';
 import { scim } from '@app/constants/locales/scim';
 import { workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -173,6 +174,7 @@ export default function WorkspaceScimSection() {
             <Section title={title} description={description}>
                 <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="scim-unavailable">
                     {t(overview.reason === 'not_configured' ? scim.NOT_CONFIGURED : scim.NOT_ENABLED)}
+                    {overview.reason === 'not_configured' && <SsoSelfHostingGuide />}
                 </p>
             </Section>
         );
