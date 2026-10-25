@@ -22,7 +22,8 @@ Reading the tables:
 * reload class: ``H`` only for a key every consumer reads at call time (a test
   in ``backend/tests/app/services/test_live_settings_reads.py`` proves it);
   ``R`` otherwise; ``B`` for build arguments. Keys read at import time carry a
-  ``TODO_LIVE`` entry naming the file and line.
+  ``TODO_LIVE`` entry naming the file and the symbol that reads the key
+  (``path::Class.function``, see ``TODO_LIVE``).
 * default: the code default as the text it would come from; ``None`` when the
   default is empty, derived, or cannot be expressed under the key's own policy
   (a localhost URL). The description then says so.
@@ -559,15 +560,19 @@ INVENTORY: Tuple[SettingSpec, ...] = (
 )
 
 # Keys read at import time (or captured when the container is built): they stay
-# R until the consumer reads them at call time. Value: file and line.
+# R until the consumer reads them at call time. Value: ``path::qualname``, the
+# repository path and the dotted name of the module level or class level
+# function, class or assignment whose code (decorators included) reads the key.
+# No line numbers, so edits elsewhere in the file do not break the check; the
+# test fails when the symbol is gone or no longer reads the key.
 TODO_LIVE: Dict[str, str] = {
-    "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/services/flow_event_service.py:117",
-    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:133",
-    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:149",
-    "API_ROOT_PATH": "backend/backend/app/asgi.py:201",
-    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:201",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:546",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:547",
+    "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/services/flow_event_service.py::FlowEventService._sweep_expired",
+    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py::expire_stale_imports",
+    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py::scim_reconcile",
+    "API_ROOT_PATH": "backend/backend/app/asgi.py::get_application",
+    "API_DOCS_ENABLED": "backend/backend/app/asgi.py::get_application",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py::AppContainer.aws_service",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py::AppContainer.aws_service",
 }
 
 # ------------------------------------------------------- environment only
