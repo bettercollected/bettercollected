@@ -89,10 +89,10 @@ environment, whatever the tier.
 | `GOOGLE_API_SERVICE_NAME` | google | google | str max 64 |  | R | T1 | `drive` |
 | `GOOGLE_API_VERSION` | google | google | str max 16 |  | R | T1 | `v2` |
 | `GOOGLE_AUTH_PROVIDER_X509_CERT_URL` | google | auth, google | url |  | R | T3 | `https://www.googleapis.com/oauth2/v1/certs` |
-| `GOOGLE_AUTH_URI` | google | auth, google | url |  | R | T3 | `https://accounts.google.com/o/oauth2/auth` |
+| `GOOGLE_AUTH_URI` | google | backend, auth, google | url |  | R | T3 | `https://accounts.google.com/o/oauth2/auth` |
 | `GOOGLE_BASIC_AUTH_REDIRECT` | google | auth | url |  | R | T3 |  |
-| `GOOGLE_CLIENT_ID` | google | auth, google, webapp | str max 300 |  | R | T3 |  |
-| `GOOGLE_CLIENT_SECRET` | google | auth, google | str | yes | R | T3 |  |
+| `GOOGLE_CLIENT_ID` | google | backend, auth, google, webapp | str max 300 |  | R | T3 |  |
+| `GOOGLE_CLIENT_SECRET` | google | backend, auth, google | str | yes | R | T3 |  |
 | `GOOGLE_CLIENT_TYPE` | google | google | str max 32 |  | R | T3 | `web` |
 | `GOOGLE_FORMS_IMPORT` | google | backend, google | enum on/readonly/off |  | R | T2 | `on` |
 | `GOOGLE_JAVASCRIPT_ORIGINS` | google | auth, google | str max 2000 |  | R | T3 |  |
@@ -100,9 +100,10 @@ environment, whatever the tier.
 | `GOOGLE_REDIRECT_URIS` | google | auth, google | str max 2000 |  | R | T3 |  |
 | `GOOGLE_REVOKE_CREDENTIALS_URL` | google | google | url |  | R | T3 | `https://oauth2.googleapis.com/revoke` |
 | `GOOGLE_SCOPES` | google | google | str max 2000 |  | R | T3 | `openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly` |
-| `GOOGLE_SHEET_REDIRECT_URL` | google | google | url |  | R | T3 |  |
+| `GOOGLE_SHEETS_OAUTH` | google | backend | enum backend/google_service |  | R | T2 | `google_service` |
+| `GOOGLE_SHEET_REDIRECT_URL` | google | backend, google | url |  | R | T3 |  |
 | `GOOGLE_SHEET_SCOPE` | google | google | str max 2000 |  | R | T3 | `https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive` |
-| `GOOGLE_TOKEN_URI` | google | auth, google | url |  | R | T3 | `https://oauth2.googleapis.com/token` |
+| `GOOGLE_TOKEN_URI` | google | backend, auth, google | url |  | R | T3 | `https://oauth2.googleapis.com/token` |
 | `UNSPLASH_ACCESS_KEY` | integrations | backend, webapp | str | yes | R | T2 |  |
 | `UNSPLASH_BASE_URL` | integrations | backend | url |  | R | T3 | `https://api.unsplash.com` |
 | `UNSPLASH_PER_PAGE` | integrations | backend | int 1..100 |  | R | T1 | `10` |

@@ -46,13 +46,17 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   overrides and `DB_SHADOW_READ_SAMPLE` are ignored. Startup also refuses without `DATABASE_URL`, and on a schema
   behind the code's Alembic head (`DB_AUTO_MIGRATE=true` applies it first).
 - **Migrations:** `auth/migrations` (Alembic, `auth/alembic.ini`); this service owns the `auth` schema's chain.
+- **Emails** are one account per address ignoring case (unique index `uq_users_email_lower`, revision 0005). Look
+  accounts up with `UserRepository.get_user_by_email` / `get_users_by_emails` (they compare `lower(email)` and use
+  that index), never `UserRow.email == …`; the stored address keeps the case it was first written with.
 - **The import from 4.0** (`python -m auth.migrate preflight|backfill|verify|reconcile|status`) still reads the
   4.0 Mongo database (`MONGO_URI` / `MONGO_DB`, `config/database.py`), with the tables it needs
   (`migration_progress`, `store_migration`, `deletion_tombstones`, `mirror_write_failures`, the expand-only
   `providers`). Keep them until the import path is removed; nothing else in the service may touch Mongo
   (`tests/test_direct_db_access.py`).
 - **Tests** need the Postgres test database (`DATABASE_URL` naming a `*_test` database; migrated once per session).
-  Only `tests/db/test_migrate_tombstones.py` (the import's reconcile) needs a Mongo server (marker `mongo`). The
+  Only `tests/db/test_migrate_tombstones.py` (the import's reconcile) and `tests/db/test_migrate_email_case.py` (its
+  preflight) need a Mongo server (marker `mongo`). The
   golden fixture `tests/fixtures/codec_golden/auth.json` pins the stored bytes; `UserDocument` must keep the wire
   shape of the Beanie class it replaced (`tests/integration/app/beanie_originals.py`).
 
@@ -76,7 +80,7 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   context), `GET /auth/sso/callback` exchanges the code, checks userinfo's `requested` tenant/product/client_id and
   returns the asserted email with a short-lived encrypted assertion, **creating no account** (the backend checks the
   domain and the seat cap first); `POST /auth/sso/account` then finds or creates the account through
-  `account_for_provider_sign_in`, matching emails case-insensitively (`find_users_by_email_ci`), `email_verified`
+  `account_for_provider_sign_in`, matching emails case-insensitively (like every lookup), `email_verified`
   true, and never the platform-admin role (`roles_for(..., verified=False)`).
 - **Routes** (`controllers/auth_router.py`):
   - `GET /otp/send`, `GET /otp/validate` — email OTP login.
