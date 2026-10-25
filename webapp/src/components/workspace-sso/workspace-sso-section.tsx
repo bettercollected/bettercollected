@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import { AlertTriangle, Check, CircleCheck, Copy, KeyRound, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import environments from '@app/configs/environments';
+import { sso } from '@app/constants/locales/sso';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
 import { workspaceSectionUrls } from '@app/lib/workspace-sections';
 import { SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
@@ -460,6 +462,7 @@ export default function WorkspaceSsoSection() {
     const testResult = searchParams?.get('sso_test');
     const { data: overview, isLoading, isError, refetch } = useGetWorkspaceSsoQuery(workspaceId, { skip: !workspaceId });
     const [adding, setAdding] = useState(false);
+    const { t } = useTranslation();
 
     if (isLoading) return <p className="text-xs text-black-600">Loading…</p>;
     if (isError || !overview) {
@@ -473,7 +476,13 @@ export default function WorkspaceSsoSection() {
         );
     }
     if (!overview.available) {
-        return <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600">Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).</p>;
+        // switched on but incomplete: say so, without pointing at SSO_ENABLED
+        const message = overview.reason === 'not_configured' ? sso.NOT_CONFIGURED : sso.NOT_ENABLED;
+        return (
+            <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="sso-unavailable" data-reason={overview.reason === 'not_configured' ? 'not_configured' : 'disabled'}>
+                {t(message)}
+            </p>
+        );
     }
 
     const sp = overview.serviceProvider;

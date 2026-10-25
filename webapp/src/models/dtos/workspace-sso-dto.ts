@@ -41,8 +41,12 @@ export interface SsoSettingsDto {
     revokedSessions?: number | null;
 }
 
+export type SsoUnavailableReason = 'disabled' | 'not_configured';
+
 export interface SsoOverviewDto {
     available: boolean;
+    // why it is not available: SSO is switched off ("disabled") or on but not fully set up ("not_configured")
+    reason?: SsoUnavailableReason | null;
     serviceProvider?: SsoServiceProviderDto | null;
     domains: string[];
     connections: SsoConnectionDto[];

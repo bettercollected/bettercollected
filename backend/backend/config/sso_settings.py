@@ -5,7 +5,10 @@ auth service (which runs the OAuth code exchange with Polis); the backend
 also needs the Polis admin API key, which only it holds.
 """
 
+from typing import Optional, Tuple
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings import sso_requirements
 from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
@@ -40,11 +43,26 @@ class SSOSettings(StoreBackedSettings):
     def polis_internal_url(self) -> str:
         return (self.POLIS_INTERNAL_URL or self.POLIS_URL or "").rstrip("/")
 
+    def _is_set(self, name: str) -> bool:
+        value = getattr(self, name.removeprefix("SSO_"), None)
+        return bool(str(value or "").strip())
+
+    @property
+    def missing_settings(self) -> Tuple[str, ...]:
+        """The names of the required settings that are not set (never values)."""
+        return sso_requirements.missing("backend", self._is_set)
+
+    @property
+    def status(self) -> Optional[str]:
+        """``None`` when usable, else ``"disabled"`` or ``"not_configured"``."""
+        return sso_requirements.status(self.ENABLED, self.missing_settings)
+
     @property
     def is_configured(self) -> bool:
         """Switched on with everything the backend needs to talk to Polis."""
         return bool(
             self.ENABLED
+            and not self.missing_settings
             and self.polis_url
             and self.polis_internal_url
             and self.POLIS_API_KEY

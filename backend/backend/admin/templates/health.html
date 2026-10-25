@@ -54,6 +54,28 @@
 {% endif %}
 <p>{{ _("MongoDB outboxes are not shown: the admin service has no access to MongoDB. Check them with the status command of each service's migrate tool (python -m backend.migrate status, auth.migrate, googleform.migrate).") }}</p>
 
+<h2>{{ _("Single sign-on") }}</h2>
+{% if health.sso %}
+<div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Single sign-on') }}">
+<table>
+  <caption>{{ _("Settings single sign-on still needs on each service, by name") }}</caption>
+  <thead><tr><th scope="col">{{ _("Service") }}</th><th scope="col">{{ "SSO_ENABLED" }}</th><th scope="col">{{ _("Required settings not set") }}</th><th scope="col">{{ _("Optional settings not set") }}</th></tr></thead>
+  <tbody>
+  {% for s in health.sso %}
+  <tr><th scope="row">{{ s.service }}</th>
+    <td>{% if s.enabled == "on" %}{{ _("on") }}
+      {% elif s.enabled == "environment" %}{{ _("set in the environment") }}
+      {% elif s.enabled == "off" %}{{ _("off") }}
+      {% else %}<span class="warn">{{ _("unknown: the service has not reported") }}</span>{% endif %}</td>
+    <td>{% if s.enabled in ("on", "environment") %}{% if s.missing %}<span class="bad">{{ s.missing | join(", ") }}</span>{% else %}<span class="ok">{{ _("none") }}</span>{% endif %}{% else %}-{% endif %}</td>
+    <td>{% if s.enabled in ("on", "environment") and s.missing_optional %}{{ s.missing_optional | join(", ") }}{% else %}-{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p>{{ _("Names only: no value is ever shown. A setting set in a service's environment is known by name only, so the portal cannot see whether SSO_ENABLED is true there; the missing settings matter when it is. SSO_POLIS_INTERNAL_URL is not required: it falls back to SSO_POLIS_URL. Without SSO_POLIS_CLIENT_SECRET, sign-ins rely on PKCE alone.") }}</p>
+{% endif %}
+
 <h2>{{ _("Services") }}</h2>
 {% if health.heartbeats %}
 <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Services') }}">

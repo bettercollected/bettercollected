@@ -78,6 +78,20 @@ const renderSection = () =>
     );
 
 describe('WorkspaceScimSection', () => {
+    it('says directory sync waits for single sign-on that is switched on but not set up', () => {
+        query.data = overview({ available: false, reason: 'not_configured', directory: null });
+        renderSection();
+        const box = screen.getByTestId('scim-unavailable');
+        expect(box.textContent).toContain('switched on but not fully set up');
+        expect(box.textContent).not.toContain('SSO_ENABLED');
+    });
+
+    it('keeps the not-enabled text when SSO is off', () => {
+        query.data = overview({ available: false, reason: 'disabled', directory: null });
+        renderSection();
+        expect(screen.getByTestId('scim-unavailable').textContent).toContain('not enabled on this instance');
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
         query.isLoading = false;
