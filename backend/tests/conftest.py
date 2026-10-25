@@ -157,6 +157,7 @@ MONGO_DRIVEN = {
         "test_a_mongo_holding_duplicate_links_still_starts",
     },
     "tests/app/repositories/test_api_key_touch_routed.py": ALL,
+    "tests/app/repositories/test_workspace_set_fields_routed.py": ALL,
     "tests/app/test_operator_tools.py": {
         "test_custom_domain_references_are_the_same_on_both_stores",
         "test_expiration_schedules_are_the_same_on_both_stores",
