@@ -131,6 +131,13 @@ class Flow:
     def params(self, **extra):
         return dict(extra)
 
+    @property
+    def store_choice(self):
+        """The tasks' ``stores``: the choice itself, but ``auto`` with Mongo,
+        whose Google credentials are in Postgres (the Google Forms integration
+        writes Postgres alone since 4.1): ``auto`` covers both."""
+        return "auto" if self.choice == "mongo" else self.choice
+
     async def rotate_to_new_primary(self):
         """add_key and promote, with consumers following each step."""
         _, added = await self.both("keyset.add_key")
@@ -263,7 +270,7 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
 
     # reencrypt: a dry run counts, changes nothing; the real run moves everything
     await flow.beat()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     _, counted = await flow.run("keyset.reencrypt", params, dry_run=True)
     assert counted["state"] == "succeeded", counted
     assert counted["result"]["values_stale"] > 0
@@ -290,7 +297,7 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
         assert all(len(values) == 1 for values in by_store.values())
 
     # idempotent: a second run finds everything current and writes nothing
-    again_params = flow.params(primary_id=new_id, stores=flow.choice)
+    again_params = flow.params(primary_id=new_id, stores=flow.store_choice)
     again_before = await stored_values(flow.choice)
     _, again = await flow.run("keyset.reencrypt", again_params)
     assert again["state"] == "succeeded", again
@@ -300,7 +307,7 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
     assert await stored_values(flow.choice) == again_before
 
     # verify: read only, every value opens, counts per key id in the events
-    verify_id, verified = await flow.run("keyset.verify", {"stores": flow.choice})
+    verify_id, verified = await flow.run("keyset.verify", {"stores": flow.store_choice})
     assert verified["state"] == "succeeded", verified
     got = meta.ScanResult.model_validate(verified["result"])
     assert got.complete and got.values_unopenable == 0 and got.values_stale == 0
@@ -442,7 +449,7 @@ async def test_every_consumer_must_confirm_before_a_step_that_depends_on_it(
         assert promoted["state"] == "succeeded"
     if task == "keyset.drop_old":  # it needs the values moved first
         await flow.beat()
-        rp = flow.params(primary_id=new_id, stores=flow.choice)
+        rp = flow.params(primary_id=new_id, stores=flow.store_choice)
         _, moved = await flow.both("keyset.reencrypt", rp)
         assert moved["state"] == "succeeded", moved
     stored = await flow.stored()
@@ -526,19 +533,19 @@ def test_typeform_acknowledged_is_accepted_and_ignored(cls, params):
 async def test_reencrypt_refuses_a_primary_other_than_the_stored_one(world, flow):
     new_id = await flow.rotate_to_new_primary()
     _, run = await flow.run(
-        "keyset.reencrypt", flow.params(primary_id=new_id + 1, stores=flow.choice), dry_run=True
+        "keyset.reencrypt", flow.params(primary_id=new_id + 1, stores=flow.store_choice), dry_run=True
     )
     assert run["refusal_code"] == "primary_mismatch"
     old_id = parse_keyset(OLD).primary_key_id
     _, run = await flow.run(
-        "keyset.reencrypt", flow.params(primary_id=old_id, stores=flow.choice), dry_run=True
+        "keyset.reencrypt", flow.params(primary_id=old_id, stores=flow.store_choice), dry_run=True
     )
     assert run["refusal_code"] == "primary_mismatch"
 
 
 async def test_reencrypt_never_writes_under_a_published_primary(world, flow):
     old_id = parse_keyset(OLD).primary_key_id
-    params = flow.params(primary_id=old_id, stores=flow.choice)
+    params = flow.params(primary_id=old_id, stores=flow.store_choice)
     before = await stored_values(flow.choice)
     _, dry = await flow.run("keyset.reencrypt", params, dry_run=True)  # counting is allowed
     assert dry["state"] == "succeeded"
@@ -587,7 +594,7 @@ async def cancel_after_first_batch(monkeypatch, world):
 
 async def test_an_interrupted_run_resumes_and_finishes(world, flow, monkeypatch, tiny_batches):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     real_walk = core.reencrypt_store
     await cancel_after_first_batch(monkeypatch, world)
@@ -607,7 +614,7 @@ async def test_an_interrupted_run_resumes_and_finishes(world, flow, monkeypatch,
 
 async def test_a_resume_with_another_keyset_is_refused(world, flow, monkeypatch, tiny_batches):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     real_walk = core.reencrypt_store
     await cancel_after_first_batch(monkeypatch, world)
@@ -630,7 +637,7 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
     world, flow, monkeypatch
 ):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     old_cipher = CryptoService(OLD)
     hits = {"n": 0}
@@ -676,7 +683,7 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
 
 async def test_a_record_that_does_not_read_back_is_not_counted(world, flow, monkeypatch):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     real = core._read_back
     seen = {"n": 0}
@@ -704,7 +711,7 @@ async def test_values_no_context_opens_stay_and_are_reported(world, stores):
     flow = Flow(world, stores, data)
     await flow.beat()
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=stores)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     _, run = await flow.run("keyset.reencrypt", params)
     assert run["state"] == "succeeded", run
@@ -732,7 +739,7 @@ async def test_drop_old_refuses_a_published_primary(world, flow):
 
 async def test_drop_old_refuses_when_the_scan_did_not_finish(world, flow, monkeypatch):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     _, run = await flow.run("keyset.reencrypt", params)
     assert run["state"] == "succeeded"
@@ -764,7 +771,7 @@ async def test_drop_old_refuses_an_empty_store(world, stores):
     flow = Flow(world, stores, data)
     await flow.beat()
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=stores)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     await flow.run("keyset.reencrypt", params)
     # the responses store reads as empty (a wrong or empty database)
@@ -785,7 +792,7 @@ async def test_an_empty_google_target_is_accepted_only_when_said_so(world, store
     flow = Flow(world, stores, data)
     await flow.beat()
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=stores)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     await flow.run("keyset.reencrypt", params)
     _, run = await flow.run("keyset.drop_old", flow.params(google_in_use=False), dry_run=True)
@@ -811,7 +818,7 @@ async def test_drop_old_with_one_key_has_nothing_to_drop(world, stores):
     flow = Flow(world, stores, data)
     await flow.beat()
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=stores)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
     await flow.run("keyset.reencrypt", params, dry_run=True)
     await flow.run("keyset.reencrypt", params)
     await flow.both("keyset.drop_old", flow.params())
@@ -832,14 +839,14 @@ async def test_verify_reports_a_value_that_does_not_open(world, flow):
     path, old = store.target.values(record)[0]
     bad = other.encrypt("x", "y", b"z")
     assert await store.write(record["id"], [(path, old, bad)])
-    _, run = await flow.run("keyset.verify", {"stores": flow.choice})
+    _, run = await flow.run("keyset.verify", {"stores": flow.store_choice})
     assert run["state"] == "succeeded"
     assert run["result"]["values_unopenable"] >= 1
 
 
 async def test_verify_is_read_only(world, flow):
     before = await stored_values(flow.choice)
-    _, run = await flow.run("keyset.verify", {"stores": flow.choice})
+    _, run = await flow.run("keyset.verify", {"stores": flow.store_choice})
     assert run["state"] == "succeeded", run
     assert await stored_values(flow.choice) == before
 
@@ -971,7 +978,8 @@ def _refusal(call):
 @pytest.mark.parametrize("google", MODES)
 def test_the_store_rule_in_every_mode(default, responses, google):
     """Every combination of the runner's DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES
-    and DB_WRITE_MODE__google.
+    and DB_WRITE_MODE__google. The Google credentials' group is Postgres only
+    since 4.1: written to Postgres alone, whatever the runner's copy says.
 
     ``auto`` (reencrypt, verify): never fewer stores than that group's services
     write, primary first; an unknown mode refuses. ``drop_old`` does not trust
@@ -980,13 +988,10 @@ def test_the_store_rule_in_every_mode(default, responses, google):
     may use, and which then scans Postgres alone."""
     from backend.admin.tasks.catalog.responses_common import StoreChoice
 
-    retired = (
-        default == "postgres"
-        and responses in (None, "postgres")
-        and google in (None, "postgres")
-    )
+    retired = default == "postgres" and responses in (None, "postgres")
     for target, override in ((core.RESPONSES, responses), (core.GOOGLE_CREDENTIALS, google)):
-        mode = override or default
+        # unset: the services' own default (mongo while the backend has groups on it)
+        mode = "postgres" if target is core.GOOGLE_CREDENTIALS else override or default or "mongo"
         config = state.DataConfig.from_env(_env(default, responses, google))
         assert config.mongo_retired() is retired
         if retired:
@@ -995,13 +1000,6 @@ def test_the_store_rule_in_every_mode(default, responses, google):
             assert no_mongo.drop_old_stores(target, True) == ["postgres"]
         else:
             assert _refusal(lambda: config.drop_old_stores(target, True)) == "mongo_not_retired"
-        if mode is None:
-            assert _refusal(lambda: config.drop_old_stores(target, False)) == "write_mode_unknown"
-            assert _refusal(lambda: config.stores_for(target, StoreChoice.auto)) == "write_mode_unknown"
-            # a named choice needs no write mode
-            assert config.stores_for(target, StoreChoice.both) == ["mongo", "postgres"]
-            assert config.stores_for(target, StoreChoice.postgres) == ["postgres"]
-            continue
         written = WRITTEN[mode]
         # drop_old without mongo_retired: both stores, primary first, whatever the mode
         names = config.drop_old_stores(target, False)
@@ -1039,7 +1037,7 @@ def test_the_store_rule_in_every_mode(default, responses, google):
             assert _refusal(lambda: gone.stores_for(target, StoreChoice.auto)) == "store_not_configured"
 
 
-@pytest.mark.parametrize("bad", ["", "   ", "Postgres-only", "both", "auto"])
+@pytest.mark.parametrize("bad", ["Postgres-only", "both", "auto", "mongodb"])
 def test_a_write_mode_the_runner_cannot_read_refuses_and_is_never_echoed(bad):
     config = state.DataConfig.from_env(_env(bad))
     from backend.admin.tasks.spec import Refusal
@@ -1049,6 +1047,8 @@ def test_a_write_mode_the_runner_cannot_read_refuses_and_is_never_echoed(bad):
     assert caught.value.code == "write_mode_unknown"
     assert "Postgres-only" not in repr(caught.value) and "Postgres-only" not in repr(config)
     assert config.mongo_retired() is False
+    # the Postgres-only Google group needs no write mode: Postgres first
+    assert config.drop_old_stores(core.GOOGLE_CREDENTIALS, False) == ["postgres", "mongo"]
 
 
 def test_the_config_keeps_no_connection_string_in_its_write_mode_copy():
@@ -1123,7 +1123,8 @@ async def test_a_mongo_retired_added_after_signing_is_refused(world, stores, mon
     [
         {"DB_WRITE_MODE": "dual"},
         {"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__RESPONSES": "postgres_primary_dual"},
-        {"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__google": "dual"},
+        # the google group is Postgres only: its flag does not retire the others
+        {"DB_WRITE_MODE": "dual", "DB_WRITE_MODE__google": "postgres"},
         {"DB_WRITE_MODE": "", "DB_WRITE_MODE__RESPONSES": "postgres", "DB_WRITE_MODE__google": "postgres"},
     ],
 )
@@ -1164,11 +1165,11 @@ async def test_drop_old_refuses_a_runner_on_postgres_while_the_services_write_mo
 
 
 @pytest.mark.parametrize("task", ["keyset.drop_old", "keyset.reencrypt", "keyset.verify"])
-async def test_an_unset_write_mode_refuses_rather_than_guess(world, stores, monkeypatch, task):
+async def test_an_unreadable_write_mode_refuses_rather_than_guess(world, stores, monkeypatch, task):
     if stores != "both":
         pytest.skip("one data set is enough")
     flow, new_id = await prepare(world, "both")
-    monkeypatch.delenv("DB_WRITE_MODE")
+    monkeypatch.setenv("DB_WRITE_MODE", "mongo-and-postgres")
     params = {
         "keyset.drop_old": flow.params(),
         "keyset.reencrypt": flow.params(primary_id=new_id),
@@ -1179,6 +1180,40 @@ async def test_an_unset_write_mode_refuses_rather_than_guess(world, stores, monk
     if task != "keyset.drop_old":  # a named store choice needs no write mode
         _, run = await flow.run(task, {**params, "stores": "both"}, dry_run=task != "keyset.verify")
         assert run["state"] == "succeeded", run
+
+
+@pytest.mark.parametrize("task", ["keyset.reencrypt", "keyset.verify"])
+async def test_an_unset_write_mode_is_the_services_default(world, stores, monkeypatch, task):
+    """A fresh stack sets no DB_WRITE_MODE: the services then run on their
+    own default, and so does the runner's copy (Mongo first, while the backend
+    has groups on Mongo; the Google credentials in Postgres)."""
+    if stores != "both":
+        pytest.skip("one data set is enough")
+    flow, new_id = await prepare(world, "both")
+    monkeypatch.delenv("DB_WRITE_MODE")
+    params = {"keyset.reencrypt": flow.params(primary_id=new_id), "keyset.verify": {}}[task]
+    _, run = await flow.run(task, params, dry_run=task != "keyset.verify")
+    assert run["state"] == "succeeded", run
+    config = state.DataConfig.from_env()
+    assert config.primary_store(core.RESPONSES) == "mongo"
+    assert config.primary_store(core.GOOGLE_CREDENTIALS) == "postgres"
+
+
+def test_a_fresh_runner_without_a_write_mode_follows_the_services_default():
+    """No DB_WRITE_MODE at all: no refusal for the mode. The Google credentials
+    are in Postgres; the responses follow the services' default (Mongo while
+    the backend has groups on Mongo), whose store must then be configured."""
+    from backend.admin.tasks.catalog.responses_common import StoreChoice
+
+    fresh = state.DataConfig.from_env(_env(None, mongo=False))
+    assert fresh.stores_for(core.GOOGLE_CREDENTIALS, StoreChoice.auto) == ["postgres"]
+    assert _refusal(lambda: fresh.stores_for(core.RESPONSES, StoreChoice.auto)) == (
+        "store_not_configured"
+    )
+    assert fresh.mongo_retired() is False
+    assert state.DataConfig.from_env(_env(None)).stores_for(
+        core.RESPONSES, StoreChoice.auto
+    ) == ["mongo", "postgres"]
 
 
 async def test_reencrypt_and_verify_auto_need_no_mongo_once_the_services_stop_writing_it(
@@ -1235,7 +1270,7 @@ async def test_drop_old_no_longer_waits_for_typeform(world, flow):
     """Neither an unticked acknowledgement nor a leftover instance of the
     removed Typeform integration reporting in stops the drop any more."""
     new_id = await flow.rotate_to_new_primary()
-    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.choice))
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.store_choice))
     stored = await flow.stored()
     await heartbeat(world.owner, "typeform", stored.value, instance="t1", revision=stored.revision)
     _, run = await flow.run(
@@ -1248,7 +1283,7 @@ async def test_drop_old_reads_with_the_primary_alone(world, flow):
     """A value the primary key alone cannot open stops the drop, even though
     the full keyset opens it."""
     new_id = await flow.rotate_to_new_primary()
-    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.choice))
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=flow.store_choice))
     stored = await flow.stored()
     # on the primary key, but not for the context the record needs
     wrong = CryptoService(stored.value).encrypt("x", "y", b"z")
@@ -1263,7 +1298,7 @@ async def test_drop_old_reads_with_the_primary_alone(world, flow):
 
 async def test_the_reencrypt_apply_run_tells_the_admins_once_and_a_dry_run_no_one(world, flow):
     new_id = await flow.rotate_to_new_primary()
-    params = flow.params(primary_id=new_id, stores=flow.choice)
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
 
     async def notices():
         async with world.owner.connect() as conn:

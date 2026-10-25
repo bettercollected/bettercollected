@@ -102,7 +102,7 @@ MONGO_DRIVEN = {
         "test_a_resumed_run_ends_in_the_state_of_an_uninterrupted_one",
         "test_an_empty_store_is_refused_not_reported_clean",
         "test_an_unreachable_store_is_refused",
-        "test_auto_refuses_without_the_services_write_mode",
+        "test_auto_refuses_an_unreadable_write_mode",
         "test_backfill_both_stores_stamps_each",
         "test_backfill_can_be_limited_to_a_workspace_or_forms",
         "test_backfill_dry_run_counts_match_and_change_nothing",

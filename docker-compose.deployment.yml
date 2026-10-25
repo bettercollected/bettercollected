@@ -446,10 +446,10 @@ services:
       # which stores the services write (their DB_WRITE_MODE, kept equal; the
       # backend's default, postgres, since 4.1): what `stores: auto` covers and,
       # for keyset.drop_old, which store is primary and whether mongo_retired is
-      # accepted. And the Google integration's Mongo database
+      # accepted. The Google credentials are in Postgres only since 4.1 (no
+      # write mode). And the Google integration's Mongo database
       DB_WRITE_MODE: ${DB_WRITE_MODE:-postgres}
       DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
-      DB_WRITE_MODE__GOOGLE: ${DB_WRITE_MODE__GOOGLE:-}
       GOOGLE_MONGO_DB: ${TASK_RUNNER_GOOGLE_MONGO_DB:-}
     # The image's own HEALTHCHECK probes port 8000, which this service does not serve:
     # left in place it reports the container unhealthy for good. It reports to the

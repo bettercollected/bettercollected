@@ -5,9 +5,10 @@ import enum
 
 class StoreChoice(str, enum.Enum):
     """Which data stores a task covers. ``auto`` = every store the services
-    still write (the runner's ``DB_WRITE_MODE`` / ``DB_WRITE_MODE__<group>``,
-    which must be set: ``write_mode_unknown`` otherwise), plus any other store
-    the runner is configured for; ``both`` requires both."""
+    still write (the runner's ``DB_WRITE_MODE`` / ``DB_WRITE_MODE__<group>``;
+    unset, the services' default; Postgres for the groups served from Postgres
+    only; ``write_mode_unknown`` for a value that is not a write mode), plus
+    any other store the runner is configured for; ``both`` requires both."""
 
     auto = "auto"
     mongo = "mongo"

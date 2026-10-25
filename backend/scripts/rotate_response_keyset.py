@@ -37,11 +37,14 @@ is still the one read (a value the application changed meanwhile is counted
 and left for the next run). Which stores it covers follows the store rule of
 the keyset tasks (docs/response-keyset-rotation.md, "The store rule"): with
 ``--store auto`` (the default), every store the services write for the
-target's group (``DB_WRITE_MODE__RESPONSES`` / ``DB_WRITE_MODE__GOOGLE``, else
-``DB_WRITE_MODE``), primary first, then any other store configured here
+target's group (``DB_WRITE_MODE__RESPONSES``, else ``DB_WRITE_MODE``; the
+Google credentials are in Postgres only since 4.1, whatever
+``DB_WRITE_MODE__GOOGLE`` says), primary first, then any other store configured here
 (``MONGO_URI``; ``DATABASE_URL``, or ``GOOGLE_DATABASE_URL`` for the Google
-credentials). An unset or unknown write mode is refused
-(``write_mode_unknown``), never guessed; ``--store mongo|postgres|both``
+credentials). An unset write mode is the services' own default (``mongo``
+while the backend has groups on Mongo), as on a fresh stack; a value that is
+not a write mode is refused (``write_mode_unknown``), never guessed;
+``--store mongo|postgres|both``
 names the stores instead and needs no write mode. The primary store's new
 ciphertext is copied unchanged to the other, so the stores stay identical.
 ``--dry-run`` counts only.
@@ -58,9 +61,9 @@ refused) in BOTH stores, Mongo and Postgres, each configured, or refuses
 environment only orders them (an unknown one refuses), it never leaves a store
 out, since a wrong copy of it would leave values in the other store on the
 dropped key. ``--mongo-retired`` scans Postgres alone and is refused
-(``mongo_not_retired``) unless ``DB_WRITE_MODE``, ``DB_WRITE_MODE__RESPONSES``
-and ``DB_WRITE_MODE__GOOGLE`` all say ``postgres`` (an unset override follows
-``DB_WRITE_MODE``; an unset default refuses). It refuses, writing nothing,
+(``mongo_not_retired``) unless ``DB_WRITE_MODE`` and ``DB_WRITE_MODE__RESPONSES``
+both say ``postgres`` (an unset override follows ``DB_WRITE_MODE``; an unset
+default is the services' default, ``mongo``, so it refuses). It refuses, writing nothing,
 while any value still uses a key other than the primary, or while a store the
 services write holds no records at all: a wrong or empty database would
 otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
@@ -186,8 +189,8 @@ def _parse(argv: List[str]) -> argparse.Namespace:
             "--store",
             choices=("auto", "mongo", "postgres", "both"),
             default="auto",
-            help="auto = every store the services write (DB_WRITE_MODE*; refused "
-            "when unset), then any other configured store",
+            help="auto = every store the services write (DB_WRITE_MODE*; the "
+            "services' default when unset), then any other configured store",
         )
         command.add_argument("--batch-size", type=int, default=200)
 
@@ -247,9 +250,9 @@ def _target_settings(target: Target, env=os.environ) -> Tuple[str, str, str]:
 
 STORE_REFUSALS = {
     "write_mode_unknown": (
-        "no write mode for {group}: set DB_WRITE_MODE__{GROUP} or DB_WRITE_MODE "
-        "to the value the services run with (mongo, dual, postgres_primary_dual "
-        "or postgres), or name the stores with --store"
+        "the write mode for {group} is not one: set DB_WRITE_MODE__{GROUP} or "
+        "DB_WRITE_MODE to the value the services run with (mongo, dual, "
+        "postgres_primary_dual or postgres), or name the stores with --store"
     ),
     "store_not_configured": (
         "a store it needs is not configured here (MONGO_URI, or {url_setting} "
@@ -257,9 +260,9 @@ STORE_REFUSALS = {
         "--mongo-retired"
     ),
     "mongo_not_retired": (
-        "--mongo-retired needs DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES and "
-        "DB_WRITE_MODE__GOOGLE all set to postgres here (an unset override "
-        "follows DB_WRITE_MODE), as the services run"
+        "--mongo-retired needs DB_WRITE_MODE and DB_WRITE_MODE__RESPONSES "
+        "both set to postgres here (an unset override follows DB_WRITE_MODE), "
+        "as the services run"
     ),
 }
 

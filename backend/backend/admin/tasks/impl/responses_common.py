@@ -92,6 +92,10 @@ def keyset_fingerprint(keyset: str) -> str:
 
 # ------------------------------------------------------------------- stores
 STORE_NAMES = ("mongo", "postgres")
+#: groups of other services that keep their data in Postgres only: the Google
+#: Forms integration's ``google`` (since 4.1, googleform/db/flags.py). The
+#: runner reads no write mode for them (see :func:`postgres_only_groups`).
+POSTGRES_ONLY_SERVICE_GROUPS = frozenset({"google"})
 
 
 def _written_by_mode() -> Dict[str, List[str]]:
@@ -105,15 +109,38 @@ def _written_by_mode() -> Dict[str, List[str]]:
     }
 
 
+def postgres_only_groups() -> frozenset:
+    """Groups written to Postgres alone whatever the runner's copy of the
+    write mode says: the backend's (``backend.db.groups.POSTGRES_ONLY_GROUPS``)
+    and :data:`POSTGRES_ONLY_SERVICE_GROUPS`. Their services refuse to start
+    on any other mode."""
+    from backend.db.groups import POSTGRES_ONLY_GROUPS
+
+    return frozenset(POSTGRES_ONLY_GROUPS) | POSTGRES_ONLY_SERVICE_GROUPS
+
+
+def services_default_write_mode() -> str:
+    """The write mode the services run with when none is set: the default of
+    their own flag loader (``common.db.flags.load_flags``)."""
+    from common.db.flags import load_flags
+
+    return load_flags({}).default_write.value
+
+
 def written_stores(group: str, env: Mapping[str, str]) -> List[str]:
     """The stores the services write for ``group``, primary first, from the
     runner's copy of the services' write mode: ``DB_WRITE_MODE__<group>`` (any
-    case), else ``DB_WRITE_MODE``. Refuses (``write_mode_unknown``) when neither
-    is set or the value is not a write mode: the runner never guesses which
-    stores the services write (the services' own default does not count, it
-    is not the runner's to know). Never echoes the value."""
+    case), else ``DB_WRITE_MODE``, else (neither set, as on a fresh stack,
+    where the services run on their default too) the services' default
+    (:func:`services_default_write_mode`). A group of
+    :func:`postgres_only_groups` is written to Postgres alone, whatever the
+    copy says. Refuses (``write_mode_unknown``) when the value is set but not
+    a write mode: the runner never guesses what a setting meant. Never echoes
+    the value."""
     from common.db.flags import OVERRIDE_SEP, WRITE_KEY
 
+    if group.lower() in postgres_only_groups():
+        return ["postgres"]
     override = f"{WRITE_KEY}{OVERRIDE_SEP}{group}".lower()
     raw = ""
     for key, value in env.items():
@@ -121,6 +148,8 @@ def written_stores(group: str, env: Mapping[str, str]) -> List[str]:
             raw = value
     if not raw:
         raw = env.get(WRITE_KEY) or ""
+    if not raw.strip():
+        raw = services_default_write_mode()
     stores = _written_by_mode().get(raw.strip().lower())
     if stores is None:
         raise Refusal("write_mode_unknown")
