@@ -152,6 +152,18 @@ class RunDetail:
 
 
 @dataclass(frozen=True)
+class DryRunSummary:
+    """The latest finished dry run of a task with exactly the parameters an apply
+    is about to use: who asked for it, when it finished and its result counters
+    (the same rows the run page shows, through the task's own result schema)."""
+
+    run: RunView
+    result: Optional[list]  # (path, value) rows, None when there is none to show
+    result_note: Optional[str]  # "no_result" | "mismatch" | None
+    older_than_a_day: bool
+
+
+@dataclass(frozen=True)
 class RunsPage:
     runs: list
     page: int
@@ -458,6 +470,27 @@ class TaskPageService:
                 )
             ).mappings().first()
         return self._view(row) if row else None
+
+    async def dry_run_for(self, meta: TaskMeta, params: Mapping[str, Any]) -> Optional[DryRunSummary]:
+        """The latest succeeded dry run of this task and version with exactly
+        these (canonical, validated) parameters, or None."""
+        async with self._engine.connect() as conn:
+            found = (
+                await conn.execute(
+                    text(
+                        "SELECT id FROM tasks.runs WHERE task = :t AND version = :v "
+                        "AND params_hash = :h AND dry_run AND state = 'succeeded' "
+                        "ORDER BY finished_at DESC NULLS LAST, id LIMIT 1"
+                    ),
+                    {"t": meta.name, "v": meta.version, "h": signing.params_hash(dict(params))},
+                )
+            ).scalar_one_or_none()
+        detail = await self.run_detail(found) if found is not None else None
+        if detail is None:
+            return None
+        finished = detail.run.finished_at
+        old = finished is None or self._clock.now() - finished > DRY_RUN_MAX_AGE
+        return DryRunSummary(detail.run, detail.result, detail.result_note, old)
 
     async def _dry_run_ok(self, conn, meta: TaskMeta, params_hash: str) -> bool:
         """The condition the runner checks: a succeeded dry run of this task and
