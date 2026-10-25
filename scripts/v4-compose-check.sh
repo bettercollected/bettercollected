@@ -120,6 +120,9 @@ absorb() { # reads a client's output on stdin
 cleanup() {
   local p ids
   for pid in "${bg_pids[@]:-}"; do [ -n "$pid" ] && kill "$pid" >/dev/null 2>&1; done
+  # a probe network of free_subnet left by a kill between its create and its rm (free_subnet runs in a
+  # subshell, so it cannot register the name in a shell array)
+  docker network ls -q --filter "name=^bcv4probe${run_id}x" 2>/dev/null | xargs -r docker network rm >/dev/null 2>&1
   if [ "$keep" = 1 ]; then
     echo "--keep: projects ${projects[*]:-none} left running (work directory $work, mail sink $mail_container)"
     return
@@ -185,7 +188,7 @@ free_subnet() {
         docker network ls -q | xargs -r docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null
         ip -4 route show 2>/dev/null | awk '{print $1}'
         cat "$subnets_file"
-      } | python3 -I -c '
+      } | uv run --no-project python -I -c '
 import ipaddress, random, sys
 taken = []
 for line in sys.stdin:
@@ -962,7 +965,11 @@ part_upgrade() {
     # only for that failure; any other failure, or a second one, is a failure.
     if grep -q 'umami-postgresql.*Error' "$out"; then
       echo "  (the old stack's umami-postgresql was not healthy in time: its own deploy.sh again, once)"
-      old_deploy "$out.retry" || { bad "the previous release's deploy.sh ran (also on the second run)"; tail -n 20 "$out.retry"; show_failures; return; }
+      old_deploy "$out.retry" || {
+        bad "the previous release's deploy.sh ran (also on the second run)"
+        echo "  --- first run (its last 10 lines), then the second run"; tail -n 10 "$out"
+        tail -n 20 "$out.retry"; show_failures; return
+      }
     else
       bad "the previous release's deploy.sh ran"; tail -n 20 "$out"; show_failures; return
     fi
