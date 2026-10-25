@@ -267,7 +267,9 @@ export interface StandardFormResponseDto {
     formImportedBy?: string;
     /** Deletion request status (on deletion request lists): pending, success or declined. */
     status?: string;
-    /** Why a declined deletion request was declined (a fixed code, e.g. legal_obligation). */
+    /** The deletion request's status on a single submission (GET /submissions/{id}): pending, success or declined. */
+    deletionStatus?: string | null;
+    /** Why a declined deletion request was declined (a fixed code, e.g. legal_obligation); on the lists and on a single submission. */
     declineReason?: string | null;
     /** The receipt number responders use to find/delete this response. */
     submissionUuid?: string;
