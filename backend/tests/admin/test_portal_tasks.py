@@ -458,6 +458,77 @@ async def test_the_apply_confirmation_round_trips_lists_and_hidden_fields(ctx):
     assert real["params_hash"] == row["params_hash"]
 
 
+def _confirmation_counts(html):
+    section = html.split('id="dry-counts"', 1)[1].split("</section>", 1)[0]
+    return dict(re.findall(r"<code>([a-z_.]+)</code></th><td>([^<]*)</td>", section)), section
+
+
+async def test_the_apply_confirmation_says_it_changes_data_and_shows_the_dry_run_counts(ctx):
+    params = {"items": "10", "batch_size": "5"}
+    dry_id = await ctx.dry_run(GUARDED, params)
+    assert await ctx.drain() == 1
+    ctx.clock.advance(10)
+    prepared = await ctx.prepare("apply", {"task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
+    assert prepared.status_code == 200 and TOKEN_FIELD.search(prepared.text)
+    assert "This changes data." in prepared.text
+    counts, section = _confirmation_counts(prepared.text)
+    # the self-test's counters depend on earlier tests' changes: check the shape and the sum
+    assert set(counts) == {"changed", "unchanged", "batches"} and counts["batches"] == "2"
+    assert int(counts["changed"]) + int(counts["unchanged"]) == 10
+    assert f"/tasks/runs/{dry_id}" in section and "requested by" in section
+    assert "more than 24 hours" not in section
+    # the page that asks for the code (no token yet) carries both as well
+    asked = await ctx.post("/tasks/prepare", {"action": "apply", "task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
+    assert "This changes data." in asked.text and "<code>batches</code>" in asked.text
+    # a dry run of the SAME task with other parameters is not the one shown (the params hash separates them)
+    await ctx.dry_run(GUARDED, {"items": "20", "batch_size": "5"})
+    assert await ctx.drain() == 1
+    again = await ctx.prepare("apply", {"task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
+    counts_again, section_again = _confirmation_counts(again.text)
+    assert f"/tasks/runs/{dry_id}" in section_again and counts_again["batches"] == "2"  # 10 items, not the 4 batches of 20
+    other = await ctx.prepare("apply", {"task": GUARDED, "p_items": "30", "p_batch_size": "5"})
+    assert other.status_code == 409 and "dry run" in other.text  # nothing with those params: refused before any confirmation
+    # a task that needs no prior dry run says there is none for these parameters
+    unmatched = await ctx.prepare("apply", {"task": SLOW, "p_items": "10"})
+    assert "No dry run with exactly these parameters" in _confirmation_counts(unmatched.text)[1]
+
+
+async def test_a_dry_run_older_than_a_day_is_shown_as_such_where_none_is_required(ctx):
+    await ctx.dry_run(SLOW, {"items": "10", "batch_size": "5"})
+    assert await ctx.drain() == 1
+    async with ctx.owner.begin() as conn:  # (moving the clock would end the admin's session)
+        await conn.execute(text("UPDATE tasks.runs SET finished_at = finished_at - interval '25 hours' WHERE dry_run"))
+    prepared = await ctx.prepare("apply", {"task": SLOW, "p_items": "10", "p_batch_size": "5"})
+    counts, section = _confirmation_counts(prepared.text)
+    assert "more than 24 hours" in section and counts  # the counters are still shown
+
+
+async def test_resume_confirmation_says_it_changes_data_and_cancel_does_not(ctx):
+    run_id = await ctx.dry_run(SLOW, {"items": "20", "batch_size": "5", "fail_at": "7"})
+    assert await ctx.drain() == 1
+    ctx.clock.advance(5)
+    resume = await ctx.prepare("resume", {"run_id": run_id})
+    assert "This changes data." in resume.text and "dry-counts" not in resume.text
+    queued = await ctx.dry_run(SLOW, {"items": "10"})
+    cancel = await ctx.prepare("cancel", {"run_id": queued})
+    assert "Confirm: cancel run" in cancel.text and "This changes data." not in cancel.text
+
+
+async def test_the_confirmation_shows_only_what_the_result_schema_allows(ctx):
+    params = {"items": "10", "batch_size": "5"}
+    await ctx.dry_run(GUARDED, params)
+    assert await ctx.drain() == 1
+    async with ctx.owner.begin() as conn:
+        await conn.execute(
+            text("UPDATE tasks.runs SET result = CAST(:r AS jsonb) WHERE dry_run"),
+            {"r": json.dumps({"changed": "x<script>", "secret": "planted"})},
+        )
+    ctx.clock.advance(10)
+    prepared = await ctx.prepare("apply", {"task": GUARDED, **{f"p_{k}": v for k, v in params.items()}})
+    assert "planted" not in prepared.text and "<script>" not in prepared.text
+    assert "does not match the task's current result schema" in prepared.text
+
+
 # -- cancel ----------------------------------------------------------------------------------
 async def test_cancel_semantics(ctx):
     run_id = await ctx.dry_run(SLOW, {"items": "10"})
