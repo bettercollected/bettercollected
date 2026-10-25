@@ -252,6 +252,8 @@ jobs:
 
     google-tests:
         name: Google integration tests (${{ matrix.mode }})
+        # The service is served from Postgres only (googleform/db/flags.py): it
+        # refuses the Mongo and dual flags, so the Postgres mode is its only one.
         # The google unit suite has pre-existing failures from aiohttp/pydantic API
         # drift (tests/unit/app/utils/test_aiohttp_client.py, tests/unit/app/views,
         # tests/unit/app/test_asgi.py) that predate the Postgres work and were never
@@ -263,7 +265,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                mode: ${{ fromJSON(needs.plan.outputs.modes) }}
+                mode: [postgres]
         defaults:
             run:
                 working-directory: integrations/google
@@ -282,20 +284,13 @@ jobs:
               with:
                   persist-credentials: false
 
-            # In the Postgres mode the suite runs before Mongo exists, with
-            # MONGO_URI on a closed port: the service must start and serve
-            # without it. Mongo then starts for the few tests that drive it
-            # themselves (marker "mongo", tests/conftest.py).
+            # The suite runs before Mongo exists, with MONGO_URI on a closed
+            # port: the service must start and serve without it. Mongo then
+            # starts for the few tests that drive it themselves (the import
+            # from 4.0; marker "mongo", tests/conftest.py).
             - name: Start the test databases
               working-directory: .
-              env:
-                  MODE: ${{ matrix.mode }}
-              run: |
-                  if [ "$MODE" = postgres ]; then
-                      .github/scripts/test-dbs.sh start postgres
-                  else
-                      .github/scripts/test-dbs.sh start postgres mongo
-                  fi
+              run: .github/scripts/test-dbs.sh start postgres
 
             - name: Set up uv
               uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
@@ -313,28 +308,16 @@ jobs:
 
             - name: Run google tests (${{ matrix.mode }})
               env:
-                  MODE: ${{ matrix.mode }}
-              run: |
-                  extra=()
-                  case "$MODE" in
-                      dual) export DB_WRITE_MODE=dual ;;
-                      postgres)
-                          export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres
-                          export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
-                          extra=(-m "not mongo")
-                          ;;
-                  esac
-                  uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py "${extra[@]}"
+                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+              run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m "not mongo"
 
             - name: Start MongoDB for the tests that drive it
-              if: matrix.mode == 'postgres'
               working-directory: .
               run: |
                   .github/scripts/test-dbs.sh start mongo
                   .github/scripts/test-dbs.sh wait
 
             - name: Run the google tests that drive Mongo (postgres)
-              if: matrix.mode == 'postgres'
               env:
                   DB_READ_SOURCE: postgres
                   DB_WRITE_MODE: postgres

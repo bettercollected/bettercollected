@@ -21,11 +21,10 @@ from googleform.db.base import SCHEMA, Base
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 
-#: Test files that drive a Mongo server themselves, whatever the flags (store
-#: parity, the migration CLI). They get the ``mongo`` marker: CI runs the
+#: Test files that drive a Mongo server themselves (the migration CLI, which
+#: imports the 4.0 data). They get the ``mongo`` marker: CI runs the
 #: Postgres mode without Mongo and ``-m "not mongo"`` (docs/ci.md).
 MONGO_DRIVEN = (
-    "tests/integration/app/repository/test_postgres_parity.py",
     "tests/integration/test_migrate_marker.py",
     "tests/integration/test_migrate_tombstones.py",
 )
@@ -75,14 +74,10 @@ def _postgres_schema():
 
 @pytest.fixture(scope="session", autouse=True)
 def _schema_when_served_from_postgres():
-    """When the flags put a repository group on Postgres the app refuses to start
-    on an unmigrated schema. Migrate up front instead of relying on an earlier
-    test, or an earlier run against the same database, to have done it: each
-    persistence mode can then run alone on a fresh database (CI runs them as
-    parallel jobs)."""
-    from common.db.flags import load_flags
-
-    if _postgres_configured() and load_flags().requires_postgres():
+    """The app is served from Postgres only and refuses to start on an
+    unmigrated schema. Migrate up front instead of relying on an earlier test,
+    or an earlier run against the same database, to have done it."""
+    if _postgres_configured():
         _alembic_upgrade_head()
 
 
