@@ -27,10 +27,10 @@ export default function TemplatesClient({ predefined_templates }: { predefined_t
     return (
         <>
             {predefined.length > 0 && (
-                <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={predefined} className="h-[400px]" />
+                <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={predefined} variant="predefined" />
             )}
             {v2.length > 0 && (
-                <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE') + ' v2'} templates={v2} />
+                <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE') + ' v2'} templates={v2} variant="workspace" />
             )}
             {isEmpty && !isLoading && (
                 <div className="flex min-h-[320px] w-full flex-col items-center justify-center gap-3 text-center">

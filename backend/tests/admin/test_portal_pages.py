@@ -307,6 +307,78 @@ async def test_health_shows_heartbeats_stopped_and_unavailable_schemas(portal, a
     await b.aclose()
 
 
+async def test_health_lists_missing_sso_settings_by_name_only(portal, app, superuser):
+    """SSO_ENABLED set in the environment of backend and auth, the rest not:
+    the page names what is missing per service and never shows a value."""
+    async with superuser.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied, env_overrides) "
+                "VALUES ('backend', 'sso-a', now(), 0, ARRAY['SSO_ENABLED', 'SSO_POLIS_URL']), "
+                "('auth', 'sso-b', now(), 0, ARRAY['SSO_ENABLED'])"
+            )
+        )
+    try:
+        b = await signed_in(portal, app)
+        html = (await b.get("/health")).text
+        section = html.split("<h2>Single sign-on</h2>", 1)[1].split("<h2>", 1)[0]
+        backend = re.search(r'<th scope="row">backend</th>.*?</tr>', section, re.S).group(0)
+        auth = re.search(r'<th scope="row">auth</th>.*?</tr>', section, re.S).group(0)
+        assert "set in the environment" in backend
+        assert "SSO_POLIS_API_KEY, SSO_REDIRECT_URI" in backend
+        assert "SSO_POLIS_URL" not in backend  # reported as set
+        assert "SSO_POLIS_URL, SSO_REDIRECT_URI" in auth
+        assert "SSO_POLIS_CLIENT_SECRET" in auth  # optional, named apart
+        assert "SSO_POLIS_INTERNAL_URL is not required" in section
+        dashboard = (await b.get("/")).text
+        assert "Single sign-on is switched on but not fully set up." in dashboard
+        await b.aclose()
+    finally:
+        async with superuser.begin() as conn:
+            await conn.execute(text("DELETE FROM settings.service_state WHERE instance IN ('sso-a', 'sso-b')"))
+
+
+class _Row:
+    def __init__(self, service, env=(), age=0):
+        self.service, self.env_overrides, self.age_seconds = service, list(env), age
+
+
+class _Entry:
+    def __init__(self, value, is_secret=False, cleared=False):
+        self.value, self.is_secret, self.cleared = value, is_secret, cleared
+
+
+def test_sso_status_from_store_and_environment_names_only():
+    secret_url = "https://polis-value-never-shown.example.net"
+    entries = {
+        "SSO_ENABLED": _Entry("true"),
+        "SSO_POLIS_URL": _Entry(json.dumps(secret_url)),
+        "SSO_POLIS_API_KEY": _Entry(None, is_secret=True),
+        "SSO_REDIRECT_URI": _Entry(json.dumps("https://x.example/cb"), cleared=True),
+    }
+    status = pg.sso_status("backend", [_Row("backend")], entries)
+    assert status.enabled == "on"
+    assert status.missing == ("SSO_REDIRECT_URI",)  # cleared counts as not set
+    assert status.incomplete
+    assert secret_url not in repr(status) and "x.example" not in repr(status)
+
+    # set in the environment of every live instance; a stale instance does not count
+    rows = [_Row("auth", ["SSO_ENABLED", "SSO_POLIS_URL", "SSO_REDIRECT_URI"]),
+            _Row("auth", [], age=pg.HEARTBEAT_STALE_SECONDS + 1)]
+    auth = pg.sso_status("auth", rows, {})
+    assert auth.enabled == "environment" and auth.missing == ()
+    assert auth.missing_optional == ("SSO_POLIS_CLIENT_SECRET",) and not auth.incomplete
+    # two live instances, one without a setting: still missing
+    rows = [_Row("auth", ["SSO_ENABLED", "SSO_POLIS_URL", "SSO_REDIRECT_URI"]), _Row("auth", ["SSO_ENABLED"])]
+    assert pg.sso_status("auth", rows, {}).missing == ("SSO_POLIS_URL", "SSO_REDIRECT_URI")
+
+    # off by default or false in the store: nothing listed
+    assert pg.sso_status("backend", [_Row("backend")], {}) == pg.SsoStatus("backend", "off")
+    assert pg.sso_status("backend", [_Row("backend")], {"SSO_ENABLED": _Entry("false")}).enabled == "off"
+    # never reported
+    assert pg.sso_status("auth", [_Row("backend")], {}).enabled == "unknown"
+
+
 # -- metrics ---------------------------------------------------------------------------------
 async def test_metrics_page_without_application_tables_says_unavailable(portal, app):
     b = await signed_in(portal, app)

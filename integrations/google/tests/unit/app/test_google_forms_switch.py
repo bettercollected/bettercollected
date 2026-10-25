@@ -84,7 +84,7 @@ def test_the_sheets_routes_are_not_google_forms_work(client, mode, value):
     with patch.object(GoogleService, "create_sheet", return_value="sheet-1"):
         response = client.post(
             ROOT + "/google/forms/create_google_sheet",
-            params={"title": "t", "credential": "c"},
+            json={"title": "t", "credential": "c"},
         )
     assert response.status_code == 200
     assert response.json() == "sheet-1"

@@ -171,7 +171,9 @@ export default function WorkspaceScimSection() {
     if (!overview.available) {
         return (
             <Section title={title} description={description}>
-                <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600">{t(scim.NOT_ENABLED)}</p>
+                <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="scim-unavailable">
+                    {t(overview.reason === 'not_configured' ? scim.NOT_CONFIGURED : scim.NOT_ENABLED)}
+                </p>
             </Section>
         );
     }

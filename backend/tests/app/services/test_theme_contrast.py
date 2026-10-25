@@ -334,6 +334,6 @@ async def test_a_theme_the_ai_assistant_set_is_refused(workspace):
 
 
 def test_the_seeded_flow_templates_use_a_theme_that_publishes():
-    from scripts.seed_flow_templates import THEME
+    from scripts.seed_flow_templates import template_theme
 
-    assert theme_contrast_problems(THEME) == []
+    assert theme_contrast_problems(template_theme()) == []

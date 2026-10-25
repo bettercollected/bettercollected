@@ -146,8 +146,9 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
         create_google_sheet_url = (
             f"{provider_url}/{FormProvider.GOOGLE}/forms/create_google_sheet"
         )
+        # In the body, never the query string: a URL ends up in access logs.
         response = await self.http_client.post(
             create_google_sheet_url,
-            params={"title": title[0], "credential": credential[0]},
+            json={"title": title[0], "credential": credential[0]},
         )
         return ParameterValue(name="Google Sheet Id", value=response)

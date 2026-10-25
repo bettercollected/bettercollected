@@ -136,6 +136,9 @@ class TestDefaultGoogleService:
         )
         assert saved.status_code == 200, saved.text
         assert google_service.post.call_args.args[0].endswith("/forms/create_google_sheet")
+        # the credential travels in the body, never in the query string
+        assert "params" not in google_service.post.call_args.kwargs
+        assert google_service.post.call_args.kwargs["json"]["credential"] == "service-result"
         assert fake_google.requests == []
 
 
