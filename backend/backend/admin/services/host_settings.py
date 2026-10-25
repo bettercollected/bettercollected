@@ -817,6 +817,12 @@ async def set_value(
     return await service.set(key, raw, actor, confirmation=confirmation)
 
 
+async def clear_value(
+    service: SettingsService, key: str, actor: Actor, *, confirmation: Optional[str]
+):
+    return await service.clear(key, actor, confirmation=confirmation)
+
+
 async def restore_version(
     service: SettingsService, key: str, version: int, actor: Actor, *, confirmation: Optional[str]
 ):

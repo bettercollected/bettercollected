@@ -365,6 +365,20 @@ async def _settings_set(key: str, use_stdin: bool, value: Optional[str], confirm
     return 0
 
 
+async def _settings_clear(key: str, confirm: Optional[str]) -> int:
+    """Clears KEY in the store: its versions are kept (``settings-restore``
+    brings a value back), the services read it as unset."""
+    host = _host()
+    settings = AdminSettings.from_env()
+    service = _service(settings)
+    try:
+        change = await host.clear_value(service, key, _cli_actor(), confirmation=confirm)
+    finally:
+        await service._engine.dispose()
+    print(f"cleared {key} version={change.version}")
+    return 0
+
+
 async def _settings_restore(key: str, version: int, confirm: Optional[str]) -> int:
     host = _host()
     settings = AdminSettings.from_env()
@@ -594,6 +608,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     group.add_argument("--value", help="the value (not for secrets)")
     setter.add_argument("--confirm", metavar="KEY", help="type the key again to confirm a T3 setting")
     setter.add_argument("--yes", action="store_true")
+    clearer = sub.add_parser(
+        "settings-clear", help="clear a setting from the host (tiers T1-T3); its versions are kept"
+    )
+    clearer.add_argument("key")
+    clearer.add_argument("--confirm", metavar="KEY", help="type the key again to confirm a T3 setting")
+    clearer.add_argument("--yes", action="store_true")
     restorer = sub.add_parser("settings-restore", help="restore a previous version of a setting")
     restorer.add_argument("key")
     restorer.add_argument("--version", type=int, required=True)
@@ -656,12 +676,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return asyncio.run(
                 _settings_env_export([k.strip() for k in args.keys.split(",") if k.strip()], args.out)
             )
-        if args.command in ("settings-set", "settings-restore"):
+        if args.command in ("settings-set", "settings-clear", "settings-restore"):
             if not args.yes:
                 print("refused: pass --yes to confirm the change", file=sys.stderr)
                 return 2
             if args.command == "settings-set":
                 return asyncio.run(_settings_set(args.key, args.stdin, args.value, args.confirm))
+            if args.command == "settings-clear":
+                return asyncio.run(_settings_clear(args.key, args.confirm))
             return asyncio.run(_settings_restore(args.key, args.version, args.confirm))
         if args.command == "settings-history":
             return asyncio.run(_settings_history(args.key))

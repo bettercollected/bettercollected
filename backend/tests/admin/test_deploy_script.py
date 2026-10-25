@@ -74,6 +74,10 @@ STUB = textwrap.dedent(
         elif verb == "settings-set":
             (store / cmd[1]).write_text(stdin)
             print("set %s version=1 changed=yes" % cmd[1])
+        elif verb == "settings-clear":
+            # the store keeps the versions: the value stays, marked cleared
+            (store / (cmd[1] + ".cleared")).write_text("")
+            print("cleared %s version=2" % cmd[1])
         elif verb == "settings-import":
             for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY",
                         "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET"):
@@ -98,6 +102,30 @@ STUB = textwrap.dedent(
         sys.exit(0)
     if "backend.seed_refdata" in argv and os.environ.get("STUB_SEED_FAILS"):
         sys.exit(1)
+    # the migration CLIs of the import from before 4.1: STUB_MIGRATE_FAILS="<service> <step>"
+    for module, name in (("auth.migrate", "auth"), ("googleform.migrate", "google"),
+                         ("backend.migrate", "backend")):
+        if module in argv:
+            step = argv[argv.index(module) + 1]
+            failing = os.environ.get("STUB_MIGRATE_FAILS", "") == name + " " + step
+            if step == "status":
+                print("service %s (schema x)\\nmarker: none" % name)
+                broken = os.environ.get("STUB_MIGRATE_FAILS", "") == name + " backfill"
+                print("  %s_things: mongo=3 postgres=%d backfill=%s"
+                      % (name, 2 if broken else 3, "error" if broken else "done"))
+            elif step in ("preflight", "verify"):
+                row = {"collection": name + "_things", "mongo": 3, "postgres": 3, "missing_in_postgres": 0,
+                       "missing_in_mongo": 0, "mismatched": 0, "drifted": 0, "tombstoned": 0,
+                       "invalid_ids": 0, "duplicates": 0,
+                       "samples": {"missing_in_postgres": [], "mismatched": []}}
+                bad = dict(row, collection=name + "_others", postgres=1, missing_in_postgres=2,
+                           samples={"missing_in_postgres": ["65f0c0ffee0000000000aaaa"], "mismatched": []})
+                if failing and step == "preflight":
+                    bad = dict(row, collection=name + "_others", duplicates=2, postgres=0)
+                print(json.dumps([row] + ([bad] if failing else []), indent=2, sort_keys=True))
+            else:
+                print(json.dumps({name + "_things": {"state": "error" if failing else "done"}}, indent=2))
+            sys.exit(1 if failing else 0)
     if "config" in argv:
         print("{}")
         sys.exit(0)
@@ -241,13 +269,14 @@ def test_new_install_bootstraps_keys_before_any_service_starts(site):
                  "TEMPORAL_API_KEY", "AUTH_INTERNAL_NOTIFY_KEY"):
         assert name not in values, name
     assert stat.S_IMODE((work / ".env").stat().st_mode) == 0o600
-    # UMAMI_URL seeded into the store; so is the Mongo connection, with the generated
-    # root password (which is in .env but never printed)
+    # UMAMI_URL seeded into the store. A new 4.1 stack has no MongoDB: no root
+    # password, no MONGO_URI, no import, and Mongo is never started
     assert (state / "store" / "UMAMI_URL").read_text() == "http://umami:3000"
-    assert values["BC_MONGO_ROOT_PASSWORD"]
-    assert (state / "store" / "MONGO_URI").read_text() == (
-        f"mongodb://root:{values['BC_MONGO_ROOT_PASSWORD']}@mongodb:27017"
-    )
+    assert "BC_MONGO_ROOT_PASSWORD" not in values and "BC_LEGACY_MONGO_IMPORTED" not in values
+    assert not (state / "store" / "MONGO_URI").exists()
+    assert not any("mongodb" in c or "legacy-mongo" in c or ".migrate" in c for c in calls)
+    up = calls[_index(calls, "up --build")]
+    assert "mongo" not in up
     # nothing generated is printed
     shown = done.stdout + done.stderr
     for name, value in values.items():
@@ -264,9 +293,10 @@ def test_a_second_run_does_not_bootstrap_again(site):
     assert done.returncode == 0
     before = _dotenv(work)
     (state / "calls.log").unlink()
-    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    done, calls = _run(site, volumes="app-postgres-data,temporal-postgres-data,umami-db-data")
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     assert not any("bootstrap-keys" in c for c in calls)
+    assert not any("mongodb" in c or ".migrate" in c for c in calls)
     assert not any("settings-import" in c for c in calls)
     assert _dotenv(work) == before
 
@@ -310,8 +340,11 @@ def test_an_upgrade_imports_and_checks_before_the_services_start(site):
     # an existing database keeps its internal passwords: nothing is generated for them
     assert "BC_TEMPORAL_DB_PASSWORD" not in values and "BC_UMAMI_DB_PASSWORD" not in values
     assert "BC_MONGO_ROOT_PASSWORD" not in values
-    # no MONGO_URI in the files: the original default is seeded, never a new password
+    # no MONGO_URI in the files: the original default is seeded for the import (never a
+    # new password), and cleared once the data is in Postgres
     assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:root@mongodb:27017"
+    assert (state / "store" / "MONGO_URI.cleared").exists()
+    assert values["BC_LEGACY_MONGO_IMPORTED"]
 
 
 def test_an_upgrade_stops_when_the_import_or_the_comparison_fails(site):
@@ -451,24 +484,38 @@ def test_every_always_on_service_is_started_for_every_preference(site):
     preference (a docker-compose `up --dry-run` version of this runs in
     test_deployment_config.py)."""
     required = {"admin", "jobs-worker", "document-sandbox", "task-runner", "backend", "auth", "worker", "webapp"}
-    # both and typeform still work; Typeform itself was removed in 4.1
-    for preference, extra in (("", set()), ("both", {"integrations-googleform"}),
-                              ("typeform", set()), ("googleform", {"integrations-googleform"})):
+    for preference, extra in (("", set()), ("googleform", {"integrations-googleform"})):
         done, calls = _run(site, "print-services", preference)
         assert done.returncode == 0, done.stderr
         listed = set(done.stdout.split())
         assert required <= listed, (preference, required - listed)
         assert extra <= listed
         assert "integrations-typeform" not in listed
+        # MongoDB is not part of a 4.1 stack (only the legacy-mongo profile starts it)
+        assert not {"mongodb", "mongo-seed"} & listed
         assert ("integrations-googleform" in listed) == ("integrations-googleform" in extra)
-    # and the real start passes exactly that list to `up`, with a warning for both
-    done, calls = _run(site, "both")
+    # and the real start passes exactly that list to `up`
+    done, calls = _run(site, "googleform")
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
-    assert "Typeform integration was removed" in done.stderr
     up = calls[_index(calls, "up --build")]
     for name in required | {"integrations-googleform"}:
         assert f" {name}" in up, name
-    assert "integrations-typeform" not in up and "TYPEFORM" not in up
+    assert "integrations-typeform" not in up and "TYPEFORM" not in up and "mongo" not in up
+
+
+@pytest.mark.parametrize("args", [("typeform",), ("both",), ("print-services", "typeform"), ("print-services", "both")])
+def test_the_typeform_preferences_are_refused_before_anything_changes(site, args):
+    """Typeform was removed in 4.1: `typeform` and `both` are refused with the way
+    forward, before a file is written or a container touched."""
+    work, state, _ = site
+    before = sorted(p.name for p in work.iterdir())
+    done, calls = _run(site, *args)
+    assert done.returncode == 2
+    assert "the Typeform integration was removed in 4.1" in done.stderr
+    assert "./deploy.sh googleform" in done.stderr and "Nothing was changed" in done.stderr
+    assert done.stdout == ""
+    assert calls == []
+    assert sorted(p.name for p in work.iterdir()) == before
 
 
 @pytest.mark.parametrize("value", ['true', '"true"', "'True'", "1", "yes", "on"])
@@ -550,12 +597,13 @@ def test_no_database_password_is_generated_while_any_volume_of_the_stack_exists(
     done, calls = _run(site, volumes="app-postgres-data")
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     values = _dotenv(work)
-    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"):
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD"):
         assert name not in values, name
         assert f"NOTE: {name} is not set" in done.stdout
-    # the Mongo of a stack that has volumes keeps the original default, and the store
-    # is told so (no new password that would not match)
-    assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:root@mongodb:27017"
+    # a stack without a Mongo volume has no MongoDB at all (4.1): no password, no
+    # MONGO_URI, no note about either
+    assert "BC_MONGO_ROOT_PASSWORD" not in values and "BC_MONGO_ROOT_PASSWORD" not in done.stdout
+    assert not (state / "store" / "MONGO_URI").exists()
     # a stack with no volume at all gets all three
     other = site[0].parent / "stack2"
     other.mkdir()
@@ -567,8 +615,9 @@ def test_no_database_password_is_generated_while_any_volume_of_the_stack_exists(
     state2.mkdir()
     done, _ = _run((other, state2, {**site[2], "STUB_STATE": str(state2)}), drop=("COMPOSE_PROJECT_NAME",))
     assert done.returncode == 0
-    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "BC_MONGO_ROOT_PASSWORD"):
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD"):
         assert _dotenv(other).get(name), name
+    assert "BC_MONGO_ROOT_PASSWORD" not in _dotenv(other)
 
 
 @pytest.mark.parametrize("where", [".env", ".env.deployment"])
@@ -604,7 +653,7 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
         "SERVER_URL=http://backend:8000/api/v1\nCOOKIE_DOMAIN=example.test\nNAMESPACE=default\n"
         "TYPEFORM_CLIENT_ID=tid\nTYPEFORM_CLIENT_SECRET=tsecret\nUMAMI_PASSWORD=\n"
     )
-    done, _ = _run(site, "typeform")  # a pre-4.1 preference: starts without Typeform
+    done, _ = _run(site)
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     webapp = _tail(work, ".env.webapp")
     worker = _tail(work, ".env.worker")
@@ -829,10 +878,10 @@ def test_a_new_stack_seeds_its_reference_data_into_postgres_before_the_start(sit
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     [seed] = _seed_calls(calls)
     position = calls.index(seed)
-    # after the migrations and the keys, with Mongo up (the import check reads it),
-    # before any service starts
-    assert _index(calls, "alembic") < _index(calls, "bootstrap-keys") < position
-    assert _index(calls, "up -d --wait mongodb") < position < _index(calls, "up --build")
+    # after the migrations and the keys, before any service starts; a new stack has
+    # no MONGO_URI, so Mongo is never started for the import check
+    assert _index(calls, "alembic") < _index(calls, "bootstrap-keys") < position < _index(calls, "up --build")
+    assert not any("mongodb" in c for c in calls)
     assert "run --rm --no-deps backend" in seed
     assert seed.endswith("--google-enabled false")
     # no public domain configured: the command decides (local ports, or API_CLIENT_URL's origin)
@@ -880,7 +929,7 @@ def test_an_upgrade_and_a_second_run_never_seed(site):
     done, calls = _run(site)
     assert done.returncode == 0 and len(_seed_calls(calls)) == 1
     (state / "calls.log").unlink()
-    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    done, calls = _run(site, volumes="app-postgres-data")
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     assert not _seed_calls(calls)
 
@@ -893,8 +942,144 @@ def test_a_failed_seed_stops_before_the_start_and_the_next_run_seeds(site):
     assert not any("up --build" in c for c in calls)
     assert _dotenv(work)["BC_FIRST_RUN_PENDING"] == "1"
     (state / "calls.log").unlink()
-    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    done, calls = _run(site, volumes="app-postgres-data")
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     assert not any("bootstrap-keys" in c for c in calls)
     assert len(_seed_calls(calls)) == 1
     assert _index(calls, "backend.seed_refdata") < _index(calls, "up --build")
+
+
+# --- the import of a stack from before 4.1 ------------------------------------------------
+
+def mongo_up_index(calls):
+    return _index(calls, "--profile legacy-mongo up -d --wait mongodb")
+
+
+STEPS = [f"{name}.migrate {step}" for name in ("auth", "googleform", "backend")
+         for step in ("preflight", "backfill", "verify")]
+
+
+def test_an_upgrade_imports_its_mongo_data_verified_before_the_services_start(site):
+    """A 4.0 stack (Mongo volume, keys in the store): the services that write Mongo
+    are stopped, MongoDB starts under the legacy-mongo profile, each service's
+    preflight, backfill and verify run in the runbook's order (auth, google, backend),
+    then MONGO_URI is cleared, MongoDB is stopped and removed (never its volume), and
+    only then do the services of this release start, without MongoDB."""
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data,temporal-postgres-data,umami-db-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    stop = _index(calls, "stop backend jobs-worker auth integrations-googleform task-runner")
+    # only MongoDB's own commands run under the profile (it would create its volume)
+    assert [c for c in calls if "legacy-mongo" in c] == [calls[mongo_up_index(calls)], calls[_index(calls, "rm -s -f mongodb")]]
+    mongo_up = _index(calls, "--profile legacy-mongo up -d --wait mongodb")
+    positions = [_index(calls, step) for step in STEPS]
+    clear = _index(calls, "settings-clear MONGO_URI --confirm MONGO_URI --yes")
+    mongo_rm = _index(calls, "--profile legacy-mongo rm -s -f mongodb mongo-seed")
+    assert _index(calls, "settings-import") < stop < mongo_up < positions[0]
+    assert positions == sorted(positions)
+    # the Google integration's schema first, though this stack does not run it
+    assert mongo_up < _index(calls, "integrations-googleform alembic") < positions[0]
+    assert positions[-1] < clear < mongo_rm < _index(calls, "up --build")
+    up = calls[_index(calls, "up --build")]
+    assert "mongo" not in up
+    assert not any(" down" in c or "volume" in c for c in calls)
+    # an upgraded stack is never seeded: its reference data came from Mongo
+    assert not _seed_calls(calls)
+    values = _dotenv(work)
+    assert values["BC_LEGACY_MONGO_IMPORTED"]
+    assert (state / "store" / "MONGO_URI.cleared").exists()
+    # the counts per collection, per service
+    for name in ("auth", "google", "backend"):
+        assert f"{name}   {name}_things: mongo=3 postgres=3 backfill=done" in done.stdout
+    assert "volume (stack_mongo-data) is kept" in done.stdout
+    logs = list(work.glob("legacy-mongo-import.*.log"))
+    assert len(logs) == 1 and stat.S_IMODE(logs[0].stat().st_mode) == 0o600
+
+
+def test_an_imported_stack_is_not_imported_again(site):
+    """The next deploy of an upgraded stack (its Mongo volume is kept) and a stack
+    the operator marked by hand never start MongoDB or seed a MONGO_URI."""
+    work, state, _ = site
+    _upgrade_env(work)
+    done, _ = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("mongodb" in c or ".migrate" in c or "settings-clear" in c for c in calls)
+    assert "UPGRADE TO 4.1" not in done.stdout
+    # marked by hand (a stack that already serves everything from Postgres)
+    shutil.rmtree(state / "store")
+    (state / "calls.log").unlink()
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("BC_LEGACY_MONGO_IMPORTED=by-hand\n")
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("mongodb" in c or ".migrate" in c for c in calls)
+    assert not (state / "store" / "MONGO_URI").exists()
+
+
+@pytest.mark.parametrize("failing", STEPS)
+def test_any_failed_import_step_stops_the_deploy_with_counts_and_keeps_mongo_s_data(site, failing):
+    work, state, _ = site
+    _upgrade_env(work)
+    name, step = failing.split(".migrate ")
+    name = "google" if name == "googleform" else name
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data", extra={"STUB_MIGRATE_FAILS": f"{name} {step}"})
+    assert done.returncode == 1
+    assert f"STOPPED before any service of this release started: the {name} {step} failed" in done.stderr
+    # no later step, no start, nothing cleared or recorded; Mongo stopped, its volume kept
+    assert not any(later in c for later in STEPS[STEPS.index(failing) + 1:] for c in calls)
+    assert not any("up --build" in c or "settings-clear" in c for c in calls)
+    assert any("--profile legacy-mongo rm -s -f mongodb" in c for c in calls)
+    assert "BC_LEGACY_MONGO_IMPORTED" not in _dotenv(work)
+    assert not (state / "store" / "MONGO_URI.cleared").exists()
+    # the counts of what differs, never a sample id
+    expected = {
+        "preflight": f"{name}_others: mongo=3 postgres=0 duplicates=2",
+        "backfill": f"{name}_things: mongo=3 postgres=2 backfill=error",
+        "verify": f"{name}_others: mongo=3 postgres=1 missing_in_postgres=2",
+    }[step]
+    assert expected in done.stderr
+    assert "65f0c0ffee0000000000aaaa" not in done.stdout + done.stderr
+    # fixed: the next run imports (resuming) and starts
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
+    assert _dotenv(work)["BC_LEGACY_MONGO_IMPORTED"]
+
+
+def test_an_external_mongo_is_imported_and_its_uri_blanked_with_a_backup(site):
+    """No Mongo volume, the operator's own MONGO_URI in .env.deployment: imported from
+    there (MongoDB of the stack is never started), then the line is blanked."""
+    work, state, _ = site
+    _upgrade_env(work)
+    uri = "mongodb://u:DUMMY-external@db.example.test:27017"
+    (work / ".env.deployment").write_text(f"UMAMI_PASSWORD=\nexport MONGO_URI={uri}\nOTHER=1\n")
+    done, calls = _run(site, volumes="app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("mongodb" in c for c in calls)
+    assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
+    assert (work / ".env.deployment").read_text() == "UMAMI_PASSWORD=\nexport MONGO_URI=\nOTHER=1\n"
+    [backup] = work.glob(".env.deployment.pre-4.1.*")
+    assert uri in backup.read_text() and stat.S_IMODE(backup.stat().st_mode) == 0o600
+    assert "DUMMY-external" not in done.stdout + done.stderr
+    assert _dotenv(work)["BC_LEGACY_MONGO_IMPORTED"]
+
+
+def test_a_mongo_uri_put_back_after_the_import_is_pointed_out_not_imported_again(site):
+    """Back from a rollback to 4.0 with its .env.deployment: the import is recorded, so
+    it is not repeated, and the MONGO_URI line is named for removal."""
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("BC_LEGACY_MONGO_IMPORTED=20261025T000000Z\n")
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nMONGO_URI=mongodb://root:root@mongodb:27017\n")
+    done, calls = _run(site, volumes="mongo-data,app-postgres-data")
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "NOTE: MONGO_URI is set in .env.deployment, but this stack's Mongo data was imported" in done.stdout
+    assert not any(".migrate" in c or "--profile legacy-mongo" in c for c in calls)
+    assert "MONGO_URI=mongodb://root:root@mongodb:27017" in (work / ".env.deployment").read_text()
