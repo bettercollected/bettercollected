@@ -337,3 +337,41 @@ async def test_the_product_refusal_is_reported_not_overridden(
     assert reply.json() == {"status": "refused"}
     assert deletions == []
     assert await container.workspace_repo().find_by_id(world[B1].id) is not None
+
+
+async def test_a_former_duplicate_whose_keeper_is_gone_is_left_alone(
+    client: AsyncClient, key, world, deletions, auth
+):
+    """B2 (the keeper) is deleted out of band after the dry run: B1 is no
+    longer a case variant of anyone, so it is not dropped."""
+    auth.users.discard(B2)
+    reply = await client.post(f"{BASE}/{B1}/drop", headers=key)
+    assert reply.json() == {"status": "not_found"}
+    assert deletions == []
+    assert await container.workspace_repo().find_by_id(world[B1].id) is not None
+
+
+async def test_a_whitespace_key_counts_as_unset(client: AsyncClient, auth, monkeypatch):
+    monkeypatch.setattr(settings, "ADMIN_TASKS_API_KEY", "   ")
+    for headers in ({KEY_HEADER: "   "}, {KEY_HEADER: ""}, {}):
+        assert (await client.get(BASE, headers=headers)).status_code == 503
+        reply = await client.post(f"{BASE}/{A2}/drop", headers=headers)
+        assert reply.status_code == 503
+
+
+async def test_a_deleted_accounts_email_never_reaches_the_marketing_tracker(monkeypatch):
+    """The account deletion's event (also sent for a case-duplicate drop)
+    goes to the tracker without the email: ``ACCOUNT_DELETED`` is never
+    tracked, so the keeper's contact (same address, other case) is untouched.
+    Other events are tracked as before."""
+    from backend.app.models.dtos.brevo_event_dto import UserEventType
+    from backend.app.services.brevo_service import BrevoService
+
+    service = BrevoService()
+    tracked = AsyncMock()
+    monkeypatch.setattr(service, "track_event", tracked)
+    monkeypatch.setattr(settings.event_webhook_settings, "enabled", False)
+    await service.send_brevo_event(UserEventType.ACCOUNT_DELETED, A2, EMAILS[A2])
+    tracked.assert_not_called()
+    await service.send_brevo_event(UserEventType.USER_CREATED, A2, EMAILS[A2])
+    tracked.assert_awaited_once()

@@ -48,6 +48,14 @@ def update_key(
     return user_id or None
 
 
+def credential_filter_for_user(email, user_id) -> dict:
+    """Mongo filter of :meth:`OauthCredentialRepository.delete_oauth_credential_for_user`."""
+    legacy = {"email": email, "user_id": {"$in": [None, ""]}}
+    if not user_id:
+        return legacy
+    return {"$or": [{"user_id": user_id}, legacy]}
+
+
 class OauthCredentialRepository:
     async def get(
         self,
@@ -201,6 +209,9 @@ class OauthCredentialRepository:
 
     @write_op
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
+        """The account's credentials: by its user id, and by email only the
+        legacy rows that have no user id. Another account whose email equals
+        this one (in any case) keeps its credential."""
         return await Oauth2CredentialDocument.find(
-            {"$or": [{"email": email}, {"user_id": user_id}]}
+            credential_filter_for_user(email, user_id)
         ).delete()
