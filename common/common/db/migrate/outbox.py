@@ -1,4 +1,4 @@
-"""Resolve Postgres-side outbox entries whose write Mongo already holds.
+"""Resolve Postgres-side outbox entries whose write Mongo provably holds.
 
 An entry of ``<schema>.mirror_write_failures`` records a write made while
 Postgres was a group's primary whose Mongo mirror failed. Until it is
@@ -8,8 +8,8 @@ rolled back to ``dual`` (Mongo first), a Mongo write whose Postgres mirror
 failed then leaves an older application row behind that no reconcile
 replaces, so ``verify`` is never clean and the entries never resolve (the
 runbook's "stuck case"). ``resolve-outbox`` breaks that loop without losing a
-write: it resolves an entry only when Mongo holds the same or a newer version
-of what Postgres holds.
+write: by default it resolves an entry only on proof that Mongo holds what
+Postgres holds, never on timestamps.
 
 For each open entry (read once; entries recorded later are never touched):
 
@@ -17,20 +17,33 @@ For each open entry (read once; entries recorded later are never touched):
   class name). An unknown repository keeps the entry.
 * the rows it names: ``row_id`` is a best-effort list of the write's
   arguments (``common.db.runtime.failure_ids``), so each ObjectId among them
-  is looked up in every collection of the group. A row Postgres holds must be
-  in Mongo with the same checksum, or with an ``updated_at`` at or after the
-  entry's time and later than the row's. A row deleted since (a newer
-  tombstone) needs no Mongo copy, but a Mongo copy older than the delete
-  keeps the entry (``delete_pending``: ``reconcile`` deletes it first).
-* every application-written row of the group: the entry's write may have
-  touched rows it does not name (a write by a foreign key, or more ids than
-  are recorded), so a single row of the group that Mongo does not hold at the
-  same or a newer version (missing, or different without a later
-  ``updated_at``) keeps all the group's entries (``group_differs``).
+  is looked up in every collection of the group, in both stores.
+* every row of the group, in both stores: the entry's write may have touched
+  rows it does not name (a write by a foreign key, more ids than are
+  recorded, a delete), so a single row of the group that is not proven keeps
+  all the group's entries (``group_differs``).
 
-Rows the backfill or a reconcile copied from Mongo (``_bc_source =
-'backfill'``) hold Mongo's data, never a Postgres write, so they are not
-compared. A copy past its TTL is absent, as for ``verify``.
+A row is proven when (:func:`mongo_holds`):
+
+* both copies have the same checksum;
+* the Postgres row was copied from Mongo (``_bc_source = 'backfill'``): it
+  holds no Postgres write;
+* neither store holds a live copy (absent, or past Mongo's TTL, on both
+  sides);
+* Postgres's row was deleted after it was written (a newer tombstone, either
+  store) and Mongo has no copy.
+
+Anything else keeps the entry: ``missing_in_mongo``, ``missing_in_postgres``
+(a Mongo copy Postgres lacks with no tombstone), ``delete_pending`` (a Mongo
+copy older than a delete: ``reconcile`` removes it), ``expired_one_side``,
+``older_in_mongo``, and ``superseded``: Mongo's copy differs and carries a
+later ``updated_at``. A later stamp is no proof that Mongo got the write (a
+save built from a copy that never had it stamps a later time too), so a
+superseded entry is resolved only with ``accept_superseded`` (the CLI's
+``--accept-superseded``), once the operator has confirmed that Mongo's newer
+version should win: ``reconcile`` then discards those Postgres changes. Even
+then Mongo's copy must be later than the Postgres row and not older than the
+entry.
 
 The result holds counts only. Entry ids, row ids and reasons go to a file
 only when the operator names one (``--ids-file``), never to the output or
@@ -58,19 +71,25 @@ from common.db.migrate.engine import (
 )
 
 BATCH = 500
-#: blocking row ids kept for the ids file, per collection (the counts are not capped)
+#: differing row ids kept for the ids file, per collection (the counts are not capped)
 MAX_LISTED = 1000
 
 MISSING_IN_MONGO = "missing_in_mongo"
+MISSING_IN_POSTGRES = "missing_in_postgres"
 OLDER_IN_MONGO = "older_in_mongo"
+SUPERSEDED = "superseded"
 DELETE_PENDING = "delete_pending"
+EXPIRED_ONE_SIDE = "expired_one_side"
 GROUP_DIFFERS = "group_differs"
 UNKNOWN_REPOSITORY = "unknown_repository"
 REASONS = (
     UNKNOWN_REPOSITORY,
     MISSING_IN_MONGO,
+    MISSING_IN_POSTGRES,
     OLDER_IN_MONGO,
+    SUPERSEDED,
     DELETE_PENDING,
+    EXPIRED_ONE_SIDE,
     GROUP_DIFFERS,
 )
 
@@ -139,41 +158,49 @@ def mongo_holds(
     now: datetime,
     since: Optional[datetime] = None,
 ) -> Optional[str]:
-    """Why Mongo may not hold what Postgres holds for one id, or None when it
-    does. ``row`` is ``(checksum, updated_at, source, doc)`` or None (no
-    row); ``document`` Mongo's copy or None; ``deleted_at`` the latest
-    tombstone of the id in either store; ``since`` the entry's time, which a
-    differing Mongo copy must have reached."""
-    if document is not None and expired(document, ttl, now):
-        document = None
-    if row is None or expired(from_canonical_document(row[3]), ttl, now):
-        # nothing in Postgres that Mongo could lack, unless a delete Mongo
-        # has not applied yet
-        if document is not None and tombstones.is_victim(
-            deleted_at, document.get("updated_at")
-        ):
-            return DELETE_PENDING
-        return None
-    row_checksum, row_updated, source, _ = row
-    if source != SOURCE_APP:
+    """None when it is proven that Mongo holds what Postgres holds for one
+    id, else why not (see the module docstring). ``row`` is ``(checksum,
+    updated_at, source, doc)`` or None (no row); ``document`` Mongo's copy or
+    None; ``deleted_at`` the latest tombstone of the id in either store.
+    ``superseded`` is told apart from ``older_in_mongo`` by timestamps, for
+    the opt-in only: Mongo's ``updated_at`` later than the row's and, when
+    ``since`` (the entry's time) is given, not before it."""
+    if row is not None and row[2] != SOURCE_APP:
         return None  # copied from Mongo: holds no Postgres write
-    if tombstones.is_victim(deleted_at, row_updated):
-        # deleted after this row was written: Mongo must not hold an older copy
-        if document is not None and tombstones.is_victim(
-            deleted_at, document.get("updated_at")
-        ):
+    if row is not None and document is not None:
+        if checksum(canonical_document(document)) == row[0]:
+            return None
+    row_expired = row is not None and expired(from_canonical_document(row[3]), ttl, now)
+    doc_expired = document is not None and expired(document, ttl, now)
+    row_gone = row is None or row_expired
+    doc_gone = document is None or doc_expired
+    if row_gone and doc_gone:
+        return None  # no live copy on either side
+    if row_gone:  # Mongo holds a live copy Postgres does not
+        if row_expired:
+            return EXPIRED_ONE_SIDE
+        if tombstones.is_victim(deleted_at, document.get("updated_at")):
             return DELETE_PENDING
-        return None
-    if document is None:
+        return MISSING_IN_POSTGRES
+    if doc_gone:  # Postgres holds a live row Mongo does not
+        if doc_expired:
+            return EXPIRED_ONE_SIDE
+        if tombstones.is_victim(deleted_at, row[1]):
+            return None  # deleted after it was written; Mongo has no copy
         return MISSING_IN_MONGO
-    if checksum(canonical_document(document)) == row_checksum:
-        return None
+    if tombstones.is_victim(deleted_at, row[1]) and tombstones.is_victim(
+        deleted_at, document.get("updated_at")
+    ):
+        return DELETE_PENDING
     mongo_updated = timestamp_of(document.get("updated_at"))
-    if mongo_updated is None or row_updated is None or not mongo_updated > row_updated:
-        return OLDER_IN_MONGO
-    if since is not None and mongo_updated < since:
-        return OLDER_IN_MONGO
-    return None
+    if (
+        mongo_updated is not None
+        and row[1] is not None
+        and mongo_updated > row[1]
+        and (since is None or mongo_updated >= since)
+    ):
+        return SUPERSEDED
+    return OLDER_IN_MONGO
 
 
 @dataclass
@@ -184,7 +211,19 @@ class Entry:
     created_at: datetime
     group: Optional[str] = None
     reason: Optional[str] = None  # None: resolvable
-    rows: list[dict] = field(default_factory=list)  # named rows that keep it
+    superseded: bool = False  # resolvable only because of accept_superseded
+    rows: list[dict] = field(default_factory=list)  # named rows not proven
+
+
+@dataclass
+class GroupScan:
+    compared: int = 0
+    differing: int = 0  # not proven, not superseded: keeps every entry
+    superseded: int = 0
+    # the earliest Mongo ``updated_at`` of the superseded rows: an entry
+    # recorded after it is not superseded by them
+    superseded_since: Optional[datetime] = None
+    listed: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -192,11 +231,15 @@ class Plan:
     """What ``resolve-outbox`` found; ``summary()`` is counts only."""
 
     groups: list[str]
+    accept_superseded: bool = False
     open: int = 0
     entries: list[Entry] = field(default_factory=list)
     out_of_scope: int = 0
-    scans: dict[str, dict] = field(default_factory=dict)
-    blocking: dict[str, list[dict]] = field(default_factory=dict)
+    # entries of the repositories of groups served from Postgres only since
+    # 4.1 (``Target.retired_repositories``): mirror failures to a Mongo those
+    # groups no longer use. Counted apart, never resolved by the proof rule.
+    leftover: list[int] = field(default_factory=list)
+    scans: dict[str, GroupScan] = field(default_factory=dict)
 
     @property
     def resolvable(self) -> list[int]:
@@ -215,12 +258,23 @@ class Plan:
             g["entries"] += 1
             g["resolvable"] += e.reason is None
         for group, scan in self.scans.items():
-            per_group.setdefault(group, {"entries": 0, "resolvable": 0}).update(scan)
+            per_group.setdefault(group, {"entries": 0, "resolvable": 0}).update(
+                {
+                    "rows_compared": scan.compared,
+                    "rows_differing": scan.differing,
+                    "rows_superseded": scan.superseded,
+                }
+            )
         return {
             "open": self.open,
             "in_scope": len(self.entries),
             "out_of_scope": self.out_of_scope,
+            "postgres_only_leftover": len(self.leftover),
             "resolvable": len(self.resolvable),
+            "accept_superseded": self.accept_superseded,
+            "resolvable_as_superseded": sum(
+                1 for e in self.entries if e.reason is None and e.superseded
+            ),
             "kept": kept,
             "groups": per_group,
         }
@@ -236,12 +290,39 @@ class Plan:
                     "created_at": e.created_at.isoformat(),
                     "decision": "resolve" if e.reason is None else "keep",
                     "reason": e.reason,
+                    "superseded": e.superseded,
                     "rows": e.rows,
                 }
                 for e in self.entries
             ],
-            "differing_rows": self.blocking,
+            "differing_rows": {g: scan.listed for g, scan in self.scans.items()},
         }
+
+
+def decide(entry: Entry, scan: GroupScan, accept_superseded: bool) -> None:
+    """Set ``entry.reason`` (None: resolvable) from its named rows and its
+    group's scan."""
+    hard = [r for r in entry.rows if r["reason"] != SUPERSEDED]
+    if hard:
+        entry.reason = hard[0]["reason"]
+        return
+    if scan.differing:
+        entry.reason = GROUP_DIFFERS
+        return
+    superseded = bool(entry.rows) or bool(scan.superseded)
+    if not superseded:
+        entry.reason = None
+        return
+    if scan.superseded and (
+        scan.superseded_since is None or scan.superseded_since < entry.created_at
+    ):
+        # a newer Mongo copy written before the entry: not even superseded
+        entry.reason = GROUP_DIFFERS
+        return
+    if not accept_superseded:
+        entry.reason = SUPERSEDED
+        return
+    entry.reason, entry.superseded = None, True
 
 
 class OutboxResolver:
@@ -252,11 +333,20 @@ class OutboxResolver:
         self.target = runner.target
         self.table = f'"{self.target.schema}"."mirror_write_failures"'
 
-    async def plan(self, groups: Optional[Iterable[str]] = None) -> Plan:
-        # a Postgres-only group mirrors nothing to Mongo: its entries are out
-        # of scope (a full reconcile drains them)
-        wanted = list(groups) if groups else self.target.migrating_groups()
-        plan = Plan(groups=wanted)
+    def scope(self, groups: Optional[Iterable[str]]) -> list[str]:
+        """The groups named, else every group still migrated (a group served
+        from Postgres only mirrors nothing to Mongo; the CLI refuses to name
+        one)."""
+        return list(groups) if groups else self.target.migrating_groups()
+
+    async def plan(
+        self,
+        groups: Optional[Iterable[str]] = None,
+        *,
+        accept_superseded: bool = False,
+    ) -> Plan:
+        wanted = self.scope(groups)
+        plan = Plan(groups=wanted, accept_superseded=accept_superseded)
         rows = await self._open_entries()
         plan.open = len(rows)
         if not rows:
@@ -265,6 +355,10 @@ class OutboxResolver:
             self.target.repository_groups() if self.target.repository_groups else {}
         )
         for entry_id, repository, row_id, created_at in rows:
+            retired = self.target.retired_repositories.get(repository)
+            if retired is not None and retired in self.target.postgres_only_groups:
+                plan.leftover.append(entry_id)
+                continue
             group = repository_group(self.target, repository, known)
             entry = Entry(
                 id=entry_id,
@@ -283,22 +377,26 @@ class OutboxResolver:
             entries = [e for e in plan.entries if e.group == group]
             if not entries:
                 continue
-            scanned, differing, listed = await self._scan_group(group)
-            plan.scans[group] = {"rows_compared": scanned, "rows_differing": differing}
-            plan.blocking[group] = listed
+            scan = await self._scan_group(group)
+            plan.scans[group] = scan
             for entry in entries:
                 entry.rows = await self._named_rows(group, entry)
-                if entry.rows:
-                    entry.reason = entry.rows[0]["reason"]
-                elif differing:
-                    entry.reason = GROUP_DIFFERS
+                decide(entry, scan, accept_superseded)
         return plan
 
     async def apply(self, plan: Plan) -> int:
-        """Resolve the plan's resolvable entries (those still open). Once
-        Mongo holds a version at least as new as an entry's write it keeps
-        doing so (it only gets newer writes), so the plan stays true."""
-        ids = plan.resolvable
+        """Resolve the plan's resolvable entries that are still open. A proof
+        stays true: once Mongo holds a row's version, the row's later
+        versions are later writes, recorded by entries of their own."""
+        return await self._resolve(plan.resolvable)
+
+    async def clear_leftovers(self, plan: Plan) -> int:
+        """Resolve the plan's Postgres-only leftovers that are still open:
+        only on the operator's explicit request (their groups no longer
+        write or read Mongo, so the Mongo write they record has no reader)."""
+        return await self._resolve(plan.leftover)
+
+    async def _resolve(self, ids: list[int]) -> int:
         if not ids:
             return 0
         resolved = 0
@@ -332,39 +430,6 @@ class OutboxResolver:
                 ).all()
             )
 
-    async def _compare(
-        self,
-        name: str,
-        table: Table,
-        ids: list[str],
-        rows: Mapping[str, tuple],
-        ttl,
-        now: datetime,
-        since: Optional[datetime] = None,
-    ) -> list[tuple[str, str]]:
-        """(id, reason) of each of ``ids`` whose Postgres version Mongo may
-        not hold, reading Mongo (its primary) and both stores' tombstones."""
-        documents = {
-            str(d["_id"]): d
-            for d in await on_primary(self.runner.collection(name))
-            .find({"_id": {"$in": [ObjectId(i) for i in ids]}})
-            .to_list()
-        }
-        deleted = await self.runner._tombstones(name, ids)
-        out = []
-        for row_id in ids:
-            reason = mongo_holds(
-                rows.get(row_id),
-                documents.get(row_id),
-                deleted.get(row_id),
-                ttl,
-                now,
-                since,
-            )
-            if reason is not None:
-                out.append((row_id, reason))
-        return out
-
     @staticmethod
     def _columns(table: Table):
         return (
@@ -375,15 +440,51 @@ class OutboxResolver:
             table.c.doc,
         )
 
-    async def _scan_group(self, group: str) -> tuple[int, int, list[dict]]:
-        """(application rows compared, rows Mongo may not hold, the listed ones)."""
+    async def _documents(self, name: str, ids: list[str]) -> dict[str, dict]:
+        """Mongo's copies of ``ids``, read from its primary."""
+        return {
+            str(d["_id"]): d
+            for d in await on_primary(self.runner.collection(name))
+            .find({"_id": {"$in": [ObjectId(i) for i in ids]}})
+            .to_list()
+        }
+
+    async def _rows(self, table: Table, ids: list[str]) -> dict[str, tuple]:
+        async with self.runner.engine.connect() as conn:
+            batch = (
+                await conn.execute(
+                    select(*self._columns(table)).where(table.c.id.in_(ids))
+                )
+            ).all()
+        return {r[0]: tuple(r[1:]) for r in batch}
+
+    def _record(
+        self, scan: GroupScan, name: str, row_id: str, reason: str, document, listed
+    ) -> int:
+        if reason == SUPERSEDED:
+            scan.superseded += 1
+            at = timestamp_of(document.get("updated_at"))
+            if scan.superseded_since is None or at < scan.superseded_since:
+                scan.superseded_since = at
+        else:
+            scan.differing += 1
+        if listed < MAX_LISTED:
+            scan.listed.append({"collection": name, "id": row_id, "reason": reason})
+            return listed + 1
+        return listed
+
+    async def _scan_group(self, group: str) -> GroupScan:
+        """Every row of the group, in both stores: the Postgres rows the
+        application wrote, then the Mongo copies Postgres has no row for."""
+        scan = GroupScan()
         now = await self.runner._database_now()
-        compared, differing, listed = 0, 0, []
         for name in self.target.collections_of(group):
             table = self.target.tables[name]
-            ttl = await self.runner._ttl_of(self.runner.collection(name))
-            after, kept_here = None, 0
-            while True:  # in id order, a batch at a time: never the whole table
+            coll = self.runner.collection(name)
+            ttl = await self.runner._ttl_of(coll)
+            listed = 0
+            after = None
+            while True:  # Postgres, in id order, a batch at a time
                 query = (
                     select(*self._columns(table))
                     .where(table.c._bc_source == SOURCE_APP)
@@ -398,20 +499,61 @@ class OutboxResolver:
                     break
                 after = batch[-1][0]
                 rows = {r[0]: tuple(r[1:]) for r in batch}
-                compared += len(rows)
-                for row_id, reason in await self._compare(
-                    name, table, list(rows), rows, ttl, now
-                ):
-                    differing += 1
-                    if kept_here < MAX_LISTED:
-                        kept_here += 1
-                        listed.append(
-                            {"collection": name, "id": row_id, "reason": reason}
+                ids = list(rows)
+                documents = await self._documents(name, ids)
+                deleted = await self.runner._tombstones(name, ids)
+                scan.compared += len(ids)
+                for row_id in ids:
+                    document = documents.get(row_id)
+                    reason = mongo_holds(
+                        rows[row_id], document, deleted.get(row_id), ttl, now
+                    )
+                    if reason is not None:
+                        listed = self._record(
+                            scan, name, row_id, reason, document, listed
                         )
-        return compared, differing, listed
+            last = None
+            while True:  # Mongo, in _id order (ObjectIds only), a batch at a time
+                query = (
+                    {"_id": {"$gt": last}} if last else {"_id": {"$type": "objectId"}}
+                )
+                documents = (
+                    await on_primary(coll)
+                    .find(query)
+                    .sort("_id", 1)
+                    .limit(BATCH)
+                    .to_list()
+                )
+                if not documents:
+                    break
+                last = documents[-1]["_id"]
+                ids = [str(d["_id"]) for d in documents]
+                present = await self._row_ids(table, ids)
+                absent = [d for d in documents if str(d["_id"]) not in present]
+                if not absent:
+                    continue
+                absent_ids = [str(d["_id"]) for d in absent]
+                deleted = await self.runner._tombstones(name, absent_ids)
+                scan.compared += len(absent)
+                for document in absent:
+                    row_id = str(document["_id"])
+                    reason = mongo_holds(None, document, deleted.get(row_id), ttl, now)
+                    if reason is not None:
+                        listed = self._record(
+                            scan, name, row_id, reason, document, listed
+                        )
+        return scan
+
+    async def _row_ids(self, table: Table, ids: list[str]) -> set[str]:
+        async with self.runner.engine.connect() as conn:
+            return set(
+                (await conn.execute(select(table.c.id).where(table.c.id.in_(ids))))
+                .scalars()
+                .all()
+            )
 
     async def _named_rows(self, group: str, entry: Entry) -> list[dict]:
-        """The rows the entry names whose Postgres version Mongo may not hold."""
+        """The rows the entry names that are not proven, with the reason."""
         if not entry.row_ids:
             return []
         now = await self.runner._database_now()
@@ -419,17 +561,18 @@ class OutboxResolver:
         for name in self.target.collections_of(group):
             table = self.target.tables[name]
             ttl = await self.runner._ttl_of(self.runner.collection(name))
-            async with self.runner.engine.connect() as conn:
-                batch = (
-                    await conn.execute(
-                        select(*self._columns(table)).where(
-                            table.c.id.in_(entry.row_ids)
-                        )
-                    )
-                ).all()
-            rows = {r[0]: tuple(r[1:]) for r in batch}
-            for row_id, reason in await self._compare(
-                name, table, entry.row_ids, rows, ttl, now, since=entry.created_at
-            ):
-                found.append({"collection": name, "id": row_id, "reason": reason})
+            rows = await self._rows(table, entry.row_ids)
+            documents = await self._documents(name, entry.row_ids)
+            deleted = await self.runner._tombstones(name, entry.row_ids)
+            for row_id in entry.row_ids:
+                reason = mongo_holds(
+                    rows.get(row_id),
+                    documents.get(row_id),
+                    deleted.get(row_id),
+                    ttl,
+                    now,
+                    since=entry.created_at,
+                )
+                if reason is not None:
+                    found.append({"collection": name, "id": row_id, "reason": reason})
         return found

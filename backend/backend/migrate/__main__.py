@@ -21,6 +21,7 @@ from backend.db.base import SCHEMA
 from backend.db.groups import (
     COLLECTION_GROUPS,
     POSTGRES_ONLY_GROUPS,
+    RETIRED_REPOSITORIES,
     load_backend_flags,
 )
 from backend.db.models import MigrationProgress, StoreMigration
@@ -94,6 +95,7 @@ def build_target(database_url: str) -> Target:
         service="backend",
         groups=COLLECTION_GROUPS,
         repository_groups=repository_groups,
+        retired_repositories=RETIRED_REPOSITORIES,
         marker=StoreMigration.__table__,
         code_version=code_version(backend, SCHEMA),
         postgres_only_groups=POSTGRES_ONLY_GROUPS,

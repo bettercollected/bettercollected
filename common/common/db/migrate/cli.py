@@ -102,11 +102,27 @@ def build_parser(prog: str) -> argparse.ArgumentParser:
     )
     resolve = sub.add_parser(
         "resolve-outbox",
-        help="resolve Postgres-side outbox entries whose write Mongo holds "
+        help="resolve Postgres-side outbox entries whose write Mongo provably holds "
         "(after a rollback to dual); a dry run unless --apply",
     )
     resolve.add_argument(
         "--apply", action="store_true", help="resolve them (default: report only)"
+    )
+    resolve.add_argument(
+        "--accept-superseded",
+        action="store_true",
+        help="also resolve entries whose rows Mongo holds only in a different, "
+        "later-stamped version. Only after confirming the newer Mongo version "
+        "should win: the Postgres changes of these entries will be discarded by "
+        "reconcile",
+    )
+    resolve.add_argument(
+        "--clear-postgres-only-leftovers",
+        action="store_true",
+        help="with --apply, also resolve the entries left by the repositories "
+        "of groups served from Postgres only since 4.1 (counted as "
+        "postgres_only_leftover): mirror failures to a Mongo those groups no "
+        "longer read or write",
     )
     resolve.add_argument(
         "--ids-file",
@@ -324,16 +340,25 @@ async def resolve_outbox(
 ) -> int:
     """Plan; write the ids file (when asked) before anything changes; then
     resolve with ``--apply``. Prints counts only. Exit 0 when every entry in
-    scope is resolvable (or there is none), 1 when some are kept."""
+    scope is resolvable (or there is none), 1 when some are kept; the
+    Postgres-only leftovers are reported apart and never change it."""
     resolver = OutboxResolver(runner)
-    plan = await resolver.plan(selected_groups(args, target))
+    plan = await resolver.plan(
+        selected_groups(args, target), accept_superseded=args.accept_superseded
+    )
     if args.ids_file:
         with open_ids_file(args.ids_file) as handle:
             json.dump(plan.details(), handle, indent=2, sort_keys=True, default=str)
     summary = plan.summary()
     summary["apply"] = bool(args.apply)
     summary["resolved"] = await resolver.apply(plan) if args.apply else 0
+    summary["leftover_cleared"] = (
+        await resolver.clear_leftovers(plan)
+        if args.apply and args.clear_postgres_only_leftovers
+        else 0
+    )
     _print(summary)
+    # leftovers do not count: the proof rule never applies to them
     return 0 if summary["resolvable"] == summary["in_scope"] else 1
 
 

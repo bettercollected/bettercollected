@@ -92,6 +92,10 @@ class Target:
     # holds) -> group, read when ``resolve-outbox`` runs; a service with a
     # single group needs none (common.db.migrate.outbox)
     repository_groups: Optional[Callable[[], Mapping[str, str]]] = None
+    # repository name -> group, for the routed repositories of groups served
+    # from Postgres only since 4.1 (they are routed no more): their outbox
+    # entries are counted apart by ``resolve-outbox`` (postgres_only_leftover)
+    retired_repositories: Mapping[str, str] = field(default_factory=dict)
 
     def group_of(self, collection: str) -> str:
         return self.groups.get(collection) or self.service or self.schema
