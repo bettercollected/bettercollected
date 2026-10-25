@@ -376,7 +376,49 @@ be read refuses the start too: the check cannot tell whether data would be lost.
 backend.seed_refdata` runs the same check for `refdata` before it seeds the empty tables, since
 seeded rows would hide unimported ones from the check.
 
-**What to run.** Best before the upgrade, with the 4.0 images (the CLI is the same):
+**With `deploy.sh` (compose stacks).** `./deploy.sh` of 4.1 does the import itself, once, before
+any service of the new release starts. A stack counts as one to import when it has the Mongo volume
+of its compose project (`<project>_mongo-data`) or a `MONGO_URI` in `.env.deployment` (an external
+Mongo), and the root `.env` has no `BC_LEGACY_MONGO_IMPORTED`. Then it:
+
+1. stops the services that write Mongo (`backend`, `jobs-worker`, `auth`,
+   `integrations-googleform`, `task-runner`): nothing may change Mongo between the copy and the
+   check. The stack is down until the import is done;
+2. starts `mongodb` under the `legacy-mongo` compose profile (with the volume only; the only way
+   MongoDB starts in 4.1). A 4.0 stack's `MONGO_URI` (the one in its settings store or
+   `.env.deployment`) is what the one-off containers read;
+3. migrates the Google integration's schema when the stack does not run it (its Mongo data is
+   imported all the same), then runs, in a one-off container of the new image, for **auth, google,
+   then the backend**: `preflight`, `backfill` and `verify` (`python -m auth.migrate`,
+   `python -m googleform.migrate`, `python -m backend.migrate`). The backend's `verify` skips the
+   Postgres-only groups, whose `backfill` the startup check above verifies;
+4. **stops on any failure** before a service starts: a preflight problem (invalid ids, duplicate
+   unique keys), a backfill `error` or a verify difference prints the collections concerned with
+   their counts (Mongo, Postgres, missing, mismatched, ...; never a value or a sample id). Nothing
+   is deleted. The full output (counts and ids) is in `legacy-mongo-import.<time>.log` (mode 600).
+   Fix the cause (Phase 1 above describes each check) and run `./deploy.sh` again: the backfill
+   resumes and the checks run again. Or go back to 4.0: check out the 4.0 release and run its
+   `./deploy.sh` (4.0 still reads Mongo, which was left as it was);
+5. on success prints each service's counts per collection, clears `MONGO_URI` in the settings store
+   (`deploy.sh settings-clear`: the store keeps its versions, so `settings-restore MONGO_URI
+   --version N` brings it back for a rollback; once 4.1 has served traffic, what it wrote is in
+   Postgres only and a 4.0 reading Mongo would not see it), blanks a `MONGO_URI` line in `.env.deployment`
+   (backup `.env.deployment.pre-4.1.<time>`), records `BC_LEGACY_MONGO_IMPORTED=<time>` in the
+   root `.env`, and stops and removes the `mongodb` container. **The `mongo-data` volume is kept**:
+   keep it, and an encrypted `mongodump` of it, until 4.1 has run well for a while (the
+   decommission step below); deleting it is the point of no return and never part of a deploy.
+
+The next deploys find `BC_LEGACY_MONGO_IMPORTED` and never start MongoDB again. A stack that already
+serves everything from Postgres (stages C and D below done on 4.0) sets
+`BC_LEGACY_MONGO_IMPORTED=done` in the root `.env` by hand before the upgrade, so the import does
+not compare Mongo with a Postgres that has moved on. A new 4.1 stack never starts MongoDB and stores
+no `MONGO_URI`. `TASK_RUNNER_MONGO_URI` in the root `.env` is not touched: remove it once Mongo is
+stopped (deploy.sh reminds you). The backend and the jobs worker default to
+`DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres` in the compose file, the task runner to
+`DB_WRITE_MODE=postgres`.
+
+**What to run by hand** (an orchestrated stack, or ahead of the upgrade). Best before the upgrade,
+with the 4.0 images (the CLI is the same):
 
 ```bash
 python -m backend.migrate --group refdata,analytics,ai,actions preflight
