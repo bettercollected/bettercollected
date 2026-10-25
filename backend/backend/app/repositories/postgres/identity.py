@@ -119,6 +119,19 @@ def _oid(value: Any) -> str:
     return str(value)
 
 
+def _set_paths(target: Any, fields: Dict[str, Any]) -> None:
+    """Apply ``{"a.b": value}`` to a model (attributes) or dict (keys)."""
+    for path, value in fields.items():
+        *parents, leaf = path.split(".")
+        node: Any = target
+        for part in parents:
+            node = node[part] if isinstance(node, dict) else getattr(node, part)
+        if isinstance(node, dict):
+            node[leaf] = value
+        else:
+            setattr(node, leaf, value)
+
+
 async def with_workspace_action(
     actions, workspace: Optional[Dict[str, Any]], workspace_id, action_id
 ) -> Dict[str, Any]:
@@ -219,19 +232,28 @@ class PostgresWorkspaceRepository(RecordRepository):
     async def set_fields(
         self, workspace: WorkspaceDocument, fields: Dict[str, Any]
     ) -> None:
-        # Beanie's document.update({"$set": ...}) also refreshes the instance.
-        for path, value in fields.items():
-            *parents, leaf = path.split(".")
-            target: Any = workspace
-            for part in parents:
-                target = (
-                    target[part] if isinstance(target, dict) else getattr(target, part)
+        """Set ``fields`` (dotted paths) on the stored workspace, atomically:
+        the row is locked while they are applied to the stored copy, so a
+        concurrent change of other fields is kept (Mongo's partial ``$set``),
+        never overwritten from ``workspace``, which may be stale. Then
+        ``workspace`` is refreshed from what was stored (as Beanie's
+        ``document.update`` did). A workspace that is not stored stays so."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceRow.doc)
+                    .where(WorkspaceRow.id == _oid(workspace.id))
+                    .with_for_update()
                 )
-            if isinstance(target, dict):
-                target[leaf] = value
-            else:
-                setattr(target, leaf, value)
-        await self.upsert(workspace)
+            ).scalar_one_or_none()
+            if doc is None:
+                _set_paths(workspace, fields)
+                return
+            stored = decode(WorkspaceDocument, doc)
+            _set_paths(stored, fields)
+            await session.execute(self._upsert_statement(row_values(stored)))
+        for name in type(stored).model_fields:
+            setattr(workspace, name, getattr(stored, name))
 
     async def set_owner_if(
         self, workspace_id: RecordId, expected_owner_id: str, new_owner_id: str
@@ -505,10 +527,28 @@ class PostgresWorkspaceInvitationRepo(RecordRepository):
     async def update_status_to_removed(
         self, workspace_id: RecordId, email: str
     ):
-        invitation = await self._find(workspace_id, email)
-        if invitation is not None:  # find_one(...).update() on no match is a no-op
+        """Mark the invitation removed, atomically (Mongo's ``$set`` of the
+        status): the row is locked and only its status changes, so a
+        concurrent re-invitation's token and expiry are kept. No match: a
+        no-op."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceInviteRow.doc)
+                    .where(
+                        WorkspaceInviteRow.workspace_id == _oid(workspace_id),
+                        WorkspaceInviteRow.email == email,
+                    )
+                    .order_by(*self._order())
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            invitation = decode(WorkspaceUserInvitesDocument, doc)
             invitation.invitation_status = InvitationStatus.REMOVED
-            await self.upsert(invitation)
+            await session.execute(self._upsert_statement(row_values(invitation)))
 
 
 class PostgresWorkspaceAPIKeyRepository(RecordRepository):
@@ -646,17 +686,36 @@ class PostgresSsoConnectionRepository(RecordRepository):
         disabled_by: str,
         now: datetime.datetime,
     ) -> int:
-        changed = 0
-        for connection in await self._enabled(workspace_id):
-            if str(connection.id) == str(keep_id):
-                continue
-            connection.status = SsoConnectionStatus.DISABLED
-            connection.disabled_at = now
-            connection.disabled_by = disabled_by
-            connection.updated_at = now
-            await self.upsert(connection)
-            changed += 1
-        return changed
+        """Disable the workspace's other enabled connections, atomically: their
+        rows are locked and re-read, so only connections still enabled change
+        and nothing else of theirs is overwritten (Mongo's ``update_many``
+        with ``$set``)."""
+        async with self._session() as session, session.begin():
+            docs = (
+                (
+                    await session.execute(
+                        select(SsoConnectionRow.doc)
+                        .where(
+                            SsoConnectionRow.workspace_id == _oid(workspace_id),
+                            SsoConnectionRow.status
+                            == SsoConnectionStatus.ENABLED.value,
+                            SsoConnectionRow.id != str(keep_id),
+                        )
+                        .order_by(SsoConnectionRow.id)
+                        .with_for_update()
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for doc in docs:
+                connection = decode(SsoConnectionDocument, doc)
+                connection.status = SsoConnectionStatus.DISABLED
+                connection.disabled_at = now
+                connection.disabled_by = disabled_by
+                connection.updated_at = now
+                await session.execute(self._upsert_statement(row_values(connection)))
+        return len(docs)
 
     async def delete(self, connection_id: RecordId) -> int:
         return await self.delete_by_id(connection_id)

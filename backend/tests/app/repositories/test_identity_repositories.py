@@ -785,3 +785,91 @@ async def test_scim_events_are_accepted_once(sessions):
     # an expired record no longer blocks: it is deleted on the next claim
     await repo.claim(event("old", minutes=-1), now)
     await repo.claim(event("old"), now)
+
+
+# ------------------------------------------- partial updates keep the others' writes
+async def test_set_fields_on_stale_copies_keeps_both_changes(sessions):
+    """Mongo's ``$set`` changed only the named fields; so does the locked
+    read-modify-write: two holders of the same (stale) workspace each set a
+    different field, and both values are stored. A whole-document save from
+    the stale copy would have switched the first change back."""
+    repo = workspaces_repo(sessions)
+    ws = workspace("iota", "owner", ai_enabled=False, sso_required=False)
+    await repo.save(ws)
+    consent = await repo.find_by_id(ws.id)  # e.g. the AI consent request
+    sso = await repo.find_by_id(ws.id)  # e.g. the SSO enforcement request
+
+    await repo.set_fields(consent, {"ai_enabled": True, "ai_enabled_by": "admin"})
+    await repo.set_fields(sso, {"sso_required": True})
+
+    stored = await repo.find_by_id(ws.id)
+    assert stored.ai_enabled is True and stored.ai_enabled_by == "admin"
+    assert stored.sso_required is True
+    # each caller's copy is refreshed from what was stored
+    assert sso.ai_enabled is True and sso.sso_required is True
+    assert consent.sso_required is False  # set after its refresh
+
+
+async def test_concurrent_set_fields_lose_no_write(sessions):
+    import asyncio
+
+    repo = workspaces_repo(sessions)
+    ws = workspace("kappa", "owner")
+    await repo.save(ws)
+    copies = [await repo.find_by_id(ws.id) for _ in range(6)]
+    fields = [
+        {"ai_enabled": True},
+        {"sso_required": True},
+        {"sso_default_role": "VIEWER"},
+        {"custom_domain_verified": True},
+        {"ai_provider": "openai"},
+        {"title": "Kappa"},
+    ]
+    await asyncio.gather(*(repo.set_fields(c, f) for c, f in zip(copies, fields)))
+    stored = await repo.find_by_id(ws.id)
+    for change in fields:
+        for name, value in change.items():
+            assert getattr(stored, name) == value, name
+
+
+async def test_set_fields_of_a_workspace_not_stored_stores_nothing(sessions):
+    repo = workspaces_repo(sessions)
+    ws = workspace("lambda", "owner")
+    await repo.set_fields(ws, {"sso_required": True})
+    assert ws.sso_required is True
+    assert await repo.find_by_id(ws.id) is None
+
+
+async def test_removing_an_invitation_keeps_a_concurrent_renewal(sessions):
+    repo = PostgresWorkspaceInvitationRepo(sessions)
+    ws_id = RecordId()
+    request = InvitationRequest(email="x@example.com", role=WorkspaceRoles.VIEWER)
+    first = await repo.create_workspace_invitation(ws_id, request)
+    stale = await repo.get_workspace_invitation_by_token(ws_id, first.invitation_token)
+    renewed = await repo.create_workspace_invitation(ws_id, request)
+    await repo.update_status_to_removed(ws_id, "x@example.com")
+    stored = await repo.get_workspace_invitation_by_token(
+        ws_id, renewed.invitation_token
+    )
+    assert stored.invitation_status == InvitationStatus.REMOVED
+    assert stored.invitation_token == renewed.invitation_token != stale.invitation_token
+
+
+async def test_disable_others_changes_only_the_status_of_enabled_ones(sessions):
+    ws = RecordId()
+    keep = _connection(ws, "c-keep", enabled_minutes_ago=1)
+    other = _connection(ws, "c-other", enabled_minutes_ago=10)
+    repo = PostgresSsoConnectionRepository(sessions)
+    for document in (keep, other):
+        await repo.create(document)
+    # what else the other connection holds (a test result) is kept
+    tested = await repo.get(other.id)
+    tested.last_test_error = "boom"
+    await repo.save(tested)
+    now = _now()
+    assert await repo.disable_others(ws, keep.id, "u2", now) == 1
+    assert await repo.disable_others(ws, keep.id, "u2", now) == 0
+    stored = await repo.get(other.id)
+    assert stored.status == SsoConnectionStatus.DISABLED
+    assert stored.last_test_error == "boom"
+    assert (await repo.get(keep.id)).status == SsoConnectionStatus.ENABLED
