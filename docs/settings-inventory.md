@@ -325,7 +325,6 @@ environment, whatever the tier.
 | `BC_RENDER_MAX_SIDE` | set by the import runner for its own sandbox child |
 | `ENABLE_COMMAND_FORM_BUILDERS` | listed in the deployment env file; no service reads it |
 | `ENABLE_FORM_BUILDER` | listed in the deployment env file; no service reads it |
-| `GOOGLE_ENABLED` | compose profile switch |
 | `GOOGLE_MONGO_DB` | the Google integration's Mongo database, read by the keyset rotation tasks and script |
 | `MOCK_SAML_IMAGE` | compose image selection for the development identity provider |
 | `NEXT_PUBLIC_APP_VERSION` | build-time version, set by the image build (never stored) |

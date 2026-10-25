@@ -29,6 +29,17 @@ what `DB_READ_SOURCE__g` / `DB_WRITE_MODE__g` move. `--group` accepts several gr
 comma-separated); an unknown group stops the CLI with exit code 2 and the list of valid groups.
 `--group` and `--collections` cannot be combined.
 
+**Reference data on a new stack (4.1).** The `refdata` group (allowed origins, the Google Forms
+provider, coupon codes, price suggestions, feedback) is served from Postgres only. A new stack gets
+its allowed origins and the Google Forms provider from `python -m backend.seed_refdata`, which
+`deploy.sh` runs once, after the migrations and the keys and before any service starts, with the
+web app's public origins (`HTTP_SCHEME` + `DASHBOARD_DOMAIN` / `FORM_DOMAIN`). The `mongo-seed`
+job no longer writes reference data to Mongo. An upgraded stack is never seeded: its reference data
+is imported from Mongo (`--group refdata backfill`). On a stack without `deploy.sh` (Swarm), run
+the command once on an empty store, in a one-off backend container, with your origins:
+`python -m backend.seed_refdata --origin https://<dashboard host> --origin https://<forms host>`
+(each table is seeded only while it is empty).
+
 **Cutover-order rule, enforced at boot:** while a group still *reads* Mongo, the groups its Mongo
 repositories join into must keep *writing* Mongo. In practice: never set `DB_WRITE_MODE=postgres`
 for `forms` while `responses` reads Mongo, for `identity` while `forms` reads Mongo, or for

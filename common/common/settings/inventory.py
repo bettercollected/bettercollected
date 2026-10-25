@@ -754,7 +754,6 @@ NOT_A_SETTING: Dict[str, str] = {
     "SCHEDULAR_INTERVAL_MINUTES": "listed in an env example; no service reads it",
     "TEMPLATE_PREDEFINED_WORKSPACE_ID": "listed in an env example; no service reads it",
     "VIRTUAL_HOST_1": "read by the reverse proxy image, not by a service",
-    "GOOGLE_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
     "POLIS_EGRESS_SUBNET": "compose subnet of the identity bridge's egress network",

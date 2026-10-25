@@ -44,8 +44,9 @@ docker compose -f docker-compose.local.yml up --build -d
 - nginx → serves the client host on `:3001` and custom-domain host on `:3002`
 - Mailpit → SMTP on `:1026`, web inbox at **http://localhost:8026**
 
-> The seed step inserts the `allowed_origins` documents that the backend's
-> dynamic CORS relies on — the app won't accept requests from an un-seeded host.
+> The backend's dynamic CORS trusts only the origins in the Postgres
+> `allowed_origins` table (since 4.1; the Mongo seed no longer writes them).
+> Seed them once the backend's schema is migrated: see step 4.
 
 ## 2. Configure environment variables
 
@@ -151,6 +152,16 @@ done
 | google integration | `cd integrations/google && uv run python -m uvicorn googleform.app:get_application --port 8003` | http://localhost:8003 |
 | webapp | `cd webapp && yarn dev` | http://localhost:3000 |
 
+Before the first start, seed the reference data into Postgres (the allowed
+origins and the Google Forms provider; each table only while it is empty):
+
+```bash
+cd backend && uv run python -m backend.seed_refdata \
+  --origin http://localhost:3000 --origin http://localhost:3001 --origin http://localhost:3002 \
+  --origin http://localhost:4000 --origin http://localhost:4001 \
+  --google-enabled true --google-url http://localhost:8003/api/v1
+```
+
 Each service also has a `run.sh`. For the **minimal loop** (build/use a form),
 you only need MongoDB + backend + auth + webapp; the google integration is for
 imports and Temporal is for async jobs.
@@ -241,4 +252,5 @@ from the terminal so hook failures are visible.
   that will not start with "Refusing to start ...: AUTH_JWT_SECRET is not set"
   (or "is a value that was published") needs its own value; see
   [Shared secrets](#shared-secrets-must-match-across-services).
-- **CORS:** a new host must exist in the Mongo `allowed_origins` collection.
+- **CORS:** a new host must exist in the Postgres `allowed_origins` table
+  (`python -m backend.seed_refdata --origin ...` seeds an empty one).
