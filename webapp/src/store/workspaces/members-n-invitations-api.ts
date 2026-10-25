@@ -95,11 +95,13 @@ export const membersNInvitationsApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_MEMBERS_TAG]
         }),
+        // `locale`: the mail's language, as for a new invitation ("en" or "nl")
         resendWorkspaceInvitation: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/${request.workspaceId}/members/invitations/${request.invitationToken}/resend`,
                 method: 'POST',
-                body: request.body
+                body: request.body,
+                ...(request.locale ? { params: { locale: request.locale } } : {})
             }),
             invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
         })

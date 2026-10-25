@@ -1,21 +1,18 @@
 import datetime as dt
-from typing import List, Optional, Annotated
+from typing import List, Optional
 
-from beanie import Indexed
-from common.configs.mongo_document import MongoDocument
 from common.enums.plan import Plans
+from common.records import Record
 
 
-
-from auth.app.services.database_service import entity
-
-
-@entity
-class UserDocument(MongoDocument):
+# An account, stored in auth.users (unique email, indexed Stripe ids: see the
+# Alembic migrations). No docstring: it would become the class's JSON schema
+# description, which must stay as it was.
+class UserDocument(Record):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     profile_image: Optional[str] = None
-    email: Annotated[str, Indexed(unique=True)]
+    email: str
     roles: Optional[List[str]] = []
     otp_code: Optional[str] = None
     otp_expiry: Optional[int] = None

@@ -498,7 +498,7 @@ expect "settings-drift reports nothing that differs" "0" "$rc"
 [ "$rc" -eq 0 ] || grep -E '^(differs|[a-z_]+=[0-9])' "$cli_out" | head -n 12
 rm -rf "$outdir"
 
-echo "== (k) the Mongo seed leaves no built-in user and keeps its password off the command line"
+echo "== (k) the Mongo seed leaves no built-in user, seeds no data and keeps its password off the command line"
 envfile="$skeleton_env"
 dc up -d --wait mongodb >"$work/mongo-up.log" 2>&1
 mongo_rc=$?
@@ -508,12 +508,16 @@ if [ "$mongo_rc" -eq 0 ]; then
   # a volume from an earlier release has the user the seed used to create
   mongo_cli 'db.getSiblingDB("bettercollected_backend").createUser({user:"seeduser",pwd:"seeduser",roles:[{role:"readWrite",db:"bettercollected_backend"}]})' >/dev/null
   expect "an old volume has the built-in user (the starting point)" "1" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").getUsers().users.length')"
+  # and the reference data an earlier release seeded (it waits there for the import into Postgres)
+  mongo_cli 'db.getSiblingDB("bettercollected_backend").allowed_origins.insertOne({origin:"http://localhost:3000"})' >/dev/null
   for _ in 1 2; do
     dc run --rm --no-deps -T mongo-seed >"$work/seed.log" 2>&1
     expect "mongo-seed runs against the generated root password" "0" "$?"
   done
   expect "the seed removed the built-in user and created none" "0" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").getUsers().users.length')"
-  expect "the seed still seeds the data" "3" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").allowed_origins.countDocuments()')"
+  # reference data is seeded into Postgres since 4.1 (deploy.sh, python -m backend.seed_refdata)
+  expect "the seed leaves the existing reference data as it is" "1" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").allowed_origins.countDocuments()')"
+  expect "the seed writes no reference data" "0" "$(mongo_cli 'db.getSiblingDB("bettercollected_backend").forms_plugin_configs.countDocuments()')"
   check "the built-in login no longer works" bash -c "! docker exec $(dc ps -q mongodb) mongosh --quiet -u seeduser -p seeduser --authenticationDatabase bettercollected_backend --eval 1"
   expect "the seed's command line carries no password" "0" "$(docker image inspect "$(dc images -q mongo-seed | head -n 1)" --format '{{json .Config.Cmd}}' 2>/dev/null | grep -c 'root:')"
   dc rm -sf mongo-seed >/dev/null 2>&1

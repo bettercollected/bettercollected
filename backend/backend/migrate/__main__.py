@@ -3,7 +3,9 @@
 Runs as the backend's role against schema ``app`` and Mongo database
 ``MONGO_DB``. ``--group`` selects the collections of repository groups
 (``backend.db.groups.COLLECTION_GROUPS``); a clean ``verify`` records the
-"migration verified" marker (``common.db.marker``). ``jobs-sweep``
+"migration verified" marker (``common.db.marker``). The groups served from
+Postgres only (``POSTGRES_ONLY_GROUPS``) are imported with ``backfill``;
+``verify`` and ``reconcile`` skip them, and refuse to be pointed at one. ``jobs-sweep``
 (re)creates the scheduled response deletions on the chosen jobs backend —
 independent of any queue's memory (plans §7, §9).
 """
@@ -15,22 +17,16 @@ from bson import ObjectId
 
 import backend
 from backend.config import settings
-from backend.db.base import SCHEMA, Base
-from backend.db.groups import COLLECTION_GROUPS
+from backend.db.base import SCHEMA
+from backend.db.groups import (
+    COLLECTION_GROUPS,
+    POSTGRES_ONLY_GROUPS,
+    load_backend_flags,
+)
 from backend.db.models import MigrationProgress, StoreMigration
-import backend.db.models  # noqa: F401 — registers every row
+from backend.db.mongo_import_guard import collection_tables as _tables
 from common.db.migrate import Target
 from common.db.migrate.cli import code_version, main
-
-
-def _tables():
-    return {
-        mapper.class_.mongo_collection(): mapper.local_table
-        for mapper in Base.registry.mappers
-        if hasattr(mapper.class_, "mongo_collection")
-        and mapper.local_table.name
-        not in ("mirror_write_failures", "migration_progress")
-    }
 
 
 async def schedule_expirations(responses_repo, schedule) -> int:
@@ -90,6 +86,8 @@ def build_target(database_url: str) -> Target:
         groups=COLLECTION_GROUPS,
         marker=StoreMigration.__table__,
         code_version=code_version(backend, SCHEMA),
+        postgres_only_groups=POSTGRES_ONLY_GROUPS,
+        load_flags=load_backend_flags,
     )
 
 

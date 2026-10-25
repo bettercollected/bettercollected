@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "fastapi>=0.143.0",
     "uvicorn[standard]>=0.54.0",
-    "fastapi-users[beanie,oauth]>=15.0.5",
+    "fastapi-users[oauth]>=15.0.5",
     "dependency-injector>=4.49.1",
     "classy-fastapi>=0.6.0",
     "httpx>=0.27.0",
@@ -35,7 +35,6 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "black>=26.10.1",
     "pre-commit>=4.6.2",
-    "mongomock-motor>=0.0.30",
 ]
 
 [tool.uv]

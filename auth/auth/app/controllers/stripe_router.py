@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi import Body, Depends
 
 from auth.app.container import container
@@ -54,7 +54,7 @@ class StripeRoutes(Routable):
 
     @get("/session/create/portal")
     async def customer_portal(
-        self, user_id: PydanticObjectId, _: None = Depends(require_internal_key)
+        self, user_id: RecordId, _: None = Depends(require_internal_key)
     ):
         return await self.stripe_service.create_portal_session(user_id)
 

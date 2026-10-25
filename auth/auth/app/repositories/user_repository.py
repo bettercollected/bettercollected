@@ -1,53 +1,54 @@
-import datetime
-import re
-from typing import Dict, Optional, List
+"""The account repository: ``auth.users`` in Postgres, the only store since 4.1
+(the 4.0 Mongo collection is read only by ``python -m auth.migrate``)."""
 
-from beanie import PydanticObjectId
+import datetime
+from typing import Dict, List, Optional
+
+from pydantic import EmailStr
+from sqlalchemy import and_, func, select
+
+from auth.app.repositories.metric_periods import object_id_at, utc
+from auth.app.schemas.user import UserDocument
+from auth.db.base import SCHEMA
+from auth.db.models import UserRow
+from common.ids import RecordId
+from common.records.repository import RecordRepository
 from common.enums.plan import Plans
 from common.enums.roles import Roles
-from pydantic import EmailStr
-
-from auth.app.repositories.metric_periods import iso_second, object_id_at
-from auth.app.schemas.user import UserDocument
-from common.db import write_op
 from common.clock import utcnow
 
 
-class UserRepository:
-    async def get_user_by_id(self, user_id: PydanticObjectId):
-        return await UserDocument.get(user_id)
+class UserRepository(RecordRepository):
+    row = UserRow
+    document = UserDocument
+
+    async def get_user_by_id(self, user_id: RecordId):
+        return await self.get_or_raise(user_id)
 
     async def get_user_by_email(self, email: str) -> UserDocument:
-        return await UserDocument.find_one(UserDocument.email == email)
+        return await self.one(UserRow.email == email)
 
     async def find_users_by_email_ci(self, email: str) -> List[UserDocument]:
         """Accounts whose email equals ``email`` ignoring case (single
         sign-on's lookup; the other sign-ins still match exactly)."""
-        return await UserDocument.find(
-            {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}
-        ).to_list()
+        return await self.many(func.lower(UserRow.email) == email.lower())
 
     async def get_user_by_stripe_payment_id(
         self, stripe_payment_id: str
     ) -> UserDocument:
-        return await UserDocument.find_one(
-            UserDocument.stripe_payment_id == stripe_payment_id
-        )
+        return await self.one(UserRow.stripe_payment_id == stripe_payment_id)
 
     async def get_user_by_stripe_customer_id(
         self, stripe_customer_id: str
     ) -> UserDocument:
-        return await UserDocument.find_one(
-            UserDocument.stripe_customer_id == stripe_customer_id
-        )
+        return await self.one(UserRow.stripe_customer_id == stripe_customer_id)
 
     async def get_users_by_emails(self, emails: List[EmailStr]):
-        return await UserDocument.find({"email": {"$in": emails}}).to_list()
+        return await self.many(UserRow.email.in_(list(emails)))
 
-    async def get_users_by_ids(self, user_ids: List[PydanticObjectId]):
-        return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
+    async def get_users_by_ids(self, user_ids: List[RecordId]):
+        return await self.many(UserRow.id.in_([str(i) for i in user_ids]))
 
-    @write_op(replay=True)
     async def save_otp_user(
         self,
         email: str,
@@ -60,19 +61,19 @@ class UserRepository:
             otp_code_for = Roles.FORM_RESPONDER
             if creator:
                 otp_code_for = Roles.FORM_CREATOR
-            user_document = UserDocument(
-                email=email,
-                otp_code=otp_code,
-                otp_expiry=otp_expiry,
-                otp_code_for=otp_code_for,
+            user_document = await self.save_document(
+                UserDocument(
+                    email=email,
+                    otp_code=otp_code,
+                    otp_expiry=otp_expiry,
+                    otp_code_for=otp_code_for,
+                )
             )
-            user_document = await user_document.save()
         if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
             user_document.otp_code_for = Roles.FORM_CREATOR
-            await user_document.save()
+            await self.save_document(user_document)
         return user_document
 
-    @write_op(replay=True)
     async def save_user(
         self,
         email: str,
@@ -89,10 +90,7 @@ class UserRepository:
             roles.append(Roles.FORM_CREATOR)
         if not user_document:
             user_document = UserDocument(
-                email=email,
-                roles=roles,
-                otp_code=otp_code,
-                otp_expiry=otp_expiry,
+                email=email, roles=roles, otp_code=otp_code, otp_expiry=otp_expiry
             )
         if user_document.roles:
             if creator and Roles.FORM_CREATOR not in user_document.roles:
@@ -113,50 +111,42 @@ class UserRepository:
             user_document.profile_image = (
                 profile_image if profile_image else user_document.profile_image
             )
-        return await user_document.save()
+        return await self.save_document(user_document)
 
-    # -- field updates of an existing account -----------------------------------
-    # Each reads the stored account and saves it whole, so the mirror (a
-    # replayed write) receives the complete document, not just the change.
-    @write_op(replay=True)
     async def set_user_otp(
         self,
-        user_id: PydanticObjectId,
+        user_id: RecordId,
         otp_code: str,
         otp_expiry: int,
         otp_code_for: Roles,
     ) -> UserDocument:
-        """A new sign-in code for an existing account."""
         user_document = await self.get_user_by_id(user_id)
         user_document.otp_code = otp_code
         user_document.otp_expiry = otp_expiry
         user_document.otp_code_for = otp_code_for
-        return await user_document.save()
+        return await self.save_document(user_document)
 
-    @write_op(replay=True)
     async def update_user_names(
         self,
-        user_id: PydanticObjectId,
+        user_id: RecordId,
         first_name: Optional[str],
         last_name: Optional[str],
     ) -> UserDocument:
         user_document = await self.get_user_by_id(user_id)
         user_document.first_name = first_name
         user_document.last_name = last_name
-        return await user_document.save()
+        return await self.save_document(user_document)
 
-    @write_op(replay=True)
     async def set_stripe_payment_id(
-        self, user_id: PydanticObjectId, stripe_payment_id: str
+        self, user_id: RecordId, stripe_payment_id: str
     ) -> UserDocument:
         user_document = await self.get_user_by_id(user_id)
         user_document.stripe_payment_id = stripe_payment_id
-        return await user_document.save()
+        return await self.save_document(user_document)
 
-    @write_op(replay=True)
     async def set_user_plan(
         self,
-        user_id: PydanticObjectId,
+        user_id: RecordId,
         plan: Plans,
         stripe_customer_id: Optional[str] = None,
     ) -> UserDocument:
@@ -166,63 +156,62 @@ class UserRepository:
         if stripe_customer_id is not None:
             user_document.stripe_customer_id = stripe_customer_id
         user_document.plan = plan
-        return await user_document.save()
+        return await self.save_document(user_document)
 
-    @write_op
     async def clear_user_otp(self, user: UserDocument):
         user_roles = [Roles.FORM_RESPONDER]
         if user.otp_code_for == Roles.FORM_CREATOR:
             user_roles.append(Roles.FORM_CREATOR)
-        await UserDocument.find_one(UserDocument.id == user.id).update(
-            {
-                "$addToSet": {"roles": {"$each": user_roles}},
-                "$unset": {"otp_code": "", "otp_expiry": "", "otp_code_for": ""},
-            }
-        )
+        stored = await self.one(UserRow.id == str(user.id))
+        if stored is None:
+            return
+        for role in user_roles:  # added once each, updated_at left as it is
+            if role not in (stored.roles or []):
+                stored.roles = [*(stored.roles or []), role]
+        stored.otp_code = stored.otp_expiry = stored.otp_code_for = None
+        await self.upsert(stored)
 
-    @write_op
-    async def delete_user(self, user_id: PydanticObjectId):
-        return await UserDocument.find({"_id": user_id}).delete()
+    async def delete_user(self, user_id: RecordId):
+        return await self.delete_by_id(user_id)
 
     # -- platform metrics (admin dashboard) ------------------------------------
-    # Users are dated by ObjectId (some documents have no created_at);
-    # last_logged_in is an ISO string, compared at second precision.
+    # Users are dated by id (some documents have no created_at).
     async def count_users(
         self, created_since: Optional[datetime.datetime] = None
     ) -> int:
-        query = {}
-        if created_since is not None:
-            query = {"_id": {"$gte": object_id_at(created_since)}}
-        return await UserDocument.find(query).count()
+        if created_since is None:
+            return await self.count()
+        return await self.count(UserRow.id >= str(object_id_at(created_since)))
 
     async def count_users_active_since(self, since: datetime.datetime) -> int:
-        return await UserDocument.find(
-            {"last_logged_in": {"$gte": iso_second(since)}}
-        ).count()
+        # last_logged_in has no spine column; read from the document.
+        last_logged_in = getattr(func, SCHEMA).bc_ts(UserRow.doc["last_logged_in"])
+        return await self.count(last_logged_in >= utc(since))
 
     async def count_users_by_plan(self) -> Dict[str, int]:
         """plan -> users, for every plan; a user without one is on the default
         FREE plan."""
-        counts = {}
-        for plan in Plans:
-            values = [plan.value, None] if plan == Plans.FREE else [plan.value]
-            counts[plan.value] = await UserDocument.find(
-                {"plan": {"$in": values}}
-            ).count()
-        return counts
+        plan = func.coalesce(UserRow.plan, Plans.FREE.value)
+        counts = [func.count().filter(plan == p.value) for p in Plans]
+        async with self._session() as session:
+            row = (await session.execute(select(*counts).select_from(UserRow))).one()
+        return {p.value: n for p, n in zip(Plans, row)}
 
     async def count_users_created_per_period(
         self, boundaries: List[datetime.datetime]
     ) -> List[int]:
-        """Users created in each period [boundaries[i], boundaries[i+1])."""
-        bounds = [object_id_at(b) for b in boundaries]
-        return [
-            await UserDocument.find({"_id": {"$gte": lower, "$lt": upper}}).count()
+        bounds = [str(object_id_at(b)) for b in boundaries]
+        periods = [
+            func.count().filter(and_(UserRow.id >= lower, UserRow.id < upper))
             for lower, upper in zip(bounds[:-1], bounds[1:])
         ]
+        if not periods:
+            return []
+        async with self._session() as session:
+            row = (await session.execute(select(*periods).select_from(UserRow))).one()
+        return list(row)
 
-    @write_op
-    async def update_last_logged_in(self, user_id: PydanticObjectId):
-        user_document = await UserDocument.find_one(UserDocument.id == user_id)
+    async def update_last_logged_in(self, user_id: RecordId):
+        user_document = await self.one(UserRow.id == str(user_id))
         user_document.last_logged_in = utcnow()
-        return await user_document.save()
+        return await self.save_document(user_document)

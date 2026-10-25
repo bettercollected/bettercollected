@@ -147,8 +147,10 @@ jobs:
             # slower), each with its own Mongo and Postgres database
             # (tests/conftest.py). pytest-split picks this shard's tests from
             # the recorded durations in .test_durations (docs/ci.md).
-            # Without Mongo, MONGO_URI points at a closed port: anything that
-            # tries to reach Mongo fails at once instead of finding a server.
+            # Without Mongo, MONGO_URI is empty, as on a fresh install: the
+            # backend then starts without contacting Mongo at all (a MONGO_URI
+            # that is set but unreachable refuses the start: the check for
+            # unimported Postgres-only data, backend/db/mongo_import_guard.py).
             # MARKER "not mongo" leaves out the tests that drive Mongo
             # themselves; "mongo" runs only those (tests/conftest.py).
             - name: Run backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
@@ -167,7 +169,7 @@ jobs:
                   if [ -n "$IGNORE" ]; then extra+=("$IGNORE"); fi
                   if [ -n "$MARKER" ]; then extra+=(-m "$MARKER"); fi
                   if [ "$MONGO" = absent ]; then
-                      export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
+                      export MONGO_URI=""
                   fi
                   uv run --frozen pytest -n 4 --dist loadgroup \
                       --splits "$SPLITS" --group "$GROUP" --splitting-algorithm least_duration "${extra[@]}"
@@ -181,11 +183,11 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                mode: ${{ fromJSON(needs.plan.outputs.modes) }}
-        # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no
-        # Mongo is needed; Postgres serves the repository layer. In the
-        # Postgres mode MONGO_URI points at a closed port: the service starts
-        # without Mongo (tests/test_startup_without_mongo.py boots it so).
+                mode: [postgres]
+        # auth is served from Postgres only (auth/db/flags.py): it refuses the
+        # Mongo and dual flags, so the Postgres mode is its only one. The suite
+        # runs with MONGO_URI on a closed port: the service starts and serves
+        # without Mongo (tests/test_startup_postgres_only.py boots it so).
         defaults:
             run:
                 working-directory: auth
@@ -221,31 +223,19 @@ jobs:
 
             - name: Run auth tests (${{ matrix.mode }})
               env:
-                  MODE: ${{ matrix.mode }}
-              run: |
-                  case "$MODE" in
-                      dual) export DB_WRITE_MODE=dual ;;
-                      postgres)
-                          export DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres
-                          export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
-                          ;;
-                  esac
-                  uv run --frozen pytest -m "not mongo"
+                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+              run: uv run --frozen pytest -m "not mongo"
 
-            # The few tests that drive a real Mongo server (the migration CLI's
-            # reconcile; marker "mongo", tests/conftest.py), once per run.
+            # The few tests that drive a real Mongo server (the import from 4.0,
+            # python -m auth.migrate; marker "mongo", tests/conftest.py).
             - name: Start MongoDB for the tests that drive it
-              if: matrix.mode == 'postgres'
               working-directory: .
               run: |
                   .github/scripts/test-dbs.sh start mongo
                   .github/scripts/test-dbs.sh wait
 
             - name: Run the auth tests that drive Mongo (postgres)
-              if: matrix.mode == 'postgres'
               env:
-                  DB_READ_SOURCE: postgres
-                  DB_WRITE_MODE: postgres
                   MONGO_URI: mongodb://localhost:27017
               run: uv run --frozen pytest -m mongo
 

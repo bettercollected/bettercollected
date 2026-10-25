@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.db.flags import ReadSource, WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
@@ -195,6 +195,10 @@ class Case:
     request: Callable[[dict], dict] = field(default=lambda c: {})
     # the body a refused role gets (authorize's message unless stated)
     refused_body: str = MESSAGE_FORBIDDEN
+    # a route that answers as if the object did not exist (404 with this
+    # body) to a refused caller holding no permission in the workspace;
+    # refused members still get 403 with refused_body
+    refused_not_found: Optional[str] = None
     # a 403 an allowed role may get that is not about permissions
     allowed_403: Optional[str] = None
     # the exact status an allowed role gets
@@ -809,6 +813,19 @@ CASES = [
         W + "/submissions/{response}",
         P.RESPONSE_READ,
         refused_body=NOT_AUTHORIZED,
+        # a submission that is not theirs is "not found" to non-members
+        refused_not_found=MESSAGE_NOT_FOUND,
+    ),
+    Case(
+        # a deletion request for any response is the privacy programme;
+        # otherwise only the response's own respondent files one
+        "responses.one.request_deletion",
+        "DELETE",
+        W + "/submissions/{response}",
+        P.PRIVACY_MANAGE,
+        refused_body=NOT_AUTHORIZED,
+        refused_not_found="Response not found in workspace",
+        ok=200,
     ),
     Case("responses.delete", "DELETE", F + "/response/{response}", P.RESPONSE_DELETE),
     Case(
@@ -1176,7 +1193,15 @@ async def test_permission_matrix(
         **request,
     )
     seen = f"{case.name} as {role}: {response.status_code} {response.text}"
-    refused = response.status_code == 403 and _body(response) == case.refused_body
+    if case.refused_not_found is not None and not EXPECTED_PERMISSIONS[role]:
+        refused = (
+            response.status_code == 404
+            and _body(response) == case.refused_not_found
+        )
+    else:
+        refused = (
+            response.status_code == 403 and _body(response) == case.refused_body
+        )
     if role in _allowed(case):
         assert not refused, f"{role} was refused {case.name}"
         if response.status_code == 403:

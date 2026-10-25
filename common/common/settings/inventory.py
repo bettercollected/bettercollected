@@ -576,20 +576,24 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Applies pending schema migrations at startup.", tier=T5),
     _float("DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS", "database", (BACKEND, AUTH, GOOGLE), None, 0, 3600,
            "Seconds to wait for the migration lock.", tier=T5),
-    # The Google Forms integration (and, in the backend, the refdata, analytics,
-    # ai, actions and google groups) is Postgres only since 4.1: there an unset
-    # value means postgres and any other value refuses the start.
+    # The auth service and the Google Forms integration (and, in the backend,
+    # the refdata, analytics, ai and actions groups) are Postgres only since
+    # 4.1: there an unset value means postgres and any other value refuses the
+    # start. The default below is the backend's.
     _spec("DB_READ_SOURCE", "database", (BACKEND, AUTH, GOOGLE),
           "Where reads come from (DB_READ_SOURCE__<group> overrides one group). "
-          "The Google Forms integration accepts postgres only.",
+          "The auth service and the Google Forms integration accept postgres only.",
           ENUM, tier=T5, default="mongo", choices=("mongo", "postgres")),
     _spec("DB_WRITE_MODE", "database", (BACKEND, AUTH, GOOGLE),
           "Which stores writes go to (DB_WRITE_MODE__<group> overrides one group). "
-          "The Google Forms integration accepts postgres only.",
+          "The auth service and the Google Forms integration accept postgres only.",
           ENUM, tier=T5, default="mongo",
           choices=("mongo", "dual", "postgres_primary_dual", "postgres")),
-    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND, AUTH), 0.0, 0, 1,
+    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND,), 0.0, 0, 1,
            "Share of reads compared against the other store.", tier=T5),
+    _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, JOBS),
+          "Starts despite Mongo data never imported for these Postgres-only groups "
+          "(all, or a comma-separated list); that data is left behind.", tier=T5),
     _int("DB_POOL_SIZE", "database", _DB, 5, 1, 200, "Connection pool size.", tier=T5),
     _int("DB_MAX_OVERFLOW", "database", _DB, 5, 0, 200, "Extra connections above the pool.", tier=T5),
     _int("DB_POOL_TIMEOUT_S", "database", _DB, 10, 1, 600, "Seconds to wait for a connection.", tier=T5),
@@ -759,7 +763,6 @@ NOT_A_SETTING: Dict[str, str] = {
     "SCHEDULAR_INTERVAL_MINUTES": "listed in an env example; no service reads it",
     "TEMPLATE_PREDEFINED_WORKSPACE_ID": "listed in an env example; no service reads it",
     "VIRTUAL_HOST_1": "read by the reverse proxy image, not by a service",
-    "GOOGLE_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
     "POLIS_EGRESS_SUBNET": "compose subnet of the identity bridge's egress network",

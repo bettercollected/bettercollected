@@ -469,6 +469,17 @@ part_fresh() {
   fresh_done=1
 }
 
+# How many reference-data collections (allowed_origins, forms_plugin_configs) the stack's
+# Mongo has. The root password is read inside the container, never put on a command line.
+mongo_refdata_collections() {
+  dc exec -T mongodb mongosh --nodb --quiet --eval '
+    const c = new Mongo("mongodb://localhost:27017");
+    c.getDB("admin").auth("root", process.env.MONGO_INITDB_ROOT_PASSWORD);
+    print(c.getDB("bettercollected_backend").getCollectionNames()
+      .filter((n) => ["allowed_origins", "forms_plugin_configs"].includes(n)).length);
+  ' 2>/dev/null | tr -d '\r' | tail -n 1
+}
+
 fresh_assertions() { # <deploy output> <events> <ps samples>
   local out="$1" events="$2" ps_samples="$3" plain
   plain="$work/fresh-deploy.plain"
@@ -498,6 +509,13 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   expect "the auth schema is at the image's head" "$auth_head" "$auth_cur"
   expect "the admin schema is at the image's head" "$adm_head" "$adm_cur"
   expect "the settings store exists (settings schema migrated)" "t" "$(psql_q "select to_regclass('settings.entries') is not null")"
+  # reference data (4.1): seeded into Postgres by deploy.sh, none written to Mongo. The copy
+  # sets no DASHBOARD_DOMAIN / FORM_DOMAIN / API_CLIENT_URL: a local stack, the local origins
+  expect "the allowed origins are seeded into Postgres (the local web app ports)" \
+    "http://localhost:3000 http://localhost:3001 http://localhost:3002" \
+    "$(psql_q 'select origin from app.allowed_origins order by origin' | tr '\n' ' ' | sed 's/ $//')"
+  expect "the Google Forms provider is seeded into Postgres" "1" "$(psql_q "select count(*) from app.forms_plugin_configs where provider_name = 'google'")"
+  expect "no reference data is written to Mongo" "0" "$(mongo_refdata_collections)"
   # bootstrap-keys ran, before any service started
   check "bootstrap-keys ran (five keys generated, values not shown)" grep -q '^generated=5 (values are not shown)' "$plain"
   local boot_at first_start
@@ -609,6 +627,12 @@ fresh_second_run() {
   local versions
   versions="$(for k in AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET; do sdeploy settings-history "$k" 2>/dev/null | tail -n 1; done | tr '\n' ' ')"
   expect "the stored keys are unchanged (still one version each)" "$FRESH_STORE_VERSIONS" "$versions"
+  expect "the reference data is not seeded again (three origins)" "3" \
+    "$(dc exec -T app-postgres psql -U bettercollected -d bettercollected -Atc 'select count(*) from app.allowed_origins' 2>/dev/null | tr -d '\r')"
+  # the backend starts again on the same data (no Postgres-only data left only in Mongo)
+  dc restart backend >/dev/null 2>&1
+  check "the backend starts again after a restart" dc up -d --wait --no-deps backend
+  expect "and does not refuse to start" "0" "$(dc logs --no-log-prefix backend 2>&1 | grep -c 'Refusing to start')"
   local unhealthy
   unhealthy="$(service_state | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is still healthy" "" "$unhealthy"

@@ -9,7 +9,9 @@ import pytest_asyncio
 from sqlalchemy import select
 
 from googleform.app.containers import Container
+from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
+from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services import database_service
 from googleform.db.models import OAuthCredentialRow
 
@@ -83,3 +85,67 @@ async def test_save_stores_a_listed_document_as_it_is(repo):
     (row,) = await stored_rows()
     assert row.state == "s9"
     assert (await repo.get("a@example.com")).credentials.token == "t"
+
+
+# A credential is never stored in plain text. The key is derived from the user
+# id; a legacy row connected by an older version has none.
+
+LEGACY = "legacy@example.com"
+
+
+async def _legacy_row(repo):
+    await repo.save(
+        Oauth2CredentialDocument(
+            email=LEGACY,
+            provider="google",
+            credentials=GoogleCredentialResponse(token="old", refresh_token="old-r"),
+        )
+    )
+    document = await repo.get(LEGACY)
+    assert document.user_id is None
+    return document
+
+
+async def test_an_update_of_a_legacy_row_without_user_id_writes_nothing(repo):
+    document = await _legacy_row(repo)
+    document.credentials.token = "new"
+    document.credentials.refresh_token = "new-r"
+
+    result = await repo.update(LEGACY, document)
+
+    assert result.credentials.token == "new"  # the caller keeps it for this request
+    (row,) = await stored_rows()
+    assert row.user_id is None
+    assert (row.doc["credentials"]["token"], row.doc["credentials"]["refresh_token"]) == (
+        "old",
+        "old-r",
+    )
+    assert (await repo.get(LEGACY)).credentials.token == "old"
+
+
+async def test_a_legacy_row_takes_the_callers_user_id_and_is_encrypted(repo):
+    document = await _legacy_row(repo)
+    document.credentials = GoogleCredentialResponse(token="new", refresh_token="new-r")
+    document.user_id = "u-legacy"
+
+    await repo.update(LEGACY, document)
+
+    (row,) = await stored_rows()
+    assert row.user_id == "u-legacy"
+    assert set(row.doc["credentials"]) == {"$binary"}  # ciphertext
+    current = await repo.get(LEGACY)
+    assert (current.credentials.token, current.credentials.refresh_token) == ("new", "new-r")
+
+
+async def test_an_update_without_a_stored_row_writes_nothing(repo):
+    item = Oauth2CredentialDocument(
+        email="nobody@example.com",
+        provider="google",
+        user_id="u-nobody",
+        credentials=GoogleCredentialResponse(token="new", refresh_token="new-r"),
+    )
+
+    result = await repo.update("nobody@example.com", item)
+
+    assert result.credentials.token == "new"
+    assert await stored_rows() == []

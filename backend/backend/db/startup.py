@@ -10,6 +10,10 @@ logged at boot so a flip is auditable in the deploy history.
 Mongo is connected only while a repository group uses it
 (:func:`mongo_required`); once every group is on Postgres the backend and its
 job worker start without it (:mod:`common.db.mongo`).
+
+Once the schema is ready, the start is refused while a Postgres-only group's
+data sits in Mongo without having been imported
+(:mod:`backend.db.mongo_import_guard`).
 """
 
 from __future__ import annotations
@@ -21,6 +25,10 @@ from loguru import logger
 import backend
 from backend.db.base import SCHEMA
 from backend.db.groups import GROUPS
+from backend.db.mongo_import_guard import (
+    check_unimported_mongo_data,
+    mongo_uri_configured,
+)
 from backend.jobs.app import JOB_NAMES
 from backend.jobs.schema import JOBS_SCHEMA
 from common.db import MigrationTarget
@@ -43,6 +51,21 @@ async def check_postgres_at_startup(container) -> None:
         json.dumps(flags.describe(GROUPS, JOB_NAMES), sort_keys=True),
     )
     await _check(flags, container.pg_engine(), MIGRATIONS, (JOBS_SCHEMA,))
+    await check_mongo_import(container)
+
+
+async def check_mongo_import(container) -> None:
+    """:func:`backend.db.mongo_import_guard.check_unimported_mongo_data` on the
+    container's stores: its Mongo client when a group uses Mongo, else a
+    client of its own while ``MONGO_URI`` is set."""
+    from backend.config import settings
+
+    await check_unimported_mongo_data(
+        container.pg_engine(),
+        client=container.database_client() if mongo_required(container) else None,
+        uri=mongo_uri_configured(settings.mongo_settings),
+        database=settings.mongo_settings.DB,
+    )
 
 
 async def dispose_postgres(container) -> None:

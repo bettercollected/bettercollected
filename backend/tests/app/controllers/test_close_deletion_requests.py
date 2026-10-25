@@ -359,3 +359,54 @@ class TestReviewFollowUps:
         # who declined it is never sent to the respondent
         assert "closedBy" not in items[0] and "closures" not in items[0]
         assert await service.workspace_response(workspace.id, response_id) is not None
+
+    async def test_the_single_submission_carries_the_reason_the_lists_show(
+        self,
+        client: AsyncClient,
+        workspace,
+        published_form,
+        workspace_form_response,
+        test_user_cookies,
+    ):
+        response_id = workspace_form_response["response_id"]
+        service = container.form_response_service()
+        stored = await service.workspace_response(workspace.id, response_id)
+        await container.form_response_repo().add_deletion_request(stored, response_id)
+        await client.post(
+            _close_url(workspace, published_form.form_id, response_id),
+            cookies=test_user_cookies,
+            json={"outcome": "declined", "reason": "legal_obligation"},
+        )
+
+        single = await client.get(
+            f"{ROOT}/workspaces/{workspace.id}/submissions/{response_id}",
+            cookies=test_user_cookies,
+        )
+
+        assert single.status_code == 200, single.text
+        body = single.json()["response"]
+        assert body["deletionStatus"] == "declined"
+        assert body["declineReason"] == "legal_obligation"
+        assert "closedBy" not in body and "closures" not in body
+
+    async def test_a_pending_request_has_no_reason_on_the_single_submission(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form_response,
+        test_user_cookies,
+    ):
+        response_id = workspace_form_response["response_id"]
+        service = container.form_response_service()
+        stored = await service.workspace_response(workspace.id, response_id)
+        await container.form_response_repo().add_deletion_request(stored, response_id)
+
+        single = await client.get(
+            f"{ROOT}/workspaces/{workspace.id}/submissions/{response_id}",
+            cookies=test_user_cookies,
+        )
+
+        assert single.status_code == 200, single.text
+        body = single.json()["response"]
+        assert body["deletionStatus"] == "pending"
+        assert body.get("declineReason") is None

@@ -5,3 +5,6 @@
   longer read `DB_WRITE_MODE__GOOGLE`; the task runner's compose entry for it is gone, and
   `keyset.drop_old` with `mongo_retired` needs only `DB_WRITE_MODE` and
   `DB_WRITE_MODE__RESPONSES` on `postgres`.
+- The settings inventory lists `DB_SHADOW_READ_SAMPLE` as read by the backend only, and notes that
+  the auth service and the Google Forms integration accept `DB_READ_SOURCE` / `DB_WRITE_MODE` set to
+  `postgres` only.

@@ -39,12 +39,14 @@ services:
       timeout: 5s
       retries: 10
 
+  # Removes the `seeduser` account earlier releases created. It no longer seeds any
+  # data: the reference data (allowed origins, the Google Forms provider) is in
+  # Postgres since 4.1, seeded once by deploy.sh (python -m backend.seed_refdata).
   mongo-seed:
     build:
       context: .
       dockerfile: Dockerfile.deployment.mongo-seed
     environment:
-      GOOGLE_ENABLED: ${GOOGLE_ENABLED}
       MONGO_ROOT_PASSWORD: ${BC_MONGO_ROOT_PASSWORD:-root}
     depends_on:
       mongodb:

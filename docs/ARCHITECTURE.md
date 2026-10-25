@@ -130,7 +130,10 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
   a Postgres twin behind a `RoutingRepository`; per-group flags (`DB_READ_SOURCE__<g>`, `DB_WRITE_MODE__<g>`) move
   a group from Mongo to mirrored (`dual`) to served-from-Postgres, with Mongo kept current by a reverse mirror until
   removal. Mirror failures go to an outbox; shadow reads compare the stores on live traffic; the flags in effect
-  are logged at boot and served on `GET /persistence/status`.
+  are logged at boot and served on `GET /persistence/status`. Since 4.1 some groups are served from Postgres
+  only, with no Mongo side and no routing: the backend's `refdata`, `analytics`, `ai` and `actions`, the auth
+  service and the Google integration; their 4.0 Mongo data is read only by the import
+  (`python -m <service>.migrate`).
 - **PostgreSQL (Temporal)** — used only by the Temporal server (auto-setup image), not by application code;
   goes away with Temporal.
 - **Redis** — caching (notably in `integrations/google`).
@@ -163,7 +166,9 @@ operator's webhook (`event_service.py`, `EVENT_WEBHOOK_URL`) with the event type
 
 - Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
 - `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, both integrations, temporal + workers,
-  mongo + seed, the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
-  document sandbox and the task runner). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
+  mongo (+ a job that removes an old account), the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
+  document sandbox and the task runner). `deploy.sh` seeds a new stack's reference data
+  (allowed origins, the Google Forms provider) into Postgres with `python -m backend.seed_refdata`, using the web
+  app's public origins (`DASHBOARD_DOMAIN` / `FORM_DOMAIN`); `mongo-seed` no longer writes data.
 - nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's tracker script and event endpoint are
   served by nginx on port `3003`; its dashboard is published on `127.0.0.1:3004` only (no TLS routing yet).

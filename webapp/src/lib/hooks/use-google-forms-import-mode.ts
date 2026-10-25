@@ -25,7 +25,7 @@ export function googleFormsImportMode(providers: ReadonlyArray<FormProviderDto> 
     if (!Array.isArray(providers)) return undefined;
     const google = providers.find((provider) => provider?.providerName === 'google');
     if (!google) return 'off';
-    // a platform admin's list carries the stored config, without the mode
+    // no mode (an older backend): imports are on
     if (google.importMode === 'readonly' || google.importMode === 'off') return google.importMode;
     return 'on';
 }
