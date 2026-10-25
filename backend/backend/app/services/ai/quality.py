@@ -28,6 +28,7 @@ from backend.app.services.publish_checks import (
     MISSING_WHY_WE_ASK,
     PRESET_ANSWER,
     REQUIRED_UNANSWERABLE,
+    THEME_CONTRAST,
     publish_problems,
     question_text,
 )
@@ -272,6 +273,7 @@ def _check_publish_rules(form: Any) -> List[Finding]:
         REQUIRED_UNANSWERABLE: "A required question cannot be answered.",
         PRESET_ANSWER: "A choice question starts with an answer already chosen.",
         MISSING_ENDING: "A page jump goes to an ending that no longer exists.",
+        THEME_CONTRAST: "The theme's colours are hard to read (WCAG AA contrast).",
     }
     return [
         Finding(
