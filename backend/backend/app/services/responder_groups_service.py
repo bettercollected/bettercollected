@@ -239,18 +239,32 @@ class ResponderGroupsService:
         group_ids: List[PydanticObjectId],
         form_workspace_ids: List[PydanticObjectId],
     ):
-        """Set the workspace's groups on one of its forms. Every id must be a
-        group of the workspace; nothing is linked otherwise. The groups that
-        another workspace holding the same form linked to it stay linked."""
-        await self.check_groups_in_workspace(workspace_id, group_ids)
+        """Set the workspace's groups on one of its forms (the whole set the
+        builder sends, which lists every group linked to the form, whatever
+        its workspace). An id not linked to the form must be a group of the
+        workspace: otherwise 404, as for an unknown group, and nothing is
+        linked or unlinked. An id of another workspace's group already linked
+        to the form reveals nothing new and is not refused: the groups of
+        another workspace that holds the form stay linked whether or not they
+        are sent, and a link to a group of a workspace that doesn't hold the
+        form (made before links were checked) is dropped."""
+        owners = await self._linked_group_owners(form_id)
+        own_id = _oid(workspace_id)
+        own, unlinked = [], []
+        for group_id in dict.fromkeys(_oid(g) for g in group_ids):
+            if group_id not in owners:
+                unlinked.append(group_id)
+            elif owners[group_id] == own_id:
+                own.append(group_id)
+        await self.check_groups_in_workspace(workspace_id, unlinked)
         other_workspaces = _other_workspaces(workspace_id, form_workspace_ids)
         kept = [
             group_id
-            for group_id, owner in (await self._linked_group_owners(form_id)).items()
-            if owner in other_workspaces
+            for group_id, owner in owners.items()
+            if owner is not None and owner in other_workspaces
         ]
         return await self.responder_groups_repo.add_groups_to_form(
-            form_id, list(group_ids) + kept
+            form_id, own + unlinked + kept
         )
 
     async def remove_group_from_form(
