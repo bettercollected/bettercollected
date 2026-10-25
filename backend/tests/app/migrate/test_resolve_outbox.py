@@ -154,7 +154,7 @@ def test_every_routed_repository_has_its_group():
             name = provider.kwargs["postgres"].args[0].__name__
         assert groups[name] == provider.kwargs["group"]
         checked += 1
-    assert checked >= 5  # forms and responses (4.1)
+    assert checked >= 3  # responses, the last routed group (4.1)
     assert groups[REPOSITORY] == "responses"
 
 
@@ -208,7 +208,6 @@ async def test_entries_whose_writes_are_missing_stay_open(target):
     missing = await open_entry(str(only_postgres["_id"]))
     older = await open_entry(str(newer_in_postgres["_id"]))
     unnamed = await open_entry("-")
-    other_group = await open_entry("-", repository="FormRepository")
     unknown = await open_entry("-", repository="NoSuchRepository")
     code, result = await resolve(target, "--apply", "--accept-superseded")
     assert code == 1
@@ -219,9 +218,8 @@ async def test_entries_whose_writes_are_missing_stay_open(target):
         "group_differs": 1,
     }
     assert result["groups"]["responses"]["rows_differing"] == 2
-    assert result["resolved"] == 1  # the forms entry: nothing differs there
+    assert result["resolved"] == 0
     assert await open_ids() == sorted([missing, older, unnamed, unknown])
-    assert other_group not in await open_ids()
 
 
 async def test_an_unnamed_newer_mongo_copy_older_than_the_entry_keeps_it(target):
@@ -332,13 +330,16 @@ async def test_the_dry_run_changes_nothing_and_ids_go_only_to_the_file(
 
 
 async def test_group_limits_the_entries(target):
+    """responses is the last routed group: ``--group responses`` covers its
+    entries, never another group's (here a forms entry left from 4.0, the
+    forms group being served from Postgres only)."""
     responses = await open_entry("-")
     forms = await open_entry("-", repository="FormRepository")
-    code, result = await resolve_group(target, "forms", "--apply")
-    assert code == 0
-    assert (result["in_scope"], result["out_of_scope"], result["resolved"]) == (1, 1, 1)
-    assert await open_ids() == [responses]
-    assert forms not in await open_ids()
+    code, result = await resolve_group(target, "responses", "--apply")
+    assert code == 0, result
+    assert (result["in_scope"], result["resolved"]) == (1, 1)
+    assert await open_ids() == [forms]
+    assert responses not in await open_ids()
 
 
 async def test_postgres_only_leftovers_are_counted_apart(target):
