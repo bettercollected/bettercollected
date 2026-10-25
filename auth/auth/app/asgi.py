@@ -13,8 +13,8 @@ from auth.app.exceptions import (
 )
 from auth.app.exceptions.http import not_found_error_handler
 from auth.app.router import root_api_router
-from auth.app.services.database_service import close_db, init_db
 from auth.db.base import SCHEMA
+from auth.db.flags import GROUP
 from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from auth.config import settings
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
@@ -30,7 +30,7 @@ from fastapi.exceptions import RequestValidationError
 log = logging.getLogger(__name__)
 
 # The auth schema's Alembic history: checked (and with DB_AUTO_MIGRATE=true,
-# applied) at startup whenever a group is on Postgres.
+# applied) at startup.
 MIGRATIONS = MigrationTarget.for_package(auth, SCHEMA, service="auth")
 
 
@@ -43,15 +43,16 @@ async def on_startup():
     """
     log.debug("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
-    database_client = container.database_client()
-    await init_db(database_client, required=container.uses_mongo())
+    flags = container.flags()  # refuses a stale DB_*__auth flag (auth/db/flags.py)
     log.info(
-        "persistence flags: %s",
-        json.dumps(container.flags().describe(["auth"]), sort_keys=True),
+        "persistence flags: %s", json.dumps(flags.describe([GROUP]), sort_keys=True)
     )
-    await check_postgres_at_startup(
-        container.flags(), container.pg_engine(), MIGRATIONS
-    )
+    if container.pg_engine() is None:
+        raise RuntimeError(
+            "DATABASE_URL is not set: the auth service stores its data in "
+            "Postgres only since 4.1"
+        )
+    await check_postgres_at_startup(flags, container.pg_engine(), MIGRATIONS)
 
 
 async def on_shutdown():
@@ -63,9 +64,6 @@ async def on_shutdown():
     """
     log.debug("Execute FastAPI shutdown event handler.")
     await container.http_client().aclose()
-
-    database_client = container.database_client()
-    await close_db(database_client)
     await dispose_engine(container.pg_engine())
 
 

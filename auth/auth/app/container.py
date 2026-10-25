@@ -1,9 +1,7 @@
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
-from pymongo import AsyncMongoClient
 
-from auth.app.repositories.postgres import PostgresUserRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.auth_service import AuthService
@@ -12,63 +10,26 @@ from auth.app.services.sso_service import SsoService
 from auth.app.services.stripe_service import StripeService
 from auth.app.services.user_service import UserService
 from auth.config import settings
-from auth.db.models import MirrorWriteFailure
-from common.db import (
-    SERVICE_GROUPS,
-    DatabaseSettings,
-    OutboxRecorder,
-    RoutingMetrics,
-    RoutingRepository,
-    build_engine,
-    build_sessionmaker,
-    load_flags,
-    mongo_client,
-    mongo_required,
-    postgres_repository,
-)
+from auth.db.flags import load_auth_flags
+from common.db import DatabaseSettings, build_engine, build_sessionmaker
 
 
 class AppContainer(containers.DeclarativeContainer):
     # Define non-decorated objects here
     http_client: HttpClient = providers.Singleton(HttpClient)
 
-    # Postgres runtime (plans/postgres-consolidation.md): everything is None
-    # without DATABASE_URL, and the routing layer treats the store as absent.
-    flags = providers.Singleton(load_flags)
-
-    # Whether the auth group still uses Mongo; once it is on Postgres for reads
-    # and writes the service starts without Mongo (common/db/mongo.py).
-    uses_mongo = providers.Callable(mongo_required, flags, SERVICE_GROUPS["auth"])
-    # Beanie 2.x uses pymongo's native async client, not motor. Instantiated
-    # inside on_startup (a running event loop) via container.database_client();
-    # it never connects while Mongo is not used.
-    database_client: AsyncMongoClient = providers.Singleton(
-        mongo_client, settings.mongo_settings.URI, required=uses_mongo
-    )
+    # Postgres only since 4.1 (auth/db/flags.py): a stale per-group flag
+    # naming Mongo refuses the start. Without DATABASE_URL the engine is None
+    # and startup refuses (app/asgi.py).
+    flags = providers.Singleton(load_auth_flags)
     db_settings = providers.Singleton(DatabaseSettings.from_env)
     pg_engine = providers.Singleton(
         build_engine, db_settings, application_name="bettercollected-auth"
     )
     pg_sessionmaker = providers.Singleton(build_sessionmaker, pg_engine)
-    outbox_recorder = providers.Singleton(
-        OutboxRecorder, pg_sessionmaker, MirrorWriteFailure
-    )
-    mirror_timeout_s = providers.Callable(
-        lambda s: s.mirror_timeout_ms / 1000, db_settings
-    )
-    routing_metrics = providers.Singleton(RoutingMetrics)
 
     user_repository: UserRepository = providers.Singleton(
-        RoutingRepository,
-        group="auth",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(UserRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresUserRepository, pg_sessionmaker
-        ),
+        UserRepository, pg_sessionmaker
     )
 
     auth_provider_factory: AuthProviderFactory = providers.Singleton(

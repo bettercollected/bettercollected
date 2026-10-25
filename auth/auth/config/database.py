@@ -5,6 +5,9 @@ from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
 class MongoSettings(StoreBackedSettings):
+    """The 4.0 Mongo database, read only by the import (``python -m auth.migrate``);
+    the service itself is served from Postgres only."""
+
     DB: Optional[str] = "bettercollected_auth"
     URI: Optional[str] = "mongodb://localhost"
 

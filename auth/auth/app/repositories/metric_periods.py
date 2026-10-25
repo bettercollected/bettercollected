@@ -1,14 +1,12 @@
 """Time windows for the user counts of the platform metrics dashboard.
 
-Shared by the Mongo user repository and its Postgres twin so both count the
-same users: the smallest ObjectId minted at a moment bounds a range on ``_id``
-in Mongo and on ``id`` in Postgres (24-hex strings order like the ObjectIds);
-ISO-string timestamps in Mongo are compared at second precision.
+Users are dated by their id: the smallest id minted at a moment bounds a
+range on ``id`` (24-hex strings order like the ObjectIds they encode).
 """
 
 import datetime as dt
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 
 def utc(moment: dt.datetime) -> dt.datetime:
@@ -18,11 +16,6 @@ def utc(moment: dt.datetime) -> dt.datetime:
     return moment.astimezone(dt.timezone.utc).replace(microsecond=0)
 
 
-def object_id_at(moment: dt.datetime) -> PydanticObjectId:
-    """The smallest ObjectId minted at ``moment``."""
-    return PydanticObjectId.from_datetime(utc(moment))
-
-
-def iso_second(moment: dt.datetime) -> str:
-    """``moment`` as the prefix of an ISO timestamp (stored strings are UTC)."""
-    return utc(moment).strftime("%Y-%m-%dT%H:%M:%S")
+def object_id_at(moment: dt.datetime) -> RecordId:
+    """The smallest id minted at ``moment``."""
+    return RecordId.from_datetime(utc(moment))

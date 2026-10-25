@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Optional
 from urllib.parse import quote
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.enums.plan import Plans
 from fastapi_mail import MessageSchema
 from pydantic import EmailStr
@@ -26,7 +26,7 @@ class UserService:
         self.user_repo = user_repo
         self.stripe_service: StripeService = stripe_service
 
-    async def get_user_info_from_user_ids(self, user_ids: List[PydanticObjectId]):
+    async def get_user_info_from_user_ids(self, user_ids: List[RecordId]):
         return await self.user_repo.get_users_by_ids(user_ids=user_ids)
 
     async def get_users_info_from_emails(self, emails: List[EmailStr]):
@@ -77,7 +77,7 @@ class UserService:
         )
         await MailService().send_message(message)
 
-    async def delete_user(self, user_id: PydanticObjectId):
+    async def delete_user(self, user_id: RecordId):
         user = await self.user_repo.get_user_by_id(user_id=user_id)
         if user.stripe_customer_id:
             await run_sync(self.stripe_service.delete_customer, user.stripe_customer_id)

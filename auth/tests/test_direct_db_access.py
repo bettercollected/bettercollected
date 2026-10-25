@@ -1,8 +1,8 @@
-"""No Beanie reads or writes outside the repositories (common/db/access_guard.py).
+"""No Beanie reads or writes in auth (common/db/access_guard.py).
 
-A document saved or queried directly talks to Mongo alone, so dual and
-postgres modes never see it. Add a module to ``ALLOWED`` only with the reason
-it may bypass the routed repositories.
+auth is served from Postgres only (4.1): a Beanie document saved or queried
+would talk to a Mongo store the service no longer has. Only the import from
+4.0 reads Mongo. Add a module to ``ALLOWED`` only with the reason it may.
 """
 
 from pathlib import Path
@@ -15,7 +15,7 @@ PACKAGE = Path(__file__).resolve().parents[1] / "auth"
 COMMON = Path(common.__file__).resolve().parent
 
 ALLOWED = {
-    "app/repositories/": "the repositories: the Mongo side of each routed pair",
+    "app/repositories/": "the repository: its own Postgres calls (upsert, delete...) share Beanie's method names",
     "migrate/": "the Mongo -> Postgres migration CLI reads and writes both stores by design",
 }
 
@@ -24,9 +24,10 @@ def test_documents_are_only_touched_by_repositories():
     hits = find_direct_access(
         PACKAGE, document_roots=[PACKAGE, COMMON], allowed=ALLOWED
     )
-    assert hits == [], (
-        "route these through a repository method (marked @write_op for writes, "
-        "with a Postgres twin):\n  " + "\n  ".join(str(h) for h in hits)
+    assert (
+        hits == []
+    ), "go through the user repository (Postgres) instead:\n  " + "\n  ".join(
+        str(h) for h in hits
     )
 
 

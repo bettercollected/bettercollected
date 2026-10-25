@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.enums.roles import Roles
 from common.models.user import User, UserResponseDto
 from common.models.user import UserInfo
@@ -41,7 +41,7 @@ class AuthService:
         self.http_client = http_client
 
     async def get_user_status(
-        self, user_id: PydanticObjectId, email_verified: bool = False
+        self, user_id: RecordId, email_verified: bool = False
     ):
         """``email_verified``: the refreshing session's claim (the backend reads
         it from the user's signed refresh token)."""

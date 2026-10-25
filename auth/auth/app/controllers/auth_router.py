@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from auth.app.container import container
 from auth.app.controllers.internal_key import INTERNAL_ONLY
@@ -36,7 +36,7 @@ class AuthRoutes(Routable):
 
     @get("/status")
     async def _get_user_status(
-        self, user_id: PydanticObjectId, email_verified: bool = False
+        self, user_id: RecordId, email_verified: bool = False
     ):
         return await self.auth_service.get_user_status(user_id, email_verified)
 
