@@ -25,7 +25,10 @@ env:
     VIRTUAL_ENV: ""
     # the stack's own values, as in ci.yml: nothing here is a real secret
     DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/bettercollected_test
-    MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+    # no Mongo, as on a fresh install: the backend does not contact it (a set
+    # but unreachable MONGO_URI refuses the backend's start); auth ignores it
+    # with every group on Postgres
+    MONGO_URI: ""
     DB_READ_SOURCE: postgres
     DB_WRITE_MODE: postgres
     DB_AUTO_MIGRATE: "true"

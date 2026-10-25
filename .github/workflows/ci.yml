@@ -139,8 +139,10 @@ jobs:
             # slower), each with its own Mongo and Postgres database
             # (tests/conftest.py). pytest-split picks this shard's tests from
             # the recorded durations in .test_durations (docs/ci.md).
-            # Without Mongo, MONGO_URI points at a closed port: anything that
-            # tries to reach Mongo fails at once instead of finding a server.
+            # Without Mongo, MONGO_URI is empty, as on a fresh install: the
+            # backend then starts without contacting Mongo at all (a MONGO_URI
+            # that is set but unreachable refuses the start: the check for
+            # unimported Postgres-only data, backend/db/mongo_import_guard.py).
             # MARKER "not mongo" leaves out the tests that drive Mongo
             # themselves; "mongo" runs only those (tests/conftest.py).
             - name: Run backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
@@ -157,7 +159,7 @@ jobs:
                   if [ -n "$IGNORE" ]; then extra+=("$IGNORE"); fi
                   if [ -n "$MARKER" ]; then extra+=(-m "$MARKER"); fi
                   if [ "$MONGO" = absent ]; then
-                      export MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000"
+                      export MONGO_URI=""
                   fi
                   uv run --frozen pytest -n 4 --dist loadgroup \
                       --splits "$SPLITS" --group "$GROUP" --splitting-algorithm least_duration "${extra[@]}"

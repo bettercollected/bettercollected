@@ -102,6 +102,11 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may
   join into one of them (its collections are no longer written): both workspace repositories read a workspace's copy of
   an action through the actions repository. A fresh store gets its reference data from `python -m backend.seed_refdata`.
+  Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
+  an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
+  <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
+  Mongo-less tests run with `MONGO_URI=""`. `verify`/`reconcile` skip these groups by default and exit 2 when one is
+  named (`Target.postgres_only_groups`); the verified marker covers the other groups.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned

@@ -112,3 +112,42 @@ async def test_the_command_seeds_what_it_is_told(clean_postgres, monkeypatch):
 
 async def _no_dispose(_container):
     return None
+
+
+async def test_the_command_refuses_while_mongo_holds_unimported_refdata(
+    clean_postgres, monkeypatch
+):
+    """Seeding the empty tables first would hide 4.0 refdata from the start's
+    check (backend/db/mongo_import_guard.py): the command refuses instead."""
+    from backend.app.container import container
+    from backend.db import mongo_import_guard as guard
+
+    class Collection:
+        def __init__(self, name):
+            self.name = name
+
+        async def find_one(self, *args, **kwargs):
+            return {"_id": 1} if self.name == "allowed_origins" else None
+
+        async def estimated_document_count(self):
+            return 5
+
+    class Database:
+        def __getitem__(self, name):
+            return Collection(name)
+
+    class Client:
+        def __init__(self, uri, **kwargs):
+            pass
+
+        def __getitem__(self, name):
+            return Database()
+
+        async def close(self):
+            return None
+
+    monkeypatch.setattr("backend.db.startup.dispose_postgres", _no_dispose)
+    monkeypatch.setattr(guard, "mongo_uri_configured", lambda _: "mongodb://mongo")
+    monkeypatch.setattr(guard, "AsyncMongoClient", Client)
+    assert await run(build_parser().parse_args([])) == 2
+    assert await container.allowed_origins_repo().list_origins() == []

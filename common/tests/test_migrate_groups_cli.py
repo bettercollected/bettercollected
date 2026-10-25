@@ -17,6 +17,7 @@ from common.db.migrate.cli import (
     main,
     reconcile_to_mongo_refusal,
     select_collections,
+    skipped_groups,
 )
 from common.db.migrate.cli import format_status
 from common.db.migrate.engine import Target, id_range
@@ -227,3 +228,109 @@ def test_other_reconciles_and_dry_runs_are_not_refused():
         )
         is None
     )
+
+
+# -- groups served from Postgres only: never verified or reconciled ------------
+def _pinning(group):
+    """A service's flag loader that serves ``group`` from Postgres only."""
+    from dataclasses import replace
+
+    from common.db.flags import ReadSource, WriteMode, load_flags
+
+    def load(env):
+        flags = load_flags(env)
+        return replace(
+            flags,
+            read_overrides={**flags.read_overrides, group: ReadSource.POSTGRES},
+            write_overrides={**flags.write_overrides, group: WriteMode.POSTGRES},
+        )
+
+    return load
+
+
+def _pg_only_target():
+    from dataclasses import replace
+
+    return replace(
+        _target(), postgres_only_groups=("refdata",), load_flags=_pinning("refdata")
+    )
+
+
+BOTH_STORES = [
+    ["verify"],
+    ["reconcile"],
+    ["reconcile", "--direction", "mongo->postgres"],
+    ["reconcile", "--direction", "postgres->mongo"],
+]
+
+
+@pytest.mark.parametrize("command", BOTH_STORES, ids=" ".join)
+def test_verify_and_reconcile_skip_postgres_only_groups_by_default(command):
+    target = _pg_only_target()
+    assert target.migrating_groups() == ["identity", "forms", "responses"]
+    assert select_collections(_args(*command), target) == [
+        "workspaces",
+        "forms",
+        "form_responses",
+    ]
+    assert skipped_groups(_args(*command), target) == ["refdata"]
+    # the other commands still cover them: backfill is the import
+    for other in (["backfill"], ["preflight"], ["status"]):
+        assert select_collections(_args(*other), target) is None
+        assert skipped_groups(_args(*other), target) == []
+
+
+@pytest.mark.parametrize("command", BOTH_STORES, ids=" ".join)
+@pytest.mark.parametrize(
+    "selection",
+    [
+        ["--group", "refdata"],
+        ["--group", "forms,refdata"],
+        ["--collections", "allowed_origins"],
+    ],
+    ids=["group", "groups", "collection"],
+)
+def test_verify_and_reconcile_refuse_a_postgres_only_group_by_name(
+    command, selection, capsys
+):
+    """Exit 2 before connecting to anything, naming the group; under
+    postgres_primary_dual too, where the effective mode check used to read
+    the global write mode for it and let it through."""
+    for env in ({}, PPD):
+        with pytest.raises(SystemExit) as exit_:
+            main(
+                selection + command,
+                _pg_only_target(),
+                prog="python -m backend.migrate",
+                env=env,
+            )
+        assert exit_.value.code == 2
+        err = capsys.readouterr().err
+        assert "served from Postgres only: refdata" in err
+        assert "backfill" in err
+
+
+def test_a_postgres_only_group_can_still_be_backfilled():
+    target = _pg_only_target()
+    assert select_collections(_args("--group", "refdata", "backfill"), target) == [
+        "allowed_origins"
+    ]
+
+
+def test_the_refusal_reads_each_groups_effective_mode():
+    """The service's own flag loader decides, not the global flags: a group it
+    pins to postgres is not on postgres_primary_dual, whatever DB_WRITE_MODE says."""
+    from dataclasses import replace
+
+    target = replace(_target(), load_flags=_pinning("forms"))
+    args = _args("reconcile", "--direction", "postgres->mongo")
+    refusal = reconcile_to_mongo_refusal(args, target, PPD)
+    assert refusal and "forms (postgres)" in refusal
+    assert "identity" not in refusal and "refdata" not in refusal
+    # with its default loader the same environment passes
+    assert reconcile_to_mongo_refusal(args, _target(), PPD) is None
+
+
+def test_the_refusal_skips_postgres_only_groups_by_default():
+    args = _args("reconcile", "--direction", "postgres->mongo")
+    assert reconcile_to_mongo_refusal(args, _pg_only_target(), PPD) is None
