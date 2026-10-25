@@ -2,10 +2,10 @@
 
 import logging
 
-from classy_fastapi import Routable, get, delete, post
+from classy_fastapi import Routable, get, post
 from common.models.user import UserInfo
 from fastapi import Depends
-from pydantic import EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.requests import Request
 
 from googleform.app.containers import Container
@@ -17,6 +17,18 @@ log = logging.getLogger(__name__)
 # credential refuse in GOOGLE_FORMS_IMPORT=readonly|off; the Sheets
 # (integration) flow and deleting credentials stay.
 _FORMS = Depends(google_forms_processing_allowed)
+
+
+class CredentialErasure(BaseModel):
+    """Whose stored credentials to erase (account deletion). Both are required:
+    the store's delete matches either, so an empty one must never reach it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1)
+    # the account's email as stored; not re-validated, so an address the
+    # validator dislikes can still be erased
+    email: str = Field(min_length=1)
 
 
 class AuthRoutes(Routable):
@@ -50,14 +62,14 @@ class AuthRoutes(Routable):
         )
         return response
 
-    @delete("/oauth/credentials")
-    async def _delete_oauth_credentials(
-        self, email: EmailStr = None, user_id: str = None
-    ):
+    @post("/oauth/credentials/erase")
+    async def _erase_oauth_credentials(self, erasure: CredentialErasure):
+        # the email travels in the body: a URL (and so the access log) of an
+        # erasure carries no personal data
         await self.oauth_google_service.delete_oauth_credentials_for_user(
-            email=email, user_id=user_id
+            email=erasure.email, user_id=erasure.user_id
         )
-        return "Credentials Deleted Successfully"
+        return {"status": "erased"}
 
     @get("/credentials")
     async def get_credentials(self, email: EmailStr, _forms: None = _FORMS):

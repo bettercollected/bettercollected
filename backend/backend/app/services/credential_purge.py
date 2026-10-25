@@ -4,14 +4,19 @@ Account deletion (``AuthService.delete_user``) erases the account, its
 sessions and its workspace data first; the user's stored OAuth credentials on
 a provider service (Google Forms) come last and never hold that back:
 
-1. the provider service deletes them (``DELETE /{provider}/oauth/credentials``;
-   for Google it revokes the grant at Google first, in ``on`` and ``readonly``);
+1. the provider service deletes them (``POST /{provider}/oauth/credentials/erase``,
+   user id and email in the JSON body so no URL or access log carries the
+   email; for Google it revokes the grant at Google first, in ``on`` and
+   ``readonly``);
 2. when that fails, or in ``GOOGLE_FORMS_IMPORT=off`` (nothing calls the
    service), a retryable ``purge_provider_credentials`` job is queued
    (``JOBS_BACKEND__purge_provider_credentials=postgres``, procrastinate). Only
    the queuing is retried in the deletion itself; if it still can't be queued
-   the deletion job fails after the erasure, so it is retried and shows up as a
-   failed or overdue job (``CredentialPurgeNotQueued``).
+   the deletion job fails after the erasure (``CredentialPurgeNotQueued``) and
+   is retried. On procrastinate (``JOBS_BACKEND__delete_user=postgres``) that
+   failing deletion job is reported by the integrity monitor; on Temporal (the
+   default) the workflow's activity fails and Temporal retries it, which shows
+   in the Temporal UI and as an error log line, not in the integrity monitor.
 
 The job (``backend/jobs/tasks.py``) retries for two days: through the
 service in ``on``/``readonly`` (so the grant is revoked), and in ``off``
@@ -100,9 +105,11 @@ class CredentialPurgeService:
         when it could not be reached (or may not be called)."""
         try:
             url = await self._providers.get_provider_url(purge.provider)
-            response = await AiohttpClient.get_aiohttp_client().delete(
-                f"{url}/{purge.provider}/oauth/credentials",
-                params={"user_id": purge.user_id, "email": purge.email},
+            # the email goes in the body, never the URL: the service's access
+            # log records URLs, and a purge is retried up to PURGE_ATTEMPTS times
+            response = await AiohttpClient.get_aiohttp_client().post(
+                f"{url}/{purge.provider}/oauth/credentials/erase",
+                json={"user_id": purge.user_id, "email": purge.email},
                 timeout=aiohttp.ClientTimeout(total=CREDENTIALS_DELETE_TIMEOUT),
             )
             return response.status

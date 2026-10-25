@@ -11,5 +11,9 @@
   state), is shown by the admin portal's integrity monitor and mailed to the admins once
   (`CREDENTIAL_PURGE` / `overdue`, through `admin.credential_purges_overdue()` from
   `postgres/ensure-admin-roles.sh`). If the purge can't be queued at all, the deletion job fails after the
-  erasure, so it is retried and stays visible. The auth service's account delete uses a 30 s timeout
+  erasure and is retried: on procrastinate the integrity monitor reports it, on Temporal (the default) it
+  shows in the Temporal UI and the backend's error log only. A disabled Google provider is purged too. The
+  Google Forms service's erase is now `POST /google/oauth/credentials/erase` with the user id and email in the
+  JSON body (the `DELETE /google/oauth/credentials` query-string form is removed), so no URL or access log
+  carries the email. The auth service's account delete uses a 30 s timeout
   instead of 20000 s.

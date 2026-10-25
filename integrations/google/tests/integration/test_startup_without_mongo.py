@@ -27,9 +27,9 @@ from googleform.config import settings
 
 with TestClient(get_application()) as client:
     # a write through the routed credential repository
-    deleted = client.delete(
-        settings.API_ROOT_PATH + "/google/oauth/credentials",
-        params={"email": "nobody@example.com"},
+    deleted = client.post(
+        settings.API_ROOT_PATH + "/google/oauth/credentials/erase",
+        json={"user_id": "nobody", "email": "nobody@example.com"},
     )
     print("credentials status:", deleted.status_code)
     print("mongo used:", database_service.uses_mongo())

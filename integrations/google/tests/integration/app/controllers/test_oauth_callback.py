@@ -124,8 +124,9 @@ def google(monkeypatch):
 def client(google):
     with TestClient(get_application(), raise_server_exceptions=False) as test_client:
         yield test_client
-        test_client.delete(
-            API + "/oauth/credentials", params={"email": google.email, "user_id": "u-hot65"}
+        test_client.post(
+            API + "/oauth/credentials/erase",
+            json={"email": google.email, "user_id": "u-hot65"},
         )
 
 

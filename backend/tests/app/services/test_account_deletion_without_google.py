@@ -55,15 +55,17 @@ def no_queue_pause(monkeypatch):
 
 
 class Google:
-    """The Google Forms service's DELETE: ``answer`` is an exception to raise
-    or a status; the auth service always answers 200."""
+    """The Google Forms service's erase (POST) and the auth service's account
+    DELETE: ``answer`` is an exception to raise or a status for the Google
+    service; the auth service always answers 200."""
 
     def __init__(self, answer):
         self.answer = answer
         self.session = MagicMock()
-        self.session.delete = AsyncMock(side_effect=self._delete)
+        self.session.delete = AsyncMock(side_effect=self._call)
+        self.session.post = AsyncMock(side_effect=self._call)
 
-    async def _delete(self, url, **kwargs):
+    async def _call(self, url, **kwargs):
         if url.startswith(GOOGLE_URL):
             if isinstance(self.answer, BaseException):
                 raise self.answer
@@ -71,7 +73,8 @@ class Google:
         return MagicMock(status=200)
 
     def calls(self, prefix=GOOGLE_URL):
-        return [c for c in self.session.delete.await_args_list if c.args[0].startswith(prefix)]
+        made = self.session.delete.await_args_list + self.session.post.await_args_list
+        return [c for c in made if c.args[0].startswith(prefix)]
 
     def __enter__(self):
         self._patch = patch(
@@ -126,6 +129,44 @@ async def test_a_successful_delete_queues_nothing(google_provider_config, queue)
         await container.auth_service().delete_credentials_from_integrations(testUser)
     assert len(google.calls()) == 1
     queue.assert_not_awaited()
+
+
+async def test_the_email_is_never_in_the_url(google_provider_config, queue):
+    """The service's access log records URLs: an erasure sends the email in
+    the body only, and nothing in the URL names the person."""
+    with Google(200) as google:
+        await container.auth_service().delete_credentials_from_integrations(testUser)
+    (call,) = google.calls()
+    assert call.args[0] == f"{GOOGLE_URL}/google/oauth/credentials/erase"
+    assert google.session.post.await_count == 1
+    assert "params" not in call.kwargs
+    assert call.kwargs["json"] == {"user_id": testUser.id, "email": testUser.sub}
+    for made in google.session.post.await_args_list + google.session.delete.await_args_list:
+        assert testUser.sub not in made.args[0]
+        assert testUser.sub not in str(made.kwargs.get("params", ""))
+
+
+async def test_a_disabled_provider_is_still_purged(queue):
+    """Disabling a provider stops new use, not the erasure of what it
+    already stores: the purge is attempted, and queued when it fails."""
+    await container.form_provider_service().add_provider(
+        FormProviderConfigDto(
+            enabled=False,
+            provider_name="google",
+            provider_url=GOOGLE_URL,
+            auth_callback_url=f"{GOOGLE_URL}/google/oauth/callback",
+        )
+    )
+    with Google(200) as google:
+        await container.auth_service().delete_credentials_from_integrations(testUser)
+    assert len(google.calls()) == 1
+    queue.assert_not_awaited()
+
+    with Google(503) as google:
+        await container.auth_service().delete_credentials_from_integrations(testUser)
+    assert len(google.calls()) == 1
+    (purge,) = queue.await_args.args
+    assert purge == CredentialPurge(user_id=testUser.id, email=testUser.sub, provider="google")
 
 
 async def test_the_service_call_has_a_short_timeout(google_provider_config, queue):

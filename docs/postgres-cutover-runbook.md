@@ -12,7 +12,7 @@ a code change — and by the migration CLI, which runs out of band as a one-off 
 | piece | where | what it does |
 |---|---|---|
 | `DB_READ_SOURCE`, `DB_WRITE_MODE` (+ `__<group>` overrides) | each service's env | per repository group: `mongo` → `dual` (write both, read Mongo) → `postgres_primary_dual` (write both, read Postgres) → `postgres` |
-| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`) | backend, actions-executor | `temporal` (default) or `postgres` (procrastinate) per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and show as overdue) |
+| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`) | backend, actions-executor | `temporal` (default) or `postgres` (procrastinate) per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and are retried: with `__delete_user=postgres` the integrity monitor reports them as overdue; on Temporal they show only in the Temporal UI and the backend's error log) |
 | `DB_SHADOW_READ_SAMPLE` | each service | fraction of reads also issued to the other store and compared |
 | `GET /persistence/status` (admin) | backend | flags in effect, routing counters, outbox backlog, Postgres reachability |
 | `python -m backend.migrate …` (also `auth.migrate`, `googleform.migrate`) | one-off container, service role | `preflight` · `backfill` · `verify` · `reconcile` · `status [--json]` · `jobs-sweep`; `--group <g>` or `--collections a,b` limit a run |

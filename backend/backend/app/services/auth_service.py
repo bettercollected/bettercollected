@@ -408,9 +408,9 @@ class AuthService:
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         not_queued = []
+        # every provider, enabled or not: disabling one stops new use, not the
+        # erasure of what it already stores
         for provider in providers:
-            if not provider.enabled:
-                continue
             purge = CredentialPurge(
                 user_id=str(user.id), email=user.sub, provider=provider.provider_name
             )
