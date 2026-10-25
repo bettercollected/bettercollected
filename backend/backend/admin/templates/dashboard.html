@@ -12,6 +12,7 @@
     {% if health.schemas_not_current %}<p class="bad">{{ _("Schemas not at their expected head:") }} {{ health.schemas_not_current }}.</p>
     {% else %}<p>{{ _("Every schema at its expected head.") }}</p>{% endif %}
     {% if health.outbox_unresolved %}<p class="bad">{{ _("Unresolved mirror writes:") }} {{ health.outbox_unresolved }}.</p>{% endif %}
+    {% if health.sso_incomplete %}<p class="warn">{{ _("Single sign-on is switched on but not fully set up.") }}</p>{% endif %}
     {% endif %}
   </li>
   <li class="card">

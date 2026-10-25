@@ -36,11 +36,17 @@ export default function WelcomePage({
     isPreviewMode,
     welcomePageData,
     theme,
+    formTitle,
     accountInStrip = false
 }: Readonly<{
     isPreviewMode: boolean;
     welcomePageData?: any;
     theme?: FormTheme;
+    /**
+     * The title to show. Previews of a template or another form pass their
+     * own; without it the page shows the form being answered (the store's).
+     */
+    formTitle?: string;
     /** The account control is in the organisation logo strip's row, not here. */
     accountInStrip?: boolean;
 }>) {
@@ -57,6 +63,7 @@ export default function WelcomePage({
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
+    const title = formTitle ?? standardForm?.title;
     const leaflet = styleTokens(formTheme?.style).key === 'leaflet';
     // A leaflet reads from one left edge; the column still follows the page's placement.
     const align = leaflet ? 'items-start text-left' : greetingAlignClass(welcomePage?.layout);
@@ -135,7 +142,7 @@ export default function WelcomePage({
                             }
                         }}
                     >
-                        {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(standardForm?.welcomePage?.buttonText, t('WELCOME.START'))}
+                        {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(welcomePage?.buttonText, t('WELCOME.START'))}
                     </Button>
                 </div>
             )}
@@ -154,7 +161,7 @@ export default function WelcomePage({
                 <div data-primary-content>
                     {/* With a logo strip the row only held the account control, now in the strip. */}
                     {!accountInStrip && <LeafletTopRule theme={formTheme} />}
-                    <LeafletSectionBar theme={formTheme} title={<span lang={contentLang}>{standardForm?.title}</span>} layout={welcomePage?.layout} headingLevel={1} />
+                    <LeafletSectionBar theme={formTheme} title={<span lang={contentLang}>{title}</span>} layout={welcomePage?.layout} headingLevel={1} />
                     {welcomePage?.description && (
                         <LeafletIntroBand theme={formTheme} layout={welcomePage?.layout}>
                             <p className="max-w-[62ch] text-pretty" style={{ whiteSpace: 'pre-line' }} lang={contentLang}>
@@ -184,7 +191,7 @@ export default function WelcomePage({
                     step lighter, still 7:1), on a measure that keeps long titles
                     to a few balanced lines. */}
                 <h1 className="form-greeting-title max-w-[22ch] text-[32px] leading-[40px] font-bold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[40px] sm:leading-[48px]" style={{ color: formTheme?.primary }} lang={contentLang}>
-                    {standardForm?.title}
+                    {title}
                 </h1>
                 {welcomePage?.description && (
                     <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-pretty" style={{ whiteSpace: 'pre-line', color: softInk(formTheme) }} lang={contentLang}>

@@ -333,6 +333,22 @@ connect Google Forms again on their next import; nothing else is lost (imported 
 responses live in the backend). The step is safe to run again and prints counts only. Run it after
 the import from 4.0 (`python -m googleform.migrate`), which copies whatever Mongo held.
 
+A store still on 4.0, with the google group writing Mongo, runs the Mongo step below first, then
+the Postgres one, so that neither store copies a row back to the other (a Mongo → Postgres
+`backfill` of the google group copies whatever Mongo holds). From 4.1 the service no longer reads
+Mongo, so the Mongo step does not apply there.
+
+```bash
+# Mongo (while the google group still writes it), against the service's MONGO_DB:
+mongosh "<MONGO_URI>" --quiet --eval '
+  const q = {$or: [{user_id: {$in: [null, ""]}},
+                   {"credentials.token": {$exists: true}},
+                   {"credentials.refresh_token": {$exists: true}}]};
+  const c = db.getSiblingDB("<MONGO_DB>").getCollection("Oauth2CredentialDocument");
+  print("to delete:", c.countDocuments(q));
+  print("deleted:", c.deleteMany(q).deletedCount);'
+```
+
 ```sql
 -- Postgres, as the google service's role:
 SELECT count(*) AS to_delete FROM google.oauth_credentials

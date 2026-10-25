@@ -29,9 +29,10 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     const [open, setOpen] = useState(false);
 
     return (
-        <div className={`flex min-w-[150px] flex-col gap-2 md:min-w-[186px] ${template?.builderVersion !== 'v2' && 'w-[150px]'}`}>
+        // The grid column sets the width (281px, the preview's); the title uses all of it.
+        <div data-testid="template-card" className="flex w-full min-w-0 flex-col gap-2">
             <div
-                className={`border-black-300 hover:border-black-400 relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
+                className={`border-black-300 hover:border-black-400 relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-full max-w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
                     }`}
             // onClick={handleClickCard}
             >
@@ -48,7 +49,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     <div className="relative h-[157px] w-[281px] overflow-hidden rounded-md">
                         <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
                             <LayoutWrapper theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
-                                <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
+                                <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} formTitle={template?.title} />
                             </LayoutWrapper>
                         </div>
                     </div>
@@ -59,8 +60,10 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                 )}
             </div>
             <div className="flex w-full items-start justify-between">
-                <div className="flex flex-col gap-[5px]">
-                    <span className={'h5-new text-black-800 max-w-[110px] truncate font-semibold md:max-w-[150px]'}>{template.title || t('UNTITLED')}</span>
+                <div className="flex min-w-0 flex-1 flex-col gap-[5px]">
+                    <span className={'h5-new text-black-800 block w-full truncate font-semibold'} title={template.title || undefined}>
+                        {template.title || t('UNTITLED')}
+                    </span>
                     {!isPredefinedTemplate && (
                         <h1 className={'text-black-600 text-xs font-normal'}>
                             {t('TEMPLATE.CREATED')}: <span className={'text-black-800'}>{template?.importedFrom ? template.importedFrom : t('TEMPLATE.DEFAULT')}</span>

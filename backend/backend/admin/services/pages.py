@@ -28,6 +28,7 @@ from backend.admin.security.clock import Clock
 from backend.admin.services import audit as audit_service
 from backend.admin.schema_heads import code_revisions
 from common.db.schema_guard import EngineRevisionSource, check_revision, compare_revisions
+from common.settings import sso_requirements
 from common.settings.inventory import all_specs
 from common.settings.registry import SettingSpec, Tier
 
@@ -93,6 +94,24 @@ class OutboxStatus:
 
 
 @dataclass(frozen=True)
+class SsoStatus:
+    """Single sign-on on one service, by setting name only.
+
+    ``enabled``: ``off`` (default or false in the store), ``on`` (true in the
+    store), ``environment`` (set in the service's environment, whose value the
+    portal never sees) or ``unknown`` (the service has not reported)."""
+
+    service: str
+    enabled: str
+    missing: tuple[str, ...] = ()
+    missing_optional: tuple[str, ...] = ()
+
+    @property
+    def incomplete(self) -> bool:
+        return self.enabled in ("on", "environment") and bool(self.missing)
+
+
+@dataclass(frozen=True)
 class Health:
     database_ok: bool
     database_ms: Optional[int]
@@ -101,6 +120,11 @@ class Health:
     heartbeats: list[Heartbeat]
     store_revision: Optional[int]
     outbox: list[OutboxStatus] = field(default_factory=list)
+    sso: list[SsoStatus] = field(default_factory=list)
+
+    @property
+    def sso_incomplete(self) -> bool:
+        return any(s.incomplete for s in self.sso)
 
     @property
     def schemas_not_current(self) -> int:
@@ -337,6 +361,49 @@ def _known_providers(by_provider: dict) -> dict:
     return shown
 
 
+def _stored(entry: Any) -> Any:
+    """A live store row's value: True for a secret (only whether it is set is
+    known), the decoded value otherwise; None when absent or cleared."""
+    if entry is None or entry.cleared:
+        return None
+    if entry.is_secret:
+        return True
+    try:
+        return repo.parse_json(entry.value) if entry.value is not None else None
+    except ValueError:
+        return None
+
+
+def sso_status(service: str, states: list, entries: dict) -> SsoStatus:
+    """Single sign-on on ``service`` from its heartbeats and the store rows.
+    Live instances count when there are any; a setting is set when the store
+    holds it or every counted instance has it in its environment."""
+    rows = [s for s in states if s.service == service]
+    if not rows:
+        return SsoStatus(service, "unknown")
+    alive = [s for s in rows if s.age_seconds <= HEARTBEAT_STALE_SECONDS]
+    rows = alive or rows
+    env_sets = [set(s.env_overrides or ()) for s in rows]
+
+    def is_set(name: str) -> bool:
+        value = _stored(entries.get(name))
+        if value not in (None, "", False) and str(value).strip():
+            return True
+        return all(name in names for names in env_sets)
+
+    if any(sso_requirements.ENABLED_KEY in names for names in env_sets):
+        enabled = "environment"
+    else:
+        enabled = "on" if _stored(entries.get(sso_requirements.ENABLED_KEY)) is True else "off"
+    if enabled == "off":
+        return SsoStatus(service, enabled)
+    return SsoStatus(
+        service, enabled,
+        sso_requirements.missing(service, is_set),
+        sso_requirements.missing_optional(service, is_set),
+    )
+
+
 class PageService:
     def __init__(self, engine: AsyncEngine, clock: Clock):
         self._engine = engine
@@ -366,7 +433,9 @@ class PageService:
         outbox = [await self._outbox(name) for name in OTHER_SCHEMAS] if db_ok else []
         beats: list[Heartbeat] = []
         store_revision = None
+        sso: list[SsoStatus] = []
         if db_ok:
+            sso = await self._sso()
             try:
                 async with self._engine.connect() as conn:
                     rows = await repo.service_states(conn)
@@ -386,7 +455,19 @@ class PageService:
                     )
             except Exception:  # noqa: BLE001 - store tables unreadable: no heartbeats
                 beats = []
-        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox)
+        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox, sso)
+
+    async def _sso(self) -> list[SsoStatus]:
+        """Which settings single sign-on still needs on each service, from the
+        names services report as set in their environment and the store's
+        live rows (secret values are never selected). Names only."""
+        try:
+            async with self._engine.connect() as conn:
+                states = await repo.service_states(conn)
+                entries = {r.key: r for r in await repo.entries_for_display(conn)}
+        except Exception:  # noqa: BLE001 - store not readable: nothing to say
+            return [SsoStatus(svc, "unknown") for svc in sso_requirements.REQUIRED]
+        return [sso_status(svc, states, entries) for svc in sso_requirements.REQUIRED]
 
     async def _other_schema(self, schema: str) -> SchemaStatus:
         """Another service's schema against the head its deployed code expects.

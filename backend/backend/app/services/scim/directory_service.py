@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.user import User
+from common.settings import sso_requirements
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -155,6 +156,9 @@ class DirectoryTypeDto(_CamelModel):
 class DirectoryOverviewDto(_CamelModel):
     # SSO and SCIM are configured on this instance
     available: bool
+    # why not: "not_configured" when SSO is switched on but not fully set up,
+    # "disabled" otherwise; None when available
+    reason: Optional[str] = None
     # the workspace has a verified domain (a directory needs one)
     has_verified_domain: bool = False
     directory: Optional[DirectoryDto] = None
@@ -208,6 +212,14 @@ def _polis_error(error: PolisError) -> HTTPException:
 
 def scim_available() -> bool:
     return bool(settings.sso.is_configured and settings.scim.webhook_base)
+
+
+def scim_unavailable_reason() -> Optional[str]:
+    if scim_available():
+        return None
+    if settings.sso.ENABLED and not settings.sso.is_configured:
+        return sso_requirements.NOT_CONFIGURED
+    return sso_requirements.DISABLED
 
 
 class ScimDirectoryService:
@@ -275,6 +287,7 @@ class ScimDirectoryService:
         )
         dto = DirectoryOverviewDto(
             available=scim_available(),
+            reason=scim_unavailable_reason(),
             has_verified_domain=bool(await self._domains.sso_domains(workspace_id)),
             directory=DirectoryDto.of(directory) if directory else None,
             types=[

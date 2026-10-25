@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from classy_fastapi import Routable, get, post
 from common.models.form_import import FormImportResponse
 from fastapi import Depends
+from pydantic import BaseModel
 
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
@@ -19,6 +20,12 @@ from googleform.app.services.user_service import get_user_credential
 # first (no credential read, no token refresh). create_google_sheet uses the
 # Sheets credential it is given and is not Google Forms work.
 _FORMS = Depends(google_forms_processing_allowed)
+
+
+class CreateGoogleSheetRequest(BaseModel):
+    title: str
+    # the Sheets action's credential, encrypted with the shared key
+    credential: str
 
 
 class GoogleFormRouter(Routable):
@@ -125,13 +132,13 @@ class GoogleFormRouter(Routable):
         return await self.oauth_credential_service.verify_token_validity(credential=credential)
 
     @post("/create_google_sheet")
-    async def create_google_sheet(self, title: str,
-                                  credential: str):
+    async def create_google_sheet(self, body: CreateGoogleSheetRequest):
+        # Body only: a credential in the query string would reach access logs.
         task = asyncio.get_event_loop().run_in_executor(
             self.executor,
             self.google_service.create_sheet,
-            title,
-            credential,
+            body.title,
+            body.credential,
         )
         google_sheet_id = await task
         return google_sheet_id

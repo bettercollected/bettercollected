@@ -1,4 +1,3 @@
-
 import { useTranslation } from 'react-i18next';
 
 import Empty from '@Components/icons/empty';
@@ -9,28 +8,36 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectAuth } from '@app/store/auth/slice';
 import TemplateCard from './template-card';
 
+/**
+ * Which list this section shows. The styling follows this, never the
+ * (translated) title: "predefined" is the ready-made gallery on a white band
+ * without per-card menus; "workspace" holds the workspace's own templates.
+ */
+export type TemplateSectionVariant = 'predefined' | 'workspace';
+
 interface ITemplateSectionProps {
     templates?: Array<IFormTemplateDto>;
     title?: string;
+    variant?: TemplateSectionVariant;
     className?: string;
 }
 
-const TemplateSection = ({ templates, title = '', className }: ITemplateSectionProps) => {
+const TemplateSection = ({ templates, title = '', variant = 'workspace', className = '' }: ITemplateSectionProps) => {
     const auth = useAppSelector(selectAuth);
     const { t } = useTranslation();
-    let isPredefinedTemplate: boolean = false;
-    if (title == 'Default' || title === 'Standaard' || !title) {
-        isPredefinedTemplate = true;
-    }
+    const isPredefinedTemplate = variant === 'predefined';
     return (
-        <div className={`flex w-full flex-col gap-6 p-10 px-4 md:px-10 ${title == 'Default' && 'bg-white'} ${className}`}>
+        <section data-testid="template-section" data-variant={variant} className={`flex w-full flex-col gap-6 p-10 px-4 md:px-10 ${isPredefinedTemplate ? 'bg-white' : ''} ${className}`}>
             {templates && templates.length > 0 && (
-                <div className={`'  flex justify-between md:flex-row ${title == 'Default' ? 'flex-row' : 'flex-col gap-2'}`}>
+                <div className="flex justify-between">
                     <h1 className={'text-black-800 text-xl font-semibold'}>{title}</h1>
                 </div>
             )}
-            <div className={`flex w-full flex-col  flex-wrap gap-6 md:flex-row ${title == 'Default' || title === 'Standard' ? ' overflow-x-auto' : ' justify-center md:justify-start'}`}>
-                {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
+            {/* Fixed-width columns that wrap as the page narrows: every card
+                shows in full, rows grow with the list and nothing scrolls
+                sideways. One column on a phone, centred. */}
+            <div data-testid="template-grid" className="grid w-full grid-cols-[repeat(auto-fill,minmax(0,281px))] justify-center gap-6 md:justify-start">
+                {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={template?.id ?? index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
             {!templates ||
@@ -45,7 +52,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                         )}
                     </div>
                 ))}
-        </div>
+        </section>
     );
 };
 

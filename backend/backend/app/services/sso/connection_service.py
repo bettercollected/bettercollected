@@ -20,6 +20,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
+from common.settings import sso_requirements
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic.alias_generators import to_camel
@@ -168,6 +169,9 @@ class SsoSettingsDto(_CamelModel):
 class SsoOverviewDto(_CamelModel):
     # SSO is switched on and configured on this instance
     available: bool
+    # why it is not available: "disabled" (switched off) or "not_configured"
+    # (switched on, required settings missing); None when available
+    reason: Optional[str] = None
     service_provider: Optional[ServiceProviderDto] = None
     # the verified domains SSO applies to (Unicode form)
     domains: List[str] = []
@@ -200,6 +204,13 @@ def failed_test_claims(names) -> Optional[List[str]]:
         :MAX_TEST_CLAIMS
     ]
     return kept or None
+
+
+def sso_unavailable_reason() -> Optional[str]:
+    """Why SSO is not available: ``"disabled"`` or ``"not_configured"``."""
+    if settings.sso.is_configured:
+        return None
+    return sso_requirements.NOT_CONFIGURED if settings.sso.ENABLED else sso_requirements.DISABLED
 
 
 def _refused(status: HTTPStatus, code: str, message: str) -> HTTPException:
@@ -271,10 +282,15 @@ class SsoConnectionService:
     @staticmethod
     def _require_available() -> None:
         if not settings.sso.is_configured:
+            # same code either way (clients key on it); an honest message
             raise _refused(
                 HTTPStatus.NOT_FOUND,
                 "sso_disabled",
-                "Single sign-on is not enabled on this instance.",
+                (
+                    "Single sign-on is switched on but not fully set up on this instance yet."
+                    if settings.sso.ENABLED
+                    else "Single sign-on is not enabled on this instance."
+                ),
             )
 
     async def _connection_in_workspace(
@@ -308,6 +324,7 @@ class SsoConnectionService:
         sso = settings.sso
         return SsoOverviewDto(
             available=available,
+            reason=None if available else sso_unavailable_reason(),
             service_provider=(
                 ServiceProviderDto(
                     acs_url=sso.acs_url,

@@ -6,8 +6,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ssoErrorMessage, ssoTestMessage } from '@app/lib/sso';
 import type { SsoConnectionDto, SsoOverviewDto } from '@app/models/dtos/workspace-sso-dto';
+import '@app/shared/hocs/i18n-provider';
 import { store } from '@app/store/store';
 
+import en from '../../../public/locales/en/common.json';
+import nl from '../../../public/locales/nl/common.json';
 import WorkspaceSsoSection from './workspace-sso-section';
 
 const refetchMock = vi.fn();
@@ -228,6 +231,37 @@ describe('WorkspaceSsoSection', () => {
         query.data = overview({ available: false, serviceProvider: null });
         renderSection();
         expect(screen.getByText(/not enabled on this instance/)).toBeTruthy();
+    });
+
+    it('says when SSO is off on purpose (reason disabled)', () => {
+        query.data = overview({ available: false, reason: 'disabled', serviceProvider: null });
+        renderSection();
+        const box = screen.getByTestId('sso-unavailable');
+        expect(box.getAttribute('data-reason')).toBe('disabled');
+        expect(box.textContent).toContain('not enabled on this instance');
+    });
+
+    it('says SSO is switched on but not fully set up, without blaming SSO_ENABLED', () => {
+        query.data = overview({ available: false, reason: 'not_configured', serviceProvider: null });
+        renderSection();
+        const box = screen.getByTestId('sso-unavailable');
+        expect(box.getAttribute('data-reason')).toBe('not_configured');
+        expect(box.textContent).toContain('switched on but not fully set up on this instance yet');
+        expect(box.textContent).not.toContain('SSO_ENABLED');
+        expect(box.textContent).not.toContain('not enabled');
+        // names or values of settings never reach the page
+        expect(box.textContent).not.toMatch(/SSO_POLIS|SSO_REDIRECT|https?:/);
+    });
+
+    it('has the not-set-up text in English and Dutch', () => {
+        for (const locale of [en, nl] as any[]) {
+            expect(locale.SSO.NOT_CONFIGURED).toBeTruthy();
+            expect(locale.SSO.NOT_CONFIGURED).not.toContain('SSO_ENABLED');
+            expect(locale.SSO.NOT_ENABLED).toContain('SSO_ENABLED');
+            expect(locale.SCIM.NOT_CONFIGURED).toBeTruthy();
+            expect(locale.SCIM.NOT_CONFIGURED).not.toContain('SSO_ENABLED');
+        }
+        expect(nl.SSO.NOT_CONFIGURED).toContain('nog niet helemaal ingesteld');
     });
 });
 
