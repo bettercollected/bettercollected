@@ -16,6 +16,7 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceRole, isBillingOwnerOf, memberRole } from '@app/models/enums/workspace-role';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { useAppSelector } from '@app/store/hooks';
+import { browserMailLocale } from '@app/utils/mail-locale';
 
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
@@ -64,7 +65,9 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
         try {
             await resendWorkspaceInvitation({
                 workspaceId: invitation?.workspaceId!,
-                invitationToken: selectedInvitation.invitationToken
+                invitationToken: selectedInvitation.invitationToken,
+                // the browser's language, like a resend from the invitations list
+                locale: browserMailLocale()
             }).unwrap();
 
             toast({ description: 'Invitation resent successfully!' });
