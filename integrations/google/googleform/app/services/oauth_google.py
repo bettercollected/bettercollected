@@ -31,7 +31,7 @@ from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.utils import AiohttpClient
-from googleform.app.utils.google import dict_to_credential
+from googleform.app.utils.google import GOOGLE_TOKEN_URIS, dict_to_credential
 from googleform.config import settings
 
 log = logging.getLogger(__name__)
@@ -400,8 +400,20 @@ class OauthGoogleService:
                 "refresh_token": credentials.refresh_token,
                 "grant_type": "refresh_token",
             }
+            # Only ever the configured endpoint, never the credential's own
+            # token_uri (dict_to_credential pins it): a stored address would
+            # send the client secret and refresh token to any host.
+            stored_token_uri = oauth_credential.credentials.token_uri
+            if stored_token_uri and stored_token_uri not in (
+                GOOGLE_TOKEN_URIS | {settings.GOOGLE_TOKEN_URI}
+            ):
+                log.warning(
+                    "Ignored a stored token_uri that is not a Google token "
+                    "endpoint (credential %s)",
+                    getattr(oauth_credential, "id", None) or "unknown",
+                )
             refreshed_token_response = await AiohttpClient.post(
-                credentials.token_uri, data
+                settings.GOOGLE_TOKEN_URI, data
             )
             token = await refreshed_token_response.json()
             if token.get("error"):
