@@ -15,6 +15,13 @@ class SsoConnectionType(str, enum.Enum):
 
 class SsoConnectionStatus(str, enum.Enum):
     DISABLED = "disabled"
+    # Written by release 4.1 for the connection of a deleted workspace that
+    # Polis could not delete yet; this release reads it so a stack rolled back
+    # from 4.1 still starts. It behaves like ``disabled`` (never signs anyone
+    # in, never counts as the workspace's enabled connection) and nothing here
+    # enables, tests or lists it: its workspace is gone. (Not last: the codec
+    # golden fixtures sample an enum's last member.)
+    RELEASE_PENDING = "release_pending"
     ENABLED = "enabled"
 
 
@@ -80,6 +87,10 @@ class SsoConnectionDocument(MongoDocument):
     @property
     def is_enabled(self) -> bool:
         return self.status == SsoConnectionStatus.ENABLED
+
+    @property
+    def is_release_pending(self) -> bool:
+        return self.status == SsoConnectionStatus.RELEASE_PENDING
 
     @property
     def is_tested(self) -> bool:
