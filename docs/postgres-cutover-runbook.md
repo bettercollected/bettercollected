@@ -338,6 +338,26 @@ the Postgres one, so that neither store copies a row back to the other (a Mongo 
 `backfill` of the google group copies whatever Mongo holds). From 4.1 the service no longer reads
 Mongo, so the Mongo step does not apply there.
 
+**Use the admin portal task `google.purge_unencrypted_credentials`** (Tasks page; from 4.0.10).
+It applies exactly the filters below, Mongo first and then Postgres. Its dry run (required first)
+shows the count per store; the apply needs the usual confirmation code, deletes, and records the
+counts in the audit log. Counts only, never ids, emails or tokens, and running it again deletes
+nothing. `stores: auto` covers the stores the services write (from 4.1 Postgres alone for the
+google group, whatever the runner's `DB_WRITE_MODE*` says), plus any other store the runner is
+configured for, like the other data tasks; an apply that leaves out a store the services still
+write is refused (`stores_incomplete`). It needs:
+
+- the runner's Google Mongo connection only while Mongo still holds credentials that matter (a
+  store on 4.0; from 4.1 it is optional) (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`),
+  with a user that may delete from `Oauth2CredentialDocument` (`readWrite` on it, as for the
+  keyset tasks);
+- the function `google.purge_unencrypted_credentials` in Postgres, created by
+  `postgres/ensure-admin-roles.sh` (run it once after upgrading to 4.0.10 or later; `deploy.sh`
+  does). Until then the task refuses with `purge_function_missing`. The runner's
+  `bc_tasks_data_google` role still has no DELETE: it may only execute that function.
+
+The manual steps below remain as a fallback.
+
 ```bash
 # Mongo (while the google group still writes it), against the service's MONGO_DB:
 mongosh "<MONGO_URI>" --quiet --eval '

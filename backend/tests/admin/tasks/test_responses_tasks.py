@@ -766,6 +766,7 @@ def test_the_tasks_declare_what_the_portal_needs():
         "keyset.drop_old",
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
+        "google.purge_unencrypted_credentials",
     }
 
 

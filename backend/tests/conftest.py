@@ -93,6 +93,13 @@ ALL = "*"
 #: A test missing here fails there on the unreachable Mongo: add it (the whole
 #: file, or its test functions by name).
 MONGO_DRIVEN = {
+    "tests/admin/tasks/test_google_purge.py": {
+        "test_a_dry_run_cannot_write_to_mongo",
+        "test_an_apply_must_cover_every_store_the_services_write",
+        "test_apply_on_both_stores_runs_mongo_first_and_is_idempotent",
+        "test_dry_run_on_both_stores_counts_per_store_and_deletes_nothing",
+        "test_mongo_filter_edges",
+    },
     "tests/admin/tasks/test_keyset_tasks.py": ALL,
     "tests/admin/tasks/test_responses_tasks.py": {
         "test_a_dry_run_cannot_write_to_mongo",
