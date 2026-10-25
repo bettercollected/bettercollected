@@ -17,6 +17,7 @@ from beanie import PydanticObjectId
 from bson import ObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
+import httpx
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -31,6 +32,8 @@ from backend.config import settings
 from tests.app.controllers.data import formData
 
 KEY = "admin-tasks-test-key"
+INTERNAL_KEY = "auth-internal-test-key"
+INTERNAL_KEY_HEADER = "X-Internal-Key"
 BASE = "/api/v1/internal/admin-tasks/case-duplicate-accounts"
 T0 = datetime(2023, 1, 1, tzinfo=timezone.utc)
 
@@ -76,6 +79,10 @@ class FakeAuth:
 
     def __init__(self):
         self.users = set(EMAILS)
+        # set by a test: how calls to auth fail (a response or an error), and
+        # which call ("/users" or "/users/case-duplicates"; None: every one)
+        self.failure = None
+        self.failing_path = None
 
     def groups(self):
         by_address = {}
@@ -83,16 +90,32 @@ class FakeAuth:
             by_address.setdefault(EMAILS[user_id].lower(), []).append(user_id)
         return [ids for ids in by_address.values() if len(ids) > 1]
 
-    async def get(self, url, *args, **kwargs):
+    async def request(self, method, url, *args, **kwargs):
+        assert method == "GET", "unexpected auth call"
+        # every call carries the internal key and its own timeout
+        assert (kwargs.get("headers") or {}).get(INTERNAL_KEY_HEADER) == INTERNAL_KEY
+        assert kwargs.get("timeout"), "an auth call without a timeout"
+        request = httpx.Request(method, url)
+        failing = self.failing_path is None or url.endswith(self.failing_path)
+        if failing and isinstance(self.failure, type):
+            if issubclass(self.failure, httpx.RequestError):
+                raise self.failure("auth down", request=request)
+            raise self.failure("auth down")  # InvalidURL takes no request
+        if failing and self.failure is not None:
+            return self.failure
         if url.endswith("/users/case-duplicates"):
-            return {"groups": self.groups()}
+            return httpx.Response(200, json={"groups": self.groups()}, request=request)
         if url.endswith("/users"):
             ids = (kwargs.get("params") or {}).get("user_ids") or []
-            return {
-                "users_info": [
-                    {"_id": i, "email": EMAILS[i]} for i in ids if i in self.users
-                ]
-            }
+            return httpx.Response(
+                200,
+                json={
+                    "users_info": [
+                        {"_id": i, "email": EMAILS[i]} for i in ids if i in self.users
+                    ]
+                },
+                request=request,
+            )
         raise AssertionError("unexpected auth call")
 
 
@@ -104,8 +127,9 @@ def key(monkeypatch):
 
 @pytest.fixture()
 def auth(monkeypatch):
+    monkeypatch.setattr(settings.auth_settings, "INTERNAL_NOTIFY_KEY", INTERNAL_KEY)
     fake = FakeAuth()
-    with patch("common.services.http_client.HttpClient.get", side_effect=fake.get):
+    with patch("common.services.http_client.HttpClient.request", side_effect=fake.request):
         yield fake
 
 
@@ -344,6 +368,137 @@ async def test_a_former_duplicate_whose_keeper_is_gone_is_left_alone(
     assert reply.json() == {"status": "not_found"}
     assert deletions == []
     assert await container.workspace_repo().find_by_id(world[B1].id) is not None
+
+
+@pytest.mark.parametrize(
+    "failure,code,status",
+    [
+        (httpx.ConnectError, "auth_unreachable", None),
+        (httpx.ReadTimeout, "auth_unreachable", None),
+        (httpx.Response(403, json={"detail": "nope"}), "auth_refused", 403),
+        (httpx.Response(401), "auth_refused", 401),
+        (httpx.Response(503, text="no key"), "auth_error", 503),
+        (httpx.Response(500, text="boom"), "auth_error", 500),
+        (httpx.Response(404, json={"detail": "x"}), "auth_error", 404),
+        (httpx.Response(200, text="<html>"), "auth_error", 200),
+        (httpx.Response(200, json=["x"]), "auth_error", 200),
+    ],
+)
+async def test_an_auth_failure_is_a_502_with_its_code_not_auths_status(
+    client: AsyncClient, key, world, deletions, auth, failure, code, status
+):
+    """A failing call to auth is reported as such (502 + a stable code and
+    auth's status), never passed through as the API's own 503/403, and never
+    with auth's body."""
+    auth.failure = failure
+    reply = await client.get(BASE, headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": code, "status": status}
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": code, "status": status}
+    assert deletions == []
+
+
+async def test_the_runner_reaches_these_routes_without_a_redirect(
+    _initialized_app, key, world, deletions, monkeypatch
+):
+    """The task runner's client against this app's real routes: both calls
+    answer 200 (a trailing slash would be a 307 the runner does not follow)."""
+    from backend.admin.tasks.impl import case_duplicates as runner
+    from backend.app.services.internal_routes import internal_port
+
+    # the internal listener, as the runner reaches it inside the stack
+    listener = httpx.ASGITransport(app=_initialized_app, client=("172.18.0.5", 40000))
+    url = f"http://backend:{internal_port()}"
+    monkeypatch.setattr(runner, "transport", listener)
+    async with runner.Backend(url + "/api/v1", KEY) as backend:
+        groups = await backend.groups()
+        assert _decisions(groups)[A2] == "drop"
+        assert await backend.drop(A2) == "queued"
+    assert deletions == [A2]
+    async with AsyncClient(transport=listener, base_url=url) as raw:
+        assert (await raw.get(BASE + "/", headers=key)).status_code == 307
+
+
+@pytest.mark.parametrize(
+    "failure,code,status",
+    [
+        (httpx.ConnectError, "auth_unreachable", None),
+        (httpx.InvalidURL, "auth_misconfigured", None),
+        (httpx.Response(403), "auth_refused", 403),
+        (httpx.Response(500, text="boom"), "auth_error", 500),
+    ],
+)
+async def test_the_drops_second_auth_call_failing_is_reported_too(
+    client: AsyncClient, key, world, deletions, auth, failure, code, status
+):
+    """The groups come through; the account lookup (``/users``) fails."""
+    auth.failure, auth.failing_path = failure, "/users"
+    assert (await client.get(BASE, headers=key)).status_code == 200
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": code, "status": status}
+    assert deletions == []
+
+
+async def test_an_invalid_auth_url_is_misconfigured_not_a_crash(
+    client: AsyncClient, key, world, auth
+):
+    auth.failure = httpx.InvalidURL
+    reply = await client.get(BASE, headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": "auth_misconfigured", "status": None}
+
+
+async def test_a_deletion_that_cannot_start_is_deletion_unavailable_not_a_503(
+    client: AsyncClient, key, world, deletions, monkeypatch
+):
+    """Temporal unreachable: the product's deletion raises 503 ("Cannot
+    connect to temporal server"). The route answers 502
+    ``deletion_unavailable``: 503 is only ever the API's own missing key."""
+    temporal = container.auth_service().temporal_service
+    from backend.app.services.temporal_service import TemporalService
+
+    monkeypatch.setattr(
+        temporal,
+        "start_user_deletion_workflow",
+        TemporalService.start_user_deletion_workflow.__get__(temporal),
+    )
+    monkeypatch.setattr(temporal, "_on_postgres", lambda *a, **k: False)
+    monkeypatch.setattr(temporal, "temporal_client", None)
+    monkeypatch.setattr(temporal, "connect_to_temporal_server", AsyncMock())
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": "deletion_unavailable", "status": 503}
+    # no deletion started: the account is still there and still a drop
+    assert _decisions(await _plan(client, key))[A2] == "drop"
+
+    # any other failure to start it (the jobs queue, say): no status
+    monkeypatch.setattr(
+        temporal,
+        "start_user_deletion_workflow",
+        AsyncMock(side_effect=RuntimeError("queue down")),
+    )
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.status_code == 502
+    assert reply.json() == {"code": "deletion_unavailable", "status": None}
+
+
+async def test_a_503_inside_a_route_is_never_the_keys_503(
+    client: AsyncClient, key, world, monkeypatch
+):
+    from backend.app.exceptions import HTTPException
+
+    async def unavailable(*args, **kwargs):
+        raise HTTPException(503, "a dependency")
+
+    monkeypatch.setattr(
+        container.case_duplicate_accounts(), "forms_of", unavailable
+    )
+    reply = await client.get(BASE, headers=key)
+    assert reply.status_code == 500
+    assert reply.json() == {"code": "backend_error", "status": 503}
 
 
 async def test_a_whitespace_key_counts_as_unset(client: AsyncClient, auth, monkeypatch):
