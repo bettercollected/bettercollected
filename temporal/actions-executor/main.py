@@ -36,11 +36,22 @@ async def main():
     await asyncio.gather(*workers)
 
 
+def jobs_backend(env=os.environ) -> str:
+    """Where the worker takes its jobs from: ``postgres`` (the procrastinate
+    ``actions`` queue; the default, as in the backend's ``common.db.flags``) or
+    ``temporal`` (the ``RunActionCode`` workflow)."""
+    value = (env.get("JOBS_BACKEND") or "postgres").strip().lower()
+    if value not in ("postgres", "temporal"):
+        raise SystemExit(f"JOBS_BACKEND must be postgres or temporal, got {value!r}")
+    return value
+
+
 if __name__ == "__main__":
     log_if_api_key_missing()
-    # JOBS_BACKEND=postgres: consume the procrastinate `actions` queue instead
-    # of Temporal (plans/postgres-consolidation.md §7). Temporal stays default.
-    if os.environ.get("JOBS_BACKEND", "temporal").lower() == "postgres":
+    # JOBS_BACKEND=postgres (the default): consume the procrastinate `actions`
+    # queue instead of Temporal (plans/postgres-consolidation.md §7);
+    # JOBS_BACKEND=temporal keeps the workflow.
+    if jobs_backend() == "postgres":
         from procrastinate_worker import main as run_procrastinate
 
         asyncio.run(run_procrastinate())

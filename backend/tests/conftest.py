@@ -245,6 +245,27 @@ def _alembic_upgrade_head() -> None:
     command.upgrade(config, "head")
 
 
+async def _apply_jobs_schema() -> None:
+    """procrastinate's queue tables in the ``jobs`` schema: the job queue is on
+    Postgres by default (``JOBS_BACKEND``), so a start with the default flags
+    checks for them (what ``python -m backend.jobs.schema`` does at deploy)."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
+
+    from backend.jobs.schema import apply_schema
+
+    engine = create_async_engine(
+        TEST_DATABASE_URL, poolclass=NullPool, isolation_level="AUTOCOMMIT"
+    )
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS jobs"))
+    finally:
+        await engine.dispose()
+    await apply_schema(TEST_DATABASE_URL)
+
+
 async def _truncate_postgres() -> None:
     """Reset the Postgres test tables between tests.
 
@@ -333,6 +354,7 @@ async def _initialized_app(request):
     if _postgres_configured():
         # Alembic drives its own event loop; keep it off the session loop.
         await asyncio.to_thread(_alembic_upgrade_head)
+        await _apply_jobs_schema()
     elif container.flags().requires_postgres():
         raise RuntimeError(
             "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "

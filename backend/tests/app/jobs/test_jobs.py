@@ -52,11 +52,13 @@ def test_libpq_url_strips_the_sqlalchemy_driver():
 
 
 def test_jobs_app_is_opened_only_when_a_job_kind_uses_postgres():
-    assert not postgres_jobs_enabled(load_flags({}))
+    assert postgres_jobs_enabled(load_flags({}))  # the default
+    assert not postgres_jobs_enabled(load_flags({"JOBS_BACKEND": "temporal"}))
     assert postgres_jobs_enabled(
-        load_flags({"JOBS_BACKEND__delete_response": "postgres"})
+        load_flags(
+            {"JOBS_BACKEND": "temporal", "JOBS_BACKEND__delete_response": "postgres"}
+        )
     )
-    assert postgres_jobs_enabled(load_flags({"JOBS_BACKEND": "postgres"}))
 
 
 async def test_response_deletion_is_scheduled_at_expiration_and_cancellable(
@@ -112,10 +114,13 @@ async def test_run_action_is_deferred_by_name_to_the_actions_queue(memory_jobs):
     assert job["args"] == params
 
 
-async def test_temporal_stays_the_default(memory_jobs):
+async def test_postgres_is_the_default_and_temporal_can_be_kept_per_job(memory_jobs):
     svc = service({})
+    assert svc._on_postgres("delete_user")
+    assert svc._on_postgres("run_action")
+    svc = service({"JOBS_BACKEND": "temporal", "JOBS_BACKEND__run_action": "postgres"})
     assert not svc._on_postgres("delete_user")
-    assert not svc._on_postgres("run_action")
+    assert svc._on_postgres("run_action")
 
 
 async def test_delete_response_job_deletes_the_response(

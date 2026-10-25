@@ -9,7 +9,7 @@ process at boot instead of silently reading a store nothing writes to.
     DB_READ_SOURCE__<group>   per-group override, e.g. DB_READ_SOURCE__responses=postgres
     DB_WRITE_MODE__<group>    per-group override
     DB_SHADOW_READ_SAMPLE     0.0–1.0 share of reads also issued to the other store and diffed
-    JOBS_BACKEND__<job>       temporal | postgres per job type       (default temporal)
+    JOBS_BACKEND__<job>       temporal | postgres per job type       (default postgres)
     JOBS_BACKEND              default for jobs without an override
 """
 
@@ -86,7 +86,7 @@ class DbFlags:
     read_overrides: Mapping[str, ReadSource] = field(default_factory=dict)
     write_overrides: Mapping[str, WriteMode] = field(default_factory=dict)
     shadow_read_sample: float = 0.0
-    jobs_default: JobsBackend = JobsBackend.TEMPORAL
+    jobs_default: JobsBackend = JobsBackend.POSTGRES
     jobs_overrides: Mapping[str, JobsBackend] = field(default_factory=dict)
 
     # -- per group -------------------------------------------------------
@@ -262,7 +262,7 @@ def load_flags(
         write_overrides=_overrides(env, WRITE_KEY, WriteMode),
         shadow_read_sample=sample,
         jobs_default=_parse(
-            JobsBackend, JOBS_KEY, env.get(JOBS_KEY) or JobsBackend.TEMPORAL.value
+            JobsBackend, JOBS_KEY, env.get(JOBS_KEY) or JobsBackend.POSTGRES.value
         ),
         jobs_overrides=_overrides(env, JOBS_KEY, JobsBackend),
     )

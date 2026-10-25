@@ -19,3 +19,17 @@ async def no_real_ai_provider():
         await container.pdf_import_service().wait_for_background_imports()
     finally:
         pipeline._provider_resolver = previous
+
+
+@pytest.fixture(autouse=True)
+def import_in_the_api_process(monkeypatch):
+    """These tests follow an import to its end through the API process, as
+    ``JOBS_BACKEND__import_form=temporal`` runs it; the default, the job queue
+    on Postgres, is a worker's business (tests/app/jobs, and the job body below)."""
+    from dataclasses import replace
+
+    from common.db.flags import JobsBackend
+
+    service = container.pdf_import_service()
+    flags = replace(service._flags, jobs_overrides={"import_form": JobsBackend.TEMPORAL})
+    monkeypatch.setattr(service, "_flags", flags)
