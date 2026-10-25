@@ -21,6 +21,19 @@ The webapp Docker image (`pr-checks.yml`) is built only when its Dockerfile,
 dependencies or the files it copies by name change; the CI webapp job builds the
 app on every webapp change.
 
+## Postgres versions
+
+The test jobs run against PostgreSQL 15 (`POSTGRES_IMAGE` in `ci.yml`, used by
+`.github/scripts/test-dbs.sh`): the oldest major version supported, since
+self-hosted deployments may run 15 while the compose files ship 16, and a
+feature new in 16 would otherwise pass CI and fail there. One more backend job
+("postgres, newest server: migrations and roles") runs the tests of the
+migration chains and of the database role scripts (`tests/admin`,
+`tests/app/db`, `tests/app/migrate`) against `POSTGRES_IMAGE_NEWEST` (16), where
+a behaviour change between major versions (role membership, privileges) would
+show. Locally, start the same server with `POSTGRES_IMAGE=postgres:15
+.github/scripts/test-dbs.sh start postgres`.
+
 ## Postgres mode without Mongo
 
 In the Postgres mode every repository group reads from and writes to Postgres
