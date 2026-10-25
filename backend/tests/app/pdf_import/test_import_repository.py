@@ -1,21 +1,26 @@
-"""The Postgres twin of the import repository behaves like the Mongo original.
-Skipped unless DATABASE_URL points at a *_test database."""
+"""The PDF import repository (Postgres only since 4.1): its records, the
+per-workspace start limits and lock, and the expiry of interrupted imports.
+The listing steps ran against the 4.0 Mongo repository too while both stores
+existed; the results they agreed on are pinned here. Skipped unless
+DATABASE_URL points at a *_test database."""
 
 import asyncio
 import datetime as dt
 
 import pytest
-from beanie import PydanticObjectId
 
 from backend.app.container import container
-from backend.app.repositories.form_import_repository import FormImportRepository
-from backend.app.repositories.postgres.forms import PostgresFormImportRepository
+from backend.app.repositories.postgres import forms as module
+from backend.app.repositories.postgres.forms import (
+    ImportLimitReached,
+    PostgresFormImportRepository,
+)
 from backend.app.schemas.form_import import (
     FormImportDocument,
     ImportStatus,
     PageAnalysis,
 )
-from tests.app.repositories.parity import parity
+from common.records import RecordId
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,7 +33,7 @@ def sessions(clean_postgres):
 def record(ws, form_id, status, minutes_ago=0):
     created = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=minutes_ago)
     return FormImportDocument(
-        id=PydanticObjectId(),
+        id=RecordId(),
         workspace_id=ws,
         form_id=form_id,
         created_by="u1",
@@ -46,61 +51,41 @@ def record(ws, form_id, status, minutes_ago=0):
 
 
 async def test_form_imports(sessions):
-    ws, other = PydanticObjectId(), PydanticObjectId()
+    ws, other = RecordId(), RecordId()
     old = record(ws, "f-old", ImportStatus.COMPLETED, minutes_ago=60 * 30)
     recent = record(ws, "f-recent", ImportStatus.RUNNING, minutes_ago=5)
     queued = record(ws, "f-queued", ImportStatus.QUEUED, minutes_ago=1)
     elsewhere = record(other, "f-else", ImportStatus.RUNNING)
     since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
-    await parity(
-        FormImportRepository(),
-        PostgresFormImportRepository(sessions),
-        [
-            ("save", lambda: (old,)),
-            ("save", lambda: (recent,)),
-            ("save", lambda: (queued,)),
-            ("save", lambda: (elsewhere,)),
-            ("get", lambda: (recent.id,)),
-            ("get", lambda: (PydanticObjectId(),)),
-            ("list_by_workspace", lambda: (ws,)),
-            ("count_active", lambda: (ws,)),
-            ("delete_by_form_ids", lambda: (["f-queued", "f-missing"],)),
-            ("count_active", lambda: (ws,)),
-            ("list_by_workspace", lambda: (ws, 1)),
-        ],
-    )
-    # the daily window counts by creation time in both stores
-    assert await FormImportRepository().count_created_since(ws, since) == 1
-    assert (
-        await PostgresFormImportRepository(sessions).count_created_since(ws, since) == 1
-    )
+    repo = PostgresFormImportRepository(sessions)
+    for r in (old, recent, queued, elsewhere):
+        assert await repo.save(r) is r
+    got = await repo.get(recent.id)
+    assert (got.id, got.form_id, got.status) == (recent.id, "f-recent", "running")
+    assert got.pages == recent.pages
+    assert await repo.get(RecordId()) is None
+    # newest first, this workspace's only
+    listed = await repo.list_by_workspace(ws)
+    assert [r.form_id for r in listed] == ["f-queued", "f-recent", "f-old"]
+    assert await repo.count_active(ws) == 2
+    assert await repo.delete_by_form_ids(["f-queued", "f-missing"]) == 1
+    assert await repo.count_active(ws) == 1
+    assert [r.form_id for r in await repo.list_by_workspace(ws, 1)] == ["f-recent"]
+    # the daily window counts by creation time
+    assert await repo.count_created_since(ws, since) == 1
 
 
-def _repo(store, sessions):
-    return (
-        FormImportRepository()
-        if store == "mongo"
-        else PostgresFormImportRepository(sessions)
-    )
-
-
-@pytest.mark.parametrize("store", ["mongo", "postgres"])
-async def test_parallel_creates_respect_the_limits(sessions, store, monkeypatch):
-    """Each store's create_within_limits is atomic on its own (the Mongo lock
-    document, the Postgres advisory lock), whichever one is primary.
+async def test_parallel_creates_respect_the_limits(sessions, monkeypatch):
+    """create_within_limits is atomic (the workspace's advisory lock).
 
     Every start pauses between reading the counts and inserting, so without
     the lock all of them would read the same counts and pass: the test fails
     every time the lock is missing, not only when the scheduler happens to
     interleave the starts. The lock wait is lengthened so a loaded machine
     cannot turn a slow start into a refusal."""
-    import asyncio
-
-    from backend.app.repositories import form_import_repository as module
-    from backend.app.repositories.form_import_repository import ImportLimitReached
 
     monkeypatch.setattr(module, "LOCK_WAIT_S", 120.0)
-    repo = _repo(store, sessions)
+    repo = PostgresFormImportRepository(sessions)
     counts = repo._limit_counts
 
     async def slow_counts(*args):
@@ -114,7 +99,7 @@ async def test_parallel_creates_respect_the_limits(sessions, store, monkeypatch)
     async def attempt(ws, max_active, max_per_day):
         try:
             await repo.create_within_limits(
-                record(ws, f"f-{PydanticObjectId()}", ImportStatus.QUEUED),
+                record(ws, f"f-{RecordId()}", ImportStatus.QUEUED),
                 max_active,
                 max_per_day,
                 since,
@@ -123,65 +108,38 @@ async def test_parallel_creates_respect_the_limits(sessions, store, monkeypatch)
         except ImportLimitReached as reached:
             return reached.code
 
-    ws = PydanticObjectId()
+    ws = RecordId()
     results = await asyncio.gather(*[attempt(ws, 1, 10) for _ in range(6)])
     assert sorted(results) == ["import_in_progress"] * 5 + ["ok"]
     assert await repo.count_active(ws) == 1
 
-    ws = PydanticObjectId()
+    ws = RecordId()
     results = await asyncio.gather(*[attempt(ws, 10, 2) for _ in range(6)])
     assert sorted(results) == ["daily_limit"] * 4 + ["ok"] * 2
     assert await repo.count_created_since(ws, since) == 2
     # other workspaces are not held up
-    assert await attempt(PydanticObjectId(), 1, 1) == "ok"
+    assert await attempt(RecordId(), 1, 1) == "ok"
 
 
-@pytest.mark.parametrize("store", ["mongo", "postgres"])
-async def test_a_start_that_waits_too_long_is_refused_as_busy(
-    sessions, store, monkeypatch
-):
+async def test_a_start_that_waits_too_long_is_refused_as_busy(sessions, monkeypatch):
     """A workspace whose lock stays held (a stuck start) refuses new starts
-    with the usual "an import is already running", in both stores, instead of
-    a database error."""
+    with the usual "an import is already running", instead of a database
+    error."""
     from sqlalchemy import func, select
 
-    from backend.app.repositories import form_import_repository as module
-    from backend.app.repositories.form_import_repository import (
-        LOCKS,
-        ImportLimitReached,
-    )
-
     monkeypatch.setattr(module, "LOCK_WAIT_S", 0.3)
-    repo = _repo(store, sessions)
-    ws = PydanticObjectId()
+    repo = PostgresFormImportRepository(sessions)
+    ws = RecordId()
     since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
     new = record(ws, "f-new", ImportStatus.QUEUED)
-    if store == "mongo":
-        locks = FormImportDocument.get_pymongo_collection().database[LOCKS]
-        await locks.insert_one(
-            {
-                "_id": str(ws),
-                "token": "someone-else",
-                "expires_at": dt.datetime.now(dt.timezone.utc)
-                + dt.timedelta(minutes=1),
-            }
-        )
-        try:
-            with pytest.raises(ImportLimitReached) as refused:
-                await repo.create_within_limits(new, 1, 10, since)
-        finally:
-            await locks.delete_one({"_id": str(ws)})
-    else:
-        async with sessions() as holder, holder.begin():
-            await holder.execute(
-                select(
-                    func.pg_advisory_xact_lock(
-                        func.hashtextextended(f"form_imports:{ws}", 0)
-                    )
-                )
+    async with sessions() as holder, holder.begin():
+        await holder.execute(
+            select(
+                func.pg_advisory_xact_lock(func.hashtextextended(f"form_imports:{ws}", 0))
             )
-            with pytest.raises(ImportLimitReached) as refused:
-                await repo.create_within_limits(new, 1, 10, since)
+        )
+        with pytest.raises(ImportLimitReached) as refused:
+            await repo.create_within_limits(new, 1, 10, since)
     assert refused.value.code == "import_in_progress"
     assert await repo.count_active(ws) == 0
     # once the lock is free the start goes through
@@ -189,15 +147,14 @@ async def test_a_start_that_waits_too_long_is_refused_as_busy(
     assert await repo.count_active(ws) == 1
 
 
-@pytest.mark.parametrize("store", ["mongo", "postgres"])
-async def test_stale_imports_are_expired_and_healthy_ones_kept(sessions, store):
-    """Each store fails the workspace's active imports without progress since
-    the threshold (``interrupted``) and leaves everything else alone; the
+async def test_stale_imports_are_expired_and_healthy_ones_kept(sessions):
+    """The workspace's active imports without progress since
+    the threshold fail (``interrupted``) and everything else is left alone; the
     heartbeat changes only ``heartbeat_at`` and only while active."""
-    repo = _repo(store, sessions)
+    repo = PostgresFormImportRepository(sessions)
     now = dt.datetime.now(dt.timezone.utc)
     stale_before = now - dt.timedelta(minutes=10)
-    ws, other = PydanticObjectId(), PydanticObjectId()
+    ws, other = RecordId(), RecordId()
 
     stuck = record(ws, "f-stuck", ImportStatus.RUNNING, minutes_ago=60)
     stuck.heartbeat_at = now - dt.timedelta(minutes=20)
@@ -244,21 +201,17 @@ async def test_stale_imports_are_expired_and_healthy_ones_kept(sessions, store):
     assert (await repo.get(stuck.id)).status == ImportStatus.FAILED
 
 
-@pytest.mark.parametrize("store", ["mongo", "postgres"])
 async def test_parallel_starts_expiring_a_stale_import_let_one_through(
-    sessions, store, monkeypatch
+    sessions, monkeypatch
 ):
     """Expiry and the limit check take the same workspace lock: parallel
     starts that each expire first and then insert still admit exactly one."""
-    from backend.app.repositories import form_import_repository as module
-    from backend.app.repositories.form_import_repository import ImportLimitReached
-
     monkeypatch.setattr(module, "LOCK_WAIT_S", 120.0)
-    repo = _repo(store, sessions)
+    repo = PostgresFormImportRepository(sessions)
     now = dt.datetime.now(dt.timezone.utc)
     stale_before = now - dt.timedelta(minutes=10)
     since = now - dt.timedelta(days=1)
-    ws = PydanticObjectId()
+    ws = RecordId()
     stuck = record(ws, "f-stuck", ImportStatus.RUNNING, minutes_ago=60)
     await repo.save(stuck)
     counts = repo._limit_counts
@@ -274,7 +227,7 @@ async def test_parallel_starts_expiring_a_stale_import_let_one_through(
         await repo.expire_stale(ws, stale_before, now)
         try:
             await repo.create_within_limits(
-                record(ws, f"f-{PydanticObjectId()}", ImportStatus.QUEUED),
+                record(ws, f"f-{RecordId()}", ImportStatus.QUEUED),
                 1,
                 10,
                 since,

@@ -13,16 +13,18 @@ from common.models.user import User
 from common.services.http_client import HttpClient
 from loguru import logger
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.respondent_feedback_dto import (
     RespondentFeedbackPost,
     StaffFeedback,
 )
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import find_response_in_workspace
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.services.respondent_feedback import (
     current_status,
@@ -49,8 +51,8 @@ class RespondentFeedbackService:
     def __init__(
         self,
         form_response_repo: FormResponseRepository,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,
         workspace_repo: PostgresWorkspaceRepository,
         http_client: HttpClient,

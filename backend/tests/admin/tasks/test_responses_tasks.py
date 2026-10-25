@@ -68,14 +68,18 @@ STORES = ["mongo", "postgres"]
 
 # --------------------------------------------------------------------- helpers
 def _stores():
+    postgres = BackfillPostgres(container.pg_engine())
     return {
-        "mongo": BackfillMongo(container.database_client()[TEST_MONGO_DB]),
-        "postgres": BackfillPostgres(container.pg_engine()),
+        # the forms' links are in Postgres only (4.1): Mongo reads them there
+        "mongo": BackfillMongo(
+            container.database_client()[TEST_MONGO_DB], links=postgres
+        ),
+        "postgres": postgres,
     }
 
 
 async def _seed(links, responses, requests=()):
-    for document in (*links, *responses, *requests):
+    for document in (*responses, *requests):
         await document.save()
     sessions = container.pg_sessionmaker()
     workspace_forms = PostgresWorkspaceFormRepository(sessions, None)
@@ -737,8 +741,8 @@ async def test_check_does_not_change_the_data(world):
     stores = _stores()
     from tests.scripts.test_check_undecryptable_values import MongoStore, PostgresStore
 
-    mongo = MongoStore(stores["mongo"].db)
     postgres = PostgresStore(stores["postgres"].engine)
+    mongo = MongoStore(stores["mongo"].db, links=postgres)
     before = (await mongo.batch(None, 100), await postgres.batch(None, 100))
     _, run = await _run(world, "responses.check_undecryptable", {"stores": "both"})
     assert run["state"] == "succeeded"
@@ -878,3 +882,158 @@ async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(wor
     _, again = await _run(world, "responses.backfill_workspaces", params)
     assert again["state"] == "succeeded"
     assert backfill_meta.BackfillResult.model_validate(again["result"]).postgres.responses.conflict == 1
+
+
+# ------------------------------------------------- the forms' links (4.1)
+async def _mongo_links_copy(*extra):
+    """The 4.0 copy of the forms' links in Mongo: the seeded ones (also in
+    Postgres) plus ``extra`` (an import that has not copied them yet)."""
+    from common.records import to_bson
+
+    links, _, _ = _documents()
+    database = container.database_client()[TEST_MONGO_DB]
+    await database["workspace_forms"].insert_many(
+        [to_bson(link) for link in (*links, *extra)]
+    )
+
+
+def _not_imported_link():
+    from backend.app.schemas.workspace_form import WorkspaceFormDocument
+
+    return WorkspaceFormDocument(
+        id=PydanticObjectId(), workspace_id=PydanticObjectId(), form_id="shared", user_id="u3"
+    )
+
+
+async def test_an_incomplete_forms_import_refuses_the_backfill_apply(world, seeded):
+    """Mongo still holds a link of a form that Postgres lacks: the dry run
+    goes on (warned), the apply refuses ``forms_import_incomplete`` (it
+    would attribute responses from a partial set of links); once Postgres
+    holds every link, it runs."""
+    lost = _not_imported_link()
+    await _mongo_links_copy(lost)
+    params = {"stores": "mongo"}
+    _, dry = await _run(world, "responses.backfill_workspaces", params, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    _, run = await _run(world, "responses.backfill_workspaces", params)
+    assert run["state"] == "refused" and run["refusal_code"] == "forms_import_incomplete"
+    assert await _stamped(_stores()["mongo"]) != EXPECTED  # nothing stamped
+
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    await _run(world, "responses.backfill_workspaces", params, dry_run=True)
+    _, run = await _run(world, "responses.backfill_workspaces", params)
+    assert run["state"] == "succeeded", run
+
+
+async def test_writes_from_the_forms_links_wait_for_a_complete_import(seeded):
+    """Both openers (the responses tasks', the keyset tasks') hand a Mongo
+    store the links in Postgres. With links Mongo holds and Postgres lacks, a
+    read-only opening goes on and a writing one refuses; a complete import
+    opens for writes."""
+    from backend.admin.tasks.impl import keyset_core
+    from backend.admin.tasks.impl.keyset_state import DataConfig, open_target_stores
+    from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
+    from backend.admin.tasks.spec import Refusal
+
+    lost = _not_imported_link()
+    await _mongo_links_copy(lost)
+    config = StoreConfig(
+        mongo_uri=TEST_MONGO_URI, mongo_db=TEST_MONGO_DB, database_url=TEST_DATABASE_URL
+    )
+    classes = {"mongo": BackfillMongo, "postgres": BackfillPostgres}
+    data = DataConfig(
+        mongo_uri=TEST_MONGO_URI,
+        mongo_db=TEST_MONGO_DB,
+        google_mongo_db=TEST_MONGO_DB,
+        database_url=TEST_DATABASE_URL,
+        google_database_url=TEST_DATABASE_URL,
+    )
+
+    def openers(read_only):
+        return (
+            open_stores(config, ["mongo"], classes, read_only=read_only),
+            open_target_stores(
+                data, keyset_core.RESPONSES, ["mongo"], read_only=read_only
+            ),
+        )
+
+    for opening in openers(read_only=True):
+        async with opening as (mongo,):
+            assert mongo.links_source is not None
+    for opening in openers(read_only=False):
+        with pytest.raises(Refusal) as refused:
+            async with opening:
+                pass
+        assert refused.value.code == "forms_import_incomplete"
+
+    postgres = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    await postgres.upsert(lost)
+    # Mongo's copy now lacks nothing; the links are read from Postgres
+    expected = await postgres.links_by_form()
+    for opening in openers(read_only=False):
+        async with opening as (mongo,):
+            assert dict(await mongo.links()) == expected
+
+
+async def test_a_finished_forms_backfill_lets_writes_through(seeded):
+    """A link deleted after the import stays in Mongo's frozen copy (deletes
+    are Postgres-only since 4.1): with a finished backfill of workspace_forms
+    recorded (the startup guard's signal too) writes go on; without one the
+    missing link refuses them."""
+    from sqlalchemy import delete, insert
+
+    from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
+    from backend.admin.tasks.spec import Refusal
+    from backend.db.models import MigrationProgress
+
+    deleted = _not_imported_link()  # copied by the backfill, deleted from Postgres since
+    await _mongo_links_copy(deleted)
+    config = StoreConfig(
+        mongo_uri=TEST_MONGO_URI, mongo_db=TEST_MONGO_DB, database_url=TEST_DATABASE_URL
+    )
+    classes = {"mongo": BackfillMongo, "postgres": BackfillPostgres}
+    with pytest.raises(Refusal) as refused:
+        async with open_stores(config, ["mongo"], classes, read_only=False):
+            pass
+    assert refused.value.code == "forms_import_incomplete"
+
+    table = MigrationProgress.__table__
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(delete(table).where(table.c.collection == "workspace_forms"))
+        await conn.execute(
+            insert(table).values(
+                collection="workspace_forms",
+                count=4,
+                skipped=0,
+                batch_size=200,
+                state="done",
+                last_id=str(deleted.id),
+            )
+        )
+    async with open_stores(config, ["mongo"], classes, read_only=False) as (mongo,):
+        assert mongo.links_source is not None
+
+
+async def test_an_unreachable_mongo_refuses_writes_from_the_links(seeded_postgres_only):
+    """Whether the forms import is complete is unknown while Mongo cannot be
+    read: a writing opening refuses (``store_unreachable``)."""
+    from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
+    from backend.admin.tasks.spec import Refusal
+
+    config = StoreConfig(
+        mongo_uri="mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=300",
+        mongo_db=TEST_MONGO_DB,
+        database_url=TEST_DATABASE_URL,
+    )
+    classes = {"mongo": BackfillMongo, "postgres": BackfillPostgres}
+    with pytest.raises(Refusal) as refused:
+        async with open_stores(config, ["mongo"], classes, read_only=False):
+            pass
+    assert refused.value.code == "store_unreachable"
+    async with open_stores(config, ["mongo"], classes, read_only=True) as (mongo,):
+        assert mongo.links_source is not None  # a read goes on, warned
+
+
+@pytest.fixture
+async def seeded_postgres_only():
+    await _truncate_postgres()

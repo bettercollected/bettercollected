@@ -17,12 +17,12 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic.alias_generators import to_camel
 from starlette.concurrency import run_in_threadpool
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.workspace_form_repository import (
-    WorkspaceFormRepository,
-)
 from backend.app.services.ai.ops import (
     OP_NAMES,
     OpResult,
@@ -136,8 +136,8 @@ class FormSpecService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        workspace_form_repo: WorkspaceFormRepository,
-        form_repo: FormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
     ):
         self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo

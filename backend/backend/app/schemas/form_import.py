@@ -1,11 +1,9 @@
 import datetime as dt
 from typing import Any, Dict, List, Optional
 
-from beanie import PydanticObjectId
 from pydantic import BaseModel
 
-from backend.app.handlers.database import entity
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 
 
 class ImportStatus:
@@ -25,7 +23,7 @@ MESSAGE_INTERRUPTED = "The import was interrupted. Please try again."
 
 
 def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
-    """Stored dates may come back naive (Mongo): they are UTC."""
+    """Stored dates may come back naive (written by 4.0's Mongo): they are UTC."""
     if value is not None and value.tzinfo is None:
         return value.replace(tzinfo=dt.timezone.utc)
     return value
@@ -48,8 +46,7 @@ class PageAnalysis(BaseModel):
     legacy_fonts: List[str] = []
 
 
-@entity
-class FormImportDocument(MongoDocument):
+class FormImportDocument(Record):
     """One import of an uploaded PDF or image into a draft form.
 
     Created with the draft form, so the uploaded original lives in the form's
@@ -59,7 +56,7 @@ class FormImportDocument(MongoDocument):
     ever stored here: only structure.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     # None once a failed import has removed its empty draft (see report notes)
     form_id: Optional[str] = None
     created_by: str
@@ -95,7 +92,7 @@ class FormImportDocument(MongoDocument):
     def last_progress(self) -> Optional[dt.datetime]:
         """The latest sign of life: the heartbeat, or for records written
         before heartbeats existed, when the import started or was created.
-        (Not ``updated_at``: only the Mongo store bumps it on save.)"""
+        (Not ``updated_at``: only some saves move it.)"""
         seen = [
             _utc(v)
             for v in (self.heartbeat_at, self.started_at, self.created_at)

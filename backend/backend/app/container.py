@@ -72,16 +72,10 @@ from backend.app.repositories.postgres.refdata import (
     PostgresUserFeedbackRepo,
 )
 
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.form_import_repository import FormImportRepository
-from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
-from backend.app.repositories.template import FormTemplateRepository
-from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_responders_repository import (
     WorkspaceRespondersRepository,
 )
@@ -230,17 +224,8 @@ class AppContainer(containers.DeclarativeContainer):
     workspace_ai_profile_repo: PostgresWorkspaceAIProfileRepository = providers.Singleton(
         PostgresWorkspaceAIProfileRepository, pg_sessionmaker
     )
-    form_import_repo = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormImportRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresFormImportRepository, pg_sessionmaker
-        ),
+    form_import_repo: PostgresFormImportRepository = providers.Singleton(
+        PostgresFormImportRepository, pg_sessionmaker
     )
     workspace_domain_repo: PostgresWorkspaceDomainRepository = providers.Singleton(
         PostgresWorkspaceDomainRepository, pg_sessionmaker
@@ -314,37 +299,18 @@ class AppContainer(containers.DeclarativeContainer):
             postgres_repository, PostgresResponderGroupsRepository, pg_sessionmaker
         ),
     )
-    # after responder_groups_repository / form_response_repo: the forms twins compose over them
-    form_repo: FormRepository = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(FormRepository),
-        postgres=providers.Singleton(
-            postgres_repository,
-            PostgresFormRepository,
-            pg_sessionmaker,
-            responder_groups_repository,
-            form_response_repo,
-        ),
+    # after responder_groups_repository / form_response_repo: the forms
+    # repositories compose over them
+    form_repo: PostgresFormRepository = providers.Singleton(
+        PostgresFormRepository,
+        pg_sessionmaker,
+        responder_groups_repository,
+        form_response_repo,
     )
-    workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceFormRepository),
-        postgres=providers.Singleton(
-            postgres_repository,
-            PostgresWorkspaceFormRepository,
-            pg_sessionmaker,
-            responder_groups_repository,
-        ),
+    workspace_form_repo: PostgresWorkspaceFormRepository = providers.Singleton(
+        PostgresWorkspaceFormRepository,
+        pg_sessionmaker,
+        responder_groups_repository,
     )
 
     rate_limiter: FixedWindowRateLimiter = providers.Singleton(
@@ -854,17 +820,8 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         form_response_service=form_response_service,
     )
-    workspace_consent_repo = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(WorkspaceConsentRepo),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresWorkspaceConsentRepo, pg_sessionmaker
-        ),
+    workspace_consent_repo: PostgresWorkspaceConsentRepo = providers.Singleton(
+        PostgresWorkspaceConsentRepo, pg_sessionmaker
     )
 
     workspace_consent_service = providers.Singleton(
@@ -873,24 +830,10 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_consent_repo=workspace_consent_repo,
     )
 
-    form_template_repo = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        # both compose the titles of the workspaces templates were imported
-        # from over the workspace repository (no join across groups)
-        mongo=providers.Singleton(
-            FormTemplateRepository, workspace_repository=workspace_repo
-        ),
-        postgres=providers.Singleton(
-            postgres_repository,
-            PostgresFormTemplateRepository,
-            pg_sessionmaker,
-            workspace_repo,
-        ),
+    # the titles of the workspaces templates were imported from: read
+    # through the workspace repository
+    form_template_repo: PostgresFormTemplateRepository = providers.Singleton(
+        PostgresFormTemplateRepository, pg_sessionmaker, workspace_repo
     )
 
     form_template_service = providers.Singleton(
@@ -928,17 +871,8 @@ class AppContainer(containers.DeclarativeContainer):
         price_suggestion_repo=price_suggestion_repo,
     )
 
-    media_library_repo = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        metrics=routing_metrics,
-        mongo=providers.Singleton(MediaLibraryRepository),
-        postgres=providers.Singleton(
-            postgres_repository, PostgresMediaLibraryRepository, pg_sessionmaker
-        ),
+    media_library_repo: PostgresMediaLibraryRepository = providers.Singleton(
+        PostgresMediaLibraryRepository, pg_sessionmaker
     )
 
     media_library_service = providers.Singleton(

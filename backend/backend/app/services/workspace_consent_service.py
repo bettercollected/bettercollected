@@ -1,7 +1,9 @@
 from beanie import PydanticObjectId
 
+from backend.app.repositories.postgres.forms import (
+    PostgresWorkspaceConsentRepo,
+)
 from backend.app.models.dtos.consent import ConsentCamelModel
-from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
 from common.models.user import User
@@ -10,10 +12,10 @@ from common.models.user import User
 class WorkspaceConsentService:
     def __init__(
         self,
-        workspace_consent_repo: WorkspaceConsentRepo,
+        workspace_consent_repo: PostgresWorkspaceConsentRepo,
         authorization_service: AuthorizationService,
     ):
-        self._workspace_consent_repo: WorkspaceConsentRepo = workspace_consent_repo
+        self._workspace_consent_repo: PostgresWorkspaceConsentRepo = workspace_consent_repo
         self._authorization = authorization_service
 
     async def get_workspace_consents(self, workspace_id: PydanticObjectId, user: User):

@@ -113,15 +113,12 @@ def test_a_set_but_unreachable_mongo_uri_refuses_the_start(program):
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_one_group_still_on_mongo_keeps_mongo_required(program):
-    # the join map (backend.db.groups.MONGO_JOINS): forms on Mongo keeps the
-    # responses it joins written to Mongo too (identity, which it joined
-    # before, is served from Postgres only and read through its repositories)
+    # responses, the last group with a Mongo store
     result = boot(
         program,
         {
             **ALL_POSTGRES,
-            "DB_READ_SOURCE__forms": "mongo",
-            "DB_WRITE_MODE__forms": "dual",
+            "DB_READ_SOURCE__responses": "mongo",
             "DB_WRITE_MODE__responses": "dual",
         },
     )
@@ -131,11 +128,11 @@ def test_one_group_still_on_mongo_keeps_mongo_required(program):
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_a_stale_flag_for_a_postgres_only_group_refuses_the_start(program):
-    """refdata, analytics, ai, actions and identity have no Mongo store since
+    """refdata, analytics, ai, actions, identity and forms have no Mongo store since
     4.1: a flag left from the cutover that sends one of them elsewhere stops
     the start, naming it."""
-    result = boot(program, {"DB_WRITE_MODE__identity": "dual"})
+    result = boot(program, {"DB_WRITE_MODE__forms": "dual"})
     assert result.returncode != 0
     assert "FlagError" in result.stderr
-    assert "DB_WRITE_MODE__identity='dual'" in result.stderr
+    assert "DB_WRITE_MODE__forms='dual'" in result.stderr
     assert "served from Postgres only" in result.stderr

@@ -92,6 +92,7 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     run_reencrypt,
     scan,
 )
+from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.keyset_state import DataConfig
 from backend.admin.tasks.impl.responses_common import (
     plan_task_stores,
@@ -313,7 +314,17 @@ def store_refusal_message(refusal: Refusal, target: Target) -> str:
     )
 
 
-async def _open_stores(target: Target, names: List[str], closers: list) -> List:
+class FormsImportRefused(Exception):
+    """A writing run while the forms import is incomplete (or unknown)."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+async def _open_stores(
+    target: Target, names: List[str], closers: list, *, writes: bool = False
+) -> List:
     uri, database, url = _target_settings(target)
     stores = []
     for name in names:
@@ -335,6 +346,27 @@ async def _open_stores(target: Target, names: List[str], closers: list) -> List:
             engine = create_async_engine(url)
             closers.append(engine.dispose)
             stores.append(PostgresStore(engine, target))
+    mongo_stores = [s for s in stores if s.name == "mongo"]
+    if mongo_stores and target.needs_links and url:
+        # the forms' workspace links are in Postgres since 4.1
+        postgres = next((s for s in stores if s.name == "postgres"), None)
+        if postgres is None:
+            from sqlalchemy.ext.asyncio import create_async_engine
+
+            engine = create_async_engine(url)
+            closers.append(engine.dispose)
+            postgres = PostgresStore(engine, target)
+        for store in mongo_stores:
+            store.links_source = postgres
+        # only once the forms import is complete may anything be written from
+        # them (FormsImportRefused); a read goes on, with a warning
+        problem = await import_problem(
+            mongo_stores[0].db, postgres.links, postgres.engine
+        )
+        if problem and writes:
+            raise FormsImportRefused(*problem)
+        if problem:
+            print(f"warning: {problem[1]}", file=sys.stderr)
     return stores
 
 
@@ -410,7 +442,16 @@ async def _main(argv: List[str]) -> int:
     closers: list = []
     try:
         for target in targets:
-            stores = await _open_stores(target, plans[target.name], closers)
+            writes = args.command == "drop-old" or (
+                args.command == "reencrypt" and not args.dry_run
+            )
+            try:
+                stores = await _open_stores(
+                    target, plans[target.name], closers, writes=writes
+                )
+            except FormsImportRefused as refused:
+                print(f"{target.name}: refused ({refused.code}): {refused}", file=sys.stderr)
+                return 2
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"
                 report["targets"][target.name] = await run_reencrypt(

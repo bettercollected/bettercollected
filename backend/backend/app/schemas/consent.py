@@ -1,16 +1,12 @@
 import datetime as dt
 from typing import Optional
 
-from beanie import PydanticObjectId
-
-from backend.app.handlers.database import entity
-from common.configs.mongo_document import MongoDocument
 from common.models.consent import Consent
+from common.records import Record, RecordId
 
 
-@entity
-class WorkspaceConsentDocument(Consent, MongoDocument):
-    workspace_id: Optional[PydanticObjectId] = None
+class WorkspaceConsentDocument(Consent, Record):
+    workspace_id: Optional[RecordId] = None
 
     class Settings:
         name = "workspace_consent"

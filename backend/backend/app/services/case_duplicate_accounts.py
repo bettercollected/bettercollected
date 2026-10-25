@@ -23,6 +23,12 @@ revoked, then the deletion job removes the workspaces, forms, memberships,
 integration credentials, the auth account and its billing customer, in every
 store the services write. Every drop re-evaluates the account's group first.
 
+While a Mongo store is configured for the backend, both routes refuse with
+409 and code ``forms_import_incomplete`` until the 4.0 forms import is
+complete (``backend.db.forms_import``): the forms are counted in Postgres
+only, and before the import every account would count none, so the newest
+of each group would be kept and the others dropped.
+
 Ids only: no email leaves this module (the auth service groups the accounts
 and returns ids; the one email a deletion needs is read by id and handed to
 the deletion path, as for the user's own request).
@@ -48,6 +54,9 @@ from bson import ObjectId
 from common.models.user import User
 from loguru import logger
 
+from backend.app.exceptions import HTTPException
+from backend.db.forms_import import CODE as FORMS_IMPORT_INCOMPLETE
+from backend.db.forms_import import import_problem
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
@@ -133,12 +142,65 @@ def decide(forms: Dict[str, int]) -> Dict[str, str]:
     return {i: KEEP if i == keeper else DROP for i in forms}
 
 
+def backend_mongo_database():
+    """The backend's Mongo database, opened as the startup import guard opens
+    it (``mongo_import_guard._database``): the container's client while a
+    group uses Mongo, else a client of its own while ``MONGO_URI`` is
+    configured (set, not just the built-in default). An async context
+    yielding None when neither: no Mongo, nothing to check."""
+    from backend.app.container import container
+    from backend.db.mongo_import_guard import _database, mongo_uri_configured
+    from backend.db.startup import mongo_required
+
+    return _database(
+        container.database_client() if mongo_required(container) else None,
+        mongo_uri_configured(settings.mongo_settings),
+        settings.mongo_settings.DB,
+    )
+
+
+def backend_postgres_engine():
+    from backend.app.container import container
+
+    return container.pg_engine()
+
+
 class CaseDuplicateAccounts:
-    def __init__(self, http_client, workspace_repo, workspace_form_repo, auth_service):
+    def __init__(
+        self,
+        http_client,
+        workspace_repo,
+        workspace_form_repo,
+        auth_service,
+        mongo_database=backend_mongo_database,
+        postgres_engine=backend_postgres_engine,
+    ):
         self._http = http_client
         self._workspaces = workspace_repo
         self._workspace_forms = workspace_form_repo
         self._auth_service = auth_service
+        self._mongo_database = mongo_database
+        self._postgres_engine = postgres_engine
+
+    async def ensure_forms_imported(self) -> None:
+        """409 ``forms_import_incomplete`` until the forms import is complete
+        (``backend.db.forms_import``: a finished backfill recorded, or every
+        link of Mongo's 4.0 copy in Postgres), or while a configured Mongo
+        cannot be read. Without Mongo configured there is nothing to check."""
+        async with self._mongo_database() as database:
+            if database is None:
+                return
+            problem = await import_problem(
+                database,
+                self._workspace_forms.links_by_form,  # read only if needed
+                self._postgres_engine(),
+            )
+        if problem is None:
+            return
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            content={"code": FORMS_IMPORT_INCOMPLETE, "message": problem[1]},
+        )
 
     async def _auth_get(self, path: str, **kwargs) -> dict:
         """GET from the auth service; any failure is an :class:`AuthCallFailed`
@@ -179,6 +241,7 @@ class CaseDuplicateAccounts:
 
     async def plan(self) -> List[List[Account]]:
         """Every group, in a stable order (by its smallest id)."""
+        await self.ensure_forms_imported()
         return [await self._evaluate(ids) for ids in sorted(await self._group_ids())]
 
     async def _email_of(self, user_id: str) -> Optional[str]:
@@ -198,6 +261,7 @@ class CaseDuplicateAccounts:
         group of case variants), ``kept`` / ``manual`` (the rules no longer
         drop it), or ``refused`` (the account deletion itself refused, e.g.
         the account is the billing owner of a workspace with other owners)."""
+        await self.ensure_forms_imported()
         group = next((g for g in await self._group_ids() if user_id in g), None)
         if group is None:
             return "not_found"

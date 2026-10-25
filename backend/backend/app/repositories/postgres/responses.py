@@ -27,7 +27,13 @@ from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
-from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
+from backend.app.repositories.postgres.forms import (
+    _contains,
+    _fold,
+    _oid,
+    _sort_terms,
+    _text,
+)
 from backend.app.repositories.response_scope import (
     ResponseScope,
     form_importers,
@@ -81,15 +87,15 @@ from camel_converter import to_camel, to_snake
 
 
 def _filter_terms(doc, filter_query) -> list:
-    """``create_filter_pipeline(filter_object=...)``: each set field is a
-    case-insensitive regex on its camelCase or snake_case key."""
+    """``create_filter_pipeline(filter_object=...)``: each set field is
+    literal text its camelCase or snake_case key contains, ignoring case."""
     if not filter_query:
         return []
     matching = filter_query.model_dump(exclude_unset=True, exclude_none=True)
     return [
         or_(
-            _text(doc[to_camel(key)]).op("~*")(value),
-            _text(doc[to_snake(key)]).op("~*")(value),
+            _contains(_text(doc[to_camel(key)]), value),
+            _contains(_text(doc[to_snake(key)]), value),
         )
         for key, value in matching.items()
     ]
@@ -243,7 +249,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         for key, value in matching.items():
             keys = {to_camel(key), to_snake(key)}
             if "email" in keys:
-                stmt = stmt.where(grouped.c.email.op("~*")(value))
+                stmt = stmt.where(_contains(grouped.c.email, value))
             else:  # the projected document has no such field
                 stmt = stmt.where(literal(False))
 
@@ -1093,8 +1099,15 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         return by_form
 
     async def get_form_ids_accessible_to(
-        self, form_ids: List[str], identifier: str
+        self,
+        form_ids: List[str],
+        identifier: str,
+        workspace_id: Optional[PydanticObjectId] = None,
     ) -> Set[str]:
+        """The subset of ``form_ids`` whose responder groups admit
+        ``identifier``: a member with that identifier in any of the form's
+        groups, or a regex it matches of one of ``workspace_id``'s groups (any
+        group's when None), as 4.0's listing did."""
         links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
         group_ids = [_oid(g) for g in {link.group_id for link in links}]
         if not group_ids:
@@ -1108,6 +1121,8 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         }
         for group in await self.many(ResponderGroupRow.id.in_(group_ids)):
             if not group.regex:
+                continue
+            if workspace_id is not None and str(group.workspace_id) != str(workspace_id):
                 continue
             try:
                 if re.search(group.regex, identifier):

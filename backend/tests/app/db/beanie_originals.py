@@ -5,10 +5,10 @@ as they were before the move (test support; removed together with Beanie).
   the ``Record`` classes now in ``backend.app.schemas`` must describe (JSON
   schema) and serialise every pinned document exactly as these did.
 * They still name the 4.0 collections, so the tests of the migration and
-  routing machinery keep exercising ``allowed_origins`` and
-  ``rate_limit_counters`` through the repositories below, as they were
-  before the move, and plant 4.0 documents (``workspaces``) in Mongo for the
-  import's tests.
+  routing machinery keep exercising ``allowed_origins``,
+  ``rate_limit_counters``, ``forms`` and ``form_templates`` through the
+  repositories below, as they were before the move, and plant 4.0 documents
+  (``workspaces``) in Mongo for the import's tests.
 """
 
 import datetime as dt
@@ -20,9 +20,11 @@ from bson import ObjectId
 from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db import PostgresRepositoryBase, write_op
-from common.models.standard_form import ParameterValue
+from common.models.consent import Consent
+from common.models.standard_form import ParameterValue, StandardForm
 from common.enums.workspace_invitation_status import InvitationStatus
 from pydantic import BaseModel, EmailStr, field_validator
+import pymongo
 from pymongo import IndexModel, ReturnDocument
 
 from backend.app.handlers.database import entity
@@ -31,13 +33,29 @@ from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from backend.app.models.workspace import Workspace
+from backend.app.models.dtos.media_libraries_dto import MediaLibrary
+from backend.app.models.enum.update_status import UpdateStatus
+from backend.app.models.template import StandardFormTemplate
+from backend.app.models.workspace import Workspace, WorkspaceFormSettings
+from backend.app.schemas.form_import import ImportStatus, PageAnalysis
 from backend.app.schemas.action_document import ActionSettings
 from backend.app.schemas.scim import ScimUserState
 from backend.app.schemas.sso_connection import SsoConnectionStatus, SsoConnectionType
 from backend.app.schemas.workspace_domain import DomainStatus
 from backend.app.schemas.workspace_user import DISABLED_BY_PLAN
-from backend.db.models import AllowedOriginRow
+from backend.app.exceptions import HTTPException
+from backend.app.repositories.postgres.forms import apply_form_update
+from backend.app.services.form_concurrency import (
+    ensure_not_changed_since,
+    form_changed,
+    next_updated_at,
+)
+from backend.db.models import AllowedOriginRow, FormRow, FormTemplateRow
+from beanie.odm.utils.dump import get_dict
+from beanie.odm.utils.parsing import parse_obj
+from common.db import from_row_doc
+from common.db.beanie_bridge import row_values as bridge_row_values
+from sqlalchemy import select, update
 
 _ISO_ENCODERS = {
     dt.datetime: lambda o: dt.datetime.isoformat(o),
@@ -906,6 +924,116 @@ class UserTagsDocument(MongoDocument, UserTags):  # UserTags as it was in 4.0 (b
         name = "user_tags"
 
 
+# -- forms -------------------------------------------------------------------------
+
+
+class FormDocument(MongoDocument, StandardForm):
+    class Settings:
+        name = "forms"
+        bson_encoders = _ISO_ENCODERS
+
+
+class FormVersionsDocument(MongoDocument, StandardForm):
+    version: int
+    form_id: str
+
+    class Settings:
+        name = "form_versions"
+        bson_encoders = _ISO_ENCODERS
+        indexes = [
+            IndexModel(
+                [("form_id", pymongo.DESCENDING), ("version", pymongo.DESCENDING)],
+                unique=True,
+            )
+        ]
+
+
+class FormTemplateDocument(StandardFormTemplate, MongoDocument):
+    class Settings:
+        name = "form_templates"
+        bson_encoders = _ISO_ENCODERS
+
+
+class WorkspaceFormDocument(MongoDocument):
+    """
+    WorkspaceForms is a subclass of MongoDocument. It represents a
+    collection of forms in a workspace stored in a MongoDB database.
+
+    Attributes:
+        workspace_id (PydanticObjectId): The ID of the workspace.
+        form_id (str): The ID of the form.
+        settings (WorkspaceFormSettings): The settings for the form in the workspace.
+
+    Classes Attributes:
+        Collection:
+            name (str): The name of the collection in the database.
+        Settings:
+            name (str): The name of the settings for this document.
+            bson_encoders (dict): A dictionary of bson encoders for specific data types.
+    """
+
+    workspace_id: PydanticObjectId
+    form_id: str
+    user_id: str
+    settings: Optional[WorkspaceFormSettings] = None
+    last_update_status: Optional[UpdateStatus] = None
+
+    class Settings:
+        name = "workspace_forms"
+        bson_encoders = _ISO_ENCODERS
+
+
+class FormImportDocument(MongoDocument):
+    """One import of an uploaded PDF or image into a draft form.
+
+    Created with the draft form, so the uploaded original lives in the form's
+    private storage folder and is deleted with the form. ``stages`` holds each
+    finished stage's checkpoint, so a retried job resumes instead of redoing
+    work. Nothing a respondent may have written on the uploaded document is
+    ever stored here: only structure.
+    """
+
+    workspace_id: PydanticObjectId
+    form_id: Optional[str] = None
+    created_by: str
+    status: str = ImportStatus.QUEUED
+    stage: Optional[str] = None
+    error: Optional[str] = None
+    error_code: Optional[str] = None
+    file_name: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+    source_key: str
+    page_count: Optional[int] = None
+    pages: List[PageAnalysis] = []
+    stages: Dict[str, Any] = {}
+    report: Dict[str, Any] = {}
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    ai_consent: bool = False
+    ai_consent_at: Optional[datetime] = None
+    ai_consent_by: Optional[str] = None
+    heartbeat_at: Optional[datetime] = None
+
+    class Settings:
+        name = "form_imports"
+
+
+class MediaLibraryDocument(MongoDocument, MediaLibrary):
+    class Settings:
+        name = "media_libraries"
+        bson_encoders = _ISO_ENCODERS
+
+
+class WorkspaceConsentDocument(Consent, MongoDocument):
+    workspace_id: Optional[PydanticObjectId] = None
+
+    class Settings:
+        name = "workspace_consent"
+        bson_encoders = _ISO_ENCODERS
+
+
 ORIGINALS = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -938,6 +1066,13 @@ ORIGINALS = (
     BlackListedRefreshTokens,
     SessionDocument,
     UserTagsDocument,
+    FormDocument,
+    FormVersionsDocument,
+    FormTemplateDocument,
+    WorkspaceFormDocument,
+    FormImportDocument,
+    MediaLibraryDocument,
+    WorkspaceConsentDocument,
 )
 
 for _original in ORIGINALS:
@@ -1009,3 +1144,197 @@ class RateLimitRepository:
             projection={"hits": 1},
         )
         return int(counter["hits"])
+
+
+class FormRepository:
+    """The Mongo repository of ``forms`` before 4.1: the writes the tests of
+    the mirror machinery (tests/app/migrate) race and repair."""
+
+    async def get_form_document_by_id(self, form_id: str):
+        return await FormDocument.find_one({"form_id": form_id})
+
+    @write_op
+    async def save_form(self, form: FormDocument):
+        return await form.save()
+
+    @write_op(replay=True)
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        return await FormDocument(**form.model_dump(mode="json")).save()
+
+    @write_op
+    async def delete_form(self, form_id: str):
+        form = await FormDocument.find_one({"form_id": form_id})
+        if not form:
+            raise HTTPException(status_code=404, content="Form not found")
+        return await form.delete()
+
+    @write_op
+    async def delete_forms(self, form_ids: List[str]):
+        return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()
+
+    @write_op(replay=True)
+    async def update_form_if_unchanged(
+        self, form_id, form: StandardForm, expected_updated_at: datetime
+    ):
+        raw = await FormDocument.get_pymongo_collection().find_one(
+            {"form_id": str(form_id)}
+        )
+        if raw is None:
+            return None
+        form_document = parse_obj(FormDocument, raw)
+        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        apply_form_update(form_document, form)
+        form_document.updated_at = next_updated_at(form_document.updated_at)
+        result = await FormDocument.get_pymongo_collection().update_one(
+            {"_id": raw["_id"], "updated_at": raw.get("updated_at")},
+            {
+                "$set": get_dict(
+                    form_document,
+                    to_db=True,
+                    exclude={"_id"},
+                    keep_nulls=FormDocument.get_settings().keep_nulls,
+                )
+            },
+        )
+        if result.matched_count == 0:
+            raise form_changed()
+        return form_document
+
+    @write_op
+    async def set_form_logo(self, form_id: str, logo: Optional[str]):
+        await FormDocument.find_one({"form_id": str(form_id)}).update(
+            {"$set": {"logo": logo}}
+        )
+        return await FormDocument.find_one({"form_id": str(form_id)})
+
+
+class PostgresFormRepository(PostgresRepositoryBase):
+    """Its Postgres twin before 4.1 (Beanie documents, through the bridge)."""
+
+    row = FormRow
+    document = FormDocument
+
+    async def get_form_document_by_id(self, form_id: str):
+        return await self.one(FormRow.form_id == form_id)
+
+    async def save_form(self, form: FormDocument):
+        form.updated_at = utcnow()
+        return await self.upsert(form)
+
+    async def create_form(self, form: StandardForm) -> FormDocument:
+        return await self.save_document(FormDocument(**form.model_dump(mode="json")))
+
+    async def delete_form(self, form_id: str):
+        form = await self.one(FormRow.form_id == form_id)
+        if not form:
+            raise HTTPException(status_code=404, content="Form not found")
+        return await self.delete_by_id(form.id)
+
+    async def delete_forms(self, form_ids: List[str]):
+        return await self.delete_where(FormRow.form_id.in_(form_ids))
+
+    async def update_form_if_unchanged(
+        self, form_id, form: StandardForm, expected_updated_at: datetime
+    ):
+        async with self._session() as session:
+            found = (
+                await session.execute(
+                    select(FormRow.id, FormRow.doc, FormRow.updated_at)
+                    .where(FormRow.form_id == str(form_id))
+                    .order_by(FormRow.created_at, FormRow.id)
+                    .limit(1)
+                )
+            ).one_or_none()
+        if found is None:
+            return None
+        form_document = from_row_doc(FormDocument, found.doc)
+        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        apply_form_update(form_document, form)
+        form_document.updated_at = next_updated_at(form_document.updated_at)
+        values = bridge_row_values(form_document)
+        unchanged = (
+            FormRow.updated_at.is_(None)
+            if found.updated_at is None
+            else FormRow.updated_at == found.updated_at
+        )
+        self._touch(FormRow, [found.id])
+        async with self._session() as session, session.begin():
+            result = await session.execute(
+                update(FormRow)
+                .where(FormRow.id == found.id, unchanged)
+                .values(
+                    {
+                        FormRow.doc: values["doc"],
+                        FormRow.updated_at: values["updated_at"],
+                        FormRow.bc_source: values["bc_source"],
+                        FormRow.bc_checksum: values["bc_checksum"],
+                    }
+                )
+                .execution_options(synchronize_session=False)
+            )
+        if result.rowcount != 1:
+            raise form_changed()
+        return form_document
+
+    async def set_form_logo(self, form_id: str, logo: Optional[str]):
+        form_document = await self.one(FormRow.form_id == str(form_id))
+        if form_document is None:
+            return None
+        form_document.logo = logo
+        return await self.upsert(form_document)
+
+
+class FormTemplateRepository:
+    """The Mongo repository of ``form_templates`` before 4.1 (the writes the
+    mirror tests use)."""
+
+    async def get_template_by_id(self, template_id):
+        return await FormTemplateDocument.find_one({"_id": template_id})
+
+    @write_op(replay=True)
+    async def create_new_template(
+        self, workspace_id, template_body: StandardFormTemplate, user
+    ):
+        template = FormTemplateDocument(**template_body.model_dump(mode="json"))
+        template.workspace_id = workspace_id
+        template.created_by = user.id
+        return await template.save()
+
+    @write_op
+    async def update_template(self, template_id, template_body: StandardFormTemplate):
+        template = await FormTemplateDocument.find_one({"_id": template_id})
+        _apply_template(template, template_body)
+        return await template.save()
+
+
+class PostgresFormTemplateRepository(PostgresRepositoryBase):
+    """Its Postgres twin before 4.1 (Beanie documents, through the bridge)."""
+
+    row = FormTemplateRow
+    document = FormTemplateDocument
+
+    async def get_template_by_id(self, template_id):
+        return await self.one(FormTemplateRow.id == str(template_id))
+
+    async def create_new_template(
+        self, workspace_id, template_body: StandardFormTemplate, user
+    ):
+        template = FormTemplateDocument(**template_body.model_dump(mode="json"))
+        template.workspace_id = workspace_id
+        template.created_by = user.id
+        return await self.save_document(template)
+
+    async def update_template(self, template_id, template_body: StandardFormTemplate):
+        template = await self.get_template_by_id(template_id)
+        _apply_template(template, template_body)
+        return await self.save_document(template)
+
+
+def _apply_template(template, body: StandardFormTemplate) -> None:
+    template.fields = body.fields
+    template.settings = body.settings
+    template.title = body.title
+    template.description = body.description
+    template.button_text = body.button_text
+    template.logo = body.logo
+    template.cover_image = body.cover_image

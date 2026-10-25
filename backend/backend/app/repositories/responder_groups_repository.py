@@ -214,10 +214,15 @@ class ResponderGroupsRepository:
         return by_form
 
     async def get_form_ids_accessible_to(
-        self, form_ids: List[str], identifier: str
+        self,
+        form_ids: List[str],
+        identifier: str,
+        workspace_id: Optional[PydanticObjectId] = None,
     ) -> Set[str]:
-        """The subset of ``form_ids`` whose responder groups admit ``identifier``:
-        a member with that identifier, or a group regex it matches."""
+        """The subset of ``form_ids`` whose responder groups admit
+        ``identifier``: a member with that identifier in any of the form's
+        groups, or a regex it matches of one of ``workspace_id``'s groups (any
+        group's when None), as 4.0's listing did."""
         links = await ResponderGroupFormDocument.find(
             {"form_id": {"$in": form_ids}}
         ).to_list()
@@ -234,6 +239,8 @@ class ResponderGroupsRepository:
             {"_id": {"$in": group_ids}, "regex": {"$nin": [None, ""]}}
         ).to_list()
         for group in regex_groups:
+            if workspace_id is not None and str(group.workspace_id) != str(workspace_id):
+                continue
             try:
                 if re.search(group.regex, identifier):
                     member_of.add(group.id)

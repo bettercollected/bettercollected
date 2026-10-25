@@ -19,6 +19,7 @@ from backend.app.repositories.postgres.forms import PostgresWorkspaceFormReposit
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.records import to_bson
 from common.db.canonical import canonical_document, checksum
 from common.models.standard_form import RespondentFeedback
 from common.services.crypto_service import crypto_service
@@ -190,8 +191,14 @@ class Data:
 
     async def to_mongo(self, responses=True, credentials=True):
         db = container.database_client()[TEST_MONGO_DB]
-        for document in (*self.links, *self.responses) if responses else ():
+        for document in self.responses if responses else ():
             await document.save()
+        # the forms' links: Postgres since 4.1 (read for Mongo too when it
+        # is configured), and the 4.0 copy in Mongo (read where it is not)
+        links = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+        for link in self.links if responses else ():
+            await links.upsert(link)
+            await db["workspace_forms"].insert_one(to_bson(link))
         if self.credentials and credentials:
             await db[GOOGLE_CREDENTIALS.collection].insert_many(
                 [dict(c) for c in self.credentials]
@@ -355,7 +362,11 @@ def store_objects(store_choice):
     for target in (RESPONSES, GOOGLE_CREDENTIALS):
         for name in store_names(store_choice, target.name):
             if name == "mongo":
-                yield MongoStore(container.database_client()[TEST_MONGO_DB], target)
+                yield MongoStore(
+                    container.database_client()[TEST_MONGO_DB],
+                    target,
+                    links=PostgresStore(container.pg_engine(), target),
+                )
             else:
                 yield PostgresStore(container.pg_engine(), target)
 
@@ -891,7 +902,8 @@ async def test_drop_old_scans_a_configured_store_the_services_no_longer_write(
     monkeypatch.setenv("GOOGLE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
     _no_write_mode(monkeypatch)
     monkeypatch.setenv("DB_WRITE_MODE", "mongo")
-    await seed("both", Data())
+    data = Data()
+    await seed("both", data)
     rotated_file, _, new_key = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
     final_file = tmp_path / "final.keyset"
     drop = ["drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)]
@@ -912,6 +924,10 @@ async def test_drop_old_scans_a_configured_store_the_services_no_longer_write(
     code, _ = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
     assert code == 0
     await _truncate_postgres()
+    # (the forms stay imported: Mongo's responses are read with their links)
+    links = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    for link in data.links:
+        await links.upsert(link)
     code, dropped = await cli(capsys, *drop)
     assert code == 0, dropped
     assert dropped["records"]["responses"]["postgres"] == 0
@@ -1019,3 +1035,48 @@ async def test_drop_old_refuses_when_its_write_mode_is_wrong_and_mongo_is_missin
     code, err = await cli(capsys, *drop, "--mongo-retired")
     assert code == 2 and "mongo_not_retired" in err
     assert not final_file.exists()
+
+
+async def test_writing_runs_wait_for_the_forms_import(monkeypatch):
+    """reencrypt and drop-old read Mongo's responses with the forms' links
+    from Postgres: they refuse while a link of Mongo's 4.0 copy is missing
+    there (``forms_import_incomplete``) or Mongo cannot be read
+    (``store_unreachable``); a dry run goes on; a finished import opens."""
+    from scripts.rotate_response_keyset import FormsImportRefused, _open_stores
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    data = Data()
+    await data.to_mongo(credentials=False)  # links: in Postgres and in Mongo
+    lost = WorkspaceFormDocument(
+        id=PydanticObjectId(), workspace_id=WS_B, form_id="f1", user_id="u"
+    )
+    db = container.database_client()[TEST_MONGO_DB]
+    await db["workspace_forms"].insert_one(to_bson(lost))
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+
+    async def opened(writes):
+        closers = []
+        try:
+            return await _open_stores(RESPONSES, ["mongo"], closers, writes=writes)
+        finally:
+            for close in closers:
+                await close()
+
+    with pytest.raises(FormsImportRefused) as refused:
+        await opened(writes=True)
+    assert refused.value.code == "forms_import_incomplete"
+    assert str(WS_B) not in str(refused.value)
+    assert len(await opened(writes=False)) == 1  # read-only: warned, goes on
+
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    assert len(await opened(writes=True)) == 1
+
+    monkeypatch.setenv(
+        "MONGO_URI", "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=300"
+    )
+    with pytest.raises(FormsImportRefused) as refused:
+        await opened(writes=True)
+    assert refused.value.code == "store_unreachable"

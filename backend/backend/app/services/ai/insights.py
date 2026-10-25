@@ -38,12 +38,14 @@ from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.postgres.ai import PostgresFormAIInsightRepository
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.response_scope import response_scope
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -340,8 +342,8 @@ class FormAIInsightsService:
         self,
         authorization_service: AuthorizationService,
         provider_resolver: Callable,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
         form_response_repo: FormResponseRepository,
         insight_repo: PostgresFormAIInsightRepository,
         ai_consent_service: Optional[AIConsentService] = None,

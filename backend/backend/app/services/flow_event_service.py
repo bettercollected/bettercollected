@@ -17,12 +17,14 @@ from typing import Callable, Dict, FrozenSet, Optional, Tuple
 from beanie import PydanticObjectId
 from bson.errors import InvalidId
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.utils.client_ip import rate_limit_key
 from backend.app.repositories.postgres.analytics import PostgresFlowEventRepository
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.config import settings
 from common.settings.loader import live
@@ -54,8 +56,8 @@ def _not_found() -> HTTPException:
 class FlowEventService:
     def __init__(
         self,
-        workspace_form_repo: WorkspaceFormRepository,
-        form_repo: FormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
         flow_event_repo: PostgresFlowEventRepository,
         rate_limiter: FixedWindowRateLimiter,
         monotonic: Callable[[], float] = time.monotonic,

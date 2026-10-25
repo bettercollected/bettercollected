@@ -148,9 +148,14 @@ Update = Tuple[Path, bytes, bytes]  # path, the value read, its replacement
 class MongoStore:
     name = "mongo"
 
-    def __init__(self, database, target: Target):
+    def __init__(self, database, target: Target, links=None):
         self.db = database  # pymongo AsyncDatabase
         self.target = target
+        # where the workspace links of forms are read (a PostgresStore): the
+        # forms group is in Postgres only since 4.1, so ``workspace_forms`` in
+        # Mongo is a frozen 4.0 copy, read only where no Postgres is
+        # configured (a 4.0 database not imported yet)
+        self.links_source = links
 
     def key(self, record_id: str):
         from bson import ObjectId
@@ -158,19 +163,13 @@ class MongoStore:
         return ObjectId(record_id) if ObjectId.is_valid(record_id) else record_id
 
     async def links(self) -> Dict[str, List[str]]:
-        links: Dict[str, List[str]] = {}
-        cursor = (
-            self.db["workspace_forms"]
-            .find({}, {"form_id": 1, "workspace_id": 1})
-            .sort("_id", 1)
-        )
-        async for row in cursor:
-            if not row.get("workspace_id"):
-                continue
-            workspaces = links.setdefault(str(row.get("form_id")), [])
-            if str(row["workspace_id"]) not in workspaces:
-                workspaces.append(str(row["workspace_id"]))
-        return links
+        """form_id -> the workspaces it is linked to: from Postgres, or with
+        none configured from the 4.0 ``workspace_forms`` in Mongo."""
+        from backend.db.forms_import import mongo_links
+
+        if self.links_source is not None:
+            return await self.links_source.links()
+        return await mongo_links(self.db)
 
     async def batch(self, after: Optional[str], limit: int) -> List[Dict[str, Any]]:
         query: Dict[str, Any] = {}

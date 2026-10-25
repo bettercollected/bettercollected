@@ -59,6 +59,10 @@ EXPECTED = {
         *(("app", "responses_deletion_requests", c, "SELECT") for c in RESPONSE_COLUMNS),
         *(("app", "responses_deletion_requests", c, "UPDATE") for c in ("doc", "_bc_checksum")),
         *(("app", "workspace_forms", c, "SELECT") for c in ("id", "form_id", "workspace_id", "doc")),
+        *(
+            ("app", "migration_progress", c, "SELECT")
+            for c in ("collection", "state", "last_id", "skipped")
+        ),
     },
     "google": {
         *(("google", "oauth_credentials", c, "SELECT") for c in ("id", "user_id", "doc")),
@@ -287,6 +291,11 @@ async def test_each_role_reads_and_updates_what_the_tasks_need(app, google, supe
             assert result.rowcount == 1
         # the row lock a compare-and-swap takes
         await conn.execute(text("SELECT doc FROM app.form_responses WHERE id = :i FOR UPDATE"), {"i": HEX})
+    # the forms import check before a task writes from the forms' links
+    # (backend.db.forms_import): the backfill state, read without a fallback
+    from backend.db.forms_import import Backfill, workspace_forms_backfill
+
+    assert await workspace_forms_backfill(app) == Backfill(complete=False)
     async with google.begin() as conn:
         assert (await conn.execute(text("SELECT count(*) FROM google.oauth_credentials"))).scalar_one() == 1
         assert (await conn.execute(text("SELECT id, user_id, doc FROM google.oauth_credentials"))).first()

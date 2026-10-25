@@ -21,9 +21,6 @@ import pytest
 from beanie import PydanticObjectId
 
 from backend.app.container import container
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.postgres.forms import PostgresFormRepository
-from backend.app.schemas.standard_form import FormDocument
 from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import FormRow, MigrationProgress
@@ -37,6 +34,11 @@ from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner, Target
 from common.models.standard_form import StandardForm
 from sqlalchemy import select, update
+from tests.app.db.beanie_originals import (
+    FormDocument,
+    FormRepository,
+    PostgresFormRepository,
+)
 
 MODES = ["dual", "postgres_primary_dual"]
 
@@ -102,11 +104,7 @@ def forms_repo(mode, method):
     read = "mongo" if mode == "dual" else "postgres"
     flags = load_flags({"DB_WRITE_MODE": mode, "DB_READ_SOURCE": read})
     mongo = FormRepository()
-    postgres = PostgresFormRepository(
-        container.pg_sessionmaker(),
-        container.responder_groups_repository(),
-        container.form_response_repo(),
-    )
+    postgres = PostgresFormRepository(container.pg_sessionmaker())
     if flags.mirror_store("forms") is ReadSource.POSTGRES:
         postgres = held = Held(postgres, method)
     else:
@@ -365,7 +363,7 @@ async def delete_in_both_stores(form):
 
 def touched_form(form):
     with convergence.collecting() as touched:
-        PostgresFormRepository(container.pg_sessionmaker(), None, None)._touch(
+        PostgresFormRepository(container.pg_sessionmaker())._touch(
             FormRow, [form.id]
         )
     return touched
@@ -596,11 +594,7 @@ async def test_a_cut_off_copy_is_reported_even_when_the_recheck_is_clean(
         group="forms",
         flags=flags,
         mongo=FormRepository(),
-        postgres=PostgresFormRepository(
-            container.pg_sessionmaker(),
-            container.responder_groups_repository(),
-            container.form_response_repo(),
-        ),
+        postgres=PostgresFormRepository(container.pg_sessionmaker()),
         on_mirror_failure=container.outbox_recorder(),
         mirror_timeout_s=0.3,
     )

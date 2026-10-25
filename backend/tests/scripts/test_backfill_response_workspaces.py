@@ -91,9 +91,16 @@ def _documents():
 
 async def _mongo_store():
     links, responses, requests = _documents()
-    for document in (*links, *responses, *requests):
+    for document in (*responses, *requests):
         await document.save()
-    return MongoStore(container.database_client()[TEST_MONGO_DB])
+    # the forms' links are in Postgres only (4.1): the Mongo store reads them there
+    workspace_forms = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    for link in links:
+        await workspace_forms.upsert(link)
+    return MongoStore(
+        container.database_client()[TEST_MONGO_DB],
+        links=PostgresStore(container.pg_engine()),
+    )
 
 
 async def _postgres_store():
@@ -138,10 +145,10 @@ async def _stamped(store):
 
 @pytest.fixture(params=["mongo", "postgres"])
 async def store(request):
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
     if request.param == "postgres":
-        if not _postgres_configured():
-            pytest.skip("DATABASE_URL not set to a *_test database")
-        await _truncate_postgres()
         return await _postgres_store()
     return await _mongo_store()
 
@@ -230,3 +237,66 @@ async def test_after_the_backfill_each_workspace_reads_its_own(store):
         scope = await response_scope(links, workspace, ["shared"])
         listed = await repo.list_by_form_id(scope)
         assert {r.response_id for r in listed} == expected
+
+
+async def test_mongo_reads_the_links_from_postgres_not_its_frozen_copy():
+    """The forms group is in Postgres only since 4.1: a Mongo store reads the
+    forms' workspace links there, not the 4.0 copy left in Mongo; that copy
+    only where no Postgres is configured (a 4.0 database not imported yet)."""
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    store = await _mongo_store()
+    await store.db["workspace_forms"].insert_one(
+        {"workspace_id": WS_B, "form_id": "single", "user_id": "u-4.0"}
+    )
+    links = await store.links()
+    assert links["single"] == [str(WS_A)]
+    assert links["shared"] == [str(WS_A), str(WS_B)]
+    assert (await MongoStore(store.db).links())["single"] == [str(WS_B)]
+
+
+async def test_the_script_applies_only_after_a_complete_forms_import(monkeypatch, capsys):
+    """A link of a form still only in Mongo (an incomplete forms import):
+    the dry run goes on with a warning, ``--apply`` refuses (exit 2) and
+    writes nothing; once Postgres holds the link it applies."""
+    from common.records import to_bson
+    from scripts.backfill_response_workspaces import _main
+    from tests.conftest import TEST_DATABASE_URL, TEST_MONGO_URI
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    store = await _mongo_store()
+    lost = WorkspaceFormDocument(
+        id=PydanticObjectId(), workspace_id=PydanticObjectId(), form_id="shared", user_id="u3"
+    )
+    await store.db["workspace_forms"].insert_one(to_bson(lost))
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    before = await _stamped(store)
+
+    assert await _main(["--store", "mongo"]) == 0
+    assert "forms_import_incomplete" not in capsys.readouterr().err
+    assert await _main(["--store", "mongo", "--apply"]) == 2
+    assert "refused (forms_import_incomplete)" in capsys.readouterr().err
+    assert await _stamped(store) == before
+
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    assert await _main(["--store", "mongo", "--apply"]) == 0
+    assert await _stamped(store) != before
+
+
+async def test_the_script_refuses_to_apply_when_mongo_cannot_be_read(monkeypatch, capsys):
+    from scripts.backfill_response_workspaces import _main
+    from tests.conftest import TEST_DATABASE_URL
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    monkeypatch.setenv(
+        "MONGO_URI", "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=300"
+    )
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    assert await _main(["--store", "mongo", "--apply"]) == 2
+    assert "refused (store_unreachable)" in capsys.readouterr().err

@@ -11,6 +11,7 @@ shared ``crypto_service`` singleton.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -20,6 +21,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import KEYSET_ENV, CryptoService, UnreadableCiphertext
+
+logger = logging.getLogger(__name__)
 
 CIPHERTEXT_PREFIX = b"v1:"
 Opener = Callable[[str, str, bytes], bool]
@@ -279,8 +282,13 @@ class ReadOnlyDatabase:
 class MongoBase:
     name = "mongo"
 
-    def __init__(self, database):
+    def __init__(self, database, links=None):
         self.db = database  # pymongo AsyncDatabase
+        # where the workspace links of forms are read (a PostgresBase): the
+        # forms group is in Postgres only since 4.1, so ``workspace_forms`` in
+        # Mongo is a frozen 4.0 copy, read only where no Postgres is
+        # configured (a 4.0 database not imported yet)
+        self.links_source = links
 
     def encode_key(self, key) -> str:
         return str(key)
@@ -297,18 +305,13 @@ class MongoBase:
         return await self.db["form_responses"].estimated_document_count()
 
     async def links(self) -> Dict[str, List[str]]:
-        links: Dict[str, List[str]] = defaultdict(list)
-        cursor = (
-            self.db["workspace_forms"]
-            .find({}, {"form_id": 1, "workspace_id": 1})
-            .sort("_id", 1)
-        )
-        async for row in cursor:
-            workspace = str(row.get("workspace_id"))
-            form_id = str(row.get("form_id"))
-            if row.get("workspace_id") and workspace not in links[form_id]:
-                links[form_id].append(workspace)
-        return links
+        """form_id -> the workspaces it is linked to: from Postgres, or with
+        none configured from the 4.0 ``workspace_forms`` in Mongo."""
+        from backend.db.forms_import import mongo_links
+
+        if self.links_source is not None:
+            return await self.links_source.links()
+        return defaultdict(list, await mongo_links(self.db))
 
 
 class PostgresBase:
@@ -357,6 +360,36 @@ class PostgresBase:
         return links
 
 
+async def check_forms_import(
+    mongo_database, postgres_links, *, writes: bool, engine=None
+) -> None:
+    """A Mongo store reads the forms' workspace links from Postgres (4.1):
+    only once the forms import is complete (``backend.db.forms_import``: a
+    finished backfill recorded, or every link of Mongo's 4.0 copy in
+    Postgres) may anything be written from them (``forms_import_incomplete``;
+    ``store_unreachable`` when Mongo cannot be read); a read-only run goes
+    on, with a warning (its counts may name the wrong workspace)."""
+    from pymongo.errors import PyMongoError
+
+    from backend.db.forms_import import CODE, MESSAGE, unimported_links
+
+    try:
+        missing = await unimported_links(mongo_database, postgres_links, engine)
+    except PyMongoError as error:
+        if writes:
+            raise Refusal("store_unreachable") from None
+        logger.warning(
+            "The forms import could not be checked (%s): Mongo could not be read.",
+            type(error).__name__,
+        )
+        return
+    if not missing:
+        return
+    if writes:
+        raise Refusal(CODE)
+    logger.warning(MESSAGE.format(missing=missing))
+
+
 @asynccontextmanager
 async def open_stores(
     config: StoreConfig,
@@ -396,6 +429,34 @@ async def open_stores(
                 )
                 closers.append(engine.dispose)
                 stores.append(classes["postgres"](engine))
+        mongo_stores = [s for s in stores if s.name == "mongo"]
+        if mongo_stores and config.database_url:
+            # the forms' workspace links are in Postgres since 4.1
+            postgres = next((s for s in stores if s.name == "postgres"), None)
+            if postgres is None:
+                from sqlalchemy.ext.asyncio import create_async_engine
+
+                engine = create_async_engine(
+                    config.database_url,
+                    pool_size=1,
+                    max_overflow=0,
+                    connect_args={
+                        "server_settings": {
+                            "statement_timeout": "60000",
+                            "default_transaction_read_only": "on",
+                        }
+                    },
+                )
+                closers.append(engine.dispose)
+                postgres = PostgresBase(engine)
+            for store in mongo_stores:
+                store.links_source = postgres
+            await check_forms_import(
+                mongo_stores[0].db,
+                postgres.links,  # read only if the backfill does not settle it
+                writes=not read_only,
+                engine=postgres.engine,
+            )
         yield stores
     finally:
         for close in reversed(closers):

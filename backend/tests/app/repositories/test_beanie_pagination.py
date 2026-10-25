@@ -7,12 +7,11 @@ from beanie import PydanticObjectId
 from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
+from backend.app.container import container
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.response_scope import ResponseScope
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -20,8 +19,8 @@ from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
 async def _seed_deletion_requests(count: int) -> ResponseScope:
     workspace_id = PydanticObjectId()
-    await FormRepository().save_form(FormDocument(form_id="f1", title="Alpha"))
-    await WorkspaceFormRepository().save(
+    await container.form_repo().save_form(FormDocument(form_id="f1", title="Alpha"))
+    await container.workspace_form_repo().save(
         WorkspaceFormDocument(workspace_id=workspace_id, form_id="f1", user_id="u1")
     )
     for index in range(count):
@@ -41,11 +40,11 @@ async def test_deletion_requests_page_totals_and_slices():
 
     with set_page(Page), set_params(Params(page=1, size=2)):
         first = await DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(form_ids)
     with set_page(Page), set_params(Params(page=3, size=2)):
         last = await DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(form_ids)
 
     assert (first.total, first.page, first.size, first.pages) == (5, 1, 2, 3)
@@ -64,7 +63,7 @@ async def test_deletion_requests_filtered_total_follows_the_match():
 
     with set_page(Page), set_params(Params(page=1, size=10)):
         page = await DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(
             form_ids, data_owner_identifier="owner@example.com"
         )
@@ -76,7 +75,7 @@ async def test_deletion_requests_filtered_total_follows_the_match():
 async def test_deletion_requests_empty_page():
     with set_page(Page), set_params(Params(page=1, size=10)):
         page = await DeletionRequestsRepository(
-            FormRepository(), WorkspaceFormRepository()
+            container.form_repo(), container.workspace_form_repo()
         ).get_deletion_requests(
             ResponseScope(PydanticObjectId(), ("missing",))
         )

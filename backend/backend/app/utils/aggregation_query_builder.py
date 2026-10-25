@@ -1,3 +1,5 @@
+import re
+
 from camel_converter import to_camel, to_snake
 
 from backend.app.models.filter_queries.sort import SortRequest, SortOrder
@@ -12,6 +14,8 @@ def create_filter_pipeline(
         if matching_dict:
             all_matchers = []
             for k, v in matching_dict.items():
+                # the value is literal text (escaped), never a pattern
+                v = re.escape(str(v))
                 all_matchers.append(
                     {
                         "$or": [

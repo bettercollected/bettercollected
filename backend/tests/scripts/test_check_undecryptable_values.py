@@ -79,9 +79,14 @@ def _documents():
 
 async def _mongo_store():
     link, responses = _documents()
-    for document in (link, *responses):
+    for document in responses:
         await document.save()
-    return MongoStore(container.database_client()[TEST_MONGO_DB])
+    # the form's link is in Postgres only (4.1): the Mongo store reads it there
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(link)
+    return MongoStore(
+        container.database_client()[TEST_MONGO_DB],
+        links=PostgresStore(container.pg_engine()),
+    )
 
 
 async def _postgres_store():
@@ -96,10 +101,10 @@ async def _postgres_store():
 
 @pytest.fixture(params=["mongo", "postgres"])
 async def store(request):
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
     if request.param == "postgres":
-        if not _postgres_configured():
-            pytest.skip("DATABASE_URL not set to a *_test database")
-        await _truncate_postgres()
         return await _postgres_store()
     return await _mongo_store()
 

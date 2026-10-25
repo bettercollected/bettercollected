@@ -17,7 +17,7 @@ async def test_status_is_admin_only(client: AsyncClient, test_user_cookies_1):
 
 
 async def test_status_reports_flags_counters_and_outbox(
-    client: AsyncClient, test_user_cookies, workspace_form
+    client: AsyncClient, test_user_cookies, workspace_form_response
 ):
     assert testUser.is_admin()
     response = await client.get("/api/v1/persistence/status", cookies=test_user_cookies)
@@ -31,9 +31,9 @@ async def test_status_reports_flags_counters_and_outbox(
     assert (
         body["flags"]["jobs"]["delete_user"] == flags.jobs_backend("delete_user").value
     )
-    # the workspace_form fixture wrote through the routed forms repositories
-    # (identity is served from Postgres only, without routing)
-    assert body["metrics"]["forms"]["calls"]
+    # the workspace_form_response fixture wrote through the routed responses
+    # repositories (forms and identity are served from Postgres only)
+    assert body["metrics"]["responses"]["calls"]
     mongo_used = flags.uses_mongo(GROUPS)
     assert body["mongo"] == {
         "used": mongo_used,

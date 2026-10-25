@@ -23,3 +23,4 @@ class Refusals(str, enum.Enum):
     store_empty = "store_empty"
     keyset_missing = "keyset_missing"
     keyset_unreadable = "keyset_unreadable"
+    forms_import_incomplete = "forms_import_incomplete"

@@ -1,11 +1,13 @@
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+)
 from backend.app.models.workspace import ParameterValue
-from backend.app.repositories.form_repository import FormRepository
 
 CREDENTIALS = "Credentials"
 
 
 class IntegrationActionService:
-    def __init__(self, form_repo: FormRepository, sheets_grants=None):
+    def __init__(self, form_repo: PostgresFormRepository, sheets_grants=None):
         self._form_repo = form_repo
         # services/sheets_grant_revocation.py (GOOGLE_SHEETS_OAUTH=backend)
         self._sheets_grants = sheets_grants

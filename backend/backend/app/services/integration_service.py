@@ -9,15 +9,17 @@ from common.models.user import User
 from common.services.http_client import HttpClient
 from cryptography.fernet import InvalidToken
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.actions import PostgresActionRepository
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.integration_action_service import IntegrationActionService
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 
 
@@ -28,8 +30,8 @@ class IntegrationService:
         crypto: Crypto,
         http_client: HttpClient,
         integration_action_service: IntegrationActionService,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,
         action_repository: PostgresActionRepository,
     ):

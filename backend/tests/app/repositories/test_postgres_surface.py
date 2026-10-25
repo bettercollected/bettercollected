@@ -9,18 +9,6 @@ import inspect
 
 import pytest
 
-from backend.app.repositories.form_repository import FormRepository
-from backend.app.repositories.media_library_repository import MediaLibraryRepository
-from backend.app.repositories.postgres.forms import (
-    PostgresFormRepository,
-    PostgresFormTemplateRepository,
-    PostgresMediaLibraryRepository,
-    PostgresWorkspaceConsentRepo,
-    PostgresWorkspaceFormRepository,
-)
-from backend.app.repositories.template import FormTemplateRepository
-from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
-from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
@@ -38,11 +26,6 @@ from common.db import is_write_op
 # The groups served from Postgres only (backend.db.groups.POSTGRES_ONLY_GROUPS)
 # have no Mongo original left.
 PAIRS = [
-    (FormRepository, PostgresFormRepository),
-    (WorkspaceFormRepository, PostgresWorkspaceFormRepository),
-    (WorkspaceConsentRepo, PostgresWorkspaceConsentRepo),
-    (FormTemplateRepository, PostgresFormTemplateRepository),
-    (MediaLibraryRepository, PostgresMediaLibraryRepository),
     (FormResponseRepository, PostgresFormResponseRepository),
     (ResponderGroupsRepository, PostgresResponderGroupsRepository),
     (WorkspaceRespondersRepository, PostgresWorkspaceRespondersRepository),

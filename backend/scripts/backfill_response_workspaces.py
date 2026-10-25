@@ -49,6 +49,7 @@ import os
 import sys
 from typing import List
 
+from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.responses_backfill import (  # noqa: F401 - the CLI's public names
     ENCRYPTED_FIELDS,
     Attributor,
@@ -105,23 +106,36 @@ async def _main(argv: List[str]) -> int:
     # MONGO_URI / MONGO_DB only: no other backend setting is needed
     from backend.config.database import MongoSettings
 
+    url = os.environ.get("DATABASE_URL")
+    if args.store == "postgres" and not url:
+        print("DATABASE_URL is not set.", file=sys.stderr)
+        return 2
     stores, closers = [], []
     if args.store in ("all", "mongo"):
         mongo = MongoSettings()
         client = AsyncMongoClient(mongo.URI)
         stores.append(MongoStore(client[mongo.DB]))
         closers.append(client.close)
-    url = os.environ.get("DATABASE_URL")
-    if args.store == "postgres" and not url:
-        print("DATABASE_URL is not set.", file=sys.stderr)
-        return 2
-    if url and args.store in ("all", "postgres"):
+    if url:
         from sqlalchemy.ext.asyncio import create_async_engine
 
         engine = create_async_engine(url)
-        stores.append(PostgresStore(engine))
         closers.append(engine.dispose)
+        postgres = PostgresStore(engine)
+        for store in stores:  # Mongo reads the forms' links from Postgres (4.1)
+            store.links_source = postgres
+        if args.store in ("all", "postgres"):
+            stores.append(postgres)
     try:
+        if url and stores and stores[0].name == "mongo":
+            # the forms' links: only once their import is complete may
+            # anything be written from them; a read goes on, with a warning
+            problem = await import_problem(stores[0].db, postgres.links, engine)
+            if problem and args.apply:
+                print(f"refused ({problem[0]}): {problem[1]}", file=sys.stderr)
+                return 2
+            if problem:
+                print(f"warning: {problem[1]}", file=sys.stderr)
         report = await run(
             stores,
             apply=args.apply,

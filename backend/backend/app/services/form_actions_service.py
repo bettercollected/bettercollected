@@ -2,12 +2,14 @@ from loguru import logger
 from http import HTTPStatus
 from beanie import PydanticObjectId
 
-from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+)
 from backend.app.exceptions import HTTPException
 
 
 class FormActionsService:
-    def __init__(self, form_repo: FormRepository):
+    def __init__(self, form_repo: PostgresFormRepository):
         self.form_repo = form_repo
 
     async def update_form_secrets(

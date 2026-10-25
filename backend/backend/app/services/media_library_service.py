@@ -3,9 +3,11 @@ from beanie import PydanticObjectId
 from common.models.user import User
 from fastapi import File, UploadFile
 
+from backend.app.repositories.postgres.forms import (
+    PostgresMediaLibraryRepository,
+)
 from backend.app.exceptions.http import HTTPException
 from backend.app.models.dtos.media_libraries_dto import MediaType
-from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
@@ -17,7 +19,7 @@ class MediaLibraryService:
 
     def __init__(
         self,
-        media_library_repo: MediaLibraryRepository,
+        media_library_repo: PostgresMediaLibraryRepository,
         aws_service: AWSS3Service,
         authorization_service: AuthorizationService,
     ):

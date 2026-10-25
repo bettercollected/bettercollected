@@ -11,7 +11,6 @@ from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.postgres.forms import PostgresFormRepository
 from backend.app.services.ai.chat import camel_form_reply
 from backend.app.services.form_concurrency import (
@@ -152,20 +151,19 @@ def saves_read_together(monkeypatch):
     """Two conditional saves both read the stored draft before either
     writes: each waits after its read until the other has read too. That
     gets both past every check made on what they read, so only the
-    conditional write can tell them apart. Gates whichever store serves."""
+    conditional write can tell them apart."""
     barrier = asyncio.Barrier(2)
     reads = []
-    for repository in (FormRepository, PostgresFormRepository):
-        read = repository._stored_draft
+    read = PostgresFormRepository._stored_draft
 
-        async def gated(self, form_id, _read=read):
-            found = await _read(self, form_id)
-            reads.append(form_id)
-            if len(reads) <= 2:  # the two racing saves; later ones run freely
-                await asyncio.wait_for(barrier.wait(), timeout=10)
-            return found
+    async def gated(self, form_id):
+        found = await read(self, form_id)
+        reads.append(form_id)
+        if len(reads) <= 2:  # the two racing saves; later ones run freely
+            await asyncio.wait_for(barrier.wait(), timeout=10)
+        return found
 
-        monkeypatch.setattr(repository, "_stored_draft", gated)
+    monkeypatch.setattr(PostgresFormRepository, "_stored_draft", gated)
 
 
 def _one_winner(results):
@@ -269,7 +267,7 @@ class TestSimultaneousSaves:
 class TestVersionComparison:
     def test_milliseconds_decide(self):
         saved = dt.datetime(2026, 10, 17, 9, 0, 0, 123456, tzinfo=dt.timezone.utc)
-        # MongoDB keeps milliseconds: the stored value reads back truncated
+        # stored values keep milliseconds: one reads back truncated
         stored = dt.datetime(2026, 10, 17, 9, 0, 0, 123000)
         assert not is_changed_since(stored, saved)
         assert is_changed_since(stored + dt.timedelta(milliseconds=1), saved)

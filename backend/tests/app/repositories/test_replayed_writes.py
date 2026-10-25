@@ -1,40 +1,18 @@
 """Replayed writes in dual-write mode: the Postgres mirror stores whatever the
 Mongo primary persisted, including the documents a repository writes to its
-group's other tables (form versions, deletion requests, workspace tags)."""
+group's other tables (deletion requests, workspace tags)."""
 
 import pytest
 from beanie import PydanticObjectId
 
-from backend.app.container import container
-from backend.app.repositories.form_response_repository import FormResponseRepository
-from backend.app.repositories.postgres.forms import PostgresFormRepository
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
     PostgresWorkspaceRespondersRepository,
 )
-from backend.app.repositories.responder_groups_repository import (
-    ResponderGroupsRepository,
-)
-from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.schemas.workspace_responder import WorkspaceTags
-from tests.app.repositories.test_forms_parity import form, sessions  # noqa: F401
+from tests.app.repositories.parity import sessions  # noqa: F401
 from tests.app.response_helpers import unlinked_scope
-
-
-def responses_repo():
-    return FormResponseRepository(container.crypto(), None, None)
-
-
-async def test_a_published_version_is_mirrored_to_its_table(sessions):
-    pg = PostgresFormRepository(sessions, ResponderGroupsRepository(), responses_repo())
-    version = FormVersionsDocument(
-        **form("pub1", "Published", 1).model_dump(mode="json"), version=1
-    )
-    version.id = PydanticObjectId()
-    await pg.replay_write([version])
-    stored = await pg.get_form_by_by_version("pub1", 1)
-    assert stored is not None and stored.version == 1
 
 
 async def test_a_deletion_request_is_mirrored_to_its_table(sessions):

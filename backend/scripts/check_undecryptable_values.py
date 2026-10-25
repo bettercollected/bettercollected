@@ -33,6 +33,7 @@ import os
 import sys
 from typing import List
 
+from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.responses_scan import (  # noqa: F401 - the CLI's public names
     FEEDBACK,
     FIELDS,
@@ -83,13 +84,23 @@ async def _main(argv: List[str]) -> int:
         client = AsyncMongoClient(mongo.URI)
         stores.append(MongoStore(client[mongo.DB]))
         closers.append(client.close)
-    if url and args.store in ("all", "postgres"):
+    if url:
         from sqlalchemy.ext.asyncio import create_async_engine
 
         engine = create_async_engine(url)
-        stores.append(PostgresStore(engine))
         closers.append(engine.dispose)
+        postgres = PostgresStore(engine)
+        for store in stores:  # Mongo reads the forms' links from Postgres (4.1)
+            store.links_source = postgres
+        if args.store in ("all", "postgres"):
+            stores.append(postgres)
     try:
+        if url and stores and stores[0].name == "mongo":
+            # the forms' links: an incomplete import may name the wrong
+            # workspace for a value; this read-only check goes on, warned
+            problem = await import_problem(stores[0].db, postgres.links, engine)
+            if problem:
+                print(f"warning: {problem[1]}", file=sys.stderr)
         report = await run(stores, default_opener(), args.batch_size)
     finally:
         for close in closers:

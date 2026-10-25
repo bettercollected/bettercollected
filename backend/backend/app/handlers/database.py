@@ -11,7 +11,6 @@ from backend.app.schemas.responder_group import (
     ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
-from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     DELETION_REQUEST_INDEX,
     DELETION_REQUEST_INDEX_MODEL,
@@ -19,11 +18,6 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
     drop_legacy_deletion_request_index,
-)
-from backend.app.schemas.workspace_form import (
-    WORKSPACE_FORM_INDEX,
-    WORKSPACE_FORM_INDEX_FILTER,
-    WorkspaceFormDocument,
 )
 from common.db import MirrorWriteFailureDocument, init_documents, mongo_client
 
@@ -71,9 +65,7 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
     db = client[db]
     document_models.extend(
         [
-            FormDocument,
             FormResponseDocument,
-            WorkspaceFormDocument,
             FormResponseDeletionRequest,
             ResponderGroupFormDocument,
             ResponderGroupMemberDocument,
@@ -85,7 +77,6 @@ async def init_db(db: str, client: AsyncMongoClient, *, required: bool = True):
     if not required:
         logger.info("Mongo is not used by any repository group; not connected.")
         return
-    await ensure_workspace_form_unique_index(db)
     await ensure_deletion_request_indexes(db)
     logger.info("Database connected successfully.")
 
@@ -107,36 +98,6 @@ async def _duplicate_pairs(collection, keys, match) -> Optional[int]:
         return found[0]["pairs"] if found else 0
     except PyMongoError:
         return None
-
-
-async def ensure_workspace_form_unique_index(db) -> bool:
-    """One link per workspace and form (``workspace_forms``, app revision
-    0019 in Postgres). Created here, after Beanie and not in the document's
-    settings, so a database that still holds duplicate links starts anyway:
-    it logs an ERROR with the number of duplicate pairs and how to find them,
-    and ``save_workspace_form`` keeps returning the existing link. Nothing is
-    ever deleted here."""
-    collection = db["workspace_forms"]
-    try:
-        await collection.create_indexes([WORKSPACE_FORM_INDEX])
-        return True
-    except PyMongoError as error:
-        pairs = await _duplicate_pairs(
-            collection, ("workspace_id", "form_id"), WORKSPACE_FORM_INDEX_FILTER
-        )
-        logger.error(
-            "The unique index {} on workspace_forms was not created ({}); "
-            "(workspace_id, form_id) pairs linked more than once: {}. The "
-            "service runs without it. List them (read-only) with "
-            'db.workspace_forms.aggregate([{{$group: {{_id: {{w: "$workspace_id", '
-            'f: "$form_id"}}, n: {{$sum: 1}}, ids: {{$push: "$_id"}}}}}}, '
-            "{{$match: {{n: {{$gt: 1}}}}}}]), keep one link per pair (in both "
-            "stores) and restart.",
-            WORKSPACE_FORM_INDEX.document["name"],
-            type(error).__name__,
-            "unknown" if pairs is None else pairs,
-        )
-        return False
 
 
 async def ensure_deletion_request_indexes(db) -> bool:

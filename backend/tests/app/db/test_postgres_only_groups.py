@@ -1,4 +1,5 @@
-"""refdata, analytics, ai, actions and identity are served from Postgres only (4.1): the backend's
+"""refdata, analytics, ai, actions, identity and forms are served from Postgres
+only (4.1): the backend's
 flags pin them there, a stale per-group flag refuses the start, and a fresh
 store gets its reference data from ``python -m backend.seed_refdata``."""
 
@@ -27,6 +28,7 @@ from common.db.flags import FlagError
         {"DB_READ_SOURCE__ai": "postgres", "DB_WRITE_MODE__AI": "postgres"},
         {"DB_READ_SOURCE__Actions": "postgres", "DB_WRITE_MODE__actions": ""},
         {"DB_READ_SOURCE__identity": "postgres", "DB_WRITE_MODE__Identity": ""},
+        {"DB_READ_SOURCE__forms": "postgres", "DB_WRITE_MODE__FORMS": "postgres"},
     ],
 )
 def test_the_groups_are_on_postgres_whatever_the_defaults(env):
@@ -42,32 +44,25 @@ def test_the_other_groups_keep_their_flags():
     flags = load_backend_flags(
         {"DB_WRITE_MODE": "dual", "DB_READ_SOURCE__responses": "postgres"}
     )
-    assert flags.write_mode("forms") is WriteMode.DUAL
-    assert flags.read_source("forms") is ReadSource.MONGO
+    assert flags.write_mode("responses") is WriteMode.DUAL
     assert flags.read_source("responses") is ReadSource.POSTGRES
+    flags = load_backend_flags({"DB_WRITE_MODE": "dual"})
+    assert flags.read_source("responses") is ReadSource.MONGO
 
 
-def test_no_mongo_query_joins_into_a_postgres_only_group():
+def test_no_mongo_query_joins_across_groups():
     """A ``$lookup`` into a group served from Postgres only would find nothing
-    (its Mongo collections are no longer written). identity's join into
-    workspace_actions went with the actions group (the workspace repository
-    reads the action's copy through the actions repository), and forms' join
-    into workspaces with the identity group (both template repositories read
-    the origin workspace's title through the workspace repository)."""
-    for group, joined in MONGO_JOINS.items():
-        assert not set(joined) & set(POSTGRES_ONLY_GROUPS), group
-
-
-def test_no_mongo_query_joins_into_identity():
-    """The forms group's one join into identity (the workspace a template was
-    imported from) is composed over the workspace repository, so identity is
-    served from Postgres only while forms still reads Mongo."""
-    assert all("identity" not in joined for joined in MONGO_JOINS.values())
+    (its Mongo collections are no longer written). The last ones went with
+    the forms group: the responses repositories read a form's title and
+    importer through the forms repositories, and the forms repositories,
+    Postgres only, read responses and responder groups through the responses
+    group's."""
+    assert MONGO_JOINS == {}
     flags = load_backend_flags(
-        {"DB_READ_SOURCE__identity": "postgres", "DB_WRITE_MODE__identity": "postgres"}
+        {"DB_READ_SOURCE__responses": "mongo", "DB_WRITE_MODE__responses": "dual"}
     )
-    assert flags.read_source("forms") is ReadSource.MONGO
-    assert flags.write_mode("identity") is WriteMode.POSTGRES
+    assert flags.read_source("responses") is ReadSource.MONGO
+    assert flags.write_mode("forms") is WriteMode.POSTGRES
 
 
 @pytest.mark.parametrize(
@@ -84,6 +79,8 @@ def test_no_mongo_query_joins_into_identity():
         ("DB_WRITE_MODE__ACTIONS", "postgres_primary_dual"),
         ("DB_READ_SOURCE__identity", "mongo"),
         ("DB_WRITE_MODE__IDENTITY", "dual"),
+        ("DB_READ_SOURCE__forms", "mongo"),
+        ("DB_WRITE_MODE__Forms", "dual"),
     ],
 )
 def test_a_stale_group_flag_refuses_the_start(key, value):
@@ -91,7 +88,7 @@ def test_a_stale_group_flag_refuses_the_start(key, value):
         load_backend_flags({key: value})
     assert f"{key}={value!r}" in str(refused.value)
     assert "served from Postgres only" in str(refused.value)
-    assert "the refdata, analytics, ai, actions and identity groups" in str(
+    assert "the refdata, analytics, ai, actions, identity and forms groups" in str(
         refused.value
     )
 

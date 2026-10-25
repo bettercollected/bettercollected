@@ -7,6 +7,9 @@ from common.enums.form_provider import FormProvider
 from common.services.http_client import HttpClient
 from loguru import logger
 
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.workspace import ParameterValue
@@ -18,7 +21,6 @@ from backend.app.services.sheets_reconsent import (
     RECONSENT_REQUIRED_CODE,
     is_legacy_credential,
 )
-from backend.app.repositories.form_repository import FormRepository
 from backend.config import settings
 
 
@@ -36,7 +38,7 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
         crypto: Crypto,
         http_client: HttpClient,
         integration_action_service: IntegrationActionService,
-        form_repo: FormRepository,
+        form_repo: PostgresFormRepository,
     ):
         self.form_provider_service = form_provider_service
         self.crypto = crypto
