@@ -13,7 +13,10 @@ origin, so a stack with a public address never gets localhost origins.
 Each table is seeded only while it is empty, so running it on every start is
 safe: an upgraded stack (whose rows were imported from Mongo) and anything an
 operator changed since are left as they are. Needs DATABASE_URL and the app
-schema at its head; never touches Mongo.
+schema at its head. It refuses, as the backend's start does, while Mongo holds
+refdata that was never imported (:mod:`backend.db.mongo_import_guard`): seeding
+the empty tables first would hide that data from the start's check. Mongo is
+asked only then, and only while MONGO_URI is set.
 """
 
 from __future__ import annotations
@@ -140,9 +143,26 @@ def build_parser() -> argparse.ArgumentParser:
 
 async def run(args: argparse.Namespace) -> int:
     from backend.app.container import container
+    from backend.config import settings
+    from backend.db.mongo_import_guard import (
+        UnimportedMongoData,
+        check_unimported_mongo_data,
+        mongo_uri_configured,
+    )
     from backend.db.startup import dispose_postgres
 
     try:
+        try:
+            await check_unimported_mongo_data(
+                container.pg_engine(),
+                client=None,
+                uri=mongo_uri_configured(settings.mongo_settings),
+                database=settings.mongo_settings.DB,
+                groups=("refdata",),
+            )
+        except UnimportedMongoData as exc:
+            logger.error("{}", exc)
+            return 2
         seeded = await seed_refdata(
             container.allowed_origins_repo(),
             container.form_provider_repo(),
