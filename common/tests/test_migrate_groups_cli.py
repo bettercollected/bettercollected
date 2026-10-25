@@ -15,6 +15,7 @@ from common.db.groups import (
 from common.db.migrate.cli import (
     build_parser,
     main,
+    mongo_primary_groups,
     reconcile_to_mongo_refusal,
     select_collections,
 )
@@ -227,3 +228,54 @@ def test_other_reconciles_and_dry_runs_are_not_refused():
         )
         is None
     )
+
+
+def test_mongo_primary_groups_follow_the_write_mode():
+    """reconcile --mongo-wins lets Mongo's copy replace a newer Postgres row
+    only where the services write Mongo first by an explicit setting."""
+    target = _target()
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "dual"}) == (
+        target.group_names()
+    )
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "mongo"}) == (
+        target.group_names()
+    )
+    mixed = {
+        "DB_WRITE_MODE": "dual",
+        "DB_WRITE_MODE__forms": "postgres_primary_dual",
+        "DB_READ_SOURCE__forms": "postgres",
+    }
+    assert "forms" not in mongo_primary_groups(target, mixed)
+    assert "identity" in mongo_primary_groups(target, mixed)
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "nonsense"}) == []
+
+
+def test_missing_flags_make_no_group_mongo_primary():
+    """load_flags defaults an unset DB_WRITE_MODE to mongo; that default must
+    not let Mongo overwrite newer Postgres rows."""
+    target = _target()
+    assert mongo_primary_groups(target, {}) == []
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": ""}) == []
+    # a per-group override counts for its group only
+    only = {"DB_WRITE_MODE__identity": "dual"}
+    assert mongo_primary_groups(target, only) == ["identity"]
+    # the base value applies to the groups without an override
+    pinned = {
+        "DB_WRITE_MODE": "dual",
+        "DB_WRITE_MODE__identity": "postgres_primary_dual",
+        "DB_READ_SOURCE__identity": "postgres",
+    }
+    assert "identity" not in mongo_primary_groups(target, pinned)
+    assert "forms" in mongo_primary_groups(target, pinned)
+
+
+def test_mongo_wins_is_only_for_mongo_to_postgres(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(
+            ["reconcile", "--direction", "postgres->mongo", "--mongo-wins", "--dry-run"],
+            _target(),
+            prog="python -m backend.migrate",
+            env={"DB_WRITE_MODE": "postgres_primary_dual", "DB_READ_SOURCE": "postgres"},
+        )
+    assert exc.value.code == 2
+    assert "--mongo-wins" in capsys.readouterr().err

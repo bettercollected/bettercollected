@@ -41,6 +41,9 @@ def build_target(database_url: str) -> Target:
         groups={c: "auth" for c in _tables()},
         marker=StoreMigration.__table__,
         code_version=code_version(auth, SCHEMA),
+        # 4.1 makes an account's email unique ignoring case: count the
+        # accounts that would collide (preflight warns, never fails on 4.0)
+        case_insensitive_keys={"users": [["email"]]},
     )
 
 

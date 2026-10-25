@@ -27,7 +27,10 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 #: unlike the rest of the suite, which runs on mongomock. They get the
 #: ``mongo`` marker: CI runs the suite with ``-m "not mongo"`` and these in a
 #: second step of the Postgres job, with a Mongo server (docs/ci.md).
-MONGO_DRIVEN = ("tests/db/test_migrate_tombstones.py",)
+MONGO_DRIVEN = (
+    "tests/db/test_migrate_tombstones.py",
+    "tests/db/test_migrate_preflight_case.py",
+)
 
 
 def pytest_configure(config):
