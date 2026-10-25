@@ -175,6 +175,13 @@ class Health:
         return sum(1 for h in self.heartbeats if h.component == "jobs worker" and not h.alive)
 
     @property
+    def write_stores_unknown(self) -> int:
+        """Live instances that did not say which stores they write (a service from
+        before revision 0018, or a mode it could not read): MongoDB may still be
+        written by them."""
+        return sum(1 for h in self.heartbeats if h.alive and not h.write_stores)
+
+    @property
     def mongo_writers(self) -> int:
         """Live instances that still write MongoDB (the 4.0 import window)."""
         return sum(1 for h in self.heartbeats if h.alive and h.writes_mongo)

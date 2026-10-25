@@ -87,8 +87,10 @@
 <h2>{{ _("MongoDB") }}</h2>
 <p>
   {% if health.mongo_writers %}<span class="warn">{{ health.mongo_writers }} {{ _("running instance(s) still write MongoDB") }}</span> ({{ _("they report their write mode below") }}).
+  {% elif health.write_stores_unknown %}<span class="warn">{{ _("Not known") }}</span>:
   {% elif health.heartbeats %}<span class="ok">{{ _("No running service reports writing MongoDB.") }}</span>
   {% else %}{{ _("No service has reported yet.") }}{% endif %}
+  {% if health.write_stores_unknown %}{{ health.write_stores_unknown }} {{ _("running instance(s) did not say which stores they write (a service from before this was reported), so MongoDB may still be written.") }}{% endif %}
   {{ _("The admin service cannot reach MongoDB: the import of a 4.0 stack runs from the backend's own command line.") }}
 </p>
 

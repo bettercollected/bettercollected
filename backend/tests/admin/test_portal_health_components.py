@@ -112,6 +112,7 @@ async def test_health_says_which_running_instances_still_write_mongodb(portal, a
     try:
         section = (await b.get("/health")).text.split("<h2>MongoDB</h2>", 1)[1].split("<h2>", 1)[0]
         assert "No running service reports writing MongoDB." in section  # the stopped one does not count
+        assert "did not say" not in section
         async with superuser.begin() as conn:
             await conn.execute(text(
                 "UPDATE settings.service_state SET reported_at = now() WHERE instance = 'w-mongo-old'"))
@@ -140,4 +141,32 @@ async def test_config_shows_the_gate_count_and_the_viewers_entry_never_the_list(
     assert "10.20.30" not in html and "192.0.2" not in html
     # the super admins stay listed, as before
     assert "<h2>Super admins</h2>" in html and "admin@example.org" in html
+    await b.aclose()
+
+
+@needs_postgres
+async def test_instances_that_did_not_say_what_they_write_make_the_line_unknown_not_green(portal, app, superuser):
+    b = await signed_in(portal, app)
+    async with superuser.begin() as conn:
+        await conn.execute(text(
+            "INSERT INTO settings.service_state (service, instance, reported_at, revision_applied, write_stores) "
+            "VALUES ('backend', 'k-pg', now(), 0, 'postgres'), ('auth', 'k-old', now(), 0, ''), "
+            "('google', 'k-gone', now() - interval '1 hour', 0, '')"))
+    try:
+        section = (await b.get("/health")).text.split("<h2>MongoDB</h2>", 1)[1].split("<h2>", 1)[0]
+        assert "No running service reports writing MongoDB." not in section
+        assert "Not known" in section and "1 running instance(s) did not say" in section  # the stopped one is not counted
+        # an instance that does write Mongo is named first, and the unknown ones still mentioned
+        async with superuser.begin() as conn:
+            await conn.execute(text("UPDATE settings.service_state SET write_stores = 'mongo' WHERE instance = 'k-pg'"))
+        section = (await b.get("/health")).text.split("<h2>MongoDB</h2>", 1)[1].split("<h2>", 1)[0]
+        assert "1 running instance(s) still write MongoDB" in section and "did not say" in section
+        # once every live instance says, the line is green again
+        async with superuser.begin() as conn:
+            await conn.execute(text("UPDATE settings.service_state SET write_stores = 'postgres' WHERE instance IN ('k-pg', 'k-old')"))
+        section = (await b.get("/health")).text.split("<h2>MongoDB</h2>", 1)[1].split("<h2>", 1)[0]
+        assert "No running service reports writing MongoDB." in section and "did not say" not in section
+    finally:
+        async with superuser.begin() as conn:
+            await conn.execute(text("DELETE FROM settings.service_state WHERE instance IN ('k-pg', 'k-old', 'k-gone')"))
     await b.aclose()
