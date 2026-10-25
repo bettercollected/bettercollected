@@ -28,16 +28,33 @@ import asyncio
 import os
 import uuid
 
+from common.models.standard_form import LayoutType
+
+from backend.app.constants.themes import themes
 from backend.app.schemas.template import FormTemplateDocument
 
-THEME = {
+# The predefined templates wear the Leaflet design, the one new forms start
+# with: the shared preset (colours and the Leaflet style) is read from
+# backend/app/constants/themes.py, never copied here, so they cannot drift.
+THEME_PRESET = "Leaflet"
+# The layout Leaflet is made for, the one new forms use: one centred column;
+# Leaflet itself sets the cover and the sections from one left edge.
+LAYOUT = "SINGLE_COLUMN_NO_BACKGROUND"
+# The theme earlier versions of this script stored. Only a template still
+# wearing exactly this one is moved to Leaflet by the repair below; one whose
+# theme was changed by hand keeps it.
+LEGACY_THEME = {
     "title": "Default",
     "primary": "#2E2E2E",
     "secondary": "#0764EB",
     "tertiary": "#A2C5F8",
     "accent": "#F2F7FF",
 }
-LAYOUT = "SINGLE_COLUMN_NO_BACKGROUND"
+
+
+def template_theme() -> dict:
+    """A fresh copy of the theme the predefined templates wear."""
+    return themes[THEME_PRESET].model_dump(exclude_none=True)
 
 
 def _id() -> str:
@@ -151,6 +168,104 @@ def _add_missing_why_we_ask(fields) -> int:
     return added
 
 
+def _get(obj, key):
+    return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+
+def _value(value):
+    return getattr(value, "value", value)
+
+
+def _questions(fields) -> list:
+    """(type, title) of every question, in order, at any depth: the shape a
+    seeded template is recognised by, stored or freshly built."""
+    out = []
+    for field in fields or []:
+        field_type = _value(_get(field, "type"))
+        if field_type != "slide":
+            out.append((field_type, _get(field, "title")))
+        props = _get(field, "properties")
+        if props is not None:
+            out.extend(_questions(_get(props, "fields")))
+    return out
+
+
+def _seed_payload_of(template):
+    """The payload this script seeded ``template`` from, or None when the
+    template is not one of its own: a flow-builder template, public (in the
+    gallery), not a copy imported into a workspace, with a builder's title
+    and exactly that builder's questions (type and title, in order)."""
+    if template.builder_version != "v2" or template.imported_from is not None:
+        return None
+    if not (template.settings and template.settings.is_public):
+        return None
+    for build in TEMPLATE_BUILDERS:
+        payload = build()
+        if payload["title"] == template.title and _questions(
+            payload["fields"]
+        ) == _questions(template.fields):
+            return payload
+    return None
+
+
+def _wears_legacy_theme(theme) -> bool:
+    """Is ``theme`` exactly the one earlier versions of this script stored?"""
+    if theme is None:
+        return False
+    stored = theme.model_dump(exclude_none=True) if hasattr(theme, "model_dump") else dict(theme)
+    normalised = {
+        key: value.upper() if isinstance(value, str) and value.startswith("#") else value
+        for key, value in stored.items()
+    }
+    return normalised == {key: value.upper() if value.startswith("#") else value for key, value in LEGACY_THEME.items()}
+
+
+def _set_layout(page) -> None:
+    if page is not None and _value(page.layout) != LAYOUT:
+        page.layout = LayoutType(LAYOUT)
+
+
+async def repair_leaflet_design(template_repo, template_id) -> bool:
+    """Move a predefined template this script seeded before it used Leaflet
+    to the Leaflet preset and style and the layout Leaflet is made for, and
+    give its welcome page its one-line description when it has none.
+
+    Touches only the script's own templates (``_seed_payload_of``) and only
+    while they still wear the old seeded theme, so a theme changed by hand
+    stays. Never creates anything. Forms made from a template store their
+    own copy of its theme, so they keep theirs. Idempotent: a repaired
+    template no longer wears the old theme and has its description.
+    Returns True if it changed."""
+    from common.models.standard_form import Theme, WelcomePageField
+
+    template = await template_repo.get_template_by_id(template_id)
+    if template is None:
+        return False
+    payload = _seed_payload_of(template)
+    if payload is None:
+        return False
+    changed = False
+    if _wears_legacy_theme(template.theme):
+        template.theme = Theme(**template_theme())
+        for slide in template.fields or []:
+            if _value(slide.type) == "slide" and slide.properties is not None:
+                _set_layout(slide.properties)
+        _set_layout(template.welcome_page)
+        for ending in template.thankyou_page or []:
+            _set_layout(ending)
+        changed = True
+    if template.welcome_page is None:
+        template.welcome_page = WelcomePageField(
+            title=template.title, layout=LayoutType(LAYOUT), buttonText="Start"
+        )
+    if not template.welcome_page.description:
+        template.welcome_page.description = payload["welcome"]
+        changed = True
+    if changed:
+        await template_repo.save(template)
+    return changed
+
+
 def support_triage() -> dict:
     topic = _q("dropdown", "What do you need help with?", _choices("Billing", "Technical issue", "Something else"), required=True)
     billing = _slide([_q("short_text", "Which invoice or charge is this about?")])
@@ -170,6 +285,7 @@ def support_triage() -> dict:
     return {
         "title": "Support triage",
         "description": "Route billing, technical and general requests to the right questions — respondents only see what applies to them.",
+        "welcome": "Tell us what you need help with, and we will make sure the right person answers.",
         "category": None,
         "fields": [intro, billing, technical, contact],
     }
@@ -187,6 +303,7 @@ def lead_qualification() -> dict:
     return {
         "title": "Lead qualification",
         "description": "Qualify prospects in one question — unqualified visitors exit politely instead of filling pages that don't apply.",
+        "welcome": "A few short questions, so we know how we can help you.",
         "category": None,
         "fields": [intro, details, contact],
     }
@@ -203,6 +320,7 @@ def job_screening() -> dict:
     return {
         "title": "Job application with screening",
         "description": "A knock-out screening question up front — ineligible applicants finish quickly, eligible ones continue to the full application.",
+        "welcome": "Apply for this role: tell us about yourself and your experience.",
         "category": None,
         "fields": [intro, experience, contact],
     }
@@ -221,11 +339,19 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
     templates all go through it, so whichever store serves templates (Mongo,
     mirrored or Postgres) is the one checked and written. Safe to call
     repeatedly: existing templates are left untouched, never overwritten,
-    except that their missing yes/no choices are repaired.
+    except that their missing yes/no choices are repaired and the script's
+    own templates still wearing the old seeded theme move to Leaflet
+    (``repair_leaflet_design``).
 
-    Returns {"seeded": [...], "skipped": [...], "repaired": [...]} (titles).
+    Returns {"seeded": [...], "skipped": [...], "repaired": [...],
+    "restyled": [...]} (titles).
     """
-    seeded, skipped, repaired = [], [], []
+    seeded, skipped, repaired, restyled = [], [], [], []
+    # The gallery's own templates, so one there is repaired even when a
+    # template elsewhere has the same title.
+    gallery = await template_repo.get_templates_with_creator(
+        v2=True, workspace_id=workspace_id, predefined_workspace=True
+    )
     for build in TEMPLATE_BUILDERS:
         payload = build()
         # Matched by title in any workspace, as before: DEFAULT_WORKSPACE_ID may
@@ -235,6 +361,15 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
             skipped.append(payload["title"])
             if await repair_yes_no_choices(template_repo, existing.id):
                 repaired.append(payload["title"])
+            candidates = {existing.id} | {
+                t.get("id") or t.get("_id")
+                for t in gallery
+                if t.get("title") == payload["title"]
+            }
+            for template_id in candidates:
+                # Only the script's own templates, see _seed_payload_of.
+                if await repair_leaflet_design(template_repo, template_id):
+                    restyled.append(payload["title"])
             continue
         # fix slide/field indexes
         for i, slide in enumerate(payload["fields"]):
@@ -248,14 +383,24 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
             title=payload["title"],
             description=payload["description"],
             fields=payload["fields"],
-            theme=THEME,
-            welcome_page={"title": payload["title"], "layout": LAYOUT, "buttonText": "Start"},
+            theme=template_theme(),
+            welcome_page={
+                "title": payload["title"],
+                "description": payload["welcome"],
+                "layout": LAYOUT,
+                "buttonText": "Start",
+            },
             thankyou_page=[{"layout": LAYOUT}],
             settings={"is_public": True},
         )
         await template_repo.save(template)
         seeded.append(payload["title"])
-    return {"seeded": seeded, "skipped": skipped, "repaired": repaired}
+    return {
+        "seeded": seeded,
+        "skipped": skipped,
+        "repaired": repaired,
+        "restyled": restyled,
+    }
 
 
 async def _main() -> None:
@@ -289,6 +434,8 @@ async def _main() -> None:
         print(f"seeded: {title}")
     for title in result["skipped"]:
         print(f"skip (exists): {title}")
+    for title in result["restyled"]:
+        print(f"moved to Leaflet: {title}")
 
 
 if __name__ == "__main__":

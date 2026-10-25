@@ -111,6 +111,10 @@ async def lifespan(app: FastAPI):
                     logger.info(
                         f"Repaired yes/no choices in flow templates: {', '.join(result['repaired'])}"
                     )
+                if result["restyled"]:
+                    logger.info(
+                        f"Moved flow templates to Leaflet: {', '.join(result['restyled'])}"
+                    )
             except Exception:
                 logger.exception("Flow-template seeding failed; continuing startup.")
 
