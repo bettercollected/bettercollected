@@ -26,6 +26,8 @@ from tests.conftest import TEST_MONGO_DB, _postgres_configured, _truncate_postgr
 pytestmark = pytest.mark.asyncio
 
 WS = PydanticObjectId("65e5501d00000000000000a1")
+# a leak-check needle too: long, so it can only match if the form id is printed
+FORM_ID = "form-id-never-printed"
 
 
 def _encrypted(workspace_id, form_id, value):
@@ -38,13 +40,13 @@ def _documents():
     link = WorkspaceFormDocument(
         id=PydanticObjectId("65e5501d0000000000000001"),
         workspace_id=WS,
-        form_id="f1",
+        form_id=FORM_ID,
         user_id="u1",
     )
 
     def response(response_id, **extra):
         return FormResponseDocument(
-            id=PydanticObjectId(), response_id=response_id, form_id="f1", **extra
+            id=PydanticObjectId(), response_id=response_id, form_id=FORM_ID, **extra
         )
 
     def feedback(message):
@@ -55,18 +57,18 @@ def _documents():
         response(
             "ok",
             workspace_id=WS,
-            answers=_encrypted(WS, "f1", '{"q": "a"}'),
-            hidden_fields=_encrypted(WS, "f1", '{"utm": "x"}'),
-            respondent_feedback=[feedback(_encrypted(WS, "f1", "v1:fine"))],
+            answers=_encrypted(WS, FORM_ID, '{"q": "a"}'),
+            hidden_fields=_encrypted(WS, FORM_ID, '{"utm": "x"}'),
+            respondent_feedback=[feedback(_encrypted(WS, FORM_ID, "v1:fine"))],
         ),
         # stored before encrypt stopped passing prefixed plaintext through
         response(
             "legacy",
             workspace_id=WS,
-            answers=_encrypted(WS, "f1", "{}"),
+            answers=_encrypted(WS, FORM_ID, "{}"),
             respondent_feedback=[
                 feedback(b"v1:secret note"),
-                feedback(_encrypted(WS, "f1", "later")),
+                feedback(_encrypted(WS, FORM_ID, "later")),
             ],
         ),
         # damaged, and no workspace stamped: tried under the form's link
@@ -134,7 +136,7 @@ async def test_counts_values_that_do_not_decrypt(store):
     }
     # counts only, and nothing written
     printed = json.dumps(report)
-    for secret in ("secret note", "legacy", "damaged", str(WS), "f1"):
+    for secret in ("secret note", "legacy", "damaged", str(WS), FORM_ID):
         assert secret not in printed
     assert await store.batch(None, 100) == before
 

@@ -530,7 +530,8 @@ async def test_integrity_run_lists_a_corrupted_row_by_key_and_reason_only(admin,
         await conn.execute(text("UPDATE settings.entries SET value = to_jsonb(99999) WHERE key = :k"), {"k": T1})
     dirty = admin.note(await admin.b.post("/settings/integrity/run", data={"csrf_token": await admin.csrf()}))
     assert dirty.status_code == 200 and T1 in dirty.text and "bad_signature" in dirty.text
-    assert "99999" not in dirty.text and "71" not in re.sub(r"[^>]*", "", dirty.text.split("<tbody>")[1])
+    problems = re.sub(r"<[^>]*>", "", dirty.text.split("<tbody>")[1].split("</tbody>")[0])
+    assert "99999" not in dirty.text and "71" not in problems and "bad_signature" in problems
     banner = (await admin.get("/health")).text
     assert "integrity check found" in banner and "/settings/integrity" in banner
     page = await admin.get("/settings/integrity")
