@@ -25,14 +25,20 @@ the two in step).
 - **Endings exist:** a page jump that names an ending names one of the
   form's endings (respondents would otherwise see the default ending
   instead of the one the creator chose).
+- **Readable colours:** the form theme's own colours meet WCAG 2.2 AA
+  contrast where the respondent form shows them (text 4.5:1, controls 3:1;
+  ``services/theme_contrast.py``, the port of the builder's contrast guard).
+  Every preset passes; a custom palette may not. A theme without its four
+  colours (an old form on the defaults) isn't checked, and text over an
+  image background can't be measured, so it never blocks.
 
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
 "Why we ask this" is required only of forms created under these checks
 (``WorkspaceFormSettings.publish_checks_version`` set at creation): forms made
 before them were published without it and must stay publishable. For those the
-builder shows the missing reasons as a recommendation. The other two rules
-hold for every form.
+builder shows the missing reasons as a recommendation. The other rules hold
+for every form.
 """
 
 import copy
@@ -49,6 +55,11 @@ from backend.app.services.internal_fields import (
     is_internal,
     iter_question_fields,
 )
+from backend.app.services.theme_contrast import (
+    display_ratio,
+    has_guarded_colours,
+    theme_contrast_guard,
+)
 
 FORM_NOT_PUBLISHABLE = "form_not_publishable"
 
@@ -60,6 +71,10 @@ MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
 PRESET_ANSWER = "preset_answer"
 MISSING_ENDING = "missing_ending"
+THEME_CONTRAST = "theme_contrast"
+# The ``fieldId`` of the theme's problem: it belongs to no question (the
+# webapp's THEME_PROBLEM_ID).
+THEME_PROBLEM_ID = "theme"
 
 # Questions whose answer identifies the respondent by type alone.
 IDENTIFYING_TYPES = {"email", "phone_number"}
@@ -232,7 +247,57 @@ def publish_problems(form: Any) -> List[Dict[str, Optional[str]]]:
                     }
                 )
     problems += _missing_ending_problems(form)
+    problems += theme_contrast_problems(_get(form, "theme"))
     return problems
+
+
+# What each failing pairing is, in the builder's words (publish-checks.ts).
+_CONTRAST_WORDS = {
+    "text": "questions and text on the page",
+    "answer": "answers in the input boxes",
+    "button": "white text on buttons",
+    "border": "input borders",
+    "action": "chosen answers and progress",
+}
+_FIX_ORDER = ("primary", "secondary", "tertiary", "accent")
+
+
+def _and_list(words: List[str]) -> str:
+    return f"{', '.join(words[:-1])} and {words[-1]}" if len(words) > 1 else words[0]
+
+
+def theme_contrast_problems(theme: Any) -> List[Dict[str, Optional[str]]]:
+    """The form theme, when its own colours fail WCAG AA contrast where the
+    respondent form shows them. The message names each failing pairing with
+    its lowest ratio (rounded down) and the nearest colours that pass."""
+    if not has_guarded_colours(theme):
+        return []
+    guard = theme_contrast_guard(theme)
+    if not guard.issues:
+        return []
+    pairs = _and_list(
+        [
+            f"{_CONTRAST_WORDS[issue.key]} ({display_ratio(issue.ratio)}:1, "
+            f"needs {display_ratio(issue.minimum)}:1)"
+            for issue in guard.issues
+        ]
+    )
+    message = f"The theme's colours are hard to read: {pairs}."
+    if guard.fix:
+        colours = [
+            f"{role} {guard.fix[role]}" for role in _FIX_ORDER if role in guard.fix
+        ]
+        background = guard.fix.get("background")
+        if background:
+            colours.append(
+                f"background gradient {background['gradientFrom']} to "
+                f"{background['gradientTo']}"
+            )
+        message += (
+            f" The nearest colours that pass: {_and_list(colours)}. Use them "
+            "(the builder's Design tab offers them in one click), or pick others."
+        )
+    return [{"code": THEME_CONTRAST, "fieldId": THEME_PROBLEM_ID, "message": message}]
 
 
 def _missing_ending_problems(form: Any) -> List[Dict[str, Optional[str]]]:
