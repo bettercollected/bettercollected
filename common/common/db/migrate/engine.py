@@ -844,21 +844,27 @@ class Runner:
         mirror nothing): their entries name a repository, not a collection."""
         selected = self.tables_for(collections)
         mongo_primary = set(mongo_primary)
-        if mongo_primary and direction == "mongo->postgres":
+        keep_app_rows = False
+        if direction == "mongo->postgres":
             pending = await self._open_postgres_outbox()
             if pending:
                 # writes made while Postgres was primary whose Mongo mirror
-                # failed (a rollback to dual since): their rows may be the
-                # newer ones. The entries name a repository and best-effort
-                # ids, not reliably the rows, so Mongo wins nowhere.
+                # failed (a rollback to dual since): any row the application
+                # wrote may be the only copy of such a write, whatever the
+                # timestamps say. The entries name a repository and
+                # best-effort ids, not reliably the rows, so no
+                # application-written row is replaced in this run.
                 logger.warning(
                     "reconcile: %d unresolved mirror failures were recorded while "
-                    "Postgres was primary; Mongo's copy wins nowhere in this run "
-                    "(newer Postgres rows are kept). Run reconcile --direction "
-                    "postgres->mongo while Postgres is primary to copy them",
+                    "Postgres was primary; no row the application wrote is "
+                    "replaced with Mongo's copy in this run (counted as "
+                    "newer_in_postgres). Run reconcile --direction postgres->mongo "
+                    "over every collection while Postgres is primary to copy them "
+                    "and resolve the entries",
                     pending,
                 )
                 mongo_primary = set()
+                keep_app_rows = True
         results = {}
         for name, table in selected.items():
             report = (await self.verify([name]))[0]
@@ -875,6 +881,7 @@ class Runner:
                     dry_run,
                     never_copy=victims,
                     mongo_wins=self.target.group_of(name) in mongo_primary,
+                    keep_app_rows=keep_app_rows,
                 )
             results[name] = {
                 "fixed": fixed,
@@ -889,6 +896,7 @@ class Runner:
             await self._prune_tombstones()
         skipped_any = sum(r["skipped"] for r in results.values())
         newer_any = sum(r["newer_in_postgres"] for r in results.values())
+        tombstoned_any = sum(r["tombstoned"] for r in results.values())
         if skipped_any:
             logger.info(
                 "outbox not drained: %d copies were skipped because the application "
@@ -901,6 +909,12 @@ class Runner:
                 "and Postgres is their primary; reconcile --direction "
                 "postgres->mongo copies them",
                 newer_any,
+            )
+        elif tombstoned_any:
+            logger.info(
+                "outbox not drained: %d deleted records still have copies on both "
+                "sides (tombstoned); delete them by hand, then reconcile again",
+                tombstoned_any,
             )
         elif set(selected) >= set(self.target.migrating_tables()):
             await self._drain_outbox(direction, dry_run)
@@ -1045,11 +1059,14 @@ class Runner:
         dry_run,
         never_copy=frozenset(),
         mongo_wins=False,
+        keep_app_rows=False,
     ) -> tuple[int, int, int]:
         """(copies written, copies skipped because the target changed since
         it was read, application rows newer than Mongo's copy kept). Ids in
         ``never_copy`` (deleted records) are not copied. ``mongo_wins``: Mongo
-        is the primary, its copy replaces a newer row too."""
+        is the primary, its copy replaces a newer row too. ``keep_app_rows``:
+        no row the application wrote is replaced (the Postgres-side outbox
+        has open entries), whatever the timestamps say."""
         coll = self.collection(name)
         ttl = await self._ttl_of(coll)
         now = datetime.now(timezone.utc)
@@ -1085,6 +1102,11 @@ class Runner:
                     row = row_from_document(document)
                     current = pg.get(oid)
                     if current is None or current[1] != row["_bc_checksum"]:
+                        if keep_app_rows and current is not None and (
+                            current[4] == SOURCE_APP
+                        ):
+                            newer += 1  # may hold a write Mongo never got
+                            continue
                         mongo_updated = timestamp_of(document.get("updated_at"))
                         if (
                             not mongo_wins
@@ -1144,11 +1166,21 @@ class Runner:
                         else:
                             skipped += 1
         if direction == "postgres->mongo":  # rows beyond Mongo's range
-            async with self.engine.connect() as conn:
-                extra = select(table.c.id, table.c._bc_checksum, table.c.doc)
-                if last_id:
-                    extra = extra.where(table.c.id > last_id)
-                for row_id, row_checksum, doc in (await conn.execute(extra)).all():
+            after = last_id
+            while True:  # in id order, a batch at a time: never the whole table
+                extra = (
+                    select(table.c.id, table.c._bc_checksum, table.c.doc)
+                    .order_by(table.c.id)
+                    .limit(500)
+                )
+                if after:
+                    extra = extra.where(table.c.id > after)
+                async with self.engine.connect() as conn:
+                    rows = (await conn.execute(extra)).all()
+                if not rows:
+                    break
+                after = rows[-1][0]
+                for row_id, row_checksum, doc in rows:
                     if row_id in never_copy:
                         continue
                     document = from_canonical_document(doc)
@@ -1307,11 +1339,17 @@ class Runner:
 
     async def _drain_outbox(self, direction: str, dry_run: bool) -> None:
         """Mirror-write failures name a repository and ids; after a full pass
-        the affected rows agree, so mark them resolved (both stores). Except
-        an unverified copy (``CopyUnverified``): only a clean full ``verify``
-        resolves those (:meth:`_resolve_unverified`)."""
+        the affected rows agree, so mark them resolved — only those this
+        direction repairs: ``mongo->postgres`` the Mongo-side outbox (mirror
+        writes to Postgres that failed while Mongo was primary),
+        ``postgres->mongo`` the Postgres-side one. Except an unverified copy
+        (``CopyUnverified``): only a clean full ``verify`` resolves those
+        (:meth:`_resolve_unverified`)."""
         if not dry_run:
-            await self._resolve_outbox(only_unverified=False)
+            await self._resolve_outbox(
+                only_unverified=False,
+                stores=("mongo",) if direction == "mongo->postgres" else ("postgres",),
+            )
 
     async def _open_postgres_outbox(self) -> int:
         """Unresolved entries of the Postgres-side outbox: mirror writes to
@@ -1331,15 +1369,27 @@ class Runner:
     async def _resolve_unverified(self) -> None:
         """A clean full verify: the stores agree, unverified copies included,
         but only those recorded before that verify started (one recorded
-        while it ran may concern a copy it read before the copy landed)."""
+        while it ran may concern a copy it read before the copy landed).
+        Resolves those, and every Postgres-side entry recorded before it."""
         started = getattr(self, "_verify_started", None)
         if started is None:
             logger.info("unverified copies not resolved: no verify ran in this run")
             return
         await self._resolve_outbox(only_unverified=True, before=started)
+        # and every Postgres-side entry recorded before it: a write Mongo's
+        # mirror missed while Postgres was primary is in Mongo now (a
+        # `--group` postgres->mongo run copies such rows but never resolves
+        # entries, which name a repository, not a group)
+        await self._resolve_outbox(
+            only_unverified=False, before=started, stores=("postgres",)
+        )
 
     async def _resolve_outbox(
-        self, *, only_unverified: bool, before: Optional[datetime] = None
+        self,
+        *,
+        only_unverified: bool,
+        before: Optional[datetime] = None,
+        stores: tuple[str, ...] = ("postgres", "mongo"),
     ) -> None:
         now = datetime.now(timezone.utc)
         unverified = UNVERIFIED_ERROR + "%"
@@ -1349,7 +1399,7 @@ class Runner:
             exists = (
                 await conn.execute(text(f"SELECT to_regclass('{table}')"))
             ).scalar()
-            if exists is not None:
+            if exists is not None and "postgres" in stores:
                 which = "LIKE" if only_unverified else "NOT LIKE"
                 result = await conn.execute(
                     text(
@@ -1360,6 +1410,8 @@ class Runner:
                     {"now": now, "unverified": unverified, "before": before},
                 )
                 logger.info("outbox (postgres): resolved %d", result.rowcount)
+        if "mongo" not in stores:
+            return
         pattern = {"$regex": "^" + UNVERIFIED_ERROR}
         selector = {
             "resolved_at": None,

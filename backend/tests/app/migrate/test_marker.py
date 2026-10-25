@@ -277,7 +277,10 @@ async def test_a_partial_reconcile_leaves_the_outbox_alone(target):
     async with Runner(target) as runner:
         await runner.reconcile(["allowed_origins"])
         assert (await runner.status())["outbox"]["postgres"] == 1
+        # a mongo->postgres run never resolves the Postgres-side outbox
         await runner.reconcile()
+        assert (await runner.status())["outbox"]["postgres"] == 1
+        await runner.reconcile(direction="postgres->mongo")
         assert (await runner.status())["outbox"]["postgres"] == 0
 
 

@@ -394,3 +394,175 @@ async def test_an_iso_string_expiry_is_a_live_copy(target):
     report = await verify(target, "rate_limit_counters")
     assert report.missing_in_mongo == 1
     assert report.expired == 0
+
+
+# -- the Postgres-side outbox (writes from a time Postgres was primary) --------
+
+
+async def open_postgres_entry(table_name="SessionRepository"):
+    from backend.db.models import MirrorWriteFailure
+
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            MirrorWriteFailure(
+                table_name=table_name, row_id="x", op="touch", error="E: test"
+            )
+        )
+
+
+async def outbox_open():
+    async with Runner(build_target(os.environ["DATABASE_URL"])) as runner:
+        return (await runner.status())["outbox"]
+
+
+async def session_differing_in_postgres(target, *, updated_at, mongo_updated=True):
+    """Same session in both stores; Postgres's document differs and its
+    ``updated_at`` column is ``updated_at`` (equal to Mongo's, or NULL)."""
+    document = session_document()
+    mongo = dict(document)
+    if not mongo_updated:
+        del mongo["updated_at"]
+    await to_mongo(target, "sessions", mongo)
+    changed = {**document, "user_agent": "written while Postgres was primary"}
+    doc = canonical_document(changed)
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            SessionRow(
+                id=str(document["_id"]),
+                doc=doc,
+                created_at=PAST,
+                updated_at=updated_at,
+                bc_source=SOURCE_APP,
+                bc_checksum=checksum(doc),
+            )
+        )
+    return document, doc
+
+
+@pytest.mark.parametrize(
+    "updated_at,mongo_updated",
+    [(PAST, True), (None, True), (PAST, False)],
+    ids=["equal", "null-column", "no-mongo-updated-at"],
+)
+async def test_an_open_postgres_outbox_keeps_every_app_row(
+    target, updated_at, mongo_updated
+):
+    """Default path (no --mongo-wins): timestamps that would let Mongo's copy
+    through (equal, NULL, missing) do not, while the outbox is open."""
+    document, doc = await session_differing_in_postgres(
+        target, updated_at=updated_at, mongo_updated=mongo_updated
+    )
+    await open_postgres_entry()
+    async with Runner(target) as runner:
+        result = (await runner.reconcile(["sessions"]))["sessions"]
+    assert (result["fixed"], result["newer_in_postgres"]) == (0, 1)
+    assert (await session_row(str(document["_id"]))).doc == doc
+    assert (await outbox_open())["postgres"] == 1
+
+
+async def test_an_empty_postgres_outbox_keeps_todays_repairs(target):
+    document, _ = await session_differing_in_postgres(target, updated_at=PAST)
+    async with Runner(target) as runner:
+        result = (await runner.reconcile(["sessions"]))["sessions"]
+    assert result["fixed"] == 1
+    assert (await session_row(str(document["_id"]))).doc == canonical_document(
+        document
+    )
+
+
+async def test_an_open_postgres_outbox_still_repairs_backfilled_rows(target):
+    document = session_document()
+    await to_mongo(target, "sessions", document)
+    stale = canonical_document({**document, "user_agent": "stale backfill"})
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            SessionRow(
+                id=str(document["_id"]),
+                doc=stale,
+                created_at=PAST,
+                updated_at=NOW,
+                bc_source="backfill",
+                bc_checksum=checksum(stale),
+            )
+        )
+    await open_postgres_entry()
+    async with Runner(target) as runner:
+        result = (await runner.reconcile(["sessions"]))["sessions"]
+    assert result["fixed"] == 1
+
+
+async def test_mongo_to_postgres_never_resolves_the_postgres_outbox(target):
+    """A full mongo->postgres pass resolves the Mongo-side outbox (mirror
+    writes to Postgres it repaired), never the Postgres-side one: those rows
+    may still be missing in Mongo."""
+    await open_postgres_entry()
+    client = AsyncMongoClient(target.mongo_uri)
+    await client[target.mongo_db]["mirror_write_failures"].insert_one(
+        {
+            "table_name": "SessionRepository",
+            "row_id": "y",
+            "op": "touch",
+            "error": "E: test",
+            "attempts": 0,
+            "resolved_at": None,
+        }
+    )
+    await client.close()
+    async with Runner(target) as runner:
+        await runner.reconcile()
+    assert await outbox_open() == {"mongo": 0, "postgres": 1}
+
+
+async def test_a_clean_full_verify_resolves_the_postgres_outbox(target):
+    await open_postgres_entry()
+    async with Runner(target) as runner:
+        outcome = await runner.record_verify(await runner.verify())
+    assert outcome["marker"] == "written"
+    assert (await outbox_open())["postgres"] == 0
+
+
+async def bulk_counters(n, expires_at):
+    rows = []
+    for i in range(n):
+        document = counter(expires_at(i))
+        doc = canonical_document(document)
+        rows.append(
+            {
+                "id": str(document["_id"]),
+                "doc": doc,
+                "created_at": PAST,
+                "updated_at": PAST,
+                "_bc_source": SOURCE_APP,
+                "_bc_checksum": checksum(doc),
+            }
+        )
+    table = RateLimitCounterRow.__table__
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(table.insert(), rows)
+    return sorted(r["id"] for r in rows)
+
+
+async def test_rows_past_mongo_are_counted_across_batches(target):
+    """More than one batch of 500 past Mongo's last id: none skipped or
+    counted twice (live and expired interleaved)."""
+    ids = await bulk_counters(1203, lambda i: PAST if i % 3 == 0 else FUTURE)
+    report = await verify(target, "rate_limit_counters")
+    assert report.expired == 401
+    assert report.missing_in_mongo == 802
+    assert report.samples["missing_in_mongo"] == [
+        i for i in ids if i in set(report.samples["missing_in_mongo"])
+    ]
+
+
+async def test_postgres_to_mongo_copies_rows_past_mongo_across_batches(target):
+    ids = await bulk_counters(1203, lambda i: FUTURE)
+    async with Runner(target) as runner:
+        result = await runner.reconcile(
+            ["rate_limit_counters"], direction="postgres->mongo"
+        )
+    assert result["rate_limit_counters"]["fixed"] == 1203
+    client = AsyncMongoClient(target.mongo_uri)
+    copied = await client[target.mongo_db]["rate_limit_counters"].distinct("_id")
+    await client.close()
+    assert sorted(str(i) for i in copied) == ids
+    assert (await verify(target, "rate_limit_counters")).clean
