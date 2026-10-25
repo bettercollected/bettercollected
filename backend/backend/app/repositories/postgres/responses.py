@@ -28,7 +28,11 @@ from backend.app.models.filter_queries.form_responses import FormResponseFilterQ
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
-from backend.app.repositories.response_scope import ResponseScope
+from backend.app.repositories.response_scope import (
+    ResponseScope,
+    form_importers,
+    form_titles,
+)
 from backend.app.utils.hash import hash_string
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
@@ -120,20 +124,14 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
     # -- composition over the forms group ---------------------------------
     async def _form_titles(self, form_ids: List[str]) -> Dict[str, Any]:
         """form_id -> title for the forms that exist (``$lookup forms`` + ``$unwind``)."""
-        forms = await self._forms.get_forms_by_form_ids(list(form_ids))
-        return {form.form_id: form.title for form in forms}
+        return await form_titles(self._forms, form_ids)
 
     async def _form_importers(
         self, form_ids: List[str], workspace_id: PydanticObjectId
     ) -> Dict[str, str]:
         """form_id -> the user who imported it into ``workspace_id``
         (``$lookup workspace_forms`` of that workspace + ``$unwind``)."""
-        rows = await self._workspace_forms.get_workspace_forms_form_ids(list(form_ids))
-        importers: Dict[str, str] = {}
-        for workspace_form in rows:
-            if str(workspace_form.workspace_id) == str(workspace_id):
-                importers.setdefault(workspace_form.form_id, workspace_form.user_id)
-        return importers
+        return await form_importers(self._workspace_forms, form_ids, workspace_id)
 
     # -- listings -----------------------------------------------------------
     async def get_form_responses(

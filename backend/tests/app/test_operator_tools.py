@@ -93,7 +93,7 @@ def routed(group, mongo, postgres, read):
 
 # ------------------------------------------------------------- parity and routing
 async def test_expiration_schedules_are_the_same_on_both_stores(sessions):
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(container.crypto(), None, None)
     postgres = PostgresFormResponseRepository(sessions, None, None)
     for document in expiring():
         await document.save()
@@ -108,7 +108,7 @@ async def test_jobs_sweep_reads_the_responses_from_the_read_source(sessions, rea
     one in the store the flags read from (DB_READ_SOURCE__responses)."""
     from backend.migrate.__main__ import schedule_expirations
 
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(container.crypto(), None, None)
     postgres = PostgresFormResponseRepository(sessions, None, None)
     await response(
         "only-mongo", expiration="2031-01-01T00:00:00.000Z", expiration_type="date"

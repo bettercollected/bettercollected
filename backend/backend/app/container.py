@@ -284,7 +284,14 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         metrics=routing_metrics,
-        mongo=providers.Singleton(FormResponseRepository, crypto=crypto),
+        # both compose a form's title and importer over the forms group's
+        # repositories (no join across groups)
+        mongo=providers.Singleton(
+            FormResponseRepository,
+            crypto=crypto,
+            form_repo=LazyRepository(lambda: container.form_repo()),
+            workspace_form_repo=LazyRepository(lambda: container.workspace_form_repo()),
+        ),
         postgres=providers.Singleton(
             postgres_repository,
             PostgresFormResponseRepository,

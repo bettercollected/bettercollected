@@ -93,7 +93,11 @@ async def test_responses_with_the_ai_notice(sessions):
     """#752: only responses submitted here whose page showed the notice for
     this provider name since the setting was turned on."""
     forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 
     def shown(minutes, name="OpenAI", provider="self"):
@@ -140,7 +144,11 @@ async def test_response_listings_compose_over_forms(sessions):
         await workspace_forms.save(
             WorkspaceFormDocument(workspace_id=ws, form_id=form_id, user_id="importer")
         )
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     await seed_both(
         (mongo, postgres),
@@ -192,8 +200,10 @@ async def test_response_listings_compose_over_forms(sessions):
         ),
         size=2,
     )
-    await pages_equal(  # the Mongo original lives on the static DeletionRequestsRepository
-        lambda: DeletionRequestsRepository.get_deletion_requests(ids),
+    await pages_equal(  # the Mongo original: DeletionRequestsRepository
+        lambda: DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(ids),
         lambda: postgres.get_deletion_requests(ids),
     )
     await pages_equal(
@@ -376,7 +386,11 @@ async def test_save_internal_answers_is_conditional_on_the_version(sessions):
     from common.models.standard_form import InternalAnswerMeta
 
     forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
     await seed_both((mongo, postgres), "save", seed)
@@ -422,7 +436,11 @@ async def test_add_respondent_feedback_appends_on_both_stores(sessions):
     from common.models.standard_form import RespondentFeedback
 
     forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
     seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
     await seed_both((mongo, postgres), "save", seed)
@@ -470,7 +488,11 @@ async def test_responses_are_read_per_workspace(sessions):
         await workspace_forms.save(
             WorkspaceFormDocument(workspace_id=workspace, form_id="p1", user_id=user)
         )
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 
     def notice(minutes):
@@ -506,7 +528,9 @@ async def test_responses_are_read_per_workspace(sessions):
         )
         assert {i["response_id"] for i in page.items} == own
         requests = await pages_equal(
-            lambda: DeletionRequestsRepository.get_deletion_requests(scope),
+            lambda: DeletionRequestsRepository(
+            FormRepository(), WorkspaceFormRepository()
+        ).get_deletion_requests(scope),
             lambda: postgres.get_deletion_requests(scope),
         )
         assert {i["response_id"] for i in requests.items} == own & {"a2", "b2"}
@@ -573,7 +597,11 @@ async def test_writes_to_one_workspaces_copy_never_touch_anothers(sessions):
 
     a, b = PydanticObjectId(), PydanticObjectId()
     forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
-    mongo = FormResponseRepository(crypto=container.crypto())
+    mongo = FormResponseRepository(
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
+    )
     postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
 
     def copy(workspace_id):

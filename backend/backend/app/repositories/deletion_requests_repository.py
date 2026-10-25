@@ -4,16 +4,25 @@ from fastapi_pagination.ext.beanie import apaginate
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.response_scope import ResponseScope
+from backend.app.repositories.response_scope import (
+    ResponseScope,
+    form_importers,
+    form_titles,
+    mongo_lookup_stages,
+)
 from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 
 
 class DeletionRequestsRepository:
+    def __init__(self, form_repo, workspace_form_repo):
+        # the forms group's repositories (see response_scope)
+        self._forms = form_repo
+        self._workspace_forms = workspace_form_repo
 
     # TODO Remove duplicate code by extracting the query and aggregation to a function
-    @staticmethod
     async def get_deletion_requests(
+        self,
         scope: ResponseScope,
         data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
@@ -25,6 +34,12 @@ class DeletionRequestsRepository:
         responses they submitted without it), each carrying its form's title,
         who imported it into the scope's workspace and the response's
         submission uuid."""
+        titles = await form_titles(self._forms, scope.form_ids)
+        importers = await form_importers(
+            self._workspace_forms, titles, scope.workspace_id
+        )
+        # both $unwinds must match
+        titles = {f: t for f, t in titles.items() if f in importers}
         find_query = scope.mongo_filter()
         owner = []
         if data_owner_identifier is not None:
@@ -36,39 +51,10 @@ class DeletionRequestsRepository:
             # both must hold, so neither may replace the other.
             find_query = {"$and": [find_query, {"$or": owner}]}
         aggregate_query = [
-            {
-                "$lookup": {
-                    "from": "forms",
-                    "localField": "form_id",
-                    "foreignField": "form_id",
-                    "as": "form",
-                },
-            },
-            {"$set": {"form_title": "$form.title"}},
-            {"$unwind": "$form_title"},
-            {
-                # this workspace's link only: a provider form linked to
-                # several workspaces has an importer in each (#768)
-                "$lookup": {
-                    "from": "workspace_forms",
-                    "let": {"form_id": "$form_id"},
-                    "pipeline": [
-                        {
-                            "$match": {
-                                "$expr": {
-                                    "$and": [
-                                        {"$eq": ["$form_id", "$$form_id"]},
-                                        {"$eq": ["$workspace_id", scope.workspace_id]},
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    "as": "workspace_form",
-                },
-            },
-            {"$set": {"form_imported_by": "$workspace_form.user_id"}},
-            {"$unwind": "$form_imported_by"},
+            *mongo_lookup_stages("form_title", titles),
+            # this workspace's link only: a provider form linked to several
+            # workspaces has an importer in each (#768)
+            *mongo_lookup_stages("form_imported_by", importers),
             # Carry the response's receipt number so a deletion request is
             # cross-referenceable with the submission it covers: the copy in
             # the request's workspace (any copy for a request stored before
@@ -101,7 +87,7 @@ class DeletionRequestsRepository:
                     }
                 }
             },
-            {"$unset": ["response_doc", "form", "workspace_form"]},
+            {"$unset": "response_doc"},
         ]
 
         aggregate_query.extend(

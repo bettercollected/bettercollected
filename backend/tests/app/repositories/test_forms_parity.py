@@ -107,7 +107,9 @@ async def same_rows(mongo_call, postgres_call):
 async def test_form_listings_search_and_versions(sessions):
     ws = PydanticObjectId()
     groups, responses = ResponderGroupsRepository(), FormResponseRepository(
-        crypto=container.crypto()
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
     )
     mongo = FormRepository()
     postgres = PostgresFormRepository(sessions, groups, responses)
@@ -254,7 +256,9 @@ async def test_listing_counts_distinct_workspaces_not_link_rows(sessions):
     its unstamped response counts there, in both stores."""
     ws = PydanticObjectId()
     groups, responses = ResponderGroupsRepository(), FormResponseRepository(
-        crypto=container.crypto()
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
     )
     mongo = FormRepository()
     postgres = PostgresFormRepository(sessions, groups, responses)
@@ -576,7 +580,9 @@ async def test_action_parameters_and_secrets(sessions):
     action's parameters change, nothing else does (not ``updated_at``), and
     a marker is claimed once."""
     groups, responses = ResponderGroupsRepository(), FormResponseRepository(
-        crypto=container.crypto()
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
     )
     mongo = FormRepository()
     postgres = PostgresFormRepository(sessions, groups, responses)
@@ -638,7 +644,9 @@ async def test_replace_action_credential(sessions):
     previous ciphertext is returned; published versions' copies are replaced;
     other actions, other secrets and ``updated_at`` stay as they were."""
     groups, responses = ResponderGroupsRepository(), FormResponseRepository(
-        crypto=container.crypto()
+        crypto=container.crypto(),
+        form_repo=FormRepository(),
+        workspace_form_repo=WorkspaceFormRepository(),
     )
     mongo = FormRepository()
     postgres = PostgresFormRepository(sessions, groups, responses)

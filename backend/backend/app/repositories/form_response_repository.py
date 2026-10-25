@@ -26,7 +26,11 @@ from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
-from backend.app.repositories.response_scope import ResponseScope
+from backend.app.repositories.response_scope import (
+    ResponseScope,
+    form_titles,
+    mongo_lookup_stages,
+)
 from backend.app.utils.hash import hash_string
 from backend.app.repositories.metric_periods import (
     iso_second,
@@ -62,9 +66,15 @@ _REQUEST_OF_THIS_COPY = {
 
 
 class FormResponseRepository(BaseRepository):
-    def __init__(self, crypto: Crypto):
+    def __init__(self, crypto: Crypto, form_repo, workspace_form_repo):
         super().__init__()
         self.crypto = crypto
+        # the forms group's repositories: a form's title and who imported it
+        # are read through them, not joined (see response_scope)
+        self._forms = form_repo
+        self.deletion_requests = DeletionRequestsRepository(
+            form_repo, workspace_form_repo
+        )
 
     async def get_form_responses(
         self,
@@ -78,17 +88,9 @@ class FormResponseRepository(BaseRepository):
         find_query = {**scope.mongo_filter(), "answers": {"$exists": True}}
         if data_owner_identifier is not None:
             find_query["dataOwnerIdentifier"] = data_owner_identifier
+        titles = await form_titles(self._forms, scope.form_ids)
         aggregate_query = [
-            {
-                "$lookup": {
-                    "from": "forms",
-                    "localField": "form_id",
-                    "foreignField": "form_id",
-                    "as": "form",
-                },
-            },
-            {"$set": {"form_title": "$form.title"}},
-            {"$unwind": "$form_title"},
+            *mongo_lookup_stages("form_title", titles),
             # Surface any deletion request's status on the response itself —
             # without it, requesting deletion changed nothing visible in the
             # responder's submissions list. This copy's workspace's request
@@ -104,7 +106,7 @@ class FormResponseRepository(BaseRepository):
                 },
             },
             {"$set": {"status": {"$arrayElemAt": ["$deletion_request.status", 0]}}},
-            {"$unset": ["deletion_request", "form"]},
+            {"$unset": "deletion_request"},
             {"$sort": {"created_at": -1}},
         ]
 
@@ -217,7 +219,7 @@ class FormResponseRepository(BaseRepository):
                 scope, filter_query=filter_query, sort=sort
             )
         elif request_for_deletion:
-            return await DeletionRequestsRepository.get_deletion_requests(
+            return await self.deletion_requests.get_deletion_requests(
                 scope,
                 filter_query=filter_query,
                 sort=sort,
@@ -241,7 +243,7 @@ class FormResponseRepository(BaseRepository):
         # shows requests for responses they submitted without their address
         # (matched by the same one-way hash; nothing else is stored).
         if request_for_deletion:
-            return await DeletionRequestsRepository.get_deletion_requests(
+            return await self.deletion_requests.get_deletion_requests(
                 scope,
                 data_owner_identifier=user.sub,
                 anonymous_identity=hash_string(user.sub),
