@@ -42,6 +42,9 @@ GOOGLE_MONGO_DB = f"{TEST_MONGO_DB}_gpurge"[:60]
 SECRET = "plain-refresh-token-0123"
 EMAIL = "owner@example.org"
 CIPHER = {"$binary": {"base64": "AAEC", "subType": "00"}}
+# the user ids double as leak-check needles: long and distinctive, so that a
+# chance match in random bytes (an audit row's hash) can never fail the check
+U1, U2, U3, U4, U5 = (f"gpurge-user-id-{n}-never-recorded" for n in range(1, 6))
 
 
 def _hex(n: int) -> str:
@@ -53,28 +56,28 @@ PG_DELETE = {
     _hex(1): {"email": EMAIL, "credentials": CIPHER},  # no user id
     _hex(2): {"user_id": "", "email": EMAIL, "credentials": CIPHER},  # empty user id
     _hex(3): {"user_id": None, "email": EMAIL, "credentials": CIPHER},  # null user id
-    _hex(4): {"user_id": "u2", "email": EMAIL, "credentials": {"token": SECRET}},  # readable
-    _hex(5): {"user_id": "u3", "email": EMAIL, "credentials": {"refresh_token": SECRET}},
+    _hex(4): {"user_id": U2, "email": EMAIL, "credentials": {"token": SECRET}},  # readable
+    _hex(5): {"user_id": U3, "email": EMAIL, "credentials": {"refresh_token": SECRET}},
 }
 PG_KEEP = {
-    _hex(10): {"user_id": "u1", "email": EMAIL, "credentials": CIPHER},  # encrypted, user id
-    _hex(11): {"user_id": "u4", "email": EMAIL},  # no stored credential at all
+    _hex(10): {"user_id": U1, "email": EMAIL, "credentials": CIPHER},  # encrypted, user id
+    _hex(11): {"user_id": U4, "email": EMAIL},  # no stored credential at all
 }
 
 
 def _mongo_documents():
     keep = [
-        {"_id": ObjectId(_hex(20)), "user_id": "u1", "email": EMAIL,
+        {"_id": ObjectId(_hex(20)), "user_id": U1, "email": EMAIL,
          "credentials": Binary(b"\x00\x01ciphertext")},
-        {"_id": ObjectId(_hex(21)), "user_id": "u5", "email": EMAIL},
+        {"_id": ObjectId(_hex(21)), "user_id": U5, "email": EMAIL},
     ]
     delete = [
         {"_id": ObjectId(_hex(30)), "email": EMAIL, "credentials": Binary(b"x")},  # missing
         {"_id": ObjectId(_hex(31)), "user_id": None, "email": EMAIL, "credentials": Binary(b"x")},
         {"_id": ObjectId(_hex(32)), "user_id": "", "email": EMAIL, "credentials": Binary(b"x")},
-        {"_id": ObjectId(_hex(33)), "user_id": "u2", "email": EMAIL,
+        {"_id": ObjectId(_hex(33)), "user_id": U2, "email": EMAIL,
          "credentials": {"token": SECRET}},
-        {"_id": ObjectId(_hex(34)), "user_id": "u3", "email": EMAIL,
+        {"_id": ObjectId(_hex(34)), "user_id": U3, "email": EMAIL,
          "credentials": {"refresh_token": SECRET, "client_id": "c"}},
     ]
     return keep, delete
@@ -190,7 +193,7 @@ async def _both(world, params=None):
 
 def _no_personal_data(*things):
     dumped = json.dumps(things, default=str)
-    for needle in (SECRET, EMAIL, "u1", "u2", "u3", "u4", "u5", "ciphertext", *PG_DELETE, *PG_KEEP):
+    for needle in (SECRET, EMAIL, U1, U2, U3, U4, U5, "ciphertext", *PG_DELETE, *PG_KEEP):
         assert needle not in dumped, needle
     for n in (20, 21, 30, 31, 32, 33, 34):
         assert _hex(n) not in dumped

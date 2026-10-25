@@ -54,6 +54,9 @@ from tests.scripts.test_backfill_response_workspaces import (
     _stamped,
 )
 from tests.scripts.test_check_undecryptable_values import (
+    FORM_ID as SCAN_FORM_ID,
+)
+from tests.scripts.test_check_undecryptable_values import (
     WS as SCAN_WS,
 )
 from tests.scripts.test_check_undecryptable_values import (
@@ -253,7 +256,7 @@ async def test_a_real_run_needs_a_prior_dry_run(world, seeded):
 
 # ---------------------------------------------------------------- backfill: real run
 EXPECTED = {
-    "s1": str(WS_A),
+    "sg_a": str(WS_A),
     "sh_a": str(WS_A),
     "sh_b": str(WS_B),
     "sh_x": None,  # ambiguous: left alone
@@ -261,7 +264,7 @@ EXPECTED = {
     "o1": None,  # orphaned: left alone
     "dr:sh_a": str(WS_A),
     "dr:sh_x": None,
-    "dr:s1": str(WS_A),
+    "dr:sg_a": str(WS_A),
 }
 
 
@@ -277,7 +280,7 @@ async def test_backfill_stamps_the_attributable_and_is_a_no_op_the_second_time(w
     stores = _stores()
     assert await _stamped(stores[store]) == EXPECTED
     other = "postgres" if store == "mongo" else "mongo"
-    assert all(v is None for k, v in (await _stamped(stores[other])).items() if k in ("s1", "sh_a"))
+    assert all(v is None for k, v in (await _stamped(stores[other])).items() if k in ("sg_a", "sh_a"))
 
     after_first = await _stamped(stores[store])
     second_id, second = await _run(world, "responses.backfill_workspaces", params)
@@ -317,13 +320,13 @@ async def test_backfill_can_be_limited_to_a_workspace_or_forms(world, seeded, st
     }
     stamped = await _stamped(stores[store])
     assert stamped["sh_a"] == str(WS_A) and stamped["sh_b"] == str(WS_B)
-    assert stamped["s1"] is None and stamped["dr:s1"] is None  # other forms untouched
+    assert stamped["sg_a"] is None and stamped["dr:sg_a"] is None  # other forms untouched
 
     params = {"stores": store, "form_ids": ["single"]}
     await _run(world, "responses.backfill_workspaces", params, dry_run=True)
     await _run(world, "responses.backfill_workspaces", params)
     stamped = await _stamped(stores[store])
-    assert stamped["s1"] == str(WS_A) and stamped["dr:s1"] == str(WS_A)
+    assert stamped["sg_a"] == str(WS_A) and stamped["dr:sg_a"] == str(WS_A)
 
     # both filters: the forms satisfying both (none: "single" is not linked to B)
     params = {"stores": store, "workspace_id": str(WS_B), "form_ids": ["single"]}
@@ -374,7 +377,7 @@ async def test_a_resumed_run_ends_in_the_state_of_an_uninterrupted_one(
     first = await world.run(first_box["id"])
     assert first["state"] == "cancelled"
     partial = await _stamped(_stores()[store])
-    assert partial != expected and partial["s1"] == str(WS_A)
+    assert partial != expected and partial["sg_a"] == str(WS_A)
     assert first["result"]["complete"] is False
 
     second_id, second = await _run(
@@ -405,7 +408,7 @@ async def test_cancel_between_batches_stops_cleanly(world, seeded, tiny_batches,
     run = await world.run(box["id"])
     assert run["state"] == "cancelled" and run["result"]["complete"] is False
     stamped = await _stamped(_stores()[store])
-    assert stamped["s1"] == str(WS_A) and stamped["sh_b"] is None  # batch 2 never ran
+    assert stamped["sg_a"] == str(WS_A) and stamped["sh_b"] is None  # batch 2 never ran
     assert await world.locks() == []
     assert (await world.events(box["id"]))[-1]["code"] == "cancelled"
 
@@ -567,7 +570,7 @@ async def _seed_scan():
     extra = FormResponseDocument(
         id=PydanticObjectId(),
         response_id="pii",
-        form_id="f1",
+        form_id=SCAN_FORM_ID,
         workspace_id=SCAN_WS,
         respondent_feedback=[
             RespondentFeedback(id="e", status="Open", message=f"v1:{PII}".encode())
