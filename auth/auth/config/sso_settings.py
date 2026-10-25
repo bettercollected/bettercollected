@@ -6,9 +6,10 @@ the OAuth code flow with Polis and owns the accounts. The same ``SSO_*``
 variables configure the backend.
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from common.settings import sso_requirements
 from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
@@ -41,3 +42,12 @@ class SSOSettings(StoreBackedSettings):
     @property
     def polis_url(self) -> str:
         return (self.POLIS_URL or "").rstrip("/")
+
+    def _is_set(self, name: str) -> bool:
+        value = getattr(self, name.removeprefix("SSO_"), None)
+        return bool(str(value or "").strip())
+
+    @property
+    def missing_settings(self) -> Tuple[str, ...]:
+        """The names of the required settings that are not set (never values)."""
+        return sso_requirements.missing("auth", self._is_set)

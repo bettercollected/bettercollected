@@ -1,3 +1,5 @@
+import type { SsoUnavailableReason } from '@app/models/dtos/workspace-sso-dto';
+
 // SCIM directory sync (docs/sso.md, "Directory sync"); mirrors the backend's
 // services/scim/directory_service.py DTOs.
 
@@ -50,6 +52,8 @@ export interface ScimIssueDto {
 
 export interface ScimOverviewDto {
     available: boolean;
+    // why it is not available: single sign-on is switched off ("disabled") or on but not fully set up ("not_configured")
+    reason?: SsoUnavailableReason | null;
     hasVerifiedDomain: boolean;
     directory?: ScimDirectoryDto | null;
     types: { type: string; label: string }[];

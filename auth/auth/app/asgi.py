@@ -24,6 +24,7 @@ from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from common.exceptions import NotFoundError
+from common.settings import sso_requirements
 from common.exceptions.validation import request_validation_error_handler
 from fastapi.exceptions import RequestValidationError
 
@@ -32,6 +33,19 @@ log = logging.getLogger(__name__)
 # The auth schema's Alembic history: checked (and with DB_AUTO_MIGRATE=true,
 # applied) at startup whenever a group is on Postgres.
 MIGRATIONS = MigrationTarget.for_package(auth, SCHEMA, service="auth")
+
+
+def log_if_sso_incomplete() -> bool:
+    """Log a warning at startup when SSO_ENABLED is true but a setting single
+    sign-on needs is missing (names only). True when nothing is missing."""
+    sso = settings.sso_settings
+    if not sso.ENABLED:
+        return True
+    missing = sso.missing_settings
+    if not missing:
+        return True
+    log.warning("%s", sso_requirements.startup_message("auth", missing))
+    return False
 
 
 async def on_startup():
@@ -43,6 +57,7 @@ async def on_startup():
     """
     log.debug("Execute FastAPI startup event handler.")
     log_if_internal_key_missing()
+    log_if_sso_incomplete()
     database_client = container.database_client()
     await init_db(database_client, required=container.uses_mongo())
     log.info(
