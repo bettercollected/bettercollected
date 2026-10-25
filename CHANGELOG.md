@@ -63,6 +63,73 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
   release still exists and never removes it; existing `.env.typeform` files are left alone.
 
+## [4.0.13] - 2026-10-25
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations, roles, SQL or new settings,** and no compose change.
+- **Cutover operators (Stage 0):** on 4.0.12 a clean full `verify` could not write the `backend`
+  marker, because the groups holding TTL collections (`identity`, `analytics`) were never
+  recorded. After this deploy, run a full `verify` in the `backend` container
+  (`python -m backend.migrate verify`), then `python -m backend.migrate status`: it should show
+  `marker: verified`. `auth` and `google` need nothing new.
+- **Forms groups on Postgres:** this release is required before the forms group moves to
+  `postgres_primary_dual`. Under `dual` nothing changes.
+- **Responder groups:** links to another workspace's group made before this release stay listed
+  on the form until its groups are saved again or the link is removed; any save drops them. To see
+  whether any exist, run this read-only, counts-only query on the app database (the Postgres
+  mirror, which a clean `verify` of the `forms` and `responses` groups shows matches Mongo):
+
+  ```sql
+  SELECT
+    count(*) AS links_total,
+    count(*) FILTER (WHERE g.id IS NULL) AS links_to_missing_group,
+    count(*) FILTER (WHERE g.id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM app.workspace_forms wf
+        WHERE wf.form_id = l.form_id AND wf.workspace_id = g.workspace_id))
+      AS links_to_foreign_group,
+    count(DISTINCT l.form_id) FILTER (WHERE g.id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM app.workspace_forms wf
+        WHERE wf.form_id = l.form_id AND wf.workspace_id = g.workspace_id))
+      AS forms_with_foreign_group
+  FROM app.responder_group_form l
+  LEFT JOIN app.responder_group g ON g.id = l.group_id;
+  ```
+
+  `links_to_foreign_group` counts links whose group belongs to none of the form's workspaces;
+  `links_to_missing_group` counts links to a deleted group, which are not listed. If either is
+  above 0, a removal step follows in a later release.
+- **Rollback:** 4.0.12 can run against a 4.0.13 database. Marker rows written by 4.0.13 carry two
+  more count keys, which 4.0.12 ignores.
+
+### Fixed
+
+- **Migration `verify` records groups that hold expired TTL copies.** A clean `verify` refused to
+  record a group (and so the service marker) when a collection Mongo expires by a TTL index held
+  expired copies in only one store, because it still compared the raw counts. It now compares the
+  live counts, without the expired copies, and the report counts those per store
+  (`expired_mongo`, `expired_postgres`; `expired` stays the total). The recorded counts are the
+  live ones, with the expired copies beside them. `verify` still deletes nothing.
+
+### Security
+
+- Forms served from Postgres (`DB_WRITE_MODE__forms=postgres_primary_dual` and beyond) no longer
+  undo a change made at the same time: setting or removing a form's logo changes only the logo
+  (as MongoDB's update of the logo alone does), and the builder's save, an action's secret, a
+  form's workspace settings and a template's content are applied to the stored copy under its
+  row lock, instead of saving a copy read before. Such a write no longer brings back a removed
+  action's encrypted credentials, undoes an autosave, or stores a deleted form, form link or
+  template again.
+- Responder groups: a form's responder groups can only be set to groups of the form's workspace.
+  Linking another workspace's group to a form, which then listed that group's name and email
+  pattern with the form, is refused (404, as for an unknown group) and links nothing, even when
+  the other ids in the request are the workspace's own. Groups already linked to the form may be
+  sent again: on a form held by several workspaces, each sets and removes only its own groups and
+  the others' stay linked, and a link to another workspace's group made before this check is
+  dropped when the form's groups are saved (or can be removed on its own). A workspace's group
+  listing skips a link to another workspace's form instead of failing.
+
 ## [4.0.12] - 2026-10-25
 
 ### Upgrade notes
@@ -1506,7 +1573,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...HEAD
+[4.0.13]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...v4.0.13
 [4.0.12]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...v4.0.12
 [4.0.11]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...v4.0.11
 [4.0.10]: https://github.com/bettercollected/bettercollected/compare/v4.0.9...v4.0.10

@@ -959,13 +959,18 @@ class PostgresFormRepository(RecordRepository):
         """Set one secret (by name) of one action on the stored draft, under
         its row lock (``form`` is the caller's earlier read: only its id is
         used, so nothing else of it is written back). Moves ``updated_at``,
-        as the 4.0 save did. None when there is no draft."""
+        as the 4.0 save did. None when there is no draft; the stored draft,
+        unchanged and not written, when the action has no secrets on it (any
+        more)."""
         key = str(action_id)
         async with self._session() as session, session.begin():
             stored = await self._locked_draft(session, form_id)
             if stored is None:
                 return None
-            secrets = (stored.secrets or {}).get(key) or []
+            if key not in (stored.secrets or {}):
+                # the action was removed meanwhile: nothing to set
+                return stored
+            secrets = stored.secrets[key] or []
             for secret in secrets:
                 if secret.name == payload.name:
                     secret.value = payload.value
