@@ -17,7 +17,7 @@ from common.db.groups import (
     parse_groups,
     validate_groups,
 )
-from common.db.flags import FlagError, WriteMode, load_flags
+from common.db.flags import FlagError, ReadSource, WriteMode, load_flags
 from common.db.migrate.engine import Runner, Target
 from common.db.schema_guard import MigrationTarget
 
@@ -207,7 +207,9 @@ def format_status(report: dict) -> str:
     return "\n".join(lines)
 
 
-async def run(args: argparse.Namespace, target: Target) -> int:
+async def run(
+    args: argparse.Namespace, target: Target, mongo_primary: Sequence[str] = ()
+) -> int:
     collections = select_collections(args, target)
     async with Runner(target) as runner:
         if args.command == "preflight":
@@ -245,7 +247,10 @@ async def run(args: argparse.Namespace, target: Target) -> int:
         if args.command == "reconcile":
             _print(
                 await runner.reconcile(
-                    collections, direction=args.direction, dry_run=args.dry_run
+                    collections,
+                    direction=args.direction,
+                    dry_run=args.dry_run,
+                    mongo_primary=mongo_primary,
                 )
             )
             return 0
@@ -264,6 +269,23 @@ async def run(args: argparse.Namespace, target: Target) -> int:
             _print(await sweep(args.backend))
             return 0
     return 2
+
+
+def mongo_primary_groups(target: Target, env: Mapping[str, str]) -> list[str]:
+    """The groups the services write to Mongo first (``mongo``/``dual``):
+    there Mongo is authoritative and ``reconcile`` copies its version over a
+    newer Postgres row too. None when the flags do not parse: reconcile then
+    keeps every newer row, as before."""
+    try:
+        # the service's own loader pins its Postgres-only groups to postgres
+        flags = (target.load_flags or load_flags)(env)
+    except FlagError:
+        return []
+    return [
+        g
+        for g in target.migrating_groups()
+        if flags.primary_store(g) is ReadSource.MONGO
+    ]
 
 
 def reconcile_to_mongo_refusal(
@@ -326,4 +348,4 @@ def main(
         format="%(asctime)s %(levelname)s %(message)s",
         stream=sys.stderr,
     )
-    return asyncio.run(run(args, target))
+    return asyncio.run(run(args, target, mongo_primary_groups(target, env)))

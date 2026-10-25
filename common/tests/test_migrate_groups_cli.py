@@ -15,6 +15,7 @@ from common.db.groups import (
 from common.db.migrate.cli import (
     build_parser,
     main,
+    mongo_primary_groups,
     reconcile_to_mongo_refusal,
     select_collections,
     skipped_groups,
@@ -334,3 +335,28 @@ def test_the_refusal_reads_each_groups_effective_mode():
 def test_the_refusal_skips_postgres_only_groups_by_default():
     args = _args("reconcile", "--direction", "postgres->mongo")
     assert reconcile_to_mongo_refusal(args, _pg_only_target(), PPD) is None
+
+
+def test_mongo_primary_groups_follow_the_write_mode():
+    """reconcile lets Mongo's copy replace a newer Postgres row only where the
+    services write Mongo first."""
+    target = _target()
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "dual"}) == (
+        target.migrating_groups()
+    )
+    assert mongo_primary_groups(target, {}) == target.migrating_groups()
+    mixed = {
+        "DB_WRITE_MODE": "dual",
+        "DB_WRITE_MODE__forms": "postgres_primary_dual",
+        "DB_READ_SOURCE__forms": "postgres",
+    }
+    assert "forms" not in mongo_primary_groups(target, mixed)
+    assert "identity" in mongo_primary_groups(target, mixed)
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "nonsense"}) == []
+
+
+def test_mongo_primary_groups_leave_out_the_postgres_only_groups():
+    import dataclasses
+
+    target = dataclasses.replace(_target(), postgres_only_groups=("identity",))
+    assert "identity" not in mongo_primary_groups(target, {"DB_WRITE_MODE": "dual"})
