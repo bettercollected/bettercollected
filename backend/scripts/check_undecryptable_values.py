@@ -98,7 +98,7 @@ async def _main(argv: List[str]) -> int:
         if url and stores and stores[0].name == "mongo":
             # the forms' links: an incomplete import may name the wrong
             # workspace for a value; this read-only check goes on, warned
-            problem = await import_problem(stores[0].db, await postgres.links(), engine)
+            problem = await import_problem(stores[0].db, postgres.links, engine)
             if problem:
                 print(f"warning: {problem[1]}", file=sys.stderr)
         report = await run(stores, default_opener(), args.batch_size)

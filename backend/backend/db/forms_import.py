@@ -151,20 +151,22 @@ async def written_after(database, last_id: Optional[str]) -> int:
     return await database["workspace_forms"].count_documents(query)
 
 
-async def unimported_links(
-    database, postgres_links: Mapping[str, Iterable[str]], engine=None
-) -> int:
+async def unimported_links(database, postgres_links, engine=None) -> int:
     """0 when the forms import is complete (see the module docstring), else
-    how many of Mongo's links it lacks. Raises PyMongoError when Mongo cannot
-    be read (the callers refuse then)."""
+    how many of Mongo's links it lacks. ``postgres_links``: the Postgres
+    links, or an async callable returning them, called only when the
+    recorded backfill does not settle it (they are every link there is).
+    Raises PyMongoError when Mongo cannot be read (the callers refuse then)."""
     backfill = None if engine is None else await workspace_forms_backfill(engine)
     if backfill is not None and backfill.complete:
         return await written_after(database, backfill.last_id)
+    if callable(postgres_links):
+        postgres_links = await postgres_links()
     return await missing_links(database, postgres_links)
 
 
 async def import_problem(
-    database, postgres_links: Mapping[str, Iterable[str]], engine=None
+    database, postgres_links, engine=None
 ) -> Optional[Tuple[str, str]]:
     """None when the forms import is complete, else ``(code, message)``:
     :data:`CODE` with the count of missing links, or ``store_unreachable``

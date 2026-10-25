@@ -648,11 +648,35 @@ class PostgresFormRepository(RecordRepository):
     async def create_form(self, form: StandardForm) -> FormDocument:
         return await self.save_document(FormDocument(**form.model_dump(mode="json")))
 
+    @staticmethod
+    async def _locked_draft(session, form_id) -> Optional[FormDocument]:
+        """The stored draft, its row locked for the rest of ``session``'s
+        transaction; None when there is none. A write applies its change to
+        this copy, never to one read earlier, so a concurrent write to other
+        fields (an action removed, a credential replaced, a builder save) is
+        kept, and a deleted draft stays deleted."""
+        doc = (
+            await session.execute(
+                select(FormRow.doc)
+                .where(FormRow.form_id == str(form_id))
+                .order_by(FormRow.created_at, FormRow.id)
+                .limit(1)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        return None if doc is None else decode(FormDocument, doc)
+
     async def update_form(self, form_id: RecordId, form: StandardForm):
-        form_document = await self.one(FormRow.form_id == _oid(form_id))
-        apply_form_update(form_document, form)
-        form_document.updated_at = utcnow()
-        return await self.upsert(form_document)
+        """A whole-form save onto the stored draft (``apply_form_update``),
+        under its row lock; None when there is no draft."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_draft(session, form_id)
+            if stored is None:
+                return None
+            apply_form_update(stored, form)
+            stored.updated_at = utcnow()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def _stored_draft(self, form_id: RecordId):
         """The draft row's id, document and stored ``updated_at``."""
@@ -711,11 +735,16 @@ class PostgresFormRepository(RecordRepository):
         return form_document
 
     async def set_form_logo(self, form_id: str, logo: Optional[str]):
-        form_document = await self.one(FormRow.form_id == str(form_id))
-        if form_document is None:
-            return None
-        form_document.logo = logo
-        return await self.upsert(form_document)
+        """Set (or, with None, clear) the draft's logo URL and nothing else,
+        not ``updated_at`` either (4.0's ``$set``): under the row lock, on the
+        stored copy. None when there is no draft (it is never re-inserted)."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_draft(session, form_id)
+            if stored is None:
+                return None
+            stored.logo = logo
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def get_form_document_by_id(self, form_id: str):
         return await self.one(FormRow.form_id == form_id)
@@ -927,12 +956,23 @@ class PostgresFormRepository(RecordRepository):
         form: StandardForm,
         payload: FormActionsDto,
     ):
-        secrets = form.secrets[str(action_id)]
-        for secret in secrets:
-            if secret.name == payload.name:
-                secret.value = payload.value
-        form.secrets[str(action_id)] = secrets
-        return await self.save_document(form)
+        """Set one secret (by name) of one action on the stored draft, under
+        its row lock (``form`` is the caller's earlier read: only its id is
+        used, so nothing else of it is written back). Moves ``updated_at``,
+        as the 4.0 save did. None when there is no draft."""
+        key = str(action_id)
+        async with self._session() as session, session.begin():
+            stored = await self._locked_draft(session, form_id)
+            if stored is None:
+                return None
+            secrets = (stored.secrets or {}).get(key) or []
+            for secret in secrets:
+                if secret.name == payload.name:
+                    secret.value = payload.value
+            stored.secrets = {**(stored.secrets or {}), key: secrets}
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
 
 class PostgresWorkspaceFormRepository(RecordRepository):
@@ -961,12 +1001,35 @@ class PostgresWorkspaceFormRepository(RecordRepository):
     ) -> WorkspaceFormDocument:
         return await self.save_document(workspace_form)
 
+    async def _locked_link(self, session, *where) -> Optional[WorkspaceFormDocument]:
+        """The stored link, its row locked for the rest of ``session``'s
+        transaction; None when there is none."""
+        doc = (
+            await session.execute(
+                select(WorkspaceFormRow.doc)
+                .where(*where)
+                .order_by(WorkspaceFormRow.created_at, WorkspaceFormRow.id)
+                .limit(1)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        return None if doc is None else decode(WorkspaceFormDocument, doc)
+
     async def update(
         self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
-        if await self.one(WorkspaceFormRow.id == _oid(item_id)) is None:
-            raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
-        return await self.save_document(item)
+        """Store ``item``'s settings and update status on the stored link,
+        under its row lock (what the callers change; the rest of the link is
+        never written back from their earlier read). 404 when it is gone."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(session, WorkspaceFormRow.id == _oid(item_id))
+            if stored is None:
+                raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
+            stored.settings = item.settings
+            stored.last_update_status = item.last_update_status
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def save_workspace_form(
         self,
@@ -975,16 +1038,26 @@ class PostgresWorkspaceFormRepository(RecordRepository):
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
     ) -> WorkspaceFormDocument:
-        workspace_form = await self.one(
-            WorkspaceFormRow.workspace_id == _oid(workspace_id),
-            WorkspaceFormRow.form_id == form_id,
-            WorkspaceFormRow.user_id == user_id,
-        )
-        if not workspace_form:
-            workspace_form = WorkspaceFormDocument(
-                workspace_id=workspace_id, form_id=form_id, user_id=user_id
+        # an existing link of this user: its settings, under its row lock
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+                WorkspaceFormRow.user_id == user_id,
             )
-        workspace_form.settings = workspace_form_settings
+            if stored is not None:
+                stored.settings = workspace_form_settings
+                stored.touch()
+                await session.execute(self._upsert_statement(row_values(stored)))
+        if stored is not None:
+            return stored
+        workspace_form = WorkspaceFormDocument(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            user_id=user_id,
+            settings=workspace_form_settings,
+        )
         try:
             return await self.save_document(workspace_form)
         except IntegrityError:  # uq_workspace_forms_workspace_form: linked meanwhile
@@ -1082,8 +1155,10 @@ class PostgresWorkspaceFormRepository(RecordRepository):
         workspace_forms = [from_canonical_document(doc) for doc in docs]
         if is_not_admin and user:
             # private forms stay visible to responders their groups admit
+            # (a member of any of the form's groups, or a regex of one of this
+            # workspace's groups, as in 4.0)
             admitted = await self._groups.get_form_ids_accessible_to(
-                [wf["form_id"] for wf in workspace_forms], user.sub
+                [wf["form_id"] for wf in workspace_forms], user.sub, workspace_id
             )
             workspace_forms = [
                 wf
@@ -1376,15 +1451,31 @@ class PostgresFormTemplateRepository(RecordRepository):
     async def update_template(
         self, template_id: RecordId, template_body: StandardFormTemplate
     ):
-        template = await self.get_template_by_id(template_id)
-        template.fields = template_body.fields
-        template.settings = template_body.settings
-        template.title = template_body.title
-        template.description = template_body.description
-        template.button_text = template_body.button_text
-        template.logo = template_body.logo
-        template.cover_image = template_body.cover_image
-        return await self.save_document(template)
+        """The template's content from ``template_body``, applied to the
+        stored template under its row lock; None when it is gone."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormTemplateRow.doc)
+                    .where(FormTemplateRow.id == _oid(template_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            template = decode(FormTemplateDocument, doc)
+            template.fields = template_body.fields
+            template.settings = template_body.settings
+            template.title = template_body.title
+            template.description = template_body.description
+            template.button_text = template_body.button_text
+            template.logo = template_body.logo
+            template.cover_image = template_body.cover_image
+            template.touch()
+            await session.execute(
+                self._upsert_statement(row_values(template), FormTemplateRow)
+            )
+        return template
 
     async def save(self, template: FormTemplateDocument) -> FormTemplateDocument:
         return await self.save_document(template)

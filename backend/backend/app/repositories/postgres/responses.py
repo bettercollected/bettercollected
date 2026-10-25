@@ -1099,8 +1099,15 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         return by_form
 
     async def get_form_ids_accessible_to(
-        self, form_ids: List[str], identifier: str
+        self,
+        form_ids: List[str],
+        identifier: str,
+        workspace_id: Optional[PydanticObjectId] = None,
     ) -> Set[str]:
+        """The subset of ``form_ids`` whose responder groups admit
+        ``identifier``: a member with that identifier in any of the form's
+        groups, or a regex it matches of one of ``workspace_id``'s groups (any
+        group's when None), as 4.0's listing did."""
         links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
         group_ids = [_oid(g) for g in {link.group_id for link in links}]
         if not group_ids:
@@ -1114,6 +1121,8 @@ class PostgresResponderGroupsRepository(PostgresRepositoryBase):
         }
         for group in await self.many(ResponderGroupRow.id.in_(group_ids)):
             if not group.regex:
+                continue
+            if workspace_id is not None and str(group.workspace_id) != str(workspace_id):
                 continue
             try:
                 if re.search(group.regex, identifier):

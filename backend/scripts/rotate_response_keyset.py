@@ -361,7 +361,7 @@ async def _open_stores(
         # only once the forms import is complete may anything be written from
         # them (FormsImportRefused); a read goes on, with a warning
         problem = await import_problem(
-            mongo_stores[0].db, await postgres.links(), postgres.engine
+            mongo_stores[0].db, postgres.links, postgres.engine
         )
         if problem and writes:
             raise FormsImportRefused(*problem)

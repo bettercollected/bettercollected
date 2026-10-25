@@ -192,7 +192,7 @@ class CaseDuplicateAccounts:
                 return
             problem = await import_problem(
                 database,
-                await self._workspace_forms.links_by_form(),
+                self._workspace_forms.links_by_form,  # read only if needed
                 self._postgres_engine(),
             )
         if problem is None:

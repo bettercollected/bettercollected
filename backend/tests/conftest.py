@@ -150,6 +150,7 @@ MONGO_DRIVEN = {
         "test_a_link_deleted_after_a_finished_import_does_not_block",
         "test_a_link_written_to_mongo_after_a_finished_backfill_refuses",
         "test_a_backfill_that_skipped_documents_falls_back_to_the_links",
+        "test_a_settled_backfill_reads_no_links",
     },
     "tests/app/test_operator_tools.py": {
         "test_expiration_schedules_are_the_same_on_both_stores",

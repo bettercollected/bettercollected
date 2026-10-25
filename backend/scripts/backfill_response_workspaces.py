@@ -130,7 +130,7 @@ async def _main(argv: List[str]) -> int:
         if url and stores and stores[0].name == "mongo":
             # the forms' links: only once their import is complete may
             # anything be written from them; a read goes on, with a warning
-            problem = await import_problem(stores[0].db, await postgres.links(), engine)
+            problem = await import_problem(stores[0].db, postgres.links, engine)
             if problem and args.apply:
                 print(f"refused ({problem[0]}): {problem[1]}", file=sys.stderr)
                 return 2

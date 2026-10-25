@@ -39,11 +39,11 @@ def _opened(database):
     return opened
 
 
-def _service(**stores):
+def _service(workspace_form_repo=None, **stores):
     service = CaseDuplicateAccounts(
         http_client=None,
         workspace_repo=container.workspace_repo(),
-        workspace_form_repo=container.workspace_form_repo(),
+        workspace_form_repo=workspace_form_repo or container.workspace_form_repo(),
         auth_service=None,
         **stores,
     )
@@ -165,3 +165,18 @@ async def test_default_settings_without_mongo_in_use_check_nothing(
     service = _service()  # the real Mongo and Postgres openers
     assert await service.plan() == []
     assert await service.drop(str(PydanticObjectId())) == "not_found"
+
+
+async def test_a_settled_backfill_reads_no_links(mongo):
+    """With the recorded backfill settling it (done, nothing skipped, no
+    newer Mongo link) every Postgres link is never loaded."""
+    copied = _link(PydanticObjectId(), "f1")
+    await mongo["workspace_forms"].insert_one(to_bson(copied))
+    await _backfill_finished(last_id=copied.id)
+
+    class NoLinks:
+        async def links_by_form(self):
+            raise AssertionError("the links were read")
+
+    service = _service(workspace_form_repo=NoLinks(), mongo_database=_opened(mongo))
+    assert await service.plan() == []

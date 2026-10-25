@@ -743,3 +743,144 @@ async def test_search_matches_the_typed_text_literally(sessions):
     assert names == ["logo (dark)"]
     assert await media.get_media_library_by_worksapce_id(str(ws), "[") == []
     assert len(await media.get_media_library_by_worksapce_id(str(ws), ".")) == 1
+
+
+# ------------------------------------------------------- writes under the row lock
+LOGO = "https://cdn.example/logo.png"
+
+
+async def _with_the_draft_held(monkeypatch, write, other):
+    """Run ``write`` until it holds the draft's row, then ``other`` (which
+    waits for the row), then let ``write`` finish: the order in which a stale
+    read would overwrite ``other``'s change."""
+    import asyncio
+
+    original = PostgresFormRepository._locked_draft
+    held = asyncio.Event()
+
+    async def holding(session, form_id):
+        stored = await original(session, form_id)
+        held.set()
+        await asyncio.sleep(0.3)  # ``other`` starts meanwhile and waits
+        return stored
+
+    monkeypatch.setattr(PostgresFormRepository, "_locked_draft", staticmethod(holding))
+    task = asyncio.create_task(write())
+    await held.wait()
+    monkeypatch.setattr(PostgresFormRepository, "_locked_draft", staticmethod(original))
+    await other()
+    return await task
+
+
+def _with_action(action_id):
+    return form(
+        "p1",
+        "With",
+        1,
+        actions={"on_submit": [{"id": action_id, "enabled": True}]},
+        parameters={action_id: [ParameterValue(name="Title", value="Sheet")]},
+        secrets={action_id: [ParameterValue(name="Credentials", value="old")]},
+    )
+
+
+async def test_a_logo_change_keeps_a_concurrent_action_removal(sessions, monkeypatch):
+    """4.0 set the logo with a ``$set`` of that field alone: a removed
+    action (its trigger, parameters and encrypted secrets) must not come back
+    from the logo write's copy, and ``updated_at`` does not move."""
+    _, forms, _ = form_repos(sessions)
+    a1 = str(oid(21))
+    await forms.save_form(_with_action(a1))
+    before = (await forms.get_form_document_by_id("p1")).updated_at
+    await _with_the_draft_held(
+        monkeypatch,
+        lambda: forms.set_form_logo("p1", LOGO),
+        lambda: forms.remove_action_from_all_forms(oid(21)),
+    )
+    stored = await forms.get_form_document_by_id("p1")
+    assert stored.logo == LOGO
+    assert not (stored.actions or {}).get("on_submit")
+    assert a1 not in (stored.parameters or {}) and a1 not in (stored.secrets or {})
+    assert stored.updated_at == before
+
+
+async def test_a_logo_change_keeps_a_concurrent_credential_replacement(
+    sessions, monkeypatch
+):
+    _, forms, _ = form_repos(sessions)
+    a1 = str(oid(21))
+    await forms.save_form(_with_action(a1))
+    await _with_the_draft_held(
+        monkeypatch,
+        lambda: forms.set_form_logo("p1", LOGO),
+        lambda: forms.replace_action_credential("p1", a1, "new", []),
+    )
+    stored = await forms.get_form_document_by_id("p1")
+    assert stored.logo == LOGO
+    assert [(s.name, s.value) for s in stored.secrets[a1]] == [("Credentials", "new")]
+
+
+async def test_a_logo_change_never_brings_a_deleted_draft_back(sessions, monkeypatch):
+    _, forms, _ = form_repos(sessions)
+    await forms.save_form(form("p1", "Draft", 1))
+    await forms.delete_form("p1")
+    assert await forms.set_form_logo("p1", LOGO) is None
+    assert await forms.get_form_document_by_id("p1") is None
+
+    # deleted while the logo write holds the row: it stays deleted
+    await forms.save_form(form("p1", "Draft", 1))
+    await _with_the_draft_held(
+        monkeypatch,
+        lambda: forms.set_form_logo("p1", LOGO),
+        lambda: forms.delete_forms(["p1"]),
+    )
+    assert await forms.get_form_document_by_id("p1") is None
+
+
+async def test_a_whole_form_save_keeps_a_concurrent_parameter_change(
+    sessions, monkeypatch
+):
+    """``update_form`` applies the save to the stored draft under its lock:
+    a parameter counted meanwhile (``update_action_parameters``) is kept."""
+    _, forms, _ = form_repos(sessions)
+    a1 = str(oid(21))
+    await forms.save_form(_with_action(a1))
+    saved = StandardForm(form_id="p1", title="Renamed", fields=[], hidden_fields=None)
+    await _with_the_draft_held(
+        monkeypatch,
+        lambda: forms.update_form("p1", saved),
+        lambda: forms.update_action_parameters("p1", a1, None, "skipped"),
+    )
+    stored = await forms.get_form_document_by_id("p1")
+    assert stored.title == "Renamed"
+    assert {p.name: p.value for p in stored.parameters[a1]} == {
+        "Title": "Sheet",
+        "skipped": "1",
+    }
+
+
+async def test_a_private_form_is_admitted_by_a_regex_of_the_listing_workspace_only(
+    sessions,
+):
+    """As in 4.0: a member of any of the form's responder groups is admitted;
+    a group regex counts only when the group is the listing workspace's."""
+    ws, other = oid(1), oid(2)
+    groups, _, links = form_repos(sessions)
+    await links.save(workspace_form(ws, "priv", "u1", 1, private=True))
+    foreign = await groups.create_group(other, "Elsewhere", regex=".*@corp.com")
+    await groups.add_group_to_form("priv", foreign.id)
+    corp = User(id=str(oid(12)), sub="dev@corp.com")
+
+    async def visible(user):
+        return {
+            wf["form_id"]
+            for wf in await links.get_workspace_forms_in_workspace(ws, True, user)
+        }
+
+    assert await visible(corp) == set()  # another workspace's regex
+    await groups.add_emails_to_group(foreign.id, ["dev@corp.com"])
+    assert await visible(corp) == {"priv"}  # a member of a linked group
+
+    own = await groups.create_group(ws, "Corp", regex=".*@corp.com")
+    await groups.add_group_to_form("priv", own.id)
+    other_user = User(id=str(oid(13)), sub="ops@corp.com")
+    assert await visible(other_user) == {"priv"}  # this workspace's regex
