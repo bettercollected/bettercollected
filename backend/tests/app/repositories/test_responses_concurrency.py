@@ -5,13 +5,17 @@ Skipped unless DATABASE_URL points at a *_test database."""
 
 import asyncio
 import json
+from contextlib import suppress
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import DBAPIError
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.postgres.responses import (
+    _advisory_lock,
+    _busy_on_lock_timeout,
     PostgresFormResponseRepository,
     PostgresResponderGroupsRepository,
     PostgresWorkspaceRespondersRepository,
@@ -20,17 +24,22 @@ from backend.app.repositories.response_scope import ResponseScope
 from backend.app.schemas.standard_form_response import (
     DeclineReason,
     DeletionRequestStatus,
+    FormResponseDeletionRequest,
     FormResponseDocument,
+    staff_closure,
 )
 from backend.db.models import (
     FormResponseRow,
+    ResponderGroupFormRow,
     ResponderGroupMemberRow,
     ResponderGroupRow,
+    ResponseDeletionRequestRow,
     WorkspaceResponderRow,
 )
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
-from common.records import RecordId
+from common.clock import utcnow
+from common.records import RecordId, row_values
 from common.services.crypto_service import crypto_service
 from tests.app.repositories.parity import sessions  # noqa: F401
 
@@ -377,3 +386,246 @@ async def test_removing_a_group_removes_its_members_and_links_together(sessions)
         ).all()
     assert members == [] and groups == []
     assert (await repo.get_groups_by_form_ids(["f1"]))["f1"] == []
+
+
+# ----------------------------------------------- deterministic interleavings
+async def _wait_for_waiter(sessions):
+    """Until a backend of this database waits for a lock."""
+    for _ in range(100):
+        async with sessions() as session:
+            waiting = (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM pg_stat_activity WHERE "
+                        "wait_event_type = 'Lock' AND datname = current_database()"
+                    )
+                )
+            ).scalar_one()
+        if waiting:
+            return
+        await asyncio.sleep(0.05)
+    raise AssertionError("the call never waited for the lock")
+
+
+async def interleaved(sessions, hold, call, during):
+    """Run ``call`` while another transaction holds a lock (``hold``); once
+    the call is waiting for it, apply ``during`` in that transaction and let
+    it commit. The call's result, or the exception it raised."""
+    task = None
+    try:
+        async with sessions() as session, session.begin():
+            await hold(session)
+            task = asyncio.ensure_future(call())
+            await _wait_for_waiter(sessions)
+            await during(session)
+    except BaseException:
+        if task is not None:
+            task.cancel()
+            with suppress(BaseException):
+                await task
+        raise
+    return (await asyncio.gather(task, return_exceptions=True))[0]
+
+
+def lock_request(row_id):
+    async def hold(session):
+        await session.execute(
+            select(ResponseDeletionRequestRow.doc)
+            .where(ResponseDeletionRequestRow.id == str(row_id))
+            .with_for_update()
+        )
+
+    return hold
+
+
+def decline_by_staff(repo, read: FormResponseDeletionRequest):
+    """What a staff close committed meanwhile leaves on the request."""
+
+    async def during(session):
+        declined = read.model_copy(deep=True)
+        declined.status = DeletionRequestStatus.DECLINED
+        declined.closed_by = "staff-1"
+        declined.decline_reason = DeclineReason.OTHER
+        declined.closures = [
+            staff_closure(
+                DeletionRequestStatus.DECLINED, "staff-1", utcnow(), DeclineReason.OTHER
+            )
+        ]
+        declined.touch()
+        await session.execute(
+            repo._upsert_statement(row_values(declined), ResponseDeletionRequestRow)
+        )
+
+    return during
+
+
+async def test_completing_a_request_deletes_nothing_under_a_concurrent_decline(
+    sessions,
+):
+    repo = responses_repo(sessions)
+    stored, _ = await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    outcome = await interleaved(
+        sessions,
+        lock_request(read.id),
+        lambda: repo.delete_form_response(stored, expected_closures=len(read.closures)),
+        decline_by_staff(repo, read),
+    )
+    assert isinstance(outcome, HTTPException) and outcome.status_code == 409
+    assert outcome.content["code"] == "deletion_request_closed"
+    assert len(await repo.list_by_response_id("r1")) == 1  # the data is still there
+    (request,) = await repo.list_deletion_requests_for_form_ids(scope())
+    assert request.status == DeletionRequestStatus.DECLINED
+    assert [c.source for c in request.closures] == ["staff"]
+
+
+async def test_a_completion_that_saw_no_decline_deletes_and_marks_success(sessions):
+    """Without a close in between, the same call deletes the copy and marks
+    the request done; a plain deletion (no expectation) always does."""
+    repo = responses_repo(sessions)
+    stored, _ = await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    await repo.delete_form_response(stored, expected_closures=len(read.closures))
+    assert await repo.list_by_response_id("r1") == []
+    (request,) = await repo.list_deletion_requests_for_form_ids(scope())
+    assert request.status == DeletionRequestStatus.SUCCESS
+
+
+async def test_the_import_refresh_waits_for_a_concurrent_staff_close_and_keeps_it(
+    sessions,
+):
+    from datetime import datetime, timezone
+
+    repo = responses_repo(sessions)
+    await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    now = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    outcome = await interleaved(
+        sessions,
+        lock_request(read.id),
+        lambda: repo.mark_deletion_requests_success_except(scope(), "self", [], now),
+        decline_by_staff(repo, read),
+    )
+    assert outcome == 1
+    (request,) = await repo.list_deletion_requests_for_form_ids(scope())
+    assert request.status == DeletionRequestStatus.SUCCESS
+    assert [(c.source, c.status) for c in request.closures] == [
+        ("staff", "declined"),
+        ("import", "success"),
+    ]
+    assert request.decline_reason == DeclineReason.OTHER
+
+
+async def test_a_staff_close_after_the_import_refresh_is_refused(sessions):
+    from datetime import datetime, timezone
+
+    repo = responses_repo(sessions)
+    await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    now = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    await repo.mark_deletion_requests_success_except(scope(), "self", [], now)
+    with pytest.raises(HTTPException) as refused:
+        await repo.close_deletion_request(
+            read, DeletionRequestStatus.DECLINED, "staff-1", DeclineReason.OTHER
+        )
+    assert refused.value.status_code == 409
+    (request,) = await repo.list_deletion_requests_for_form_ids(scope())
+    assert [c.source for c in request.closures] == ["import"]
+
+
+async def test_groups_saved_on_a_form_wait_for_the_save_in_progress(sessions):
+    """A save of a form's groups reads the links only once the save before it
+    has committed: here another save links group C meanwhile, and this one,
+    setting {A, B}, removes it."""
+    repo = PostgresResponderGroupsRepository(sessions)
+    a, b, c = [await repo.create_group(WORKSPACE, n) for n in ("A", "B", "C")]
+    form = "form-1"
+
+    async def hold(session):
+        await _advisory_lock(session, "responder_group_form", form)
+
+    async def during(session):
+        link = repo.link(c.id, form)
+        link.touch()
+        await session.execute(
+            repo._upsert_statement(row_values(link), ResponderGroupFormRow)
+        )
+
+    links = await interleaved(
+        sessions, hold, lambda: repo.add_groups_to_form(form, [a.id, b.id]), during
+    )
+    assert {str(link.group_id) for link in links} == {str(a.id), str(b.id)}
+    found = await repo.get_groups_by_form_ids([form])
+    assert {str(g["_id"]) for g in found[form]} == {str(a.id), str(b.id)}
+
+
+async def test_a_group_update_applies_to_the_stored_group_not_to_one_read_before(
+    sessions,
+):
+    repo = PostgresResponderGroupsRepository(sessions)
+    group = await repo.create_group(WORKSPACE, "Team", "old description")
+
+    async def hold(session):
+        await session.execute(
+            select(ResponderGroupRow.doc)
+            .where(ResponderGroupRow.id == str(group.id))
+            .with_for_update()
+        )
+
+    async def during(session):  # another change of a field the update leaves alone
+        stored = await repo.get_group_in_workspace(WORKSPACE, group.id)
+        stored.description = "changed meanwhile"
+        stored.touch()
+        await session.execute(
+            repo._upsert_statement(row_values(stored), ResponderGroupRow)
+        )
+
+    updated = await interleaved(
+        sessions,
+        hold,
+        lambda: repo.update_group(WORKSPACE, "Renamed", None, None, group.id, None),
+        during,
+    )
+    assert (updated.name, updated.description) == ("Renamed", "changed meanwhile")
+    stored = await repo.get_group_in_workspace(WORKSPACE, group.id)
+    assert (stored.name, stored.description) == ("Renamed", "changed meanwhile")
+
+
+async def test_deletes_of_overlapping_workspaces_at_once_do_not_deadlock(sessions):
+    repo = PostgresResponderGroupsRepository(sessions)
+    workspaces = [RecordId() for _ in range(3)]
+    for workspace in workspaces:
+        for n in range(6):
+            await repo.create_group(workspace, f"G{n}")
+    outcomes = await asyncio.gather(
+        *(
+            repo.delete_responder_groups(order)
+            for order in (
+                workspaces,
+                workspaces[::-1],
+                workspaces[1:],
+                workspaces[:2][::-1],
+            )
+            * 2
+        ),
+        return_exceptions=True,
+    )
+    assert [o for o in outcomes if isinstance(o, BaseException)] == []
+    for workspace in workspaces:
+        assert await repo.get_groups_in_workspace(workspace) == []
+
+
+# ----------------------------------------------------------------- lock timeout
+class _Orig(Exception):
+    def __init__(self, sqlstate):
+        self.sqlstate = sqlstate
+
+
+def test_a_lock_timeout_is_a_retryable_409_and_other_errors_pass_through():
+    with pytest.raises(HTTPException) as busy:
+        with _busy_on_lock_timeout():
+            raise DBAPIError("SELECT 1", {}, _Orig("55P03"))
+    assert busy.value.status_code == 409 and busy.value.content["code"] == "busy"
+    with pytest.raises(DBAPIError):
+        with _busy_on_lock_timeout():
+            raise DBAPIError("SELECT 1", {}, _Orig("40001"))

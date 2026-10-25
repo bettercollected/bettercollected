@@ -19,7 +19,8 @@ vi.mock('@app/lib/hooks/use-dialog-modal', () => ({ useDialogModal: () => ({ ope
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
     useWorkspacePermissions: () => ({ can: (permission: string) => permission === WorkspacePermission.FORM_CREATE, ready: true, isLoading: false })
 }));
-vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal: vi.fn() }) }));
+const openModal = vi.fn();
+vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal }) }));
 vi.mock('next-nprogress-bar', () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 vi.mock('@fyelci/react-google-drive-picker', () => ({ default: () => [vi.fn()] }));
 vi.mock('@app/components/pdf-import/import-pdf-dialog', () => ({ default: () => null }));
@@ -37,12 +38,12 @@ vi.mock('@app/store/redux/import-api', async (importOriginal) => ({
     useGetProvidersQuery: () => providers
 }));
 
-async function renderPage() {
+async function renderPage(searchParams: Record<string, string> = {}) {
     await act(async () => {
         render(
             <ReduxProvider store={store}>
                 <Suspense fallback={null}>
-                    <CreateFormPage searchParams={Promise.resolve({})} />
+                    <CreateFormPage searchParams={Promise.resolve(searchParams)} />
                 </Suspense>
             </ReduxProvider>
         );
@@ -79,6 +80,7 @@ describe('the New Form page and the Google Forms import switch', () => {
     beforeEach(() => {
         isMobile = false;
         providers.isLoading = false;
+        openModal.mockClear();
         store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
     });
 
@@ -108,5 +110,38 @@ describe('the New Form page and the Google Forms import switch', () => {
         providers.isLoading = true;
         await renderPage();
         expect(screen.queryByText('Import Google Form')).toBeNull();
+    });
+
+    it('offers the Google import as before when the mode list could not be read', async () => {
+        providers.data = undefined;
+        await renderPage();
+        expect(screen.getByText('Import Google Form')).toBeTruthy();
+        expect(screen.queryByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeNull();
+    });
+
+    it('opens the import for ?modal=true while imports are on', async () => {
+        providers.data = [{ providerName: 'google', importMode: 'on' }];
+        await renderPage({ modal: 'true' });
+        expect(openModal).toHaveBeenCalledWith('IMPORT_FORMS', { nonClosable: true });
+    });
+
+    it('does not open the import for ?modal=true when imports are read-only', async () => {
+        providers.data = [{ providerName: 'google', importMode: 'readonly' }];
+        await renderPage({ modal: 'true' });
+        expect(openModal).not.toHaveBeenCalled();
+        expect(screen.getByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeTruthy();
+    });
+
+    it('does not open the import for ?modal=true when imports are off', async () => {
+        providers.data = [];
+        await renderPage({ modal: 'true' });
+        expect(openModal).not.toHaveBeenCalled();
+    });
+
+    it('waits for the mode before opening the import for ?modal=true', async () => {
+        providers.data = undefined;
+        providers.isLoading = true;
+        await renderPage({ modal: 'true' });
+        expect(openModal).not.toHaveBeenCalled();
     });
 });
