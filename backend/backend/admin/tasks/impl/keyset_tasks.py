@@ -434,15 +434,18 @@ class DropOld(_Base):
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
         plans = await self._ping_all(config, targets, "drop_old")
-        # and the import from 4.0 must be over: no later backfill may bring in a
-        # value on the key about to go (state.check_import_finished)
+        await self._import_over(config, targets, plans)
+        return keys, stored, value, parsed, config, targets, plans
+
+    async def _import_over(self, config, targets, plans) -> None:
+        """The import from 4.0 must be over: no later backfill may bring in a
+        value on the key about to go (``state.check_import_finished``)."""
         for target in targets:
             async with state.open_target_stores(
                 config, target, plans[target.name], read_only=True
             ) as stores:
                 for store in stores:
                     await state.check_import_finished(store, config.mongo_configured)
-        return keys, stored, value, parsed, config, targets, plans
 
     async def precheck(self, ctx, params) -> None:
         await self._gate(ctx, params)
@@ -526,6 +529,8 @@ class DropOld(_Base):
         await self._ready(ctx, params, parsed, stored)
         async with ctx.connection() as conn:
             await state.check_consumers_off_mongo(conn)
+        # a backfill started during the scan would bring in values on the old key
+        await self._import_over(config, targets, plans)
         version, revision = await self._write(
             ctx, keys, stored, only_primary(parsed), "drop_old", {"dropped_count": len(old)}
         )

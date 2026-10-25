@@ -12,7 +12,12 @@ the audit log. Mongo is not touched since 4.1: ``mongo`` and ``both`` refuse
 ``store_retired``, and an apply refuses ``import_incomplete`` until the import
 from 4.0 is over (the runner has no Mongo connection and nothing unfinished is
 recorded in ``migration_progress``): running the import again would copy the
-rows still held in Mongo back. No manual step is needed once it is over. Counts only: never an id, an email or a token. Running
+rows still held in Mongo back. No manual step is needed once it is over. A
+store with no record at all (the stack never had Mongo, or its import never
+started) cannot be told apart: the operator confirms that the 4.0 import ran, or
+that the stack never had Mongo, before the apply. A data role that may not read
+``google.migration_progress`` refuses ``import_state_unreadable`` (re-run the
+roles script). Counts only: never an id, an email or a token. Running
 it again deletes nothing.
 """
 
@@ -36,6 +41,9 @@ class Refusals(str, enum.Enum):
     # runner, or an unfinished backfill in migration_progress): a later backfill
     # would copy the rows back
     import_incomplete = "import_incomplete"
+    # the runner's data role may not read google.migration_progress: re-run the
+    # roles script (postgres/ensure-admin-roles.sh), which grants it
+    import_state_unreadable = "import_state_unreadable"
 
 
 class Events(str, enum.Enum):

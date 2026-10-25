@@ -190,10 +190,12 @@ class PostgresStore:
                     workspaces.append(str(restored["workspace_id"]))
         return links
 
-    async def import_progress(self) -> Optional[List[Tuple[str, str, int]]]:
+    async def import_progress(self) -> List[Tuple[str, str, int]]:
         """``(collection, state, skipped)`` of this target's import collections
         in ``<schema>.migration_progress`` (a collection never imported has no
-        row); None when this role may not read it."""
+        row, and neither has a store whose table does not exist: nothing was ever
+        recorded). Refuses ``import_state_unreadable`` when this role may not read
+        it (permission denied); any other database error propagates."""
         from sqlalchemy import Column, MetaData, Table, Text, BigInteger, select
         from sqlalchemy.exc import DBAPIError
 
@@ -213,8 +215,17 @@ class PostgresStore:
                     (collection, state, int(skipped or 0))
                     for collection, state, skipped in await conn.execute(stmt)
                 ]
-        except DBAPIError:
-            return None
+        except DBAPIError as error:
+            code = getattr(error.orig, "sqlstate", None) or getattr(
+                error.orig, "pgcode", None
+            )
+            if code == "42P01":  # undefined table: nothing was ever recorded
+                return []
+            if code == "42501":  # insufficient privilege: fail closed
+                from backend.admin.tasks.spec import Refusal
+
+                raise Refusal("import_state_unreadable") from None
+            raise
 
     async def batch(self, after: Optional[str], limit: int) -> List[Dict[str, Any]]:
         from sqlalchemy import select

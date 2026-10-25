@@ -51,6 +51,9 @@ class Refusals(str, enum.Enum):
     # the import from 4.0 is not over: the runner has a Mongo connection, or
     # migration_progress records an unfinished backfill of the target
     import_incomplete = "import_incomplete"
+    # the runner's data role may not read migration_progress: re-run the roles
+    # script (postgres/ensure-admin-roles.sh), which grants it
+    import_state_unreadable = "import_state_unreadable"
     consumer_writes_mongo = "consumer_writes_mongo"
     consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"

@@ -21,8 +21,11 @@
   from 4.0 is over (no `MONGO_URI` on the runner, no unfinished backfill in `migration_progress`), so a
   later backfill cannot bring in a value on a key that was dropped. `google.purge_unencrypted_credentials`
   applies the same rule: it refuses an apply until the import is over, since running it again would copy
-  the rows still held in Mongo back (a role that cannot read `google.migration_progress` leaves the
-  decision to the runner's `MONGO_URI`). The task runner connects to Mongo never; it reads `MONGO_URI`
-  only to refuse in these cases.
+  the rows still held in Mongo back. A data role that cannot read `migration_progress` refuses
+  (`import_state_unreadable`): re-run `postgres/ensure-admin-roles.sh`, which now grants the task
+  runner's Google role a column `SELECT` on `google.migration_progress`. A store with no record at all
+  cannot be told apart from one never imported, so confirm that the 4.0 import ran (or that the stack
+  never had Mongo) before the purge or the key drop; `drop_old` checks again right before it writes.
+  The task runner connects to Mongo never; it reads `MONGO_URI` only to refuse in these cases.
 - `python -m backend.scim` and `python -m scripts.seed_flow_templates` connect no Mongo; the Google Forms
   integration keeps its credentials as plain records and no longer sets up Beanie at startup.

@@ -7,8 +7,11 @@ function made by ``postgres/ensure-admin-roles.sh`` that holds the filter and
 returns a count. A dry run opens the store read-only. Mongo is never touched
 (``store_retired``). An apply is refused (``import_incomplete``) until the import
 from 4.0 is over: while the runner has a Mongo connection configured, or while
-``google.migration_progress`` (when the role can read it) records an unfinished
-backfill; running the import again would copy the rows still held in Mongo back.
+``google.migration_progress`` records an unfinished backfill, or the role cannot
+read it (``import_state_unreadable``: re-run the roles script); running the
+import again would copy the rows still held in Mongo back. With no record at all
+the operator is trusted to have confirmed that the import ran (or that there
+was no Mongo).
 
 Counts only, in the result, the events and the audit log: never an id, an
 email or a token.

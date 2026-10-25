@@ -343,11 +343,12 @@ async def test_an_apply_follows_the_recorded_state_of_the_import(
         assert await _pg_ids(superuser) == set(PG_KEEP)
 
 
-async def test_a_role_that_cannot_read_the_import_record_leaves_the_decision_to_the_environment(
+async def test_a_role_that_cannot_read_the_import_record_is_refused(
     world, pg_env, superuser, progress_table, server
 ):
-    """The roles script does not grant ``google.migration_progress`` to the data
-    role yet: unreadable, the apply goes on (no Mongo connection configured)."""
+    """Fail closed: without the grant (postgres/ensure-admin-roles.sh) nothing
+    says whether the import is over, whatever the environment says. A dry run
+    still counts."""
     await _seed_postgres(superuser)
     async with superuser.begin() as conn:
         await conn.execute(
@@ -355,12 +356,21 @@ async def test_a_role_that_cannot_read_the_import_record_leaves_the_decision_to_
                 f'REVOKE SELECT ON google.migration_progress FROM "{server.data_google_role}"'
             )
         )
-        await conn.execute(
-            text(
-                "INSERT INTO google.migration_progress (collection, state) "
-                "VALUES ('Oauth2CredentialDocument', 'running')"
-            )
-        )
+    _, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    _, run = await _run(world)
+    assert run["state"] == "refused" and run["refusal_code"] == "import_state_unreadable", run
+    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+
+
+async def test_a_store_with_no_import_record_table_is_not_refused(
+    world, pg_env, superuser
+):
+    """No ``migration_progress`` table at all: nothing was ever recorded (a stack
+    that never had Mongo); the operator confirms that, as the docs say."""
+    await _seed_postgres(superuser)
+    async with superuser.begin() as conn:
+        await conn.execute(text("DROP TABLE IF EXISTS google.migration_progress"))
     _, run = await _both(world)
     assert run["state"] == "succeeded", run
 

@@ -252,7 +252,7 @@ An instance that still writes Mongo refuses with `consumer_writes_mongo`, one th
 it (a build from before) with `consumer_write_stores_unknown`; the check runs again right before
 the key is written. It also refuses (`import_incomplete`) until the import from 4.0 is over: while the runner has a
 `MONGO_URI`, or while `migration_progress` records an unfinished backfill of the responses (or of
-the forms' links), since a later backfill could bring in a value on the dropped key. Values left in Mongo, or in a Mongo backup or archive,
+the forms' links), since a later backfill could bring in a value on the dropped key (checked again right before the write). A data role that cannot read `migration_progress` refuses `import_state_unreadable` (re-run the roles script); a store with no record at all cannot be told apart from one never imported, so confirm that the 4.0 import ran, or that the stack never had Mongo, first. Values left in Mongo, or in a Mongo backup or archive,
 are unreadable once the old key is dropped: keep the old keyset for as long as such an archive is
 kept.
 

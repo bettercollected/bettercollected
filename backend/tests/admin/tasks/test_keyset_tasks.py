@@ -1035,6 +1035,68 @@ async def test_drop_old_waits_for_the_import_from_4_0(world, stores, monkeypatch
     assert len(parse_keyset((await flow.stored()).value).key) == 1
 
 
+async def test_drop_old_checks_the_import_again_right_before_the_write(
+    world, stores, monkeypatch
+):
+    """A backfill that starts during a long scan is caught by the check made
+    right before the key write: the key is kept."""
+    flow, new_id = await prepare(world, stores)
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
+    await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    real = core.verify_store
+    started = []
+
+    async def then_a_backfill_starts(*args, **kw):
+        result = await real(*args, **kw)
+        if not started:  # after the first target's scan
+            started.append(True)
+            await _record_backfill("form_responses", state="running")
+        return result
+
+    monkeypatch.setattr(core, "verify_store", then_a_backfill_starts)
+    _, run = await flow.run("keyset.drop_old", flow.params())
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    assert len(parse_keyset((await flow.stored()).value).key) == 2
+
+
+def _failing_store(sqlstate):
+    from sqlalchemy.exc import DBAPIError
+
+    class Orig(Exception):
+        pass
+
+    orig = Orig("boom")
+    orig.sqlstate = sqlstate
+
+    class Connection:
+        async def __aenter__(self):
+            raise DBAPIError("SELECT", {}, orig)
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class Engine:
+        def connect(self):
+            return Connection()
+
+    return core.PostgresStore(Engine(), core.RESPONSES)
+
+
+async def test_the_import_record_is_read_fail_closed():
+    """Permission denied refuses; an absent table is "nothing recorded"; any
+    other database error fails the task instead of passing the guard."""
+    from sqlalchemy.exc import DBAPIError
+
+    from backend.admin.tasks.spec import Refusal
+
+    with pytest.raises(Refusal) as refused:
+        await state.check_import_finished(_failing_store("42501"), False)
+    assert refused.value.code == "import_state_unreadable"
+    await state.check_import_finished(_failing_store("42P01"), False)  # passes
+    with pytest.raises(DBAPIError):
+        await state.check_import_finished(_failing_store("57014"), False)
+
+
 async def test_drop_old_still_refuses_old_values_in_postgres(world, stores):
     flow, _new_id = await prepare(world, stores)  # nothing re-encrypted yet
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
