@@ -28,8 +28,6 @@ import json
 import os
 import sys
 
-from bson import ObjectId
-
 from backend.app.container import container
 from backend.app.services.custom_domain_origins import (
     prune_unverified_origins,
@@ -38,6 +36,7 @@ from backend.app.services.custom_domain_origins import (
 from backend.app.services.custom_domain_service import READY, domain_fields
 from backend.cli_store import routed_repositories
 from backend.config import settings
+from common.ids import RecordId
 
 # the workspaces (identity) and the allowed origins (refdata), through the routed
 # repositories: from the store the services read, written to the ones they write
@@ -75,8 +74,8 @@ async def _adopt(dry_run: bool) -> int:
     }
     for domain in service.client().iter_domains():
         try:
-            workspace = await repo.find_by_id(ObjectId(domain.reference))
-        except Exception:  # noqa: BLE001 — a reference that is not an ObjectId
+            workspace = await repo.find_by_id(RecordId(domain.reference))
+        except Exception:  # noqa: BLE001 — a reference that is not a record id
             workspace = None
         if workspace is None:
             counts["unknown_workspace"] += 1

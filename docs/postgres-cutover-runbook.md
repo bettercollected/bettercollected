@@ -21,13 +21,13 @@ Stage 0 (mirror, backfill, verify) are its prerequisite.
 | piece | where | what it does |
 |---|---|---|
 | `DB_READ_SOURCE`, `DB_WRITE_MODE` (+ `__<group>` overrides) | each service's env | per repository group: `mongo` → `dual` (write both, read Mongo) → `postgres_primary_dual` (write both, read Postgres) → `postgres` |
-| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`, `__revoke_google_grant`) | backend, actions-executor | `temporal` (default) or `postgres` (procrastinate) per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and are retried: with `__delete_user=postgres` the integrity monitor reports them as overdue; on Temporal they show only in the Temporal UI and the backend's error log) |
+| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`, `__revoke_google_grant`) | backend, actions-executor | `postgres` (procrastinate; the default from 4.1, `temporal` on 4.0.x) or `temporal` per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and are retried: with `__delete_user=postgres` the integrity monitor reports them as overdue; on Temporal they show only in the Temporal UI and the backend's error log) |
 | `DB_SHADOW_READ_SAMPLE` | each service | fraction of reads also issued to the other store and compared |
 | `GET /persistence/status` (admin) | backend | flags in effect, routing counters, outbox backlog, Postgres reachability |
 | `python -m backend.migrate …` (also `auth.migrate`, `googleform.migrate`) | one-off container, service role | `preflight` · `backfill` · `verify` · `reconcile` · `status [--json]` · `jobs-sweep`; `--group <g>` or `--collections a,b` limit a run |
 | outbox `mirror_write_failures` | Mongo collection + Postgres table, per service | mirror writes that failed; drained by a full `reconcile` |
 | `store_migration` | Postgres table, per service schema | the "migration verified" marker and per-group verify records, written only by a clean `verify` (see "Verified marker") |
-| `jobs-worker` service, actions-executor with `JOBS_BACKEND=postgres` | compose | consume the `default` and `actions` queues |
+| `jobs-worker` service, actions-executor on the Postgres queue (the default from 4.1; it then needs `DATABASE_URL`, the `bc_jobs_exec` role's URL, and exits at start naming it when empty, unless `JOBS_BACKEND=temporal`) | compose | consume the `default` and `actions` queues |
 | `DB_AUTO_MIGRATE` (default `false`) | backend (+ jobs-worker), auth, google | `true`: each service runs `alembic upgrade head` for its own schema at startup (backend: plus procrastinate's `jobs` tables), under a per-schema Postgres advisory lock |
 
 Groups (backend): `refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`.
@@ -95,7 +95,7 @@ the services skip the schema step entirely, so on R1 `DB_AUTO_MIGRATE` alone mig
 run the explicit commands once, or let the first restart with `DB_WRITE_MODE=dual` (Phase 1,
 step 1) migrate.
 
-1. Deploy with all flags at their defaults (`mongo` / `temporal`). Behaviour is unchanged; the only
+1. Deploy with all flags at their defaults (`mongo` / `temporal` on 4.0.x; from 4.1 `JOBS_BACKEND` defaults to `postgres`, see "Jobs" below). Behaviour is unchanged; the only
    new thing running is the Postgres container and empty tables.
 2. Check every service logs `persistence flags: {...}` at boot and `GET /persistence/status`
    (as an admin) shows `postgres.configured: true, reachable: true`.
@@ -249,6 +249,20 @@ routed repository, so from `DB_READ_SOURCE__responses`, and opens Mongo only whi
 group still uses it), then `__delete_user`, then
 `__run_action` with the actions-executor started with `JOBS_BACKEND=postgres`. Roll back a job
 kind with `JOBS_BACKEND__<job>=temporal` and `jobs-sweep --backend temporal`.
+
+**From 4.1 `JOBS_BACKEND` defaults to `postgres`**, and compose never sets it, so a stack that has
+not set it (or `JOBS_BACKEND__<job>`) switches every job kind to the queue at the first 4.1
+service, with no flip of its own. So before the 4.1 deploy: `jobs-worker` runs (its replicas are
+not zero); the actions executor either has `DATABASE_URL` (the `bc_jobs_exec` URL) or
+`JOBS_BACKEND=temporal`, set *before* its image is updated (CI updates it with the tag, and without
+either it exits at start naming `DATABASE_URL`: its `run_action` jobs would have no consumer);
+and at the upgrade, `python -m backend.migrate jobs-sweep --backend postgres` (a one-off in a
+backend task) puts every scheduled response deletion on the queue. Keep the Temporal server and
+worker until the schedules and workflows already in Temporal (`delete_response`, `delete_user`,
+`run_action`) have run: the old schedules fire into the worker, which calls the backend's
+`/temporal/*` routes. A response whose deletion cannot be queued is logged (id and error class) and
+left to the next `jobs-sweep`; it no longer fails the submission. Roll a kind back with
+`JOBS_BACKEND__<job>=temporal` and `jobs-sweep --backend temporal`, as above.
 
 ## Verified marker
 
@@ -405,28 +419,36 @@ the Postgres one, so that neither store copies a row back to the other (a Mongo 
 Mongo, so the Mongo step does not apply there.
 
 **Use the admin portal task `google.purge_unencrypted_credentials`** (Tasks page; from 4.0.10).
-It applies exactly the filters below, Mongo first and then Postgres. Its dry run (required first)
-shows the count per store; the apply needs the usual confirmation code, deletes, and records the
-counts in the audit log. Counts only, never ids, emails or tokens, and running it again deletes
-nothing. `stores: auto` covers the stores the services write (from 4.1 Postgres alone for the
-google group, whatever the runner's `DB_WRITE_MODE*` says), plus any other store the runner is
-configured for, like the other data tasks. An apply that leaves out a store the services still
-write, or Mongo while the runner has a Mongo connection, is refused (`stores_incomplete`).
+It applies exactly the filters below. On 4.0.x it runs Mongo first and then Postgres, and its dry
+run (required first) shows the count per store. **From 4.1 it covers Postgres alone** and never
+connects to Mongo: `stores: postgres` is the default (`auto` means the same), `mongo` and `both`
+are refused (`store_retired`), and no `DB_WRITE_MODE*` is read. The apply needs the usual
+confirmation code, deletes, and records the counts in the audit log. Counts only, never ids,
+emails or tokens, and running it again deletes nothing.
 
 Order: on 4.0.x, purge both stores before upgrading. On 4.1, finish the import from 4.0
 (`python -m googleform.migrate backfill`, then `verify`) first and purge after it: the import
-copies whatever Mongo holds, readable tokens included. A runner without a Mongo connection may
-apply on Postgres alone, and the task cannot tell whether the import has finished then.
+copies whatever Mongo holds, readable tokens included. On 4.1 the apply refuses
+(`import_incomplete`) until the import is over: while the runner still has a Mongo connection
+(`TASK_RUNNER_MONGO_URI`: remove it first, as step 7 of the cutover does), or while
+`google.migration_progress` records the credentials' backfill as not `done` or with documents
+skipped. It reads that record through the runner's data role, which the roles script grants
+(`postgres/ensure-admin-roles.sh` of 4.1: re-run it, "Roles and grants"); without the grant the
+apply refuses `import_state_unreadable`. A store with no record at all (the stack never had Mongo,
+or its import never started) cannot be told apart: **confirm that the 4.0 import ran, or that the
+stack never had Mongo, before the apply.** The task does not touch Mongo's own copy; no manual
+step is needed while the import is not run again (purge Mongo's copy first, with the 4.0.x task, if
+a rehearsal will run it again).
 
 It needs:
 
-- the runner's Google Mongo connection while Mongo still holds credentials
-  (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`), with a user that may delete from
-  `Oauth2CredentialDocument` (`readWrite` on it, as for the keyset tasks);
 - the function `google.purge_unencrypted_credentials` in Postgres, created by
   `postgres/ensure-admin-roles.sh` (run it once after upgrading to 4.0.10 or later; `deploy.sh`
   does). Until then the task refuses with `purge_function_missing`. The runner's
-  `bc_tasks_data_google` role still has no DELETE: it may only execute that function.
+  `bc_tasks_data_google` role still has no DELETE: it may only execute that function;
+- on 4.0.x only, the runner's Google Mongo connection while Mongo still holds credentials
+  (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`), with a user that may delete from
+  `Oauth2CredentialDocument` (`readWrite` on it, as for the keyset tasks).
 
 The manual steps below remain as a fallback.
 
@@ -523,7 +545,8 @@ serves everything from Postgres (stages C and D below done on 4.0) sets
 `BC_LEGACY_MONGO_IMPORTED=done` in the root `.env` by hand before the upgrade, so the import does
 not compare Mongo with a Postgres that has moved on. A new 4.1 stack never starts MongoDB and stores
 no `MONGO_URI`. `TASK_RUNNER_MONGO_URI` in the root `.env` is not touched: remove it once Mongo is
-stopped (deploy.sh reminds you). The backend and the jobs worker default to
+stopped (deploy.sh reminds you); on 4.1 the task runner never uses it, but `keyset.drop_old` and
+the Google credentials purge refuse (`import_incomplete`) while it is set. The backend and the jobs worker default to
 `DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres` in the compose file, the task runner to
 `DB_WRITE_MODE=postgres`.
 
@@ -603,8 +626,9 @@ they differ.
   that both services read (a shared `env_file`, or a YAML anchor if your tooling supports merge
   keys), and always deploy the two together.
 - **The task runner's `DB_WRITE_MODE` and `DB_WRITE_MODE__responses` follow the backend's
-  values** and change in the same deploy (from 4.1 the runner takes the Google credentials as
-  Postgres only, and unset values as the services' default; docs/admin-service.md, "Task runner").
+  values** and change in the same deploy, while the stack runs 4.0.x images. From 4.1 the runner
+  reads no write mode: its tasks cover Postgres alone (`stores: postgres`, the default; `mongo`
+  and `both` are refused with `store_retired`; docs/admin-service.md, "Task runner").
 - **Migrations:** `DB_AUTO_MIGRATE=true` on `backend`, `jobs-worker`, `auth` and
   `integrations-googleform`, from Stage 0 on ("Who runs the migrations"). A release whose notes
   name a migration with non-transactional DDL is migrated by hand first (one-off commands below).
@@ -626,6 +650,9 @@ they differ.
   allowed. A compromised key overrides the freeze: rotate as in
   [response-keyset-rotation.md](response-keyset-rotation.md) with both stores configured, then take
   a fresh Mongo dump.
+  From 4.1 `keyset.drop_old` also needs the signed `mongo_retired` statement and refuses
+  (`import_incomplete`) while the runner has a Mongo connection or `migration_progress` records an
+  unfinished backfill; see "Decommission".
 
 ### One-off commands
 
@@ -740,9 +767,9 @@ What the code does in each, checked against `v4.0.13`:
   `:231-232`), and every group moves together. All of backend, `jobs-worker`, auth and the Google
   integration load the same flags (`backend/backend/app/container.py:211`, `auth/auth/app/container.py:37`,
   `integrations/google/googleform/app/containers/__init__.py:37`); `jobs-worker` is the backend's
-  container. The task runner never loads them: it reads its own `DB_WRITE_MODE*` only, to decide
-  which stores a task covers (`postgres_primary_dual`: Postgres then Mongo; `postgres`: Postgres
-  only; `backend/backend/admin/tasks/impl/responses_common.py:97-127`).
+  container. The task runner never loads them: on 4.0.x it reads its own `DB_WRITE_MODE*` only, to
+  decide which stores a task covers (`postgres_primary_dual`: Postgres then Mongo; `postgres`:
+  Postgres only); from 4.1 its tasks cover Postgres alone and read no write mode.
 - **Writes and their copy.** A routed write goes to the primary store, then to the other one,
   bounded by `DB_MIRROR_TIMEOUT_MS` (2 s), and the copy can never fail the request
   (`common/db/routing.py:257-276`, `:295-312`, timeout `:172`). Afterwards the copy of every row the
@@ -986,8 +1013,11 @@ What the code does in each, checked against `v4.0.13`:
       values. The script is idempotent. 4.1 adds `admin.credential_purges_overdue()`, a column
       `SELECT` on `jobs.procrastinate_*` for `bc_count_app`, and a `SELECT` on
       `app.migration_progress` for the task runner's data role; without them Health's integrity
-      monitor and the response tools' `forms_import_incomplete` check fail. Run it again once the
-      4.1 services have migrated, as `deploy.sh` does.
+      monitor and the response tools' `forms_import_incomplete` check fail. It also grants
+      `bc_tasks_data_google` a column `SELECT` on `google.migration_progress` (once the Google
+      schema has it): without it `google.purge_unencrypted_credentials` and `keyset.drop_old`
+      refuse `import_state_unreadable`. Run it again once the 4.1 services have migrated, as
+      `deploy.sh` does.
    2. **Scale the task runner down.** Set `task-runner` to `replicas: 0` in the stored definition and
       deploy. It is the only service scaled down, and only until sub-step 5: a 4.1 backend answers
       the admin-task routes on its internal listener only, while the runner points at port 8000 until
@@ -1013,6 +1043,13 @@ What the code does in each, checked against `v4.0.13`:
         sub-step 6, not with this deploy. A Swarm stack must set it in the end: with the default
         `direct`, Swarm's ingress mesh lets outside callers reach the worker routes on port 8000,
         and only their key stops them. The admin-task routes exist on port 8001 only.
+      - **Jobs** ("Jobs" in the phases above): `JOBS_BACKEND` is not set on `backend` and
+        `jobs-worker`, so 4.1 runs every kind on the queue. Set the actions executor's
+        `DATABASE_URL` (the `bc_jobs_exec` URL) or `JOBS_BACKEND=temporal` on it now, before the
+        tag updates its image (without either it exits at start); `jobs-worker` keeps its replicas.
+      - **The task runner's environment:** remove `MONGO_URI` (step 7 does it for good; until then
+        `keyset.drop_old` and the Google credentials purge refuse `import_incomplete`). Its
+        `MONGO_DB`, `GOOGLE_MONGO_DB` and `DB_WRITE_MODE*` are no longer read.
       - Whatever else the upgrade notes name.
    4. **Push the release tag.** CI updates the images of every service in a rolling update: `backend`,
       `jobs-worker`, `task-runner`, `admin` and `document-sandbox` run the backend image. The 4.1
@@ -1027,6 +1064,9 @@ What the code does in each, checked against `v4.0.13`:
    service logs `schema … migrated`; `auth` 0005 refuses, with counts, while two accounts differ only
    in the case of their email). A service that refuses to start rolls back by itself under the
    `update_config` of Ground rules.
+   Then, as a one-off in a backend task, `python -m backend.migrate jobs-sweep --backend postgres`
+   (every scheduled response deletion onto the queue); keep the Temporal server and worker until the
+   schedules and workflows already in Temporal have run ("Jobs").
 6. **Smoke test and Health.** Run the production smoke test (docs/smoke-test.md): its "standing
    responses export and decrypt" check is the canary for keys and codec. Portal → Health: every
    instance reporting, the `admin`, `app`, `auth` and `google` schemas current, no unresolved outbox
@@ -1302,6 +1342,10 @@ image deploy never reverts a group.
 
 ### Jobs flips (alongside A and B, done before D)
 
+On 4.0.x the default is `temporal`, and these flips move one kind at a time. From 4.1 the default
+is `postgres` ("Jobs" in the phases above): a stack that has not finished them switches the rest
+at the 4.1 deploy.
+
 `jobs-worker` must run (at least one replica, the backend's flags). `DB_AUTO_MIGRATE` on the
 backend creates procrastinate's `jobs` tables, or run `python -m backend.jobs.schema` once as a
 one-off. Temporal and its worker stay in the stack: this cutover removes neither.
@@ -1402,8 +1446,13 @@ rollback of that section, which needs neither, stays.
 2. Remove `mongodb`, `mongo-seed` and every `MONGO_*` from the stored stack definition, and from the
    settings store if it holds any. Keep the volume until its retention ends. Deleting the volume
    is the hard point of no return.
-3. The keyset freeze ends here. `keyset.drop_old` with `mongo_retired` is accepted once every live
-   backend and Google instance reports `write_stores = postgres`. Don't drop a key that the retained
+3. The keyset freeze ends here. On 4.1 `keyset.drop_old` scans Postgres alone and needs the signed
+   `mongo_retired` statement (`store_retired` without it); it is accepted once every live backend
+   and Google instance reports `write_stores = postgres`, the runner has no `MONGO_URI` (unset
+   `TASK_RUNNER_MONGO_URI` first) and `migration_progress` of each schema records no unfinished
+   backfill (`import_incomplete` otherwise; the roles script's grant on
+   `google.migration_progress` must be in place, else `import_state_unreadable`). Confirm that the
+   4.0 import ran, or that the stack never had Mongo: a missing record cannot say. Don't drop a key that the retained
    Mongo archive still needs until that archive is deleted.
 4. Delete the Typeform developer app, if you had one.
 5. Drop the deletion tombstones: `DROP TABLE app.deletion_tombstones, auth.deletion_tombstones,

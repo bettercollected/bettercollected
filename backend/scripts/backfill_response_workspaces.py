@@ -6,8 +6,9 @@
 
 Responses (``form_responses``) and deletion requests
 (``responses_deletion_requests``) stored before ``workspace_id`` existed carry
-none. This attributes each one, in Mongo (``MONGO_URI``/``MONGO_DB``) and, when
-``DATABASE_URL`` is set, in the Postgres twin:
+none. This attributes each one, in Postgres (``DATABASE_URL``, the only store
+since 4.1; ``--store mongo`` and ``--store all`` are refused, ``store_retired``,
+before anything connects):
 
 * the form is linked to exactly one workspace -> that workspace;
 * the form is linked to several workspaces -> the workspace whose key context
@@ -49,11 +50,9 @@ import os
 import sys
 from typing import List
 
-from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.responses_backfill import (  # noqa: F401 - the CLI's public names
     ENCRYPTED_FIELDS,
     Attributor,
-    MongoStore,
     PostgresStore,
     backfill_store,
     default_opener,
@@ -78,8 +77,8 @@ def _parse(argv: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--store",
         choices=("all", "mongo", "postgres"),
-        default="all",
-        help="all = Mongo, plus Postgres when DATABASE_URL is set",
+        default="postgres",
+        help="postgres; mongo and all (Mongo too) are refused: store_retired",
     )
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument(
@@ -101,43 +100,22 @@ def _parse(argv: List[str]) -> argparse.Namespace:
 
 async def _main(argv: List[str]) -> int:
     args = _parse(argv)
-    from pymongo import AsyncMongoClient
-
-    # MONGO_URI / MONGO_DB only: no other backend setting is needed
-    from backend.config.database import MongoSettings
-
+    if args.store != "postgres":
+        print(
+            "refused (store_retired): Mongo is no longer covered; use --store postgres.",
+            file=sys.stderr,
+        )
+        return 2
     url = os.environ.get("DATABASE_URL")
-    if args.store == "postgres" and not url:
+    if not url:
         print("DATABASE_URL is not set.", file=sys.stderr)
         return 2
-    stores, closers = [], []
-    if args.store in ("all", "mongo"):
-        mongo = MongoSettings()
-        client = AsyncMongoClient(mongo.URI)
-        stores.append(MongoStore(client[mongo.DB]))
-        closers.append(client.close)
-    if url:
-        from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.ext.asyncio import create_async_engine
 
-        engine = create_async_engine(url)
-        closers.append(engine.dispose)
-        postgres = PostgresStore(engine)
-        for store in stores:  # Mongo reads the forms' links from Postgres (4.1)
-            store.links_source = postgres
-        if args.store in ("all", "postgres"):
-            stores.append(postgres)
+    engine = create_async_engine(url)
     try:
-        if url and stores and stores[0].name == "mongo":
-            # the forms' links: only once their import is complete may
-            # anything be written from them; a read goes on, with a warning
-            problem = await import_problem(stores[0].db, postgres.links, engine)
-            if problem and args.apply:
-                print(f"refused ({problem[0]}): {problem[1]}", file=sys.stderr)
-                return 2
-            if problem:
-                print(f"warning: {problem[1]}", file=sys.stderr)
         report = await run(
-            stores,
+            [PostgresStore(engine)],
             apply=args.apply,
             opens=default_opener(),
             batch_size=args.batch_size,
@@ -145,8 +123,7 @@ async def _main(argv: List[str]) -> int:
             form_ids=getattr(args, "form_ids", None),
         )
     finally:
-        for close in closers:
-            await close()
+        await engine.dispose()
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0
 

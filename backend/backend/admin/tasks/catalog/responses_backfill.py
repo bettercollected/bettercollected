@@ -12,12 +12,13 @@ from backend.admin.tasks.spec import Id, Params, Result, TaskMeta
 
 
 class Events(str, enum.Enum):
+    # backfilled_mongo: only in the history of runs made before 4.1
     backfilled_mongo = "backfilled_mongo"
     backfilled_postgres = "backfilled_postgres"
 
 
 class BackfillParams(Params):
-    stores: StoreChoice = StoreChoice.auto
+    stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
     # only records of forms linked to this workspace
     workspace_id: Optional[Id] = None
@@ -45,7 +46,7 @@ class StoreBackfill(Result):
 
 class BackfillResult(Result):
     complete: bool
-    mongo: Optional[StoreBackfill] = None
+    mongo: Optional[StoreBackfill] = None  # runs made before 4.1 only
     postgres: Optional[StoreBackfill] = None
 
 

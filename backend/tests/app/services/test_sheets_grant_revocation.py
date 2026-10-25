@@ -317,12 +317,12 @@ class TestRevocation:
         self, service, legacy_connected, fake_google, logged  # noqa: F811
     ):
         fake_google.revoke_status = 503
-        # Temporal routing (the default): no procrastinate job for it
+        # Temporal routing (JOBS_BACKEND=temporal): no procrastinate job for it
         unrouted = TemporalService(
             server_uri="unused:7233",
             namespace="default",
             crypto=container.crypto(),
-            flags=load_flags({}),
+            flags=load_flags({"JOBS_BACKEND": "temporal"}),
             jobs=app,
         )
         with patch.object(service, "_jobs", unrouted):

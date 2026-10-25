@@ -1,8 +1,8 @@
 """The google integration's credential repository: Postgres only.
 
 The Mongo original and the routing between the two stores are gone since
-4.1; Mongo is read only by the import from 4.0 (``python -m
-googleform.migrate``).
+4.1; the credential is a plain ``Record`` (no Beanie). Mongo is read only by
+the import from 4.0 (``python -m googleform.migrate``).
 """
 
 import json
@@ -17,8 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from common.clock import utcnow
 from common.constants import MESSAGE_DATABASE_EXCEPTION
-from common.db import PostgresRepositoryBase
 from common.enums.form_provider import FormProvider
+from common.records.repository import RecordRepository
 from common.services.crypto_service import crypto_service
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
@@ -58,7 +58,7 @@ def update_key(
     return user_id or None
 
 
-class OauthCredentialRepository(PostgresRepositoryBase):
+class OauthCredentialRepository(RecordRepository):
     row = OAuthCredentialRow
     document = Oauth2CredentialDocument
 

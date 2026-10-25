@@ -20,7 +20,7 @@ Read by the backend and the Google Forms service (set it to the same value for b
 |---|---|
 | `on` (default) | Imports, re-syncs and connecting a Google account work. |
 | `readonly` | Forms and responses imported earlier stay readable and manageable here. Nothing is processed with Google any more: no new import, no re-sync (importing an imported form again), no connection or token refresh, no listing of Google forms. These requests answer 403 with `{"code": "google_forms_readonly"}`. The Google Sheets action and deleting stored Google credentials (account deletion, which also revokes the grant at Google: one call that ends access) keep working. bettercollected.com runs in this mode. |
-| `off` | The Google Forms endpoints answer 410 with `{"code": "google_forms_off"}` and the backend never calls the Google Forms service. Google is not listed in `GET /providers`. The Google Sheets action stops too while it still goes through that service, and account deletion erases the Google credentials stored there through the database function `google.purge_user_credentials` (a queued `purge_provider_credentials` job; needs `JOBS_BACKEND__purge_provider_credentials=postgres` and the Google data on Postgres only); a Mongo or dual Google store needs the service running for that. |
+| `off` | The Google Forms endpoints answer 410 with `{"code": "google_forms_off"}` and the backend never calls the Google Forms service. Google is not listed in `GET /providers`. The Google Sheets action stops too while it still goes through that service, and account deletion erases the Google credentials stored there through the database function `google.purge_user_credentials` (a queued `purge_provider_credentials` job; needs the job queue on Postgres, the default `JOBS_BACKEND`, and the Google data on Postgres only, as it is since 4.1). |
 
 `GET /providers` reports the mode for Google (`importMode`: `on` or `readonly`), so the webapp can say why
 imports are not offered. An unknown value stops the backend at startup; the Google Forms service treats
@@ -31,15 +31,15 @@ it as `off`.
 The backend asks the Google Forms service to erase them (`POST /google/oauth/credentials/erase`; the user id
 and email travel in the JSON body, so URLs and access logs carry no email). This happens for the Google
 provider whether it is enabled or disabled. When the call fails, or in `off`, it queues a
-`purge_provider_credentials` job (procrastinate only, so set `JOBS_BACKEND__purge_provider_credentials=postgres`).
+`purge_provider_credentials` job (procrastinate only: it needs the default `JOBS_BACKEND`, `postgres`, not `JOBS_BACKEND__purge_provider_credentials=temporal`).
 The job retries hourly for two days. A purge that is still pending a day after it was queued, or that failed,
 shows in the admin portal's integrity monitor (`CREDENTIAL_PURGE` / `overdue`).
 
 If the job can't be queued, the account deletion fails after the erasure and is retried. Where it shows depends
 on `JOBS_BACKEND__delete_user`:
 
-- `postgres`: the failing deletion job is counted by the same integrity monitor.
-- `temporal` (the default): Temporal retries the workflow's activity. The failure shows in the Temporal UI and
+- `postgres` (the default): the failing deletion job is counted by the same integrity monitor.
+- `temporal`: Temporal retries the workflow's activity. The failure shows in the Temporal UI and
   as an error log line ("could not be queued"), not in the integrity monitor.
 
 Known limits of the database purge in `off` (`google.purge_user_credentials`):
@@ -107,7 +107,7 @@ backend revokes the old grant at Google (`POST https://oauth2.googleapis.com/rev
 the address is fixed in the code). Google's answer 200, or 400 `invalid_token` (already revoked or
 expired), counts as done. Any other answer, or Google not answering, never blocks the new grant: a
 `revoke_google_grant` job retries the revocation once an hour for two days. It runs on the Postgres job
-queue only, so set `JOBS_BACKEND__revoke_google_grant=postgres`; without it the failed revocation is only
+queue only (the default `JOBS_BACKEND`, `postgres`); with `JOBS_BACKEND__revoke_google_grant=temporal` the failed revocation is only
 logged (`revocation retry not queued`) and the old grant stays at Google until the user removes it in their
 Google account. A job still pending after a day, or failed, shows in the admin portal's integrity monitor
 (`CREDENTIAL_PURGE overdue`, with the account-deletion purges).

@@ -26,7 +26,7 @@ _FIELD_NAMES = {
     "internal_answers": "internal_answers",
     "respondent_feedback.message": "feedback_message",
 }
-_EVENT = {"mongo": Events.scanned_mongo, "postgres": Events.scanned_postgres}
+_EVENT = {"postgres": Events.scanned_postgres}
 
 
 class CheckUndecryptable:

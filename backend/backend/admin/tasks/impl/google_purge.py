@@ -1,12 +1,17 @@
 """``google.purge_unencrypted_credentials`` (metadata and filters:
 ``catalog/google_purge.py``).
 
-Mongo goes through the runner's Google Mongo connection (``MONGO_URI`` and
-``GOOGLE_MONGO_DB``), with ``count_documents`` / ``delete_many`` limited to
-:data:`MONGO_FILTER`. Postgres goes through the runner's Google data role, which
-holds no DELETE: it may only execute ``google.purge_unencrypted_credentials``, a
-SECURITY DEFINER function made by ``postgres/ensure-admin-roles.sh`` that holds
-the same filter and returns a count. A dry run opens both stores read-only.
+Postgres goes through the runner's Google data role, which holds no DELETE: it
+may only execute ``google.purge_unencrypted_credentials``, a SECURITY DEFINER
+function made by ``postgres/ensure-admin-roles.sh`` that holds the filter and
+returns a count. A dry run opens the store read-only. Mongo is never touched
+(``store_retired``). An apply is refused (``import_incomplete``) until the import
+from 4.0 is over: while the runner has a Mongo connection configured, or while
+``google.migration_progress`` records an unfinished backfill, or the role cannot
+read it (``import_state_unreadable``: re-run the roles script); running the
+import again would copy the rows still held in Mongo back. With no record at all
+the operator is trusted to have confirmed that the import ran (or that there
+was no Mongo).
 
 Counts only, in the result, the events and the audit log: never an id, an
 email or a token.
@@ -14,7 +19,7 @@ email or a token.
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict
 
 from sqlalchemy import text
 
@@ -25,24 +30,10 @@ from backend.admin.tasks.impl import keyset_state as state
 from backend.admin.tasks.spec import Refusal
 
 TARGET = core.GOOGLE_CREDENTIALS
-# docs/postgres-cutover-runbook.md ("Google credentials without a user id")
-MONGO_FILTER = {
-    "$or": [
-        {"user_id": {"$in": [None, ""]}},
-        {"credentials.token": {"$exists": True}},
-        {"credentials.refresh_token": {"$exists": True}},
-    ]
-}
 FUNCTION = "google.purge_unencrypted_credentials(boolean)"
 AUDIT_ACTION = "task.google.purged"
 # the id an event or audit row names the target by ("credential" would be blanked)
 TARGET_ID = state.event_target("google_credentials")
-
-
-def _ordered(names: List[str]) -> List[str]:
-    """Mongo first, then Postgres, whatever the write mode's primary: a store
-    deleted second can never copy a row back into the first."""
-    return sorted(names, key=lambda name: name != "mongo")
 
 
 async def _function_ready(store) -> bool:
@@ -58,15 +49,6 @@ async def _function_ready(store) -> bool:
                 )
             ).scalar_one()
         )
-
-
-async def _purge_mongo(store, apply: bool) -> Dict[str, int]:
-    collection = store.db[TARGET.collection]
-    matched = await collection.count_documents(MONGO_FILTER)
-    deleted = 0
-    if apply and matched:
-        deleted = (await collection.delete_many(MONGO_FILTER)).deleted_count
-    return {"matched": int(matched), "deleted": int(deleted)}
 
 
 async def _purge_postgres(store, apply: bool) -> Dict[str, int]:
@@ -91,33 +73,25 @@ class PurgeUnencryptedCredentials:
 
     async def _gate(self, params, *, apply: bool) -> tuple:
         config = state.DataConfig.from_env()
-        names = _ordered(config.stores_for(TARGET, params.stores))
-        if apply:
-            # An apply must cover every store the services still write, and
-            # Mongo whenever the runner has a Mongo connection: a row left
-            # readable in one store would be copied back into the other by the
-            # next backfill or reconcile (neither store keeps a deletion
-            # tombstone here). From 4.1 the services write Postgres alone, but
-            # the import from 4.0 (`googleform.migrate backfill`) still copies
-            # whatever Mongo holds. A dry run may count a single store.
-            required = set(config.written(TARGET))
-            if "mongo" in config.configured(TARGET):
-                required.add("mongo")
-            if any(name not in names for name in required):
-                raise Refusal("stores_incomplete")
+        names = config.stores_for(TARGET, params.stores)
         async with state.open_target_stores(config, TARGET, names, read_only=True) as stores:
             for store in stores:
                 try:
                     await state.ping(store)
                 except Exception:  # noqa: BLE001 - never surface a driver message
                     raise Refusal("store_unreachable") from None
-                if store.name == "postgres":
-                    try:
-                        ready = await _function_ready(store)
-                    except Exception:  # noqa: BLE001
-                        raise Refusal("store_unreachable") from None
-                    if not ready:
-                        raise Refusal("purge_function_missing")
+                try:
+                    ready = await _function_ready(store)
+                except Exception:  # noqa: BLE001
+                    raise Refusal("store_unreachable") from None
+                if not ready:
+                    raise Refusal("purge_function_missing")
+                if apply:
+                    # Rows left in Mongo (4.0's copy) would come back if the import
+                    # ran again: only once it is over (state.check_import_finished)
+                    # may rows be purged from Postgres alone. Mongo is not touched,
+                    # and no manual step is needed while the import is not re-run.
+                    await state.check_import_finished(store, config.mongo_configured)
         return config, names
 
     async def precheck(self, ctx, params: catalog.PurgeParams) -> None:
@@ -131,8 +105,7 @@ class PurgeUnencryptedCredentials:
             config, TARGET, names, read_only=ctx.dry_run
         ) as stores:
             for store in stores:
-                purge = _purge_mongo if store.name == "mongo" else _purge_postgres
-                counts = await purge(store, apply)
+                counts = await _purge_postgres(store, apply)
                 out[store.name] = catalog.StorePurge(**counts)
                 await ctx.emit(
                     Events.purged if apply else Events.counted,
@@ -140,8 +113,6 @@ class PurgeUnencryptedCredentials:
                     [TARGET_ID, store.name],
                 )
                 if apply:
-                    # one row per store, right after its delete: a run that stops
-                    # between Mongo and Postgres still leaves Mongo's counts
                     await ctx.audit(
                         AUDIT_ACTION,
                         target_type=TARGET_ID,
