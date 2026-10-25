@@ -254,3 +254,10 @@ from the terminal so hook failures are visible.
   [Shared secrets](#shared-secrets-must-match-across-services).
 - **CORS:** a new host must exist in the Postgres `allowed_origins` table
   (`python -m backend.seed_refdata --origin ...` seeds an empty one).
+- **"Refusing to start: the ... group(s) are served from Postgres only ... never
+  imported into Postgres":** an older local Mongo volume still holds data for a
+  group that is now served from Postgres only (typically the reference data the
+  old Mongo seed wrote). Run the import command the message prints (from
+  `backend/`, with `uv run`), or, for a throwaway local stack, start with
+  `DB_DISCARD_UNIMPORTED_MONGO_DATA=<group>` (or `all`) and seed Postgres with
+  `seed_refdata` instead. Never set the override on a stack whose data matters.
