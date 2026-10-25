@@ -335,6 +335,21 @@ class TestCreateSpreadsheet:
         assert created.headers["Authorization"] == f"Bearer {ACCESS_TOKEN}"
         _assert_nothing_secret(logged, ACCESS_TOKEN, "stored-refresh-token")
 
+    async def test_a_stored_token_address_is_never_used(self, service, fake_google):
+        """A forged credential cannot send the backend to another host: the
+        refresh goes to the configured token endpoint only."""
+        forged = _stored(
+            expiry=datetime.utcnow() - timedelta(minutes=5),
+            token_uri="http://10.0.0.1:6379/internal",
+        )
+
+        assert await service.create_spreadsheet("Title", forged) == SPREADSHEET_ID
+
+        hosts = {r.url.host for r in fake_google.requests}
+        assert "10.0.0.1" not in hosts
+        assert [str(r.url) for r in fake_google.requests][0] == TOKEN_URI
+        assert len(fake_google.token_requests()) == 1
+
     async def test_a_legacy_credential_still_creates_the_sheet(self, service):
         legacy = _stored(
             scopes="https://www.googleapis.com/auth/spreadsheets "

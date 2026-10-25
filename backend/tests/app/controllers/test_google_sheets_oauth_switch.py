@@ -249,3 +249,89 @@ class TestBackendFlow:
         monkeypatch.setattr(settings.google_sheets, "CLIENT_SECRET", "")
         response = await client.get(OAUTH_URL, cookies=test_user_cookies)
         assert response.status_code == 503
+
+
+class TestCallerSuppliedSecrets:
+    """Only the OAuth callback writes the Sheets action's credential."""
+
+    @pytest.mark.parametrize("name", ["Credentials", "Other"])
+    async def test_adding_the_sheets_action_with_secrets_is_refused(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        backend_sheets_oauth,  # noqa: F811
+        name,
+    ):
+        forged = container.crypto().encrypt(
+            json.dumps(
+                {
+                    "token": "x",
+                    "refresh_token": "x",
+                    "token_uri": "http://10.0.0.1:6379/internal",
+                    "expiry": "2000-01-01T00:00:00.000000Z",
+                }
+            )
+        )
+        for attempt in range(2):  # adding, then adding again (the update path)
+            response = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/actions",
+                cookies=test_user_cookies,
+                json={
+                    "action_id": str(sheets_action.id),
+                    "parameters": [{"name": "Title", "value": "Sheet"}],
+                    "secrets": [{"name": name, "value": forged}],
+                },
+            )
+            assert response.status_code == 422, response.text
+            assert response.json()["code"] == "action_secrets_not_allowed"
+
+        form = await _form(workspace_form.form_id)
+        assert not form.secrets
+        assert not (form.actions or {}).get("on_submit")
+        assert backend_sheets_oauth.requests == []
+
+    async def test_a_connected_credential_survives_a_refused_attempt(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        backend_sheets_oauth,  # noqa: F811
+    ):
+        connected = await _connect(
+            client, test_user_cookies, workspace_form.form_id, str(sheets_action.id)
+        )
+        assert connected.status_code == 200, connected.text
+        before = (await _form(workspace_form.form_id)).secrets
+
+        refused = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/actions",
+            cookies=test_user_cookies,
+            json={
+                "action_id": str(sheets_action.id),
+                "secrets": [{"name": "Credentials", "value": "forged"}],
+            },
+        )
+
+        assert refused.status_code == 422
+        assert (await _form(workspace_form.form_id)).secrets == before
+
+    async def test_other_actions_still_take_secrets(
+        self, client: AsyncClient, workspace, workspace_form, test_user_cookies
+    ):
+        other = await container.action_repository().create_global_action(
+            ActionDto(name="send_webhook", action_code=""), testUser
+        )
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/actions",
+            cookies=test_user_cookies,
+            json={
+                "action_id": str(other.id),
+                "secrets": [{"name": "Signing key", "value": "k"}],
+            },
+        )
+        assert response.status_code == 200, response.text

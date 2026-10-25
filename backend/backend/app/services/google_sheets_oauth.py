@@ -238,6 +238,13 @@ class GoogleSheetsOAuth:
 
         The refreshed token is used for this request only; the stored
         credential is left as it is (the executor refreshes its own copy).
+
+        The refresh always goes to the configured ``GOOGLE_TOKEN_URI``, never
+        to the credential's own ``token_uri``: a credential is only as
+        trustworthy as whoever stored it, and a stored address would let it
+        send the backend to any host. Every Google refresh token (also those
+        of credentials connected through the Google Forms service) is
+        refreshed at Google's one token endpoint.
         """
         try:
             expiry = datetime.strptime(
@@ -247,12 +254,12 @@ class GoogleSheetsOAuth:
             expiry = None
         if credential.get("token") and expiry and expiry - REFRESH_MARGIN > _utcnow():
             return credential["token"]
-        if not credential.get("refresh_token") or not credential.get("token_uri"):
+        if not credential.get("refresh_token"):
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, MESSAGE_OAUTH_MISSING_REFRESH_TOKEN
             )
         token = await self._post_token(
-            credential["token_uri"],
+            settings.google_sheets.TOKEN_URI,
             {
                 "client_id": credential.get("client_id") or "",
                 "client_secret": credential.get("client_secret") or "",
