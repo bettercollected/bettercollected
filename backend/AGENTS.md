@@ -359,7 +359,8 @@ up new/changed templates the next time it restarts, no manual step required.
   survive restarts. One exception: at startup it gives an existing template's yes/no fields the Yes/No choices
   earlier versions left out (forms made from them showed the question with nothing to answer), and
   `repair_leaflet_design` moves templates still wearing the old seeded theme to the Leaflet preset and style
-  (`template_theme()`, read from `constants/themes.py`, never copied) and fills an empty welcome description.
+  (`template_theme()`, read from `constants/themes.py`, never copied) and fills an empty welcome description
+  and empty page section titles (`section_title`).
   That repair recognises the script's own templates by title, `builder_version="v2"`, public, not imported,
   and exactly the builder's questions (type + title); a theme changed by hand is kept, nothing is created,
   and forms made from a template keep their stored theme. The existence

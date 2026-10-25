@@ -10,6 +10,7 @@ from backend.app.schemas.template import FormTemplateDocument
 from scripts.seed_flow_templates import (
     TEMPLATE_BUILDERS,
     lead_qualification,
+    support_triage,
     repair_yes_no_choices,
     seed_flow_templates,
 )
@@ -219,9 +220,26 @@ async def test_new_templates_wear_leaflet_with_a_welcome_description():
         assert {_layout(slide.properties) for slide in stored.fields} == {LAYOUT}
 
 
+def _without_section_titles(payload):
+    for page in payload["fields"]:
+        page["properties"].pop("section_title", None)
+    return payload
+
+
+def _section_titles(template):
+    return [page.properties.section_title for page in template.fields]
+
+
+def _seeded_section_titles(payload):
+    return [page["properties"].get("section_title") for page in payload["fields"]]
+
+
 async def _save_template(payload, *, theme=LEGACY_THEME, workspace_id=WORKSPACE_ID, **extra):
     """A template as earlier versions of the seed stored it (old theme, a
-    welcome page with a title only), unless told otherwise."""
+    welcome page with a title only, pages without section titles), unless
+    told otherwise."""
+    if not extra.pop("keep_section_titles", False):
+        payload = _without_section_titles(payload)
     doc = FormTemplateDocument(
         builder_version=extra.pop("builder_version", "v2"),
         type="form",
@@ -327,3 +345,69 @@ async def test_forms_made_from_an_old_template_keep_their_theme(
     form = await container.form_repo().get_form_document_by_id(form_id)
     assert form.theme.model_dump(exclude_none=True) == LEGACY_THEME
     assert form.welcome_page.description is None
+
+
+def test_every_seeded_page_has_a_short_section_title():
+    for build in TEMPLATE_BUILDERS:
+        payload = build()
+        titles = _seeded_section_titles(payload)
+        assert all(titles) and all(len(t) <= 30 for t in titles), build.__name__
+        # Never the page's first question, which the bar would repeat.
+        for page, title in zip(payload["fields"], titles):
+            assert title != page["properties"]["fields"][0]["title"]
+
+
+async def test_new_templates_have_their_section_titles():
+    repo = container.form_template_repo()
+    await seed_flow_templates(WORKSPACE_ID, template_repo=repo)
+    stored = await repo.get_v2_template_by_title("Lead qualification")
+    assert _section_titles(stored) == ["Timing", "Your needs", "Contact"]
+
+
+async def test_the_repair_adds_section_titles_once_and_keeps_a_title_set_by_hand():
+    from scripts.seed_flow_templates import repair_leaflet_design
+
+    repo = container.form_template_repo()
+    old = await _save_template(lead_qualification())
+    hand_set = await _save_template(support_triage())
+    template = await repo.get_template_by_id(hand_set.id)
+    template.fields[0].properties.section_title = "Wat speelt er?"
+    template.fields[2].properties.section_title = ""
+    await repo.save(template)
+    assert _section_titles(await repo.get_template_by_id(old.id)) == [None, None, None]
+
+    first = await seed_flow_templates(WORKSPACE_ID, template_repo=repo)
+
+    assert sorted(first["restyled"]) == ["Lead qualification", "Support triage"]
+    assert _section_titles(await repo.get_template_by_id(old.id)) == [
+        "Timing",
+        "Your needs",
+        "Contact",
+    ]
+    # The title set by hand stays; empty ones are filled.
+    assert _section_titles(await repo.get_template_by_id(hand_set.id)) == [
+        "Wat speelt er?",
+        "Billing",
+        "Technical issue",
+        "Contact",
+    ]
+
+    # A second run changes nothing.
+    before = [(await repo.get_template_by_id(t.id)).model_dump() for t in (old, hand_set)]
+    second = await seed_flow_templates(WORKSPACE_ID, template_repo=repo)
+    assert second["restyled"] == []
+    assert await repair_leaflet_design(repo, old.id) is False
+    assert [(await repo.get_template_by_id(t.id)).model_dump() for t in (old, hand_set)] == before
+
+
+async def test_the_repair_adds_no_section_titles_to_templates_it_does_not_own():
+    from scripts.seed_flow_templates import repair_leaflet_design
+
+    repo = container.form_template_repo()
+    workspace = PydanticObjectId("65e5501d0000000000000003")
+    copy = await _save_template(lead_qualification(), workspace_id=workspace, imported_from=WORKSPACE_ID)
+    namesake = await _save_template(lead_qualification(), workspace_id=workspace, settings={"is_public": False})
+
+    for template in (copy, namesake):
+        assert await repair_leaflet_design(repo, template.id) is False
+        assert _section_titles(await repo.get_template_by_id(template.id)) == [None, None, None]

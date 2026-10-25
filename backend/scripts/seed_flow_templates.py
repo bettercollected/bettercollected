@@ -69,8 +69,13 @@ def _jump(field_id: str, value: str, target: str, field_type: str = "dropdown") 
     return {"operator": "AND", "conditions": [_cond(field_id, "IS_EQUAL", value, field_type)], "target": target}
 
 
-def _slide(fields: list, jumps: list | None = None) -> dict:
+def _slide(fields: list, jumps: list | None = None, section: str | None = None) -> dict:
     slide = {"id": _id(), "index": 0, "type": "slide", "properties": {"layout": LAYOUT, "fields": fields}}
+    if section:
+        # The page's section title: what the Leaflet section bar and the
+        # welcome page's contents list show, instead of repeating the
+        # page's first question.
+        slide["properties"]["section_title"] = section
     if jumps:
         slide["properties"]["jumps"] = jumps
     return slide
@@ -225,16 +230,39 @@ def _set_layout(page) -> None:
         page.layout = LayoutType(LAYOUT)
 
 
+def _add_missing_section_titles(pages, seeded_pages) -> int:
+    """Give each page the section title its builder gives it, where the
+    stored page has none (empty or unset); a title set by hand stays.
+    Pages are matched in order, and only when each holds exactly the
+    builder page's questions."""
+    pages = list(pages or [])
+    if len(pages) != len(seeded_pages):
+        return 0
+    added = 0
+    for page, seeded in zip(pages, seeded_pages):
+        title = seeded["properties"].get("section_title")
+        props = page.properties
+        if not title or props is None or _questions(props.fields) != _questions(seeded["properties"]["fields"]):
+            continue
+        if not (props.section_title or "").strip():
+            props.section_title = title
+            added += 1
+    return added
+
+
 async def repair_leaflet_design(template_repo, template_id) -> bool:
     """Move a predefined template this script seeded before it used Leaflet
     to the Leaflet preset and style and the layout Leaflet is made for, and
-    give its welcome page its one-line description when it has none.
+    give its welcome page its one-line description and its pages their
+    section titles where they have none.
 
-    Touches only the script's own templates (``_seed_payload_of``) and only
-    while they still wear the old seeded theme, so a theme changed by hand
-    stays. Never creates anything. Forms made from a template store their
-    own copy of its theme, so they keep theirs. Idempotent: a repaired
-    template no longer wears the old theme and has its description.
+    Touches only the script's own templates (``_seed_payload_of``). The
+    theme changes only while it is still the old seeded one, so a theme
+    changed by hand stays; a description or section title set by hand stays
+    too. Never creates anything. Forms made from a template store their own
+    copy of its theme, so they keep theirs. Idempotent: a repaired template
+    no longer wears the old theme and has its description and section
+    titles.
     Returns True if it changed."""
     from common.models.standard_form import Theme, WelcomePageField
 
@@ -261,6 +289,8 @@ async def repair_leaflet_design(template_repo, template_id) -> bool:
     if not template.welcome_page.description:
         template.welcome_page.description = payload["welcome"]
         changed = True
+    if _add_missing_section_titles(template.fields, payload["fields"]):
+        changed = True
     if changed:
         await template_repo.save(template)
     return changed
@@ -268,11 +298,12 @@ async def repair_leaflet_design(template_repo, template_id) -> bool:
 
 def support_triage() -> dict:
     topic = _q("dropdown", "What do you need help with?", _choices("Billing", "Technical issue", "Something else"), required=True)
-    billing = _slide([_q("short_text", "Which invoice or charge is this about?")])
-    technical = _slide([_q("long_text", "Describe the issue — what did you expect, and what happened?")])
-    contact = _slide([_q("email", "Where should we reply?", required=True, why=WHY_REPLY)])
+    billing = _slide([_q("short_text", "Which invoice or charge is this about?")], section="Billing")
+    technical = _slide([_q("long_text", "Describe the issue — what did you expect, and what happened?")], section="Technical issue")
+    contact = _slide([_q("email", "Where should we reply?", required=True, why=WHY_REPLY)], section="Contact")
     intro = _slide(
         [topic],
+        section="Your request",
         jumps=[
             _jump(topic["id"], "Billing", billing["id"]),
             _jump(topic["id"], "Technical issue", technical["id"]),
@@ -293,10 +324,11 @@ def support_triage() -> dict:
 
 def lead_qualification() -> dict:
     timeline = _q("yes_no", "Are you looking to get started in the next 3 months?", _yes_no(), required=True)
-    details = _slide([_q("short_text", "What's the main problem you're hoping to solve?"), _q("number", "How many people are on your team?")])
-    contact = _slide([_q("email", "Best email to reach you", required=True, why=WHY_FOLLOW_UP)])
+    details = _slide([_q("short_text", "What's the main problem you're hoping to solve?"), _q("number", "How many people are on your team?")], section="Your needs")
+    contact = _slide([_q("email", "Best email to reach you", required=True, why=WHY_FOLLOW_UP)], section="Contact")
     intro = _slide(
         [timeline],
+        section="Timing",
         # Not in the market → polite, short exit; qualified leads continue.
         jumps=[_jump(timeline["id"], "No", "__SUBMIT__", field_type="yes_no")],
     )
@@ -311,10 +343,11 @@ def lead_qualification() -> dict:
 
 def job_screening() -> dict:
     authorized = _q("yes_no", "Are you legally authorized to work in this role's location?", _yes_no(), required=True)
-    experience = _slide([_q("long_text", "Tell us about your most relevant experience."), _q("url", "Portfolio or LinkedIn")])
-    contact = _slide([_q("email", "Contact email", required=True, why=WHY_APPLICATION), _q("phone_number", "Phone number", why=WHY_APPLICATION_PHONE)])
+    experience = _slide([_q("long_text", "Tell us about your most relevant experience."), _q("url", "Portfolio or LinkedIn")], section="Experience")
+    contact = _slide([_q("email", "Contact email", required=True, why=WHY_APPLICATION), _q("phone_number", "Phone number", why=WHY_APPLICATION_PHONE)], section="Contact")
     intro = _slide(
         [authorized],
+        section="Eligibility",
         jumps=[_jump(authorized["id"], "No", "__SUBMIT__", field_type="yes_no")],
     )
     return {
