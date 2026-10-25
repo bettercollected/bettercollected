@@ -17,7 +17,8 @@ PLACEHOLDER_API_KEYS = frozenset({"random_api_key"})
 class ApplicationSettings(BaseSettings):
     temporal_server_url: str = "localhost:7233"
     namespace: str = "default"
-    server_url: str = "http://backend:8000/api/v1"
+    # the backend's internal listener (API_INTERNAL_PORT): never published
+    server_url: str = "http://backend:8001/api/v1"
     # Sent as the ``api-key`` header to the backend's internal job routes; the
     # same value as TEMPORAL_API_KEY on the backend. No default: unset (or a
     # published placeholder) is "", which the backend refuses.

@@ -410,6 +410,19 @@ async def client(_initialized_app):
         yield ac
 
 
+@pytest_asyncio.fixture(loop_scope="session")
+async def internal_client(_initialized_app):
+    """A client on the backend's internal listener (API_INTERNAL_PORT), as the
+    task runner and the workers reach it inside the stack."""
+    from backend.app.services.internal_routes import internal_port
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=_initialized_app, client=("172.18.0.5", 40000)),
+        base_url=f"http://backend:{internal_port()}",
+    ) as ac:
+        yield ac
+
+
 @pytest.fixture()
 async def workspace():
     await workspace_service.create_workspace(testUser)

@@ -618,7 +618,72 @@ So a bundled install needs one value from you, `PLATFORM_ADMIN_EMAILS`, plus `AD
 | MongoDB (`mongodb`, `legacy-mongo` profile: a 4.0 stack's import only) | compose network only | `root` / `BC_MONGO_ROOT_PASSWORD` | not published, and not started by a 4.1 deployment except for the one-time import. The seed job connects with the password from its environment (never a command line) and removes the `seeduser` account that earlier releases created on every deploy; since 4.1 it seeds no data (the reference data is in Postgres, see "New install" above) and leaves what earlier releases seeded for the import. A volume made by 4.0 has the password 4.0 generated (`BC_MONGO_ROOT_PASSWORD`); an older one keeps `root`. For the import `deploy.sh` uses the `MONGO_URI` the stack has (from its files or its store), or stores `mongodb://root:<that password>@mongodb:27017` (else `root`), and clears it once the data is in Postgres |
 | `app-postgres` | compose network, plus `admin-db` for the admin service | one generated role password per service | no published port |
 | Backend (8000), webapp (3000), nginx (3001/3002/3003) | the host's network | the application's own sign-in | the public edge of the stack |
+| Backend's internal listener (`backend`, 8001) | compose network only (no `ports:` entry, never proxied) | `ADMIN_TASKS_API_KEY` / `TEMPORAL_API_KEY` on the key-only routes | the task runner and the workers call it; see "Internal routes" below |
 | Admin portal | `127.0.0.1:${ADMIN_PORT:-8100}` only | sign-in with a second factor | reach it with `ssh -L` |
+
+### Internal routes
+
+A few API routes are only ever called by services inside the stack, with a shared key:
+
+| Route (under `/api/v1`) | Caller | Key |
+|---|---|---|
+| `GET /internal/admin-tasks/case-duplicate-accounts`, `POST .../{id}/drop` | `task-runner` (`ADMIN_TASKS_BACKEND_URL`) | `ADMIN_TASKS_API_KEY` in `X-Admin-Tasks-Key` |
+| `POST /temporal/delete/submissions/{id}`, `PATCH /template/{id}/preview`, `DELETE /auth/user` | Temporal worker (`SERVER_URL`) | `TEMPORAL_API_KEY` in `api-key` (the worker's `API_KEY`) |
+| `PATCH /temporal/forms/{form}/actions/{action}/secrets`, `PATCH /workspaces/{ws}/forms/{form}/action/{action}/update` | actions executor (`SERVER_URL`) | the same |
+
+The key is not their only guard. The backend also listens on `API_INTERNAL_PORT` (8001), which
+is never published or proxied, and refuses these routes with a plain 404, before it looks at any
+key, when the request did not come from inside the stack:
+
+- **Admin-task routes**: the internal listener only, always. Without one (`API_INTERNAL_PORT=0`)
+  they are unreachable.
+- **Worker routes**: `API_INTERNAL_ROUTES` decides. `direct` (the default, for the transition)
+  also accepts them on the public port 8000 for a direct request from a loopback or private
+  address (10/8, 172.16/12, 192.168/16, fc00::/7). `internal_port` accepts the internal listener
+  only. While the mode is `direct` the backend logs a warning at startup. `direct` is a
+  transition setting: a later release makes `internal_port` the default.
+- **Any port**: a request carrying a proxy header (`X-Forwarded-For`, `X-Real-IP`, `Forwarded`,
+  `X-Forwarded-Proto`/`-Host`, `CF-Connecting-IP`, `True-Client-IP`, `X-Client-IP`,
+  `X-Cluster-Client-IP`, `Fastly-Client-IP`, `X-Envoy-External-Address`, `X-Azure-ClientIP`,
+  `Via`, ...; any case) is refused. The task runner and the workers never send one.
+
+The listener is chosen by the socket the request arrived on, not by a header, so it cannot be
+faked from outside. Both settings are environment only (`docker-compose.deployment.yml` passes
+them from the root `.env`).
+
+**Upgrading.** `deploy.sh` and the compose file point the task runner at
+`http://backend:8001/api/v1`. The worker's `SERVER_URL` comes from `.env.deployment`: change it
+to `http://backend:8001/api/v1` there (the example file has it), run `deploy.sh`, check that
+imports, scheduled response deletion and account deletion still work, then set
+`API_INTERNAL_ROUTES=internal_port` in the root `.env` and deploy again. A stack deployed without
+`deploy.sh` (Docker Swarm, Kubernetes) makes the same changes in its own stack file: the backend
+needs nothing new (the listener starts by default); point `SERVER_URL` of the worker and the
+actions executor and `ADMIN_TASKS_BACKEND_URL` of the task runner at port 8001 of the backend
+service, then switch to `internal_port`.
+
+**Your own reverse proxy.** Whatever sits in front of the API:
+
+- Never publish or proxy port 8001. In Swarm, do not add it to the service's `ports`; services
+  on the same overlay network reach it without that.
+- Route to port 8000 only, and make the proxy add `X-Forwarded-For` (Traefik, Caddy, Cloudflare
+  and most load balancers do by default; nginx needs `proxy_set_header X-Forwarded-For
+  $proxy_add_x_forwarded_for;`). In `direct` mode that header is what tells a proxied request
+  from a worker's: a proxy that adds none and connects from a private address passes for an
+  in-stack caller. `internal_port` does not depend on it.
+- `direct` relies on two things: every proxy in front of port 8000 adds a forwarding header, and
+  no path to port 8000 rewrites an outside client's address to a private one. Several common
+  paths do rewrite it: Docker's userland-proxy (an IPv6 client of a published port arrives as the
+  bridge gateway, 172.x.0.1), a proxy on the host that adds no `X-Forwarded-For` (it arrives as
+  127.0.0.1), and Swarm's ingress mesh (it arrives as an overlay address, 10.x). Through any of
+  them an outside caller passes the edge check and only the key stops it.
+- So **Swarm or any ingress-mesh stack, and any stack where port 8000 can be reached from
+  outside the host (published directly, as `docker-compose.deployment.yml` does, or behind a
+  proxy), MUST use `API_INTERNAL_ROUTES=internal_port`** once its workers call port 8001.
+  `internal_port` decides by the socket the request arrived on, so none of these rewrites
+  matter.
+
+The SCIM webhook (`POST /scim/webhook/{directory}`, called by Polis) is not one of these routes:
+each event is signed with its directory's own secret, and Polis may run outside the stack.
 
 ## Upgrading to 4.0
 
@@ -1155,7 +1220,8 @@ stated. "Has forms" means the account's deletion would take at least one form: a
   its own `ADMIN_TASKS_API_KEY` is unset, so the routes are off by default. Set the same random
   value (for example `openssl rand -hex 32`) on the `backend` and `task-runner` services;
   `ADMIN_TASKS_BACKEND_URL` (compose: `TASK_RUNNER_BACKEND_URL`, default
-  `http://backend:8000/api/v1`) is where the runner reaches the API. Without them the task
+  `http://backend:8001/api/v1`, the backend's internal listener) is where the runner reaches the
+  API; the routes answer nowhere else ("Internal routes" above). Without them the task
   refuses with `backend_not_configured`, `backend_key_missing` (the API has no key) or
   `backend_key_refused` (the keys differ). Unset the key on both once the task is done.
 
@@ -1351,5 +1417,7 @@ check), `(setting, reason)` pairs and the time of the check; `Portal.mail_status
 | `MAIL_*` | empty | SMTP for sign-in codes (same names as the other services); `ADMIN_MAIL_*` of the same names wins, and settings saved by the setup wizard apply when neither is set |
 | `ADMIN_SESSION_IDLE_MINUTES` / `ADMIN_SESSION_ABSOLUTE_HOURS` | `30` / `8` | session lifetimes (shorter only) |
 | `ADMIN_TASKS_API_KEY` | empty (routes off) | backend and task-runner: the key of the internal admin-task routes (`auth.resolve_case_duplicate_accounts`) |
-| `TASK_RUNNER_BACKEND_URL` | `http://backend:8000/api/v1` | task-runner: where it reaches the API (`ADMIN_TASKS_BACKEND_URL`) |
+| `TASK_RUNNER_BACKEND_URL` | `http://backend:8001/api/v1` | task-runner: where it reaches the API's internal listener (`ADMIN_TASKS_BACKEND_URL`) |
+| `API_INTERNAL_PORT` | `8001` | backend: port of the internal listener (never publish it; `0`: none, the admin-task routes are then unreachable) |
+| `API_INTERNAL_ROUTES` | `direct` | backend: `direct` also takes the workers' key-only routes on port 8000 from private addresses without proxy headers; `internal_port` only on the internal listener |
 | `ADMIN_STEPUP_SECONDS` | `300` | how long a verified code counts for sensitive actions (max 600) |

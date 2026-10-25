@@ -35,6 +35,12 @@ BASE = "/api/v1/internal/admin-tasks/case-duplicate-accounts"
 T0 = datetime(2023, 1, 1, tzinfo=timezone.utc)
 
 
+@pytest.fixture
+def client(internal_client):
+    # the admin-task routes answer on the internal listener only
+    return internal_client
+
+
 def _id(days: int) -> str:
     return str(ObjectId.from_datetime(T0 + timedelta(days=days)))
 

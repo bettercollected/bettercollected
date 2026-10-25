@@ -124,7 +124,9 @@ def update_credentials_in_form(credentials: dict, action_id: str, form_id: str):
     payload = {"name": "Credentials", "value": creds, "type": "secrets"}
     # call backend to update the credentials in form
     httpx.patch(
-        url=f"{settings.backend_url}/temporal/forms/{form_id}/actions/{action_id}/secrets",
+        # in-network (SERVER_URL), never the public BACKEND_URL: the backend
+        # refuses its internal routes through the public ingress
+        url=f"{settings.server_url}/temporal/forms/{form_id}/actions/{action_id}/secrets",
         headers={"api-key": settings.api_key},
         json=payload,
     )

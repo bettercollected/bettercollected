@@ -2,7 +2,9 @@
 
 Only the runner calls them: it presents ``ADMIN_TASKS_API_KEY`` in
 ``X-Admin-Tasks-Key``; no session, no other key is accepted. Unset key: 503
-(fail closed). Each route does one narrow thing, and decides itself what it
+(fail closed). They answer on the backend's internal listener only
+(``API_INTERNAL_PORT``, never published; ``services/internal_routes.py``):
+anywhere else, or through a proxy, they are a 404 before the key is checked. Each route does one narrow thing, and decides itself what it
 may do: the runner names an account, never a decision.
 
 * ``GET  /internal/admin-tasks/case-duplicate-accounts``: the groups of
@@ -24,12 +26,15 @@ from loguru import logger
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
+from backend.app.services.internal_routes import require_internal_listener
 from backend.config import settings
 
 KEY_HEADER = "X-Admin-Tasks-Key"
 
 
 def require_admin_tasks_key(request: Request) -> None:
+    # the internal listener only (404 otherwise), before the key is looked at
+    require_internal_listener(request)
     expected = (settings.ADMIN_TASKS_API_KEY or "").strip()
     if not expected:
         logger.error("Refused an admin task request: ADMIN_TASKS_API_KEY is not set.")

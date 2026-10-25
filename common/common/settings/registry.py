@@ -82,6 +82,9 @@ ENV_ONLY_KEYS = frozenset(
     {
         "DATABASE_URL",
         "TASKS_DATABASE_URL",
+        # the API's internal listener: read before the store, at process start
+        "API_INTERNAL_PORT",
+        "API_INTERNAL_ROUTES",
         "SETTINGS_MASTER_KEY",
         "SETTINGS_MASTER_KEY_PREVIOUS",
         "SETTINGS_STORE",
