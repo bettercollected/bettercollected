@@ -46,9 +46,6 @@ environment, whatever the tier.
 | `GOOGLE_AI_MODEL` | ai | backend | str max 200 |  | R | T2 | `gemini-2.0-flash` |
 | `OPENAI_API_KEY` | ai | backend | str | yes | R | T2 |  |
 | `OPENAI_MODAL` | ai | backend | str max 200 |  | R | T2 | `gpt-5-mini-2025-08-07` |
-| `BREVO_CONTACTS_API_KEY` | analytics | backend, auth | str | yes | R | T2 |  |
-| `BREVO_TRACKER_API_URL` | analytics | backend | url |  | R | T3 |  |
-| `BREVO_TRACKER_KEY` | analytics | backend | str | yes | R | T2 |  |
 | `UMAMI_PASSWORD` | analytics | backend | str | yes | R | T2 |  |
 | `UMAMI_URL` | analytics | backend | url internal ok |  | R | T3 |  |
 | `UMAMI_USERNAME` | analytics | backend | str max 200 |  | R | T2 |  |
@@ -354,6 +351,9 @@ environment, whatever the tier.
 
 | Name | Why |
 |---|---|
+| `BREVO_CONTACTS_API_KEY` | marketing tracker (Brevo), removed; ignored |
+| `BREVO_TRACKER_API_URL` | marketing tracker (Brevo), removed; ignored |
+| `BREVO_TRACKER_KEY` | marketing tracker (Brevo), removed; ignored |
 | `TYPEFORM_API_URI` | Typeform integration, removed in 4.1; ignored |
 | `TYPEFORM_AUTH_URI` | Typeform integration, removed in 4.1; ignored |
 | `TYPEFORM_BASIC_REDIRECT_URI` | Typeform integration, removed in 4.1; ignored |

@@ -27,7 +27,7 @@ backend/
       container.py    # dependency-injector AppContainer (wires repos -> services)
       router.py       # aggregates all routers into root_api_router
       asgi.py         # get_application() app factory
-    config/           # settings: api, auth, database, temporal, aws, brevo, redis, sentry, apm, openai, umami
+    config/           # settings: api, auth, database, temporal, aws, redis, sentry, apm, openai, umami
     cli/              # `backend serve` -> gunicorn+uvicorn (prod)
     tests/
 ```
@@ -853,7 +853,9 @@ one of ours; `services/image_urls.py` is the single allow-list:
 - **Provider plugins:** `plugin_proxy_service.py` forwards standardized requests to the external provider
   microservices (:8003 / :8002).
 - **Third-party services:** `aws_service.py` (S3), `stripe_service.py`, `openai_service.py` (prompts/AI form gen),
-  `brevo_service.py` (email/events), `umami_client.py` + `analytics_service.py`.
+  `umami_client.py` + `analytics_service.py`. `event_service.py` posts platform events (sign-up, upgrade,
+  account deletion, ...) to the optional `EVENT_WEBHOOK_URL` with the event type and user id only: never an
+  email address or other personal data.
 
 ## Run / test
 

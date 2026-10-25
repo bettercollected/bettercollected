@@ -20,8 +20,8 @@ Deep reference for how bettercollected fits together. For day-to-day agent guida
                  ┌───────────▼──┐ ┌────▼──────┐ ┌─▼────────┐ │
                  │ auth (:8001) │ │ provider  │ │ Temporal │ │  Third-party:
                  │ OAuth/OTP/JWT│ │ plugins   │ │ server   │ │  S3, Stripe,
-                 │ Stripe billing│ │ (proxy)  │ │ (PG-backed)│ OpenAI, Brevo,
-                 └──────┬───────┘ └────┬──────┘ └─┬────────┘ │  Umami
+                 │ Stripe billing│ │ (proxy)  │ │ (PG-backed)│ OpenAI, Umami
+                 └──────┬───────┘ └────┬──────┘ └─┬────────┘ │
                         │              │          │          │
                         │      ┌───────▼───────┐  │   ┌──────▼───────────────┐
                         │      │ integrations/ │  │   │ temporal workers:     │
@@ -156,7 +156,8 @@ analytics use **Umami**, self-hosted as its own compose service (`umami_client.p
 the webapp loads its tracker script directly from `UMAMI_SCRIPT_URL` and calls `umami.track()` to attribute public
 form views to a canonical `/{workspace_name}/forms/{slug}` path regardless of client-host vs. custom-domain routing —
 see `backend/AGENTS.md` "Analytics (Umami)"). Transactional email
-and events go through **Brevo** / SMTP (`brevo_service.py`, `mail_service.py`).
+goes through SMTP (`mail_service.py`); platform events (sign-up, upgrade, account deletion, ...) can be posted to an
+operator's webhook (`event_service.py`, `EVENT_WEBHOOK_URL`) with the event type and user id only.
 
 ## Deployment
 

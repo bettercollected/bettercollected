@@ -17,7 +17,7 @@ import loguru
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import (
@@ -53,7 +53,7 @@ from backend.app.services.custom_domain_origins import (
     sync_custom_domain_origin,
 )
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -300,7 +300,6 @@ class WorkspaceService:
                     await event_logger_service.send_event(
                         event_type=UserEventType.CUSTOM_DOMAIN_CHANGED,
                         user_id=user.id,
-                        email=user.sub,
                     )
                 else:
                     raise HTTPException(409)
@@ -908,7 +907,7 @@ async def create_workspace(user: User):
     workspace = await workspace_repo.get_default_workspace_by_owner_id(user.id)
     if not workspace:
         await event_logger_service.send_event(
-            event_type=UserEventType.USER_CREATED, user_id=user.id, email=user.sub
+            event_type=UserEventType.USER_CREATED, user_id=user.id
         )
         workspace = WorkspaceDocument(
             title="",

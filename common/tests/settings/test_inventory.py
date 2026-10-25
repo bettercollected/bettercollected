@@ -19,6 +19,7 @@ from common.settings.inventory import (
     NOT_A_SETTING_PREFIXES,
     READERS,
     RETIRED,
+    full_registry,
     TODO_LIVE,
     all_specs,
 )
@@ -266,6 +267,19 @@ def test_retired_keys_are_not_settings_and_are_ignored_by_the_full_registry():
     assert not any(k.startswith("TYPEFORM_") for k in keys)
     with pytest.raises(RegistryError):
         Registry([next(iter(INVENTORY))], retired=(next(iter(INVENTORY)).key,))
+
+
+# The marketing tracker (Brevo) is removed; deployments may still set its three
+# variables (or hold rows for them in the store) until the operator drops them.
+BREVO_KEYS = {"BREVO_TRACKER_KEY", "BREVO_TRACKER_API_URL", "BREVO_CONTACTS_API_KEY"}
+
+
+def test_the_former_marketing_tracker_keys_are_retired_not_settings():
+    assert BREVO_KEYS <= set(RETIRED)
+    assert not any(s.key.startswith("BREVO_") for s in all_specs())
+    assert BREVO_KEYS <= full_registry().retired
+    for key in BREVO_KEYS:
+        assert _classified(key)
 
 
 @monorepo

@@ -6,13 +6,13 @@ from common.enums.plan import Plans
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.enum.coupon_status import CouponStatus
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.repositories.postgres.refdata import PostgresCouponRepository
 from backend.app.schemas.coupon_codes import CouponCodeDocument
 from backend.app.services.auth_service import AuthService
-from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
 
@@ -59,7 +59,7 @@ class CouponService:
         await self.auth_service.upgrade_user_to_pro(user=user)
         await self.workspace_service.upgrade_user_workspace(user_id=user.id)
         await event_logger_service.send_event(
-            UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub
+            UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id
         )
         coupon_document.status = CouponStatus.USED
         coupon_document.used_by = user.sub

@@ -27,7 +27,7 @@ from backend.app.models.dtos.action_dto import (
     ActionUpdateType,
     ActionDto,
 )
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import FormSettingsCamelModel
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
@@ -46,7 +46,7 @@ from backend.app.services.ai.notice_token import (
     token_for_form as ai_notice_token_for_form,
 )
 from backend.app.services.authorization_service import AuthorizationService
-from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
@@ -483,7 +483,7 @@ class FormService:
                 )
             workspace_form.settings.custom_url = settings.custom_url
             await event_logger_service.send_event(
-                event_type=UserEventType.SLUG_CHANGED, user_id=user.id, email=user.sub
+                event_type=UserEventType.SLUG_CHANGED, user_id=user.id
             )
         if settings.response_data_owner_field is not None:
             workspace_form.settings.response_data_owner_field = (

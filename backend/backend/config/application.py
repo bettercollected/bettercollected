@@ -19,7 +19,6 @@ from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
-from backend.config.brevo_settings import BrevoSettings
 from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.custom_domain import CustomDomainSettings
 from backend.config.database import MongoSettings
@@ -93,7 +92,6 @@ class Application(StoreBackedSettings):
     google_ai: GoogleAISettings = GoogleAISettings()
     google_forms: GoogleFormsSettings = GoogleFormsSettings()
     unsplash: UnsplashSettings = UnsplashSettings()
-    brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()
     pdf_import: PdfImportSettings = PdfImportSettings()
     verified_domains: VerifiedDomainSettings = VerifiedDomainSettings()

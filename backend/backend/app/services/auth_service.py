@@ -17,7 +17,7 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserDeletion
-from backend.app.models.dtos.brevo_event_dto import UserEventType
+from backend.app.models.dtos.event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -34,8 +34,7 @@ from backend.app.services.session_service import (
     platform_admin_proof,
     session_roles,
 )
-from backend.app.services.brevo_service import event_logger_service
-from loguru import logger
+from backend.app.services.event_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
@@ -388,22 +387,10 @@ class AuthService:
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
         # then the stored provider credentials, deleted now or purged by a
-        # retryable job; a purge that can't even be queued is raised after the
-        # whole erasure (CredentialPurgeNotQueued), so the deletion job fails
-        # visibly and is retried
-        not_queued = None
-        try:
-            await self.delete_credentials_from_integrations(user=user)
-        except CredentialPurgeNotQueued as exc:
-            not_queued = exc
-        # GDPR erasure of the marketing contact made at sign-up, last; best
-        # effort (never fails the deletion), logs the user id only
-        try:
-            await event_logger_service.delete_contact(user.sub, str(user.id))
-        except Exception:  # noqa: BLE001
-            logger.warning(f"Brevo contact erasure failed for user {user.id}")
-        if not_queued is not None:
-            raise not_queued
+        # retryable job; a purge that can't even be queued is raised last
+        # (CredentialPurgeNotQueued), so the deletion job fails visibly and is
+        # retried
+        await self.delete_credentials_from_integrations(user=user)
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
@@ -444,7 +431,7 @@ class AuthService:
         # refused before the job is queued and before any session ends
         await self.refuse_account_deletion_if_shared(user)
         await event_logger_service.send_event(
-            event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub
+            event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id
         )
         started = await self.temporal_service.start_user_deletion_workflow(
             UserDeletion(user_id=user.id, email=user.sub)
