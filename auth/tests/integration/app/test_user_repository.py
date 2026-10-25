@@ -56,13 +56,24 @@ async def test_users(repo):
     assert [u.email for u in found] == ["a@example.com", "b@example.com"]
     assert await repo.get_user_by_stripe_customer_id("cus_none") is None
 
-    # single sign-on's case-insensitive lookup (literal: no pattern characters)
-    await repo.save_user("Mixed.Case+1@Example.com", "M")
+    # every lookup ignores case (literal: no pattern characters); the stored
+    # address keeps the case it was written with
+    mixed = await repo.save_user("Mixed.Case+1@Example.com", "M")
     for email in ("mixed.case+1@example.com", "MIXED.CASE+1@EXAMPLE.COM"):
-        found = await repo.find_users_by_email_ci(email)
-        assert [u.email for u in found] == ["Mixed.Case+1@Example.com"]
-    assert await repo.find_users_by_email_ci("mixedXcase+1@example.com") == []
-    assert await repo.find_users_by_email_ci("nobody@example.com") == []
+        assert (await repo.get_user_by_email(email)).id == mixed.id
+    assert await repo.get_user_by_email("mixedXcase+1@example.com") is None
+    assert await repo.get_user_by_email("") is None
+    found = await repo.get_users_by_emails(
+        ["MIXED.case+1@example.com", "B@EXAMPLE.COM"]
+    )
+    assert sorted(u.email for u in found) == [
+        "Mixed.Case+1@Example.com",
+        "b@example.com",
+    ]
+    # a case variant signs in to the same account, never a second one
+    again = await repo.save_user("mixed.case+1@EXAMPLE.com", "Other")
+    assert again.id == mixed.id and again.email == "Mixed.Case+1@Example.com"
+    assert await repo.count() == 3
 
     user = await repo.get_user_by_email("a@example.com")
     await repo.clear_user_otp(user)
@@ -80,6 +91,15 @@ async def test_users(repo):
     assert await repo.get_user_by_email("a@example.com") is None
     with pytest.raises(NotFoundError):
         await repo.get_user_by_id(RecordId())
+
+
+async def test_emails_are_unique_ignoring_case(repo):
+    """``uq_users_email_lower`` refuses a second account for an address that
+    differs only in case, whichever path writes it."""
+    await repo.save_user("Jane@Example.com")
+    with pytest.raises(Exception, match="uq_users_email_lower"):
+        await repo.save_document(UserDocument(email="jane@example.COM"))
+    assert await repo.count() == 1
 
 
 async def test_user_metrics(repo):

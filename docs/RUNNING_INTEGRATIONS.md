@@ -52,6 +52,34 @@ Known limits of the database purge in `off` (`google.purge_user_credentials`):
   refuses to start while its own `DB_READ_SOURCE`/`DB_WRITE_MODE` (or their `__google` overrides) name another
   store.
 
+#### The Google Sheets action (`GOOGLE_SHEETS_OAUTH`)
+
+The "Google Sheets" form action appends each submission to a spreadsheet it creates in the form owner's
+Google Drive. Who runs its OAuth flow (connecting the account and creating the spreadsheet) is chosen by
+`GOOGLE_SHEETS_OAUTH`, read by the backend:
+
+| Value | Effect |
+|---|---|
+| `google_service` (default) | As before: the Google Forms service builds the authorization URL with its own client and `GOOGLE_SHEET_SCOPE` (`spreadsheets` + `drive`), exchanges the code and creates the spreadsheet. It stops with `GOOGLE_FORMS_IMPORT=off`. |
+| `backend` | The backend runs the flow itself with the Google sign-in client (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_TOKEN_URI`, as used by the auth service) and asks for one scope only: `https://www.googleapis.com/auth/drive.file` (the files this app creates). The Google Forms service is not called, so `GOOGLE_FORMS_IMPORT` does not affect the action. Without a client id and secret the connect request answers 503. |
+
+The redirect address is the web app's callback page in both modes, `GOOGLE_SHEET_REDIRECT_URL`
+(for example `https://app.example.com/integrations/google/callback`); in `backend` mode the backend reads it.
+The stored credential has the same format either way, so actions connected before keep running, and the
+actions executor needs no change.
+
+Before setting `GOOGLE_SHEETS_OAUTH=backend`:
+
+1. In the Google Cloud console, open the OAuth client used for Google sign-in (the one `GOOGLE_CLIENT_ID`
+   names) and add the value of `GOOGLE_SHEET_REDIRECT_URL` to its authorized redirect URIs.
+2. On the project's OAuth consent screen (Data access), add the scope `.../auth/drive.file`. It is a
+   non-sensitive scope, so no extra verification is needed for it.
+3. Make sure the Google Sheets API is enabled for the project.
+4. Set `GOOGLE_SHEETS_OAUTH=backend` for the backend (and `GOOGLE_SHEET_REDIRECT_URL` if the backend does not
+   have it yet) and restart it.
+
+Going back is setting `google_service` again. Actions connected in `backend` mode keep running in either mode.
+
 #### Steps to create a client in Google:
 
 ##### Important Note: Steps 5, 6 and 12 are needed only if you want to run Google form integration.

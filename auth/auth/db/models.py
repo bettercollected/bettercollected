@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Index, UniqueConstraint
+from sqlalchemy import Index, func, literal_column
 
 from auth.db.base import S, Base
 from common.db import BaseRow, DeletionTombstoneMixin, MirrorWriteFailureMixin
@@ -15,7 +15,13 @@ class UserRow(Base, BaseRow):
     otp_code_for = S.text("otp_code_for")
     plan = S.text("plan")
     __table_args__ = (
-        UniqueConstraint("email"),
+        # one account per email ignoring case (revision 0005): every lookup
+        # compares lower(email), so this index also serves them
+        Index(
+            "uq_users_email_lower",
+            func.lower(literal_column("email")),
+            unique=True,
+        ),
         Index(None, "stripe_customer_id"),
         Index(None, "stripe_payment_id"),
     )

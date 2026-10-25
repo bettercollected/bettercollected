@@ -328,16 +328,11 @@ class SsoService:
         }
 
     async def _existing_account(self, email: str):
-        """(account, conflict): the account for ``email`` ignoring case. An
-        exact (lower-case) match wins; otherwise a single case-insensitive
-        match; several case variants and no exact one is a conflict."""
-        exact = await self._users.get_user_by_email(email)
-        if exact is not None:
-            return exact, False
-        matches = await self._users.find_users_by_email_ci(email)
-        if len(matches) == 1:
-            return matches[0], False
-        return None, len(matches) > 1
+        """(account, conflict): the account for ``email`` ignoring case, in
+        one indexed lookup. Emails are unique ignoring case (auth revision
+        0005), so ``conflict`` is always false now; it stays in the replies
+        the backend reads (``account_conflict``, SCIM's ``conflict``)."""
+        return await self._users.get_user_by_email(email), False
 
     # -- 3. account -----------------------------------------------------------
     async def account(self, assertion: str) -> User:
