@@ -72,14 +72,24 @@ class FakeProviderService:
         self.status = status
         self.error = None
         self.calls = []
+        self.open = 0  # responses not released yet
 
-    async def delete(self, url, params=None, timeout=None, **kwargs):
+    def delete(self, url, params=None, timeout=None, **kwargs):
+        """Like aiohttp's: used as ``async with``, which releases the response."""
         self.calls.append((url, dict(params or {})))
-        if self.error:
-            raise self.error
+        fake = self
 
         class Reply:
-            status = self.status
+            status = fake.status
+
+            async def __aenter__(self):
+                if fake.error:
+                    raise fake.error
+                fake.open += 1
+                return self
+
+            async def __aexit__(self, *exc):
+                fake.open -= 1
 
         return Reply()
 
@@ -171,6 +181,7 @@ async def test_a_queued_purge_erases_the_credentials(memory_jobs, provider, log_
             {"user_id": "user-1", "email": EMAIL},
         )
     ]
+    assert provider.open == 0  # the response was released
     nothing_secret_logged(log_lines, EMAIL)
     # the job row holds the argument only encrypted
     assert EMAIL not in json.dumps(job["args"])
@@ -209,6 +220,7 @@ async def test_a_server_side_failure_retries(memory_jobs, provider, status):
     await run_worker()
     (job,) = jobs_named(memory_jobs, "purge_provider_credentials")
     assert job["status"] == "todo" and job["attempts"] == 1
+    assert provider.open == 0  # released on a failure answer too
 
 
 @pytest.mark.parametrize("status", [400, 401, 404, 422])
@@ -242,17 +254,35 @@ async def test_an_unreadable_purge_fails_once(memory_jobs, provider, log_lines):
     assert job["status"] == "failed" and provider.calls == []
 
 
-async def test_a_provider_that_is_not_configured_retries(memory_jobs, provider):
-    container.form_provider_service().get_provider_url.return_value = None
+@pytest.mark.parametrize("unknown", [None, AttributeError("no record")])
+async def test_an_unknown_provider_fails_once(memory_jobs, provider, unknown):
+    # (the real service raises AttributeError on the missing record)
+    lookup = container.form_provider_service().get_provider_url
+    if unknown is None:
+        lookup.return_value = None
+    else:
+        lookup.side_effect = unknown
     await tasks.purge_provider_credentials.defer_async(
         sealed=sealed(purge_payload(provider="typeform")), user_id="user-1"
     )
     await run_worker()
     (job,) = jobs_named(memory_jobs, "purge_provider_credentials")
-    assert job["status"] == "todo" and provider.calls == []
+    assert job["status"] == "failed" and provider.calls == []
 
 
-@pytest.mark.parametrize("name", ["", "../admin", "google/../x", "Google", "a b"])
+async def test_unreadable_provider_records_retry(memory_jobs, provider):
+    container.form_provider_service().get_provider_url.side_effect = RuntimeError("db")
+    await tasks.purge_provider_credentials.defer_async(
+        sealed=sealed(purge_payload()), user_id="user-1"
+    )
+    await run_worker()
+    (job,) = jobs_named(memory_jobs, "purge_provider_credentials")
+    assert job["status"] == "todo" and job["attempts"] == 1 and provider.calls == []
+
+
+@pytest.mark.parametrize(
+    "name", ["", "../admin", "google/../x", "Google", "a b", "google\n"]
+)
 async def test_a_provider_name_that_is_not_one_is_refused(memory_jobs, provider, name):
     await tasks.purge_provider_credentials.defer_async(
         sealed=sealed(purge_payload(provider=name)), user_id="user-1"

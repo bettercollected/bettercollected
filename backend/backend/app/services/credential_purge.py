@@ -26,7 +26,6 @@ from http import HTTPStatus
 
 import aiohttp
 
-from backend.app.exceptions import HTTPException
 from backend.app.utils import AiohttpClient
 
 log = logging.getLogger(__name__)
@@ -76,25 +75,35 @@ class CredentialPurgeService:
 
     async def purge(self, purge: CredentialPurge) -> str:
         """The job body: one attempt. Raises CredentialPurgeFailed to retry."""
-        if not _PROVIDER_NAME.match(purge.provider or ""):
+        if not _PROVIDER_NAME.fullmatch(purge.provider or ""):
             raise CredentialPurgeRejected("not a provider name")
         try:
             url = await self._providers.get_provider_url(purge.provider)
-            if not url:
-                raise CredentialPurgeFailed("provider not configured")
+        except AttributeError:
+            # the service answers an unknown provider with an attribute error on
+            # the missing record: no provider of that name, which no retry fixes
+            url = None
+        except Exception:  # noqa: BLE001 - the records could not be read: retry
+            raise CredentialPurgeFailed("provider records not readable") from None
+        if not url:
+            log.error(
+                "Credential purge: user %s: no provider %s is configured",
+                purge.user_id,
+                purge.provider,
+            )
+            raise CredentialPurgeRejected("provider not configured")
+        try:
             # (the provider service takes the address as a query parameter; the
             # same call account deletion makes)
-            response = await AiohttpClient.get_aiohttp_client().delete(
+            async with AiohttpClient.get_aiohttp_client().delete(
                 f"{url}/{purge.provider}/oauth/credentials",
                 params={"user_id": purge.user_id, "email": purge.email},
                 timeout=aiohttp.ClientTimeout(total=CREDENTIALS_DELETE_TIMEOUT),
-            )
-            status = response.status
-        except CredentialPurgeFailed:
-            raise
-        except (aiohttp.ClientError, asyncio.TimeoutError, OSError, HTTPException):
+            ) as response:  # released on exit: hourly retries never pool connections
+                status = response.status
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError):
             raise CredentialPurgeFailed("provider service unreachable") from None
-        except Exception:  # noqa: BLE001 - e.g. a provider record without a URL
+        except Exception:  # noqa: BLE001 - never surface a client's text
             raise CredentialPurgeFailed("provider service not usable") from None
         if status == HTTPStatus.OK:
             log.info(
