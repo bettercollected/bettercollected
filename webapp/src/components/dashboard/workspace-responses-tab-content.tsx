@@ -12,6 +12,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
+import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
 
 interface IWorkspaceResponsesTabContentProps {
     workspace: WorkspaceDto;
@@ -50,14 +51,8 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const isCustomDomain = window?.location.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
-    const handleVerify = () => {
-        const params = new URLSearchParams({
-            type: 'responder',
-            workspace_id: workspace.id,
-            redirect_to: pathname ?? ''
-        });
-        router.push(`/login?${params.toString()}`);
-    };
+    // The sign-in page in the page's language, so the code mail is in it too.
+    const handleVerify = () => router.push(respondentSignInUrl(workspace.id, pathname, language));
 
     return (
         <div lang={language}>
