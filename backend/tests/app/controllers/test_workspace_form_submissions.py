@@ -2,7 +2,7 @@ from typing import Any, Coroutine
 
 import pytest
 from httpx import AsyncClient
-from common.constants import MESSAGE_FORBIDDEN
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardFormResponse, StandardForm
 
 from backend.app.container import container
@@ -171,9 +171,11 @@ class TestWorkspaceFormSubmission:
             cookies=test_user_cookies_1,
         )
 
+        # someone else's submission is answered as a missing one (not 403,
+        # which would tell a non-member the id is real)
         actual_response = request_response_deletion.json()
-        expected_response = "You are not authorized to perform this action."
-        assert request_response_deletion.status_code == 403
+        expected_response = "Response not found in workspace"
+        assert request_response_deletion.status_code == 404
         assert actual_response == expected_response
 
     async def test_get_workspace_form_responses(
@@ -387,9 +389,10 @@ class TestWorkspaceFormSubmission:
             get_form_response_by_id_url, cookies=test_user_cookies_1
         )
 
-        expected_response_message = "You are not authorized to perform this action."
+        # not 403: to a non-member, someone else's submission is not found
+        expected_response_message = MESSAGE_NOT_FOUND
         actual_response_message = single_form_response.json()
-        assert single_form_response.status_code == 403
+        assert single_form_response.status_code == 404
         assert actual_response_message == expected_response_message
 
     async def test_get_workspace_form_response_by_response_id_of_other_workspace_form_fails(

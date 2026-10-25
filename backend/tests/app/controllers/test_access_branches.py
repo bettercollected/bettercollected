@@ -174,9 +174,13 @@ async def test_staff_may_file_a_deletion_request_for_any_response(
     response = await _submit(workspace, form, testUser2)
     url = f"/api/v1/workspaces/{workspace.id}/submissions/{response.response_id}"
 
-    for user in (testUser1, disabled_admin, invited_user):
+    # a member without privacy.manage is refused; to anyone else (not a
+    # member, or a disabled one) someone else's response is not found
+    refused = await client.delete(url, cookies=_cookies(invited_user))
+    assert refused.status_code == 403, refused.text
+    for user in (testUser1, disabled_admin):
         refused = await client.delete(url, cookies=_cookies(user))
-        assert refused.status_code == 403, user.sub
+        assert refused.status_code == 404, user.sub
     filed = await client.delete(url, cookies=_cookies(admin_user))
     assert filed.status_code == 200, filed.text
     assert await deletion_request_of(
@@ -243,10 +247,20 @@ async def test_respondent_paths_need_no_membership(
         cookies=cookies,
     )
     assert deletion.status_code == 200, deletion.text
-    # someone else's response stays out of reach
+    # someone else's response stays out of reach, and is answered as a
+    # missing one: the same 404 for a real id and a made-up one
     other = await _submit(workspace, form, testUser1)
-    refused = await client.delete(
-        f"/api/v1/workspaces/{workspace.id}/submissions/{other.response_id}",
-        cookies=cookies,
-    )
-    assert refused.status_code == 403
+    for method in ("GET", "DELETE"):
+        answers = []
+        for response_id in (other.response_id, "no-such-response"):
+            refused = await client.request(
+                method,
+                f"/api/v1/workspaces/{workspace.id}/submissions/{response_id}",
+                cookies=cookies,
+            )
+            assert refused.status_code == 404, (method, response_id, refused.text)
+            answers.append(refused.text)
+        assert answers[0] == answers[1], method
+    assert await deletion_request_of(
+        workspace.id, other.form_id, other.response_id
+    ) is None
