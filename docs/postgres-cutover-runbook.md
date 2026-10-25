@@ -138,7 +138,8 @@ Start on staging; repeat on production only after the staging gate.
    use `--sample-every 10` (a sampled run is never recorded as verified). A clean full run writes
    the verified marker; `--group g` records that group (see "Verified marker").
 5. **Reconcile:** `python -m backend.migrate reconcile` copies whatever verify found (Mongo
-   authoritative) and, when run over every collection, marks both outboxes resolved. Run `verify`
+   authoritative) and, when run over every collection, marks the Mongo-side outbox resolved (the
+   Postgres-side one only by `--direction postgres->mongo` or a clean full `verify`). Run `verify`
    again. A record deleted in one store whose copy survives in the other is deleted there, never
    copied back (see "Reconcile and deleted rows").
    Reconcile can run while the services write: each copy is stored only while the target still
@@ -151,7 +152,12 @@ Start on staging; repeat on production only after the staging gate.
    deleted meanwhile. Should anything still differ, `verify` shows it (a deleted record as
    `tombstoned`); then run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
    index (sessions, rate-limit counters, idempotency keys, SSO states, SCIM, flow events) treat an
-   expired copy as absent: reconcile never copies one.
+   expired copy as absent: verify never reports one and reconcile never copies one.
+   A row the application wrote to Postgres after Mongo's copy is kept and counted as
+   `newer_in_postgres`; with `reconcile --mongo-wins`, Mongo's copy replaces it in the groups
+   whose `DB_WRITE_MODE`/`DB_WRITE_MODE__g` is explicitly `mongo` or `dual` (never by default).
+   While the Postgres-side outbox has unresolved entries, no row the application wrote is replaced
+   at all, with or without `--mongo-wins`.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
 
@@ -181,7 +187,23 @@ auth and google. For each group `g`:
    instant.
 2. Soak 48–72 h: `mirror_failures` for `g` zero, error rate at baseline, `verify --group g`
    clean (Mongo is now the copy, and it should still match).
-3. Roll back: `DB_READ_SOURCE__g=mongo`, `DB_WRITE_MODE__g=dual`. One restart.
+3. Roll back: `DB_READ_SOURCE__g=mongo`, `DB_WRITE_MODE__g=dual`. One restart. First, while `g`
+   is still on `postgres_primary_dual`, run `reconcile --group g --direction postgres->mongo` if
+   the Postgres-side outbox (`status`) has open entries: after the flip it is refused, and a
+   Postgres write whose Mongo mirror failed would be the only copy. A `--group` run does not
+   resolve the entries, and until they are resolved `reconcile` replaces no application-written
+   row of this service in any group. Resolve them with a full `reconcile --direction
+   postgres->mongo` (when every group is on `postgres_primary_dual`) or, after the flip, with a
+   clean full `verify` (it resolves the entries recorded before it started).
+   **Stuck case:** after such a rollback, a write that went to Mongo first but whose Postgres mirror
+   failed leaves an older application row in Postgres. Every `mongo->postgres` run keeps that row
+   while the Postgres-side outbox is open, so `verify` never gets clean and the entries never
+   resolve. You can tell because `newer_in_postgres` keeps growing and `verify` keeps reporting
+   mismatches in that group. The safe way out is manual. For each open Postgres-side entry, check
+   that its write is in Mongo by comparing the rows it names in both stores. Then resolve those
+   entries by hand (`UPDATE <schema>.mirror_write_failures SET resolved_at = now() WHERE id IN
+   (…)`), and run `reconcile` (`mongo->postgres`). A dedicated tool for this is planned before
+   any group goes to Phase 2.
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending
@@ -261,8 +283,9 @@ the delete committed and in a transaction of its own), and
 `reconcile` prunes them at the end of each run. Drop the tables and the collection with the Mongo
 decommission (below).
 
-A *full* reconcile (no `--group` or `--collections`) then marks every unresolved outbox entry
-resolved; a partial reconcile leaves the outboxes alone (their entries name a repository and method,
+A *full* reconcile (no `--group` or `--collections`) then marks the unresolved entries of the
+outbox it repairs resolved (`mongo->postgres` the Mongo-side one, `postgres->mongo` the
+Postgres-side one); a partial reconcile leaves the outboxes alone (their entries name a repository and method,
 not a collection). Also under `postgres_primary_dual`: a write replayed into Mongo is saved with a
 fresh `updated_at`, so `verify` can report it as mismatched; `reconcile --direction postgres->mongo`
 rewrites it from the row.

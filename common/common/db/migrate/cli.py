@@ -17,7 +17,14 @@ from common.db.groups import (
     parse_groups,
     validate_groups,
 )
-from common.db.flags import FlagError, WriteMode, load_flags
+from common.db.flags import (
+    OVERRIDE_SEP,
+    WRITE_KEY,
+    FlagError,
+    ReadSource,
+    WriteMode,
+    load_flags,
+)
 from common.db.migrate.engine import Runner, Target
 from common.db.schema_guard import MigrationTarget
 
@@ -75,6 +82,14 @@ def build_parser(prog: str) -> argparse.ArgumentParser:
         default="mongo->postgres",
     )
     reconcile.add_argument("--dry-run", action="store_true")
+    reconcile.add_argument(
+        "--mongo-wins",
+        action="store_true",
+        help="mongo->postgres: copy Mongo's version over a Postgres row the "
+        "application wrote later, in the groups whose DB_WRITE_MODE (or "
+        "DB_WRITE_MODE__<group>) is explicitly mongo or dual; without it such "
+        "rows are kept and counted as newer_in_postgres",
+    )
     status = sub.add_parser(
         "status",
         help="counts, checkpoints, stalls, outbox, mirror failures, last verify, marker",
@@ -207,7 +222,9 @@ def format_status(report: dict) -> str:
     return "\n".join(lines)
 
 
-async def run(args: argparse.Namespace, target: Target) -> int:
+async def run(
+    args: argparse.Namespace, target: Target, mongo_primary: Sequence[str] = ()
+) -> int:
     collections = select_collections(args, target)
     async with Runner(target) as runner:
         if args.command == "preflight":
@@ -245,7 +262,10 @@ async def run(args: argparse.Namespace, target: Target) -> int:
         if args.command == "reconcile":
             _print(
                 await runner.reconcile(
-                    collections, direction=args.direction, dry_run=args.dry_run
+                    collections,
+                    direction=args.direction,
+                    dry_run=args.dry_run,
+                    mongo_primary=mongo_primary,
                 )
             )
             return 0
@@ -264,6 +284,31 @@ async def run(args: argparse.Namespace, target: Target) -> int:
             _print(await sweep(args.backend))
             return 0
     return 2
+
+
+def mongo_primary_groups(target: Target, env: Mapping[str, str]) -> list[str]:
+    """The groups whose services write Mongo first (``mongo``/``dual``) by an
+    EXPLICIT setting in ``env``: ``DB_WRITE_MODE__<group>`` when the group has
+    one, else ``DB_WRITE_MODE``. A group whose mode is only the default (no
+    variable set), or flags that do not parse, never count: ``reconcile
+    --mongo-wins`` then keeps every newer Postgres row (fails safe)."""
+    try:
+        flags = (target.load_flags or load_flags)(env)
+    except FlagError:
+        return []
+    prefix = WRITE_KEY + OVERRIDE_SEP
+    overridden = {
+        key[len(prefix) :].lower()
+        for key, value in env.items()
+        if key.startswith(prefix) and value != ""
+    }
+    base_set = env.get(WRITE_KEY, "") != ""
+    return [
+        g
+        for g in target.migrating_groups()
+        if (g in overridden or base_set)
+        and flags.primary_store(g) is ReadSource.MONGO
+    ]
 
 
 def reconcile_to_mongo_refusal(
@@ -326,4 +371,13 @@ def main(
         format="%(asctime)s %(levelname)s %(message)s",
         stream=sys.stderr,
     )
-    return asyncio.run(run(args, target))
+    mongo_primary: list[str] = []
+    if args.command == "reconcile" and getattr(args, "mongo_wins", False):
+        if args.direction != "mongo->postgres":
+            parser.error("--mongo-wins applies to --direction mongo->postgres only")
+        mongo_primary = mongo_primary_groups(target, env)
+        logging.getLogger(__name__).info(
+            "reconcile --mongo-wins: Mongo's copy wins in %s",
+            ", ".join(mongo_primary) or "no group (none explicitly on mongo/dual)",
+        )
+    return asyncio.run(run(args, target, mongo_primary))
