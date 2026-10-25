@@ -986,7 +986,8 @@ async def test_a_finished_forms_backfill_lets_writes_through(seeded):
     from backend.admin.tasks.spec import Refusal
     from backend.db.models import MigrationProgress
 
-    await _mongo_links_copy(_not_imported_link())  # deleted from Postgres since
+    deleted = _not_imported_link()  # copied by the backfill, deleted from Postgres since
+    await _mongo_links_copy(deleted)
     config = StoreConfig(
         mongo_uri=TEST_MONGO_URI, mongo_db=TEST_MONGO_DB, database_url=TEST_DATABASE_URL
     )
@@ -1001,7 +1002,12 @@ async def test_a_finished_forms_backfill_lets_writes_through(seeded):
         await conn.execute(delete(table).where(table.c.collection == "workspace_forms"))
         await conn.execute(
             insert(table).values(
-                collection="workspace_forms", count=3, skipped=0, batch_size=200, state="done"
+                collection="workspace_forms",
+                count=4,
+                skipped=0,
+                batch_size=200,
+                state="done",
+                last_id=str(deleted.id),
             )
         )
     async with open_stores(config, ["mongo"], classes, read_only=False) as (mongo,):

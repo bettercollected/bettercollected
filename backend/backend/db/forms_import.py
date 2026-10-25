@@ -13,22 +13,25 @@ until every link Mongo holds is in Postgres too.
 The import counts as complete when EITHER
 
 - a finished backfill of ``workspace_forms`` is recorded in
-  ``migration_progress``: the signal the startup guard trusts too
-  (``backend.db.mongo_import_guard``: an empty table with a finished backfill
-  is the application's doing, not a missing import). It also covers links
-  deleted after the import: since 4.1 they are deleted in Postgres only, so
-  they stay in Mongo's frozen copy for good; or
+  ``migration_progress`` (``done``, nothing skipped: the signal the startup
+  guard trusts too, ``backend.db.mongo_import_guard``) AND Mongo holds no
+  ``workspace_forms`` document past its last copied ``_id`` (one 4.0 wrote
+  after the import: a rollback, a rehearsal on the same database). This
+  covers links deleted after the import: since 4.1 they are deleted in
+  Postgres only, so they stay in Mongo's frozen copy for good; or
 - every ``(form_id, workspace_id)`` link in Mongo's ``workspace_forms`` is in
-  Postgres (a link only Postgres has, made after the import, is fine).
+  Postgres (a link only Postgres has, made after the import, is fine). A
+  backfill that is not finished, or skipped documents, falls back to this.
 
 Every role that runs the check may read ``migration_progress``'s
-``collection`` and ``state`` (the task runner's data role by
-``postgres/ensure-admin-roles.sh``); one that may not falls back to the
-second check, with a warning. Counts only are reported.
+``collection``, ``state``, ``last_id`` and ``skipped`` (the task runner's
+data role by ``postgres/ensure-admin-roles.sh``); one that may not falls back
+to the second check, with a warning. Counts only are reported.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from loguru import logger
@@ -94,44 +97,69 @@ async def missing_links(database, postgres_links: Mapping[str, Iterable[str]]) -
 
 
 
-async def backfill_finished(engine) -> Optional[bool]:
-    """Whether ``migration_progress`` records a finished backfill of
-    ``workspace_forms`` (``engine``: a SQLAlchemy AsyncEngine); None when
-    this role may not read it."""
+@dataclass(frozen=True)
+class Backfill:
+    """What ``migration_progress`` records of the ``workspace_forms`` backfill."""
+
+    #: finished (``done``) without skipping a document
+    complete: bool
+    #: the highest Mongo ``_id`` it copied (None: none)
+    last_id: Optional[str] = None
+
+
+async def workspace_forms_backfill(engine) -> Optional[Backfill]:
+    """The ``workspace_forms`` backfill as recorded (``engine``: a SQLAlchemy
+    AsyncEngine); None when this role may not read ``migration_progress``."""
     from backend.db.models import MigrationProgress
     from common.db.migrate.progress import STATE_DONE
 
     progress = MigrationProgress.__table__
     try:
         async with engine.connect() as conn:
-            found = (
+            row = (
                 await conn.execute(
-                    select(progress.c.collection).where(
-                        progress.c.collection == "workspace_forms",
-                        progress.c.state == STATE_DONE,
+                    select(progress.c.state, progress.c.last_id, progress.c.skipped).where(
+                        progress.c.collection == "workspace_forms"
                     )
                 )
             ).first()
     except DBAPIError as error:
-        # a fail-safe: every role that runs this check is granted these two
+        # a fail-safe: every role that runs this check is granted these
         # columns (postgres/ensure-admin-roles.sh for the task runner)
         logger.warning(
             "The forms import check cannot read migration_progress ({}): it "
-            "compares the links only. Grant SELECT (collection, state) on it.",
+            "compares the links only. Grant SELECT (collection, state, last_id, "
+            "skipped) on it.",
             type(error).__name__,
         )
         return None
-    return found is not None
+    if row is None:
+        return Backfill(complete=False)
+    return Backfill(
+        complete=row.state == STATE_DONE and not row.skipped, last_id=row.last_id
+    )
+
+
+async def written_after(database, last_id: Optional[str]) -> int:
+    """How many ``workspace_forms`` documents Mongo holds past the backfill's
+    last copied ``_id`` (all of them when it copied none): links 4.0 wrote
+    after the import (a rollback, a rehearsal on the same database). Counts
+    an indexed ``_id`` range only."""
+    from bson import ObjectId
+
+    query = {"_id": {"$gt": ObjectId(last_id)}} if last_id else {}
+    return await database["workspace_forms"].count_documents(query)
 
 
 async def unimported_links(
     database, postgres_links: Mapping[str, Iterable[str]], engine=None
 ) -> int:
     """0 when the forms import is complete (see the module docstring), else
-    how many of Mongo's links Postgres lacks. Raises PyMongoError when Mongo
-    cannot be read (the callers refuse then)."""
-    if engine is not None and await backfill_finished(engine):
-        return 0
+    how many of Mongo's links it lacks. Raises PyMongoError when Mongo cannot
+    be read (the callers refuse then)."""
+    backfill = None if engine is None else await workspace_forms_backfill(engine)
+    if backfill is not None and backfill.complete:
+        return await written_after(database, backfill.last_id)
     return await missing_links(database, postgres_links)
 
 

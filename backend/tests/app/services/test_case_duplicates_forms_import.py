@@ -64,13 +64,18 @@ async def _refused(service):
     return refused.value.content["message"]
 
 
-async def _backfill_finished():
+async def _backfill_finished(last_id=None, skipped=0):
     table = MigrationProgress.__table__
     async with container.pg_engine().begin() as conn:
         await conn.execute(delete(table).where(table.c.collection == "workspace_forms"))
         await conn.execute(
             insert(table).values(
-                collection="workspace_forms", count=2, skipped=0, batch_size=200, state="done"
+                collection="workspace_forms",
+                count=2,
+                skipped=skipped,
+                batch_size=200,
+                state="done",
+                last_id=None if last_id is None else str(last_id),
             )
         )
 
@@ -104,7 +109,35 @@ async def test_a_link_deleted_after_a_finished_import_does_not_block(mongo):
     service = _service(mongo_database=_opened(mongo))
     await _refused(service)
 
-    await _backfill_finished()
+    await _backfill_finished(last_id=deleted.id)
+    assert await service.plan() == []
+
+
+async def test_a_link_written_to_mongo_after_a_finished_backfill_refuses(mongo):
+    """4.0 wrote a link after the backfill finished (a rollback, a rehearsal
+    on the same database): past the backfill's last copied id, so the import
+    is incomplete again until a backfill copies it."""
+    copied = _link(PydanticObjectId(), "f1")
+    await container.workspace_form_repo().save(copied)
+    await mongo["workspace_forms"].insert_one(to_bson(copied))
+    await _backfill_finished(last_id=copied.id)
+    service = _service(mongo_database=_opened(mongo))
+    assert await service.plan() == []
+
+    later = _link(PydanticObjectId(), "f2")  # a newer ObjectId
+    await mongo["workspace_forms"].insert_one(to_bson(later))
+    assert "1 workspace link" in await _refused(service)
+    await _backfill_finished(last_id=later.id)  # the backfill ran again
+    assert await service.plan() == []
+
+
+async def test_a_backfill_that_skipped_documents_falls_back_to_the_links(mongo):
+    missing = _link(PydanticObjectId(), "f1")
+    await mongo["workspace_forms"].insert_one(to_bson(missing))
+    await _backfill_finished(last_id=missing.id, skipped=1)
+    service = _service(mongo_database=_opened(mongo))
+    await _refused(service)  # not a complete import: the link is missing
+    await container.workspace_form_repo().save(missing)
     assert await service.plan() == []
 
 
