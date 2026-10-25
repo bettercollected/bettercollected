@@ -189,9 +189,13 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
         """Twin of Mongo's partial ``$set``: the row is locked while
         ``fields`` (dotted paths) are applied to the stored copy, so a
         concurrent change of other fields is kept, never overwritten from
-        ``workspace``, which may be stale. ``workspace`` gets the same fields
-        (the routed write refreshes it from the primary). A workspace that
-        is not stored stays so (``$set`` on no match)."""
+        ``workspace``, which may be stale. ``workspace`` gets only these
+        fields; what else it holds depends on the write mode (Beanie
+        refreshes it from Mongo whenever Mongo is written), so callers that
+        need the stored workspace read it again. A workspace with no row
+        here is not created; inside a routed write the row is still reported,
+        so convergence copies the primary's version (or confirms both are
+        absent) instead of leaving a missing mirror row unnoticed."""
         _set_paths(workspace, fields)
         async with self._session() as session, session.begin():
             doc = (
@@ -202,6 +206,7 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
                 )
             ).scalar_one_or_none()
             if doc is None:
+                self._touch(WorkspaceRow, [_oid(workspace.id)])
                 return
             stored = from_row_doc(WorkspaceDocument, doc)
             _set_paths(stored, fields)
