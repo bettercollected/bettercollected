@@ -182,10 +182,11 @@ jobs:
             fail-fast: false
             matrix:
                 mode: ${{ fromJSON(needs.plan.outputs.modes) }}
-        # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no
-        # Mongo is needed; Postgres serves the repository layer. In the
-        # Postgres mode MONGO_URI points at a closed port: the service starts
-        # without Mongo (tests/test_startup_without_mongo.py boots it so).
+        # auth is served from Postgres only (4.1): no Mongo is needed. The
+        # mode only sets the global DB_* flags, which auth ignores (they are
+        # the backend's, in a shared env file), so each mode also proves that;
+        # MONGO_URI points at a closed port in the Postgres mode
+        # (tests/test_startup_postgres_only.py boots the service so).
         defaults:
             run:
                 working-directory: auth
@@ -232,8 +233,8 @@ jobs:
                   esac
                   uv run --frozen pytest -m "not mongo"
 
-            # The few tests that drive a real Mongo server (the migration CLI's
-            # reconcile; marker "mongo", tests/conftest.py), once per run.
+            # The few tests that drive a real Mongo server (the import from 4.0,
+            # python -m auth.migrate; marker "mongo", tests/conftest.py), once per run.
             - name: Start MongoDB for the tests that drive it
               if: matrix.mode == 'postgres'
               working-directory: .

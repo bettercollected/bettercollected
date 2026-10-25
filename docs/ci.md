@@ -43,7 +43,8 @@ the Postgres auth and Google jobs run with no Mongo server and `MONGO_URI` on
 a closed port, and each service's suite boots its app factory (the backend
 also its job worker) in a fresh process that way
 (`tests/**/test_startup_without_mongo.py`), with a mixed configuration still
-refusing to start on an unreachable Mongo.
+refusing to start on an unreachable Mongo. auth is served from Postgres only
+since 4.1 and needs no Mongo in any mode (`auth/tests/test_startup_postgres_only.py`).
 
 A few tests drive Mongo themselves whatever the flags (store parity, the
 migration CLI, store-wide tasks and scripts). They carry the `mongo` marker,
