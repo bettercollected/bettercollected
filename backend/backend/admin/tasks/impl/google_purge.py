@@ -89,9 +89,16 @@ async def _purge_postgres(store, apply: bool) -> Dict[str, int]:
 class PurgeUnencryptedCredentials:
     META = catalog.META
 
-    async def _gate(self, params) -> tuple:
+    async def _gate(self, params, *, apply: bool) -> tuple:
         config = state.DataConfig.from_env()
         names = _ordered(config.stores_for(TARGET, params.stores))
+        if apply:
+            # An apply must cover every store the services still write: a row
+            # left readable in one would be copied back into the other by the
+            # next backfill or reconcile (neither store keeps a deletion
+            # tombstone here). A dry run may count a single store.
+            if any(name not in names for name in config.written(TARGET)):
+                raise Refusal("stores_incomplete")
         async with state.open_target_stores(config, TARGET, names, read_only=True) as stores:
             for store in stores:
                 try:
@@ -108,11 +115,11 @@ class PurgeUnencryptedCredentials:
         return config, names
 
     async def precheck(self, ctx, params: catalog.PurgeParams) -> None:
-        await self._gate(params)
+        await self._gate(params, apply=not ctx.dry_run)
 
     async def run(self, ctx, params: catalog.PurgeParams) -> catalog.PurgeResult:
-        config, names = await self._gate(params)
         apply = not ctx.dry_run
+        config, names = await self._gate(params, apply=apply)
         out: Dict[str, catalog.StorePurge] = {}
         async with state.open_target_stores(
             config, TARGET, names, read_only=ctx.dry_run

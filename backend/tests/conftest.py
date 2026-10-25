@@ -97,6 +97,7 @@ MONGO_DRIVEN = {
         "test_a_dry_run_cannot_write_to_mongo",
         "test_apply_on_both_stores_runs_mongo_first_and_is_idempotent",
         "test_dry_run_on_both_stores_counts_per_store_and_deletes_nothing",
+        "test_mongo_filter_edges",
     },
     "tests/admin/tasks/test_keyset_tasks.py": ALL,
     "tests/admin/tasks/test_responses_tasks.py": {

@@ -770,9 +770,10 @@ GRANT EXECUTE ON FUNCTION admin.schema_revision_app(), admin.schema_revision_aut
 -- readable JSON object instead of a ciphertext) and returns the number, nothing
 -- else. It is owned by bc_tasks_purge_google: NOLOGIN, USAGE on schema google and
 -- DELETE (plus SELECT on the two columns the filter reads) on
--- google.oauth_credentials, nothing else. A DELETE runs the table owner's
--- triggers with the definer's privileges, which are no more than bc_google, the
--- table's owner, already has. Until the google schema and table exist (the first
+-- google.oauth_credentials, nothing else. A trigger on that table runs as the
+-- current user, which inside the function is bc_tasks_purge_google: a future
+-- DELETE trigger that writes anywhere else would make the apply fail (permission
+-- denied) and widen nothing. Until the google schema and table exist (the first
 -- run of a fresh deploy) the grants are skipped; the run after the migrations
 -- (deploy.sh) makes them.
 DO $gpurge$

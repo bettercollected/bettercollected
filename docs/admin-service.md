@@ -1078,7 +1078,10 @@ empty, or `credentials.token` / `credentials.refresh_token` present; Postgres
   row per store (`task.google.purged`, target `google_oauth` / the store) with the matched and
   deleted counts. Running it again deletes nothing.
 - **Stores:** `auto` follows the store rule above (group `google`); `mongo`, `postgres` or `both`
-  name them.
+  name them. An apply must cover every store the services still write (the runner's
+  `DB_WRITE_MODE*`), else it refuses with `stores_incomplete`: neither store keeps a deletion
+  tombstone, so a row left in the other store would come back with the next backfill or
+  reconcile. A dry run may count a single store. Use `auto`.
 - **Counts only** in the result, the events and the audit log: never an id, an email or a token.
 - **Least privilege:** Mongo through the runner's Google Mongo connection (`MONGO_URI` /
   `TASK_RUNNER_GOOGLE_MONGO_DB`), `deleteMany` with the filter above (the user needs `readWrite`

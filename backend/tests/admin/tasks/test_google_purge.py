@@ -28,6 +28,7 @@ from backend.admin.tasks import catalog
 from backend.admin.tasks.catalog import google_purge as meta
 from backend.admin.tasks.impl import google_purge as impl
 from backend.admin.tasks.registry import check_meta
+from common.db.ddl import helper_function_ddl
 from tests.admin.conftest import needs_postgres, roles_sql
 from tests.admin.engines import fixture_engine
 from tests.app.db.test_auto_migrate import _execute
@@ -91,12 +92,17 @@ async def superuser(server, migrated):
 async def google_table(server, migrated):
     """google.oauth_credentials as the Google service's role owns it, then the
     roles script again (as deploy.sh runs it after the migrations)."""
+    google = server.reader_role("google")
     await _execute(
         server.url(migrated),
+        # the spine helper and columns as the integration's migration 0001 makes
+        # them (common/db/ddl.py; googleform/db/models.py OAuthCredentialRow)
+        helper_function_ddl("google")[0] + ";"
+        f'ALTER FUNCTION google.bc_text(jsonb) OWNER TO "{google}";'
         "CREATE TABLE google.oauth_credentials (id text PRIMARY KEY, "
         "doc jsonb NOT NULL, _bc_checksum text NOT NULL, "
-        "user_id text GENERATED ALWAYS AS (doc ->> 'user_id') STORED, "
-        "email text GENERATED ALWAYS AS (doc ->> 'email') STORED, "
+        "user_id text GENERATED ALWAYS AS (google.bc_text(doc -> 'user_id')) STORED, "
+        "email text GENERATED ALWAYS AS (google.bc_text(doc -> 'email')) STORED, "
         "created_at timestamptz);"
         f'ALTER TABLE google.oauth_credentials OWNER TO "{server.reader_role("google")}";'
         # another table of the same owner: the definer role must not reach it
@@ -354,6 +360,82 @@ async def test_a_dry_run_cannot_write_to_mongo(world, mongo, superuser, monkeypa
     _, run = await _run(world, dry_run=True)
     assert run["state"] == "failed", run
     assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
+
+
+# ------------------------------------------------- the filter's edges
+# Postgres: (doc, deleted?) -- the runbook's filter, word for word
+PG_EDGES = {
+    _hex(40): ({"user_id": "u6", "credentials": "gAAAAAB-a-fernet-string"}, False),
+    _hex(41): ({"user_id": "u6", "credentials": None}, False),  # JSON null
+    _hex(42): ({"user_id": "u6", "credentials": CIPHER}, False),
+    _hex(43): ({"user_id": "u6", "credentials": {}}, True),  # an object without $binary
+    _hex(44): ({"user_id": {"$oid": _hex(99)}, "credentials": CIPHER}, False),
+    _hex(45): ({"user_id": {"$oid": _hex(99)}, "credentials": {"token": SECRET}}, True),
+    _hex(46): ({"user_id": [], "credentials": CIPHER}, True),  # no text user id
+}
+
+
+async def test_postgres_filter_edges(world, pg_env, superuser):
+    await _seed_postgres(superuser, {k: doc for k, (doc, _) in PG_EDGES.items()})
+    async with superuser.connect() as conn:
+        # the generated column unwraps an ObjectId the way the real table does
+        assert (
+            await conn.execute(
+                text("SELECT user_id FROM google.oauth_credentials WHERE id = :i"), {"i": _hex(44)}
+            )
+        ).scalar_one() == _hex(99)
+    gone = {k for k, (_, deleted) in PG_EDGES.items() if deleted}
+    _, run = await _both(world)
+    assert run["state"] == "succeeded", run
+    assert run["result"]["postgres"] == {"matched": len(gone), "deleted": len(gone)}
+    assert await _pg_ids(superuser) == set(PG_EDGES) - gone
+
+
+async def test_mongo_filter_edges(world, mongo, superuser):
+    await _seed_postgres(superuser, {})
+    edges = [
+        ({"_id": ObjectId(_hex(50)), "user_id": "u6", "credentials": "gAAAAAB-fernet"}, False),
+        ({"_id": ObjectId(_hex(51)), "user_id": "u6", "credentials": None}, False),
+        ({"_id": ObjectId(_hex(52)), "user_id": "u6", "credentials": Binary(b"x")}, False),
+        # the Mongo filter looks for the token fields only (the runbook's):
+        # an empty object holds no token and stays
+        ({"_id": ObjectId(_hex(53)), "user_id": "u6", "credentials": {}}, False),
+        ({"_id": ObjectId(_hex(54)), "user_id": ObjectId(_hex(99)),
+          "credentials": Binary(b"x")}, False),
+        ({"_id": ObjectId(_hex(55)), "user_id": ObjectId(_hex(99)),
+          "credentials": {"token": SECRET}}, True),
+    ]
+    await mongo.insert_many([doc for doc, _ in edges])
+    _, run = await _both(world)
+    assert run["state"] == "succeeded", run
+    assert run["result"]["mongo"] == {"matched": 1, "deleted": 1}
+    assert await _mongo_ids(mongo) == {str(doc["_id"]) for doc, deleted in edges if not deleted}
+
+
+async def test_an_apply_must_cover_every_store_the_services_write(world, pg_env, superuser, monkeypatch):
+    """Postgres alone while the services still write Mongo: a later backfill
+    would copy the readable rows back, so the apply refuses. The dry run may
+    still count the one store."""
+    await _seed_postgres(superuser)
+    monkeypatch.setenv("DB_WRITE_MODE", "dual")
+    _, dry = await _run(world, {"stores": "postgres"}, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    assert dry["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
+    _, run = await _run(world, {"stores": "postgres"})
+    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
+    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+    # a named store needs no write mode to count, but an apply must know it
+    monkeypatch.delenv("DB_WRITE_MODE")
+    _, dry = await _run(world, {"stores": "postgres"}, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    _, run = await _run(world, {"stores": "postgres"})
+    assert run["refusal_code"] == "write_mode_unknown", run
+    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+    # the services write Postgres alone: Postgres alone is complete
+    monkeypatch.setenv("DB_WRITE_MODE", "postgres")
+    _, run = await _both(world, {"stores": "postgres"})
+    assert run["state"] == "succeeded", run
+    assert await _pg_ids(superuser) == set(PG_KEEP)
 
 
 # -------------------------------------------------------- least privilege

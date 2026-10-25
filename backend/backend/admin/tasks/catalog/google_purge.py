@@ -29,6 +29,9 @@ class Refusals(str, enum.Enum):
     # the Postgres function (postgres/ensure-admin-roles.sh) is missing, or the
     # runner's role may not execute it
     purge_function_missing = "purge_function_missing"
+    # an apply that leaves out a store the services still write (a later
+    # backfill or reconcile would copy the rows back)
+    stores_incomplete = "stores_incomplete"
 
 
 class Events(str, enum.Enum):

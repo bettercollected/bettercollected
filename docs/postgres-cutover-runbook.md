@@ -292,7 +292,8 @@ It applies exactly the filters below, Mongo first and then Postgres. Its dry run
 shows the count per store; the apply needs the usual confirmation code, deletes, and records the
 counts in the audit log. Counts only, never ids, emails or tokens, and running it again deletes
 nothing. `stores: auto` covers the stores the runner's `DB_WRITE_MODE*` says the services write
-(plus any other store the runner is configured for), like the other data tasks. It needs:
+(plus any other store the runner is configured for), like the other data tasks; an apply that
+leaves out a store the services still write is refused (`stores_incomplete`). It needs:
 
 - the runner's Google Mongo connection while Mongo still holds the credentials
   (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`), with a user that may delete from
