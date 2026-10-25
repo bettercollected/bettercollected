@@ -93,41 +93,6 @@ ALL = "*"
 #: A test missing here fails there on the unreachable Mongo: add it (the whole
 #: file, or its test functions by name).
 MONGO_DRIVEN = {
-    "tests/admin/tasks/test_google_purge.py": {
-        "test_a_dry_run_cannot_write_to_mongo",
-        "test_an_apply_must_cover_every_store_the_services_write",
-        "test_an_apply_with_a_mongo_connection_must_cover_mongo",
-        "test_apply_on_both_stores_runs_mongo_first_and_is_idempotent",
-        "test_dry_run_on_both_stores_counts_per_store_and_deletes_nothing",
-        "test_mongo_filter_edges",
-    },
-    "tests/admin/tasks/test_keyset_tasks.py": ALL,
-    "tests/admin/tasks/test_responses_tasks.py": {
-        "test_a_dry_run_cannot_write_to_mongo",
-        "test_a_dry_run_cannot_write_to_the_data_store",
-        "test_a_real_run_needs_a_prior_dry_run",
-        "test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped",
-        "test_a_resumed_run_ends_in_the_state_of_an_uninterrupted_one",
-        "test_an_empty_store_is_refused_not_reported_clean",
-        "test_an_unreachable_store_is_refused",
-        "test_auto_refuses_an_unreadable_write_mode",
-        "test_backfill_both_stores_stamps_each",
-        "test_backfill_can_be_limited_to_a_workspace_or_forms",
-        "test_backfill_dry_run_counts_match_and_change_nothing",
-        "test_backfill_stamps_the_attributable_and_is_a_no_op_the_second_time",
-        "test_cancel_between_batches_stops_cleanly",
-        "test_check_auto_follows_the_write_mode",
-        "test_check_cancel_between_batches",
-        "test_check_counts_per_store_and_field",
-        "test_check_does_not_change_the_data",
-        "test_refusals",
-        "test_the_backfill_waits_for_another_mutating_task",
-        "test_the_keyset_comes_from_the_settings_store_when_the_runner_has_none",
-        "test_the_run_checkpoints_and_reports_progress",
-        "test_an_incomplete_forms_import_refuses_the_backfill_apply",
-        "test_writes_from_the_forms_links_wait_for_a_complete_import",
-        "test_a_finished_forms_backfill_lets_writes_through",
-    },
     "tests/app/db/test_outbox.py": ALL,
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
@@ -143,9 +108,6 @@ MONGO_DRIVEN = {
         "test_a_backfill_that_skipped_documents_falls_back_to_the_links",
         "test_a_settled_backfill_reads_no_links",
     },
-    "tests/scripts/test_backfill_response_workspaces.py": ALL,
-    "tests/scripts/test_check_undecryptable_values.py": ALL,
-    "tests/scripts/test_rotate_response_keyset.py": ALL,
 }
 
 
@@ -230,6 +192,27 @@ def _alembic_upgrade_head() -> None:
     )
     config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
     command.upgrade(config, "head")
+
+
+async def _apply_jobs_schema() -> None:
+    """procrastinate's queue tables in the ``jobs`` schema: the job queue is on
+    Postgres by default (``JOBS_BACKEND``), so a start with the default flags
+    checks for them (what ``python -m backend.jobs.schema`` does at deploy)."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
+
+    from backend.jobs.schema import apply_schema
+
+    engine = create_async_engine(
+        TEST_DATABASE_URL, poolclass=NullPool, isolation_level="AUTOCOMMIT"
+    )
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS jobs"))
+    finally:
+        await engine.dispose()
+    await apply_schema(TEST_DATABASE_URL)
 
 
 async def _truncate_postgres() -> None:
@@ -320,6 +303,7 @@ async def _initialized_app(request):
     if _postgres_configured():
         # Alembic drives its own event loop; keep it off the session loop.
         await asyncio.to_thread(_alembic_upgrade_head)
+        await _apply_jobs_schema()
     elif container.flags().requires_postgres():
         raise RuntimeError(
             "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "

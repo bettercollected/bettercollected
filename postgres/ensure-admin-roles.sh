@@ -343,6 +343,12 @@ BEGIN
         GRANT SELECT (id, user_id, doc) ON google.oauth_credentials TO bc_tasks_data_google;
         GRANT UPDATE (doc, _bc_checksum) ON google.oauth_credentials TO bc_tasks_data_google;
     END IF;
+    -- whether the credentials were imported from 4.0 (a finished backfill that
+    -- skipped nothing), before a purge or a key drop acts on them
+    IF to_regclass('google.migration_progress') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA google TO bc_tasks_data_google;
+        GRANT SELECT (collection, state, last_id, skipped) ON google.migration_progress TO bc_tasks_data_google;
+    END IF;
 
     -- the settings store. The writer (bc_admin) holds exactly these; no DELETE
     -- on entries or manifest; service_state is written only through

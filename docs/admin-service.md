@@ -1066,23 +1066,15 @@ compose service passes them from the root `.env`, and they are empty by default
 |---|---|
 | `TASK_RUNNER_DATABASE_URL` | Postgres URL of the data role for the `app` schema. It defaults to `bc_tasks_data_app` (below), built from `BC_TASKS_DATA_APP_PASSWORD`; set it only to point at another dedicated role, never the backend's: that would give the runner the whole app schema next to the keyset |
 | `TASK_RUNNER_GOOGLE_DATABASE_URL` | the same for the Google credentials (`google` schema); defaults to `bc_tasks_data_google` from `BC_TASKS_DATA_GOOGLE_PASSWORD`, never the integration's role |
-| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
+| `TASK_RUNNER_MONGO_URI` | never used to connect: the tasks cover Postgres alone since 4.1. While it is set, `keyset.drop_old` and the Google credentials purge refuse (`import_incomplete`): unset it once the import from 4.0 is over. (`TASK_RUNNER_MONGO_DB`, `DB_WRITE_MODE*` and `TASK_RUNNER_GOOGLE_MONGO_DB` are no longer read) |
 | `TASK_RUNNER_KEYSET` | the response keyset for the read-only `responses.*` tasks and `keyset.verify` when it is not in the settings store; it never goes to a file or a log. The `keyset.*` tasks that change or re-encrypt ignore it and use the settings store only |
-| `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` | the services' write mode (from the root `.env`; keep it equal to the services' and change it with them during the move to Postgres). It decides the stores `stores: auto` covers (every store the services still write) and the primary store of `keyset.drop_old`; unset, the services' default applies (`mongo` while the backend has groups on Mongo), as on a fresh stack where the services run on it too; a value that is not a write mode refuses with `write_mode_unknown`. The Google credentials need none: they are in Postgres only since 4.1 |
-| `TASK_RUNNER_GOOGLE_MONGO_DB` | the Google Forms integration's Mongo database (default `bettercollected_googleform`) |
-
-`stores: auto` covers every store the services still write for the task's group, as the
-runner's `DB_WRITE_MODE*` says (`mongo`: Mongo; `dual` and `postgres_primary_dual`: both;
-`postgres`: Postgres), each of which must be configured (else `store_not_configured`), and then
-any other store the runner is configured for; never fewer than the services write, so once Mongo
-is retired the tasks run on Postgres alone (unset `TASK_RUNNER_MONGO_URI`). With the write mode
-unset `auto` follows the services' default (`mongo` while the backend has groups on Mongo, so the
-runner then needs `TASK_RUNNER_MONGO_URI`); with one it cannot read it refuses
-(`write_mode_unknown`). `mongo`, `postgres` or `both` name the stores,
-need no write mode, and refuse if one is missing. `keyset.drop_old` does not follow `auto`: it
-scans both stores, each configured, or refuses, unless the operator ticks `mongo_retired` (signed and
-audited; accepted only with the runner's write mode `postgres` for every group), which scans
-Postgres alone (docs/response-keyset-rotation.md, "The store rule"). The scripts `backend/scripts/check_undecryptable_values.py`
+Postgres is the only store the tasks read or write: `stores: postgres` (the default; `auto` means the
+same, kept for parameters saved before 4.1) needs the data role's URL (else `store_not_configured`);
+`mongo` and `both` are refused with `store_retired` before anything connects. No write mode is read.
+`keyset.drop_old` scans Postgres alone and needs the operator's signed `mongo_retired` statement
+(`store_retired` without it); it also refuses (`import_incomplete`) until the import from 4.0 is
+over, and `import_state_unreadable` when the data role cannot read `migration_progress`
+(docs/response-keyset-rotation.md, "The store rule"). The scripts `backend/scripts/check_undecryptable_values.py`
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 
@@ -1114,12 +1106,6 @@ The grants are in the roles script, not in a migration, because the tables belon
 reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
 gets nothing from the other.
 
-Mongo, while it still holds responses: give the runner a dedicated user. For the check, `verify`
-and dry runs a read-only user is enough (`read` on the responses database and the Google
-integration's database). `responses.backfill_workspaces`, `keyset.reencrypt` and the other writing
-tasks need `readWrite` on exactly `form_responses` and `Oauth2CredentialDocument` (the
-credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO_URI`.
-
 ### Keyset tasks
 
 `keyset.add_key`, `keyset.promote`, `keyset.reencrypt`, `keyset.verify` and `keyset.drop_old`
@@ -1137,27 +1123,21 @@ empty, or `credentials.token` / `credentials.refresh_token` present; Postgres
 `google.oauth_credentials`: `user_id` empty or null, or `credentials` a JSON object without
 `$binary`).
 
-- **Dry run first** (required): the count per store; nothing changes, both stores are opened
-  read-only.
-- **Apply** (confirmation code, like every changing task): Mongo first, then Postgres, whatever
-  the services' primary store, so that neither store copies a row back to the other. One audit
-  row per store (`task.google.purged`, target `google_oauth` / the store) with the matched and
-  deleted counts. Running it again deletes nothing.
-- **Stores:** `auto` follows the store rule above (group `google`, written to Postgres alone from
-  4.1, so `auto` is Postgres plus Mongo when the runner has a Mongo connection); `mongo`,
-  `postgres` or `both` name them. An apply must cover every store the services still write, and
-  Mongo whenever the runner has a Mongo connection, else it refuses with `stores_incomplete`:
-  neither store keeps a deletion tombstone, so a row left in Mongo would come back with the next
-  backfill (on 4.1 the import from 4.0, `python -m googleform.migrate backfill`, still copies
-  whatever Mongo holds) or reconcile. A dry run may count a single store. Use `auto`.
+- **Dry run first** (required): the count; nothing changes, the store is opened read-only.
+- **Apply** (confirmation code, like every changing task): one audit row (`task.google.purged`,
+  target `google_oauth` / `postgres`) with the matched and deleted counts. Running it again
+  deletes nothing.
+- **Stores:** Postgres alone from 4.1 (`stores: postgres`, the default; `auto` means the same);
+  `mongo` and `both` refuse `store_retired`. An apply refuses `import_incomplete` until the import
+  from 4.0 is over (the runner has no Mongo connection, and `google.migration_progress` records no
+  unfinished backfill), and `import_state_unreadable` when the role cannot read that record:
+  running the import again would copy the rows still held in Mongo back (neither store keeps a
+  deletion tombstone). A store with no record at all cannot be told apart from one never imported:
+  confirm the import ran, or that the stack never had Mongo, before the apply.
 - **Order on 4.1:** finish the import from 4.0 (backfill, then verify) first, then run the purge.
-  A runner without a Mongo connection may apply on Postgres alone; the gate cannot see Mongo
-  then, so a purge run before the import has finished is undone by it. Alternatively purge both
-  stores on 4.0.10 before upgrading.
+  Alternatively purge both stores on 4.0.10 or later before upgrading.
 - **Counts only** in the result, the events and the audit log: never an id, an email or a token.
-- **Least privilege:** Mongo through the runner's Google Mongo connection (`MONGO_URI` /
-  `TASK_RUNNER_GOOGLE_MONGO_DB`), `deleteMany` with the filter above (the user needs `readWrite`
-  on `Oauth2CredentialDocument`). Postgres through `bc_tasks_data_google`, which has no DELETE: it
+- **Least privilege:** Postgres through `bc_tasks_data_google`, which has no DELETE: it
   calls `google.purge_unencrypted_credentials(apply)`, a `SECURITY DEFINER` function with a pinned
   `search_path` that holds the filter and returns the count. Its owner `bc_tasks_purge_google` is
   NOLOGIN and holds DELETE on that table alone; `postgres/ensure-admin-roles.sh` makes both.
@@ -1345,8 +1325,8 @@ the master key can sign anything: that is inherent to a shared key (see
   every instance seen in the last 15 minutes and from each required service, they run again
   immediately before `keyset.drop_old` writes, and `drop_old` and `reencrypt` rely on a full
   scan of the data, not on the heartbeats, for the safety of the data itself. The one place a
-  heartbeat narrows a scan is `drop_old` with `mongo_retired` (Postgres alone): it needs the
-  operator's signed statement, the runner's write mode `postgres` for every group, and every live
+  heartbeat narrows a scan is `drop_old` (Postgres alone, Mongo is not scanned): it needs the
+  operator's signed `mongo_retired` statement, a finished import from 4.0, and every live
   instance reporting `write_stores = postgres` (admin revision 0018; the older six-argument
   `report_state` still works and reports them as unknown, which refuses).
 * A process that holds `SETTINGS_MASTER_KEY` can sign task requests and audit rows without any

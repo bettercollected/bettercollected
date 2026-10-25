@@ -35,8 +35,8 @@ if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 
     BACKEND_SHARDS=$SHARDS
 fi
 
-backend=false auth=false google=false common=false webapp=false smoke=false
-everything() { backend=true auth=true google=true common=true webapp=true smoke=true; }
+backend=false auth=false google=false common=false webapp=false smoke=false executor=false
+everything() { backend=true auth=true google=true common=true webapp=true smoke=true executor=true; }
 
 if [ "$full" = true ] || [ "${EVENT:-pull_request}" != pull_request ]; then
     everything
@@ -57,6 +57,7 @@ else
         auth/*) auth=true common=true ;;
         integrations/google/*) google=true common=true ;;
         common/*) backend=true auth=true google=true common=true ;;
+        temporal/actions-executor/*) executor=true backend=true common=true ;;
         temporal/*) backend=true common=true ;;
         scripts/smoke/*) smoke=true ;; # the smoke suite's self-test
         .github/workflows/smoke-production.yml) smoke=true ;;
@@ -116,7 +117,8 @@ out=${GITHUB_OUTPUT:-/dev/stdout}
     echo "common=$common"
     echo "webapp=$webapp"
     echo "smoke=$smoke"
+    echo "executor=$executor"
     echo "modes=$modes"
     echo "backend_matrix=$matrix"
 } >>"$out"
-echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke modes=$modes" >&2
+echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke executor=$executor modes=$modes" >&2

@@ -282,7 +282,7 @@ async def test_a_purge_routed_to_temporal_cannot_be_queued():
         server_uri="unused:7233",
         namespace="default",
         crypto=container.crypto(),
-        flags=load_flags({}),
+        flags=load_flags({"JOBS_BACKEND": "temporal"}),
         jobs=app,
     )
     with pytest.raises(RuntimeError):

@@ -26,7 +26,7 @@ from backend.admin.tasks.impl.responses_common import (
 )
 from backend.admin.tasks.spec import Refusal, TaskError
 
-_EVENT = {"mongo": Events.backfilled_mongo, "postgres": Events.backfilled_postgres}
+_EVENT = {"postgres": Events.backfilled_postgres}
 
 
 class BackfillWorkspaces:

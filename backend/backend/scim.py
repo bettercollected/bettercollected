@@ -17,18 +17,16 @@ import sys
 
 from beanie import PydanticObjectId
 
-from backend.app.container import container
-from backend.app.handlers.database import close_db, open_mongo
 from backend.app.utils import AiohttpClient
-from backend.config import settings
-from backend.db.startup import (
-    check_postgres_at_startup,
-    dispose_postgres,
-    mongo_required,
-)
+from backend.cli_store import routed_repositories
+from backend.db.startup import check_postgres_at_startup
+
+# the directories, their users and the workspaces live in the identity group
+# (Postgres only since 4.1): no Mongo is connected
+GROUPS = ("identity",)
 
 
-async def _resync(workspace_id: str | None, force: bool = False) -> dict:
+async def _resync(container, workspace_id: str | None, force: bool = False) -> dict:
     service = container.scim_directory_service()
     if workspace_id is None:
         return await service.resync_all("cli")
@@ -59,21 +57,16 @@ async def main(argv) -> int:
     args = parser.parse_args(argv)
 
     AiohttpClient.get_aiohttp_client()
-    client = await open_mongo(
-        container,
-        settings.mongo_settings.URI,
-        settings.mongo_settings.DB,
-        required=mongo_required(container),
-    )
-    await check_postgres_at_startup(container)
     try:
-        result = await _resync(
-            None if args.all else args.workspace, force=args.force and not args.all
-        )
+        async with routed_repositories(*GROUPS) as container:
+            await check_postgres_at_startup(container)
+            result = await _resync(
+                container,
+                None if args.all else args.workspace,
+                force=args.force and not args.all,
+            )
         print(json.dumps(result, sort_keys=True))
     finally:
-        await close_db(client)
-        await dispose_postgres(container)
         await AiohttpClient.close_aiohttp_client()
     return 0
 

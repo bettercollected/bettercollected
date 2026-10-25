@@ -17,7 +17,6 @@ from googleform.app.exceptions.http import (
     server_not_found_error_handler,
 )
 from googleform.app.router import root_api_router
-from googleform.app.services.database_service import close_db, init_db
 from common.exceptions.validation import request_validation_error_handler
 from common.services.crypto_service import crypto_service
 from fastapi.exceptions import RequestValidationError
@@ -96,8 +95,8 @@ def get_application():
         docs_url=settings.API_ROOT_PATH + "/docs" if settings.API_DOCS_ENABLED else None,
         redoc_url=settings.API_ROOT_PATH + "/redoc" if settings.API_DOCS_ENABLED else None,
         openapi_url=settings.API_ROOT_PATH + "/openapi.json" if settings.API_DOCS_ENABLED else None,
-        on_startup=[on_startup, init_db],
-        on_shutdown=[on_shutdown, close_db],
+        on_startup=[on_startup],
+        on_shutdown=[on_shutdown],
     )
     log.debug("Add application routes.")
     app.include_router(root_api_router)
