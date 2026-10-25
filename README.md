@@ -160,23 +160,19 @@ GitHub Actions deploys updated service images through
 [Docker Stack](https://github.com/mesudip/docker-stack) and Docker Manager. Set
 these repository variables before enabling the workflow:
 
-| Environment | Ref | Manager variable | Stack variable | Backend image services variable |
-| --- | --- | --- | --- | --- |
-| Development | `develop` | `DEVELOP_MANAGER` | `DEVELOP_STACK` | `DEVELOP_BACKEND_IMAGE_SERVICES` |
-| Staging | `master` | `STAGING_MANAGER` | `STAGING_STACK` | `STAGING_BACKEND_IMAGE_SERVICES` |
-| Production | a Git tag | `PROD_MANAGER` | `PROD_STACK` | `PROD_BACKEND_IMAGE_SERVICES` |
+| Environment | Ref | Manager variable | Stack variable |
+| --- | --- | --- | --- |
+| Development | `develop` | `DEVELOP_MANAGER` | `DEVELOP_STACK` |
+| Staging | `master` | `STAGING_MANAGER` | `STAGING_STACK` |
+| Production | a Git tag | `PROD_MANAGER` | `PROD_STACK` |
 
 Each manager variable must contain that environment's Docker Manager URL. The
 workflow authenticates with GitHub OIDC, so the matching Docker Manager must
 trust this repository as an OIDC client.
 
-Some services run the backend image under their own stack service name (`admin`,
-`document-sandbox`, `jobs-worker` and `task-runner` in `docker-compose.deployment.yml`).
-A deploy updates them only when they are listed in that environment's backend image
-services variable: stack service names separated by spaces, empty by default. List
-only services the target stack runs. A deploy must never send a service the stack
-lacks. Names may only use lowercase letters, digits and `-`; anything else stops the
-deploy.
+Besides one service per built image, a deploy updates the services that run the backend image
+under their own stack service name: `admin`, `document-sandbox`, `jobs-worker` and `task-runner`
+(as in `docker-compose.deployment.yml`). Every stack the workflow deploys must run them.
 
 ## Contributing
 
