@@ -859,3 +859,149 @@ async def test_a_verify_error_is_a_loop_failure_not_a_green_status(
     with pytest.raises(RuntimeError):
         await mon.run_once()
     assert board.integrity.ok is None  # never claims ok without a check
+
+
+# ----------------------------------------------------- credential purges
+
+QUEUE_TABLES = """
+CREATE TYPE jobs.procrastinate_job_status AS ENUM
+    ('todo', 'doing', 'succeeded', 'failed', 'cancelled', 'aborted');
+CREATE TYPE jobs.procrastinate_job_event_type AS ENUM
+    ('deferred', 'started', 'deferred_for_retry', 'failed', 'succeeded', 'cancelled');
+CREATE TABLE jobs.procrastinate_jobs (
+    id bigserial PRIMARY KEY,
+    task_name varchar(128) NOT NULL,
+    args jsonb NOT NULL DEFAULT '{}',
+    status jobs.procrastinate_job_status NOT NULL DEFAULT 'todo'
+);
+CREATE TABLE jobs.procrastinate_events (
+    id bigserial PRIMARY KEY,
+    job_id bigint NOT NULL,
+    type jobs.procrastinate_job_event_type,
+    at timestamptz DEFAULT now()
+);
+"""
+
+
+async def _queue_job(superuser, task, status, deferred_hours_ago):
+    async with superuser.begin() as conn:
+        job_id = (
+            await conn.execute(
+                text(
+                    "INSERT INTO jobs.procrastinate_jobs (task_name, status, args) "
+                    "VALUES (:t, CAST(:s AS jobs.procrastinate_job_status), "
+                    "CAST('{\"sealed\": \"x\"}' AS jsonb)) RETURNING id"
+                ),
+                {"t": task, "s": status},
+            )
+        ).scalar()
+        await conn.execute(
+            text(
+                "INSERT INTO jobs.procrastinate_events (job_id, type, at) "
+                "VALUES (:j, 'deferred', now() - make_interval(hours => :h))"
+            ),
+            {"j": job_id, "h": deferred_hours_ago},
+        )
+    return job_id
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def job_queue(server, migrated, superuser):
+    """The job queue's tables, made by the backend's role (as python -m
+    backend.jobs.schema does), then the roles script again (every deploy runs
+    it), which grants the overdue count its columns."""
+    await _execute(server.url(migrated, "reader:app"), QUEUE_TABLES)
+    await _execute(
+        server.url(migrated),
+        roles_sql(
+            server.suffix,
+            server.admin_pw,
+            server.mig_pw,
+            server.tasks_pw,
+            server.data_app_pw,
+            server.data_google_pw,
+        ),
+    )
+    yield
+
+
+async def test_integrity_reports_a_credential_purge_pending_for_a_day(
+    runtime_engine, superuser, store, now_clock, job_queue
+):
+    mon, board = monitor(runtime_engine, now_clock, store)
+    # queued an hour ago: still within the day
+    recent = await _queue_job(superuser, "purge_provider_credentials", "todo", 1)
+    assert await mon.run_once() == "ok"
+
+    # one queued 25 hours ago and still not done: an incident, mailed once
+    late = await _queue_job(superuser, "purge_provider_credentials", "todo", 25)
+    assert (await mon.run_once()).endswith("notified")
+    assert ("CREDENTIAL_PURGE", "overdue") in board.integrity.problems
+    (notice,) = await notices(superuser)
+    assert json.loads(notice.p)["problems"] == [
+        {"key": "CREDENTIAL_PURGE", "reason": "overdue"}
+    ]
+
+    # done: ok again
+    for job_id in (recent, late):
+        await as_superuser_raw(
+            superuser,
+            "UPDATE jobs.procrastinate_jobs SET status = 'succeeded' WHERE id = :j",
+            j=job_id,
+        )
+    assert await mon.run_once() == "ok"
+
+
+@pytest.mark.parametrize(
+    "task,status,hours,overdue",
+    [
+        ("purge_provider_credentials", "failed", 1, True),
+        ("delete_user", "failed", 1, True),
+        ("delete_user", "doing", 30, True),
+        ("purge_provider_credentials", "succeeded", 30, False),
+        ("delete_response", "failed", 30, False),
+    ],
+)
+async def test_what_counts_as_an_overdue_purge(
+    runtime_engine, superuser, job_queue, task, status, hours, overdue
+):
+    await _queue_job(superuser, task, status, hours)
+    async with runtime_engine.connect() as conn:
+        count = (
+            await conn.execute(text("SELECT admin.credential_purges_overdue()"))
+        ).scalar()
+    assert bool(count) is overdue
+
+
+async def test_the_overdue_count_never_reads_job_arguments(server, superuser, job_queue):
+    role = f"bc_count_app_{server.suffix}"
+
+    async def column(table, name):
+        return await scalar(
+            superuser,
+            "SELECT has_column_privilege(:r, :t, :c, 'SELECT')",
+            r=role,
+            t=table,
+            c=name,
+        )
+
+    assert await column("jobs.procrastinate_jobs", "status")
+    assert not await column("jobs.procrastinate_jobs", "args")
+    # only the portal's role may ask, and it gets a count
+    assert not await scalar(
+        superuser,
+        "SELECT has_function_privilege('public', 'admin.credential_purges_overdue()', 'EXECUTE')",
+    )
+    assert await scalar(
+        superuser,
+        "SELECT has_function_privilege(:r, 'admin.credential_purges_overdue()', 'EXECUTE')",
+        r=server.runtime_role,
+    )
+
+
+async def test_without_the_job_queue_nothing_is_overdue(runtime_engine):
+    async with runtime_engine.connect() as conn:
+        count = (
+            await conn.execute(text("SELECT admin.credential_purges_overdue()"))
+        ).scalar()
+    assert count == 0

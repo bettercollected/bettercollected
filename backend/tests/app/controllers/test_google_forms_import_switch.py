@@ -354,10 +354,18 @@ class TestAccountDeletion:
             f"{GOOGLE_URL}/google/oauth/credentials"
         )
 
-    async def test_off_skips_the_google_service(
+    async def test_off_skips_the_google_service_and_queues_a_purge(
         self, google_provider_config, aiohttp_delete, mode
     ):
         mode("off")
-        await container.auth_service().delete_credentials_from_integrations(testUser)
+        with patch.object(
+            container.temporal_service(),
+            "queue_credential_purge",
+            AsyncMock(return_value="queued"),
+        ) as queue:
+            await container.auth_service().delete_credentials_from_integrations(
+                testUser
+            )
 
         aiohttp_delete.assert_not_awaited()
+        assert queue.await_count == 1

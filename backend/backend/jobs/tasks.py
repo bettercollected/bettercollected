@@ -12,6 +12,7 @@ from dataclasses import asdict
 
 from procrastinate import RetryStrategy
 
+from backend.app.services.credential_purge import PURGE_ATTEMPTS, PURGE_RETRY_SECONDS
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
@@ -42,6 +43,24 @@ async def delete_user(encrypted_tokens: str, user_id: str) -> str:
         raise ValueError("deletion request does not match the job's user")
     await container.auth_service().delete_user(user=user)
     return "User Deleted Successfully"
+
+
+@app.task(
+    name="purge_provider_credentials",
+    queue=DEFAULT_QUEUE,
+    retry=RetryStrategy(max_attempts=PURGE_ATTEMPTS, wait=PURGE_RETRY_SECONDS),
+)
+async def purge_provider_credentials(sealed: str, user_id: str) -> str:
+    """Erase a deleted account's stored provider credentials (one attempt;
+    retried hourly for two days, then failed and reported by the admin
+    portal's integrity monitor). ``sealed`` is the encrypted CredentialPurge."""
+    from backend.app.services.credential_purge import unseal
+
+    container = _container()
+    purge = unseal(container.crypto(), sealed)
+    if purge.user_id != user_id:
+        raise ValueError("purge request does not match the job's user")
+    return await container.credential_purge_service().purge(purge)
 
 
 @app.task(

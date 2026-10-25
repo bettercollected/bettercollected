@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import re
@@ -22,11 +21,11 @@ from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
-from backend.app.services.google_forms_mode import (
-    google_service_enabled,
-    is_google,
-    refuse_google_forms_processing,
+from backend.app.services.credential_purge import (
+    CredentialPurge,
+    CredentialPurgeNotQueued,
 )
+from backend.app.services.google_forms_mode import refuse_google_forms_processing
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.login_redirect import safe_redirect
 from backend.app.services.session_service import (
@@ -46,8 +45,8 @@ from backend.config import settings
 
 log = logging.getLogger(__name__)
 
-# seconds a provider service gets to delete a user's stored credentials
-CREDENTIALS_DELETE_TIMEOUT = 20
+# seconds the auth service gets to delete the account
+AUTH_DELETE_TIMEOUT = 30
 
 _LOGIN_ERROR_CODE = re.compile(r"^[a-z_]{1,64}$")
 
@@ -90,7 +89,9 @@ class AuthService:
         session_service: SessionService = None,
         allowed_origins_repo=None,
         sso_policy=None,
+        credential_purge_service=None,
     ):
+        self.credential_purge_service = credential_purge_service
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
@@ -381,62 +382,50 @@ class AuthService:
         await self.workspace_service.refuse_deleting_billing_owner_of_shared_workspaces(
             user
         )
-        await self.delete_credentials_from_integrations(user=user)
+        # the account, its sessions and its workspace data go first: nothing
+        # about a provider service may hold them back
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
-        # GDPR erasure of the marketing contact made at sign-up; best effort
-        # (never fails the deletion), logs the user id only
+        # then the stored provider credentials, deleted now or purged by a
+        # retryable job; a purge that can't even be queued is raised after the
+        # whole erasure (CredentialPurgeNotQueued), so the deletion job fails
+        # visibly and is retried
+        not_queued = None
+        try:
+            await self.delete_credentials_from_integrations(user=user)
+        except CredentialPurgeNotQueued as exc:
+            not_queued = exc
+        # GDPR erasure of the marketing contact made at sign-up, last; best
+        # effort (never fails the deletion), logs the user id only
         try:
             await event_logger_service.delete_contact(user.sub, str(user.id))
         except Exception:  # noqa: BLE001
             logger.warning(f"Brevo contact erasure failed for user {user.id}")
+        if not_queued is not None:
+            raise not_queued
 
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
+        not_queued = []
         for provider in providers:
             if not provider.enabled:
                 continue
-            if is_google(provider.provider_name) and not google_service_enabled():
-                # GOOGLE_FORMS_IMPORT=off: the Google Forms service is not
-                # called; its stored credentials go with its retirement
-                log.info(
-                    "Google Forms service off: credentials of user %s not "
-                    "deleted there",
-                    user.id,
-                )
-                continue
-            # Best effort: an unreachable or failing provider service never
-            # blocks deleting the account (the rest of the deletion is the
-            # respondent-facing promise). Logged with ids only, so the
-            # leftover credential can be removed on that service later.
+            purge = CredentialPurge(
+                user_id=str(user.id), email=user.sub, provider=provider.provider_name
+            )
             try:
-                response = await AiohttpClient.get_aiohttp_client().delete(
-                    await self.form_provider_service.get_provider_url(
-                        provider.provider_name
-                    )
-                    + f"/{provider.provider_name}"
-                    + "/oauth/credentials",
-                    params={"user_id": user.id, "email": user.sub},
-                    timeout=aiohttp.ClientTimeout(total=CREDENTIALS_DELETE_TIMEOUT),
-                )
-                status = response.status
-            except (aiohttp.ClientError, asyncio.TimeoutError, OSError, HTTPException):
-                status = None
-            if status != HTTPStatus.OK:
-                log.warning(
-                    "Account deletion: credentials of user %s not deleted on the "
-                    "%s service (%s); the account deletion continues",
-                    user.id,
-                    provider.provider_name,
-                    status if status is not None else "unreachable",
-                )
+                await self.credential_purge_service.erase_or_queue(purge)
+            except CredentialPurgeNotQueued:
+                not_queued.append(provider.provider_name)
+        if not_queued:
+            raise CredentialPurgeNotQueued(str(user.id))
 
     async def delete_user_form_auth(self, user: User):
         response = await AiohttpClient.get_aiohttp_client().delete(
             settings.auth_settings.BASE_URL + "/users/" + user.id,
             headers=auth_service_headers(),
-            timeout=20000,
+            timeout=aiohttp.ClientTimeout(total=AUTH_DELETE_TIMEOUT),
         )
         # 404: the account is already gone (a retried deletion job) — done,
         # not an error, or the retry would fail on it forever.

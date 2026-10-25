@@ -19,6 +19,12 @@
 #   bc_tasks_def  NOLOGIN owner of the runner's definer functions. It holds what
 #                 those functions need (INSERT on the audit log, the settings
 #                 tables, the notification outbox) and nobody can log in as it.
+#   admin.credential_purges_overdue()
+#                 the integrity monitor's count of credential purges (and account
+#                 deletions) still queued a day later or failed; read-only, owned
+#                 by bc_count_app (the queue's `jobs` schema is the backend role's,
+#                 like `app`), column SELECT on the queue tables, never job
+#                 arguments; EXECUTE for bc_admin only.
 #   admin.platform_counts_app(), admin.platform_counts_auth()
 #                 the metrics page's counts, ONE read-only SECURITY DEFINER function
 #                 per owning schema, each owned by a NOLOGIN role (bc_count_app,
@@ -598,6 +604,33 @@ BEGIN
 END
 $fn$;
 
+-- Account deletion queues a purge of the user's stored provider credentials
+-- (backend services/credential_purge.py); the integrity monitor reports one that
+-- is still pending a day after it was queued, or failed, and a deletion job in the
+-- same state. A count only, from the queue's own tables in `jobs` (owned by the
+-- backend's role, like `app`, so the same NOLOGIN owner as platform_counts_app).
+CREATE OR REPLACE FUNCTION admin.credential_purges_overdue() RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regnamespace('jobs') IS NULL OR NOT has_schema_privilege('jobs', 'USAGE')
+       OR to_regclass('jobs.procrastinate_jobs') IS NULL
+       OR to_regclass('jobs.procrastinate_events') IS NULL THEN
+        RETURN 0;
+    END IF;
+    RETURN (
+        SELECT count(*)::integer
+          FROM jobs.procrastinate_jobs j
+         WHERE j.task_name IN ('purge_provider_credentials', 'delete_user')
+           AND (j.status = 'failed'
+                OR (j.status IN ('todo', 'doing')
+                    AND EXISTS (SELECT 1 FROM jobs.procrastinate_events e
+                                 WHERE e.job_id = j.id AND e.type = 'deferred'
+                                   AND e.at < now() - interval '1 day')))
+    );
+END
+$fn$;
+
 -- The functions' owners: one role per schema, NOLOGIN, owning only its function
 -- and holding column-level SELECT on that schema's tables. This block runs on
 -- every deploy, so the grants are re-applied once the application migrations
@@ -633,8 +666,22 @@ BEGIN
     IF to_regclass('auth.users') IS NOT NULL THEN
         GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;
     END IF;
+    -- the job queue (schema `jobs`, also the backend role's): only the columns
+    -- admin.credential_purges_overdue() reads, never the job arguments
+    IF to_regnamespace('jobs') IS NOT NULL THEN
+        GRANT USAGE ON SCHEMA jobs TO bc_count_app;
+    END IF;
+    IF to_regclass('jobs.procrastinate_jobs') IS NOT NULL THEN
+        GRANT SELECT (id, task_name, status) ON jobs.procrastinate_jobs TO bc_count_app;
+    END IF;
+    IF to_regclass('jobs.procrastinate_events') IS NOT NULL THEN
+        GRANT SELECT (job_id, type, at) ON jobs.procrastinate_events TO bc_count_app;
+    END IF;
 END
 $own$;
+ALTER FUNCTION admin.credential_purges_overdue() OWNER TO bc_count_app;
+REVOKE ALL ON FUNCTION admin.credential_purges_overdue() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin.credential_purges_overdue() TO bc_admin;
 ALTER FUNCTION admin.platform_counts_app() OWNER TO bc_count_app;
 ALTER FUNCTION admin.platform_counts_auth() OWNER TO bc_count_auth;
 REVOKE ALL ON FUNCTION admin.platform_counts_app() FROM PUBLIC;
