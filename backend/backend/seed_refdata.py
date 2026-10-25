@@ -3,7 +3,12 @@
 Seeds the reference data a fresh installation needs, in Postgres: the allowed
 origins and the Google Forms provider. Until 4.1 the Mongo seed container
 (``seed-data-deployment.js``) wrote the same rows to Mongo; these groups are
-served from Postgres only now.
+served from Postgres only now. deploy.sh runs it once on a new stack, with the
+web app's public origins (``DASHBOARD_DOMAIN`` / ``FORM_DOMAIN``).
+
+Without ``--origin`` the origins are the local web app ports only while the
+backend's ``API_CLIENT_URL`` is a local address; otherwise they are that URL's
+origin, so a stack with a public address never gets localhost origins.
 
 Each table is seeded only while it is empty, so running it on every start is
 safe: an upgraded stack (whose rows were imported from Mongo) and anything an
@@ -16,19 +21,44 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
-from typing import Iterable
+from typing import Iterable, Optional
+from urllib.parse import urlsplit
 
 from loguru import logger
 
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.services.login_redirect import origin_of
 
-#: what seed-data-deployment.js inserts into an empty collection
+#: the local web app ports: the dashboard, nginx's client host and its
+#: custom-domain host (docker-compose.deployment.yml)
 DEFAULT_ORIGINS = (
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
 )
 DEFAULT_GOOGLE_URL = "http://integrations-googleform:8000/api/v1"
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def is_local_url(url: str) -> bool:
+    try:
+        return urlsplit(url).hostname in LOCAL_HOSTS
+    except ValueError:
+        return False
+
+
+def default_origins(client_url: Optional[str] = None) -> tuple:
+    """The origins seeded when none are given: the local web app ports while
+    the client URL (``API_CLIENT_URL``) is local, else the client URL's own
+    origin. A stack with a public address never gets localhost origins."""
+    if client_url is None:
+        from backend.config import settings
+
+        client_url = settings.api_settings.CLIENT_URL
+    client = origin_of(client_url)
+    if client is None or is_local_url(client_url):
+        return DEFAULT_ORIGINS
+    return (client,)
 
 
 def google_provider(url: str, enabled: bool) -> FormPluginConfigDocument:
@@ -52,7 +82,7 @@ async def seed_refdata(
     """Seed each empty table; returns how many rows each got (0: it had rows)."""
     seeded = {"allowed_origins": 0, "forms_plugin_configs": 0}
     if not await origins_repo.list_origins():
-        for origin in origins:
+        for origin in dict.fromkeys(origins):  # once each, in order
             await origins_repo.add(origin)
             seeded["allowed_origins"] += 1
     if not await providers_repo.list():
@@ -68,6 +98,22 @@ def _bool(value: str) -> bool:
     return lowered == "true"
 
 
+def _origin(value: str) -> str:
+    """An origin as browsers send it (lower case, no default port)."""
+    origin = origin_of(value)
+    try:
+        parts = urlsplit(value)
+    except ValueError:
+        parts = None
+    if origin is None or parts is None or parts.path not in ("", "/") or (
+        parts.query or parts.fragment
+    ):
+        raise argparse.ArgumentTypeError(
+            "expected an origin: http(s)://host[:port], without a path"
+        )
+    return origin
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m backend.seed_refdata",
@@ -78,7 +124,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--origin",
         action="append",
         dest="origins",
-        help="an allowed origin (repeatable; default: the local web app ports)",
+        type=_origin,
+        help="an allowed origin, http(s)://host[:port] (repeatable; default: the "
+        "local web app ports while API_CLIENT_URL is local, else its origin)",
     )
     parser.add_argument(
         "--google-enabled",
@@ -98,7 +146,7 @@ async def run(args: argparse.Namespace) -> int:
         seeded = await seed_refdata(
             container.allowed_origins_repo(),
             container.form_provider_repo(),
-            origins=args.origins or DEFAULT_ORIGINS,
+            origins=args.origins or default_origins(),
             google_enabled=args.google_enabled,
             google_url=args.google_url,
         )
