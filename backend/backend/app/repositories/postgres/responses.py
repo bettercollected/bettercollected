@@ -1310,13 +1310,17 @@ class PostgresResponderGroupsRepository(RecordRepository):
         return [ResponderGroupDto(**row) for row in await self._projected(groups)]
 
     async def get_groups_by_form_ids(
-        self, form_ids: List[str]
+        self, form_ids: List[str], workspace_id: RecordId
     ) -> Dict[str, List[dict]]:
+        """form_id -> the raw responder-group documents of ``workspace_id``
+        attached to it. A form held by several workspaces carries each one's
+        own groups: another workspace's are never returned."""
         links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
         groups = {
             group.id: to_bson(group)
             for group in await self.many(
-                ResponderGroupRow.id.in_([_oid(l.group_id) for l in links] or ["-"])
+                ResponderGroupRow.id.in_([_oid(l.group_id) for l in links] or ["-"]),
+                ResponderGroupRow.workspace_id == _oid(workspace_id),
             )
         }
         by_form: Dict[str, List[dict]] = {form_id: [] for form_id in form_ids}
@@ -1325,18 +1329,42 @@ class PostgresResponderGroupsRepository(RecordRepository):
                 by_form.setdefault(link.form_id, []).append(groups[link.group_id])
         return by_form
 
+    async def get_linked_group_owners(
+        self, form_id: str
+    ) -> Dict[RecordId, Optional[RecordId]]:
+        """group id -> the workspace that owns it (None when it has none), for
+        every group linked to the form, whatever its workspace. Only the save
+        logic that must keep other workspaces' links reads this; nothing
+        returned to a caller may be built from it."""
+        links = await self._links(ResponderGroupFormRow.form_id == form_id)
+        owners = {
+            group.id: group.workspace_id
+            for group in await self.many(
+                ResponderGroupRow.id.in_([_oid(l.group_id) for l in links] or ["-"])
+            )
+        }
+        return {
+            link.group_id: owners[link.group_id]
+            for link in links
+            if link.group_id in owners
+        }
+
     async def get_form_ids_accessible_to(
-        self,
-        form_ids: List[str],
-        identifier: str,
-        workspace_id: Optional[RecordId] = None,
+        self, form_ids: List[str], identifier: str, workspace_id: RecordId
     ) -> Set[str]:
-        """The subset of ``form_ids`` whose responder groups admit
-        ``identifier``: a member with that identifier in any of the form's
-        groups, or a regex it matches of one of ``workspace_id``'s groups (any
-        group's when None), as 4.0's listing did."""
+        """The subset of ``form_ids`` whose responder groups of ``workspace_id``
+        admit ``identifier``: a member with that identifier, or a group regex it
+        matches. Another workspace's groups linked to the same form neither
+        admit nor refuse anyone here."""
         links = await self._links(ResponderGroupFormRow.form_id.in_(list(form_ids)))
-        group_ids = [_oid(g) for g in {link.group_id for link in links}]
+        candidates = [_oid(g) for g in {link.group_id for link in links}]
+        if not candidates:
+            return set()
+        own_groups = await self.many(
+            ResponderGroupRow.id.in_(candidates),
+            ResponderGroupRow.workspace_id == _oid(workspace_id),
+        )
+        group_ids = [_oid(group.id) for group in own_groups]
         if not group_ids:
             return set()
         member_of = {
@@ -1346,10 +1374,8 @@ class PostgresResponderGroupsRepository(RecordRepository):
                 ResponderGroupMemberRow.identifier == identifier,
             )
         }
-        for group in await self.many(ResponderGroupRow.id.in_(group_ids)):
+        for group in own_groups:
             if not group.regex:
-                continue
-            if workspace_id is not None and str(group.workspace_id) != str(workspace_id):
                 continue
             try:
                 if re.search(group.regex, identifier):

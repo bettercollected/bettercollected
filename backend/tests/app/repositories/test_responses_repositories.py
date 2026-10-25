@@ -339,13 +339,14 @@ async def test_responder_groups(sessions):
     ]
     assert await repo.get_group_in_workspace(ws, group.id) is not None
     assert await repo.get_group_in_workspace(oid(2), group.id) is None
-    assert (await repo.get_groups_by_form_ids(["f1", "zz"]))["f1"][0]["name"] == "Team"
-    assert await repo.get_form_ids_accessible_to(["f1", "f2", "f3"], "b@x.com") == {
-        "f1",
-        "f2",
-    }
-    assert await repo.get_form_ids_accessible_to(["f1"], "who@team.com") == {"f1"}
-    assert await repo.get_form_ids_accessible_to(["f1"], "who@else.com") == set()
+    assert (await repo.get_groups_by_form_ids(["f1", "zz"], ws))["f1"][0][
+        "name"
+    ] == "Team"
+    assert await repo.get_form_ids_accessible_to(
+        ["f1", "f2", "f3"], "b@x.com", ws
+    ) == {"f1", "f2"}
+    assert await repo.get_form_ids_accessible_to(["f1"], "who@team.com", ws) == {"f1"}
+    assert await repo.get_form_ids_accessible_to(["f1"], "who@else.com", ws) == set()
     await repo.remove_emails_from_group(group.id, ["a@x.com"])
     await repo.remove_group_from_form("f2", group.id)
     updated = await repo.update_group(ws, "Team2", None, ["c@x.com"], group.id, None)

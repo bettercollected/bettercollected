@@ -858,11 +858,12 @@ async def test_a_whole_form_save_keeps_a_concurrent_parameter_change(
     }
 
 
-async def test_a_private_form_is_admitted_by_a_regex_of_the_listing_workspace_only(
+async def test_a_private_form_is_admitted_by_the_listing_workspaces_own_groups_only(
     sessions,
 ):
-    """As in 4.0: a member of any of the form's responder groups is admitted;
-    a group regex counts only when the group is the listing workspace's."""
+    """Only the listing workspace's own responder groups admit a respondent,
+    by membership or by regex; another workspace's groups linked to the same
+    form count for nothing (they used to admit their members here)."""
     ws, other = oid(1), oid(2)
     groups, _, links = form_repos(sessions)
     await links.save(workspace_form(ws, "priv", "u1", 1, private=True))
@@ -878,9 +879,14 @@ async def test_a_private_form_is_admitted_by_a_regex_of_the_listing_workspace_on
 
     assert await visible(corp) == set()  # another workspace's regex
     await groups.add_emails_to_group(foreign.id, ["dev@corp.com"])
-    assert await visible(corp) == {"priv"}  # a member of a linked group
+    assert await visible(corp) == set()  # a member of another workspace's group
 
     own = await groups.create_group(ws, "Corp", regex=".*@corp.com")
     await groups.add_group_to_form("priv", own.id)
     other_user = User(id=str(oid(13)), sub="ops@corp.com")
     assert await visible(other_user) == {"priv"}  # this workspace's regex
+    assert await visible(corp) == {"priv"}  # ... which also matches this member
+    member = User(id=str(oid(14)), sub="member@example.com")
+    assert await visible(member) == set()
+    await groups.add_emails_to_group(own.id, ["member@example.com"])
+    assert await visible(member) == {"priv"}  # a member of this workspace's group
