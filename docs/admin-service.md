@@ -1244,11 +1244,15 @@ auth is the cause.
 | `backend_bad_reply` | The API answered 200 with something other than the expected JSON | That the URL reaches the backend, not another service or a proxy page |
 | `auth_unreachable` | The API could not reach the auth service (connection or timeout) | The backend's `AUTH_BASE_URL`; that the `auth` service is up |
 | `auth_key_refused` | Auth answered 401/403 to the API: the backend's `AUTH_INTERNAL_NOTIFY_KEY` is not the one auth holds | The same `AUTH_INTERNAL_NOTIFY_KEY` on `backend` and `auth` |
+| `auth_misconfigured` | The API's `AUTH_BASE_URL` is not a usable URL | The backend's `AUTH_BASE_URL` (compose: `http://auth:8000/api/v1`) |
+| `deletion_unavailable` | Apply only: the API could not start an account deletion (the deletion workflow: Temporal, or the jobs worker on Postgres) | The backend's log (`deletion could not be started`, with the error type and status); Temporal or the jobs worker; run the apply again once it is back: accounts already started are skipped |
 | `auth_error` | Auth answered another error (503: auth has no `AUTH_INTERNAL_NOTIFY_KEY`) or an unreadable reply | The status in the backend's log line; the auth service's log |
 
 A backend from before this change passes auth's failures through as its own status, so with
 it an auth problem can still show as `backend_key_missing`, `backend_key_refused` or
-`backend_error`; check the backend's log for a failed call to auth.
+`backend_error`; check the backend's log for a failed call to auth. The API answers 503 for
+its own missing `ADMIN_TASKS_API_KEY` only: a 503 from anything inside the routes is answered
+500, so `backend_key_missing` always means that key.
 
 ## Task pages
 

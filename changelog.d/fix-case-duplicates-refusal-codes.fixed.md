@@ -7,5 +7,7 @@
   `backend_bad_reply` (not the expected JSON), and logs the HTTP status. When the API's call to
   the auth service fails, the internal admin-task routes answer 502 with a stable code instead
   of passing auth's status through, and the run refuses with `auth_unreachable`,
-  `auth_key_refused` (the backend's `AUTH_INTERNAL_NOTIFY_KEY` does not match auth's) or
-  `auth_error`. The admin service guide has a troubleshooting table for these codes.
+  `auth_key_refused` (the backend's `AUTH_INTERNAL_NOTIFY_KEY` does not match auth's),
+  `auth_misconfigured` or `auth_error`; an account deletion that cannot be started (Temporal or
+  the jobs worker down) refuses with `deletion_unavailable` instead of `backend_key_missing`.
+  The admin service guide has a troubleshooting table for these codes.

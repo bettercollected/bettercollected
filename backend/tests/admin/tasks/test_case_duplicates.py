@@ -332,6 +332,10 @@ def _raising(error):
          "auth_unreachable"),
         ({}, _replying(502, json={"code": "auth_refused", "status": 403}), "auth_key_refused"),
         ({}, _replying(502, json={"code": "auth_error", "status": 500}), "auth_error"),
+        ({}, _replying(502, json={"code": "auth_misconfigured", "status": None}),
+         "auth_misconfigured"),
+        ({}, _replying(502, json={"code": "deletion_unavailable", "status": 503}),
+         "deletion_unavailable"),
     ],
 )
 async def test_refusals(world, api, monkeypatch, caplog, env, transport, code):
@@ -357,6 +361,23 @@ async def test_a_refusal_logs_the_status_and_code_never_the_body(world, api, mon
     logged = [r.getMessage() for r in caplog.records if r.name == "backend.admin.tasks"]
     assert any("auth_key_refused" in m and "502" in m for m in logged), logged
     assert "example.com" not in " ".join(logged)
+
+
+async def test_a_deletion_that_cannot_start_refuses_the_apply(world, api, monkeypatch):
+    """The API cannot start the account deletion: the apply refuses with
+    ``deletion_unavailable`` (not ``backend_key_missing``)."""
+    dry_id, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    handler = api.handler
+
+    def no_deletions(request):
+        if request.method == "POST":
+            return httpx.Response(502, json={"code": "deletion_unavailable", "status": 503})
+        return handler(request)
+
+    monkeypatch.setattr(impl, "transport", httpx.MockTransport(no_deletions))
+    _, run = await _run(world)
+    assert run["state"] == "refused" and run["refusal_code"] == "deletion_unavailable", run
 
 
 async def test_a_refusal_during_the_apply_is_the_same_code(world, api, monkeypatch):

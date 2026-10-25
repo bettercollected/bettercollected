@@ -49,6 +49,11 @@ class Refusals(str, enum.Enum):
     auth_unreachable = "auth_unreachable"
     auth_key_refused = "auth_key_refused"
     auth_error = "auth_error"
+    # the API's AUTH_BASE_URL is not a usable URL
+    auth_misconfigured = "auth_misconfigured"
+    # the API could not start an account deletion (the deletion workflow:
+    # Temporal or the jobs worker)
+    deletion_unavailable = "deletion_unavailable"
 
 
 class Events(str, enum.Enum):
