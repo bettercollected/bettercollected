@@ -21,7 +21,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 
 from bson import ObjectId
 from pymongo import AsyncMongoClient, ReadPreference
@@ -139,6 +139,11 @@ class CollectionReport:
     expired: int = 0
     invalid_ids: int = 0
     duplicates: int = 0
+    # preflight, of the unique keys compared ignoring letter case
+    # (lower(email)): distinct lower-cased values that more than one document
+    # holds, and how many documents hold them. Counted in ``duplicates`` too.
+    case_variant_keys: int = 0
+    case_variant_documents: int = 0
     samples: dict = field(
         default_factory=lambda: {
             "missing_in_postgres": [],
@@ -264,6 +269,20 @@ def expired(document: Mapping[str, Any], ttl: Optional[tuple], now: datetime) ->
     field_name, seconds = ttl
     at = timestamp_of(document.get(field_name))
     return at is not None and at + timedelta(seconds=seconds) <= now
+
+
+async def case_variants(coll, path: Sequence[str]) -> tuple[int, int]:
+    """(distinct lower-cased values more than one document holds, documents
+    holding them) at ``path``: string values only, empty ones ignored."""
+    field_path = ".".join(path)
+    pipeline = [
+        {"$match": {field_path: {"$type": "string", "$ne": ""}}},
+        {"$group": {"_id": {"$toLower": "$" + field_path}, "n": {"$sum": 1}}},
+        {"$match": {"n": {"$gt": 1}}},
+        {"$group": {"_id": None, "keys": {"$sum": 1}, "documents": {"$sum": "$n"}}},
+    ]
+    found = await (await coll.aggregate(pipeline)).to_list()
+    return (found[0]["keys"], found[0]["documents"]) if found else (0, 0)
 
 
 def on_primary(collection):
@@ -398,20 +417,22 @@ class Runner:
                 dupes = await (await coll.aggregate(pipeline)).to_list()
                 report.duplicates += dupes[0]["groups"] if dupes else 0
             for path in casefold_unique_key_paths(table):
-                field_path = ".".join(path)
-                pipeline = [
-                    {"$match": {field_path: {"$nin": [None, ""], "$type": "string"}}},
-                    {
-                        "$group": {
-                            "_id": {"$toLower": "$" + field_path},
-                            "n": {"$sum": 1},
-                        }
-                    },
-                    {"$match": {"n": {"$gt": 1}}},
-                    {"$count": "groups"},
-                ]
-                dupes = await (await coll.aggregate(pipeline)).to_list()
-                report.duplicates += dupes[0]["groups"] if dupes else 0
+                keys, documents = await case_variants(coll, path)
+                report.case_variant_keys += keys
+                report.case_variant_documents += documents
+                report.duplicates += keys
+            if report.case_variant_keys:
+                # counts only: the values are personal data (email addresses)
+                logger.warning(
+                    "preflight %s: %d values are held by %d documents that differ "
+                    "only in letter case; Postgres requires them unique ignoring "
+                    "case, so backfill stops this collection on the first one: "
+                    "resolve them before the import (docs/postgres-cutover-runbook.md, "
+                    "'Accounts whose emails differ only in case')",
+                    name,
+                    report.case_variant_keys,
+                    report.case_variant_documents,
+                )
             async with self.engine.connect() as conn:
                 report.postgres = (
                     await conn.execute(select(func.count()).select_from(table))
