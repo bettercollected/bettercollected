@@ -6,22 +6,29 @@ umask 077
 
 user_preference="$1"
 
-# The Typeform integration was removed in 4.1: its preferences still work, without it.
-case "$user_preference" in
-  typeform)
-    echo "WARNING: the Typeform integration was removed in 4.1; starting the stack without it." >&2
-    user_preference="" ;;
-  both)
-    echo "WARNING: the Typeform integration was removed in 4.1; starting the stack with Google Forms only." >&2
-    user_preference=googleform ;;
-esac
+# The Typeform integration was removed in 4.1: the preferences that asked for it
+# (typeform, both) are refused before anything is changed, so a deploy never runs
+# with another set of services than the operator asked for.
+refuse_typeform_preference() {
+  case "$1" in
+    typeform|both)
+      echo "refused: './deploy.sh $1' is no longer supported: the Typeform integration was removed in 4.1." >&2
+      echo "Run ./deploy.sh googleform for the stack with the Google Forms integration, or ./deploy.sh" >&2
+      echo "without a preference for the stack without it. Nothing was changed." >&2
+      exit 2 ;;
+  esac
+}
+refuse_typeform_preference "$user_preference"
+[ "$user_preference" != print-services ] || refuse_typeform_preference "${2:-}"
 
 # The services every deployment starts. `up -d NAME...` starts only the services
 # it names (and what they depend on), so each one has to be listed here: the admin
 # service (the portal), the jobs worker (the procrastinate `default` queue:
 # delete_user and delete_response), the document sandbox (PDF import fails closed
 # without it) and the task runner. The optional ones are added further down.
-services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker" "umami-postgresql" "umami" "admin" "jobs-worker" "document-sandbox" "task-runner")
+# MongoDB is not among them: since 4.1 it starts only under the legacy-mongo
+# profile, for the one-time import of a 4.0 stack's data (legacy_mongo_import).
+services_to_start=("webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker" "umami-postgresql" "umami" "admin" "jobs-worker" "document-sandbox" "task-runner")
 
 # Determine the appropriate Docker Compose command. An array: "docker compose" (the
 # plugin) is two words, and a quoted string of it would be looked up as one command
@@ -459,13 +466,13 @@ setup_token() {
   "${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps admin /api/backend/.venv/bin/python -m backend.admin setup-token "$@"
 }
 
-# The services `up` is asked to start for a preference (googleform or none; both and
-# typeform mean the same without Typeform, removed in 4.1): the always-on list above
-# plus the optional integration. One name per line.
+# The services `up` is asked to start for a preference (googleform or none; typeform
+# and both are refused above): the always-on list above plus the optional
+# integration. One name per line.
 services_for() {
   local list=("${services_to_start[@]}")
   case "$1" in
-    both|googleform) list+=("integrations-googleform") ;;
+    googleform) list+=("integrations-googleform") ;;
   esac
   printf '%s\n' "${list[@]}"
 }
@@ -533,7 +540,7 @@ case "$user_preference" in
     setup_token "$@"
     exit $?
     ;;
-  settings-set|settings-restore|settings-history|settings-verify|master-key-fingerprint)
+  settings-set|settings-clear|settings-restore|settings-history|settings-verify|master-key-fingerprint)
     shift
     admin_cli "$user_preference" "$@"
     exit $?
@@ -584,6 +591,22 @@ done
 existing_stack=false
 if docker volume inspect "${compose_project}_mongo-data" &>/dev/null; then
   existing_stack=true
+fi
+# A stack from before 4.1 whose data is still in MongoDB: its Mongo volume (or the
+# operator's own MONGO_URI, an external Mongo) and no record of a finished import.
+# Its data is imported into Postgres once, before the services start
+# (legacy_mongo_import); a new stack never has either and never starts Mongo.
+# BC_LEGACY_MONGO_IMPORTED in the root .env records the import (any value: a stack
+# that already serves everything from Postgres sets it by hand to skip the import).
+legacy_mongo_import=false
+if ! file_has .env BC_LEGACY_MONGO_IMPORTED \
+   && { [ "$existing_stack" = true ] || file_has .env.deployment MONGO_URI; }; then
+  legacy_mongo_import=true
+fi
+if file_has .env BC_LEGACY_MONGO_IMPORTED && file_has .env.deployment MONGO_URI; then
+  echo "NOTE: MONGO_URI is set in .env.deployment, but this stack's Mongo data was imported (BC_LEGACY_MONGO_IMPORTED"
+  echo "      in .env). The backend checks that Mongo at every start and refuses to start when it cannot reach it:"
+  echo "      remove the line (blank it) unless you are going back to 4.0."
 fi
 fresh_temporal_db=true
 docker volume inspect "${compose_project}_temporal-postgres-data" &>/dev/null && fresh_temporal_db=false
@@ -641,6 +664,8 @@ done
 # match what is stored.
 if [ "$stack_volumes_present" = true ]; then
   for var in BC_TEMPORAL_DB_PASSWORD BC_UMAMI_DB_PASSWORD BC_MONGO_ROOT_PASSWORD; do
+    # Mongo's only matters to a stack that has its volume (the import from 4.0)
+    [ "$var" != BC_MONGO_ROOT_PASSWORD ] || [ "$existing_stack" = true ] || continue
     if ! file_has .env "$var"; then
       echo "NOTE: ${var} is not set and this stack already has volumes: no new one is generated (it would not match them)."
     fi
@@ -650,13 +675,8 @@ else
     echo "BC_TEMPORAL_DB_PASSWORD=$(openssl rand -hex 24)" >> .env
     echo "Generated a new BC_TEMPORAL_DB_PASSWORD in .env (first run)."
   fi
-  # Mongo's root password, for a new stack only: an upgrade keeps the MONGO_URI it
-  # has (an operator's own MONGO_URI in .env.deployment counts as one).
-  if [ "$legacy_keys" = false ] && ! file_has .env.deployment MONGO_URI \
-     && ! file_assigns .env BC_MONGO_ROOT_PASSWORD; then
-    echo "BC_MONGO_ROOT_PASSWORD=$(openssl rand -hex 24)" >> .env
-    echo "Generated a new BC_MONGO_ROOT_PASSWORD in .env (first run)."
-  fi
+  # No Mongo root password: a new stack never starts MongoDB (4.1). An upgrade
+  # keeps the one its volume was created with.
   if ! file_assigns .env BC_UMAMI_DB_PASSWORD; then
     echo "BC_UMAMI_DB_PASSWORD=$(openssl rand -hex 24)" >> .env
     echo "Generated a new BC_UMAMI_DB_PASSWORD in .env (first run)."
@@ -887,19 +907,23 @@ function stack_keys() {
     echo "Could not seed the UMAMI_URL setting." >&2
     return 1
   }
-  # The Mongo connection: the generated root password of a new stack, or the
-  # original default for a stack whose files do not carry a MONGO_URI (the
-  # template used to ship it). Never overwrites a stored value.
-  if file_has .env BC_MONGO_ROOT_PASSWORD; then
-    seed_setting MONGO_URI "mongodb://root:$(dotenv_value .env BC_MONGO_ROOT_PASSWORD)@mongodb:27017" || {
-      echo "Could not seed the MONGO_URI setting." >&2
-      return 1
-    }
-  elif [ "$existing_stack" = true ] || [ "$stack_volumes_present" = true ]; then
-    seed_setting MONGO_URI "mongodb://root:root@mongodb:27017" || {
-      echo "Could not seed the MONGO_URI setting." >&2
-      return 1
-    }
+  # The Mongo connection, only for the import of a stack from before 4.1 (a new
+  # stack stores none): the root password its volume was created with (generated
+  # by 4.0), or the original default for a stack whose files do not carry a
+  # MONGO_URI (the template used to ship it). Never overwrites a stored value; the
+  # import clears it once the data is in Postgres.
+  if [ "$legacy_mongo_import" = true ] && [ "$existing_stack" = true ]; then
+    if file_has .env BC_MONGO_ROOT_PASSWORD; then
+      seed_setting MONGO_URI "mongodb://root:$(dotenv_value .env BC_MONGO_ROOT_PASSWORD)@mongodb:27017" || {
+        echo "Could not seed the MONGO_URI setting." >&2
+        return 1
+      }
+    else
+      seed_setting MONGO_URI "mongodb://root:root@mongodb:27017" || {
+        echo "Could not seed the MONGO_URI setting." >&2
+        return 1
+      }
+    fi
   fi
 }
 
@@ -933,8 +957,8 @@ refdata_origins() {
 # The reference data a new stack needs (the allowed origins, the Google Forms
 # provider) is served from Postgres since 4.1: seed it there with the stack's own
 # origins, never the localhost ones of a local trial. Each table is seeded only while
-# it is empty. Mongo is up first: with MONGO_URI set, the backend's check for
-# reference data still only in Mongo reads it. $1: whether Google Forms is enabled.
+# it is empty. A new stack has no MONGO_URI, so the backend's check for reference
+# data still only in Mongo never contacts one. $1: whether Google Forms is enabled.
 seed_refdata() {
   local origin args=()
   while IFS= read -r origin; do
@@ -946,9 +970,162 @@ seed_refdata() {
   else
     echo "Allowed origins of this stack: $(printf '%s ' "${args[@]}" | sed 's/--origin //g')"
   fi
-  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" up -d --wait mongodb || return 1
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend \
     /api/backend/.venv/bin/python -m backend.seed_refdata "${args[@]}" --google-enabled "$1"
+}
+
+# --- the import of a stack from before 4.1 (MongoDB) -----------------------------------
+# docs/postgres-cutover-runbook.md, "Upgrading to 4.1". Since 4.1 every service is
+# served from Postgres and MongoDB is not part of the stack. A stack whose data is
+# still in Mongo has it imported once, here, before any service of this release
+# starts: for auth, the Google integration and the backend, in that order (the
+# runbook's), `preflight`, `backfill` and `verify` of each service's own migration
+# CLI, in a one-off container of the new image. Any failure stops the deploy with
+# the counts, before a service starts; nothing is deleted. On success the
+# MONGO_URI is cleared (the store keeps its versions, `settings-restore` brings it
+# back), BC_LEGACY_MONGO_IMPORTED is recorded in the root .env, and MongoDB is
+# stopped and its container removed. Its volume is always kept.
+
+# compose with the legacy-mongo profile: the only way MongoDB starts. Used for MongoDB's
+# own container only: a command under the profile creates every volume of the profile's
+# services, and a stack without a Mongo volume must not get an (empty) one.
+legacy_dc() {
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" --profile legacy-mongo "$@"
+}
+
+legacy_run() {
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps -T "$@"
+}
+
+# legacy_migrate auth|google|backend ARGS: the service's migration CLI in a one-off
+# container (the service's database role and settings, MONGO_URI included)
+legacy_migrate() {
+  local name=$1
+  shift
+  case "$name" in
+    auth) legacy_run auth /api/auth/.venv/bin/python -m auth.migrate "$@" ;;
+    google) legacy_run integrations-googleform python -m googleform.migrate "$@" ;;
+    backend) legacy_run backend /api/backend/.venv/bin/python -m backend.migrate "$@" ;;
+  esac
+}
+
+# The collections a preflight or verify report (JSON on stdin) shows a problem
+# for, one line each, counts only (never the sample ids).
+legacy_problems() {
+  awk '
+    function flush(   k, line, bad) {
+      if (name == "") return
+      line = "  " name ": mongo=" (("mongo" in c) ? c["mongo"] : "?") " postgres=" (("postgres" in c) ? c["postgres"] : "?")
+      for (k in c) if (k != "mongo" && k != "postgres" && c[k] > 0) { line = line " " k "=" c[k]; bad = 1 }
+      if (bad) print line
+      delete c
+      name = ""
+    }
+    /"collection":/ { flush(); v = $2; gsub(/[",]/, "", v); name = v; next }
+    /"(mongo|postgres|missing_in_postgres|missing_in_mongo|mismatched|drifted|tombstoned|invalid_ids|duplicates)":/ {
+      k = $1; gsub(/[":]/, "", k); v = $2; gsub(/,/, "", v)
+      if (v ~ /^[0-9]+$/) c[k] = v + 0
+    }
+    END { flush() }
+  '
+}
+
+# MongoDB stopped and its container removed (a stopped container with `restart:
+# always` would come back with the Docker daemon). The volume is kept.
+legacy_mongo_stop() {
+  [ "$existing_stack" = true ] || return 0
+  legacy_dc rm -s -f mongodb mongo-seed >/dev/null 2>&1 \
+    || echo "WARNING: could not stop MongoDB; stop it with: docker compose -f docker-compose.deployment.yml --profile legacy-mongo rm -s -f mongodb" >&2
+}
+
+legacy_mongo_failed() { # legacy_mongo_failed <what> <log>
+  legacy_mongo_stop
+  echo "" >&2
+  echo "STOPPED before any service of this release started: $1. Nothing was deleted: the Mongo data and its" >&2
+  echo "volume are kept, and the services stay stopped. Full output (counts and ids, no values): $2." >&2
+  echo "Fix the cause (docs/postgres-cutover-runbook.md, 'Upgrading to 4.1') and run ./deploy.sh again: the import" >&2
+  echo "resumes where it stopped. Or go back to 4.0: check out the 4.0 release and run its ./deploy.sh." >&2
+  return 1
+}
+
+legacy_mongo_import() { # legacy_mongo_import <google forms enabled: true|false>
+  local stamp log name step out rc count dir
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  log="legacy-mongo-import.${stamp}.log"
+  ( umask 077; : > "$log" )
+  echo ""
+  echo "UPGRADE TO 4.1: this stack's data is still in MongoDB. It is imported into Postgres now, before the"
+  echo "services start (docs/postgres-cutover-runbook.md, 'Upgrading to 4.1'). The services stay stopped until"
+  echo "it is done. The Mongo volume is kept."
+  # nothing may write Mongo between the copy and the check: the services of the
+  # running release are stopped first (they start again, from the new images, below)
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" stop backend jobs-worker auth integrations-googleform task-runner >/dev/null 2>&1
+  if [ "$existing_stack" = true ]; then
+    legacy_dc up -d --wait mongodb || { legacy_mongo_failed "MongoDB did not start" "$log"; return 1; }
+  fi
+  # the Google integration's schema, when this stack does not run it: its Mongo
+  # data (credentials) is imported all the same
+  if [ "$1" != true ]; then
+    legacy_run integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head >>"$log" 2>&1 \
+      || { legacy_mongo_failed "the Google integration's schema could not be migrated" "$log"; return 1; }
+  fi
+  for name in auth google backend; do
+    for step in preflight backfill verify; do
+      echo "Import: $name $step ..."
+      out=$(legacy_migrate "$name" "$step" 2>>"$log")
+      rc=$?
+      printf '== %s %s (exit %s)\n%s\n' "$name" "$step" "$rc" "$out" >> "$log"
+      [ "$rc" -eq 0 ] && continue
+      case "$step" in
+        preflight)
+          echo "The $name preflight found documents the import cannot take (invalid ids, duplicate unique keys):" >&2
+          printf '%s\n' "$out" | legacy_problems >&2 ;;
+        backfill)
+          echo "The $name backfill stopped with an error. Per collection:" >&2
+          legacy_migrate "$name" status 2>>"$log" | grep -E '^  ' >&2 ;;
+        verify)
+          echo "The $name verify found differences between MongoDB and Postgres:" >&2
+          printf '%s\n' "$out" | legacy_problems >&2 ;;
+      esac
+      legacy_mongo_failed "the $name $step failed (exit $rc)" "$log"
+      return 1
+    done
+  done
+  echo "Imported and verified. Per collection (MongoDB, Postgres):"
+  for name in auth google backend; do
+    legacy_migrate "$name" status 2>>"$log" | grep -E '^  ' | sed "s/^/$name /"
+  done
+  # The services no longer read MongoDB. A MONGO_URI left in the store or in
+  # .env.deployment would make the backend check Mongo at every start (and refuse
+  # it once Mongo is stopped): cleared in the store (its versions are kept), and
+  # blanked in .env.deployment (a private backup of the file is kept).
+  count=$(store_versions MONGO_URI) || count=""
+  if [ "${count:-0}" -gt 0 ]; then
+    out=$(admin_cli settings-clear MONGO_URI --confirm MONGO_URI --yes 2>&1)
+    rc=$?
+    if [ "$rc" -ne 0 ] && ! printf '%s\n' "$out" | grep -q 'not_set'; then
+      printf '%s\n' "$out" >&2
+      legacy_mongo_failed "the MONGO_URI setting could not be cleared" "$log"
+      return 1
+    fi
+  fi
+  if file_assigns .env.deployment MONGO_URI; then
+    cp -p .env.deployment ".env.deployment.pre-4.1.${stamp}" && chmod 600 ".env.deployment.pre-4.1.${stamp}"
+    dir=$(private_dir) || return 1
+    sed -E 's/^([[:space:]]*(export[[:space:]]+)?MONGO_URI[[:space:]]*=).*/\1/' .env.deployment > "$dir/env" \
+      && cat "$dir/env" > .env.deployment
+    rm -rf "$dir"
+    echo "Blanked MONGO_URI in .env.deployment (backup: .env.deployment.pre-4.1.${stamp}, holds the old value)."
+  fi
+  env_put BC_LEGACY_MONGO_IMPORTED "$stamp"
+  chmod 600 .env
+  legacy_mongo_stop
+  echo "MongoDB is stopped and its container removed. Its volume (${compose_project}_mongo-data) is kept: keep it,"
+  echo "and an encrypted dump of it, until 4.1 has run well for a while; never delete it in the same step."
+  if file_has .env TASK_RUNNER_MONGO_URI; then
+    echo "NOTE: TASK_RUNNER_MONGO_URI is still set in .env. MongoDB is stopped: remove it (and TASK_RUNNER_MONGO_DB)."
+  fi
+  echo ""
 }
 
 fresh_install=false
@@ -1003,6 +1180,12 @@ function dockerup() {
   # The settings store exists now: the stack's keys go into it (new stack) or
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
+
+  # A stack from before 4.1: its Mongo data goes into Postgres first, verified,
+  # before any service of this release starts. Stops the deploy on any failure.
+  if [ "$legacy_mongo_import" = true ]; then
+    legacy_mongo_import "$googleform_flag" || exit 1
+  fi
 
   # A new stack's reference data, before the backend first starts. Only while the
   # first run is pending (set when a new stack's keys are generated, kept until the

@@ -139,9 +139,10 @@ It prints `sheets_actions_with_credential`, `legacy` (including `unreadable` cre
 ### Typeform
 
 The Typeform integration was removed in 4.1. Forms and responses imported from Typeform before
-that stay readable as ordinary forms; `./deploy.sh typeform` and `./deploy.sh both` still work and
-start the stack without it (with Google Forms for `both`). Any `TYPEFORM_*` value left in an env
-file or the settings store is ignored.
+that stay readable as ordinary forms. `./deploy.sh typeform` and `./deploy.sh both` are refused
+(exit code 2, nothing changed): run `./deploy.sh` instead of `typeform`, and
+`./deploy.sh googleform` instead of `both`. Any `TYPEFORM_*` value left in an env file or the
+settings store is ignored.
 
 ## Running the project
 

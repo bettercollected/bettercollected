@@ -1,4 +1,5 @@
 import json
+import logging
 from http import HTTPStatus
 from datetime import datetime, timedelta
 
@@ -13,6 +14,32 @@ from models.exception_enum import ExceptionType
 from utilities.exceptions import HTTPException
 from settings.application import settings
 
+logger = logging.getLogger(__name__)
+
+# Google's documented OAuth token endpoints. A credential's own ``token_uri``
+# is only as trustworthy as whoever stored it (action secrets can be written
+# through the API), and a stored address would make this worker post the
+# client secret and refresh token to any host. Refreshes go to one of these
+# and nowhere else; the field stays in the stored credential but is not used.
+DEFAULT_GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
+GOOGLE_TOKEN_URIS = frozenset(
+    {DEFAULT_GOOGLE_TOKEN_URI, "https://accounts.google.com/o/oauth2/token"}
+)
+
+
+def google_token_uri(stored_token_uri, action_id=None) -> str:
+    """The endpoint to refresh at: the stored one only when it is one of
+    Google's, otherwise Google's default (logged without the value)."""
+    if stored_token_uri in GOOGLE_TOKEN_URIS:
+        return stored_token_uri
+    if stored_token_uri:
+        logger.warning(
+            "Ignored a credential token_uri that is not a Google token endpoint "
+            "(action %s)",
+            action_id or "unknown",
+        )
+    return DEFAULT_GOOGLE_TOKEN_URI
+
 
 def build_google_service(credentials, service_name: str, version: str = "v1"):
     return build(
@@ -22,7 +49,13 @@ def build_google_service(credentials, service_name: str, version: str = "v1"):
     )
 
 
-def dict_to_credential(credentials_dict):
+def dict_to_credential(credentials_dict, action_id=None):
+    # google-auth refreshes at ``token_uri`` by itself when a call is refused
+    # or the token has expired: pin it here too, on a copy.
+    credentials_dict = {
+        **credentials_dict,
+        "token_uri": google_token_uri(credentials_dict.get("token_uri"), action_id),
+    }
     credentials = google.oauth2.credentials.Credentials(**credentials_dict)
     expiry = credentials.expiry
     if isinstance(expiry, datetime):
@@ -33,11 +66,13 @@ def dict_to_credential(credentials_dict):
 
 def fetch_oauth_token(oauth_credential, action_id, form_id):
     try:
-        credentials = dict_to_credential(oauth_credential)
+        credentials = dict_to_credential(oauth_credential, action_id)
         expiry_datetime = credentials.expiry
         current_date = get_current_dt_in_google_format()
         if expiry_datetime < current_date:
-            updated_creds = refresh_access_token(oauth_credential=oauth_credential)
+            updated_creds = refresh_access_token(
+                oauth_credential=oauth_credential, action_id=action_id
+            )
             # todo call backend to update creds
             update_credentials_in_form(updated_creds, action_id, form_id)
             return updated_creds
@@ -49,9 +84,9 @@ def fetch_oauth_token(oauth_credential, action_id, form_id):
         )
 
 
-def refresh_access_token(oauth_credential):
+def refresh_access_token(oauth_credential, action_id=None):
     try:
-        credentials = dict_to_credential(oauth_credential)
+        credentials = dict_to_credential(oauth_credential, action_id)
         current_date = get_current_dt_in_google_format()
         data = {
             "client_id": credentials.client_id,
@@ -59,6 +94,7 @@ def refresh_access_token(oauth_credential):
             "refresh_token": credentials.refresh_token,
             "grant_type": "refresh_token",
         }
+        # credentials.token_uri is pinned to a Google endpoint above
         refreshed_token_response = httpx.post(url=credentials.token_uri, data=data)
         token = refreshed_token_response.json()
         if not token.get("access_token") or not token.get("expires_in"):

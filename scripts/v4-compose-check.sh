@@ -4,9 +4,12 @@
 # throw-away copy of the repository's deployment files, against images built from
 # this checkout, and checks what an operator would see:
 #
-#   (1) fresh     a new install on empty volumes, the first-run wizard, sign-in, the pages, a task run
+#   (1) fresh     a new install on empty volumes, the first-run wizard, sign-in, the pages, a task run;
+#                 since 4.1 without MongoDB (no container, no volume, no MONGO_URI)
 #   (2) upgrade   a stack from the 3.x layout (the previous release's files and images, seeded with
-#                 dummy data) taken over by the new ./deploy.sh: import, not bootstrap
+#                 dummy data) taken over by the new ./deploy.sh: import, not bootstrap; its Mongo data
+#                 imported into Postgres under the legacy-mongo profile (a verify difference stops the
+#                 deploy first), then MongoDB stopped with its volume kept
 #   (3) rollback  SETTINGS_STORE=off, then the previous release's files and images, then back
 #   (4) negatives the portal is unreachable from outside, the master key is held by the right services,
 #                 a minimal .env renders
@@ -469,15 +472,11 @@ part_fresh() {
   fresh_done=1
 }
 
-# How many reference-data collections (allowed_origins, forms_plugin_configs) the stack's
-# Mongo has. The root password is read inside the container, never put on a command line.
-mongo_refdata_collections() {
-  dc exec -T mongodb mongosh --nodb --quiet --eval '
-    const c = new Mongo("mongodb://localhost:27017");
-    c.getDB("admin").auth("root", process.env.MONGO_INITDB_ROOT_PASSWORD);
-    print(c.getDB("bettercollected_backend").getCollectionNames()
-      .filter((n) => ["allowed_origins", "forms_plugin_configs"].includes(n)).length);
-  ' 2>/dev/null | tr -d '\r' | tail -n 1
+# MongoDB on a 4.1 stack: never started on a new one ("<containers> <volume>": the number of
+# its containers, and whether the stack has a mongo-data volume)
+mongo_presence() {
+  printf '%s %s' "$(docker ps -aq --filter "label=com.docker.compose.project=$S_PROJECT" --filter label=com.docker.compose.service=mongodb | wc -l | tr -d ' ')" \
+    "$(docker volume inspect "${S_PROJECT}_mongo-data" >/dev/null 2>&1 && echo volume || echo no-volume)"
 }
 
 fresh_assertions() { # <deploy output> <events> <ps samples>
@@ -490,7 +489,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   unhealthy="$(printf '%s\n' "$states" | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is healthy or running" "" "$unhealthy"
   local svc
-  for svc in admin task-runner jobs-worker document-sandbox backend auth webapp worker nginx umami temporal mongodb app-postgres $google_service; do
+  for svc in admin task-runner jobs-worker document-sandbox backend auth webapp worker nginx umami temporal app-postgres $google_service; do
     case "$(printf '%s\n' "$states" | grep "^$svc=" | head -n 1)" in
       "$svc=healthy"|"$svc=running") ok "$svc is up" ;;
       *) bad "$svc is up ($(printf '%s\n' "$states" | grep "^$svc=" | head -n 1))" ;;
@@ -515,7 +514,12 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
     "http://localhost:3000 http://localhost:3001 http://localhost:3002" \
     "$(psql_q 'select origin from app.allowed_origins order by origin' | tr '\n' ' ' | sed 's/ $//')"
   expect "the Google Forms provider is seeded into Postgres" "1" "$(psql_q "select count(*) from app.forms_plugin_configs where provider_name = 'google'")"
-  expect "no reference data is written to Mongo" "0" "$(mongo_refdata_collections)"
+  # 4.1: no MongoDB at all on a new stack (no container, no volume, no MONGO_URI, no import)
+  expect "MongoDB was never started (no container, no volume)" "0 no-volume" "$(mongo_presence)"
+  expect "no MONGO_URI is stored" "versions=0" "$(sdeploy settings-history MONGO_URI 2>/dev/null | tail -n 1 | tr -d '\r')"
+  expect "no import ran" "0" "$(grep -c '^UPGRADE TO 4.1' "$plain")"
+  expect "the backend and the jobs worker run on Postgres" "postgres postgres postgres postgres" \
+    "$(for c in backend jobs-worker; do docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q "$c" | head -n 1)" | sed -n 's/^DB_READ_SOURCE=//p; s/^DB_WRITE_MODE=//p'; done | tr '\n' ' ' | sed 's/ $//')"
   # bootstrap-keys ran, before any service started
   check "bootstrap-keys ran (five keys generated, values not shown)" grep -q '^generated=5 (values are not shown)' "$plain"
   local boot_at first_start
@@ -636,6 +640,7 @@ fresh_second_run() {
   local unhealthy
   unhealthy="$(service_state | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is still healthy" "" "$unhealthy"
+  expect "MongoDB is still not started" "0 no-volume" "$(mongo_presence)"
 }
 
 fresh_published_ports() {
@@ -862,6 +867,12 @@ old_deploy() { # old_deploy <out>: the previous release's deploy.sh, no terminal
   ( cd "$S_DIR" && timeout 1800 "${HERM[@]}" PATH="$work/shim:$PATH" ./deploy.sh ) > "$1" 2>&1
 }
 
+pg_counts() { # workspaces,forms,responses,users in Postgres (where 4.1 serves them from)
+  dc exec -T app-postgres psql -U bettercollected -d bettercollected -Atc \
+    "select concat_ws(',', (select count(*) from app.workspaces), (select count(*) from app.forms), (select count(*) from app.form_responses), (select count(*) from auth.users))" \
+    2>/dev/null | tr -d '\r' | tail -n 1
+}
+
 mongo_counts() { # workspaces,forms,responses,users
   dc exec -T mongodb mongosh --quiet -u root -p root --authenticationDatabase admin --eval \
     'const b=db.getSiblingDB("bettercollected_backend"), a=db.getSiblingDB("bettercollected_auth"); print([b.workspaces.countDocuments(), b.forms.countDocuments(), b.form_responses.countDocuments(), a.users.countDocuments()].join(","))' \
@@ -919,15 +930,36 @@ SQL
   # the operator updates the files (git pull) and adds the one new value; the harness adds its ports
   overlay_layout new || { bad "the new files over the old stack"; return; }
   write_root_env || return
-  printf 'TASK_RUNNER_MONGO_URI=mongodb://root:root@mongodb:27017\n' >> "$S_DIR/.env"
-  echo "  the new ./deploy.sh on a terminal ..."
+  # 4.1 imports the Mongo data before any service starts. The Postgres-only user row above
+  # is a difference the import's verify finds: the deploy stops with the counts, before any
+  # service of the new release starts, and keeps Mongo's data and volume
+  echo "  the new ./deploy.sh on a terminal (the import stops on the difference) ..."
   local rc=0
+  run_deploy "$work/upgrade-stop.out" || rc=$?
+  untimed "$work/upgrade-stop.out" | tr -d '\r' > "$work/upgrade-stop.plain"
+  expect "the new deploy.sh stops on a verify difference (exit 1)" "1" "$rc"
+  check "it says the auth verify failed, before any service started" grep -q 'STOPPED before any service of this release started: the auth verify failed' "$work/upgrade-stop.plain"
+  check "it names the collection with its counts" grep -qE '^  users: mongo=4 postgres=5 .*missing_in_mongo=1' "$work/upgrade-stop.plain"
+  expect "no sample id is printed" "0" "$(grep -c '0123456789abcdef01234567' "$work/upgrade-stop.plain")"
+  expect "MongoDB was stopped and its volume kept" "0 volume" "$(mongo_presence)"
+  expect "no import is recorded" "0" "$(grep -c '^BC_LEGACY_MONGO_IMPORTED=' "$S_DIR/.env")"
+  expect "the backend is not running (stopped for the import, never started on the new release)" "" \
+    "$(docker ps -q --filter "label=com.docker.compose.project=$S_PROJECT" --filter label=com.docker.compose.service=backend)"
+  dc exec -T app-postgres psql -U bettercollected -d bettercollected -qc "DELETE FROM auth.users WHERE id = '0123456789abcdef01234567'" >/dev/null 2>&1
+  echo "  the difference fixed: ./deploy.sh again ..."
+  rc=0
   run_deploy "$work/upgrade-deploy.out" || rc=$?
   expect "the new deploy.sh exits 0 on the 3.x stack" "0" "$rc"
   untimed "$work/upgrade-deploy.out" | tr -d '\r' > "$work/upgrade-deploy.plain"
   if [ "$rc" != 0 ]; then tail -n 40 "$work/upgrade-deploy.plain"; return; fi
   local plain="$work/upgrade-deploy.plain"
-  check "it went the import path (settings imported from the files)" grep -q '^Importing the settings found in the compose configuration' "$plain"
+  check "it went the import path (settings imported from the files)" grep -q '^Importing the settings found in the compose configuration' "$work/upgrade-stop.plain"
+  check "it imported the Mongo data and verified it" grep -q '^Imported and verified' "$plain"
+  check "it printed the counts per collection" grep -qE '^backend   forms: mongo=3 postgres=3 backfill=done' "$plain"
+  expect "MongoDB is stopped and removed, its volume kept" "0 volume" "$(mongo_presence)"
+  expect "the import is recorded in .env" "1" "$(grep -c '^BC_LEGACY_MONGO_IMPORTED=' "$S_DIR/.env")"
+  check "MONGO_URI is blanked in .env.deployment, with a backup" test -n "$(find "$S_DIR" -maxdepth 1 -name '.env.deployment.pre-4.1.*')"
+  expect "the MONGO_URI setting is cleared (versions kept)" "1" "$(sdeploy settings-history MONGO_URI 2>/dev/null | grep -c cleared)"
   expect "it did not bootstrap keys" "0" "$(grep -c '^generated=' "$plain")"
   expect "it reported no conflict" "0" "$(grep -c '^conflict ' "$plain")"
   check "it compared the store with the files, with no difference" grep -q '^Comparing the store with the files' "$plain"
@@ -947,9 +979,9 @@ SQL
   expect "Umami rejects its built-in login after the upgrade" "401" "$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"umami"}' "http://127.0.0.1:$S_UMAMI/api/auth/login")"
   expect "the settings differ from the files nowhere (settings-drift exits 0)" "0" "$(sdeploy settings-drift >"$work/drift.out" 2>&1; echo $?)"
   expect "settings-drift reports no differing key" "0" "$(grep -c '^differs ' "$work/drift.out")"
-  # data intact and decryptable
-  after="$(mongo_counts)"
-  expect "the documents are all still there" "$before" "$after"
+  # data intact and decryptable, now in Postgres
+  after="$(pg_counts)"
+  expect "the documents are all in Postgres" "$before" "$after"
   # the keys: imported, not generated
   local k exported="$S_DIR/keys-export.env" stored
   rm -f "$exported"
@@ -1008,7 +1040,7 @@ upgrade_portal() {
   V4_SETUP_TOKEN="$token" cl wizard | absorb
   cl signin | absorb
   cl pages --expect-services backend,auth | absorb
-  cl task --task responses.check_undecryptable --param stores=mongo --timeout 180 | tee "$work/upgrade.task" | absorb
+  cl task --task responses.check_undecryptable --param stores=postgres --timeout 180 | tee "$work/upgrade.task" | absorb
   if ! grep -q 'task_state=succeeded' "$work/upgrade.task"; then dc logs --tail 25 task-runner 2>&1 | cut -c1-220 | sed 's/^/        runner: /'; fi
   expect "the dry run of responses.check_undecryptable succeeded" "task_state=succeeded" "$(grep -o 'task_state=[a-z]*' "$work/upgrade.task" | head -n 1)"
   check "it scanned the seeded responses (6) and none fails to decrypt" grep -qE 'task_event=.*responses=6.*does_not_decrypt=0|task_event=.*does_not_decrypt=0.*responses=6' "$work/upgrade.task"
@@ -1027,7 +1059,7 @@ part_rollback_stack() {
   expect "the services run with SETTINGS_STORE=off" "off" "$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q backend | head -n 1)" | sed -n 's/^SETTINGS_STORE=//p')"
   expect "the backend serves from environment values" "200" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/public/v1/openapi.json")"
   expect "the auth service answers through the backend (signed-out status is 401, not 5xx)" "401" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/auth/status")"
-  expect "the data is intact" "$UPGRADE_COUNTS" "$(mongo_counts)"
+  expect "the data is intact" "$UPGRADE_COUNTS" "$(pg_counts)"
   expect "the store is untouched" "$UPGRADE_SNAPSHOT" "$(store_snapshot)"
   expect "settings-drift is still clean" "0" "$(sdeploy settings-drift >/dev/null 2>&1; echo $?)"
   # 3b: back on
@@ -1038,11 +1070,17 @@ part_rollback_stack() {
   wait_stack 300 || bad "the stack became healthy with the store back on"
   expect "the services read the store again" "required" "$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q backend | head -n 1)" | sed -n 's/^SETTINGS_STORE=//p')"
   expect "the backend serves again" "200" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/public/v1/openapi.json")"
-  expect "the data is intact" "$UPGRADE_COUNTS" "$(mongo_counts)"
+  expect "the data is intact" "$UPGRADE_COUNTS" "$(pg_counts)"
   expect "the store is still untouched" "$UPGRADE_SNAPSHOT" "$(store_snapshot)"
-  # 3c: the previous release's files and images over the upgraded stack
+  # 3c: the previous release's files and images over the upgraded stack. It reads Mongo,
+  # which the import left as it was: the operator puts back the .env.deployment from before
+  # the import (its MONGO_URI), the backup deploy.sh kept
   section "(3) rollback to the previous release ($old_tag files and images)"
   overlay_layout old || { bad "the previous release's files"; return; }
+  local backup
+  backup="$(find "$S_DIR" -maxdepth 1 -name '.env.deployment.pre-4.1.*' | head -n 1)"
+  cp -p "$S_DIR/.env.deployment" "$work/env-deployment.imported"
+  [ -n "$backup" ] && cat "$backup" > "$S_DIR/.env.deployment"
   local old_out="$work/rollback-old.out"
   if old_deploy "$old_out"; then ok "the previous release's deploy.sh ran over the upgraded stack"; else bad "the previous release's deploy.sh ran over the upgraded stack"; tail -n 20 "$old_out"; fi
   if wait_stack 420; then
@@ -1052,15 +1090,18 @@ part_rollback_stack() {
     for c in backend auth; do dc logs --tail 5 "$c" 2>&1 | sed 's/^/        /' | cut -c1-200; done
   fi
   expect "the previous release's backend serves (its API answers, and its docs page, which it pinned on, too)" "401 200" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/auth/status") $(http_code "http://127.0.0.1:$S_BACKEND/api/v1/docs")"
-  expect "the data is intact" "$UPGRADE_COUNTS" "$(mongo_counts)"
+  expect "the data is intact (in Mongo, which it reads)" "$UPGRADE_COUNTS" "$(mongo_counts)"
   expect "the previous release's images are the ones running" "bettercollected/backend:$old_tag" "$(docker inspect -f '{{.Config.Image}}' "$(dc ps -q backend | head -n 1)")"
-  # and forward again
+  # and forward again: the import is recorded, so it is not repeated (nothing was written
+  # while the previous release ran); the operator blanks MONGO_URI again
   overlay_layout new || { bad "the new files again"; return; }
+  cat "$work/env-deployment.imported" > "$S_DIR/.env.deployment"
   rc=0
   run_deploy "$work/rollback-forward.out" || rc=$?
   expect "the new deploy.sh runs again over it (exit 0)" "0" "$rc"
   wait_stack 300 || bad "the stack became healthy again on the new release"
-  expect "the data is still intact" "$UPGRADE_COUNTS" "$(mongo_counts)"
+  expect "the data is still intact" "$UPGRADE_COUNTS" "$(pg_counts)"
+  expect "the import did not run again" "0" "$(untimed "$work/rollback-forward.out" | grep -c '^UPGRADE TO 4.1')"
   expect "the store is still untouched" "$UPGRADE_SNAPSHOT" "$(store_snapshot)"
   expect "settings-drift is clean again" "0" "$(sdeploy settings-drift >/dev/null 2>&1; echo $?)"
 }

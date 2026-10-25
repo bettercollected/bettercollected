@@ -165,10 +165,12 @@ operator's webhook (`event_service.py`, `EVENT_WEBHOOK_URL`) with the event type
 ## Deployment
 
 - Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
-- `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, both integrations, temporal + workers,
-  mongo (+ a job that removes an old account), the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
+- `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, the Google Forms integration, temporal + workers,
+  the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
   document sandbox and the task runner). `deploy.sh` seeds a new stack's reference data
   (allowed origins, the Google Forms provider) into Postgres with `python -m backend.seed_refdata`, using the web
-  app's public origins (`DASHBOARD_DOMAIN` / `FORM_DOMAIN`); `mongo-seed` no longer writes data.
+  app's public origins (`DASHBOARD_DOMAIN` / `FORM_DOMAIN`). MongoDB (and `mongo-seed`) run only under the
+  `legacy-mongo` profile: `deploy.sh` starts it once to import a 4.0 stack's data (preflight, backfill, verify per
+  service), then stops it and keeps the volume.
 - nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's tracker script and event endpoint are
   served by nginx on port `3003`; its dashboard is published on `127.0.0.1:3004` only (no TLS routing yet).
