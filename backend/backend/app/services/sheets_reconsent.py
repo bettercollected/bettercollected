@@ -16,9 +16,10 @@ submission that would run it, or opening it in the builder):
   a task of its own: the submission never waits for it. The
   ``reconsent_mailed_at`` marker is claimed before the mail. A refusal that
   can never succeed (422: a handle or setting auth cannot build a link from)
-  keeps it and is logged once; a transient failure (auth unreachable, 429,
-  5xx) is retried a few times, then the marker is released so a later use
-  tries again.
+  keeps it and is logged once; a transient failure (auth unreachable, 5xx)
+  is retried a few times, then the marker is released so a later use tries
+  again. Auth's 429 (its hourly cap per owner) and a task cancelled at
+  shutdown release it at once.
 
 Saving the action in the builder with a legacy grant is refused (409
 ``sheets_reconsent_required``): the user reconnects first.
@@ -59,6 +60,8 @@ NOTIFY_TIMEOUT_SECONDS = 5
 # Waits before each retry of a transient failure; after the last one the
 # marker is released and a later use of the action tries again.
 NOTIFY_RETRY_DELAYS_S = (5, 30, 120)
+# How long shutdown waits for mails in flight before cancelling them.
+SHUTDOWN_GRACE_SECONDS = 5
 # The auth service's limits (SheetsReconnectNotice): titles are clipped,
 # an over-long locale is left out (the mail falls back to English).
 TITLE_MAX_LENGTH = 1000
@@ -120,8 +123,9 @@ def clip(value: Optional[str], limit: int = TITLE_MAX_LENGTH) -> Optional[str]:
 
 def notice_failure(exc: BaseException) -> str:
     """How a failed notice is handled: ``final`` (422: auth can never send
-    it), ``transient`` (unreachable, timeout, 429, 5xx: retried) or
-    ``other`` (released, a later use tries again)."""
+    it), ``transient`` (unreachable, timeout, 5xx: retried) or ``other``
+    (released, a later use tries again). A 429 is auth's hourly cap per
+    owner: a retry within minutes cannot pass it, so it is ``other``."""
     if isinstance(exc, (httpx.TransportError, TimeoutError)):
         return "transient"
     status = getattr(exc, "status_code", None)
@@ -129,7 +133,7 @@ def notice_failure(exc: BaseException) -> str:
         return "other"
     if status == HTTPStatus.UNPROCESSABLE_ENTITY:
         return "final"
-    if status == HTTPStatus.TOO_MANY_REQUESTS or status >= 500:
+    if status >= 500:
         return "transient"
     return "other"
 
@@ -247,9 +251,25 @@ class SheetsReconsentService:
             )
 
     async def drain(self) -> None:
-        """Wait for the notices in flight (tests, shutdown)."""
+        """Wait for the notices in flight (tests)."""
         while self._pending:
             await asyncio.gather(*list(self._pending), return_exceptions=True)
+
+    async def shutdown(self, timeout: float = SHUTDOWN_GRACE_SECONDS) -> None:
+        """At shutdown, before the stores close: let the notices in flight
+        finish for up to ``timeout`` seconds, then cancel the rest (each
+        releases its marker, so a later use mails again)."""
+        pending = list(self._pending)
+        if not pending:
+            return
+        _, unfinished = await asyncio.wait(pending, timeout=timeout)
+        for task in unfinished:
+            task.cancel()
+        if unfinished:
+            await asyncio.gather(*unfinished, return_exceptions=True)
+            logger.info(
+                "sheets reconsent: {} mail(s) interrupted at shutdown", len(unfinished)
+            )
 
     async def _mail_once(
         self,
@@ -277,6 +297,27 @@ class SheetsReconsentService:
             return "released"
         if not claimed:
             return "claimed"
+        try:
+            return await self._send_claimed(
+                form_id, form_title, language, action_id, workspace_id, ids
+            )
+        except asyncio.CancelledError:
+            # stopped mid-way (shutdown, often during a retry wait): free the
+            # marker so a later use sends the mail, then stop
+            await self._release(form_id, action_id)
+            logger.info("sheets reconsent: mail interrupted, marker released {}", ids)
+            raise
+
+    async def _send_claimed(
+        self,
+        form_id: str,
+        form_title: Optional[str],
+        language: Optional[str],
+        action_id: str,
+        workspace_id: Any,
+        ids: str,
+    ) -> str:
+        """The mail, once this task holds the marker."""
         try:
             workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         except Exception as exc:  # noqa: BLE001

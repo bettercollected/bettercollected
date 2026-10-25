@@ -155,6 +155,12 @@ async def lifespan(app: FastAPI):
 
     mcp_stop.set()
     await mcp_task
+    # Sheets reconnect mails in flight: finished or released while the
+    # stores are still open (services/sheets_reconsent.py)
+    try:
+        await container.sheets_reconsent_service().shutdown()
+    except Exception as exc:  # noqa: BLE001 — never blocks the shutdown
+        logger.warning("sheets reconsent shutdown failed ({})", type(exc).__name__)
     await close_db(client)
     if jobs_on_postgres:
         await jobs_app.close_async()

@@ -94,11 +94,12 @@ the backend:
 - mails the workspace's billing owner once per action ("Reconnect Google Sheets", in the form's language,
   English or Dutch) through the auth service, with a link to the form's integrations. The mail is sent in
   the background: a submission never waits for the auth service. A transient failure (auth unreachable, a
-  timeout, 429 or 5xx) is retried three times within a few minutes, then a later use tries again. A 422
+  timeout or 5xx) is retried three times within a few minutes, then a later use tries again; auth's 429
+  (its hourly cap per owner) is not retried, a later use tries again. A 422
   from auth (a workspace handle it cannot link to, an unset `CLIENT_ADMIN_URL` on auth) is final: the
   `reconsent_mailed_at` marker stays, it is logged once and never retried. Form and workspace titles are
-  cut to 1000 characters. A mail in flight when the backend stops is not sent; the action stays marked
-  and the builder still shows that it needs reconnecting.
+  cut to 1000 characters. At shutdown the backend waits up to 5 seconds for mails in flight,
+  then cancels them and releases their marker, so a later use sends the mail.
 
 Reconnecting (connect and save the action again) stores a `drive.file` credential and new parameters,
 which clears the marks. In `google_service` mode nothing is held back: reconnecting there grants the broad

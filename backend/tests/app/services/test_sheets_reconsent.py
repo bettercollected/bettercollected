@@ -436,11 +436,10 @@ class TestSubmission:
         [
             UpstreamHTTPException(503, "unavailable"),
             UpstreamHTTPException(500, "error"),
-            UpstreamHTTPException(429, "too many"),
             httpx.ConnectTimeout("slow"),
             httpx.ReadTimeout("slow"),
         ],
-        ids=["503", "500", "429", "connect-timeout", "read-timeout"],
+        ids=["503", "500", "connect-timeout", "read-timeout"],
     )
     async def test_a_transient_failure_is_retried(
         self,
@@ -572,6 +571,70 @@ class TestNotice:
         last = service._form_repo.update_action_parameters.call_args_list[-1]
         assert last.kwargs["remove"] == [MAILED_AT]
 
+    async def test_auths_hourly_cap_releases_without_retrying(self):
+        post = AsyncMock(side_effect=UpstreamHTTPException(429, {}))
+        service = self.service(post)
+        assert await self.mail(service) == "released"
+        post.assert_awaited_once()
+        last = service._form_repo.update_action_parameters.call_args_list[-1]
+        assert last.kwargs["remove"] == [MAILED_AT]
+
+    async def test_a_cancelled_mail_releases_the_marker(self):
+        """Cancelled mid-way (shutdown during a retry wait): the marker is
+        freed, so a later use sends the mail."""
+        post = AsyncMock(side_effect=UpstreamHTTPException(503, "unavailable"))
+        service = self.service(post)
+        service.retry_delays_s = (3600,)
+        task = asyncio.create_task(self.mail(service))
+        while not post.await_count:
+            await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        last = service._form_repo.update_action_parameters.call_args_list[-1]
+        assert last.kwargs["remove"] == [MAILED_AT]
+
+    async def test_shutdown_waits_then_cancels_and_releases(self):
+        release = asyncio.Event()
+
+        async def slow(*args, **kwargs):
+            await release.wait()
+            return {}
+
+        service = self.service(AsyncMock(side_effect=slow))
+        form = SimpleNamespace(
+            form_id="f1", title="Form", settings=None, parameters={}
+        )
+        service._notify_in_background(form, "a1", "w1")
+        await asyncio.sleep(0)
+
+        await service.shutdown(timeout=0.05)
+
+        assert not service._pending
+        last = service._form_repo.update_action_parameters.call_args_list[-1]
+        assert last.kwargs["remove"] == [MAILED_AT]
+
+    async def test_shutdown_lets_a_quick_mail_finish(self):
+        post = AsyncMock(return_value={})
+        service = self.service(post)
+        form = SimpleNamespace(
+            form_id="f1", title="Form", settings=None, parameters={}
+        )
+        service._notify_in_background(form, "a1", "w1")
+
+        await service.shutdown(timeout=5)
+
+        post.assert_awaited_once()
+        for call in service._form_repo.update_action_parameters.call_args_list:
+            assert "remove" not in call.kwargs
+
+    async def test_shutdown_without_mails_returns_at_once(self):
+        service = self.service(AsyncMock())
+        await asyncio.wait_for(service.shutdown(timeout=60), 1)
+
     async def test_no_billing_owner_is_final(self):
         post = AsyncMock(return_value={})
         service = self.service(post)
@@ -591,7 +654,8 @@ class TestNotice:
     "exc, kind",
     [
         (UpstreamHTTPException(422, {}), "final"),
-        (UpstreamHTTPException(429, {}), "transient"),
+        # auth's hourly cap per owner: retries within minutes cannot pass it
+        (UpstreamHTTPException(429, {}), "other"),
         (UpstreamHTTPException(502, {}), "transient"),
         (UpstreamHTTPException(503, {}), "transient"),
         (httpx.ConnectError("x"), "transient"),
