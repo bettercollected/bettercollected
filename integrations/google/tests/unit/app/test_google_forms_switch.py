@@ -61,7 +61,7 @@ def test_forms_routes_refuse_before_reading_a_credential(
 ):
     mode(value)
     with patch(
-        "googleform.app.services.user_service.OauthCredentialRepository.get",
+        "googleform.app.repositories.oauth_credential.OauthCredentialRepository.get",
         AsyncMock(side_effect=AssertionError("no credential may be read")),
     ):
         response = client.request(method, ROOT + path, json={})
