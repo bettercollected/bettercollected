@@ -9,11 +9,12 @@ drops the rest.
 A custom validator that raises ``ValueError(f"... {value} ...")`` puts the
 submitted value into ``msg`` itself. The handler removes every string of the
 failing input from the message (``echo_free``), so a validator author cannot
-reintroduce the echo by accident. Only whole tokens are removed: a submitted
-value that merely occurs inside a longer word of the message ("mat" in
-"format") leaves that word alone.
+reintroduce the echo by accident. A short value (3 to 7 characters) is removed
+as a whole token only, so it does not mangle ordinary words ("mat" in "format");
+a longer one is removed wherever it occurs, because a value that long does not
+appear inside an ordinary word by accident, and a validator that glues it to
+other text ("user_{value}") must not echo it.
 """
-import re
 from http import HTTPStatus
 from typing import Any, List, Optional
 
@@ -24,6 +25,7 @@ from fastapi.responses import JSONResponse
 
 ELLIPSIS = "…"
 MIN_PLAIN = 3  # shorter strings are only removed when quoted ('a', "a")
+MIN_ANYWHERE = 8  # from this length on a string is removed wherever it occurs
 MAX_LEAVES = 200
 MAX_DEPTH = 4
 
@@ -47,23 +49,54 @@ def _strings(value: Any, depth: int = 0, found: Optional[List[str]] = None) -> L
     return found
 
 
-def _whole(leaf: str) -> "re.Pattern[str]":
-    """``leaf`` where it is not part of a longer word: no letter, digit or
-    underscore directly before or after it."""
-    return re.compile(r"(?<!\w)" + re.escape(leaf) + r"(?!\w)")
+def _word(char: str) -> bool:
+    """A letter, digit or underscore (what ``\\w`` matches)."""
+    return char.isalnum() or char == "_"
+
+
+def _scrub_whole(message: str, leaf: str) -> str:
+    """``message`` with ``leaf`` replaced where it is not part of a longer word:
+    no letter, digit or underscore directly before it (when its own first
+    character is one) or after it (likewise its last). Plain ``str.find`` and
+    index checks, so the cost is linear and nothing is compiled from input."""
+    size = len(leaf)
+    check_before, check_after = _word(leaf[0]), _word(leaf[-1])
+    out: List[str] = []
+    at = 0
+    while True:
+        found = message.find(leaf, at)
+        if found < 0:
+            break
+        end = found + size
+        if (not check_before or found == 0 or not _word(message[found - 1])) and (
+            not check_after or end >= len(message) or not _word(message[end])
+        ):
+            out.append(message[at:found])
+            out.append(ELLIPSIS)
+            at = end
+        else:
+            out.append(message[at : found + 1])
+            at = found + 1
+    out.append(message[at:])
+    return "".join(out)
 
 
 def echo_free(message: str, submitted: Any) -> str:
     """``message`` with every string of ``submitted`` replaced by an ellipsis:
-    inside quotes for any string, and as a whole token (not inside a longer
-    word) for strings of three or more characters, so ordinary words in the
-    message are not mangled."""
+    inside quotes for any string; as a whole token (not inside a longer word)
+    for strings of 3 to 7 characters, so ordinary words in the message are not
+    mangled; anywhere for strings of 8 or more. A string longer than the message
+    cannot occur in it and is skipped."""
     leaves = sorted(set(_strings(submitted)), key=len, reverse=True)
     for leaf in leaves:
+        if len(leaf) > len(message):
+            continue
         for quote in ("'", '"'):
             message = message.replace(f"{quote}{leaf}{quote}", f"{quote}{ELLIPSIS}{quote}")
-        if len(leaf) >= MIN_PLAIN:
-            message = _whole(leaf).sub(ELLIPSIS, message)
+        if len(leaf) >= MIN_ANYWHERE:
+            message = message.replace(leaf, ELLIPSIS)
+        elif len(leaf) >= MIN_PLAIN:
+            message = _scrub_whole(message, leaf)
     return message
 
 
