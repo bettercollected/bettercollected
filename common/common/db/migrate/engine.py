@@ -56,6 +56,9 @@ logger = logging.getLogger("bettercollected.migrate")
 OBJECT_ID = re.compile(r"^[0-9a-f]{24}$")
 SPINE_PATH = re.compile(r"doc\s*->\s*'([^']+)'((?:\s*->\s*'[^']+')*)")
 STALLED_AFTER_S = 300
+# how often verify retries Mongo's raw/expired counts while its TTL monitor
+# keeps deleting copies between them
+COUNT_ATTEMPTS = 5
 MIN_BATCH, MAX_BATCH = 25, 2000
 SLOW_BATCH_S, FAST_BATCH_S = 20.0, 2.0
 MISSING = object()  # no copy in that store
@@ -144,10 +147,16 @@ class CollectionReport:
     # copies of a collection Mongo expires by TTL that have expired, either
     # store: absent, as for reconcile (never a difference, never "clean" on
     # their own account); ``mongo``/``postgres`` above still count them.
-    # ``expired`` is the total, ``expired_mongo``/``expired_postgres`` per store
+    # ``expired`` is the total, ``expired_mongo``/``expired_postgres`` per
+    # store. Mongo's are counted together with ``mongo`` (same moment, one
+    # clock), Postgres's while scanning its rows.
     expired: int = 0
     expired_mongo: int = 0
     expired_postgres: int = 0
+    # Mongo's raw and expired counts kept changing while they were taken (its
+    # TTL monitor deleting copies): the live count cannot be trusted, so the
+    # collection is not clean
+    count_unstable: bool = False
     invalid_ids: int = 0
     duplicates: int = 0
     # preflight, of the unique keys compared ignoring letter case
@@ -188,6 +197,7 @@ class CollectionReport:
             or self.mismatched
             or self.drifted
             or self.tombstoned
+            or self.count_unstable
         )
 
     def as_dict(self) -> dict:
@@ -690,15 +700,22 @@ class Runner:
         # the database server's clock, as the outbox's created_at (now()):
         # a clean run resolves only entries recorded before it started
         self._verify_started = await self._database_now()
-        now = datetime.now(timezone.utc)
         reports = []
         for name, table in self.tables_for(collections).items():
             report = CollectionReport(name)
             coll = self.collection(name)
             # a copy past its TTL is absent, in either store, as reconcile
-            # treats it: Mongo's TTL monitor drops it on its own schedule
+            # treats it: Mongo's TTL monitor drops it on its own schedule.
+            # Mongo's raw and expired counts are taken together, on Mongo's
+            # clock, and that same instant classifies every copy in the scan:
+            # a copy the TTL monitor drops mid-run was counted as expired
+            # already, and no host's clock decides what has expired
             ttl = await self._ttl_of(coll)
-            report.mongo = await coll.count_documents({})
+            report.mongo, expired_mongo, now, stable = await self._count_mongo(
+                coll, ttl
+            )
+            report.count_unstable = not stable
+            report.count_expired(mongo=expired_mongo)
             async with self.engine.connect() as conn:
                 report.postgres = (
                     await conn.execute(select(func.count()).select_from(table))
@@ -744,7 +761,7 @@ class Runner:
                         for oid, (_, doc) in pg_side.items()
                         if expired(from_canonical_document(doc), ttl, now)
                     ]
-                    report.count_expired(mongo=len(gone_mongo), postgres=len(gone_pg))
+                    report.count_expired(postgres=len(gone_pg))
                     for oid in gone_mongo:
                         del mongo_side[oid]
                     for oid in gone_pg:
@@ -798,6 +815,47 @@ class Runner:
                 report.tombstoned,
             )
         return reports
+
+    @staticmethod
+    async def _mongo_now(coll) -> datetime:
+        """Mongo's current time (``hello``'s ``localTime``, from the primary,
+        where the TTL monitor runs): the clock that decides what has expired,
+        never the clock of the host running the tool."""
+        reply = await coll.database.command("hello")
+        at = timestamp_of(reply["localTime"])
+        assert at is not None
+        return at
+
+    async def _count_mongo(
+        self, coll, ttl: Optional[tuple[str, int]]
+    ) -> tuple[int, int, datetime, bool]:
+        """(copies, expired copies, the instant they are expired at, stable)
+        in Mongo's ``coll``. The two counts are taken together: expired,
+        total, expired again with the same cutoff. A copy matching the cutoff
+        only ever disappears (the TTL monitor), so equal expired counts around
+        the total mean the TTL monitor deleted nothing in between and the
+        total belongs to that moment. Otherwise it retries; a count that never
+        settles is reported as unstable, never as clean."""
+        if ttl is None:
+            return await coll.count_documents({}), 0, datetime.now(timezone.utc), True
+        field_name, seconds = ttl
+        total, after, now = 0, 0, datetime.now(timezone.utc)
+        for _ in range(COUNT_ATTEMPTS):
+            now = await self._mongo_now(coll)
+            # only dates expire (see ``expired``): a date past the cutoff;
+            # an array is never one, whatever its elements
+            past = {
+                field_name: {
+                    "$lte": now - timedelta(seconds=seconds),
+                    "$not": {"$type": "array"},
+                }
+            }
+            before = await coll.count_documents(past)
+            total = await coll.count_documents({})
+            after = await coll.count_documents(past)
+            if before == after:
+                return total, after, now, True
+        return total, after, now, False
 
     async def _database_now(self) -> datetime:
         """The Postgres server's current time (``now()``)."""
@@ -1107,7 +1165,8 @@ class Runner:
         has open entries), whatever the timestamps say."""
         coll = self.collection(name)
         ttl = await self._ttl_of(coll)
-        now = datetime.now(timezone.utc)
+        # Mongo's clock, as verify's: the same copies count as expired
+        now = await self._mongo_now(coll) if ttl else datetime.now(timezone.utc)
         fixed, skipped, newer, last_id, size = 0, 0, 0, None, 500
         while True:
             query = {"_id": {"$gt": ObjectId(last_id)}} if last_id else {}

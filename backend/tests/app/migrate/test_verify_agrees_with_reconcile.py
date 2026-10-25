@@ -582,7 +582,7 @@ async def test_a_clean_verify_compares_entries_on_the_database_clock(target):
 
     ahead = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)
 
-    class Ahead(dt.datetime):
+    class Ahead(dt.datetime, metaclass=SkewedClockType):
         @classmethod
         def now(cls, tz=None):
             return ahead
@@ -710,3 +710,177 @@ async def test_unequal_live_counts_still_refuse_the_record(target):
         outcome = await runner.record_verify(reports)
     assert "analytics" not in outcome["groups"], outcome
     assert outcome["marker"] is None
+
+
+# -- counts taken at one moment, on the database clock ---------------------------
+
+
+async def record(target):
+    """verify (everything the target migrates) then record it."""
+    async with Runner(target) as runner:
+        reports = await runner.verify()
+        (report,) = [r for r in reports if r.collection == "rate_limit_counters"]
+        return report, await runner.record_verify(reports)
+
+
+@pytest.fixture
+def ttl_deleted_after_count(monkeypatch):
+    """Mongo's TTL monitor deleting the expired copies right after verify
+    counted them, before it scanned."""
+    original = Runner._count_mongo
+
+    async def counted(self, coll, ttl):
+        result = await original(self, coll, ttl)
+        await coll.delete_many({"expires_at": {"$lte": result[2]}})
+        return result
+
+    monkeypatch.setattr(Runner, "_count_mongo", counted)
+
+
+async def both_stores(target, expires_at):
+    document = counter(expires_at)
+    await to_mongo(target, "rate_limit_counters", document)
+    await to_postgres(RateLimitCounterRow, document)
+    return document
+
+
+async def test_copies_the_ttl_monitor_drops_mid_run_still_record_clean(
+    target, ttl_deleted_after_count
+):
+    """Counted as expired together with the raw count: the scan no longer
+    finds them in Mongo, and the live counts still agree."""
+    target = migrating_analytics(target)
+    await both_stores(target, FUTURE)
+    for _ in range(2):
+        await both_stores(target, PAST)
+    report, outcome = await record(target)
+    assert report.clean, report.as_dict()
+    assert (report.mongo, report.expired_mongo) == (3, 2)
+    assert (report.postgres, report.expired_postgres) == (3, 2)
+    assert "analytics" in outcome["groups"], outcome
+    assert outcome["marker"] == "written", outcome
+
+
+async def test_a_live_difference_still_refuses_beside_mid_run_deletions(
+    target, ttl_deleted_after_count
+):
+    """The same run, with a live copy only Mongo holds: refused."""
+    target = migrating_analytics(target)
+    await both_stores(target, PAST)
+    await to_mongo(target, "rate_limit_counters", counter(FUTURE))
+    report, outcome = await record(target)
+    assert not report.clean
+    assert report.missing_in_postgres == 1
+    assert "analytics" not in outcome["groups"], outcome
+    assert outcome["marker"] is None
+
+
+class TtlDeletesWhileCounting:
+    """``coll`` whose raw count is followed by the TTL monitor dropping one
+    expired copy (``times`` times at most)."""
+
+    def __init__(self, coll, times):
+        self._coll, self._times = coll, times
+
+    def __getattr__(self, name):
+        return getattr(self._coll, name)
+
+    async def count_documents(self, query, *args, **kwargs):
+        found = await self._coll.count_documents(query, *args, **kwargs)
+        if not query and self._times:
+            self._times -= 1
+            doomed = await self._coll.find_one({"expires_at": {"$lte": NOW}})
+            if doomed:
+                await self._coll.delete_one({"_id": doomed["_id"]})
+        return found
+
+
+def ttl_deletes_while_counting(monkeypatch, times):
+    original = Runner.collection
+
+    def collection(self, name):
+        return TtlDeletesWhileCounting(original(self, name), times)
+
+    monkeypatch.setattr(Runner, "collection", collection)
+
+
+async def test_a_raw_count_overtaken_by_the_ttl_monitor_is_taken_again(
+    target, monkeypatch
+):
+    target = migrating_analytics(target)
+    await both_stores(target, FUTURE)
+    for _ in range(3):
+        await both_stores(target, PAST)
+    ttl_deletes_while_counting(monkeypatch, 1)
+    report, outcome = await record(target)
+    assert report.clean and not report.count_unstable, report.as_dict()
+    assert (report.live_mongo, report.live_postgres) == (1, 1)
+    assert "analytics" in outcome["groups"], outcome
+
+
+async def test_counts_that_never_settle_are_not_clean(target, monkeypatch):
+    """The monitor keeps deleting between the counts: not recorded, however
+    the numbers come out."""
+    from common.db.migrate import engine
+
+    target = migrating_analytics(target)
+    await both_stores(target, FUTURE)
+    for _ in range(engine.COUNT_ATTEMPTS + 1):
+        await both_stores(target, PAST)
+    ttl_deletes_while_counting(monkeypatch, engine.COUNT_ATTEMPTS)
+    report, outcome = await record(target)
+    assert report.count_unstable and not report.clean
+    assert "analytics" not in outcome["groups"], outcome
+    assert outcome["marker"] is None
+
+
+async def test_non_objectid_copies_are_caught_by_the_count_not_the_scan(target):
+    """The scan only walks ObjectIds: a live copy under another kind of id is
+    caught by the counts alone."""
+    target = migrating_analytics(target)
+    await to_mongo(target, "rate_limit_counters", {**counter(FUTURE), "_id": "legacy"})
+    report, outcome = await record(target)
+    assert report.clean  # the scan saw nothing to compare
+    assert (report.live_mongo, report.live_postgres) == (1, 0)
+    assert "analytics" not in outcome["groups"], outcome
+    assert outcome["marker"] is None
+
+
+async def test_expired_non_objectid_copies_are_absent(target):
+    target = migrating_analytics(target)
+    await to_mongo(target, "rate_limit_counters", {**counter(PAST), "_id": "legacy"})
+    report, outcome = await record(target)
+    assert (report.mongo, report.expired_mongo) == (1, 1)
+    assert "analytics" in outcome["groups"], outcome
+
+
+class SkewedClockType(type):
+    def __instancecheck__(cls, instance):
+        return isinstance(instance, dt.datetime)
+
+
+def skewed_clock(skew):
+    """``datetime`` as the runner's host sees it: ``now`` off by ``skew``."""
+
+    class Clock(dt.datetime, metaclass=SkewedClockType):
+        @classmethod
+        def now(cls, tz=None):
+            return dt.datetime.now(tz) + skew
+
+    return Clock
+
+
+@pytest.mark.parametrize("skew", [dt.timedelta(hours=3), -dt.timedelta(hours=3)])
+async def test_the_host_clock_does_not_decide_what_has_expired(target, skew):
+    """A runner clock hours ahead or behind: a copy expiring in an hour is
+    live, one that expired an hour ago is expired, as on Mongo's clock."""
+    from unittest import mock
+
+    target = migrating_analytics(target)
+    await both_stores(target, FUTURE)
+    await both_stores(target, PAST)
+    with mock.patch("common.db.migrate.engine.datetime", skewed_clock(skew)):
+        report, outcome = await record(target)
+    assert report.clean, report.as_dict()
+    assert (report.expired_mongo, report.expired_postgres) == (1, 1)
+    assert "analytics" in outcome["groups"], outcome
