@@ -17,7 +17,7 @@ import re
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
 from loguru import logger
@@ -30,12 +30,12 @@ from backend.app.models.enum.workspace_roles import (
     canonical_role,
     is_owner_membership,
 )
-from backend.app.repositories.sso_connection_repository import (
+from backend.app.repositories.postgres.identity import (
     SsoConnectionExists,
-    SsoConnectionRepository,
+    PostgresSsoConnectionRepository,
+    PostgresWorkspaceRepository,
+    PostgresWorkspaceUserRepository,
 )
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.sso_connection import (
     SsoConnectionDocument,
     SsoConnectionStatus,
@@ -232,10 +232,10 @@ class SsoConnectionService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        connection_repo: SsoConnectionRepository,
+        connection_repo: PostgresSsoConnectionRepository,
         domain_service: WorkspaceDomainService,
-        workspace_repo: WorkspaceRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        workspace_repo: PostgresWorkspaceRepository,
+        workspace_user_repo: PostgresWorkspaceUserRepository,
         session_service: SessionService,
         policy: SsoPolicyService,
         polis: PolisAdminClient,
@@ -258,12 +258,12 @@ class SsoConnectionService:
         self._fetch_transport = fetch_transport
 
     # -- access ---------------------------------------------------------------
-    async def _authorize(self, workspace_id: PydanticObjectId, user: User) -> None:
+    async def _authorize(self, workspace_id: RecordId, user: User) -> None:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
 
-    async def _authorize_owner(self, workspace_id: PydanticObjectId, user: User):
+    async def _authorize_owner(self, workspace_id: RecordId, user: User):
         """Changing the configuration: owners only (see the module)."""
         await self._authorize(workspace_id, user)
         await self._authorization.require_owner(user, workspace_id)
@@ -278,17 +278,17 @@ class SsoConnectionService:
             )
 
     async def _connection_in_workspace(
-        self, workspace_id: PydanticObjectId, connection_id: str
+        self, workspace_id: RecordId, connection_id: str
     ) -> SsoConnectionDocument:
         connection = await self._connections.get(connection_id)
-        if connection is None or connection.workspace_id != PydanticObjectId(
+        if connection is None or connection.workspace_id != RecordId(
             workspace_id
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         return connection
 
     async def connection_for_test(
-        self, workspace_id: PydanticObjectId, connection_id: str, user: User
+        self, workspace_id: RecordId, connection_id: str, user: User
     ) -> SsoConnectionDocument:
         await self._authorize(workspace_id, user)
         self._require_available()
@@ -300,7 +300,7 @@ class SsoConnectionService:
 
     # -- read -----------------------------------------------------------------
     async def overview(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> SsoOverviewDto:
         await self._authorize(workspace_id, user)
         workspace = await self._workspace_repo.find_by_id(workspace_id)
@@ -343,7 +343,7 @@ class SsoConnectionService:
     # -- connections ----------------------------------------------------------
     async def create_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: CreateSsoConnectionDto,
         user: User,
     ) -> SsoConnectionDto:
@@ -375,8 +375,8 @@ class SsoConnectionService:
             else "OIDC identity provider"
         )
         document = SsoConnectionDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(workspace_id),
+            id=RecordId(),
+            workspace_id=RecordId(workspace_id),
             type=request.type,
             name=name,
             polis_client_id="",
@@ -565,7 +565,7 @@ class SsoConnectionService:
         return await self._polis.create_oidc(tenant, name, metadata, client_id, secret)
 
     async def enable_connection(
-        self, workspace_id: PydanticObjectId, connection_id: str, user: User
+        self, workspace_id: RecordId, connection_id: str, user: User
     ) -> SsoConnectionDto:
         """Enable one connection; the workspace's other ones are disabled
         (one identity provider signs members in at a time). Only a
@@ -587,12 +587,12 @@ class SsoConnectionService:
             connection.updated_at = now
             await self._connections.save(connection)
         await self._connections.disable_others(
-            PydanticObjectId(workspace_id), connection.id, str(user.id), now
+            RecordId(workspace_id), connection.id, str(user.id), now
         )
         return SsoConnectionDto.of(connection)
 
     async def disable_connection(
-        self, workspace_id: PydanticObjectId, connection_id: str, user: User
+        self, workspace_id: RecordId, connection_id: str, user: User
     ) -> SsoConnectionDto:
         await self._authorize_owner(workspace_id, user)
         connection = await self._connection_in_workspace(workspace_id, connection_id)
@@ -607,7 +607,7 @@ class SsoConnectionService:
         return SsoConnectionDto.of(connection)
 
     async def delete_connection(
-        self, workspace_id: PydanticObjectId, connection_id: str, user: User
+        self, workspace_id: RecordId, connection_id: str, user: User
     ) -> None:
         await self._authorize_owner(workspace_id, user)
         connection = await self._connection_in_workspace(workspace_id, connection_id)
@@ -663,7 +663,7 @@ class SsoConnectionService:
     # -- settings -------------------------------------------------------------
     async def update_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: UpdateSsoSettingsDto,
         user: User,
     ) -> SsoSettingsDto:
@@ -715,7 +715,7 @@ class SsoConnectionService:
             revoked = await self._revoke_member_sessions(workspace, user)
         return self._settings_dto(workspace, revoked)
 
-    async def _check_can_require(self, workspace_id: PydanticObjectId) -> None:
+    async def _check_can_require(self, workspace_id: RecordId) -> None:
         self._require_available()
         connection = await self._connections.find_enabled(workspace_id)
         if connection is None:
@@ -764,7 +764,7 @@ class SsoConnectionService:
         return revoked
 
     # -- workspace deletion ---------------------------------------------------
-    async def release_workspaces(self, workspace_ids: List[PydanticObjectId]) -> int:
+    async def release_workspaces(self, workspace_ids: List[RecordId]) -> int:
         """Remove deleted workspaces' connections, in Polis and here. A
         connection Polis could not delete is kept (``release_pending``) so it
         never holds the IdP's entity ID unseen: the daily retry
@@ -873,7 +873,7 @@ class SsoConnectionService:
             else:
                 try:
                     workspace = await self._workspace_repo.find_by_id(
-                        PydanticObjectId(tenant)
+                        RecordId(tenant)
                     )
                 except Exception:  # noqa: BLE001 — not a workspace id
                     workspace = None

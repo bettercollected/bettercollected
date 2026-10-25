@@ -2,10 +2,8 @@ import datetime as dt
 import enum
 from typing import Dict, List, Optional
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 from pydantic import field_validator
-from pymongo import IndexModel
 
 
 class SsoConnectionType(str, enum.Enum):
@@ -23,7 +21,7 @@ class SsoConnectionStatus(str, enum.Enum):
     ENABLED = "enabled"
 
 
-class SsoConnectionDocument(MongoDocument):
+class SsoConnectionDocument(Record):
     """A workspace's single sign-on connection: our reference to a connection
     held by Ory Polis (docs/sso.md).
 
@@ -36,7 +34,7 @@ class SsoConnectionDocument(MongoDocument):
     At most one connection of a workspace is ``enabled`` at a time.
     """
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     type: SsoConnectionType
     name: str
     status: SsoConnectionStatus = SsoConnectionStatus.DISABLED
@@ -92,7 +90,3 @@ class SsoConnectionDocument(MongoDocument):
 
     class Settings:
         name = "sso_connections"
-        indexes = [
-            IndexModel([("workspace_id", 1), ("status", 1)]),
-            IndexModel([("polis_client_id", 1)], unique=True),
-        ]

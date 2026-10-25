@@ -26,7 +26,7 @@ from typing import List, Optional
 
 import httpx
 import jwt
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.user import User
 from starlette.requests import Request
 from starlette.responses import Response
@@ -189,7 +189,7 @@ class SessionService:
         )
         user_agent = request.headers.get("user-agent") if request else None
         session = SessionDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             user_id=user.id,
             refresh_jti=new_jti(),
             last_refreshed_at=now,

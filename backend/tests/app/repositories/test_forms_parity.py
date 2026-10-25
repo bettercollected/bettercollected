@@ -1,8 +1,9 @@
 """The Postgres twins of the forms-group repositories behave like the Mongo originals.
 
-Cross-group data (responder groups, responses, the workspaces templates were
-imported from) lives in Mongo for both sides here — the twins compose over the
-other groups' repositories, exactly as in a staged cutover.
+Cross-group data (responder groups, responses) lives in Mongo for both sides
+here — the twins compose over the other groups' repositories, exactly as in a
+staged cutover; the workspaces templates were imported from are read from the
+identity group's repository (Postgres only) by both.
 Skipped unless DATABASE_URL points at a *_test database.
 """
 
@@ -24,6 +25,8 @@ from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresFormTemplateRepository,
@@ -37,7 +40,6 @@ from backend.app.repositories.responder_groups_repository import (
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
@@ -49,8 +51,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.models.standard_form import StandardForm
 from common.models.user import User
-from tests.app.repositories.test_identity_parity import both_raise
-from tests.app.repositories.parity import parity, strip
+from tests.app.repositories.parity import both_raise, parity, strip
 
 T0 = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
 
@@ -430,7 +431,11 @@ async def test_workspace_form_visibility(sessions):
 # --------------------------------------------------------------------- templates
 async def test_templates(sessions):
     ws, origin_ws, gone_ws = PydanticObjectId(), PydanticObjectId(), PydanticObjectId()
-    workspaces = WorkspaceRepository()
+    # the identity group is served from Postgres only: both template
+    # repositories read the origin titles from it
+    workspaces = PostgresWorkspaceRepository(
+        sessions, PostgresActionRepository(sessions, None)
+    )
     await workspaces.save(
         WorkspaceDocument(id=origin_ws, title="Origin", workspace_name="origin-ws")
     )

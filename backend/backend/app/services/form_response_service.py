@@ -47,7 +47,7 @@ from backend.app.repositories.response_scope import (
     response_scope,
 )
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.models.dtos.deletion_request_dto import DeletionRequestOutcome
 from backend.app.schemas.standard_form_response import (
     DeclineReason,
@@ -112,7 +112,7 @@ class FormResponseService:
         workspace_form_repo: WorkspaceFormRepository,
         authorization_service: AuthorizationService,
         aws_service: AWSS3Service,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo

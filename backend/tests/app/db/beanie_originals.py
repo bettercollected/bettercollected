@@ -7,11 +7,13 @@ as they were before the move (test support; removed together with Beanie).
 * They still name the 4.0 collections, so the tests of the migration and
   routing machinery keep exercising ``allowed_origins`` and
   ``rate_limit_counters`` through the repositories below, as they were
-  before the move.
+  before the move, and plant 4.0 documents (``workspaces``) in Mongo for the
+  import's tests.
 """
 
 import datetime as dt
-from typing import Annotated, Any, Dict, List, Optional
+from datetime import datetime
+from typing import Annotated, Any, Dict, List, Optional, Union
 
 from beanie import Indexed, PydanticObjectId
 from bson import ObjectId
@@ -19,14 +21,22 @@ from common.clock import utcnow
 from common.configs.mongo_document import MongoDocument
 from common.db import PostgresRepositoryBase, write_op
 from common.models.standard_form import ParameterValue
-from pydantic import EmailStr, field_validator
-from pymongo import ReturnDocument
+from common.enums.workspace_invitation_status import InvitationStatus
+from pydantic import BaseModel, EmailStr, field_validator
+from pymongo import IndexModel, ReturnDocument
 
 from backend.app.handlers.database import entity
 from backend.app.models.enum.coupon_status import CouponStatus
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.models.types.coupon_code import CouponCode
+from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.workspace import Workspace
 from backend.app.schemas.action_document import ActionSettings
+from backend.app.schemas.scim import ScimUserState
+from backend.app.schemas.sso_connection import SsoConnectionStatus, SsoConnectionType
+from backend.app.schemas.workspace_domain import DomainStatus
+from backend.app.schemas.workspace_user import DISABLED_BY_PLAN
 from backend.db.models import AllowedOriginRow
 
 _ISO_ENCODERS = {
@@ -324,6 +334,578 @@ class WorkspaceActionsDocument(MongoDocument):
         bson_encoders = _ISO_ENCODERS
 
 
+# -- identity --------------------------------------------------------------------
+
+
+def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
+    # Mongo hands datetimes back without a zone; they are UTC
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=dt.timezone.utc)
+    return value
+
+
+class UserTags(BaseModel):
+    user_id: PydanticObjectId
+    tags: List[UserTagType]
+
+
+
+class WorkspaceDocument(MongoDocument, Workspace):
+    """
+    WorkspaceDocument is a subclass of both MongoDocument and Workspace.
+    It represents a collection of workspaces stored in a MongoDB database.
+
+    Attributes:
+        workspace_name (str): The name of the workspace. This field is
+            indexed and unique.
+        custom_domain (str, optional): The custom domain of the workspace.
+            This field is indexed.
+        default (bool): A flag indicating whether the workspace is the
+            default workspace. Defaults to False.
+
+    Classes Attributes:
+        Collection:
+            name (str): The name of the collection in the database.
+        Settings:
+            name (str): The name of the settings for this document.
+            bson_encoders (dict): A dictionary of bson encoders for specific data types.
+    """
+
+    workspace_name: Annotated[str, Indexed(unique=True)]
+    custom_domain: Optional[Annotated[str, Indexed()]] = None
+    default: bool = False
+    owner_id: Optional[str] = None
+    custom_domain_disabled: Optional[bool] = False
+    custom_domain_verified: Optional[bool] = False
+    disabled: Optional[bool] = False
+
+    class Settings:
+        name = "workspaces"
+        bson_encoders = {
+            dt.datetime: lambda o: dt.datetime.isoformat(o),
+            dt.date: lambda o: dt.date.isoformat(o),
+            dt.time: lambda o: dt.time.isoformat(o),
+        }
+
+
+class WorkspaceUserDocument(MongoDocument):
+    """
+    WorkspaceUsers is a subclass of MongoDocument. It represents a
+    collection of users in a workspace stored in a MongoDB database.
+
+    Attributes:
+        workspace_id (PydanticObjectId): The ID of the workspace.
+        userId (PydanticObjectId): The ID of the user.
+        roles (List[WorkspaceRoles | str]): The member's roles. ``[]`` (the
+            default, memberships from before roles existed) is an Editor. A
+            role this code doesn't know is kept as a string and grants
+            nothing (backend.app.services.authorization_service), so a
+            membership with a newer role still loads after a rollback.
+
+    Classes Attributes:
+        Collection:
+            name (str): The name of the collection in the database.
+        Settings:
+            name (str): The name of the settings for this document.
+            bson_encoders (dict): A dictionary of bson encoders for
+                specific data types.
+    """
+
+    workspace_id: PydanticObjectId
+    user_id: PydanticObjectId
+    roles: List[Union[WorkspaceRoles, str]] = []
+    disabled: bool = False
+    # who created the membership when not an invitation: "sso" (a first
+    # single sign-on, just in time) or "scim" (the workspace's directory).
+    # A "scim" membership's role and status follow the directory while the
+    # workspace has one (docs/sso.md, "Directory sync"); None = by hand.
+    provisioned_by: Optional[str] = None
+    # Why the membership is disabled: "plan" (the owner's plan was
+    # downgraded), "directory" (the SCIM directory deactivated the user).
+    # Each path lifts only its own reason; the membership is enabled again
+    # once none is left. A disabled membership from before this field has
+    # none recorded and counts as "plan" (the only path that disabled
+    # members then).
+    disabled_reasons: List[str] = []
+
+    def disable_for(self, reason: str) -> bool:
+        """Disable for ``reason``; whether anything changed."""
+        if self.disabled and not self.disabled_reasons:
+            # a legacy disabled row: the plan disabled it, keep that reason
+            self.disabled_reasons = [DISABLED_BY_PLAN]
+        changed = not self.disabled or reason not in self.disabled_reasons
+        if reason not in self.disabled_reasons:
+            self.disabled_reasons = [*self.disabled_reasons, reason]
+        self.disabled = True
+        return changed
+
+    @property
+    def holds_seat(self) -> bool:
+        """Whether it counts toward the seat cap: every membership but one
+        disabled only by the directory (a plan-disabled member comes back on
+        upgrade without a seat check, so it keeps its seat; a legacy disabled
+        row counts as plan)."""
+        if not self.disabled or not self.disabled_reasons:
+            return True
+        return DISABLED_BY_PLAN in self.disabled_reasons
+
+    def enable_for(self, reason: str) -> bool:
+        """Lift ``reason``: enabled once no other reason is left. Whether
+        anything changed. A membership disabled for other reasons only stays
+        as it is."""
+        if not self.disabled:
+            return False
+        reasons = list(self.disabled_reasons)
+        if reason in reasons:
+            reasons.remove(reason)
+        elif reasons or reason != DISABLED_BY_PLAN:
+            return False
+        self.disabled_reasons = reasons
+        self.disabled = bool(reasons)
+        return True
+
+    class Settings:
+        name = "workspace_users"
+        bson_encoders = {
+            dt.datetime: lambda o: dt.datetime.isoformat(o),
+            dt.date: lambda o: dt.date.isoformat(o),
+            dt.time: lambda o: dt.time.isoformat(o),
+        }
+
+
+class WorkspaceUserInvitesDocument(MongoDocument):
+    """
+    WorkspaceUserInvitesDocument is a subclass of MongoDocument. It
+    represents a collection of user invites for workspaces stored in
+    a MongoDB database.
+
+    Attributes:
+        workspace_id (PydanticObjectId): The ID of the workspace.
+        email (str): The email of the user being invited.
+        invitation_status (InvitationStatus, optional): The status of the
+            invitation. Defaults to InvitationStatus.PENDING.
+        expiry (int): The expiration time of the invitation in seconds.
+        invitation_token (str): The token for the invitation.
+
+    Classes Attributes:
+        Collection:
+            name (str): The name of the collection in the database.
+            indexes (List[IndexModel]): A list of index models for the collection.
+        Settings:
+            name (str): The name of the settings for this document.
+            bson_encoders (dict): A dictionary of bson encoders for specific data types.
+    """
+
+    workspace_id: PydanticObjectId
+    email: str
+    invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
+    # A role this code doesn't know loads as a string and grants nothing
+    # once accepted (like workspace_users.roles).
+    role: Optional[Union[WorkspaceRoles, str]] = WorkspaceRoles.COLLABORATOR
+    # who sent it: accepting re-checks that they may still give the role
+    invited_by: Optional[str] = None
+    expiry: int
+    invitation_token: str
+
+    class Settings:
+        name = "workspace_invites"
+        indexes = [IndexModel([("workspace_id", 1), ("email", 1)], unique=True)]
+        bson_encoders = {
+            datetime: lambda o: datetime.isoformat(o),
+        }
+
+
+class WorkspaceAPIKeyDocument(MongoDocument):
+    """A workspace-scoped API key (plan §2.5) — the credential MCP and the
+    public API authenticate with.
+
+    Only the SHA-256 of the token is stored; the full token is shown exactly
+    once at creation. ``prefix`` (the first characters) is kept for display so
+    a key can be recognized without being recoverable. Scopes gate what the
+    key may do; ``created_by`` is the acting user for authorization checks.
+    """
+
+    workspace_id: PydanticObjectId
+    name: str
+    key_hash: Annotated[str, Indexed(unique=True)]
+    prefix: str
+    scopes: List[str] = []
+    created_by: str
+    revoked: bool = False
+    # A key with responses:read gives an external AI client full, unredacted
+    # answers; the admin who created it acknowledged that (#715).
+    responses_read_acknowledged_by: Optional[str] = None
+    responses_read_acknowledged_at: Optional[dt.datetime] = None
+    last_used_at: Optional[dt.datetime] = None
+
+    class Settings:
+        name = "workspace_api_keys"
+        bson_encoders = {
+            dt.datetime: lambda o: dt.datetime.isoformat(o),
+        }
+
+
+class WorkspaceDomainDocument(MongoDocument):
+    """An email domain a workspace claims, proven by a DNS TXT record.
+
+    ``verified_domain`` equals ``domain`` while the claim is verified and is
+    unset otherwise; it is unique in both stores, so a domain is verified by
+    at most one workspace and the first verification wins. Pending claims of
+    the same domain by other workspaces can never verify while it is held.
+    """
+
+    workspace_id: PydanticObjectId
+    domain: str  # canonical ASCII (punycode), lower case
+    verification_token: str
+    method: str = "dns_txt"
+    status: DomainStatus = DomainStatus.PENDING
+    verified_domain: Optional[str] = None
+    created_by: str
+    verified_at: Optional[dt.datetime] = None
+    verified_by: Optional[str] = None
+    last_checked_at: Optional[dt.datetime] = None
+    # code of the last check's failure (dns_txt module constants), None on success
+    last_check_error: Optional[str] = None
+    # failed checks in a row; on a verified domain only those that found the
+    # record missing or wrong count, not resolver timeouts or errors
+    failed_checks: int = 0
+    # set once a verified domain failed LOSS_AFTER_FAILED_CHECKS re-checks in a
+    # row; it stays verified (no automatic transfer), a passing check clears it
+    verification_lost_at: Optional[dt.datetime] = None
+
+    @field_validator("verified_at", "last_checked_at", "verification_lost_at")
+    @classmethod
+    def _utc(cls, value: Optional[dt.datetime]) -> Optional[dt.datetime]:
+        # Mongo hands datetimes back without a zone; they are UTC
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value
+
+    class Settings:
+        name = "workspace_domains"
+        indexes = [
+            IndexModel([("workspace_id", 1), ("domain", 1)], unique=True),
+            IndexModel([("domain", 1)]),
+            IndexModel(
+                [("verified_domain", 1)],
+                unique=True,
+                partialFilterExpression={"verified_domain": {"$type": "string"}},
+            ),
+            IndexModel([("status", 1), ("last_checked_at", 1)]),
+        ]
+
+
+class SsoConnectionDocument(MongoDocument):
+    """A workspace's single sign-on connection: our reference to a connection
+    held by Ory Polis (docs/sso.md).
+
+    The Polis tenant is the workspace id, so everything Polis keeps for the
+    workspace (SSO connections now, a SCIM directory later) hangs off the same
+    tenant. Polis holds the IdP metadata and, for OIDC, the client secret;
+    this document only names the connection and records its lifecycle. It
+    applies to the workspace's verified email domains, never to others.
+
+    At most one connection of a workspace is ``enabled`` at a time.
+    """
+
+    workspace_id: PydanticObjectId
+    type: SsoConnectionType
+    name: str
+    status: SsoConnectionStatus = SsoConnectionStatus.DISABLED
+    # Polis's identifiers: its connection clientID, tenant and product
+    polis_client_id: str
+    polis_tenant: str
+    polis_product: str
+    # what the admin gave, for display (never the OIDC client secret)
+    idp_entity_id: Optional[str] = None
+    metadata_url: Optional[str] = None
+    oidc_discovery_url: Optional[str] = None
+    oidc_client_id: Optional[str] = None
+    # the checked endpoints of the OIDC discovery document (handed to Polis
+    # as its metadata; re-checked before a test)
+    oidc_endpoints: Optional[Dict[str, str]] = None
+    created_by: str
+    enabled_at: Optional[dt.datetime] = None
+    enabled_by: Optional[str] = None
+    disabled_at: Optional[dt.datetime] = None
+    disabled_by: Optional[str] = None
+    # the last "Test connection": a sign-in through the IdP that came back
+    # with an address on one of the workspace's verified domains
+    tested_at: Optional[dt.datetime] = None
+    tested_by: Optional[str] = None
+    last_test_at: Optional[dt.datetime] = None
+    # code of the last test's failure, None when it passed
+    last_test_error: Optional[str] = None
+    # what a failed test saw, for the admin to diagnose it (docs/sso.md,
+    # "Troubleshooting"); cleared by a passed test and a config change:
+    # the domain of the address the IdP sent (never the address itself),
+    # for ``sso_email_domain_not_allowed``
+    last_test_domain: Optional[str] = None
+    # the names of the claims the IdP sent (never their values)
+    last_test_claims: Optional[List[str]] = None
+
+    @field_validator(
+        "enabled_at", "disabled_at", "tested_at", "last_test_at", mode="after"
+    )
+    @classmethod
+    def _utc(cls, value: Optional[dt.datetime]) -> Optional[dt.datetime]:
+        # Mongo hands datetimes back without a zone; they are UTC
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value
+
+    @property
+    def is_enabled(self) -> bool:
+        return self.status == SsoConnectionStatus.ENABLED
+
+    @property
+    def is_tested(self) -> bool:
+        return self.tested_at is not None and self.last_test_error is None
+
+    class Settings:
+        name = "sso_connections"
+        indexes = [
+            IndexModel([("workspace_id", 1), ("status", 1)]),
+            IndexModel([("polis_client_id", 1)], unique=True),
+        ]
+
+
+class SsoUsedStateDocument(MongoDocument):
+    """A single sign-on callback that was accepted, by the hash of its
+    browser nonce (docs/sso.md): a state is accepted once. Kept until
+    ``expires_at`` (well past the sign-in's own expiry)."""
+
+    nonce_hash: str
+    expires_at: dt.datetime
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def _utc(cls, value: dt.datetime) -> dt.datetime:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value
+
+    class Settings:
+        name = "sso_used_states"
+        indexes = [
+            IndexModel([("nonce_hash", 1)], unique=True),
+            # Mongo drops a record once it expired; the Postgres twin deletes
+            # expired rows on each claim
+            IndexModel([("expires_at", 1)], expireAfterSeconds=0),
+        ]
+
+
+class ScimDirectoryDocument(MongoDocument):
+    workspace_id: PydanticObjectId
+    # Polis's identifiers: the directory id, its tenant (the workspace id)
+    # and product
+    polis_directory_id: str
+    polis_tenant: str
+    polis_product: str
+    type: str
+    name: str
+    # the SCIM base URL the identity provider is configured with (not secret)
+    scim_endpoint: str = ""
+    # the secret Polis signs webhooks with, encrypted (Fernet,
+    # AUTH_AES_HEX_KEY); never returned by the API or logged
+    webhook_secret: str
+    created_by: str
+    rotated_at: Optional[dt.datetime] = None
+    rotated_by: Optional[str] = None
+    last_event_at: Optional[dt.datetime] = None
+    last_event_type: Optional[str] = None
+    last_resync_at: Optional[dt.datetime] = None
+    last_resync_by: Optional[str] = None
+    # counts of the last resync ({"users": n, "groups": n, "changed": n}),
+    # or its error code
+    last_resync_summary: Optional[Dict[str, Any]] = None
+    last_resync_error: Optional[str] = None
+    # a rotation could not delete the previous Polis directory: its token
+    # may still be accepted by Polis until it is deleted (retried by the
+    # owner and by every resync)
+    stale_polis_directory_id: Optional[str] = None
+
+    @field_validator("rotated_at", "last_event_at", "last_resync_at", mode="after")
+    @classmethod
+    def _zone(cls, value):
+        return _utc(value)
+
+    class Settings:
+        name = "scim_directories"
+        indexes = [
+            IndexModel([("workspace_id", 1)], unique=True),
+            IndexModel([("polis_directory_id", 1)], unique=True),
+        ]
+
+
+class ScimUserDocument(MongoDocument):
+    directory_id: PydanticObjectId
+    workspace_id: PydanticObjectId
+    polis_user_id: str
+    # lower-cased, as the identity provider sent it
+    email: str
+    active: bool = True
+    deleted: bool = False
+    # the account the email belongs to, once known
+    user_id: Optional[str] = None
+    state: ScimUserState = ScimUserState.PROVISIONED
+    # why it is ignored or failed (a code from scim.reasons)
+    reason: Optional[str] = None
+    last_event_at: Optional[dt.datetime] = None
+    # the directory was replaced in Polis (token rotation): this record waits
+    # to be matched, by email, to the user the new directory sends
+    replaced: bool = False
+
+    @field_validator("last_event_at", mode="after")
+    @classmethod
+    def _zone(cls, value):
+        return _utc(value)
+
+    class Settings:
+        name = "scim_users"
+        indexes = [
+            IndexModel([("directory_id", 1), ("polis_user_id", 1)], unique=True),
+            IndexModel([("workspace_id", 1), ("email", 1)]),
+            IndexModel([("directory_id", 1), ("state", 1)]),
+        ]
+
+
+class ScimGroupDocument(MongoDocument):
+    directory_id: PydanticObjectId
+    workspace_id: PydanticObjectId
+    polis_group_id: str
+    name: str
+    # the workspace role members of this group get (one role per group), or
+    # None for a group that maps to nothing
+    role: Optional[str] = None
+    role_changed_by: Optional[str] = None
+    # replaced directory (token rotation): matched to the new one by name
+    replaced: bool = False
+    # why the owner should look at this group's mapping: "duplicate_name"
+    # (after a rotation several previous groups had its name, so none was
+    # matched and no role carried over)
+    needs_review: Optional[str] = None
+    # TODO(member-groups): map to a member group too once member groups exist
+    # (docs/enterprise-access-model.md §3, step c)
+
+    class Settings:
+        name = "scim_groups"
+        indexes = [
+            IndexModel([("directory_id", 1), ("polis_group_id", 1)], unique=True),
+        ]
+
+
+class ScimGroupMemberDocument(MongoDocument):
+    """``id`` is ``derived_object_id(group_id, scim_user_id)``: one row per
+    pair, the same in both stores."""
+
+    directory_id: PydanticObjectId
+    group_id: PydanticObjectId
+    scim_user_id: PydanticObjectId
+
+    class Settings:
+        name = "scim_group_members"
+        indexes = [
+            IndexModel([("group_id", 1)]),
+            IndexModel([("scim_user_id", 1)]),
+            IndexModel([("directory_id", 1)]),
+        ]
+
+
+class ScimEventDocument(MongoDocument):
+    """An accepted webhook event, by the SHA-256 of (directory, type, data,
+    signature time): Polis gives events no id, and resends the same signed
+    request when it retries."""
+
+    event_key: str
+    directory_id: PydanticObjectId
+    event_type: str
+    expires_at: dt.datetime
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def _zone(cls, value):
+        return _utc(value)
+
+    class Settings:
+        name = "scim_events"
+        indexes = [
+            IndexModel([("event_key", 1)], unique=True),
+            # Mongo drops a record once it expired; the Postgres twin deletes
+            # expired rows on each claim
+            IndexModel([("expires_at", 1)], expireAfterSeconds=0),
+        ]
+
+
+class BlackListedRefreshTokens(MongoDocument):
+    token: str
+    expiry: dt.datetime
+
+    class Settings:
+        name = "blacklisted_refresh_tokens"
+        bson_encoders = {
+            dt.datetime: lambda o: dt.datetime.isoformat(o),
+            dt.date: lambda o: dt.date.isoformat(o),
+            dt.time: lambda o: dt.time.isoformat(o),
+        }
+
+
+class SessionDocument(MongoDocument):
+    """One signed-in browser session: created at every sign-in, named by the
+    ``sid`` claim of the tokens issued for it.
+
+    Access tokens are checked without a database read; the refresh path reads
+    this document, so revoking it ends the session within one access-token
+    lifetime. ``refresh_jti`` is the refresh token currently valid for the
+    session (rotated on each explicit refresh); ``previous_refresh_jti`` is the
+    one it replaced, accepted for a short grace period after ``rotated_at`` so
+    parallel tabs do not trip reuse detection. Any other jti presented for the
+    session is a replayed (stolen) token and revokes it.
+    """
+
+    user_id: Annotated[str, Indexed()]
+    refresh_jti: str
+    previous_refresh_jti: Optional[str] = None
+    rotated_at: Optional[dt.datetime] = None
+    last_refreshed_at: Optional[dt.datetime] = None
+    expires_at: dt.datetime
+    # proven at sign-in (see common.models.user.User.email_verified)
+    email_verified: bool = False
+    # how the session signed in: "sso" (enterprise single sign-on) or None
+    # (OTP, Google). An SSO session never grants the platform-admin role.
+    method: Optional[str] = None
+    # "respondent": limited to answering forms of ``scope_workspace_id``; it
+    # grants no workspace permissions (common.models.user.User.session_scope)
+    scope: Optional[str] = None
+    scope_workspace_id: Optional[str] = None
+    user_agent: Optional[str] = None
+    revoked_at: Optional[dt.datetime] = None
+    revoke_reason: Optional[str] = None
+
+    @field_validator(
+        "rotated_at", "last_refreshed_at", "expires_at", "revoked_at", mode="after"
+    )
+    @classmethod
+    def _utc(cls, value: Optional[dt.datetime]) -> Optional[dt.datetime]:
+        # Mongo hands datetimes back naive (UTC); keep them comparable
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value
+
+    class Settings:
+        # native dates (no ISO-string encoders): expiry and revocation compare them
+        name = "sessions"
+        # Mongo drops a session once its refresh token has expired; the
+        # Postgres twin deletes expired rows on the list/revoke paths
+        # (``SessionRepository.delete_expired``).
+        indexes = [IndexModel([("expires_at", 1)], expireAfterSeconds=0)]
+
+
+class UserTagsDocument(MongoDocument, UserTags):  # UserTags as it was in 4.0 (below)
+    class Settings:
+        name = "user_tags"
+
+
 ORIGINALS = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -341,6 +923,21 @@ ORIGINALS = (
     ApiIdempotencyRecordDocument,
     ActionDocument,
     WorkspaceActionsDocument,
+    WorkspaceDocument,
+    WorkspaceUserDocument,
+    WorkspaceUserInvitesDocument,
+    WorkspaceAPIKeyDocument,
+    WorkspaceDomainDocument,
+    SsoConnectionDocument,
+    SsoUsedStateDocument,
+    ScimDirectoryDocument,
+    ScimUserDocument,
+    ScimGroupDocument,
+    ScimGroupMemberDocument,
+    ScimEventDocument,
+    BlackListedRefreshTokens,
+    SessionDocument,
+    UserTagsDocument,
 )
 
 for _original in ORIGINALS:

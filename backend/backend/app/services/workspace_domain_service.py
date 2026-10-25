@@ -20,7 +20,7 @@ import secrets
 from http import HTTPStatus
 from typing import Callable, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
 from loguru import logger
@@ -28,10 +28,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.workspace_domain_repository import (
+from backend.app.repositories.postgres.identity import (
     DomainAlreadyClaimed,
     DomainVerifiedElsewhere,
-    WorkspaceDomainRepository,
+    PostgresWorkspaceDomainRepository,
 )
 from backend.app.schemas.workspace_domain import DomainStatus, WorkspaceDomainDocument
 from backend.app.services.domains import dns_txt
@@ -100,7 +100,7 @@ class WorkspaceDomainService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        domain_repo: WorkspaceDomainRepository,
+        domain_repo: PostgresWorkspaceDomainRepository,
         resolver_factory: Optional[Callable] = None,
     ):
         self._authorization = authorization_service
@@ -112,7 +112,7 @@ class WorkspaceDomainService:
         config = settings.verified_domains
         return dns_txt.make_resolver(config.DNS_TIMEOUT_S, config.nameservers)
 
-    async def _authorize(self, workspace_id: PydanticObjectId, user: User) -> None:
+    async def _authorize(self, workspace_id: RecordId, user: User) -> None:
         """The one access check for managing domains: security.manage
         (Owner or Admin; 403 otherwise, members and outsiders alike)."""
         await self._authorization.authorize(
@@ -121,14 +121,14 @@ class WorkspaceDomainService:
 
     # -- management (Owner/Admin) ---------------------------------------------
     async def list_domains(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> List[WorkspaceDomainDto]:
         await self._authorize(workspace_id, user)
         documents = await self._domain_repo.list_by_workspace(workspace_id)
         return [await self._to_dto(document) for document in documents]
 
     async def claim_domain(
-        self, workspace_id: PydanticObjectId, request: ClaimDomainDto, user: User
+        self, workspace_id: RecordId, request: ClaimDomainDto, user: User
     ) -> WorkspaceDomainDto:
         await self._authorize(workspace_id, user)
         config = settings.verified_domains
@@ -149,12 +149,12 @@ class WorkspaceDomainService:
             )
         owner = await self._domain_repo.find_verified(domain)
         if owner is not None:
-            if owner.workspace_id == PydanticObjectId(workspace_id):
+            if owner.workspace_id == RecordId(workspace_id):
                 raise self._already_claimed()
             raise self._verified_elsewhere()
         document = WorkspaceDomainDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(workspace_id),
+            id=RecordId(),
+            workspace_id=RecordId(workspace_id),
             domain=domain,
             verification_token=secrets.token_hex(16),
             created_by=str(user.id),
@@ -166,7 +166,7 @@ class WorkspaceDomainService:
         return await self._to_dto(document)
 
     async def verify_domain(
-        self, workspace_id: PydanticObjectId, domain_id: str, user: User
+        self, workspace_id: RecordId, domain_id: str, user: User
     ) -> WorkspaceDomainDto:
         """Check the TXT record now. The outcome is in the returned status
         and ``lastCheckError``; only a missing claim is an error (404)."""
@@ -176,7 +176,7 @@ class WorkspaceDomainService:
         return await self._to_dto(document)
 
     async def delete_domain(
-        self, workspace_id: PydanticObjectId, domain_id: str, user: User
+        self, workspace_id: RecordId, domain_id: str, user: User
     ) -> None:
         """Remove the claim; a verified domain is released for others."""
         await self._authorize(workspace_id, user)
@@ -184,7 +184,7 @@ class WorkspaceDomainService:
         await self._domain_repo.delete(document.id)
 
     # -- for single sign-on ---------------------------------------------------
-    async def domain_owner(self, domain: str) -> Optional[PydanticObjectId]:
+    async def domain_owner(self, domain: str) -> Optional[RecordId]:
         """The workspace that verified ``domain`` (an email address works
         too), or None. A verified domain whose re-checks have since failed
         (``verification_lost_at``) still has its owner."""
@@ -195,12 +195,12 @@ class WorkspaceDomainService:
         return owner.workspace_id if owner else None
 
     async def is_domain_verified_for(
-        self, workspace_id: PydanticObjectId, email_or_domain: str
+        self, workspace_id: RecordId, email_or_domain: str
     ) -> bool:
         """Whether the workspace has verified exactly this domain (the
         address's domain for an email). Sub-domains are separate domains."""
         owner = await self.domain_owner(email_or_domain)
-        return owner is not None and owner == PydanticObjectId(workspace_id)
+        return owner is not None and owner == RecordId(workspace_id)
 
     async def sso_domain_claim(
         self, email_or_domain: str
@@ -223,7 +223,7 @@ class WorkspaceDomainService:
             return None
         return claim
 
-    async def sso_domains(self, workspace_id: PydanticObjectId) -> List[str]:
+    async def sso_domains(self, workspace_id: RecordId) -> List[str]:
         """The workspace's domains single sign-on applies to (verified, not
         lost, not reserved), in their ASCII form."""
         return [
@@ -262,7 +262,7 @@ class WorkspaceDomainService:
         return counts
 
     async def release_workspace_domains(
-        self, workspace_ids: List[PydanticObjectId]
+        self, workspace_ids: List[RecordId]
     ) -> int:
         """Remove the claims of deleted workspaces."""
         if not workspace_ids:
@@ -271,10 +271,10 @@ class WorkspaceDomainService:
 
     # -- internals ------------------------------------------------------------
     async def _claim_in_workspace(
-        self, workspace_id: PydanticObjectId, domain_id: str
+        self, workspace_id: RecordId, domain_id: str
     ) -> WorkspaceDomainDocument:
         document = await self._domain_repo.get(domain_id)
-        if document is None or document.workspace_id != PydanticObjectId(workspace_id):
+        if document is None or document.workspace_id != RecordId(workspace_id):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         return document
 

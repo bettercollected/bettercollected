@@ -1,12 +1,14 @@
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import WorkspaceRoles, stored_role
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresWorkspaceRepository,
+    PostgresWorkspaceUserRepository,
+)
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from common.models.user import User
@@ -24,8 +26,8 @@ class SeatLimitReached(Exception):
 class WorkspaceUserService:
     def __init__(
         self,
-        workspace_user_repository: WorkspaceUserRepository,
-        workspace_repo: WorkspaceRepository,
+        workspace_user_repository: PostgresWorkspaceUserRepository,
+        workspace_repo: PostgresWorkspaceRepository,
     ):
         self.workspace_user_repository = workspace_user_repository
         self.workspace_repo = workspace_repo
@@ -36,20 +38,20 @@ class WorkspaceUserService:
         )
 
     async def find_workspace_user(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ) -> Optional[WorkspaceUserDocument]:
         return await self.workspace_user_repository.find_workspace_user(
-            PydanticObjectId(workspace_id), PydanticObjectId(user_id)
+            RecordId(workspace_id), RecordId(user_id)
         )
 
     async def save_workspace_user(self, workspace_user: WorkspaceUserDocument):
         return await self.workspace_user_repository.save(workspace_user)
 
     async def add_user_to_workspace_with_role(
-        self, workspace_id: PydanticObjectId, user: User, role: WorkspaceRoles
+        self, workspace_id: RecordId, user: User, role: WorkspaceRoles
     ):
         existing_user = await self.workspace_user_repository.find_workspace_user(
-            workspace_id, PydanticObjectId(user.id)
+            workspace_id, RecordId(user.id)
         )
         if existing_user:
             return
@@ -64,17 +66,17 @@ class WorkspaceUserService:
         # a racing writer's membership wins; this one is not added twice
         return await self.workspace_user_repository.add_if_absent(workspace_user)
 
-    async def active_member_count(self, workspace_id: PydanticObjectId) -> int:
+    async def active_member_count(self, workspace_id: RecordId) -> int:
         """Members holding a seat: all but those disabled only by the SCIM
         directory (``WorkspaceUserDocument.holds_seat``). An invitation, a
         first SSO sign-in, the SCIM directory and the recount after an insert
         all count this way."""
         workspace_users = await self.workspace_user_repository.get_workspace_users(
-            workspace_id=PydanticObjectId(workspace_id)
+            workspace_id=RecordId(workspace_id)
         )
         return sum(1 for member in workspace_users if member.holds_seat)
 
-    async def has_free_seat(self, workspace_id: PydanticObjectId) -> bool:
+    async def has_free_seat(self, workspace_id: RecordId) -> bool:
         """Whether one more member fits under ``API_ALLOWED_COLLABORATORS``
         (the owner plus that many members), counting active memberships."""
         return (
@@ -82,13 +84,13 @@ class WorkspaceUserService:
             <= settings.api_settings.ALLOWED_COLLABORATORS
         )
 
-    async def find_member(self, workspace_id: PydanticObjectId, user_id: str):
+    async def find_member(self, workspace_id: RecordId, user_id: str):
         return await self.workspace_user_repository.find_workspace_user(
-            PydanticObjectId(workspace_id), PydanticObjectId(user_id)
+            RecordId(workspace_id), RecordId(user_id)
         )
 
     async def add_sso_member(
-        self, workspace_id: PydanticObjectId, user: User, role: WorkspaceRoles
+        self, workspace_id: RecordId, user: User, role: WorkspaceRoles
     ) -> WorkspaceUserDocument:
         """Just-in-time membership for a single sign-on (docs/sso.md): a new
         member gets ``role``; an existing membership is returned unchanged,
@@ -100,7 +102,7 @@ class WorkspaceUserService:
         )
 
     async def add_directory_member(
-        self, workspace_id: PydanticObjectId, user_id: str, role: WorkspaceRoles
+        self, workspace_id: RecordId, user_id: str, role: WorkspaceRoles
     ) -> WorkspaceUserDocument:
         """A membership created by the workspace's SCIM directory
         (``provisioned_by="scim"``). Same seat rules as ``add_sso_member``; an
@@ -112,7 +114,7 @@ class WorkspaceUserService:
 
     async def _add_provisioned_member(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user_id: str,
         role: WorkspaceRoles,
         provisioned_by: str,
@@ -123,9 +125,9 @@ class WorkspaceUserService:
         if not await self.has_free_seat(workspace_id):
             raise SeatLimitReached(str(workspace_id))
         document = WorkspaceUserDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(workspace_id),
-            user_id=PydanticObjectId(user_id),
+            id=RecordId(),
+            workspace_id=RecordId(workspace_id),
+            user_id=RecordId(user_id),
             roles=[role],
             provisioned_by=provisioned_by,
         )
@@ -141,7 +143,7 @@ class WorkspaceUserService:
             > settings.api_settings.ALLOWED_COLLABORATORS + 1
         ):
             await self.workspace_user_repository.delete(
-                PydanticObjectId(workspace_id), PydanticObjectId(user_id)
+                RecordId(workspace_id), RecordId(user_id)
             )
             raise SeatLimitReached(str(workspace_id))
         return member
@@ -157,19 +159,19 @@ class WorkspaceUserService:
         ]
 
     async def disable_other_users_in_workspace(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ):
         return await self.workspace_user_repository.disable_other_users_in_workspace(
             workspace_id=workspace_id, user_id=user_id
         )
 
-    async def enable_all_users_in_workspace(self, workspace_id: PydanticObjectId):
+    async def enable_all_users_in_workspace(self, workspace_id: RecordId):
         return await self.workspace_user_repository.enable_all_user_in_workspace(
             workspace_id
         )
 
     async def delete_user_from_workspace(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ):
         return await self.workspace_user_repository.delete(workspace_id, user_id)
 
@@ -178,7 +180,7 @@ class WorkspaceUserService:
             user
         )
 
-    async def delete_user_of_workspaces(self, workspace_ids: List[PydanticObjectId]):
+    async def delete_user_of_workspaces(self, workspace_ids: List[RecordId]):
         return await self.workspace_user_repository.delete_all_workspaces_users(
             workspace_ids
         )

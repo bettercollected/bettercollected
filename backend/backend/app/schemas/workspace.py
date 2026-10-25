@@ -1,13 +1,11 @@
 import datetime as dt
-from typing import Annotated, Optional
-
-from beanie import Indexed
+from typing import Optional
 
 from backend.app.models.workspace import Workspace
-from common.configs.mongo_document import MongoDocument
+from common.records import Record
 
 
-class WorkspaceDocument(MongoDocument, Workspace):
+class WorkspaceDocument(Record, Workspace):
     """
     WorkspaceDocument is a subclass of both MongoDocument and Workspace.
     It represents a collection of workspaces stored in a MongoDB database.
@@ -28,8 +26,8 @@ class WorkspaceDocument(MongoDocument, Workspace):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspace_name: Annotated[str, Indexed(unique=True)]
-    custom_domain: Optional[Annotated[str, Indexed()]] = None
+    workspace_name: str
+    custom_domain: Optional[str] = None
     default: bool = False
     owner_id: Optional[str] = None
     custom_domain_disabled: Optional[bool] = False

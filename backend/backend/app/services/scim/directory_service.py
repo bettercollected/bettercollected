@@ -15,7 +15,7 @@ import secrets
 from http import HTTPStatus
 from typing import Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.models.user import User
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,14 +23,14 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.repositories.scim_repository import (
+from backend.app.repositories.postgres.identity import (
     ScimDirectoryExists,
-    ScimDirectoryRepository,
-    ScimGroupMemberRepository,
-    ScimGroupRepository,
-    ScimUserRepository,
+    PostgresScimDirectoryRepository,
+    PostgresScimGroupMemberRepository,
+    PostgresScimGroupRepository,
+    PostgresScimUserRepository,
+    PostgresWorkspaceRepository,
 )
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.scim import (
     DIRECTORY_TYPES,
     ScimDirectoryDocument,
@@ -214,11 +214,11 @@ class ScimDirectoryService:
     def __init__(
         self,
         authorization_service: AuthorizationService,
-        directory_repo: ScimDirectoryRepository,
-        user_repo: ScimUserRepository,
-        group_repo: ScimGroupRepository,
-        member_repo: ScimGroupMemberRepository,
-        workspace_repo: WorkspaceRepository,
+        directory_repo: PostgresScimDirectoryRepository,
+        user_repo: PostgresScimUserRepository,
+        group_repo: PostgresScimGroupRepository,
+        member_repo: PostgresScimGroupMemberRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         domain_service: WorkspaceDomainService,
         sync_service: ScimSyncService,
         polis: PolisDirectoryClient,
@@ -256,7 +256,7 @@ class ScimDirectoryService:
 
     async def _directory(self, workspace_id) -> ScimDirectoryDocument:
         directory = await self._directories.find_by_workspace(
-            PydanticObjectId(workspace_id)
+            RecordId(workspace_id)
         )
         if directory is None:
             raise _refused(
@@ -271,7 +271,7 @@ class ScimDirectoryService:
         await self._authorize(workspace_id, user)
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         directory = await self._directories.find_by_workspace(
-            PydanticObjectId(workspace_id)
+            RecordId(workspace_id)
         )
         dto = DirectoryOverviewDto(
             available=scim_available(),
@@ -331,7 +331,7 @@ class ScimDirectoryService:
         return dto
 
     # -- create, rotate, delete -----------------------------------------------
-    def _webhook_url(self, directory_id: PydanticObjectId) -> str:
+    def _webhook_url(self, directory_id: RecordId) -> str:
         return f"{settings.scim.webhook_base}/{directory_id}"
 
     async def create(
@@ -352,13 +352,13 @@ class ScimDirectoryService:
                 "Verify an email domain first: the directory only provisions "
                 "addresses on verified domains.",
             )
-        if await self._directories.find_by_workspace(PydanticObjectId(workspace_id)):
+        if await self._directories.find_by_workspace(RecordId(workspace_id)):
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "scim_directory_exists",
                 "This workspace already has a directory.",
             )
-        directory_id = PydanticObjectId()
+        directory_id = RecordId()
         name = (request.name or "").strip() or DIRECTORY_TYPES[request.type]
         webhook_secret = secrets.token_urlsafe(32)
         try:
@@ -373,7 +373,7 @@ class ScimDirectoryService:
             raise _polis_error(error)
         document = ScimDirectoryDocument(
             id=directory_id,
-            workspace_id=PydanticObjectId(workspace_id),
+            workspace_id=RecordId(workspace_id),
             polis_directory_id=str(created["id"]),
             polis_tenant=str(workspace_id),
             polis_product=settings.sso.POLIS_PRODUCT,
@@ -698,11 +698,11 @@ class ScimDirectoryService:
             logger.error("SCIM directory {}: failure not recorded", directory.id)
 
     # -- workspace deletion ---------------------------------------------------
-    async def release_workspaces(self, workspace_ids: List[PydanticObjectId]) -> int:
+    async def release_workspaces(self, workspace_ids: List[RecordId]) -> int:
         removed = 0
         for workspace_id in workspace_ids or []:
             directory = await self._directories.find_by_workspace(
-                PydanticObjectId(workspace_id)
+                RecordId(workspace_id)
             )
             if directory is None:
                 continue

@@ -1,15 +1,15 @@
 """Duplicate workspace memberships: ``python -m backend.membership_duplicates``
 
 Lists every (workspace_id, user_id) pair with more than one ``workspace_users``
-membership, in Mongo (``MONGO_DB``) while the ``identity`` group still reads or
-writes Mongo (``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` and their ``__identity``
-overrides; once it is on Postgres alone Mongo is skipped and named under
-``skipped``), and, when ``DATABASE_URL`` is set, in the Postgres twin. Ids,
-roles and the disabled flag only, never names or emails.
+membership in Postgres (``DATABASE_URL``). Ids only, never names or emails.
 Read-only: it changes nothing. Exit status 1 when duplicates exist, so it can
 gate a deployment. Resolve them by hand (docs/sso.md, "Duplicate
-memberships"), then the unique index (Mongo at startup, Postgres revision
-0011) can be created.
+memberships"), then Postgres revision 0011 can create the unique index.
+
+The identity group is served from Postgres only since 4.1, so Mongo is not
+checked (it is listed under ``skipped``); the import from 4.0
+(``python -m backend.migrate preflight``) reports duplicate memberships in a
+4.0 database before they are copied.
 """
 
 from __future__ import annotations
@@ -18,43 +18,6 @@ import asyncio
 import json
 import os
 import sys
-
-from pymongo import MongoClient
-
-from backend.config import settings
-
-
-def mongo_duplicates() -> list:
-    client = MongoClient(settings.mongo_settings.URI)
-    try:
-        rows = client[settings.mongo_settings.DB]["workspace_users"].aggregate(
-            [
-                {
-                    "$group": {
-                        "_id": {"w": "$workspace_id", "u": "$user_id"},
-                        "n": {"$sum": 1},
-                        "memberships": {
-                            "$push": {
-                                "id": {"$toString": "$_id"},
-                                "roles": "$roles",
-                                "disabled": "$disabled",
-                            }
-                        },
-                    }
-                },
-                {"$match": {"n": {"$gt": 1}}},
-            ]
-        )
-        return [
-            {
-                "workspace_id": str(row["_id"]["w"]),
-                "user_id": str(row["_id"]["u"]),
-                "memberships": row["memberships"],
-            }
-            for row in rows
-        ]
-    finally:
-        client.close()
 
 
 async def postgres_duplicates(url: str) -> list:
@@ -79,24 +42,9 @@ async def postgres_duplicates(url: str) -> list:
         await engine.dispose()
 
 
-GROUP = "identity"  # the repository group of workspace_users
-
-
-def mongo_in_use(env=os.environ) -> bool:
-    """Whether the identity group still reads from or writes to Mongo."""
-    from backend.cli_store import needs_mongo
-    from common.db import load_flags
-
-    return needs_mongo(load_flags(env), [GROUP])
-
-
 def main() -> int:
     report: dict = {}
-    skipped = []
-    if mongo_in_use():
-        report["mongo"] = mongo_duplicates()
-    else:
-        skipped.append("mongo")
+    skipped = ["mongo"]
     url = os.environ.get("DATABASE_URL")
     if url:
         report["postgres"] = asyncio.run(postgres_duplicates(url))

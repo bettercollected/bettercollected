@@ -18,10 +18,8 @@ import datetime as dt
 import enum
 from typing import Any, Dict, Optional
 
-from beanie import PydanticObjectId
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 from pydantic import field_validator
-from pymongo import IndexModel
 
 
 def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
@@ -43,8 +41,8 @@ DIRECTORY_TYPES: Dict[str, str] = {
 }
 
 
-class ScimDirectoryDocument(MongoDocument):
-    workspace_id: PydanticObjectId
+class ScimDirectoryDocument(Record):
+    workspace_id: RecordId
     # Polis's identifiers: the directory id, its tenant (the workspace id)
     # and product
     polis_directory_id: str
@@ -80,10 +78,6 @@ class ScimDirectoryDocument(MongoDocument):
 
     class Settings:
         name = "scim_directories"
-        indexes = [
-            IndexModel([("workspace_id", 1)], unique=True),
-            IndexModel([("polis_directory_id", 1)], unique=True),
-        ]
 
 
 class ScimUserState(str, enum.Enum):
@@ -97,9 +91,9 @@ class ScimUserState(str, enum.Enum):
     FAILED = "failed"
 
 
-class ScimUserDocument(MongoDocument):
-    directory_id: PydanticObjectId
-    workspace_id: PydanticObjectId
+class ScimUserDocument(Record):
+    directory_id: RecordId
+    workspace_id: RecordId
     polis_user_id: str
     # lower-cased, as the identity provider sent it
     email: str
@@ -122,16 +116,11 @@ class ScimUserDocument(MongoDocument):
 
     class Settings:
         name = "scim_users"
-        indexes = [
-            IndexModel([("directory_id", 1), ("polis_user_id", 1)], unique=True),
-            IndexModel([("workspace_id", 1), ("email", 1)]),
-            IndexModel([("directory_id", 1), ("state", 1)]),
-        ]
 
 
-class ScimGroupDocument(MongoDocument):
-    directory_id: PydanticObjectId
-    workspace_id: PydanticObjectId
+class ScimGroupDocument(Record):
+    directory_id: RecordId
+    workspace_id: RecordId
     polis_group_id: str
     name: str
     # the workspace role members of this group get (one role per group), or
@@ -149,35 +138,27 @@ class ScimGroupDocument(MongoDocument):
 
     class Settings:
         name = "scim_groups"
-        indexes = [
-            IndexModel([("directory_id", 1), ("polis_group_id", 1)], unique=True),
-        ]
 
 
-class ScimGroupMemberDocument(MongoDocument):
+class ScimGroupMemberDocument(Record):
     """``id`` is ``derived_object_id(group_id, scim_user_id)``: one row per
     pair, the same in both stores."""
 
-    directory_id: PydanticObjectId
-    group_id: PydanticObjectId
-    scim_user_id: PydanticObjectId
+    directory_id: RecordId
+    group_id: RecordId
+    scim_user_id: RecordId
 
     class Settings:
         name = "scim_group_members"
-        indexes = [
-            IndexModel([("group_id", 1)]),
-            IndexModel([("scim_user_id", 1)]),
-            IndexModel([("directory_id", 1)]),
-        ]
 
 
-class ScimEventDocument(MongoDocument):
+class ScimEventDocument(Record):
     """An accepted webhook event, by the SHA-256 of (directory, type, data,
     signature time): Polis gives events no id, and resends the same signed
     request when it retries."""
 
     event_key: str
-    directory_id: PydanticObjectId
+    directory_id: RecordId
     event_type: str
     expires_at: dt.datetime
 
@@ -188,9 +169,3 @@ class ScimEventDocument(MongoDocument):
 
     class Settings:
         name = "scim_events"
-        indexes = [
-            IndexModel([("event_key", 1)], unique=True),
-            # Mongo drops a record once it expired; the Postgres twin deletes
-            # expired rows on each claim
-            IndexModel([("expires_at", 1)], expireAfterSeconds=0),
-        ]

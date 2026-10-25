@@ -26,8 +26,7 @@ import datetime as dt
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from beanie import PydanticObjectId
-from common.db.beanie_bridge import derived_object_id
+from common.records import RecordId, derived_id
 from common.exceptions.http import HTTPException as CommonHTTPException
 from loguru import logger
 
@@ -40,14 +39,14 @@ from backend.app.models.enum.workspace_roles import (
     is_owner_membership,
     stored_role,
 )
-from backend.app.repositories.scim_repository import (
-    ScimDirectoryRepository,
-    ScimGroupMemberRepository,
-    ScimGroupRepository,
-    ScimUserRepository,
+from backend.app.repositories.postgres.identity import (
+    PostgresScimDirectoryRepository,
+    PostgresScimGroupMemberRepository,
+    PostgresScimGroupRepository,
+    PostgresScimUserRepository,
+    PostgresWorkspaceRepository,
+    PostgresWorkspaceUserRepository,
 )
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.workspace_user import (
     DISABLED_BY_DIRECTORY,
     DISABLED_BY_SEAT_LIMIT,
@@ -177,12 +176,12 @@ class ReconcileRefused(Exception):
 class ScimSyncService:
     def __init__(
         self,
-        directory_repo: ScimDirectoryRepository,
-        user_repo: ScimUserRepository,
-        group_repo: ScimGroupRepository,
-        member_repo: ScimGroupMemberRepository,
-        workspace_repo: WorkspaceRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        directory_repo: PostgresScimDirectoryRepository,
+        user_repo: PostgresScimUserRepository,
+        group_repo: PostgresScimGroupRepository,
+        member_repo: PostgresScimGroupMemberRepository,
+        workspace_repo: PostgresWorkspaceRepository,
+        workspace_user_repo: PostgresWorkspaceUserRepository,
         workspace_user_service: WorkspaceUserService,
         domain_service: WorkspaceDomainService,
         session_service: SessionService,
@@ -250,7 +249,7 @@ class ScimSyncService:
                     return candidate
         # new: nothing decided yet (an id for group memberships)
         return ScimUserDocument(
-            id=derived_object_id("scim_user", directory.id, user.polis_user_id),
+            id=derived_id("scim_user", directory.id, user.polis_user_id),
             directory_id=directory.id,
             workspace_id=directory.workspace_id,
             polis_user_id=user.polis_user_id,
@@ -282,7 +281,7 @@ class ScimSyncService:
             candidate.replaced = False
             return candidate
         return ScimGroupDocument(
-            id=derived_object_id("scim_group", directory.id, polis_group_id),
+            id=derived_id("scim_group", directory.id, polis_group_id),
             directory_id=directory.id,
             workspace_id=directory.workspace_id,
             polis_group_id=polis_group_id,
@@ -595,7 +594,7 @@ class ScimSyncService:
         if member:
             await self._members.add(
                 ScimGroupMemberDocument(
-                    id=derived_object_id(group.id, record.id),
+                    id=derived_id(group.id, record.id),
                     directory_id=directory.id,
                     group_id=group.id,
                     scim_user_id=record.id,
@@ -615,7 +614,7 @@ class ScimSyncService:
         Returns (re-enabled, left disabled for lack of a seat)."""
         enabled = left = 0
         members = await self._workspace_users.get_workspace_users(
-            workspace_id=PydanticObjectId(workspace_id)
+            workspace_id=RecordId(workspace_id)
         )
         for membership in members:
             if DISABLED_BY_DIRECTORY not in membership.disabled_reasons:
@@ -641,7 +640,7 @@ class ScimSyncService:
         if not email:
             return False
         directory = await self._directories.find_by_workspace(
-            PydanticObjectId(workspace_id)
+            RecordId(workspace_id)
         )
         if directory is None:
             return False
@@ -746,7 +745,7 @@ class ScimSyncService:
             for scim_user_id in wanted - current:
                 await self._members.add(
                     ScimGroupMemberDocument(
-                        id=derived_object_id(group.id, scim_user_id),
+                        id=derived_id(group.id, scim_user_id),
                         directory_id=directory.id,
                         group_id=group.id,
                         scim_user_id=scim_user_id,

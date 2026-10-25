@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 from datetime import timedelta
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
@@ -21,8 +21,10 @@ from backend.app.models.enum.workspace_roles import (
     stored_role,
 )
 from backend.app.models.invitation_request import InvitationRequest
-from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresWorkspaceInvitationRepo,
+    PostgresWorkspaceRepository,
+)
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.app.services.authorization_service import (
@@ -47,8 +49,8 @@ class WorkspaceMembersService:
     def __init__(
         self,
         workspace_user_service: WorkspaceUserService,
-        workspace_invitation_repo: WorkspaceInvitationRepo,
-        workspace_repo: WorkspaceRepository,
+        workspace_invitation_repo: PostgresWorkspaceInvitationRepo,
+        workspace_repo: PostgresWorkspaceRepository,
         http_client: HttpClient,
         workspace_form_service: WorkspaceFormService,
         authorization_service: AuthorizationService,
@@ -70,7 +72,7 @@ class WorkspaceMembersService:
             and await self._scim_directories.find_by_workspace(workspace_id) is not None
         )
 
-    async def get_workspace_members(self, workspace_id: PydanticObjectId, user: User):
+    async def get_workspace_members(self, workspace_id: RecordId, user: User):
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
         )
@@ -119,7 +121,7 @@ class WorkspaceMembersService:
 
     async def create_invitation_request(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation: InvitationRequest,
         user: User,
         locale: Optional[str] = None,
@@ -178,7 +180,7 @@ class WorkspaceMembersService:
                 )
 
     async def get_workspace_invitations(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ):
         # Like the members list: who is invited is for those who manage members.
         await self.authorization_service.authorize(
@@ -192,7 +194,7 @@ class WorkspaceMembersService:
         return member_invitations
 
     async def get_workspace_invitation_by_token(
-        self, workspace_id: PydanticObjectId, user: User, invitation_token: str
+        self, workspace_id: RecordId, user: User, invitation_token: str
     ):
         is_admin = await self.authorization_service.has_permission(
             user, Permission.MEMBERS_MANAGE, workspace_id
@@ -226,7 +228,7 @@ class WorkspaceMembersService:
 
     async def process_invitation_request(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation_token: str,
         response_status: InvitationResponse,
         user: User,
@@ -286,7 +288,7 @@ class WorkspaceMembersService:
             )
 
     async def _get_user_info_from_ids(
-        self, user_ids: List[PydanticObjectId]
+        self, user_ids: List[RecordId]
     ) -> List[Any]:
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/users",
@@ -344,7 +346,7 @@ class WorkspaceMembersService:
         return {"message": "Invitation deleted successfully."}
 
     async def _assignable_role(
-        self, workspace_id: PydanticObjectId, role, user: User
+        self, workspace_id: RecordId, role, user: User
     ) -> WorkspaceRoles:
         """``role`` as a role ``user`` may give a member: one of the
         assignable roles, and never more than ``user`` holds (so only an
@@ -374,8 +376,8 @@ class WorkspaceMembersService:
 
     async def update_member_role(
         self,
-        workspace_id: PydanticObjectId,
-        member_id: PydanticObjectId,
+        workspace_id: RecordId,
+        member_id: RecordId,
         role: WorkspaceRoles,
         user: User,
     ) -> WorkspaceMemberDto:
@@ -467,8 +469,8 @@ class WorkspaceMembersService:
 
     async def make_billing_owner(
         self,
-        workspace_id: PydanticObjectId,
-        new_owner_id: PydanticObjectId,
+        workspace_id: RecordId,
+        new_owner_id: RecordId,
         user: User,
     ):
         """Make another owner the billing owner (``owner_id``): the account
@@ -504,7 +506,7 @@ class WorkspaceMembersService:
         # OWNER *before* owner_id moves, so a failure at any point leaves an
         # extra owner, never a workspace without one.
         previous = await self.workspace_user_service.find_workspace_user(
-            workspace_id, PydanticObjectId(previous_id)
+            workspace_id, RecordId(previous_id)
         )
         if previous is not None and not has_owner_role(previous.roles):
             previous.roles = [WorkspaceRoles.OWNER]

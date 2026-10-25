@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
@@ -112,7 +112,7 @@ def workspace_ai_provider(workspace: Optional[WorkspaceDocument]) -> Optional[st
 class AIConsentService:
     def __init__(
         self,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         authorization_service: AuthorizationService,
     ):
         self._workspace_repo = workspace_repo

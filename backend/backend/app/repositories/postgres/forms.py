@@ -928,7 +928,7 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
 
     def __init__(self, session_factory, workspaces):
         super().__init__(session_factory)
-        self._workspaces = workspaces  # routed WorkspaceRepository
+        self._workspaces = workspaces  # the identity group's workspace repository
 
     async def get_templates_with_creator(
         self,

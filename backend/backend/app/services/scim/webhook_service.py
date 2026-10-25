@@ -25,12 +25,12 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from loguru import logger
 
-from backend.app.repositories.scim_repository import (
-    ScimDirectoryRepository,
-    ScimEventRepository,
+from backend.app.repositories.postgres.identity import (
+    PostgresScimDirectoryRepository,
+    PostgresScimEventRepository,
     ScimEventSeen,
 )
 from backend.app.schemas.scim import ScimDirectoryDocument, ScimEventDocument
@@ -81,8 +81,8 @@ def event_key(
 class ScimWebhookService:
     def __init__(
         self,
-        directory_repo: ScimDirectoryRepository,
-        event_repo: ScimEventRepository,
+        directory_repo: PostgresScimDirectoryRepository,
+        event_repo: PostgresScimEventRepository,
         sync_service: ScimSyncService,
         crypto,
     ):
@@ -148,7 +148,7 @@ class ScimWebhookService:
             try:
                 await self._events.claim(
                     ScimEventDocument(
-                        id=PydanticObjectId(),
+                        id=RecordId(),
                         event_key=key,
                         directory_id=directory.id,
                         event_type=str(event.get("event") or "")[:64],

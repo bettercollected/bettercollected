@@ -96,12 +96,14 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
   `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
   per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
-- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai` and `actions` (`POSTGRES_ONLY_GROUPS` in
+- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai`, `actions` and `identity` (`POSTGRES_ONLY_GROUPS` in
   `backend/db/groups.py`) have no Mongo repository and no routing: their documents are `common.records.Record` classes,
-  their repositories the `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` / `postgres/actions.py`
-  classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may
-  join into one of them (its collections are no longer written): both workspace repositories read a workspace's copy of
-  an action through the actions repository. A fresh store gets its reference data from `python -m backend.seed_refdata`.
+  their repositories the `postgres/refdata.py` / `postgres/analytics.py` / `postgres/ai.py` / `postgres/actions.py` /
+  `postgres/identity.py` classes on `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the
+  start. No Mongo query may join into one of them (its collections are no longer written): the workspace repository
+  reads a workspace's copy of an action through the actions repository, and both template repositories read the title
+  of the workspace a template was imported from through the workspace repository (`with_origin_titles` in
+  `app/repositories/template.py`). A fresh store gets its reference data from `python -m backend.seed_refdata`.
 - **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
   `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
   that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
@@ -338,7 +340,7 @@ the guard `login_service` uses to refuse `sso_deprovisioned`; `reconcile`), `dir
 bearer token is returned once, the webhook secret stored encrypted with `container.crypto`; rotate replaces the
 Polis directory and matches users by email, groups by name). Resync: the button, `python -m backend.scim resync`,
 and the nightly procrastinate periodic task `scim_reconcile`. Storage: `scim_directories`, `scim_users`,
-`scim_groups`, `scim_group_members`, `scim_events` + twins (revision 0010). Polis caps dsync pages (50): `_pages` steps by what came back until an empty page, a non-list reply is `PolisError`; a resync refuses mass deprovisioning (`ReconcileRefused`, owner `force`) and removes nobody for `SCIM_ROTATION_GRACE_HOURS` after a rotation; `AuthUnavailable` decides nothing (webhook 503, resync skips). Memberships: `disabled_reasons` (`plan`, `directory`; `disable_for`/`enable_for`, each path lifts only its own), disabled ones hold no seat (`active_member_count`), one per workspace and user (unique index: Mongo at startup in `handlers/database.py`, Postgres 0011, which refuses while duplicates exist; `python -m backend.membership_duplicates`; inserts go through `add_if_absent`). Tests: `tests/app/scim_helpers.py`, `test_scim.py`, `test_scim_review.py`.
+`scim_groups`, `scim_group_members`, `scim_events` (Postgres only, revision 0010). Polis caps dsync pages (50): `_pages` steps by what came back until an empty page, a non-list reply is `PolisError`; a resync refuses mass deprovisioning (`ReconcileRefused`, owner `force`) and removes nobody for `SCIM_ROTATION_GRACE_HOURS` after a rotation; `AuthUnavailable` decides nothing (webhook 503, resync skips). Memberships: `disabled_reasons` (`plan`, `directory`; `disable_for`/`enable_for`, each path lifts only its own), disabled ones hold no seat (`active_member_count`), one per workspace and user (unique index: Postgres 0011, which refuses while duplicates exist; `python -m backend.membership_duplicates`; inserts go through `add_if_absent`). Tests: `tests/app/scim_helpers.py`, `test_scim.py`, `test_scim_review.py`.
 
 ## Seed scripts
 

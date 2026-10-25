@@ -14,7 +14,7 @@ is separate as well.
 from http import HTTPStatus
 from typing import Dict, FrozenSet, Iterable, Optional, Union
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from bson import ObjectId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
@@ -28,8 +28,10 @@ from backend.app.models.enum.workspace_roles import (
     is_owner_membership,
 )
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresWorkspaceRepository,
+    PostgresWorkspaceUserRepository,
+)
 
 P = Permission
 
@@ -143,17 +145,17 @@ def permissions_for(roles: Optional[Iterable], is_owner: bool) -> FrozenSet[Perm
     return frozenset(granted)
 
 
-def _object_id(value) -> Optional[PydanticObjectId]:
+def _object_id(value) -> Optional[RecordId]:
     if value is None or not ObjectId.is_valid(str(value)):
         return None
-    return PydanticObjectId(str(value))
+    return RecordId(str(value))
 
 
 class AuthorizationService:
     def __init__(
         self,
-        workspace_repo: WorkspaceRepository,
-        workspace_user_repo: WorkspaceUserRepository,
+        workspace_repo: PostgresWorkspaceRepository,
+        workspace_user_repo: PostgresWorkspaceUserRepository,
         workspace_form_repo: WorkspaceFormRepository,
     ):
         self._workspace_repo = workspace_repo
@@ -161,7 +163,7 @@ class AuthorizationService:
         self._workspace_form_repo = workspace_form_repo
 
     async def effective_permissions(
-        self, user: Optional[User], workspace_id: Union[PydanticObjectId, str, None]
+        self, user: Optional[User], workspace_id: Union[RecordId, str, None]
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
         membership (a disabled one counts as none) or in a missing workspace;
@@ -193,7 +195,7 @@ class AuthorizationService:
         self,
         user: Optional[User],
         permission: Permission,
-        workspace_id: Union[PydanticObjectId, str, None],
+        workspace_id: Union[RecordId, str, None],
         form_id: Optional[str] = None,
     ) -> bool:
         """Whether ``user`` holds ``permission`` in the workspace (and, with
@@ -208,7 +210,7 @@ class AuthorizationService:
         self,
         user: Optional[User],
         permission: Permission,
-        workspace_id: Union[PydanticObjectId, str, None],
+        workspace_id: Union[RecordId, str, None],
         form_id: Optional[str] = None,
         message: str = MESSAGE_FORBIDDEN,
     ) -> None:
@@ -223,7 +225,7 @@ class AuthorizationService:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
 
     async def is_owner(
-        self, user: Optional[User], workspace_id: Union[PydanticObjectId, str, None]
+        self, user: Optional[User], workspace_id: Union[RecordId, str, None]
     ) -> bool:
         """Whether ``user`` is an owner of an available workspace (the
         billing owner or a member with role OWNER, every owner alike), with
@@ -234,7 +236,7 @@ class AuthorizationService:
     async def require_owner(
         self,
         user: Optional[User],
-        workspace_id: Union[PydanticObjectId, str, None],
+        workspace_id: Union[RecordId, str, None],
         message: str = MESSAGE_FORBIDDEN,
     ) -> None:
         """403 unless ``user`` is an owner of the workspace. For decisions no

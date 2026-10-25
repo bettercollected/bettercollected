@@ -7,7 +7,7 @@ from starlette.requests import Request
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.postgres.actions import PostgresActionRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -27,7 +27,7 @@ class ActionService:
         form_provider_service: FormPluginProviderService,
         authorization_service: AuthorizationService,
         form_response_service: FormResponseService,
-        workspace_repo=WorkspaceRepository,
+        workspace_repo=PostgresWorkspaceRepository,
     ):
         self.action_repository = action_repository
         self.form_repo = form_repo

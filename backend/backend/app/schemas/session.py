@@ -1,17 +1,11 @@
 import datetime as dt
 from typing import Optional
 
-from beanie import Indexed
+from common.records import Record
 from pydantic import field_validator
-from pymongo import IndexModel
-from typing_extensions import Annotated
-
-from backend.app.handlers.database import entity
-from common.configs.mongo_document import MongoDocument
 
 
-@entity
-class SessionDocument(MongoDocument):
+class SessionDocument(Record):
     """One signed-in browser session: created at every sign-in, named by the
     ``sid`` claim of the tokens issued for it.
 
@@ -24,7 +18,7 @@ class SessionDocument(MongoDocument):
     session is a replayed (stolen) token and revokes it.
     """
 
-    user_id: Annotated[str, Indexed()]
+    user_id: str
     refresh_jti: str
     previous_refresh_jti: Optional[str] = None
     rotated_at: Optional[dt.datetime] = None
@@ -56,7 +50,5 @@ class SessionDocument(MongoDocument):
     class Settings:
         # native dates (no ISO-string encoders): expiry and revocation compare them
         name = "sessions"
-        # Mongo drops a session once its refresh token has expired; the
-        # Postgres twin deletes expired rows on the list/revoke paths
-        # (``SessionRepository.delete_expired``).
-        indexes = [IndexModel([("expires_at", 1)], expireAfterSeconds=0)]
+        # expired sessions are deleted on the list/revoke paths
+        # (``PostgresSessionRepository.delete_expired``)

@@ -41,7 +41,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
-from beanie import PydanticObjectId
+from common.records import RecordId
 from common.exceptions.http import HTTPException as CommonHTTPException
 from common.models.user import User
 from loguru import logger
@@ -49,8 +49,10 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import stored_role
-from backend.app.repositories.sso_connection_repository import SsoConnectionRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.postgres.identity import (
+    PostgresSsoConnectionRepository,
+    PostgresWorkspaceRepository,
+)
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.auth_cookie_service import set_cookie
 from backend.app.services.domains.names import domain_of
@@ -186,10 +188,10 @@ class SsoLoginService:
     def __init__(
         self,
         http_client,
-        connection_repo: SsoConnectionRepository,
+        connection_repo: PostgresSsoConnectionRepository,
         connection_service: SsoConnectionService,
         domain_service: WorkspaceDomainService,
-        workspace_repo: WorkspaceRepository,
+        workspace_repo: PostgresWorkspaceRepository,
         workspace_user_service: WorkspaceUserService,
         authorization_service: AuthorizationService,
         auth_service,
@@ -233,7 +235,7 @@ class SsoLoginService:
         workspace = None
         try:
             workspace = await self._workspace_repo.find_by_id(
-                PydanticObjectId(context.get("ws"))
+                RecordId(context.get("ws"))
             )
         except Exception:  # noqa: BLE001 — a bad id: no such workspace
             workspace = None
@@ -280,7 +282,7 @@ class SsoLoginService:
 
     async def test_url(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         connection_id: str,
         user: User,
         referer: Optional[str],
@@ -398,16 +400,14 @@ class SsoLoginService:
             logger.info("SSO callback refused: no matching nonce cookie")
             return "sso_session_mismatch"
         if self._used_states is not None:
-            from backend.app.repositories.sso_used_state_repository import (
-                StateAlreadyUsed,
-            )
+            from backend.app.repositories.postgres.identity import StateAlreadyUsed
             from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 
             now = dt.datetime.now(dt.timezone.utc)
             try:
                 await self._used_states.claim(
                     SsoUsedStateDocument(
-                        id=PydanticObjectId(),
+                        id=RecordId(),
                         nonce_hash=expected,
                         expires_at=now
                         + dt.timedelta(seconds=NONCE_MAX_AGE_SECONDS * 2),
@@ -433,7 +433,7 @@ class SsoLoginService:
         ):
             raise _Code("sso_tenant_mismatch")
         workspace = await self._workspace_repo.find_by_id(
-            PydanticObjectId(workspace_id)
+            RecordId(workspace_id)
         )
         if workspace is None or workspace.disabled:
             raise _Code("sso_workspace_unavailable")

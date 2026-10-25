@@ -121,4 +121,5 @@ def test_reads_are_not_marked_write_op():
 
 def test_the_classifier_sees_the_whole_repository_layer():
     result = classify(REPOSITORIES)
-    assert len(result) > 150 and sum(1 for v in result.values() if v[0]) > 60
+    # (the groups served from Postgres only have no Mongo repositories left)
+    assert len(result) > 120 and sum(1 for v in result.values() if v[0]) > 50

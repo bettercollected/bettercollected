@@ -319,11 +319,12 @@ uv run python -m backend.scim resync --workspace <workspace id> --force   # past
 uv run python -m backend.membership_duplicates   # read-only; exit 1 and a list of ids when there are duplicates
 ```
 
-It checks Mongo while the `identity` group still reads or writes it (`DB_READ_SOURCE` /
-`DB_WRITE_MODE` and their `__identity` overrides) and Postgres when `DATABASE_URL` is set; a store
-it does not check is listed under `skipped`, so it keeps working once Mongo is retired.
+It checks Postgres when `DATABASE_URL` is set; a store it does not check is listed under
+`skipped`. Since 4.1 the `identity` group is served from Postgres only, so Mongo is always skipped;
+for a 4.0 database, `python -m backend.migrate preflight` reports duplicate memberships before the
+import copies them.
 
-Resolve each pair by hand (keep the membership with the right role, delete the other; nothing is deleted automatically), then deploy. If duplicates remain, Postgres revision `0011` stops **before changing anything** with a message naming this command, and the backend logs an ERROR at startup instead of creating the Mongo index (it still starts; new inserts are deduplicated in code). Once resolved, the next migration and the next restart create the indexes.
+Resolve each pair by hand (keep the membership with the right role, delete the other; nothing is deleted automatically), then deploy. If duplicates remain, Postgres revision `0011` stops **before changing anything** with a message naming this command. Once resolved, the next migration creates the index.
 
 **Local development.** After `scripts/sso-dev-setup.sh`, the backend runs on the host and Polis in a container, so Polis needs the host's address for webhooks. On Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `polis` service (or use the gateway address of Polis's `polis-egress` network, e.g. `docker network inspect bettercollected-sso_polis-egress -f '{{(index .IPAM.Config 0).Gateway}}'`) and set `SCIM_WEBHOOK_URL=http://host.docker.internal:8000/api/v1/scim/webhook` in `backend/.env`. The backend must listen on `0.0.0.0` for the container to reach it.
 
@@ -390,7 +391,7 @@ Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`,
 
 ### Storage
 
-Identity group, each a Mongo collection with its Postgres twin (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: Mongo TTL index, the twin deletes expired rows on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`, `seat_limit`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`; disabling it for another reason records `plan` first, so the directory can never re-enable it). The directory's status fields (last event, resync outcome, pending clean-up) are written field by field, never by saving the whole record, so they can't undo a concurrent rotation. Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
+Identity group, Postgres only since 4.1 (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: expired rows are deleted on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`, `seat_limit`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`; disabling it for another reason records `plan` first, so the directory can never re-enable it). The directory's status fields (last event, resync outcome, pending clean-up) are written field by field, never by saving the whole record, so they can't undo a concurrent rotation. Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
 
 ### Troubleshooting
 

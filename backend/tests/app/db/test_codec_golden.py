@@ -26,6 +26,23 @@ from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
 from backend.app.schemas.user_feedback import UserFeedbackDocument
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
+from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
+from backend.app.schemas.scim import (
+    ScimDirectoryDocument,
+    ScimEventDocument,
+    ScimGroupDocument,
+    ScimGroupMemberDocument,
+    ScimUserDocument,
+)
+from backend.app.schemas.session import SessionDocument
+from backend.app.schemas.sso_connection import SsoConnectionDocument
+from backend.app.schemas.sso_used_state import SsoUsedStateDocument
+from backend.app.schemas.user_tags import UserTagsDocument
+from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+from backend.app.schemas.workspace_domain import WorkspaceDomainDocument
+from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.db.base import Base
 from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
 from common.db.codec_golden import (
@@ -62,6 +79,21 @@ RECORD_CLASSES = (
     ApiIdempotencyRecordDocument,
     ActionDocument,
     WorkspaceActionsDocument,
+    WorkspaceDocument,
+    WorkspaceUserDocument,
+    WorkspaceUserInvitesDocument,
+    WorkspaceAPIKeyDocument,
+    WorkspaceDomainDocument,
+    SsoConnectionDocument,
+    SsoUsedStateDocument,
+    ScimDirectoryDocument,
+    ScimUserDocument,
+    ScimGroupDocument,
+    ScimGroupMemberDocument,
+    ScimEventDocument,
+    BlackListedRefreshTokens,
+    SessionDocument,
+    UserTagsDocument,
 )
 
 # Values the synthesizer cannot guess (a field validator with a checksum).

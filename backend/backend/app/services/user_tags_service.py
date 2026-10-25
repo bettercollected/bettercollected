@@ -3,7 +3,7 @@ from typing import List
 from backend.app.models.dtos.user_info_dto import UserInfoDto
 from backend.app.models.dtos.user_tags_dto import UserTagsDetailsDto
 from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.repositories.user_tags_repository import UserTagsRepository
+from backend.app.repositories.postgres.identity import PostgresUserTagsRepository
 from backend.app.utils import AiohttpClient
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
@@ -11,7 +11,7 @@ from backend.config import settings
 
 class UserTagsService:
     def __init__(self, user_tags_repo):
-        self.user_tags_repo: UserTagsRepository = user_tags_repo
+        self.user_tags_repo: PostgresUserTagsRepository = user_tags_repo
 
     async def get_user_tags_by_id(self, user_id: str) -> List[UserTagType]:
         user_tag_document = await self.user_tags_repo.get_tags_by_id(user_id=user_id)

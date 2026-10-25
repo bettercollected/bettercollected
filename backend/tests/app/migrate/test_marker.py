@@ -10,7 +10,7 @@ from dependency_injector import providers
 from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
-from backend.app.schemas.workspace import WorkspaceDocument
+from tests.app.db.beanie_originals import WorkspaceDocument  # the 4.0 Beanie class
 from backend.db.groups import COLLECTION_GROUPS, GROUPS, POSTGRES_ONLY_GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
 from backend.migrate.__main__ import _tables, build_target
@@ -81,7 +81,7 @@ def test_the_group_map_matches_the_routed_repositories():
                 COLLECTION_GROUPS[row.mongo_collection()] == group
             ), f"{name}: {row.__tablename__} is in group {group!r}"
             checked += 1
-    assert checked > 25
+    assert checked > 10
 
 
 # -- the marker ---------------------------------------------------------------
