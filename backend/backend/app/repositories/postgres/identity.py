@@ -571,6 +571,29 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
     ) -> Optional[WorkspaceAPIKeyDocument]:
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
 
+    async def touch_last_used(self, key_id: RecordId, now: datetime.datetime) -> bool:
+        """Record that the key was used at ``now``, changing nothing else, and
+        only while it is not revoked: the row is locked and re-read, so a
+        revocation (or any other change) made since the caller read the key
+        is never written back. Whether the key was live and touched."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.doc)
+                    .where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return False
+            stored = decode(WorkspaceAPIKeyDocument, doc)
+            stored.last_used_at = now
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
 
 class PostgresWorkspaceDomainRepository(RecordRepository):
     row = WorkspaceDomainRow

@@ -98,3 +98,82 @@ class TestAPIKeys:
                 assert False
             except HTTPException as e:
                 assert e.status_code == 401
+
+
+async def test_a_request_in_flight_never_brings_a_revoked_key_back(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    test_user_cookies: dict[str, str],
+    monkeypatch,
+):
+    """A request that read the key before it was revoked records its use
+    without saving its stale copy: the key stays revoked, the request is
+    refused, and nothing else of the stored key changes."""
+    from backend.app.container import container
+
+    created = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/api-keys",
+        cookies=test_user_cookies,
+        json={"name": "in flight", "scopes": ["forms:read"]},
+    )
+    token, key_id = created.json()["token"], created.json()["id"]
+    repo = container.workspace_api_key_repo()
+    stale = await repo.find_by_key_hash(
+        (await repo.get_or_404(key_id)).key_hash
+    )  # read by the request before the revocation
+    revoked = await client.delete(
+        f"/api/v1/workspaces/{workspace.id}/api-keys/{key_id}",
+        cookies=test_user_cookies,
+    )
+    assert revoked.status_code == 200
+
+    async def stale_read(_key_hash):
+        return stale
+
+    monkeypatch.setattr(repo, "find_by_key_hash", stale_read)
+    try:
+        await APIKeyService.authenticate(token)
+        assert False, "a key revoked meanwhile must not authenticate"
+    except HTTPException as e:
+        assert e.status_code == 401
+    stored = await repo.get_or_404(key_id)
+    assert stored.revoked is True
+    assert stored.last_used_at is None
+
+
+async def test_touch_last_used_changes_only_that_field(clean_postgres):
+    import datetime as dt
+
+    from backend.app.container import container
+    from backend.app.repositories.postgres.identity import (
+        PostgresWorkspaceAPIKeyRepository,
+    )
+    from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+    from common.records import RecordId
+
+    repo = PostgresWorkspaceAPIKeyRepository(container.pg_sessionmaker())
+    key = WorkspaceAPIKeyDocument(
+        id=RecordId(),
+        workspace_id=RecordId(),
+        name="ci",
+        key_hash="hash-touch",
+        prefix="hash-t",
+        scopes=["forms:read"],
+        created_by="tester",
+    )
+    await repo.save(key)
+    stale = await repo.get_or_404(key.id)
+    renamed = await repo.get_or_404(key.id)
+    renamed.name = "renamed"
+    await repo.save(renamed)
+    now = dt.datetime(2030, 1, 2, 3, 4, 5, tzinfo=dt.timezone.utc)
+    assert await repo.touch_last_used(stale.id, now) is True
+    stored = await repo.get_or_404(key.id)
+    assert stored.last_used_at == now and stored.name == "renamed"
+    stored.revoked = True
+    await repo.save(stored)
+    later = now + dt.timedelta(hours=1)
+    assert await repo.touch_last_used(key.id, later) is False
+    assert await repo.touch_last_used(RecordId(), later) is False
+    stored = await repo.get_or_404(key.id)
+    assert stored.revoked is True and stored.last_used_at == now
