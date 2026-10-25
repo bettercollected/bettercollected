@@ -294,8 +294,12 @@ class SsoConnectionService:
         self, workspace_id: PydanticObjectId, connection_id: str
     ) -> SsoConnectionDocument:
         connection = await self._connections.get(connection_id)
-        if connection is None or connection.workspace_id != PydanticObjectId(
-            workspace_id
+        if (
+            connection is None
+            or connection.workspace_id != PydanticObjectId(workspace_id)
+            # a deleted workspace's connection, kept by release 4.1 until Polis
+            # releases it: nothing here acts on it
+            or connection.is_release_pending
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         return connection

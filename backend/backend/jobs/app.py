@@ -16,7 +16,14 @@ from common.db.flags import DbFlags, JobsBackend
 
 DEFAULT_QUEUE = "default"
 ACTIONS_QUEUE = "actions"
-JOB_NAMES = ("delete_user", "delete_response", "run_action", "import_form")
+JOB_NAMES = (
+    "delete_user",
+    "delete_response",
+    "run_action",
+    "import_form",
+    "purge_provider_credentials",
+    "revoke_google_grant",
+)
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
 
 

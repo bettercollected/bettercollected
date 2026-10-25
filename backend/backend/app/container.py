@@ -122,6 +122,8 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
+from backend.app.services.credential_purge import CredentialPurgeService
+from backend.app.services.google_grant_revocation import GoogleGrantService
 from backend.app.services.case_duplicate_accounts import CaseDuplicateAccounts
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
@@ -965,6 +967,14 @@ class AppContainer(containers.DeclarativeContainer):
         allowed_origins_repo=allowed_origins_repo,
         sso_policy=sso_policy_service,
     )
+
+    # the bodies of the purge_provider_credentials / revoke_google_grant jobs
+    # (queued by release 4.1; backend/jobs/tasks.py)
+    credential_purge_service: CredentialPurgeService = providers.Singleton(
+        CredentialPurgeService, form_provider_service=form_provider_service
+    )
+
+    google_grant_service: GoogleGrantService = providers.Singleton(GoogleGrantService)
 
     # admin task auth.resolve_case_duplicate_accounts (admin_tasks_router)
     case_duplicate_accounts: CaseDuplicateAccounts = providers.Singleton(
