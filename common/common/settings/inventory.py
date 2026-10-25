@@ -585,6 +585,9 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           choices=("mongo", "dual", "postgres_primary_dual", "postgres")),
     _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND, AUTH, GOOGLE), 0.0, 0, 1,
            "Share of reads compared against the other store.", tier=T5),
+    _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, JOBS),
+          "Starts despite Mongo data never imported for these Postgres-only groups "
+          "(all, or a comma-separated list); that data is left behind.", tier=T5),
     _int("DB_POOL_SIZE", "database", _DB, 5, 1, 200, "Connection pool size.", tier=T5),
     _int("DB_MAX_OVERFLOW", "database", _DB, 5, 0, 200, "Extra connections above the pool.", tier=T5),
     _int("DB_POOL_TIMEOUT_S", "database", _DB, 10, 1, 600, "Seconds to wait for a connection.", tier=T5),
@@ -754,7 +757,6 @@ NOT_A_SETTING: Dict[str, str] = {
     "SCHEDULAR_INTERVAL_MINUTES": "listed in an env example; no service reads it",
     "TEMPLATE_PREDEFINED_WORKSPACE_ID": "listed in an env example; no service reads it",
     "VIRTUAL_HOST_1": "read by the reverse proxy image, not by a service",
-    "GOOGLE_ENABLED": "compose profile switch",
     "APP_POSTGRES_PASSWORD": "database role password used by the deploy scripts",
     "POLIS_IMAGE": "compose image selection",
     "POLIS_EGRESS_SUBNET": "compose subnet of the identity bridge's egress network",

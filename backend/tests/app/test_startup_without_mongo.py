@@ -1,11 +1,14 @@
 """The backend API and its job worker start and serve without Mongo once every
 repository group is on Postgres (common/db/mongo.py), and still refuse to start
-on an unreachable Mongo while any group uses it.
+on an unreachable Mongo while any group uses it, or while MONGO_URI is set at
+all: then the check for unimported data of the Postgres-only groups
+(backend/db/mongo_import_guard.py) must read it.
 
 Each case boots the real entry point in a fresh process, as a deployment does,
-with MONGO_URI pointing at a closed port: a start that tried to reach Mongo
-would fail within the URI's short server selection timeout. The processes use
-this worker's Postgres database, migrated by the session fixture.
+with MONGO_URI unset (a fresh install) or pointing at a closed port: a start
+that tried to reach Mongo would fail within the URI's short server selection
+timeout. The processes use this worker's Postgres database, migrated by the
+session fixture (its tables empty, so nothing counts as imported).
 """
 
 import os
@@ -64,13 +67,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def boot(program: str, flags: dict) -> subprocess.CompletedProcess:
+def boot(
+    program: str, flags: dict, mongo_uri: str = UNREACHABLE
+) -> subprocess.CompletedProcess:
     env = {
         k: v
         for k, v in os.environ.items()
         if not any(k == key or k.startswith(key + "__") for key in DB_KEYS)
     }
-    env.update(flags, MONGO_URI=UNREACHABLE, DB_AUTO_MIGRATE="false")
+    env.update(flags, MONGO_URI=mongo_uri, DB_AUTO_MIGRATE="false")
     return subprocess.run(
         [sys.executable, "-c", program],
         cwd=BACKEND_DIR,
@@ -82,7 +87,7 @@ def boot(program: str, flags: dict) -> subprocess.CompletedProcess:
 
 
 def test_the_api_starts_and_serves_without_mongo_when_every_group_is_on_postgres():
-    result = boot(API, ALL_POSTGRES)
+    result = boot(API, ALL_POSTGRES, mongo_uri="")
     assert result.returncode == 0, result.stderr[-3000:]
     assert "mongo: {'used': False, 'status': 'not used'}" in result.stdout
     assert "outbox mongo: None" in result.stdout
@@ -90,10 +95,20 @@ def test_the_api_starts_and_serves_without_mongo_when_every_group_is_on_postgres
 
 
 def test_the_job_worker_starts_without_mongo_when_every_group_is_on_postgres():
-    result = boot(WORKER, ALL_POSTGRES)
+    result = boot(WORKER, ALL_POSTGRES, mongo_uri="")
     assert result.returncode == 0, result.stderr[-3000:]
     assert "worker ran: ['default']" in result.stdout
     assert "mongo-not-used.invalid" in result.stdout
+
+
+@pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
+def test_a_set_but_unreachable_mongo_uri_refuses_the_start(program):
+    """MONGO_URI set means Mongo may hold 4.0 data of the Postgres-only groups:
+    the start cannot tell, so it refuses (fails closed)."""
+    result = boot(program, ALL_POSTGRES)
+    assert result.returncode != 0
+    assert "UnimportedMongoData" in result.stderr
+    assert "MONGO_URI is set but Mongo could not be read" in result.stderr
 
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])

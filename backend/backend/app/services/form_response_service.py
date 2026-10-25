@@ -2,7 +2,7 @@ import datetime as dt
 import json
 import re
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, NoReturn, Optional, Sequence, Set
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
@@ -92,6 +92,19 @@ def is_plain_file_id(value) -> bool:
         and _PLAIN_FILE_ID.fullmatch(value) is not None
         and value not in (".", "..")
     )
+
+
+def refuse_not_owner(permissions, not_found_message: str) -> NoReturn:
+    """A caller who neither owns a submission nor may act on it here. Staff
+    (any permission in the workspace) are told they are not authorized, as
+    before; anyone else gets the answer a missing submission gets, so a
+    signed-in respondent cannot tell someone else's submission id from a
+    made-up one."""
+    if permissions:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "You are not authorized to perform this action."
+        )
+    raise HTTPException(HTTPStatus.NOT_FOUND, not_found_message)
 
 
 def _log_unreadable(response: Any, field: str) -> None:
@@ -354,9 +367,10 @@ class FormResponseService:
     ):
         # Staff read any response of the workspace; otherwise this is the
         # respondent's own submission (checked by identity below).
-        is_admin = await self._authorization.has_permission(
-            user, Permission.RESPONSE_READ, workspace_id
+        permissions = await self._authorization.effective_permissions(
+            user, workspace_id
         )
+        is_admin = Permission.RESPONSE_READ in permissions
         copies = await self._form_response_repo.list_by_response_id(response_id)
         if not copies:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
@@ -390,7 +404,7 @@ class FormResponseService:
             or response.dataOwnerIdentifier == user.sub
             or response.anonymous_identity == hash_string(user.sub)
         ):
-            raise HTTPException(403, "You are not authorized to perform this action.")
+            refuse_not_owner(permissions, MESSAGE_NOT_FOUND)
 
         response = StandardFormResponseCamelModel(**response.model_dump())
         if not is_admin:
@@ -400,6 +414,10 @@ class FormResponseService:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
+            # the same fixed code the submission lists carry; who declined it
+            # (closed_by) is never sent
+            reason = deletion_request.decline_reason
+            response.decline_reason = getattr(reason, "value", reason)
         form = FormDtoCamelModel(**form.model_dump())
         form.settings = workspace_form.settings
         staff_internal_fields = None
@@ -474,9 +492,10 @@ class FormResponseService:
         self, workspace_id: PydanticObjectId, response_id: str, user: User
     ):
         # Staff may file one for any response; otherwise only its respondent.
-        is_admin = await self._authorization.has_permission(
-            user, Permission.PRIVACY_MANAGE, workspace_id
+        permissions = await self._authorization.effective_permissions(
+            user, workspace_id
         )
+        is_admin = Permission.PRIVACY_MANAGE in permissions
         # Membership only counts for responses collected in this workspace.
         response = await self.workspace_response(workspace_id, response_id)
         if response is None:
@@ -494,7 +513,7 @@ class FormResponseService:
                 and response.anonymous_identity == hash_string(user.sub)
             )
         ):
-            raise HTTPException(403, "You are not authorized to perform this action.")
+            refuse_not_owner(permissions, "Response not found in workspace")
 
         deletion_request = await self._form_response_repo.find_deletion_request_for(
             response

@@ -903,6 +903,54 @@ function stack_keys() {
   fi
 }
 
+# A value the webapp reads: from its own env file (.env.webapp, what it gets), else
+# from .env.deployment (where .env.webapp was copied from).
+webapp_value() {
+  local found
+  found=$(dotenv_value .env.webapp "$1")
+  [ -n "$found" ] || found=$(dotenv_value .env.deployment "$1")
+  printf '%s' "$found"
+}
+
+# The web app's public origins, one per line: HTTP_SCHEME (default https, the
+# webapp's own default) with DASHBOARD_DOMAIN and FORM_DOMAIN. Nothing when neither
+# domain is set (a local stack: the compose file publishes the webapp on localhost).
+refdata_origins() {
+  local scheme domain var
+  scheme=$(webapp_value HTTP_SCHEME)
+  scheme=${scheme%%:*}
+  [ -n "$scheme" ] || scheme=https
+  for var in DASHBOARD_DOMAIN FORM_DOMAIN; do
+    domain=$(webapp_value "$var")
+    domain=${domain#*://}
+    domain=${domain%%/*}
+    if [ -n "$domain" ]; then
+      printf '%s://%s\n' "$scheme" "$domain"
+    fi
+  done
+}
+
+# The reference data a new stack needs (the allowed origins, the Google Forms
+# provider) is served from Postgres since 4.1: seed it there with the stack's own
+# origins, never the localhost ones of a local trial. Each table is seeded only while
+# it is empty. Mongo is up first: with MONGO_URI set, the backend's check for
+# reference data still only in Mongo reads it. $1: whether Google Forms is enabled.
+seed_refdata() {
+  local origin args=()
+  while IFS= read -r origin; do
+    [ -n "$origin" ] && args+=(--origin "$origin")
+  done < <(refdata_origins)
+  if [ "${#args[@]}" -eq 0 ]; then
+    echo "NOTE: DASHBOARD_DOMAIN and FORM_DOMAIN are not set: the allowed origins are the local web app ports"
+    echo "      (or the origin of API_CLIENT_URL, when that is not a local address)."
+  else
+    echo "Allowed origins of this stack: $(printf '%s ' "${args[@]}" | sed 's/--origin //g')"
+  fi
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" up -d --wait mongodb || return 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend \
+    /api/backend/.venv/bin/python -m backend.seed_refdata "${args[@]}" --google-enabled "$1"
+}
+
 fresh_install=false
 
 # Common docker function
@@ -956,6 +1004,17 @@ function dockerup() {
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
 
+  # A new stack's reference data, before the backend first starts. Only while the
+  # first run is pending (set when a new stack's keys are generated, kept until the
+  # first-run notice is shown): an upgraded stack's reference data is imported from
+  # Mongo instead (docs/postgres-cutover-runbook.md), never seeded over.
+  if file_has .env BC_FIRST_RUN_PENDING; then
+    seed_refdata "$googleform_flag" || {
+      echo "Seeding the reference data into Postgres failed (see above). Fix the cause and run ./deploy.sh again." >&2
+      exit 1
+    }
+  fi
+
   # Typeform leftovers from before 4.1 (no longer in the compose file): say so, never remove them.
   # Only this compose project's container counts: another stack on the host is not ours to report.
   if [ -n "$(docker ps -aq --filter label=com.docker.compose.project="$COMPOSE_PROJECT_NAME" --filter label=com.docker.compose.service=integrations-typeform 2>/dev/null)" ]; then
@@ -964,7 +1023,7 @@ function dockerup() {
   if [ -f .env.typeform ]; then
     echo "WARNING: .env.typeform from an earlier release still exists. It holds the Typeform client secret and a database URI and is no longer used: delete it (rm .env.typeform)." >&2
   fi
-  GOOGLE_ENABLED="$googleform_flag" "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
+  "${docker_compose_cmd[@]}" "${compose_files[@]}" up --build -d "$@" || {
     echo "docker compose could not start the stack (see above). Fix the cause and run ./deploy.sh again: it continues where it stopped." >&2
     exit 1
   }

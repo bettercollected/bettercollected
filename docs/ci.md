@@ -39,8 +39,8 @@ show. Locally, start the same server with `POSTGRES_IMAGE=postgres:15
 In the Postgres mode every repository group reads from and writes to Postgres
 only, and the services then start and serve without MongoDB
 (`common/common/db/mongo.py`). CI checks that: the Postgres backend shards and
-the Postgres auth and Google jobs run with no Mongo server and `MONGO_URI` on
-a closed port, and each service's suite boots its app factory (the backend
+the Postgres auth and Google jobs run with no Mongo server (backend: `MONGO_URI`
+empty; auth and Google: `MONGO_URI` on a closed port), and each service's suite boots its app factory (the backend
 also its job worker) in a fresh process that way
 (`tests/**/test_startup_without_mongo.py`), with a mixed configuration still
 refusing to start on an unreachable Mongo. auth is served from Postgres only
@@ -52,11 +52,13 @@ assigned by the `MONGO_DRIVEN` list in the suite's `tests/conftest.py`; the
 Mongo-less runs pass `-m "not mongo"`, and they run with Mongo in one more
 backend job ("postgres, Mongo-driven tests") and in a second step of the
 Google and auth jobs. A new test that needs a Mongo server goes on that list, or it
-fails in the Mongo-less shards. Locally, the same run:
+fails in the Mongo-less shards. The backend's Mongo-less runs set `MONGO_URI` empty, as a fresh
+install has it: a `MONGO_URI` that is set but unreachable refuses the backend's start (the check
+for unimported data of the Postgres-only groups); auth and Google keep pointing it at a closed
+port. Locally, the same backend run:
 
 ```sh
-DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres \
-  MONGO_URI="mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000" \
+DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres MONGO_URI="" \
   uv run pytest -n 4 --dist loadgroup -m "not mongo"
 ```
 

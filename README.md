@@ -100,7 +100,7 @@ third-party service ever sees responder data:
 `deploy.sh` brings up the full stack from
 [`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
-auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), the
+auth, MongoDB, Temporal + workers, nginx (`:3001`/`:3002`), the
 internal admin service, the jobs worker and the document sandbox, and
 [Umami](https://umami.is) analytics (its tracker on `:3003` through nginx; its
 dashboard on `127.0.0.1:3004` only, with the built-in `admin`/`umami` login
@@ -110,6 +110,11 @@ databases are reachable on the compose network only.
 **What you provide:** one value, `PLATFORM_ADMIN_EMAILS` (who may sign in to
 the internal admin portal), in the gitignored root `.env`; optionally
 `ADMIN_ALLOWED_IPS` if you reach the portal from another address than the host.
+On a host with a public address, also set the web app's addresses before the
+first run, in `.env.deployment`: `DASHBOARD_DOMAIN`, `FORM_DOMAIN` (host names,
+e.g. `forms.example.org`) and `HTTP_SCHEME` (default `https://`). A new stack's
+allowed origins (CORS) are seeded from them into Postgres; without them the
+stack is taken for a local trial and gets the localhost origins.
 **What `deploy.sh` generates, once, and never overwrites:** the database
 passwords, `UMAMI_APP_SECRET` and `SETTINGS_MASTER_KEY` into the root `.env`
 (keep that file, and back up `SETTINGS_MASTER_KEY` separately: without it the
