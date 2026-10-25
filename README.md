@@ -100,7 +100,7 @@ third-party service ever sees responder data:
 `deploy.sh` brings up the full stack from
 [`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
-auth, MongoDB, Temporal + workers, nginx (`:3001`/`:3002`), the
+auth, Temporal + workers, nginx (`:3001`/`:3002`), the
 internal admin service, the jobs worker and the document sandbox, and
 [Umami](https://umami.is) analytics (its tracker on `:3003` through nginx; its
 dashboard on `127.0.0.1:3004` only, with the built-in `admin`/`umami` login
@@ -124,6 +124,14 @@ settings store cannot be read), and the stack's own keys (`AUTH_JWT_SECRET`,
 prints them. On a new stack it ends by showing a one-time setup token on the
 console. Everything else is a setting in the store. Details, the host commands
 and the upgrade path: [docs/admin-service.md](docs/admin-service.md).
+**Upgrading from 4.0:** since 4.1 the stack runs on Postgres only and has no
+MongoDB. Run `./deploy.sh` of the new release as before: it stops the services,
+imports and verifies the data still in Mongo (MongoDB starts for that only, under
+the `legacy-mongo` compose profile), stops on any difference with the counts, and
+then stops MongoDB and keeps its volume. Expect the stack to be down while it runs.
+Details: "Upgrading to 4.1" in
+[docs/postgres-cutover-runbook.md](docs/postgres-cutover-runbook.md).
+`./deploy.sh typeform` and `./deploy.sh both` are refused: Typeform was removed.
 
 `.env.deployment` (the services' env file) is your own file and is not tracked:
 `deploy.sh` creates it from the template

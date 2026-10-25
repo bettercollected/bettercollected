@@ -1,8 +1,10 @@
+import { FormTheme, isHexColour } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { PageJump } from '@app/models/types/form-builder-shared';
 import { Ending, isJumpEndingMissing, withEndingIds } from '@app/utils/endings';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { ContrastIssueKey, themeContrastGuard } from '@app/utils/theme-contrast';
 
 /**
  * Honest defaults a form must meet before it is published. The backend
@@ -11,11 +13,11 @@ import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-htm
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast';
 
 export interface PublishProblem {
     code: PublishProblemCode;
-    /** The question, or for `missing_ending` the page whose jump it is. */
+    /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID. */
     fieldId: string;
     message: string;
 }
@@ -148,6 +150,33 @@ export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefin
         });
     }
     return problems;
+}
+
+/** The `fieldId` of the theme's problem: it belongs to no question. */
+export const THEME_PROBLEM_ID = 'theme';
+
+const CONTRAST_WORDS: Record<ContrastIssueKey, string> = {
+    text: 'questions and text on the page',
+    answer: 'answers in the input boxes',
+    button: 'white text on buttons',
+    border: 'input borders',
+    action: 'chosen answers and progress'
+};
+
+/**
+ * The form's theme, when its own colours fail WCAG AA contrast where the
+ * respondent form shows them (text 4.5:1, controls 3:1; utils/theme-contrast.ts
+ * themeContrastGuard). Every preset passes; a custom or saved palette may
+ * not. It stops publishing for every form: respondents can't read it. A
+ * theme without its four colours (an old form on the defaults) isn't checked.
+ */
+export function themeContrastProblems(theme: Partial<FormTheme> | null | undefined): PublishProblem[] {
+    if (!theme || !(['primary', 'secondary', 'tertiary', 'accent'] as const).every((role) => isHexColour(theme[role]))) return [];
+    const { issues } = themeContrastGuard(theme as FormTheme);
+    if (!issues.length) return [];
+    const words = issues.map((issue) => CONTRAST_WORDS[issue.key]);
+    const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
+    return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message: `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.` }];
 }
 
 /** The problems a refused publish (422 form_not_publishable) carries, if any. */

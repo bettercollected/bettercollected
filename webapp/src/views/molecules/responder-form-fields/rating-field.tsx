@@ -11,7 +11,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { moveOnFrom } from '@app/utils/scroll-utils';
 
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
@@ -59,7 +59,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                             if (!isBuilder) {
                                 addFieldRatingAnswer(field.id, index + 1);
                                 setTimeout(() => {
-                                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+                                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) moveOnFrom(field.id, form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                                 }, 200);
                             }
                         }}

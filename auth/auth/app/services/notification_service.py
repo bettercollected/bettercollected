@@ -14,7 +14,7 @@ import re
 import time
 from collections import defaultdict, deque
 from typing import Deque, Dict, List, Optional, Tuple
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from fastapi_mail import MessageSchema
 from loguru import logger
@@ -23,11 +23,17 @@ from auth.app.services.mail_service import (  # noqa: F401 — one_line re-expor
     MailService,
     one_line,
     render,
+    sender_name,
 )
 from auth.app.services.mail_text import mail_locale, texts
 from auth.config import settings
 
 SUBMISSION_UPDATE_TEMPLATE = "submission_update.html"
+SHEETS_RECONNECT_TEMPLATE = "sheets_reconnect.html"
+# a workspace handle and a form id, as path segments of the admin client
+WORKSPACE_NAME = re.compile(r"[A-Za-z0-9._~-]{1,200}")
+FORM_ID = re.compile(r"[A-Za-z0-9-]{1,64}")
+DOT_SEGMENTS = (".", "..")
 # /<workspace handle>/submissions/<response id>, as the backend builds it
 _SUBMISSION_PATH = re.compile(
     r"/[A-Za-z0-9._~%-]{1,200}/submissions/[A-Za-z0-9-]{1,64}"
@@ -101,6 +107,49 @@ def render_submission_update(
     )
 
 
+def sheets_reconnect_link(workspace_name: str, form_id: str) -> Optional[str]:
+    """The form's integrations page on the admin client
+    (``CLIENT_ADMIN_URL``); None for a malformed handle or id or without the
+    setting, and for the ``.`` and ``..`` handles. Built here, never taken
+    from the caller."""
+    base = _origin_and_prefix(settings.CLIENT_ADMIN_URL)
+    if (
+        base is None
+        or not WORKSPACE_NAME.fullmatch(workspace_name or "")
+        # dot segments: a browser resolves them away, the link would leave
+        # the workspace's pages
+        or workspace_name in DOT_SEGMENTS
+        or not FORM_ID.fullmatch(form_id or "")
+    ):
+        return None
+    origin, prefix = base
+    return (
+        f"{origin}{prefix}/{quote(workspace_name, safe='')}/dashboard/forms/"
+        f"{quote(form_id, safe='')}/integrations"
+    )
+
+
+def render_sheets_reconnect(
+    form_title: Optional[str],
+    workspace_title: Optional[str],
+    link: str,
+    locale: Optional[str] = None,
+) -> str:
+    t = texts(locale)
+    product = sender_name()
+    return render(
+        SHEETS_RECONNECT_TEMPLATE,
+        t=t,
+        lang=mail_locale(locale),
+        subject=t["sheets_subject"],
+        form_title=one_line(form_title) or "—",
+        workspace_title=one_line(workspace_title),
+        why=t["sheets_why"].format(product=product),
+        paused=t["sheets_paused"].format(product=product),
+        link=link,
+    )
+
+
 class NotificationService:
     def __init__(self):
         self._sent: Dict[str, Deque[float]] = defaultdict(deque)
@@ -143,3 +192,28 @@ class NotificationService:
             await MailService().send_message(message)
         except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
             logger.warning(f"Submission update notice not sent ({type(exc).__name__})")
+
+    async def send_sheets_reconnect(
+        self,
+        recipient: str,
+        form_title: Optional[str],
+        workspace_title: Optional[str],
+        link: str,
+        locale: Optional[str] = None,
+    ) -> None:
+        """Email a workspace's billing owner that a form's Google Sheets
+        connection must be renewed. Runs after the response was sent:
+        failures are logged without the address."""
+        try:
+            message = MessageSchema(
+                # fixed wording: titles appear only in the body (#761)
+                subject=texts(locale)["sheets_subject"],
+                recipients=[recipient],
+                body=render_sheets_reconnect(
+                    form_title, workspace_title, link, locale
+                ),
+                subtype="html",
+            )
+            await MailService().send_message(message)
+        except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
+            logger.warning(f"Sheets reconnect notice not sent ({type(exc).__name__})")

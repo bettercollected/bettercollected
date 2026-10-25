@@ -22,7 +22,8 @@ Reading the tables:
 * reload class: ``H`` only for a key every consumer reads at call time (a test
   in ``backend/tests/app/services/test_live_settings_reads.py`` proves it);
   ``R`` otherwise; ``B`` for build arguments. Keys read at import time carry a
-  ``TODO_LIVE`` entry naming the file and line.
+  ``TODO_LIVE`` entry naming the file and the symbol that reads the key
+  (``path::Class.function``, see ``TODO_LIVE``).
 * default: the code default as the text it would come from; ``None`` when the
   default is empty, derived, or cannot be expressed under the key's own policy
   (a localhost URL). The description then says so.
@@ -435,13 +436,13 @@ MAIL_BILLING: Tuple[SettingSpec, ...] = (
 )
 
 GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
-    _text("GOOGLE_CLIENT_ID", "google", (AUTH, GOOGLE, WEBAPP), "Google OAuth client id.",
+    _text("GOOGLE_CLIENT_ID", "google", (BACKEND, AUTH, GOOGLE, WEBAPP), "Google OAuth client id.",
           tier=T3, max_length=300),
     _text("GOOGLE_PROJECT_ID", "google", (AUTH, GOOGLE), "Google project id.", tier=T3, max_length=200),
-    _secret("GOOGLE_CLIENT_SECRET", "google", (AUTH, GOOGLE), "Google OAuth client secret.", tier=T3),
-    _url("GOOGLE_AUTH_URI", "google", (AUTH, GOOGLE), "Google authorization endpoint.",
+    _secret("GOOGLE_CLIENT_SECRET", "google", (BACKEND, AUTH, GOOGLE), "Google OAuth client secret.", tier=T3),
+    _url("GOOGLE_AUTH_URI", "google", (BACKEND, AUTH, GOOGLE), "Google authorization endpoint.",
          "https://accounts.google.com/o/oauth2/auth"),
-    _url("GOOGLE_TOKEN_URI", "google", (AUTH, GOOGLE), "Google token endpoint.",
+    _url("GOOGLE_TOKEN_URI", "google", (BACKEND, AUTH, GOOGLE), "Google token endpoint.",
          "https://oauth2.googleapis.com/token"),
     _url("GOOGLE_AUTH_PROVIDER_X509_CERT_URL", "google", (AUTH, GOOGLE), "Google certificate endpoint.",
          "https://www.googleapis.com/oauth2/v1/certs"),
@@ -461,7 +462,7 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
     _text("GOOGLE_SHEET_SCOPE", "google", (GOOGLE,), "Scopes requested for sheet export.", tier=T3,
           max_length=2000,
           default="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"),
-    _url("GOOGLE_SHEET_REDIRECT_URL", "google", (GOOGLE,),
+    _url("GOOGLE_SHEET_REDIRECT_URL", "google", (BACKEND, GOOGLE),
          "Redirect address of the sheet export flow. Code default: http://localhost:3000/integrations/google/callback."),
     _text("GOOGLE_API_SERVICE_NAME", "google", (GOOGLE,), "Google API service name.", "drive", max_length=64),
     _text("GOOGLE_API_VERSION", "google", (GOOGLE,), "Google API version.", "v2", max_length=16),
@@ -471,6 +472,10 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
           "Google Forms import: on; readonly (imported data stays, no import, sync or call to "
           "Google: 403); off (410, the service is never called).",
           ENUM, tier=T2, default="on", choices=("on", "readonly", "off")),
+    _spec("GOOGLE_SHEETS_OAUTH", "google", (BACKEND,),
+          "Who runs the Google Sheets action's OAuth flow: google_service (the Google Forms "
+          "service, as before) or backend (the sign-in client, drive.file scope only).",
+          ENUM, tier=T2, default="google_service", choices=("backend", "google_service")),
     _url("AUTH_CALLBACK_URI", "google", (BACKEND,),
          "OAuth callback address (the code default is the auth address plus /auth/callback)."),
 )
@@ -555,15 +560,19 @@ INVENTORY: Tuple[SettingSpec, ...] = (
 )
 
 # Keys read at import time (or captured when the container is built): they stay
-# R until the consumer reads them at call time. Value: file and line.
+# R until the consumer reads them at call time. Value: ``path::qualname``, the
+# repository path and the dotted name of the module level or class level
+# function, class or assignment whose code (decorators included) reads the key.
+# No line numbers, so edits elsewhere in the file do not break the check; the
+# test fails when the symbol is gone or no longer reads the key.
 TODO_LIVE: Dict[str, str] = {
-    "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/services/flow_event_service.py:117",
-    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py:109",
-    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py:125",
-    "API_ROOT_PATH": "backend/backend/app/asgi.py:201",
-    "API_DOCS_ENABLED": "backend/backend/app/asgi.py:201",
-    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py:391",
-    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py:392",
+    "API_FLOW_EVENTS_RETENTION_DAYS": "backend/backend/app/services/flow_event_service.py::FlowEventService._sweep_expired",
+    "PDF_IMPORT_STALE_SWEEP_CRON": "backend/backend/jobs/tasks.py::expire_stale_imports",
+    "SCIM_RECONCILE_CRON": "backend/backend/jobs/tasks.py::scim_reconcile",
+    "API_ROOT_PATH": "backend/backend/app/asgi.py::get_application",
+    "API_DOCS_ENABLED": "backend/backend/app/asgi.py::get_application",
+    "AWS_ACCESS_KEY_ID": "backend/backend/app/container.py::AppContainer.aws_service",
+    "AWS_SECRET_ACCESS_KEY": "backend/backend/app/container.py::AppContainer.aws_service",
 }
 
 # ------------------------------------------------------- environment only
@@ -576,14 +585,20 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Applies pending schema migrations at startup.", tier=T5),
     _float("DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS", "database", (BACKEND, AUTH, GOOGLE), None, 0, 3600,
            "Seconds to wait for the migration lock.", tier=T5),
+    # The auth service and the Google Forms integration (and, in the backend,
+    # the refdata, analytics, ai and actions groups) are Postgres only since
+    # 4.1: there an unset value means postgres and any other value refuses the
+    # start. The default below is the backend's.
     _spec("DB_READ_SOURCE", "database", (BACKEND, AUTH, GOOGLE),
-          "Where reads come from (DB_READ_SOURCE__<table> overrides one table).",
+          "Where reads come from (DB_READ_SOURCE__<group> overrides one group). "
+          "The auth service and the Google Forms integration accept postgres only.",
           ENUM, tier=T5, default="mongo", choices=("mongo", "postgres")),
     _spec("DB_WRITE_MODE", "database", (BACKEND, AUTH, GOOGLE),
-          "Which stores writes go to (DB_WRITE_MODE__<table> overrides one table).",
+          "Which stores writes go to (DB_WRITE_MODE__<group> overrides one group). "
+          "The auth service and the Google Forms integration accept postgres only.",
           ENUM, tier=T5, default="mongo",
           choices=("mongo", "dual", "postgres_primary_dual", "postgres")),
-    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND, AUTH, GOOGLE), 0.0, 0, 1,
+    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND,), 0.0, 0, 1,
            "Share of reads compared against the other store.", tier=T5),
     _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, JOBS),
           "Starts despite Mongo data never imported for these Postgres-only groups "

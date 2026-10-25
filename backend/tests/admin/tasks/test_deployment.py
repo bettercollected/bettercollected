@@ -35,7 +35,6 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     assert sorted(env) == [
         "DATABASE_URL",
         "DB_WRITE_MODE",
-        "DB_WRITE_MODE__GOOGLE",
         "DB_WRITE_MODE__RESPONSES",
         "GOOGLE_DATABASE_URL",
         "GOOGLE_MONGO_DB",
@@ -45,9 +44,9 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
         "SETTINGS_MASTER_KEY",
         "TASKS_DATABASE_URL",
     ]
+    # the services' write mode: Postgres unless the root .env says otherwise (4.1)
+    assert env["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}"
     for name in (
-        "DB_WRITE_MODE",
-        "DB_WRITE_MODE__GOOGLE",
         "DB_WRITE_MODE__RESPONSES",
         "GOOGLE_MONGO_DB",
         "MASTER_ENCRYPTION_KEYSET",

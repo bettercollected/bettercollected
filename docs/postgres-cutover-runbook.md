@@ -12,7 +12,7 @@ a code change — and by the migration CLI, which runs out of band as a one-off 
 | piece | where | what it does |
 |---|---|---|
 | `DB_READ_SOURCE`, `DB_WRITE_MODE` (+ `__<group>` overrides) | each service's env | per repository group: `mongo` → `dual` (write both, read Mongo) → `postgres_primary_dual` (write both, read Postgres) → `postgres` |
-| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`) | backend, actions-executor | `temporal` (default) or `postgres` (procrastinate) per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and are retried: with `__delete_user=postgres` the integrity monitor reports them as overdue; on Temporal they show only in the Temporal UI and the backend's error log) |
+| `JOBS_BACKEND` (+ `__delete_user`, `__delete_response`, `__run_action`, `__purge_provider_credentials`, `__revoke_google_grant`) | backend, actions-executor | `temporal` (default) or `postgres` (procrastinate) per job kind; `purge_provider_credentials` exists on `postgres` only (set it there, or account deletions that need a purge fail after the erasure and are retried: with `__delete_user=postgres` the integrity monitor reports them as overdue; on Temporal they show only in the Temporal UI and the backend's error log) |
 | `DB_SHADOW_READ_SAMPLE` | each service | fraction of reads also issued to the other store and compared |
 | `GET /persistence/status` (admin) | backend | flags in effect, routing counters, outbox backlog, Postgres reachability |
 | `python -m backend.migrate …` (also `auth.migrate`, `googleform.migrate`) | one-off container, service role | `preflight` · `backfill` · `verify` · `reconcile` · `status [--json]` · `jobs-sweep`; `--group <g>` or `--collections a,b` limit a run |
@@ -288,6 +288,40 @@ GROUP BY workspace_id, user_id HAVING count(*) > 1;
 Keep the row Mongo holds if Mongo is still written, else the most recently updated one, delete the
 others (by `id`), and migrate again.
 
+## Accounts whose emails differ only in case
+
+auth revision `0005` makes `auth.users` unique by `lower(email)` in place of the exact `email`
+constraint: every sign-in path matches emails ignoring case, so `Jane@Example.com` and
+`jane@example.com` are one account. Older versions matched the code sign-in exactly, so a store
+can hold two accounts for one address. Then the migration refuses before changing anything,
+naming only the counts (and the read-only query below), and auth does not start until they are
+resolved; on the import from 4.0, `python -m auth.migrate preflight` counts them as duplicate keys
+and `backfill` stops the `users` collection on the first one. Nothing is merged automatically:
+each account has its own workspaces, forms, memberships, sessions and billing, and no rule can
+pick one without taking from the other. List them by id (Postgres, or the same grouping in Mongo
+before the import):
+
+```sql
+SELECT lower(email), count(*), array_agg(id ORDER BY id) AS ids
+FROM auth.users WHERE email IS NOT NULL
+GROUP BY lower(email) HAVING count(*) > 1;
+```
+
+```js
+// mongosh, auth's 4.0 database
+db.users.aggregate([{$match:{email:{$type:"string"}}},
+  {$group:{_id:{$toLower:"$email"}, ids:{$push:"$_id"}}}, {$match:{"ids.1":{$exists:true}}}])
+```
+
+Run the query **before upgrading**, while the previous version still serves: the new auth does not
+start on a schema behind its code. If the migration already refused, go back to the previous
+image (the refusal changed nothing) and resolve them there. For each group, find out with the
+person which account they use (in the backend: the workspaces each id owns or belongs to, its last
+sign-in, a Stripe customer id). Move what they need to the account that stays (invite it to the
+other account's workspaces, transfer ownership), then delete the other account through the
+product's account deletion, so its sessions, memberships and billing go with it. Never delete a
+row only in `auth.users`. Then upgrade again (or run `preflight` and `backfill` again).
+
 ## Google credentials without a user id (once, after upgrading)
 
 The Google Forms integration encrypts a stored Google credential with a key derived from the
@@ -342,7 +376,49 @@ be read refuses the start too: the check cannot tell whether data would be lost.
 backend.seed_refdata` runs the same check for `refdata` before it seeds the empty tables, since
 seeded rows would hide unimported ones from the check.
 
-**What to run.** Best before the upgrade, with the 4.0 images (the CLI is the same):
+**With `deploy.sh` (compose stacks).** `./deploy.sh` of 4.1 does the import itself, once, before
+any service of the new release starts. A stack counts as one to import when it has the Mongo volume
+of its compose project (`<project>_mongo-data`) or a `MONGO_URI` in `.env.deployment` (an external
+Mongo), and the root `.env` has no `BC_LEGACY_MONGO_IMPORTED`. Then it:
+
+1. stops the services that write Mongo (`backend`, `jobs-worker`, `auth`,
+   `integrations-googleform`, `task-runner`): nothing may change Mongo between the copy and the
+   check. The stack is down until the import is done;
+2. starts `mongodb` under the `legacy-mongo` compose profile (with the volume only; the only way
+   MongoDB starts in 4.1). A 4.0 stack's `MONGO_URI` (the one in its settings store or
+   `.env.deployment`) is what the one-off containers read;
+3. migrates the Google integration's schema when the stack does not run it (its Mongo data is
+   imported all the same), then runs, in a one-off container of the new image, for **auth, google,
+   then the backend**: `preflight`, `backfill` and `verify` (`python -m auth.migrate`,
+   `python -m googleform.migrate`, `python -m backend.migrate`). The backend's `verify` skips the
+   Postgres-only groups, whose `backfill` the startup check above verifies;
+4. **stops on any failure** before a service starts: a preflight problem (invalid ids, duplicate
+   unique keys), a backfill `error` or a verify difference prints the collections concerned with
+   their counts (Mongo, Postgres, missing, mismatched, ...; never a value or a sample id). Nothing
+   is deleted. The full output (counts and ids) is in `legacy-mongo-import.<time>.log` (mode 600).
+   Fix the cause (Phase 1 above describes each check) and run `./deploy.sh` again: the backfill
+   resumes and the checks run again. Or go back to 4.0: check out the 4.0 release and run its
+   `./deploy.sh` (4.0 still reads Mongo, which was left as it was);
+5. on success prints each service's counts per collection, clears `MONGO_URI` in the settings store
+   (`deploy.sh settings-clear`: the store keeps its versions, so `settings-restore MONGO_URI
+   --version N` brings it back for a rollback; once 4.1 has served traffic, what it wrote is in
+   Postgres only and a 4.0 reading Mongo would not see it), blanks a `MONGO_URI` line in `.env.deployment`
+   (backup `.env.deployment.pre-4.1.<time>`), records `BC_LEGACY_MONGO_IMPORTED=<time>` in the
+   root `.env`, and stops and removes the `mongodb` container. **The `mongo-data` volume is kept**:
+   keep it, and an encrypted `mongodump` of it, until 4.1 has run well for a while (the
+   decommission step below); deleting it is the point of no return and never part of a deploy.
+
+The next deploys find `BC_LEGACY_MONGO_IMPORTED` and never start MongoDB again. A stack that already
+serves everything from Postgres (stages C and D below done on 4.0) sets
+`BC_LEGACY_MONGO_IMPORTED=done` in the root `.env` by hand before the upgrade, so the import does
+not compare Mongo with a Postgres that has moved on. A new 4.1 stack never starts MongoDB and stores
+no `MONGO_URI`. `TASK_RUNNER_MONGO_URI` in the root `.env` is not touched: remove it once Mongo is
+stopped (deploy.sh reminds you). The backend and the jobs worker default to
+`DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres` in the compose file, the task runner to
+`DB_WRITE_MODE=postgres`.
+
+**What to run by hand** (an orchestrated stack, or ahead of the upgrade). Best before the upgrade,
+with the 4.0 images (the CLI is the same):
 
 ```bash
 python -m backend.migrate --group refdata,analytics,ai,actions preflight
@@ -409,10 +485,9 @@ they differ.
   runs the backend's repositories (deleting a user touches every group). Keep the flags in one block
   that both services read (a shared `env_file`, or a YAML anchor if your tooling supports merge
   keys), and always deploy the two together.
-- **The task runner's `DB_WRITE_MODE`, `DB_WRITE_MODE__responses` and `DB_WRITE_MODE__google`
-  follow the services' values** (the backend's for the default and `responses`, the Google
-  integration's for `google`) and change in the same deploy. If they are unset, the responses and
-  keyset tasks refuse with `write_mode_unknown` (docs/admin-service.md, "Task runner").
+- **The task runner's `DB_WRITE_MODE` and `DB_WRITE_MODE__responses` follow the backend's
+  values** and change in the same deploy (from 4.1 the runner takes the Google credentials as
+  Postgres only, and unset values as the services' default; docs/admin-service.md, "Task runner").
 - **Migrations:** `DB_AUTO_MIGRATE=true` on `backend`, `jobs-worker`, `auth` and
   `integrations-googleform`, from Stage 0 on ("Who runs the migrations"). A release whose notes
   name a migration with non-transactional DDL is migrated by hand first (one-off commands below).

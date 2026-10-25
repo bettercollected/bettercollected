@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from bson import ObjectId
 from sqlalchemy import Column, Index, MetaData, Table, Text, UniqueConstraint, Computed
+from sqlalchemy import func, literal_column
 
 from common.db.base import SOURCE_BACKFILL
 from common.db.canonical import checksum, canonical_document
@@ -16,6 +17,7 @@ from common.db.migrate.engine import (
     row_from_document,
     spine_paths,
     timestamp_of,
+    casefold_unique_key_paths,
     unique_key_paths,
 )
 
@@ -85,6 +87,24 @@ def test_unique_keys_are_read_off_the_spine_columns():
         [["workspace_id"], ["form_id"]],
         [["settings", "custom_url"]],
     ]
+    assert casefold_unique_key_paths(table) == []
+
+
+def test_unique_lower_indexes_are_checked_ignoring_case():
+    """A unique index over lower(<column>) has no plain columns: preflight
+    groups its key lower-cased instead (accounts unique by email)."""
+    table = Table(
+        "users",
+        MetaData(),
+        Column("id", Text, primary_key=True),
+        Column("email", Text, Computed("auth.bc_text(doc -> 'email')", persisted=True)),
+        Column("plan", Text, Computed("auth.bc_text(doc -> 'plan')", persisted=True)),
+        Index("uq_email_lower", func.lower(literal_column("email")), unique=True),
+        Index("ix_plan_lower", func.lower(literal_column("plan"))),
+        schema="auth",
+    )
+    assert casefold_unique_key_paths(table) == [["email"]]
+    assert unique_key_paths(table) == []
 
 
 def test_batch_size_adapts_within_bounds():

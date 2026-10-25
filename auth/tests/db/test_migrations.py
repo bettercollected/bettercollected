@@ -109,3 +109,61 @@ def test_upgrade_is_idempotent(scratch_url):
     command.upgrade(config, "head")
     command.upgrade(config, "head")  # nothing to do, must not fail
     assert asyncio.run(_diff(scratch_url)) == []
+
+
+async def _execute(url: str, statement: str) -> list:
+    engine = create_async_engine(url, poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:
+            result = await conn.execute(text(statement))
+            return [tuple(r) for r in result] if result.returns_rows else []
+    finally:
+        await engine.dispose()
+
+
+def _account(oid: str, email: str) -> str:
+    return (
+        "INSERT INTO auth.users (id, doc, _bc_checksum) VALUES "
+        f"('{oid}', jsonb_build_object('_id', jsonb_build_object('$oid', '{oid}'), "
+        f"'email', '{email}'), 'x') RETURNING id"
+    )
+
+
+def test_case_variant_accounts_stop_0005_before_it_changes_anything(scratch_url):
+    """Revision 0005's unique lower(email) index refuses, with counts only and
+    before any change, while two accounts' emails differ only in case; no
+    account is merged or deleted."""
+    config = _config(scratch_url)
+    command.upgrade(config, "0004")
+    asyncio.run(_execute(scratch_url, _account("a" * 24, "Jane@Example.com")))
+    asyncio.run(_execute(scratch_url, _account("b" * 24, "jane@example.com")))
+    asyncio.run(_execute(scratch_url, _account("c" * 24, "other@example.com")))
+
+    with pytest.raises(RuntimeError) as refused:
+        command.upgrade(config, "head")
+    message = str(refused.value)
+    assert "1 email addresses held by 2 accounts" in message
+    assert "HAVING count(*) > 1" in message  # the read-only query to find them
+    assert "jane" not in message.lower() and "a" * 24 not in message
+
+    rows = asyncio.run(_execute(scratch_url, "SELECT id, email FROM auth.users"))
+    assert len(rows) == 3 and ("a" * 24, "Jane@Example.com") in rows
+    version = asyncio.run(
+        _execute(scratch_url, "SELECT version_num FROM auth.alembic_version")
+    )
+    assert version == [("0004",)]
+
+    # resolved by hand: it goes through, and the index holds from then on
+    asyncio.run(
+        _execute(
+            scratch_url, f"DELETE FROM auth.users WHERE id = '{'b' * 24}' RETURNING id"
+        )
+    )
+    command.upgrade(config, "head")
+    with pytest.raises(Exception, match="uq_users_email_lower"):
+        asyncio.run(_execute(scratch_url, _account("d" * 24, "JANE@example.com")))
+    # downgrade restores the exact constraint and keeps the accounts
+    command.downgrade(config, "0004")
+    asyncio.run(_execute(scratch_url, _account("d" * 24, "JANE@example.com")))
+    with pytest.raises(Exception, match="uq_users_email"):
+        asyncio.run(_execute(scratch_url, _account("e" * 24, "JANE@example.com")))

@@ -5,7 +5,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { moveOnFrom } from '@app/utils/scroll-utils';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { initialKeys } from '@app/views/atoms/choice';
 import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
@@ -44,7 +44,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                             addFieldBooleanAnswer(field.id, !!value);
                             if (viaKeys) return;
                             setTimeout(() => {
-                                if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+                                if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) moveOnFrom(field.id, form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                             }, 200);
                         }}
                     />

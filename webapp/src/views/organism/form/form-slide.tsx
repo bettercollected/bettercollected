@@ -403,7 +403,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                         {workspace?.title || workspace?.workspaceName}
                                     </span>
                                 )}
-                                <span className="font-medium whitespace-nowrap tabular-nums" lang={language}>
+                                {/* Where focus lands when this page opens (form.tsx focusPageStart). */}
+                                <span data-page-start tabIndex={-1} className="font-medium whitespace-nowrap tabular-nums outline-none" lang={language}>
                                     {endsHere && !isLastPage ? t('NAV.LAST_PAGE') : t('NAV.PAGE_OF', { current: Math.min(Math.max(currentSlide, 0) + 1, standardForm?.fields?.length || 1), total: standardForm?.fields?.length || 1 })}
                                 </span>
                             </div>

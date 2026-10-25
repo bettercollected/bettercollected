@@ -22,7 +22,11 @@ from pydantic import ValidationError
 from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
-from backend.app.services.publish_checks import MISSING_ENDING, publish_problems
+from backend.app.services.publish_checks import (
+    MISSING_ENDING,
+    THEME_CONTRAST,
+    publish_problems,
+)
 from backend.app.services.retention import checked_retention
 
 # The org's compliance rules are free text: only an AI review reads them.
@@ -331,13 +335,29 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
     for problem in publish_problems(form):
         if problem["code"] == MISSING_ENDING:
             continue  # already an error (_check_endings)
-        entry = index.questions.get(problem.get("fieldId") or "")
+        if problem["code"] == THEME_CONTRAST:
+            path = "/theme"
+        else:
+            entry = index.questions.get(problem.get("fieldId") or "")
+            path = entry[0] if entry else ""
+        warnings.append(_problem(path, f"Before publishing: {problem['message']}"))
+    if _image_ground(form):
+        # Advisory only: the image can't be measured, so it never blocks.
         warnings.append(
             _problem(
-                entry[0] if entry else "", f"Before publishing: {problem['message']}"
+                "/theme/background/imageUrl",
+                "Text over an image can't be checked for contrast. Preview the "
+                "form to check it stays readable.",
             )
         )
     return warnings
+
+
+def _image_ground(form: Any) -> bool:
+    background = getattr(getattr(form, "theme", None), "background", None)
+    return getattr(background, "type", None) == "image" and bool(
+        getattr(background, "imageUrl", None)
+    )
 
 
 def _check_calculations(form: Any, index: "_Index") -> List[Dict[str, str]]:

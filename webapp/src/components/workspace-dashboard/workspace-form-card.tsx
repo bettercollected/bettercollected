@@ -185,7 +185,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                     </div>
                 </div>
                 {!isResponderPortal && !group && (
-                    <div className="hidden items-center gap-2 lg:invisible lg:flex lg:group-hover:visible">
+                    <div className="hidden items-center gap-2 lg:invisible lg:flex lg:group-focus-within:visible lg:group-hover:visible">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
                             <Button onClick={handleShareClick} variant="ghost" size="sm" icon={<Share2 width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
@@ -210,7 +210,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 )}
                 {!!group && (
                     <DeleteDropDown
-                        className="lg:invisible lg:group-hover:visible"
+                        itemName={form?.title || t('UNTITLED')}
+                        className="lg:invisible lg:group-focus-within:visible lg:group-hover:visible lg:data-[state=open]:visible"
                         onDropDownItemClick={(event) => {
                             event.stopPropagation();
                             event.preventDefault();

@@ -1,4 +1,5 @@
 from common.models.standard_form import Trigger
+from loguru import logger
 from common.models.user import User
 from common.records import RecordId
 from common.services.http_client import HttpClient
@@ -28,6 +29,7 @@ class ActionService:
         authorization_service: AuthorizationService,
         form_response_service: FormResponseService,
         workspace_repo=PostgresWorkspaceRepository,
+        sheets_reconsent=None,
     ):
         self.action_repository = action_repository
         self.form_repo = form_repo
@@ -37,6 +39,8 @@ class ActionService:
         self.form_provider_service = form_provider_service
         self.form_response_service = form_response_service
         self.workspace_repo = workspace_repo
+        # services/sheets_reconsent.py: holds back Sheets runs on a legacy grant
+        self.sheets_reconsent = sheets_reconsent
 
     async def get_action(self, action_id: RecordId):
         return await self.action_repository.get_action_by_id(action_id)
@@ -76,7 +80,14 @@ class ActionService:
         actions = await self.action_repository.get_actions_by_ids(
             action_ids=submission_actions
         )
+        skipped = 0
         for action in actions:
+            if self.sheets_reconsent is not None and (
+                await self.sheets_reconsent.hold_back_run(form, action, workspace_id)
+            ):
+                # a Google Sheets grant from before drive.file: never used again
+                skipped += 1
+                continue
             # if action.name == "integrate_google_sheets":
             #     google_sheet_id = [params.value for params in form.parameters.get(str(action.id)) if
             #                        params.name == "Google Sheet Id"]
@@ -91,6 +102,13 @@ class ActionService:
             )
             await self.temporal_service.start_action_execution(
                 action=action, form=form, response=response, workspace=workspace
+            )
+        if skipped:
+            logger.info(
+                "actions skipped for re-consent: form={} workspace={} count={}",
+                form.form_id,
+                workspace_id,
+                skipped,
             )
 
     async def delete_action_from_workspace(self, action_id: RecordId):

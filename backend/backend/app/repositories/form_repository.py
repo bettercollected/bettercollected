@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
@@ -158,6 +158,79 @@ def detach_action(form: FormDocument, action_id: str) -> None:
     for bag in (form.parameters, form.secrets):
         if isinstance(bag, dict):
             bag.pop(action_id, None)
+
+
+def merge_action_parameters(
+    current: Optional[list],
+    values: Optional[Dict[str, str]] = None,
+    increment: Optional[str] = None,
+    only_if_absent: Optional[str] = None,
+    remove: Optional[List[str]] = None,
+) -> Optional[list]:
+    """One action's parameters (plain ``{name, value, ...}`` dicts) with
+    ``values`` set by name (replaced or appended), the counter ``increment``
+    raised by one (a missing or unreadable count starts at 0) and the names in
+    ``remove`` dropped. ``None`` when nothing changes, or when a parameter
+    named ``only_if_absent`` already exists (a marker claimed once)."""
+    params = [dict(p) for p in (current or []) if isinstance(p, dict)]
+    names = {p.get("name") for p in params}
+    if only_if_absent and only_if_absent in names:
+        return None
+    changes = dict(values or {})
+    if increment:
+        stored = next(
+            (p.get("value") for p in params if p.get("name") == increment), None
+        )
+        try:
+            count = int(stored or 0)
+        except (TypeError, ValueError):
+            count = 0
+        changes[increment] = str(count + 1)
+    dropped = set(remove or [])
+    merged = [dict(p) for p in params if p.get("name") not in dropped]
+    for name, value in changes.items():
+        for p in merged:
+            if p.get("name") == name:
+                p["value"] = value
+                break
+        else:
+            merged.append({"name": name, "value": value, "required": False})
+    return None if merged == params else merged
+
+
+CREDENTIALS_SECRET = "Credentials"
+
+
+def replace_credential_secret(
+    current: Optional[list], credential: str
+) -> tuple:
+    """One action's secrets (plain ``{name, value, ...}`` dicts) with the
+    ``Credentials`` entry set to ``credential`` (appended when there was none;
+    any other secret kept), and the ciphertext it replaced (``None`` when
+    there was none)."""
+    secrets = [dict(s) for s in (current or []) if isinstance(s, dict)]
+    previous = None
+    kept = []
+    for secret in secrets:
+        if secret.get("name") == CREDENTIALS_SECRET:
+            previous = previous or secret.get("value") or None
+            continue
+        kept.append(secret)
+    kept.append({"name": CREDENTIALS_SECRET, "value": credential, "required": False})
+    return kept, previous
+
+
+def replace_version_credentials(current: Optional[list], credential: str) -> Optional[list]:
+    """A published version's copy of one action's secrets with every
+    ``Credentials`` value set to ``credential``; ``None`` when it holds none
+    (or only that one already)."""
+    secrets = [dict(s) for s in (current or []) if isinstance(s, dict)]
+    changed = False
+    for secret in secrets:
+        if secret.get("name") == CREDENTIALS_SECRET and secret.get("value") != credential:
+            secret["value"] = credential
+            changed = True
+    return secrets if changed else None
 
 
 class FormRepository:
@@ -619,6 +692,123 @@ class FormRepository:
                 await document.find({path: {"$exists": True}}).update(
                     {"$unset": {path: ""}}
                 )
+
+    @write_op
+    async def update_action_parameters(
+        self,
+        form_id: str,
+        action_id: str,
+        values: Optional[Dict[str, str]] = None,
+        increment: Optional[str] = None,
+        only_if_absent: Optional[str] = None,
+        remove: Optional[List[str]] = None,
+    ) -> bool:
+        """Change one action's parameters on the draft (``merge_action_parameters``)
+        and nothing else: not ``updated_at`` (the builder's conflict check),
+        not other actions. A compare-and-set on the stored list, so concurrent
+        calls neither lose a count nor both claim a marker. True when it
+        changed something."""
+        collection = FormDocument.get_pymongo_collection()
+        path = f"parameters.{action_id}"
+        for _ in range(5):
+            raw = await collection.find_one({"form_id": str(form_id)})
+            if raw is None:
+                return False
+            stored = (raw.get("parameters") or {}).get(str(action_id))
+            merged = merge_action_parameters(
+                stored, values, increment, only_if_absent, remove
+            )
+            if merged is None:
+                return False
+            if not isinstance(raw.get("parameters"), dict):
+                # no parameters at all yet (null or missing)
+                result = await collection.update_one(
+                    {"_id": raw["_id"], "parameters": raw.get("parameters")},
+                    {"$set": {"parameters": {str(action_id): merged}}},
+                )
+            else:
+                # null matches a missing list too
+                result = await collection.update_one(
+                    {"_id": raw["_id"], path: stored}, {"$set": {path: merged}}
+                )
+            if result.matched_count == 1:
+                return True
+        return False
+
+    @write_op
+    async def replace_action_credential(
+        self,
+        form_id: str,
+        action_id: str,
+        credential: str,
+        clear_parameters: Optional[List[str]] = None,
+    ) -> dict:
+        """Store a new credential for one action and drop the named parameters
+        (the Sheets re-consent markers) in one write of the draft, a
+        compare-and-set like ``update_action_parameters`` (``updated_at`` and
+        other actions untouched). Then every published version's copy of the
+        action's credential is replaced too, so no stored copy of the old
+        ciphertext is left. Returns ``{"stored": bool, "previous": str|None}``:
+        the ciphertext the draft held before (``stored`` is False for an
+        unknown form)."""
+        key = str(action_id)
+        collection = FormDocument.get_pymongo_collection()
+        stored_ok, previous = False, None
+        for _ in range(5):
+            raw = await collection.find_one({"form_id": str(form_id)})
+            if raw is None:
+                return {"stored": False, "previous": None}
+            match = {"_id": raw["_id"]}
+            changes = {}
+            stored_secrets = raw.get("secrets")
+            secrets_now = (
+                stored_secrets.get(key) if isinstance(stored_secrets, dict) else None
+            )
+            new_secrets, previous = replace_credential_secret(secrets_now, credential)
+            if isinstance(stored_secrets, dict):
+                # null matches a missing list too
+                match[f"secrets.{key}"] = secrets_now
+                changes[f"secrets.{key}"] = new_secrets
+            else:
+                match["secrets"] = stored_secrets
+                changes["secrets"] = {key: new_secrets}
+            stored_params = raw.get("parameters")
+            params_now = (
+                stored_params.get(key) if isinstance(stored_params, dict) else None
+            )
+            merged = merge_action_parameters(params_now, remove=clear_parameters)
+            if merged is not None:
+                match[f"parameters.{key}"] = params_now
+                changes[f"parameters.{key}"] = merged
+            result = await collection.update_one(match, {"$set": changes})
+            if result.matched_count == 1:
+                stored_ok = True
+                break
+        if not stored_ok:
+            raise RuntimeError("the form changed concurrently; try again")
+        versions = FormVersionsDocument.get_pymongo_collection()
+        path = f"secrets.{key}"
+        async for raw in versions.find(
+            {"form_id": str(form_id), f"{path}.name": CREDENTIALS_SECRET},
+            {"_id": 1, path: 1},
+        ):
+            current = (raw.get("secrets") or {}).get(key)
+            replaced = replace_version_credentials(current, credential)
+            if replaced is not None:
+                await versions.update_one(
+                    {"_id": raw["_id"], path: current}, {"$set": {path: replaced}}
+                )
+        return {"stored": True, "previous": previous}
+
+    async def get_forms_with_action_secrets(
+        self, action_ids: List[str]
+    ) -> List[FormDocument]:
+        """Drafts holding secrets for any of ``action_ids``."""
+        if not action_ids:
+            return []
+        return await FormDocument.find(
+            {"$or": [{f"secrets.{key}": {"$exists": True}} for key in action_ids]}
+        ).to_list()
 
     @write_op
     async def update_form_actions(

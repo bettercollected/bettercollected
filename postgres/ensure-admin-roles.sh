@@ -612,9 +612,10 @@ END
 $fn$;
 
 -- Account deletion queues a purge of the user's stored provider credentials
--- (backend services/credential_purge.py); the integrity monitor reports one that
--- is still pending a day after it was queued, or failed, and a deletion job in the
--- same state. A count only, from the queue's own tables in `jobs` (owned by the
+-- (backend services/credential_purge.py), and a reconnected Google Sheets action
+-- the revocation of its old grant (services/sheets_grant_revocation.py); the
+-- integrity monitor reports one that is still pending a day after it was queued,
+-- or failed, and a deletion job in the same state. A count only, from the queue's own tables in `jobs` (owned by the
 -- backend's role, like `app`, so the same NOLOGIN owner as platform_counts_app).
 CREATE OR REPLACE FUNCTION admin.credential_purges_overdue() RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER STABLE
@@ -628,7 +629,8 @@ BEGIN
     RETURN (
         SELECT count(*)::integer
           FROM jobs.procrastinate_jobs j
-         WHERE j.task_name IN ('purge_provider_credentials', 'delete_user')
+         WHERE j.task_name IN ('purge_provider_credentials', 'revoke_google_grant',
+                               'delete_user')
            AND (j.status = 'failed'
                 OR (j.status IN ('todo', 'doing')
                     AND EXISTS (SELECT 1 FROM jobs.procrastinate_events e

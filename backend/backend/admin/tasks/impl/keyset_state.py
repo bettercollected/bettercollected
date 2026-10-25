@@ -395,7 +395,8 @@ class DataConfig:
 
     def written(self, target: core.Target) -> List[str]:
         """The stores the services write for the target's group, primary first;
-        refuses ``write_mode_unknown`` when the runner has no write mode for it."""
+        refuses ``write_mode_unknown`` when the runner's copy is not a write
+        mode (unset: the services' default, see ``written_stores``)."""
         return written_stores(target.group, self.env)
 
     def primary_store(self, target: core.Target) -> str:
@@ -412,7 +413,10 @@ class DataConfig:
     def mongo_retired(self) -> bool:
         """Whether the runner's write mode is ``postgres`` for the default and
         for every group a keyset target belongs to (an unset override follows
-        the default; an unset default is not retired)."""
+        the default; an unset default is the services' own, ``mongo`` while
+        the backend has groups on Mongo, so not retired). The Google
+        credentials' group is Postgres only since 4.1, so only the default and
+        the responses group's mode decide."""
         try:
             return all(
                 written_stores(group, self.env) == ["postgres"]

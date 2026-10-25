@@ -28,16 +28,13 @@ import asyncio
 import os
 import uuid
 
+from backend.app.constants.themes import theme_dict
 from backend.app.schemas.template import FormTemplateDocument
 from scripts.dutch_first_templates import BILINGUAL_BUILDERS
 
-THEME = {
-    "title": "Default",
-    "primary": "#2E2E2E",
-    "secondary": "#0764EB",
-    "tertiary": "#A2C5F8",
-    "accent": "#F2F7FF",
-}
+# The Default preset: its colours meet the theme_contrast publish check
+# (services/theme_contrast.py), so forms made from these templates publish.
+THEME = dict(theme_dict["Default"])
 LAYOUT = "SINGLE_COLUMN_NO_BACKGROUND"
 
 

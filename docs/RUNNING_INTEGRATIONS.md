@@ -47,10 +47,92 @@ Known limits of the database purge in `off` (`google.purge_user_credentials`):
 - It succeeds when it deletes 0 rows. It deletes only rows that match both the user id and the email, so rows
   stored without a `user_id` (credentials connected by older versions) never match it. Erase those by
   email by hand, or run the service in `on`/`readonly` for the purge, where the service matches either.
-- It runs only when the backend's flags for the `google` group say Postgres only (`DB_WRITE_MODE__GOOGLE=postgres`
-  or `DB_WRITE_MODE=postgres`). The Google Forms service itself stores its data in Postgres only since 4.1 and
-  refuses to start while its own `DB_READ_SOURCE`/`DB_WRITE_MODE` (or their `__google` overrides) name another
-  store.
+- It needs the backend's Postgres connection, and no storage flag: the Google Forms service stores its data in
+  Postgres only since 4.1, and refuses to start while its own `DB_READ_SOURCE`/`DB_WRITE_MODE` (or their
+  `__google` overrides) name another store.
+
+#### The Google Sheets action (`GOOGLE_SHEETS_OAUTH`)
+
+The "Google Sheets" form action appends each submission to a spreadsheet it creates in the form owner's
+Google Drive. Who runs its OAuth flow (connecting the account and creating the spreadsheet) is chosen by
+`GOOGLE_SHEETS_OAUTH`, read by the backend:
+
+| Value | Effect |
+|---|---|
+| `google_service` (default) | As before: the Google Forms service builds the authorization URL with its own client and `GOOGLE_SHEET_SCOPE` (`spreadsheets` + `drive`), exchanges the code and creates the spreadsheet. It stops with `GOOGLE_FORMS_IMPORT=off`. |
+| `backend` | The backend runs the flow itself with the Google sign-in client (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_TOKEN_URI`, as used by the auth service) and asks for one scope only: `https://www.googleapis.com/auth/drive.file` (the files this app creates). The Google Forms service is not called, so `GOOGLE_FORMS_IMPORT` does not affect the action. Without a client id and secret the connect request answers 503. |
+
+The redirect address is the web app's callback page in both modes, `GOOGLE_SHEET_REDIRECT_URL`
+(for example `https://app.example.com/integrations/google/callback`); in `backend` mode the backend reads it.
+The stored credential has the same format either way, so the actions executor needs no change. In
+`backend` mode, actions connected before with the broad grant must be reconnected (below).
+
+Before setting `GOOGLE_SHEETS_OAUTH=backend`:
+
+1. In the Google Cloud console, open the OAuth client used for Google sign-in (the one `GOOGLE_CLIENT_ID`
+   names) and add the value of `GOOGLE_SHEET_REDIRECT_URL` to its authorized redirect URIs.
+2. On the project's OAuth consent screen (Data access), add the scope `.../auth/drive.file`. It is a
+   non-sensitive scope, so no extra verification is needed for it.
+3. Make sure the Google Sheets API is enabled for the project.
+4. Set `GOOGLE_SHEETS_OAUTH=backend` for the backend (and `GOOGLE_SHEET_REDIRECT_URL` if the backend does not
+   have it yet) and restart it.
+
+Going back is setting `google_service` again. Actions connected in `backend` mode keep running in either mode.
+
+##### Grants from before `drive.file`: reconnect on next use
+
+A stored Sheets credential whose `scopes` is anything other than exactly
+`https://www.googleapis.com/auth/drive.file` (the Google Forms service's flow granted `spreadsheets` and
+full `drive` access) is never used again in `backend` mode. On its next use (a submission that would run
+the action, or opening it in the builder, `GET /workspaces/{workspace_id}/forms/{form_id}/actions/{action_id}/reconsent`)
+the backend:
+
+- does not run the action for that submission and counts the skipped run; the submission itself is stored
+  as usual and other actions run;
+- marks the action `needs_reconsent` (parameters on the form's action: `needs_reconsent`,
+  `reconsent_skipped_runs`, `reconsent_mailed_at`; no migration);
+- mails the workspace's billing owner once per action ("Reconnect Google Sheets", in the form's language,
+  English or Dutch) through the auth service, with a link to the form's integrations. The mail is sent in
+  the background: a submission never waits for the auth service. A transient failure (auth unreachable, a
+  timeout or 5xx) is retried three times within a few minutes, then a later use tries again; auth's 429
+  (its hourly cap per owner) is not retried, a later use tries again. A 422
+  from auth (a workspace handle it cannot link to, an unset `CLIENT_ADMIN_URL` on auth) is final: the
+  `reconsent_mailed_at` marker stays, it is logged once and never retried. Form and workspace titles are
+  cut to 1000 characters. At shutdown the backend waits up to 5 seconds for mails in flight,
+  then cancels them and releases their marker, so a later use sends the mail.
+
+Reconnecting in `backend` mode stores the `drive.file` credential and clears the marks in one write; the
+old credential is replaced there and in the form's published versions, so no copy of it is left. Then the
+backend revokes the old grant at Google (`POST https://oauth2.googleapis.com/revoke` with its refresh token;
+the address is fixed in the code). Google's answer 200, or 400 `invalid_token` (already revoked or
+expired), counts as done. Any other answer, or Google not answering, never blocks the new grant: a
+`revoke_google_grant` job retries the revocation once an hour for two days. It runs on the Postgres job
+queue only, so set `JOBS_BACKEND__revoke_google_grant=postgres`; without it the failed revocation is only
+logged (`revocation retry not queued`) and the old grant stays at Google until the user removes it in their
+Google account. A job still pending after a day, or failed, shows in the admin portal's integrity monitor
+(`CREDENTIAL_PURGE overdue`, with the account-deletion purges).
+
+Google's revocation ends the user's whole grant to the OAuth client that issued the token. A legacy
+credential issued to the Google sign-in client itself (the Google Forms service configured with the same
+client as the backend) is therefore deleted but not revoked, since that would also revoke the new
+`drive.file` grant; this is logged as `reason=same_client`. Revoking the Google Forms service's grant also
+ends that user's connection for importing Google Forms, which they reconnect when they import again.
+
+In `google_service` mode nothing is held back or revoked: reconnecting there grants the broad scopes again.
+Logs carry form, action and workspace ids, outcomes and counts only, never a token.
+
+Before switching, count the actions concerned (read-only, counts only):
+
+```bash
+python -m backend.sheets_legacy
+```
+
+It prints `sheets_actions_with_credential`, `legacy` (including `unreadable` credentials), `drive_file`,
+`needs_reconsent_marked`, `owners_mailed`, `skipped_runs` and `forms`.
+
+Saving such an action in the builder before reconnecting is refused with 409
+`{"code": "sheets_reconsent_required"}`: the old credential is not refreshed or used to create the
+spreadsheet, and the marks stay.
 
 #### Steps to create a client in Google:
 
@@ -83,9 +165,10 @@ Known limits of the database purge in `off` (`google.purge_user_credentials`):
 ### Typeform
 
 The Typeform integration was removed in 4.1. Forms and responses imported from Typeform before
-that stay readable as ordinary forms; `./deploy.sh typeform` and `./deploy.sh both` still work and
-start the stack without it (with Google Forms for `both`). Any `TYPEFORM_*` value left in an env
-file or the settings store is ignored.
+that stay readable as ordinary forms. `./deploy.sh typeform` and `./deploy.sh both` are refused
+(exit code 2, nothing changed): run `./deploy.sh` instead of `typeform`, and
+`./deploy.sh googleform` instead of `both`. Any `TYPEFORM_*` value left in an env file or the
+settings store is ignored.
 
 ## Running the project
 

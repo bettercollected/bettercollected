@@ -644,14 +644,9 @@ def test_auto_is_every_store_the_services_write_never_fewer(monkeypatch, default
     # runs leave it empty); nothing here connects
     monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI or "mongodb://localhost")
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
-    mode = responses or default
+    # unset: the services' own default (mongo while the backend has groups on it)
+    mode = responses or default or "mongo"
     config = StoreConfig.from_env()
-    if mode is None:
-        with pytest.raises(Refusal) as caught:
-            config.resolve(StoreChoice.auto)
-        assert caught.value.code == "write_mode_unknown"
-        assert config.resolve(StoreChoice.both) == ["mongo", "postgres"]
-        return
     written = WRITTEN[mode]
     names = config.resolve(StoreChoice.auto)
     # the written stores first (primary first), then any other configured store
@@ -693,11 +688,15 @@ async def test_check_auto_follows_the_write_mode(world, monkeypatch, mode):
 @pytest.mark.parametrize(
     "task", ["responses.backfill_workspaces", "responses.check_undecryptable"]
 )
-async def test_auto_refuses_without_the_services_write_mode(world, seeded, monkeypatch, task):
-    _write_mode(monkeypatch)
+async def test_auto_refuses_an_unreadable_write_mode(world, seeded, monkeypatch, task):
+    _write_mode(monkeypatch, "mongo-and-postgres")
     dry = task.endswith("workspaces")
     _, run = await _run(world, task, {}, dry_run=dry)
     assert run["state"] == "refused" and run["refusal_code"] == "write_mode_unknown"
+    # unset (a fresh stack): the services' default, Mongo first; Mongo reachable here
+    _write_mode(monkeypatch)
+    _, run = await _run(world, task, {}, dry_run=dry)
+    assert run["state"] == "succeeded", run
     # the runner says postgres, but the responses group still writes Mongo, which
     # the runner cannot reach: refused, never fewer stores
     _write_mode(monkeypatch, "postgres", "postgres_primary_dual")

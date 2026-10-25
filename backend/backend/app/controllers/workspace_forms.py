@@ -761,6 +761,23 @@ class WorkspaceFormsRouter(Routable):
         )
         return updated_actions
 
+    @get("/{form_id}/actions/{action_id}/reconsent")
+    async def _action_reconsent_status(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        """Whether the action must be reconnected before it runs again
+        (``{"needs_reconsent": bool}``); the builder asks when it opens one."""
+        return await self.workspace_form_service.action_reconsent_status(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            action_id=action_id,
+            user=user,
+        )
+
     @patch("/{form_id}/action/{action_id}/update")
     async def update_action_from_temporal(
         self,

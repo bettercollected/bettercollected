@@ -49,7 +49,7 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from common.models.standard_form import StandardForm
+from common.models.standard_form import ParameterValue, StandardForm
 from common.models.user import User
 from tests.app.repositories.parity import both_raise, parity, strip
 
@@ -569,3 +569,142 @@ async def test_workspace_consent(sessions):
             ("get_workspace_consents", lambda: (ws,)),
         ],
     )
+
+
+async def test_action_parameters_and_secrets(sessions):
+    """The Sheets re-consent markers (services/sheets_reconsent.py): one
+    action's parameters change, nothing else does (not ``updated_at``), and
+    a marker is claimed once."""
+    groups, responses = ResponderGroupsRepository(), FormResponseRepository(
+        crypto=container.crypto()
+    )
+    mongo = FormRepository()
+    postgres = PostgresFormRepository(sessions, groups, responses)
+    a1, a2 = str(PydanticObjectId()), str(PydanticObjectId())
+    forms = (
+        form(
+            "p1",
+            "With",
+            1,
+            parameters={
+                a1: [ParameterValue(name="Title", value="Sheet")],
+                a2: [ParameterValue(name="Url", value="u")],
+            },
+            secrets={a1: [ParameterValue(name="Credentials", value="c")]},
+        ),
+        form("p2", "Without", 2),
+    )
+    await seed_both((mongo, postgres), "save_form", *forms)
+    before = {
+        repo: (await repo.get_form_document_by_id("p1")).updated_at
+        for repo in (mongo, postgres)
+    }
+
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("update_action_parameters", lambda: ("p1", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("p1", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("p1", a1, None, "skipped")),
+            ("update_action_parameters", lambda: ("p1", a1, None, "skipped")),
+            ("update_action_parameters", lambda: ("p1", a1, {"m": "t"}, None, "m")),
+            ("update_action_parameters", lambda: ("p1", a1, {"m": "t2"}, None, "m")),
+            ("update_action_parameters", lambda: ("p1", a1, None, None, None, ["m"])),
+            # no parameters at all yet, and an unknown form
+            ("update_action_parameters", lambda: ("p2", a1, {"needs_reconsent": "true"})),
+            ("update_action_parameters", lambda: ("nope", a1, {"x": "y"})),
+            ("get_forms_with_action_secrets", lambda: ([a1],)),
+            ("get_forms_with_action_secrets", lambda: ([a2],)),
+            ("get_forms_with_action_secrets", lambda: ([],)),
+            ("get_form_document_by_id", lambda: ("p1",)),
+            ("get_form_document_by_id", lambda: ("p2",)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        stored = await repo.get_form_document_by_id("p1")
+        assert {p.name: p.value for p in stored.parameters[a1]} == {
+            "Title": "Sheet",
+            "needs_reconsent": "true",
+            "skipped": "2",
+        }
+        assert [p.value for p in stored.parameters[a2]] == ["u"]
+        assert stored.updated_at == before[repo]
+
+
+async def test_replace_action_credential(sessions):
+    """A new Sheets grant (services/sheets_grant_revocation.py): one write
+    stores the credential and drops the re-consent markers; the draft's
+    previous ciphertext is returned; published versions' copies are replaced;
+    other actions, other secrets and ``updated_at`` stay as they were."""
+    groups, responses = ResponderGroupsRepository(), FormResponseRepository(
+        crypto=container.crypto()
+    )
+    mongo = FormRepository()
+    postgres = PostgresFormRepository(sessions, groups, responses)
+    a1, a2 = str(PydanticObjectId()), str(PydanticObjectId())
+    draft = form(
+        "p1",
+        "With",
+        1,
+        parameters={
+            a1: [
+                ParameterValue(name="Title", value="Sheet"),
+                ParameterValue(name="needs_reconsent", value="true"),
+                ParameterValue(name="reconsent_skipped_runs", value="3"),
+                ParameterValue(name="reconsent_mailed_at", value="t"),
+            ],
+            a2: [ParameterValue(name="needs_reconsent", value="true")],
+        },
+        secrets={
+            a1: [
+                ParameterValue(name="Credentials", value="old"),
+                ParameterValue(name="Other", value="kept"),
+            ],
+            a2: [ParameterValue(name="Credentials", value="other-action")],
+        },
+    )
+    await seed_both((mongo, postgres), "save_form", draft, form("p2", "Bare", 2))
+    await seed_both(
+        (mongo, postgres), "save_form_version", version(draft, 1), version(draft, 2)
+    )
+    before = {
+        repo: (await repo.get_form_document_by_id("p1")).updated_at
+        for repo in (mongo, postgres)
+    }
+    markers = ["needs_reconsent", "reconsent_skipped_runs", "reconsent_mailed_at"]
+
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("replace_action_credential", lambda: ("p1", a1, "new", markers)),
+            # again: the previous one is now the new one, nothing left to drop
+            ("replace_action_credential", lambda: ("p1", a1, "new", markers)),
+            # no secrets or parameters at all yet, and an unknown form
+            ("replace_action_credential", lambda: ("p2", a1, "first", markers)),
+            ("replace_action_credential", lambda: ("nope", a1, "x", markers)),
+            ("get_form_document_by_id", lambda: ("p1",)),
+            ("get_form_document_by_id", lambda: ("p2",)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        stored = await repo.get_form_document_by_id("p1")
+        assert {p.name: p.value for p in stored.parameters[a1]} == {"Title": "Sheet"}
+        assert {s.name: s.value for s in stored.secrets[a1]} == {
+            "Credentials": "new",
+            "Other": "kept",
+        }
+        assert [p.value for p in stored.parameters[a2]] == ["true"]
+        assert [s.value for s in stored.secrets[a2]] == ["other-action"]
+        assert stored.updated_at == before[repo]
+        bare = await repo.get_form_document_by_id("p2")
+        assert [(s.name, s.value) for s in bare.secrets[a1]] == [("Credentials", "first")]
+        published_versions = await repo.get_versions_of_form("p1")
+        assert [v.version for v in published_versions] == [1, 2]
+        for published in published_versions:
+            assert {s.name: s.value for s in published.secrets[a1]} == {
+                "Credentials": "new",
+                "Other": "kept",
+            }
+            assert [s.value for s in published.secrets[a2]] == ["other-action"]

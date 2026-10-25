@@ -87,6 +87,8 @@ from backend.app.repositories.workspace_responders_repository import (
 )
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
+from backend.app.services.sheets_grant_revocation import SheetsGrantService
+from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
@@ -362,9 +364,6 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
     )
 
-    integration_action_service: IntegrationActionService = providers.Singleton(
-        IntegrationActionService, form_repo=form_repo
-    )
     mcp_audit_log_repo: PostgresMcpAuditLogRepository = providers.Singleton(
         PostgresMcpAuditLogRepository, pg_sessionmaker
     )
@@ -384,6 +383,20 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         flags=flags,
         jobs=providers.Object(jobs_app),
+    )
+
+    # after re-consent: the new Sheets grant stored, the legacy one revoked
+    # (services/sheets_grant_revocation.py)
+    sheets_grant_service: SheetsGrantService = providers.Singleton(
+        SheetsGrantService,
+        form_repo=form_repo,
+        crypto=crypto,
+        temporal_service=temporal_service,
+    )
+    integration_action_service: IntegrationActionService = providers.Singleton(
+        IntegrationActionService,
+        form_repo=form_repo,
+        sheets_grants=sheets_grant_service,
     )
 
     aws_service: AWSS3Service = providers.Singleton(
@@ -471,6 +484,14 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
     )
 
+    sheets_reconsent_service = providers.Singleton(
+        SheetsReconsentService,
+        form_repo=form_repo,
+        workspace_repo=workspace_repo,
+        crypto=crypto,
+        http_client=http_client,
+    )
+
     action_service = providers.Singleton(
         ActionService,
         action_repository=action_repository,
@@ -481,6 +502,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         form_response_service=form_response_service,
         workspace_repo=workspace_repo,
+        sheets_reconsent=sheets_reconsent_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(

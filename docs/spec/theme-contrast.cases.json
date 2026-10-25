@@ -1,0 +1,792 @@
+{
+  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes.",
+  "pairs": [
+    {
+      "name": "black on white",
+      "foreground": "#000000",
+      "background": "#FFFFFF",
+      "ratio": 21.0,
+      "display": "21.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "white on black, either order",
+      "foreground": "#FFFFFF",
+      "background": "#000000",
+      "ratio": 21.0,
+      "display": "21.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "a colour on itself",
+      "foreground": "#1649E2",
+      "background": "#1649E2",
+      "ratio": 1.0,
+      "display": "1.0",
+      "passesText": false,
+      "passesNonText": false
+    },
+    {
+      "name": "short hex",
+      "foreground": "#000",
+      "background": "#fff",
+      "ratio": 21.0,
+      "display": "21.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "no hash, lower case",
+      "foreground": "0b3d91",
+      "background": "#ffffff",
+      "ratio": 10.044994,
+      "display": "10.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "alpha pair ignored",
+      "foreground": "#0B3D9126",
+      "background": "#FFFFFF",
+      "ratio": 10.044994,
+      "display": "10.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "4.54:1, the lightest grey text that passes on white",
+      "foreground": "#767676",
+      "background": "#FFFFFF",
+      "ratio": 4.542225,
+      "display": "4.5",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "4.48:1 shows as 4.4, not 4.5",
+      "foreground": "#777777",
+      "background": "#FFFFFF",
+      "ratio": 4.478089,
+      "display": "4.4",
+      "passesText": false,
+      "passesNonText": true
+    },
+    {
+      "name": "just over 3:1 on white",
+      "foreground": "#949494",
+      "background": "#FFFFFF",
+      "ratio": 3.03347,
+      "display": "3.0",
+      "passesText": false,
+      "passesNonText": true
+    },
+    {
+      "name": "just under 3:1 on white",
+      "foreground": "#959595",
+      "background": "#FFFFFF",
+      "ratio": 2.995346,
+      "display": "2.9",
+      "passesText": false,
+      "passesNonText": false
+    },
+    {
+      "name": "white text on a pale yellow button",
+      "foreground": "#FFFFFF",
+      "background": "#FDE68A",
+      "ratio": 1.245385,
+      "display": "1.2",
+      "passesText": false,
+      "passesNonText": false
+    },
+    {
+      "name": "Default questions on its page",
+      "foreground": "#101828",
+      "background": "#F5F7FB",
+      "ratio": 16.546424,
+      "display": "16.5",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "Default borders on its page",
+      "foreground": "#818CA0",
+      "background": "#F5F7FB",
+      "ratio": 3.161975,
+      "display": "3.1",
+      "passesText": false,
+      "passesNonText": true
+    },
+    {
+      "name": "Leaflet button colour on white",
+      "foreground": "#0B3D91",
+      "background": "#FFFFFF",
+      "ratio": 10.044994,
+      "display": "10.0",
+      "passesText": true,
+      "passesNonText": true
+    },
+    {
+      "name": "Kantlijn borders on its page",
+      "foreground": "#7D8C84",
+      "background": "#F8EEEC",
+      "ratio": 3.094534,
+      "display": "3.0",
+      "passesText": false,
+      "passesNonText": true
+    },
+    {
+      "name": "a colour name is not hex",
+      "foreground": "white",
+      "background": "#000000",
+      "ratio": null,
+      "display": null,
+      "passesText": false,
+      "passesNonText": false
+    },
+    {
+      "name": "rgb() is not hex",
+      "foreground": "rgb(0,0,0)",
+      "background": "#FFFFFF",
+      "ratio": null,
+      "display": null,
+      "passesText": false,
+      "passesNonText": false
+    },
+    {
+      "name": "empty",
+      "foreground": "",
+      "background": "#FFFFFF",
+      "ratio": null,
+      "display": null,
+      "passesText": false,
+      "passesNonText": false
+    }
+  ],
+  "themes": [
+    {
+      "name": "preset Default",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#F5F7FB"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Paper",
+      "theme": {
+        "primary": "#292524",
+        "secondary": "#7C2D12",
+        "tertiary": "#78716C",
+        "accent": "#FAF6F0"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Leaflet",
+      "theme": {
+        "primary": "#1A1A1A",
+        "secondary": "#0B3D91",
+        "tertiary": "#6B7A99",
+        "accent": "#FFFFFF"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Ocean",
+      "theme": {
+        "primary": "#111827",
+        "secondary": "#1D4ED8",
+        "tertiary": "#2563EB",
+        "accent": "#DBEAFE"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Forest",
+      "theme": {
+        "primary": "#052E16",
+        "secondary": "#15803D",
+        "tertiary": "#16A34A",
+        "accent": "#DCFCE7"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Cherry",
+      "theme": {
+        "primary": "#450A0A",
+        "secondary": "#B91C1C",
+        "tertiary": "#DC2626",
+        "accent": "#FEE2E2"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Mono",
+      "theme": {
+        "primary": "#101826",
+        "secondary": "#101826",
+        "tertiary": "#767676",
+        "accent": "#FFFFFF"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Sunset",
+      "theme": {
+        "primary": "#431407",
+        "secondary": "#C2410C",
+        "tertiary": "#EA580C",
+        "accent": "#FFEDD5"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Lavender",
+      "theme": {
+        "primary": "#3B0764",
+        "secondary": "#7E22CE",
+        "tertiary": "#9333EA",
+        "accent": "#F3E8FF"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Slate",
+      "theme": {
+        "primary": "#111827",
+        "secondary": "#4B5563",
+        "tertiary": "#64748B",
+        "accent": "#F3F4F6"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Blossom",
+      "theme": {
+        "primary": "#500724",
+        "secondary": "#BE185D",
+        "tertiary": "#DB2777",
+        "accent": "#FCE7F3"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Twilight",
+      "theme": {
+        "primary": "#1E1B4B",
+        "secondary": "#4338CA",
+        "tertiary": "#4F46E5",
+        "accent": "#E0E7FF"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Honey",
+      "theme": {
+        "primary": "#422006",
+        "secondary": "#A16207",
+        "tertiary": "#B45309",
+        "accent": "#FEF3C7"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Mint",
+      "theme": {
+        "primary": "#042F2E",
+        "secondary": "#0F766E",
+        "tertiary": "#0D9488",
+        "accent": "#CCFBF1"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Sky",
+      "theme": {
+        "primary": "#083344",
+        "secondary": "#0E7490",
+        "tertiary": "#0891B2",
+        "accent": "#CFFAFE"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Rose",
+      "theme": {
+        "primary": "#4C0519",
+        "secondary": "#BE123C",
+        "tertiary": "#E11D48",
+        "accent": "#FFE4E6"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Kantlijn",
+      "theme": {
+        "primary": "#16261F",
+        "secondary": "#1E4D3B",
+        "tertiary": "#7D8C84",
+        "accent": "#F8EEEC",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin",
+          "artwork": "marble"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Raster",
+      "theme": {
+        "primary": "#0E0E14",
+        "secondary": "#2B2FD1",
+        "tertiary": "#6D7083",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "columns"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "pale on white",
+      "theme": {
+        "primary": "#9CA3AF",
+        "secondary": "#FDE68A",
+        "tertiary": "#E5E7EB",
+        "accent": "#FFFFFF"
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "answer",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "button",
+          "ratio": 1.245385,
+          "display": "1.2",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.238091,
+          "display": "1.2",
+          "minimum": 3.0
+        },
+        {
+          "key": "action",
+          "ratio": 1.245385,
+          "display": "1.2",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#6C7586",
+        "secondary": "#866B02",
+        "tertiary": "#8791A3"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "pastel text and borders",
+      "theme": {
+        "primary": "#9CA3AF",
+        "secondary": "#1649E2",
+        "tertiary": "#E5E7EB",
+        "accent": "#FFFFFF"
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "answer",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.238091,
+          "display": "1.2",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#6C7586",
+        "tertiary": "#8791A3"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "only the yellow button fails",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#FDE68A",
+        "tertiary": "#818CA0",
+        "accent": "#FFFFFF"
+      },
+      "issues": [
+        {
+          "key": "button",
+          "ratio": 1.245385,
+          "display": "1.2",
+          "minimum": 4.5
+        },
+        {
+          "key": "action",
+          "ratio": 1.245385,
+          "display": "1.2",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "secondary": "#866B02"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "light ink on a dark page",
+      "theme": {
+        "primary": "#F9FAFB",
+        "secondary": "#60A5FA",
+        "tertiary": "#374151",
+        "accent": "#111827"
+      },
+      "issues": [
+        {
+          "key": "answer",
+          "ratio": 1.045026,
+          "display": "1.0",
+          "minimum": 4.5
+        },
+        {
+          "key": "button",
+          "ratio": 2.542423,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.721073,
+          "display": "1.7",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#4E6174",
+        "secondary": "#076EED",
+        "accent": "#DBDCDF"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "mid grey ground",
+      "theme": {
+        "primary": "#777777",
+        "secondary": "#888888",
+        "tertiary": "#999999",
+        "accent": "#808080"
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 1.133854,
+          "display": "1.1",
+          "minimum": 4.5
+        },
+        {
+          "key": "answer",
+          "ratio": 4.478089,
+          "display": "4.4",
+          "minimum": 4.5
+        },
+        {
+          "key": "button",
+          "ratio": 3.544886,
+          "display": "3.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.386241,
+          "display": "1.3",
+          "minimum": 3.0
+        },
+        {
+          "key": "action",
+          "ratio": 1.114123,
+          "display": "1.1",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#171717",
+        "secondary": "#353535",
+        "tertiary": "#E5E5E5"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "saturated ground",
+      "theme": {
+        "primary": "#FFFFFF",
+        "secondary": "#FF0000",
+        "tertiary": "#00FF00",
+        "accent": "#0000FF"
+      },
+      "issues": [
+        {
+          "key": "answer",
+          "ratio": 1.0,
+          "display": "1.0",
+          "minimum": 4.5
+        },
+        {
+          "key": "button",
+          "ratio": 3.998477,
+          "display": "3.9",
+          "minimum": 4.5
+        },
+        {
+          "key": "action",
+          "ratio": 2.148936,
+          "display": "2.1",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#606060",
+        "secondary": "#E60000",
+        "tertiary": "#008C00",
+        "accent": "#D9D9FF"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "lower-case hex that passes",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649e2",
+        "tertiary": "#818ca0",
+        "accent": "#f5f7fb"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "gradient with a dark stop",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#101828",
+          "gradientAngle": 180
+        }
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 1.0,
+          "display": "1.0",
+          "minimum": 4.5
+        },
+        {
+          "key": "action",
+          "ratio": 2.607338,
+          "display": "2.6",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "tertiary": "#6C788F",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#DBDCDF",
+          "gradientAngle": 180
+        }
+      },
+      "imageGround": false
+    },
+    {
+      "name": "gradient of pale stops",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#F5F7FB",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#F5F7FB",
+          "gradientTo": "#E0E7FF"
+        }
+      },
+      "issues": [
+        {
+          "key": "border",
+          "ratio": 2.752435,
+          "display": "2.7",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "tertiary": "#7A859B"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "image page: only the input boxes and buttons are measured",
+      "theme": {
+        "primary": "#FFFFFF",
+        "secondary": "#1649E2",
+        "tertiary": "#FFFFFF",
+        "accent": "#000000",
+        "background": {
+          "type": "image",
+          "imageUrl": "/api/v1/media/a.png"
+        }
+      },
+      "issues": [
+        {
+          "key": "answer",
+          "ratio": 1.0,
+          "display": "1.0",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "primary": "#737373"
+      },
+      "imageGround": true
+    },
+    {
+      "name": "image page with readable colours",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#F5F7FB",
+        "background": {
+          "type": "image",
+          "imageUrl": "/api/v1/media/a.png"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": true
+    },
+    {
+      "name": "margin sheet holds borders to the same rules",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#F0F0F0",
+        "accent": "#1E4D3B",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin"
+        }
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 1.842188,
+          "display": "1.8",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.139611,
+          "display": "1.1",
+          "minimum": 3.0
+        },
+        {
+          "key": "action",
+          "ratio": 1.415348,
+          "display": "1.4",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "tertiary": "#7D7D7D",
+        "accent": "#DDE4E2"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "another pattern adds no sheet",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#818CA0",
+        "accent": "#F5F7FB",
+        "background": {
+          "type": "pattern",
+          "pattern": "dots"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    }
+  ]
+}

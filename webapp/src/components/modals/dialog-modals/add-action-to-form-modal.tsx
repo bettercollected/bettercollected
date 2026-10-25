@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/components/modal-views/context';
 import { googleFormsImport } from '@app/constants/locales/google-forms-import';
+import { sheetsReconnect } from '@app/constants/locales/sheets-reconnect';
 import { googleFormsRefusal, useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { IntegrationType } from '@app/models/enums/integration-type';
 import { AppInput } from '@app/shadcn/components/ui/input';
@@ -21,7 +22,7 @@ import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUr
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Image from 'next/image';
 
-export default function AddActionToFormModal({ action, form, ...props }: any) {
+export default function AddActionToFormModal({ action, form, reconnect = false, ...props }: any) {
     const { toast } = useToast();
     const { closeModal } = useModal();
     const [addActionToForm, { isLoading }] = useAddActionToFormMutation();
@@ -48,6 +49,14 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
             setParameters({ ['Receiving Mail Address']: user.email });
         } else if (action.name === IntegrationType.GoogleSheet) {
             setShowIntegrationConsent(true);
+            if (reconnect) {
+                // Reconnecting an action already on the form: keep its sheet title.
+                const current: Record<string, string> = {};
+                form?.parameters?.[action.id]?.forEach((param: any) => {
+                    if (action?.parameters?.some((p: any) => p.required && p.name === param.name)) current[param.name] = param.value;
+                });
+                setParameters(current);
+            }
         }
     }, [action]);
 
@@ -83,7 +92,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
 
     if (showIntegrationConsent) {
         return (
-            <HeaderModalWrapper headerTitle="Add Google Sheets to form">
+            <HeaderModalWrapper headerTitle={reconnect ? t(sheetsReconnect.button) : 'Add Google Sheets to form'}>
                 <div className="relative flex flex-col rounded p-8 md:min-w-[400px]">
                     <div className="mb-6 flex justify-center">
                         <Image src={action?.url || '/integration/default.svg'} alt="Google Sheets Icon" width={80} height={80} />

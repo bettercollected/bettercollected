@@ -959,6 +959,11 @@ async def test_integrity_reports_a_credential_purge_pending_for_a_day(
         ("delete_user", "failed", 1, True),
         ("delete_user", "doing", 30, True),
         ("purge_provider_credentials", "succeeded", 30, False),
+        # a replaced Google Sheets grant not revoked at Google
+        ("revoke_google_grant", "failed", 1, True),
+        ("revoke_google_grant", "todo", 25, True),
+        ("revoke_google_grant", "todo", 1, False),
+        ("revoke_google_grant", "succeeded", 30, False),
         ("delete_response", "failed", 30, False),
     ],
 )

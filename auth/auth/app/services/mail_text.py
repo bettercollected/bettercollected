@@ -57,6 +57,15 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "update_sign_in": "Sign in to see it.",
         "update_button": "View your submission",
         "update_why": "You are receiving this because you submitted this form with your verified email address. If the button does not work, open",
+        # Google Sheets reconnect (a grant from before drive.file)
+        "sheets_subject": "Reconnect Google Sheets for one of your forms",
+        "sheets_heading": "Reconnect Google Sheets",
+        "sheets_intro": "The Google Sheets connection of this form must be renewed:",
+        "sheets_in_workspace": "in the workspace",
+        "sheets_why": "It was set up with access to all files in your Google Drive. We now only ask for access to the spreadsheets that {product} creates for you.",
+        "sheets_paused": "Until you reconnect, new submissions are not added to the spreadsheet. They are still saved in {product}, so nothing is lost.",
+        "sheets_button": "Reconnect Google Sheets",
+        "sheets_why_you": "You are receiving this because you own the plan of this workspace. If the button does not work, open",
     },
     "nl": {
         "footer_rights": "Alle rechten voorbehouden.",
@@ -87,6 +96,14 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "update_sign_in": "Log in om die te lezen.",
         "update_button": "Bekijk je inzending",
         "update_why": "Je krijgt deze e-mail omdat je dit formulier hebt ingevuld met je bevestigde e-mailadres. Werkt de knop niet? Open dan",
+        "sheets_subject": "Koppel Google Sheets opnieuw voor een van je formulieren",
+        "sheets_heading": "Koppel Google Sheets opnieuw",
+        "sheets_intro": "De koppeling met Google Sheets van dit formulier moet opnieuw worden gemaakt:",
+        "sheets_in_workspace": "in de werkruimte",
+        "sheets_why": "De koppeling had toegang tot alle bestanden in je Google Drive. We vragen nu alleen toegang tot de spreadsheets die {product} voor je maakt.",
+        "sheets_paused": "Tot je opnieuw koppelt, komen nieuwe inzendingen niet in de spreadsheet. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
+        "sheets_button": "Google Sheets opnieuw koppelen",
+        "sheets_why_you": "Je krijgt deze e-mail omdat het abonnement van deze werkruimte op jouw naam staat. Werkt de knop niet? Open dan",
     },
 }
 

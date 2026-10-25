@@ -1,4 +1,9 @@
 {
+  "A11Y": {
+    "MORE_ACTIONS": "More actions",
+    "MORE_ACTIONS_FOR": "More actions for {{name}}",
+    "TURN_ON_OFF": "Turn {{name}} on or off"
+  },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Are you sure you want to delete Account?",
     "POINT_1": "All your workspace will be deleted.",
@@ -622,6 +627,13 @@
   "SHARE_THIS_FORM": "Share this form",
   "SHARE_WORKSPACE": "Share Workspace",
   "SHARE_YOUR_WORKSPACE": "Share your workspace",
+  "SHEETS_RECONNECT": {
+    "BADGE": "Reconnect needed",
+    "TITLE": "New responses are not reaching Google Sheets",
+    "DESCRIPTION": "This connection uses an older Google permission that could see every file in your Google Drive. We no longer use it. Reconnect Google Sheets to send new responses again. The new connection can only use sheets that bettercollected creates.",
+    "NEW_SHEET": "Reconnecting creates a new sheet for new responses. Your current sheet stays in your Google Drive.",
+    "BUTTON": "Reconnect Google Sheets"
+  },
   "SIGNIN_SCREEN": {
     "EMAIL_INPUT_LABEL": "Email",
     "COLLECT_FORMS": "Collect your forms",

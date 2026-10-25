@@ -175,6 +175,30 @@ def test_mongo_takes_a_generated_root_password_on_a_new_volume():
     assert "BC_MONGO_ROOT_PASSWORD" in DEPLOY and "seed_setting MONGO_URI" in DEPLOY
 
 
+def test_mongo_runs_only_under_the_legacy_mongo_profile():
+    """4.1 serves everything from Postgres: MongoDB (and the job that cleans its old
+    seed account) start only under the legacy-mongo profile, which deploy.sh uses for
+    the one-time import of a 4.0 stack. Nothing depends on it, so `up` never starts
+    it, and the backend and its job worker default to Postgres for every group."""
+    for name in ("mongodb", "mongo-seed"):
+        assert SERVICES[name].get("profiles") == ["legacy-mongo"], name
+    profiled = sorted(name for name, body in SERVICES.items() if body.get("profiles"))
+    assert profiled == ["mongo-seed", "mongodb"]
+    for name, body in SERVICES.items():
+        if name != "mongo-seed":
+            assert "mongodb" not in (body.get("depends_on") or {}), name
+    # the volume stays declared: an upgraded stack keeps its data
+    assert "mongo-data" in COMPOSE["volumes"]
+    for name in ("backend", "jobs-worker"):
+        assert _env(name)["DB_READ_SOURCE"] == "${DB_READ_SOURCE:-postgres}", name
+        assert _env(name)["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}", name
+    assert _env("task-runner")["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}"
+    # deploy.sh starts MongoDB through the profile only, never by name in the start list
+    assert '--profile legacy-mongo "$@"' in DEPLOY
+    start_list = DEPLOY.split("services_to_start=(", 1)[1].split(")", 1)[0]
+    assert "mongo" not in start_list
+
+
 def test_no_literal_credential_is_left_in_the_compose_file():
     """Every password, secret or key in an environment is a substitution; the
     ones with a default (`:-root`, `:-temporal`, `:-umami`) keep the password an
@@ -688,7 +712,7 @@ def test_the_service_env_files_deploy_sh_writes_are_the_only_extra_input(tmp_pat
 
 
 @pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
-@pytest.mark.parametrize("preference", ["", "both", "typeform", "googleform"])
+@pytest.mark.parametrize("preference", ["", "googleform"])
 def test_up_starts_every_required_service_for_every_preference(tmp_path, preference):
     """What `./deploy.sh [preference]` hands to `docker compose up -d`, run through
     `up --dry-run`: every service the stack needs is created. A service that is not named
@@ -729,12 +753,30 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
         created.add(name)
         todo.extend(services[name].get("depends_on") or {})
     required = {
-        "mongodb", "mongo-seed", "webapp", "nginx", "backend", "auth", "postgresql", "temporal", "worker",
+        "webapp", "nginx", "backend", "auth", "postgresql", "temporal", "worker",
         "umami-postgresql", "umami", "app-postgres", "admin", "jobs-worker", "document-sandbox", "task-runner",
     }
     assert required <= created, sorted(required - created)
-    # both and typeform are pre-4.1 preferences: Typeform itself is gone
-    extra = {"both": {"integrations-googleform"}, "typeform": set(),
-             "googleform": {"integrations-googleform"}, "": set()}[preference]
+    # MongoDB is not part of a 4.1 stack (the legacy-mongo profile starts it for the import only)
+    assert not {"mongodb", "mongo-seed"} & created
+    # typeform and both (pre-4.1 preferences) are refused by deploy.sh
+    extra = {"googleform": {"integrations-googleform"}, "": set()}[preference]
     assert extra <= created
     assert ("integrations-googleform" in created) == ("integrations-googleform" in extra)
+
+
+@pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
+def test_a_new_stack_runs_the_backend_its_worker_and_the_task_runner_on_postgres(tmp_path):
+    """No DB_* value anywhere (a new stack): the backend, the jobs worker and the task
+    runner get Postgres, so nothing needs a MongoDB (the runner's `stores: auto` included).
+    An upgraded stack starts its services only after the import has run."""
+    shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
+    shutil.copy(ROOT / ".env.deployment.example", tmp_path / ".env.deployment")
+    rendered = _render(tmp_path)
+    for name in ("backend", "jobs-worker"):
+        env = rendered[name]["environment"]
+        assert (env["DB_READ_SOURCE"], env["DB_WRITE_MODE"]) == ("postgres", "postgres"), name
+        assert not env.get("MONGO_URI"), name
+    assert rendered["task-runner"]["environment"]["DB_WRITE_MODE"] == "postgres"
+    assert not rendered["task-runner"]["environment"].get("MONGO_URI")
+    assert "mongodb" not in rendered

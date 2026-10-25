@@ -6,7 +6,7 @@ import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { moveOnFrom } from '@app/utils/scroll-utils';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { cn } from '@app/shadcn/util/lib';
@@ -37,7 +37,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
         addFieldChoiceAnswer(field.id, item);
         if (!moveOn) return;
         setTimeout(() => {
-            if (standardForm?.fields?.[slideIndex]?.properties?.fields?.length !== field.index + 1) scrollToDivById(standardForm?.fields?.[slideIndex]?.properties?.fields?.[field.index + 1]?.id);
+            if (standardForm?.fields?.[slideIndex]?.properties?.fields?.length !== field.index + 1) moveOnFrom(field.id, standardForm?.fields?.[slideIndex]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
     };
 

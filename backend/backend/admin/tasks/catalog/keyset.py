@@ -126,10 +126,10 @@ class DropOldParams(_RotationParams):
     # operator states that Mongo is retired (mongo_retired below).
 
     # A signed, audited statement that no service writes Mongo any more: the
-    # scan then covers Postgres alone. Refused unless the runner's DB_WRITE_MODE,
-    # DB_WRITE_MODE__RESPONSES and DB_WRITE_MODE__GOOGLE all say postgres, and
-    # while any live backend or Google instance reports writing Mongo (or does
-    # not report its write stores).
+    # scan then covers Postgres alone. Refused unless the runner's DB_WRITE_MODE
+    # and DB_WRITE_MODE__RESPONSES both say postgres (the Google group is
+    # Postgres only since 4.1), and while any live backend or Google instance
+    # reports writing Mongo (or does not report its write stores).
     mongo_retired: Annotated[
         bool,
         Field(
