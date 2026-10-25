@@ -26,6 +26,7 @@ from utilities.form import (
     sheet_title_for,
 )
 from utilities.mail import response_mail_context
+from utilities.smtp_group import merge_layers, smtp_overridden, smtp_settings
 from settings.application import settings
 
 
@@ -62,38 +63,40 @@ async def run_action(
                 )
             return None, None
 
-        extra_data = {}
-
-        # Process action data
-        action_data = action.get(key, [])
-        if action_data is not None:
-            for item in action_data:
-                name, value = process_item(item, key == "secrets")
+        def collect(items, decrypt) -> Dict[str, str]:
+            values = {}
+            for item in items or []:
+                name, value = process_item(item, decrypt)
                 if name is not None:
-                    extra_data[name] = value
+                    values[name] = value
+            return values
 
-        # process workspace data
+        decrypt = key == "secrets"
+        action_id = action.get("id")
+
+        # the action's own values (the instance's defaults)
+        action_values = collect(action.get(key, []), decrypt)
+
+        # the workspace's overrides
         workspace_data = workspace.get(key, {})
-        if workspace_data is not None:
-            overriding_data = workspace_data.get(action.get("id"), [])
-            overriding_data = [] if overriding_data is None else overriding_data
+        workspace_values = collect(
+            (workspace_data or {}).get(action_id, []) if workspace_data else [],
+            decrypt,
+        )
 
-            for overriding_item in overriding_data:
-                name, value = process_item(overriding_item, key == "secrets")
-                if name is not None:
-                    extra_data[name] = value
-
-        # Process form data
+        # the form's overrides
         form_data = form.get(key, {})
+        form_values = collect(
+            (form_data or {}).get(action_id, []) if form_data else [], decrypt
+        )
 
-        if form_data is not None:
-            overriding_data = form_data.get(action.get("id"), [])
-            for overriding_item in overriding_data:
-                name, value = process_item(overriding_item, key == "secrets")
-                if name is not None:
-                    extra_data[name] = value
-
-        return extra_data
+        # the SMTP settings come from one side only, never name by name
+        return merge_layers(
+            action_values,
+            workspace_values,
+            form_values,
+            smtp_overridden(action, workspace, form),
+        )
 
     def get_parameters() -> Dict[str, str]:
         return get_extra_data("parameters")
@@ -352,11 +355,9 @@ async def run_action(
         workspace = get_workspace_details()
 
         if response.get("dataOwnerIdentifier"):
-            username = get_parameter("Username")
-            password = get_secret("Password")
-            sender = get_parameter("Sender")
-            port = int(get_parameter("Port"))
-            server = get_parameter("server")
+            username, password, sender, port, server = smtp_settings(
+                get_parameters(), get_secrets()
+            )
             from_name = workspace.get("title", "")
 
             mail_config = config_mail(
@@ -375,11 +376,9 @@ async def run_action(
         receiving_mail = get_parameter("Receiving Mail Address")
 
         if receiving_mail:
-            username = get_parameter("Username")
-            password = get_secret("Password")
-            sender = get_parameter("Sender")
-            port = int(get_parameter("Port"))
-            server = get_parameter("server")
+            username, password, sender, port, server = smtp_settings(
+                get_parameters(), get_secrets()
+            )
 
             mail_config = config_mail(username, password, sender, port, server)
 
