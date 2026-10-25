@@ -230,11 +230,16 @@ async def test_backfill_form_renders_typed_fields(ctx):
     assert ">Run</button>" in check and "Apply..." not in check
 
 
+async def test_the_case_duplicates_task_has_a_dry_run_and_an_apply(ctx):
+    html = (await ctx.b.get("/tasks/auth.resolve_case_duplicate_accounts")).text
+    assert "Dry run" in html and "Apply..." in html
+
+
 def test_form_fields_cover_every_registered_meta():
     for meta in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "1"}):
         fields = taskform.fields_for(meta)
         assert all(f.supported for f in fields), meta.name
-        assert fields or meta.name == "keyset.add_key"
+        assert fields or meta.name in ("keyset.add_key", "auth.resolve_case_duplicate_accounts")
         assert taskform.can_submit(fields)
     kinds = {f.name: f.kind for f in taskform.fields_for(responses_backfill.META)}
     assert kinds == {"stores": "enum", "batch_size": "int", "workspace_id": "text", "form_ids": "lines"}

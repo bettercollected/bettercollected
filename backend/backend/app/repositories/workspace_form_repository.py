@@ -343,6 +343,16 @@ class WorkspaceFormRepository:
         ).to_list()
         return [form.form_id for form in forms]
 
+    async def count_forms_of_account(
+        self, workspace_ids: List[PydanticObjectId], user_id: str
+    ) -> int:
+        """Distinct forms in ``workspace_ids`` (the workspaces an account
+        owns) or imported by ``user_id``: the forms its deletion would take."""
+        forms = await WorkspaceFormDocument.find(
+            {"$or": [{"workspace_id": {"$in": workspace_ids}}, {"user_id": user_id}]}
+        ).to_list()
+        return len({form.form_id for form in forms})
+
     @write_op
     async def delete_forms(self, form_ids):
         return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()

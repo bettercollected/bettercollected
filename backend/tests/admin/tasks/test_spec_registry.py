@@ -186,7 +186,7 @@ KEYSET = [
     "keyset.verify",
     "keyset.drop_old",
 ]
-GOOGLE = ["google.purge_unencrypted_credentials"]
+GOOGLE = ["google.purge_unencrypted_credentials", "auth.resolve_case_duplicate_accounts"]
 REAL = sorted(
     ["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET, *GOOGLE]
 )

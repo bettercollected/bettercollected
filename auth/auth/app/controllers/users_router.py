@@ -38,6 +38,13 @@ class UserRouter(Routable):
         users_info = await self.user_service.get_users_info_from_emails(emails=emails)
         return {"users_info": users_info}
 
+    @get("/case-duplicates")
+    async def case_duplicate_groups(self):
+        """The accounts whose emails are equal ignoring case, grouped: ids
+        only (the admin task ``auth.resolve_case_duplicate_accounts`` reads
+        them through the backend). Internal key only, like every route here."""
+        return {"groups": await self.user_service.case_duplicate_groups()}
+
     @get("/invite/send/mail")
     async def send_mail_to_user_for_invitation(
         self,

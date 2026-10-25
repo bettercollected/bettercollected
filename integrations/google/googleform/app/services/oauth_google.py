@@ -466,27 +466,35 @@ class OauthGoogleService:
 
     async def delete_oauth_credentials_for_user(self, email: EmailStr, user_id: str):
         """Erase the user's stored credentials (account deletion). In
-        GOOGLE_FORMS_IMPORT=on and readonly the grant is revoked at Google
-        first: one call that ends our access, not further processing. In off
-        nothing calls Google. The local delete happens whatever the
-        revocation's outcome."""
+        GOOGLE_FORMS_IMPORT=on and readonly the grants of the rows erased are
+        revoked at Google first: one call each that ends our access, not
+        further processing; a grant another account also holds is left alone
+        (``credentials_to_revoke``). In off nothing calls Google. The local
+        delete happens whatever the revocation's outcome."""
         if google_forms_import_mode() != "off":
-            await self._revoke_stored_grant(email)
+            await self._revoke_stored_grants(email, user_id)
         return await self.oauth_credential_repo.delete_oauth_credential_for_user(
             email=email, user_id=user_id
         )
 
-    async def _revoke_stored_grant(self, email: EmailStr) -> None:
-        """POST the stored refresh token (or else the access token) to Google's
-        revocation endpoint. Best effort; logs ids and the status only."""
-        if not email:
+    async def _revoke_stored_grants(self, email: EmailStr, user_id: str) -> None:
+        """POST each stored refresh token (or else the access token) of the
+        account's own rows to Google's revocation endpoint. Best effort; logs
+        ids and the status only."""
+        if not email and not user_id:
             return
         try:
-            credential = await self.oauth_credential_repo.get(email=email)
+            credentials = await self.oauth_credential_repo.credentials_to_revoke(
+                email=email, user_id=user_id
+            )
         except Exception as exc:  # noqa: BLE001 - never blocks the erasure
             log.warning("credential revocation skipped: not readable (%s)", type(exc).__name__)
             return
-        tokens = getattr(credential, "credentials", None) if credential else None
+        for credential in credentials:
+            await self._revoke(credential)
+
+    async def _revoke(self, credential) -> None:
+        tokens = getattr(credential, "credentials", None)
         token = tokens and (tokens.refresh_token or tokens.token)
         if not token:
             return

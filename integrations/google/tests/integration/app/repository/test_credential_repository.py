@@ -1,5 +1,6 @@
 """The google credential repository (Postgres only): stored encrypted,
-handed out decrypted, updated in place and erased by email or user id.
+handed out decrypted, updated in place and erased by user id (by email
+only the legacy rows without one).
 
 Postgres is the test database named by DATABASE_URL; no Mongo is used.
 """
@@ -63,9 +64,9 @@ async def test_an_update_stores_ciphertext_and_returns_plaintext(repo):
 
 
 @pytest.mark.parametrize(
-    "email,user_id", [("a@example.com", "other"), ("other@example.com", "u1")]
+    "email,user_id", [("a@example.com", "u1"), ("other@example.com", "u1")]
 )
-async def test_an_erasure_matches_the_email_or_the_user_id(repo, email, user_id):
+async def test_an_erasure_matches_the_user_id(repo, email, user_id):
     await repo.add("a@example.com", CREDS, user_id="u1")
     await repo.add("b@example.com", CREDS, user_id="u2")
 
@@ -73,6 +74,40 @@ async def test_an_erasure_matches_the_email_or_the_user_id(repo, email, user_id)
 
     assert await repo.get("a@example.com") is None
     assert (await repo.get("b@example.com")).user_id == "u2"
+
+
+async def test_an_erasure_by_email_alone_leaves_another_accounts_row(repo):
+    """The email matches only legacy rows without a user id: a row that
+    belongs to another account (same address) is not the caller's to erase."""
+    await repo.add("a@example.com", CREDS, user_id="u1")
+
+    assert not await repo.delete_oauth_credential_for_user("a@example.com", "other")
+
+    assert (await repo.get("a@example.com")).user_id == "u1"
+
+
+async def test_deleting_an_account_keeps_its_case_variants_credential(repo):
+    """Two accounts whose emails differ only in case, both connected to the
+    same Google account (the credential holds Google's spelling of the
+    address): deleting one account's credentials, by its user id, leaves the
+    other's. A legacy row without a user id still goes by its exact email."""
+    await repo.add("pat@example.com", CREDS, user_id="keeper")
+    await repo.add("pat@example.com", CREDS, user_id="dropped")
+    for legacy in (
+        {"email": "pat@example.com"},
+        {"email": "pat@example.com", "user_id": ""},
+    ):
+        await repo.save(Oauth2CredentialDocument(**legacy))
+    await repo.save(Oauth2CredentialDocument(email="Pat@example.com"))
+
+    await repo.delete_oauth_credential_for_user("pat@example.com", "dropped")
+    left = sorted((d.user_id or "", d.email) for d in await repo.list_all())
+    # the keeper's own row and a legacy row of another spelling stay
+    assert left == [("", "Pat@example.com"), ("keeper", "pat@example.com")]
+
+    # an empty user id never matches every legacy row
+    await repo.delete_oauth_credential_for_user("nobody@example.com", "")
+    assert len(await repo.list_all()) == 2
 
 
 async def test_save_stores_a_listed_document_as_it_is(repo):
@@ -149,3 +184,93 @@ async def test_an_update_without_a_stored_row_writes_nothing(repo):
 
     assert result.credentials.token == "new"
     assert await stored_rows() == []
+
+
+# -- revocation at Google on erasure: only the account's own, unshared grants --
+
+
+def _service(repo):
+    from googleform.app.services.oauth_google import OauthGoogleService
+
+    service = OauthGoogleService.__new__(OauthGoogleService)
+    service.oauth_credential_repo = repo
+    return service
+
+
+@pytest.fixture()
+def revoked(monkeypatch):
+    """The refresh tokens POSTed to Google's revocation endpoint."""
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, patch
+
+    from googleform.config import settings
+
+    monkeypatch.setattr(settings, "GOOGLE_FORMS_IMPORT", "on")
+    tokens = []
+
+    async def post(url, data, headers):
+        assert url == settings.GOOGLE_REVOKE_CREDENTIALS_URL
+        tokens.append(data["token"])
+        return SimpleNamespace(status=200)
+
+    with patch(
+        "googleform.app.services.oauth_google.AiohttpClient.post",
+        AsyncMock(side_effect=post),
+    ):
+        yield tokens
+
+
+def _creds(refresh):
+    return {**CREDS, "refresh_token": refresh}
+
+
+async def test_deleting_b_never_revokes_a_grant_that_a_also_holds(repo, revoked):
+    """A and B (emails differ only in case) connected the same Google
+    account: revoking B's token would end A's grant at Google too, so nothing
+    is revoked; B's row is still deleted, A's stays."""
+    await repo.add("pat@example.com", _creds("refresh-a"), user_id="a")
+    await repo.add("Pat@example.com", _creds("refresh-b"), user_id="b")
+
+    await _service(repo).delete_oauth_credentials_for_user("Pat@example.com", "b")
+
+    assert revoked == []
+    left = [(d.user_id, d.email) for d in await repo.list_all()]
+    assert left == [("a", "pat@example.com")]
+
+
+async def test_the_accounts_own_unshared_grant_is_revoked(repo, revoked):
+    await repo.add("pat@example.com", _creds("refresh-a"), user_id="a")
+    await repo.add("bo@example.com", _creds("refresh-b"), user_id="b")
+
+    await _service(repo).delete_oauth_credentials_for_user("bo@example.com", "b")
+
+    assert revoked == ["refresh-b"]
+    assert [d.user_id for d in await repo.list_all()] == ["a"]
+
+
+async def test_a_legacy_row_is_revoked_only_when_no_other_account_shares_it(
+    repo, revoked
+):
+    """Legacy rows (no user id) are erased by exact email; their grant is
+    revoked only while no other account holds a credential for that Google
+    address."""
+    legacy = Oauth2CredentialDocument(
+        email="kim@example.com",
+        credentials=GoogleCredentialResponse(**_creds("refresh-legacy")),
+    )
+    await repo.save(legacy)
+    await repo.add("Kim@example.com", _creds("refresh-other"), user_id="other")
+
+    await _service(repo).delete_oauth_credentials_for_user("kim@example.com", "b")
+    assert revoked == []  # "other" holds the same Google address
+    assert [d.user_id for d in await repo.list_all()] == ["other"]
+
+    await repo.save(
+        Oauth2CredentialDocument(
+            email="lee@example.com",
+            credentials=GoogleCredentialResponse(**_creds("refresh-lee")),
+        )
+    )
+    await _service(repo).delete_oauth_credentials_for_user("lee@example.com", "c")
+    assert revoked == ["refresh-lee"]
+    assert [d.user_id for d in await repo.list_all()] == ["other"]

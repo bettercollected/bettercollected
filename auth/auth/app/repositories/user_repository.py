@@ -177,6 +177,23 @@ class UserRepository(RecordRepository):
     async def delete_user(self, user_id: RecordId):
         return await self.delete_by_id(user_id)
 
+    async def case_duplicate_groups(self) -> List[List[str]]:
+        """The ids of the accounts whose emails are equal ignoring case, one
+        sorted list per address holding two or more; ids only, never an email.
+        ``uq_users_email_lower`` (revision 0005) keeps new ones out, so this is
+        empty unless rows came in before that index existed."""
+        ids = func.array_agg(UserRow.id)
+        async with self._session() as session:
+            rows = (
+                await session.execute(
+                    select(ids)
+                    .where(UserRow.email.is_not(None))
+                    .group_by(func.lower(UserRow.email))
+                    .having(func.count() > 1)
+                )
+            ).all()
+        return sorted(sorted(str(i) for i in row[0]) for row in rows)
+
     # -- platform metrics (admin dashboard) ------------------------------------
     # Users are dated by id (some documents have no created_at).
     async def count_users(

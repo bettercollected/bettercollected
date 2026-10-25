@@ -973,6 +973,17 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         )
         return [form.form_id for form in forms]
 
+    async def count_forms_of_account(
+        self, workspace_ids: List[PydanticObjectId], user_id: str
+    ) -> int:
+        forms = await self.many(
+            or_(
+                WorkspaceFormRow.workspace_id.in_([_oid(i) for i in workspace_ids]),
+                WorkspaceFormRow.user_id == user_id,
+            )
+        )
+        return len({form.form_id for form in forms})
+
     async def delete_forms(self, form_ids):
         return await self.delete_where(WorkspaceFormRow.form_id.in_(list(form_ids)))
 

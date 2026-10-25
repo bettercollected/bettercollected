@@ -17,7 +17,9 @@ pytestmark = pytest.mark.asyncio
 
 def _service(credential):
     repo = MagicMock()
-    repo.get = AsyncMock(return_value=credential)
+    repo.credentials_to_revoke = AsyncMock(
+        return_value=[] if credential is None else [credential]
+    )
     repo.delete_oauth_credential_for_user = AsyncMock(return_value=1)
     service = OauthGoogleService.__new__(OauthGoogleService)
     service.oauth_credential_repo = repo
@@ -53,6 +55,9 @@ async def test_on_and_readonly_revoke_the_refresh_token_then_delete(mode, revoke
     await service.delete_oauth_credentials_for_user(email="a@example.com", user_id="u1")
 
     assert revoke.await_count == 1
+    repo.credentials_to_revoke.assert_awaited_once_with(
+        email="a@example.com", user_id="u1"
+    )
     assert revoke.await_args.args[0] == settings.GOOGLE_REVOKE_CREDENTIALS_URL
     assert revoke.await_args.kwargs["data"] == {"token": "refresh-1"}
     repo.delete_oauth_credential_for_user.assert_awaited_once_with(
@@ -74,7 +79,7 @@ async def test_off_makes_no_call_to_google(mode, revoke):
     await service.delete_oauth_credentials_for_user(email="a@example.com", user_id="u1")
 
     revoke.assert_not_awaited()
-    repo.get.assert_not_awaited()
+    repo.credentials_to_revoke.assert_not_awaited()
     repo.delete_oauth_credential_for_user.assert_awaited_once()
 
 
@@ -116,4 +121,17 @@ async def test_nothing_stored_means_no_call(mode, revoke):
     service, repo = _service(None)
     await service.delete_oauth_credentials_for_user(email="a@example.com", user_id="u1")
     revoke.assert_not_awaited()
+    repo.delete_oauth_credential_for_user.assert_awaited_once()
+
+
+async def test_every_revocable_row_of_the_account_is_revoked(mode, revoke):
+    mode("on")
+    service, repo = _service(None)
+    repo.credentials_to_revoke.return_value = [
+        _credential(refresh="refresh-1"),
+        _credential(refresh="refresh-2"),
+    ]
+    await service.delete_oauth_credentials_for_user(email="a@example.com", user_id="u1")
+    tokens = [call.kwargs["data"]["token"] for call in revoke.await_args_list]
+    assert tokens == ["refresh-1", "refresh-2"]
     repo.delete_oauth_credential_for_user.assert_awaited_once()
