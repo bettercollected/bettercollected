@@ -71,3 +71,20 @@ def test_echo_free_removes_nested_strings_and_short_quoted_ones_only():
     assert echo_free("saw tokensecret here", {"k": ["tokensecret"]}) == "saw … here"
     assert echo_free("no input", None) == "no input"
     assert echo_free("x", 5) == "x"
+
+
+def test_echo_free_removes_whole_tokens_only():
+    # a submitted value inside a longer word leaves the word alone
+    assert echo_free("format is not valid", "mat") == "format is not valid"
+    assert echo_free("the table is not a tab", ["tab"]) == "the table is not a …"
+    assert echo_free("pattern_x and x_pattern", "pattern") == "pattern_x and x_pattern"
+    # at the ends of the message, next to punctuation and quotes, it still goes
+    assert echo_free("secret", "secret") == "…"
+    assert echo_free("bad (secret), secret.", "secret") == "bad (…), …."
+    assert echo_free("saw 'tokensecret' here", "tokensecret") == "saw '…' here"
+    # values with punctuation of their own, and several at once, longest first
+    assert echo_free("rejected p@ss!w0rd and p@ss", ["p@ss", "p@ss!w0rd"]) == "rejected … and …"
+    assert echo_free("a.b.c is not a.b", ["a.b.c", "a.b"]) == "… is not …"
+    # regex characters in the submitted value are literal
+    assert echo_free("saw .* and (x+", [".*x", "(x+", ".*"]) == "saw .* and …"  # ".*": short, only quoted
+    assert echo_free("saw abc here", [".*c"]) == "saw abc here"

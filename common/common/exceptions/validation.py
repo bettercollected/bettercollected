@@ -9,8 +9,11 @@ drops the rest.
 A custom validator that raises ``ValueError(f"... {value} ...")`` puts the
 submitted value into ``msg`` itself. The handler removes every string of the
 failing input from the message (``echo_free``), so a validator author cannot
-reintroduce the echo by accident.
+reintroduce the echo by accident. Only whole tokens are removed: a submitted
+value that merely occurs inside a longer word of the message ("mat" in
+"format") leaves that word alone.
 """
+import re
 from http import HTTPStatus
 from typing import Any, List, Optional
 
@@ -44,16 +47,23 @@ def _strings(value: Any, depth: int = 0, found: Optional[List[str]] = None) -> L
     return found
 
 
+def _whole(leaf: str) -> "re.Pattern[str]":
+    """``leaf`` where it is not part of a longer word: no letter, digit or
+    underscore directly before or after it."""
+    return re.compile(r"(?<!\w)" + re.escape(leaf) + r"(?!\w)")
+
+
 def echo_free(message: str, submitted: Any) -> str:
     """``message`` with every string of ``submitted`` replaced by an ellipsis:
-    anywhere for strings of three or more characters, and inside quotes for
-    shorter ones (so ordinary words in the message are not mangled)."""
+    inside quotes for any string, and as a whole token (not inside a longer
+    word) for strings of three or more characters, so ordinary words in the
+    message are not mangled."""
     leaves = sorted(set(_strings(submitted)), key=len, reverse=True)
     for leaf in leaves:
         for quote in ("'", '"'):
             message = message.replace(f"{quote}{leaf}{quote}", f"{quote}{ELLIPSIS}{quote}")
         if len(leaf) >= MIN_PLAIN:
-            message = message.replace(leaf, ELLIPSIS)
+            message = _whole(leaf).sub(ELLIPSIS, message)
     return message
 
 
