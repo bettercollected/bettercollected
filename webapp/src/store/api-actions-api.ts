@@ -9,6 +9,7 @@ export const apiActionsApi = createApi({
     refetchOnReconnect: true,
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
+    tagTypes: ['ActionReconsent'],
     baseQuery: fetchBaseQuery({
         baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
@@ -38,7 +39,19 @@ export const apiActionsApi = createApi({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/actions`,
                 method: 'POST',
                 body: request.body
-            })
+            }),
+            // Adding the Sheets action again after a reconnect stores the new
+            // grant's sheet: ask the reconnect status again.
+            invalidatesTags: ['ActionReconsent']
+        }),
+        // Whether a Google Sheets action on the form still holds a grant from
+        // before the `drive.file` flow and must be reconnected (needs form.edit).
+        getActionReconsentStatus: builder.query<{ needs_reconsent: boolean }, { workspaceId: string; formId: string; actionId: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/actions/${request.actionId}/reconsent`,
+                method: 'GET'
+            }),
+            providesTags: ['ActionReconsent']
         }),
         removeActionFromForm: builder.mutation<any, any>({
             query: (request) => ({
@@ -56,4 +69,4 @@ export const apiActionsApi = createApi({
     })
 });
 
-export const { useGetAllIntegrationsQuery, useGetSingleIntegrationQuery, useAddActionToFormMutation, useRemoveActionFromFormMutation, useUpdateActionStatusInFormMutation } = apiActionsApi;
+export const { useGetAllIntegrationsQuery, useGetSingleIntegrationQuery, useAddActionToFormMutation, useRemoveActionFromFormMutation, useUpdateActionStatusInFormMutation, useGetActionReconsentStatusQuery } = apiActionsApi;

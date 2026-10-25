@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
+import SheetsReconnectNotice, { SheetsReconnectBadge, useSheetsNeedsReconnect } from '@app/components/form-integrations/sheets-reconnect-notice';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { Action } from '@app/models/dtos/actions';
@@ -14,6 +15,18 @@ import { selectAuth } from '@app/store/auth/slice';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
+type ReconnectTarget = Parameters<typeof useSheetsNeedsReconnect>[0];
+
+// The Google Sheets action asks its reconnect status when it is listed (the
+// two parts below share one request); nothing shows when it is not needed.
+function ReconnectBadge(props: ReconnectTarget) {
+    return useSheetsNeedsReconnect(props) ? <SheetsReconnectBadge /> : null;
+}
+
+function ReconnectNotice({ onReconnect, ...target }: ReconnectTarget & { onReconnect: () => void }) {
+    return useSheetsNeedsReconnect(target) ? <SheetsReconnectNotice onReconnect={onReconnect} className="mt-4 sm:basis-full" /> : null;
+}
 
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
@@ -48,13 +61,16 @@ export default function FormIntegrations() {
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
-                                    <div className="flex items-start sm:items-center">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
+                                    <div className="flex items-start sm:min-w-0 sm:flex-1 sm:items-center">
                                         {/*logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
                                         {/* Title and description */}
                                         <div className="mt-2 sm:mt-0">
-                                            <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                                <ReconnectBadge workspaceId={workspace?.id} formId={form?.formId} action={integration} />
+                                            </div>
                                             <p className="text-sm text-gray-600">{integration.description}</p>
                                             <span>
                                                 {integration?.parameters && getIntegrationIsAdded(integration) && (
@@ -116,6 +132,13 @@ export default function FormIntegrations() {
                                             }}
                                         />
                                     </div>
+                                    {/* Reconnect notice, on its own row under the action */}
+                                    <ReconnectNotice
+                                        workspaceId={workspace?.id}
+                                        formId={form?.formId}
+                                        action={integration}
+                                        onReconnect={() => openModal('ADD_ACTION_TO_FORM', { action: integration, form: form, reconnect: true })}
+                                    />
                                 </div>
                             )}
                         </>

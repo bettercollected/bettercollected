@@ -621,6 +621,13 @@
   "SHARE_THIS_FORM": "Deel dit formulier",
   "SHARE_WORKSPACE": "Werkruimte delen",
   "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
+  "SHEETS_RECONNECT": {
+    "BADGE": "Opnieuw koppelen nodig",
+    "TITLE": "Nieuwe reacties komen niet in Google Sheets",
+    "DESCRIPTION": "Deze koppeling gebruikt een oudere toestemming van Google. Daarmee waren alle bestanden in uw Google Drive te zien. Die toestemming gebruiken we niet meer. Koppel Google Sheets opnieuw om nieuwe reacties weer te versturen. De nieuwe koppeling kan alleen sheets gebruiken die bettercollected zelf maakt.",
+    "NEW_SHEET": "Bij opnieuw koppelen komt er een nieuwe sheet voor nieuwe reacties. Uw huidige sheet blijft in uw Google Drive staan.",
+    "BUTTON": "Google Sheets opnieuw koppelen"
+  },
   "SIGNIN_SCREEN": {
     "EMAIL_INPUT_LABEL": "E-mail",
     "COLLECT_FORMS": "Verzamel uw formulieren",
