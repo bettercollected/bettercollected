@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ImageIcon } from 'lucide-react';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFieldActions } from '@app/store/jotai/entity-hooks';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
@@ -74,11 +75,14 @@ function ImageFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
 }
 
 const ImageField = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
+    // The creator's description is the form's own text: marked with its language when that differs from the page's.
+    const contentLang = useFormContentLanguage();
     if (isBuilder && slide) return <ImageFieldEditor field={field} slide={slide} />;
     const href = field?.attachment?.href;
+    const alt = imageAltText(field);
     const image = href ? (
         <div className="relative h-40 w-full">
-            <Image style={{ objectFit: 'cover' }} fill {...firstPartyImageProps(href)} alt={imageAltText(field)} />
+            <Image style={{ objectFit: 'cover' }} fill {...firstPartyImageProps(href)} alt={alt} lang={alt ? contentLang : undefined} />
         </div>
     ) : null;
     return isBuilder ? image : <QuestionWrapper field={field}>{image}</QuestionWrapper>;
