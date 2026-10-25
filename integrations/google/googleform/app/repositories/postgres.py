@@ -13,7 +13,10 @@ from common.constants import MESSAGE_DATABASE_EXCEPTION
 from common.db import PostgresRepositoryBase, WriteResult
 from common.enums.form_provider import FormProvider
 from common.clock import utcnow
-from googleform.app.repositories.oauth_credential import OauthCredentialRepository
+from googleform.app.repositories.oauth_credential import (
+    OauthCredentialRepository,
+    update_key,
+)
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.db.models import OAuthCredentialRow
 
@@ -75,13 +78,15 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
         try:
             provider = item.provider or FormProvider.GOOGLE
             document = await self.get(email, provider)
+            user_id = update_key(document, item)
+            if not user_id:
+                return WriteResult(item, [])  # nothing written
             credentials = item.credentials
-            if document:
-                item.id = document.id
-            if document.user_id:
-                item.credentials = OauthCredentialRepository.encrypt_token(
-                    user_id=document.user_id, token=json.dumps(dict(item.credentials))
-                )
+            item.id = document.id
+            item.user_id = user_id
+            item.credentials = OauthCredentialRepository.encrypt_token(
+                user_id=user_id, token=json.dumps(dict(item.credentials))
+            )
             await self.save_document(item)
             stored = item.model_copy(deep=True)
             item.credentials = credentials
