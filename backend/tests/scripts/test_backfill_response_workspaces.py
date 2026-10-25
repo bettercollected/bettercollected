@@ -73,7 +73,7 @@ def _documents():
         )
 
     responses = [
-        response("s1", "single", answers=_answers(WS_A, "single")),
+        response("sg_a", "single", answers=_answers(WS_A, "single")),
         response("sh_a", "shared", answers=_answers(WS_A, "shared"), provider="google"),
         response("sh_b", "shared", answers=_answers(WS_B, "shared"), provider="google"),
         response("sh_x", "shared"),  # nothing to authenticate: ambiguous
@@ -84,7 +84,7 @@ def _documents():
     ]
     requests = [
         FormResponseDeletionRequest(id=PydanticObjectId(), form_id=f, response_id=r)
-        for f, r in (("shared", "sh_a"), ("shared", "sh_x"), ("single", "s1"))
+        for f, r in (("shared", "sh_a"), ("shared", "sh_x"), ("single", "sg_a"))
     ]
     return links, responses, requests
 
@@ -176,7 +176,7 @@ async def test_dry_run_counts_and_changes_nothing(store):
     assert await _stamped(store) == before
     # counts only: no ids, answers or identities in what it prints
     printed = json.dumps(report)
-    for secret in ("sh_a", "s1", "an answer", str(WS_A), "shared"):
+    for secret in ("sh_a", "sg_a", "an answer", str(WS_A), "shared"):
         assert secret not in printed
 
 
@@ -187,7 +187,7 @@ async def test_apply_stamps_what_it_can_attribute_and_reruns_as_a_no_op(store):
     assert report["stores"][store.name]["deletion_requests"]["stamped"] == 2
     stamped = await _stamped(store)
     assert stamped == {
-        "s1": str(WS_A),
+        "sg_a": str(WS_A),
         "sh_a": str(WS_A),
         "sh_b": str(WS_B),
         "sh_x": None,  # ambiguous: hidden from both until attributed
@@ -195,7 +195,7 @@ async def test_apply_stamps_what_it_can_attribute_and_reruns_as_a_no_op(store):
         "o1": None,  # its form is in no workspace
         "dr:sh_a": str(WS_A),
         "dr:sh_x": None,
-        "dr:s1": str(WS_A),
+        "dr:sg_a": str(WS_A),
     }
 
     again = await run([store], apply=True, opens=default_opener())
@@ -212,7 +212,7 @@ async def test_without_the_key_shared_forms_stay_ambiguous(store):
     assert counts["ambiguous"] == 3 and "attributed_by_encryption" not in counts
     stamped = await _stamped(store)
     assert stamped["sh_a"] is None and stamped["sh_b"] is None
-    assert stamped["s1"] == str(WS_A)
+    assert stamped["sg_a"] == str(WS_A)
 
 
 def test_there_is_no_option_to_guess_ambiguous_records():
