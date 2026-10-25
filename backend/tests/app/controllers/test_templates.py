@@ -550,3 +550,34 @@ class TestFormTemplates:
         actual_response = template_by_id.json()
         assert template_by_id.status_code == 404
         assert actual_response == MESSAGE_NOT_FOUND
+
+
+async def test_an_imported_template_names_the_workspace_it_came_from(
+    client: AsyncClient,
+    workspace: WorkspaceDocument,
+    workspace_1: WorkspaceDocument,
+    test_user_cookies: dict[str, str],
+    workspace_1_public_template: FormTemplateDocument,
+):
+    """The listing replaces ``imported_from`` with the title of the workspace
+    the template was imported from, read through the workspace repository (in
+    4.0 a Mongo ``$lookup`` into ``workspaces``), in every storage mode; once
+    that workspace is gone the field is empty."""
+    workspace_1.title = "Origin workspace"
+    await container.workspace_repo().save(workspace_1)
+    imported = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/template/"
+        f"{workspace_1_public_template.id}/import",
+        cookies=test_user_cookies,
+    )
+    assert imported.status_code == 200
+    listing_url = f"/api/v1/templates?workspace_id={workspace.id}"
+
+    [listed] = (await client.get(listing_url, cookies=test_user_cookies)).json()
+    assert listed["id"] == imported.json()["id"]
+    assert listed["importedFrom"] == "Origin workspace"
+
+    await container.workspace_repo().delete_workspaces_with_ids([workspace_1.id])
+    [listed] = (await client.get(listing_url, cookies=test_user_cookies)).json()
+    assert listed["id"] == imported.json()["id"]
+    assert listed["importedFrom"] is None

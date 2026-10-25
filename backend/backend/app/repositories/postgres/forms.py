@@ -46,6 +46,7 @@ from backend.app.repositories.form_import_repository import (
 )
 from backend.app.repositories.form_repository import apply_form_update, detach_action
 from backend.app.repositories.response_scope import ResponseScope
+from backend.app.repositories.template import with_origin_titles
 from backend.app.repositories.metric_periods import (
     object_id_at,
     postgres_counts_per_period,
@@ -961,23 +962,9 @@ class PostgresFormTemplateRepository(PostgresRepositoryBase):
                 .scalars()
                 .all()
             )
-        templates = [from_canonical_document(doc) for doc in docs]
-        origins = {
-            t["imported_from"] for t in templates if t.get("imported_from") is not None
-        }
-        titles = {}
-        if origins:
-            for workspace in await self._workspaces.get_workspace_by_ids(list(origins)):
-                titles[workspace.id] = workspace.title
-        for template in templates:
-            template["id"] = template["_id"]
-            # $lookup + $unwind(preserveNull) + $set imported_from: "$workspace.title"
-            origin = template.get("imported_from")
-            if origin is not None and origin in titles:
-                template["imported_from"] = titles[origin]
-            else:
-                template.pop("imported_from", None)
-        return templates
+        return await with_origin_titles(
+            self._workspaces, [from_canonical_document(doc) for doc in docs]
+        )
 
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await self.one(FormTemplateRow.id == _oid(template_id))

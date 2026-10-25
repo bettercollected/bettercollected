@@ -992,7 +992,11 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         metrics=routing_metrics,
-        mongo=providers.Singleton(FormTemplateRepository),
+        # both compose the titles of the workspaces templates were imported
+        # from over the workspace repository (no join across groups)
+        mongo=providers.Singleton(
+            FormTemplateRepository, workspace_repository=workspace_repo
+        ),
         postgres=providers.Singleton(
             postgres_repository,
             PostgresFormTemplateRepository,
