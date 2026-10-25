@@ -31,7 +31,7 @@
 # Images (override mechanism, like ADMIN_CHECK_IMAGE in admin-compose-check.sh):
 #   built from the checkout:  bc-v4check-backend:local (backend, admin, task runner, jobs worker,
 #   document sandbox), bc-v4check-auth:local, bc-v4check-worker:local; the Google integration
-#   (bc-v4check-google:local) with V4_CHECK_GOOGLE=1.
+#   (bc-v4check-google:local) with V4_CHECK_GOOGLE=1, and always for the upgrade part (its import runs it).
 #   V4_CHECK_REUSE_IMAGES=1   use images with those tags that already exist instead of building
 #   V4_CHECK_WEBAPP=nightly   (default) the published bettercollected/webapp:nightly; =build builds
 #                             webapp/Dockerfile (slow); =<image> uses that image
@@ -120,6 +120,9 @@ absorb() { # reads a client's output on stdin
 cleanup() {
   local p ids
   for pid in "${bg_pids[@]:-}"; do [ -n "$pid" ] && kill "$pid" >/dev/null 2>&1; done
+  # a probe network of free_subnet left by a kill between its create and its rm (free_subnet runs in a
+  # subshell, so it cannot register the name in a shell array)
+  docker network ls -q --filter "name=^bcv4probe${run_id}x" 2>/dev/null | xargs -r docker network rm >/dev/null 2>&1
   if [ "$keep" = 1 ]; then
     echo "--keep: projects ${projects[*]:-none} left running (work directory $work, mail sink $mail_container)"
     return
@@ -170,16 +173,50 @@ free_port() {
   return 1
 }
 
-free_subnet() { # a /29 inside 172.30.0.0/16 that no Docker network uses
-  local used third
-  used="$(docker network ls -q | xargs -r docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}' 2>/dev/null)"
-  for _ in $(seq 1 100); do
-    third=$((100 + RANDOM % 150))
-    case " $used " in *" 172.30.$third."*) continue ;; esac
-    case " ${used_subnets:-} " in *" $third "*) continue ;; esac
-    used_subnets="${used_subnets:-} $third"
-    echo "172.30.$third.0/29"
-    return
+# A /29 inside 172.30.0.0/16 that overlaps nothing: not a subnet of any existing Docker network (a
+# network holding a wider pool, e.g. a 172.30.0.0/16 from Docker's default pools, counts as well as an
+# identical one), not a route of the host, and not one this run handed out before. The run's earlier
+# picks are kept in a file: free_subnet is called inside $(...), a subshell, so a shell variable would
+# be forgotten. The candidate is then created once as a probe network, so Docker itself accepts it
+# before the stack is deployed (a stack that cannot create its admin-edge network fails the whole check).
+subnets_file="$work/handed-out-subnets"
+free_subnet() {
+  local candidate probe
+  : >> "$subnets_file"
+  for _ in $(seq 1 30); do
+    candidate="$( {
+        docker network ls -q | xargs -r docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null
+        ip -4 route show 2>/dev/null | awk '{print $1}'
+        cat "$subnets_file"
+      } | uv run --no-project python -I -c '
+import ipaddress, random, sys
+taken = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line or line == "default":
+        continue
+    try:
+        net = ipaddress.ip_network(line, strict=False)
+    except ValueError:
+        continue
+    if net.version == 4:
+        taken.append(net)
+third = list(range(100, 250))
+random.shuffle(third)
+for t in third:   # the gateway is .1 of the /29 at .0 (write_root_env)
+    cand = ipaddress.ip_network(f"172.30.{t}.0/29")
+    if not any(cand.overlaps(n) for n in taken):
+        print(cand)
+        sys.exit(0)
+sys.exit(1)
+')" || { echo "no free subnet found" >&2; return 1; }
+    echo "$candidate" >> "$subnets_file"   # never offered again in this run, whatever the probe says
+    probe="bcv4probe${run_id}x$RANDOM"
+    if docker network create --subnet "$candidate" "$probe" >/dev/null 2>&1; then
+      docker network rm "$probe" >/dev/null 2>&1
+      echo "$candidate"
+      return 0
+    fi
   done
   echo "no free subnet found" >&2
   return 1
@@ -330,6 +367,16 @@ service_state() { # the health (or state) of every container of the stack, one "
   done | sort
 }
 
+# settle_services <seconds>: wait, bounded, while a container is still "starting" (a healthcheck that has
+# not passed yet: deploy.sh returns once the services are created, and a loaded host can take longer than
+# that to start the backend). Only "starting" is waited for: unhealthy, exited or missing stay failures.
+settle_services() {
+  local deadline=$((SECONDS + $1))
+  while service_state | grep -q '=starting$'; do
+    [ "$SECONDS" -lt "$deadline" ] && sleep 5 || return 1
+  done
+}
+
 # the secret values of the stack's root .env (names ending in PASSWORD, SECRET or KEY, and the keys)
 collect_secrets() { # collect_secrets <out>
   local f="$S_DIR/.env"
@@ -375,7 +422,10 @@ prepare_images() {
   build_image "$img_backend" backend/Dockerfile || exit 2
   build_image "$img_auth" auth/Dockerfile || exit 2
   build_image "$img_worker" temporal/worker/Dockerfile || exit 2
-  [ "${V4_CHECK_GOOGLE:-0}" != 1 ] || build_image "$img_google" integrations/google/Dockerfile || exit 2
+  # The Google image is substituted into every copy of the compose file, so it must exist whenever a part
+  # runs it: the 4.1 import of an upgrade migrates the Google integration's schema (and imports its Mongo
+  # data) with it even on a stack that does not run Google Forms, so parts 2 and 3 need it too.
+  if [ "${V4_CHECK_GOOGLE:-0}" = 1 ] || want 2 || want 3; then build_image "$img_google" integrations/google/Dockerfile || exit 2; fi
   case "${V4_CHECK_WEBAPP:-nightly}" in
     nightly) echo "  webapp: the published bettercollected/webapp:nightly (not built from this checkout)" ;;
     build)
@@ -485,6 +535,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   untimed "$out" > "$plain"
   # services
   local states unhealthy
+  settle_services 240 || echo "  (a service was still starting after 240 s)"
   states="$(service_state)"
   unhealthy="$(printf '%s\n' "$states" | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is healthy or running" "" "$unhealthy"
@@ -638,6 +689,7 @@ fresh_second_run() {
   check "the backend starts again after a restart" dc up -d --wait --no-deps backend
   expect "and does not refuse to start" "0" "$(dc logs --no-log-prefix backend 2>&1 | grep -c 'Refusing to start')"
   local unhealthy
+  settle_services 240 || echo "  (a service was still starting after 240 s)"
   unhealthy="$(service_state | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is still healthy" "" "$unhealthy"
   expect "MongoDB is still not started" "0 no-volume" "$(mongo_presence)"
@@ -906,7 +958,22 @@ part_upgrade() {
   old_keys || { bad "keys for the old stack"; return; }
   local out="$work/old-deploy.out"
   echo "  the old ./deploy.sh ..."
-  old_deploy "$out" || { bad "the previous release's deploy.sh ran"; tail -n 20 "$out"; return; }
+  if ! old_deploy "$out"; then
+    # The 3.x compose file gives umami-postgresql five 5-second probes and no start period, so a loaded
+    # host can mark it unhealthy while it is still creating its cluster; deploy.sh then stops before the
+    # rest of the stack. Running the release's deploy.sh again (what an operator does) is allowed once, and
+    # only for that failure; any other failure, or a second one, is a failure.
+    if grep -q 'umami-postgresql.*Error' "$out"; then
+      echo "  (the old stack's umami-postgresql was not healthy in time: its own deploy.sh again, once)"
+      old_deploy "$out.retry" || {
+        bad "the previous release's deploy.sh ran (also on the second run)"
+        echo "  --- first run (its last 10 lines), then the second run"; tail -n 10 "$out"
+        tail -n 20 "$out.retry"; show_failures; return
+      }
+    else
+      bad "the previous release's deploy.sh ran"; tail -n 20 "$out"; show_failures; return
+    fi
+  fi
   ok "the previous release's deploy.sh ran"
   wait_stack 420 || { bad "the old stack became healthy"; service_state; return; }
   ok "the old stack is healthy (backend, auth)"
@@ -962,12 +1029,18 @@ SQL
   expect "the MONGO_URI setting is cleared (versions kept)" "1" "$(sdeploy settings-history MONGO_URI 2>/dev/null | grep -c cleared)"
   expect "it did not bootstrap keys" "0" "$(grep -c '^generated=' "$plain")"
   expect "it reported no conflict" "0" "$(grep -c '^conflict ' "$plain")"
-  check "it compared the store with the files, with no difference" grep -q '^Comparing the store with the files' "$plain"
+  # stack_keys (the settings import and the comparison) runs before the Mongo import, so on this stack it
+  # ran in the first deploy, the one that stopped on the verify difference; the second deploy finds the
+  # store complete and does not repeat it
+  check "it compared the store with the files, with no difference" \
+    bash -c 'grep -q "^Comparing the store with the files" "$1" && ! grep -q "^The store and the files differ" "$1" "$2"' _ \
+    "$work/upgrade-stop.plain" "$plain"
   expect "it printed no setup token and no fingerprint notice (not a new install)" "0" \
     "$(grep -cE '^([A-Z2-7]{4}(-[A-Z2-7]{4}){7}|Master key fingerprint.*)$' "$plain")"
   grep -v -E '^[A-Z2-7]{4}(-[A-Z2-7]{4}){7}$' "$plain" > "$work/upgrade-deploy.notoken"
   expect "no secret value (old or generated) is in the deploy output" "0" "$(secret_hits "$work/upgrade.secrets" "$work/upgrade-deploy.notoken")"
   wait_stack 300   # the deploy recreates the backend last (Umami's login): give it time
+  settle_services 240 || echo "  (a service was still starting after 240 s)"
   local unhealthy
   unhealthy="$(service_state | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is healthy or running after the upgrade" "" "$unhealthy"
