@@ -94,8 +94,6 @@ COLLECTION_GROUPS = {
 MONGO_JOINS = {
     # FormResponseRepository / DeletionRequestsRepository → forms, workspace_forms
     "responses": ("forms",),
-    # FormTemplateRepository.get_templates_with_creator → workspaces
-    "forms": ("identity",),
 }
 
 

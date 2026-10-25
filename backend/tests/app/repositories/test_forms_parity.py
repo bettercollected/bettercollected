@@ -434,7 +434,7 @@ async def test_templates(sessions):
     await workspaces.save(
         WorkspaceDocument(id=origin_ws, title="Origin", workspace_name="origin-ws")
     )
-    mongo, postgres = FormTemplateRepository(), PostgresFormTemplateRepository(
+    mongo, postgres = FormTemplateRepository(workspaces), PostgresFormTemplateRepository(
         sessions, workspaces
     )
 

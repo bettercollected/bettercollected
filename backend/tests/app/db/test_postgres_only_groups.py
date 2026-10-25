@@ -55,6 +55,18 @@ def test_no_mongo_query_joins_into_a_postgres_only_group():
         assert not set(joined) & set(POSTGRES_ONLY_GROUPS), group
 
 
+def test_no_mongo_query_joins_into_identity():
+    """The forms group's one join into identity (the workspace a template was
+    imported from) is composed over the workspace repository, so identity may
+    leave Mongo while forms still reads it."""
+    assert all("identity" not in joined for joined in MONGO_JOINS.values())
+    flags = load_backend_flags(
+        {"DB_READ_SOURCE__identity": "postgres", "DB_WRITE_MODE__identity": "postgres"}
+    )
+    assert flags.read_source("forms") is ReadSource.MONGO
+    assert flags.write_mode("identity") is WriteMode.POSTGRES
+
+
 @pytest.mark.parametrize(
     "key, value",
     [

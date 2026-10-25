@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
@@ -10,7 +10,41 @@ from backend.app.schemas.template import FormTemplateDocument
 from common.db.routing import write_op
 
 
+async def with_origin_titles(
+    workspaces, templates: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """``templates`` (stored template documents) as the listings return them:
+    ``id`` set, and ``imported_from`` (the id of the workspace a template was
+    imported from) replaced by that workspace's title, or left out when the
+    workspace no longer exists. The workspaces are read through
+    ``workspaces`` (the identity group's repository): in 4.0 this was a
+    ``$lookup`` into ``workspaces``, which both template repositories now
+    compose instead (a join across groups finds nothing once the joined
+    group leaves Mongo)."""
+    origins = {
+        t["imported_from"] for t in templates if t.get("imported_from") is not None
+    }
+    titles = {}
+    if origins:
+        for workspace in await workspaces.get_workspace_by_ids(list(origins)):
+            titles[workspace.id] = workspace.title
+    for template in templates:
+        template["id"] = template["_id"]
+        # $lookup + $unwind(preserveNull) + $set imported_from: "$workspace.title"
+        origin = template.get("imported_from")
+        if origin is not None and origin in titles:
+            template["imported_from"] = titles[origin]
+        else:
+            template.pop("imported_from", None)
+    return templates
+
+
 class FormTemplateRepository:
+    def __init__(self, workspace_repository=None):
+        # the workspace repository: the titles of the workspaces templates
+        # were imported from (get_templates_with_creator)
+        self._workspaces = workspace_repository
+
     async def get_templates_with_creator(
         self,
         v2: Optional[bool] = None,
@@ -42,26 +76,12 @@ class FormTemplateRepository:
                     )
                 }
             },
-            {"$set": {"id": "$_id"}},
-            {
-                "$lookup": {
-                    "from": "workspaces",
-                    "localField": "imported_from",
-                    "foreignField": "_id",
-                    "as": "workspace",
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$workspace",
-                    "preserveNullAndEmptyArrays": True,
-                }
-            },
-            {"$set": {"imported_from": "$workspace.title"}},
-            {"$unset": "workspace"},
             {"$sort": {"created_at": -1}},
         ]
-        return await FormTemplateDocument.find(query).aggregate(pipeline).to_list()
+        templates = (
+            await FormTemplateDocument.find(query).aggregate(pipeline).to_list()
+        )
+        return await with_origin_titles(self._workspaces, templates)
 
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
