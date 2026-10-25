@@ -1,6 +1,6 @@
 import re
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
@@ -31,6 +31,15 @@ def validate_group_regex(regex: Optional[str]) -> None:
         )
 
 
+def _oid(value) -> PydanticObjectId:
+    return PydanticObjectId(str(value))
+
+
+def _other_workspaces(workspace_id, form_workspace_ids) -> set:
+    """The other workspaces that hold the form."""
+    return {_oid(other) for other in form_workspace_ids} - {_oid(workspace_id)}
+
+
 class ResponderGroupsService:
     def __init__(
         self,
@@ -55,12 +64,9 @@ class ResponderGroupsService:
         response = await self.responder_groups_repo.get_emails_in_group(
             group_id=group_id
         )
-        forms = []
-        for form_id in response["forms"]:
-            forms.append(
-                await self.form_service.get_form_by_id(workspace_id, form_id, user)
-            )
-        response["forms"] = forms
+        response["forms"] = await self._forms_in_workspace(
+            workspace_id, response["forms"], user
+        )
         if not response:
             return HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Group not found."
@@ -179,25 +185,106 @@ class ResponderGroupsService:
         )
 
         for group in groups:
-            forms = []
-            for form_id in group.forms:
+            group.forms = await self._forms_in_workspace(
+                workspace_id, group.forms, user
+            )
+        return groups
+
+    async def _forms_in_workspace(
+        self, workspace_id: PydanticObjectId, form_ids: List[str], user: User
+    ) -> list:
+        """The group's forms that are in the workspace. A link to a form of
+        another workspace (made before links were checked) is skipped rather
+        than failing the whole listing."""
+        forms = []
+        for form_id in form_ids:
+            try:
                 forms.append(
                     await self.form_service.get_form_by_id(
                         workspace_id, form_id, user=user
                     )
                 )
-            group.forms = forms
-        return groups
+            except HTTPException as error:
+                if error.status_code != HTTPStatus.NOT_FOUND:
+                    raise
+        return forms
 
-    async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
-        return await self.responder_groups_repo.add_group_to_form(
-            form_id=form_id, group_id=group_id
+    async def check_groups_in_workspace(
+        self, workspace_id: PydanticObjectId, group_ids: List[PydanticObjectId]
+    ) -> None:
+        """404, as for an unknown group, unless every id is a responder group
+        of the workspace."""
+        for group_id in dict.fromkeys(group_ids):
+            if not await self.responder_groups_repo.get_group_in_workspace(
+                workspace_id=workspace_id, group_id=group_id
+            ):
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
+
+    async def _linked_group_owners(
+        self, form_id: str
+    ) -> Dict[PydanticObjectId, Optional[PydanticObjectId]]:
+        """group id -> the workspace that owns it, for the form's groups."""
+        groups = await self.responder_groups_repo.get_groups_by_form_ids([form_id])
+        return {
+            _oid(group["_id"]): (
+                _oid(group["workspace_id"]) if group.get("workspace_id") else None
+            )
+            for group in groups.get(form_id, [])
+        }
+
+    async def add_groups_to_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_ids: List[PydanticObjectId],
+        form_workspace_ids: List[PydanticObjectId],
+    ):
+        """Set the workspace's groups on one of its forms (the whole set the
+        builder sends, which lists every group linked to the form, whatever
+        its workspace). An id not linked to the form must be a group of the
+        workspace: otherwise 404, as for an unknown group, and nothing is
+        linked or unlinked. An id of another workspace's group already linked
+        to the form reveals nothing new and is not refused: the groups of
+        another workspace that holds the form stay linked whether or not they
+        are sent, and a link to a group of a workspace that doesn't hold the
+        form (made before links were checked) is dropped."""
+        owners = await self._linked_group_owners(form_id)
+        own_id = _oid(workspace_id)
+        own, unlinked = [], []
+        for group_id in dict.fromkeys(_oid(g) for g in group_ids):
+            if group_id not in owners:
+                unlinked.append(group_id)
+            elif owners[group_id] == own_id:
+                own.append(group_id)
+        await self.check_groups_in_workspace(workspace_id, unlinked)
+        other_workspaces = _other_workspaces(workspace_id, form_workspace_ids)
+        kept = [
+            group_id
+            for group_id, owner in owners.items()
+            if owner is not None and owner in other_workspaces
+        ]
+        return await self.responder_groups_repo.add_groups_to_form(
+            form_id, own + unlinked + kept
         )
 
-    async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
-        return await self.responder_groups_repo.add_groups_to_form(form_id, group_ids)
-
-    async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
+    async def remove_group_from_form(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        group_id: PydanticObjectId,
+        form_workspace_ids: List[PydanticObjectId],
+    ):
+        """Unlink one of the workspace's groups from one of its forms. A link
+        to another workspace's group may be removed only when that workspace
+        doesn't hold the form (a link made before links were checked); 404
+        otherwise, as for an unknown group."""
+        if not await self.responder_groups_repo.get_group_in_workspace(
+            workspace_id=workspace_id, group_id=group_id
+        ):
+            owners = await self._linked_group_owners(form_id)
+            other_workspaces = _other_workspaces(workspace_id, form_workspace_ids)
+            if group_id not in owners or owners[group_id] in other_workspaces:
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
         await self.responder_groups_repo.remove_group_from_form(
             form_id=form_id, group_id=group_id
         )
