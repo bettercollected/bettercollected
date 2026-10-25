@@ -1,0 +1,244 @@
+"""verify and reconcile agree on what counts as a difference.
+
+* Collections Mongo expires by a TTL index: an expired copy, in either store,
+  is absent for verify as it is for reconcile. Copies Mongo's TTL monitor
+  dropped while Postgres still holds them (or the reverse) are not reported
+  forever as missing.
+* A row the application wrote to Postgres after Mongo's copy (a session
+  touched in Postgres): under a Mongo primary, reconcile copies Mongo's version
+  over it, so the next verify is clean; under a Postgres primary it keeps the
+  row and says so (``newer_in_postgres``) instead of reporting nothing.
+
+Skipped unless DATABASE_URL points at a *_test database."""
+
+import datetime as dt
+import os
+
+from beanie import PydanticObjectId
+from sqlalchemy import select
+
+from backend.app.container import container
+from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
+from backend.app.schemas.session import SessionDocument
+from backend.db.models import RateLimitCounterRow, SessionRow
+from backend.migrate.__main__ import build_target
+from common.db.base import SOURCE_APP
+from common.db.canonical import canonical_document, checksum
+from common.db.migrate import Runner
+
+import pytest
+
+NOW = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+PAST = NOW - dt.timedelta(hours=1)
+FUTURE = NOW + dt.timedelta(hours=1)
+
+
+@pytest.fixture
+def target(clean_postgres):
+    return build_target(os.environ["DATABASE_URL"])
+
+
+def counter(expires_at, hits=1):
+    return {
+        "_id": PydanticObjectId(),
+        "hits": hits,
+        "expires_at": expires_at,
+        "created_at": PAST,
+        "updated_at": PAST,
+    }
+
+
+async def to_mongo(document_cls, document):
+    await document_cls.get_pymongo_collection().insert_one(dict(document))
+
+
+async def to_postgres(row_cls, document, *, updated_at=None):
+    doc = canonical_document(document)
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            row_cls(
+                id=str(document["_id"]),
+                doc=doc,
+                created_at=document["created_at"],
+                updated_at=updated_at or document["updated_at"],
+                bc_source=SOURCE_APP,
+                bc_checksum=checksum(doc),
+            )
+        )
+
+
+async def verify(target, collection):
+    async with Runner(target) as runner:
+        (report,) = await runner.verify([collection])
+    return report
+
+
+# -- TTL collections ---------------------------------------------------------
+
+
+async def test_expired_copies_only_in_postgres_are_absent(target):
+    """Mongo's TTL index dropped them; Postgres still holds them."""
+    for _ in range(3):
+        await to_postgres(RateLimitCounterRow, counter(PAST))
+    report = await verify(target, "rate_limit_counters")
+    assert report.clean, report.as_dict()
+    assert report.expired == 3
+    assert report.postgres == 3  # the raw count still shows them
+
+
+async def test_expired_copies_between_and_after_mongo_documents(target):
+    """Expired Postgres-only copies inside Mongo's id range and past it, and
+    an expired copy in both stores whose contents differ: all absent."""
+    first = counter(FUTURE)
+    await to_mongo(RateLimitCounterDocument, first)
+    await to_postgres(RateLimitCounterRow, first)
+    await to_postgres(RateLimitCounterRow, counter(PAST))  # inside the range
+    both = counter(PAST)
+    await to_mongo(RateLimitCounterDocument, both)
+    await to_postgres(RateLimitCounterRow, {**both, "hits": 7})
+    last = counter(FUTURE)
+    await to_mongo(RateLimitCounterDocument, last)
+    await to_postgres(RateLimitCounterRow, last)
+    await to_postgres(RateLimitCounterRow, counter(PAST))  # past Mongo's last id
+    report = await verify(target, "rate_limit_counters")
+    assert report.clean, report.as_dict()
+    assert report.expired == 4  # the copy in both stores counts twice
+
+
+async def test_an_expired_copy_only_in_mongo_is_absent(target):
+    await to_mongo(RateLimitCounterDocument, counter(PAST))
+    report = await verify(target, "rate_limit_counters")
+    assert report.clean, report.as_dict()
+
+
+async def test_a_live_copy_missing_on_either_side_is_still_reported(target):
+    only_pg = counter(FUTURE)
+    await to_postgres(RateLimitCounterRow, only_pg)
+    only_mongo = counter(FUTURE)
+    await to_mongo(RateLimitCounterDocument, only_mongo)
+    # live in Mongo, expired in Postgres: Postgres lacks the live copy
+    renewed = counter(PAST)
+    await to_postgres(RateLimitCounterRow, renewed)
+    await to_mongo(RateLimitCounterDocument, {**renewed, "expires_at": FUTURE})
+    report = await verify(target, "rate_limit_counters")
+    assert not report.clean
+    assert report.missing_in_mongo == 1
+    assert report.samples["missing_in_mongo"] == [str(only_pg["_id"])]
+    assert report.missing_in_postgres == 2
+    assert set(report.samples["missing_in_postgres"]) == {
+        str(only_mongo["_id"]),
+        str(renewed["_id"]),
+    }
+    # and reconcile repairs what verify reports from Mongo's side
+    async with Runner(target) as runner:
+        result = await runner.reconcile(["rate_limit_counters"])
+    assert result["rate_limit_counters"]["fixed"] == 2
+    after = await verify(target, "rate_limit_counters")
+    assert after.missing_in_postgres == 0
+    assert after.missing_in_mongo == 1  # a live row Mongo never had
+
+
+# -- a session touched in Postgres --------------------------------------------
+
+
+def session_document():
+    return {
+        "_id": PydanticObjectId(),
+        "user_id": "u1",
+        "refresh_jti": "jti",
+        "previous_refresh_jti": None,
+        "rotated_at": None,
+        "last_refreshed_at": PAST,
+        "expires_at": NOW + dt.timedelta(days=7),
+        "email_verified": True,
+        "method": None,
+        "scope": None,
+        "scope_workspace_id": None,
+        "user_agent": None,
+        "revoked_at": None,
+        "revoke_reason": None,
+        "created_at": PAST,
+        "updated_at": PAST,
+    }
+
+
+async def session_row(session_id):
+    async with container.pg_sessionmaker()() as session:
+        return (
+            await session.execute(select(SessionRow).where(SessionRow.id == session_id))
+        ).scalar_one()
+
+
+async def test_a_newer_updated_at_column_alone_is_no_difference(target):
+    """verify compares the ``_bc_checksum`` of the row's ``doc`` with the
+    checksum of Mongo's document; the ``updated_at`` column is not part of it.
+    reconcile agrees: it compares the same checksums and writes nothing."""
+    document = session_document()
+    await to_mongo(SessionDocument, document)
+    await to_postgres(SessionRow, document, updated_at=NOW)
+    report = await verify(target, "sessions")
+    assert report.clean, report.as_dict()
+    async with Runner(target) as runner:
+        result = await runner.reconcile(["sessions"], mongo_primary=["identity"])
+    assert result["sessions"]["fixed"] == 0
+
+
+async def touched_in_postgres_only(target):
+    """A session Mongo holds as of PAST, touched since in Postgres alone (a
+    touch whose Mongo copy lost to another write, or two dumps taken apart)."""
+    document = session_document()
+    await to_mongo(SessionDocument, document)
+    touched = {**document, "last_refreshed_at": NOW, "updated_at": NOW}
+    await to_postgres(SessionRow, touched)
+    report = await verify(target, "sessions")
+    assert report.mismatched == 1 and report.drifted == 1, report.as_dict()
+    return document
+
+
+async def test_mongo_primary_reconcile_copies_mongo_over_a_newer_row(target):
+    document = await touched_in_postgres_only(target)
+    async with Runner(target) as runner:
+        result = await runner.reconcile(["sessions"], mongo_primary=["identity"])
+    assert result["sessions"]["fixed"] == 1
+    assert result["sessions"]["newer_in_postgres"] == 0
+    assert (await verify(target, "sessions")).clean
+    row = await session_row(str(document["_id"]))
+    assert row.doc == canonical_document(document)
+
+
+async def test_postgres_primary_reconcile_keeps_a_newer_row_and_says_so(target):
+    document = await touched_in_postgres_only(target)
+    async with Runner(target) as runner:
+        result = await runner.reconcile(["sessions"])  # no Mongo-primary group
+    assert result["sessions"]["fixed"] == 0
+    assert result["sessions"]["skipped"] == 0
+    assert result["sessions"]["newer_in_postgres"] == 1
+    row = await session_row(str(document["_id"]))
+    assert row.doc["updated_at"] != canonical_document(document)["updated_at"]
+    # the other direction makes them agree
+    async with Runner(target) as runner:
+        await runner.reconcile(["sessions"], direction="postgres->mongo")
+    assert (await verify(target, "sessions")).clean
+
+
+async def test_the_cli_reconciles_a_newer_row_under_dual(target, capsys):
+    from common.db.migrate.cli import main
+
+    await touched_in_postgres_only(target)
+    code = await _main_in_thread(
+        main,
+        ["--collections", "sessions", "reconcile"],
+        target,
+        {"DB_WRITE_MODE": "dual"},
+    )
+    assert code == 0
+    assert (await verify(target, "sessions")).clean
+
+
+async def _main_in_thread(main, argv, target, env):
+    """``main`` runs its own event loop (asyncio.run): call it off this one."""
+    import asyncio
+
+    return await asyncio.to_thread(
+        main, argv, target, prog="python -m backend.migrate", env=env
+    )

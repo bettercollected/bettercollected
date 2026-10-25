@@ -15,6 +15,7 @@ from common.db.groups import (
 from common.db.migrate.cli import (
     build_parser,
     main,
+    mongo_primary_groups,
     reconcile_to_mongo_refusal,
     select_collections,
 )
@@ -227,3 +228,21 @@ def test_other_reconciles_and_dry_runs_are_not_refused():
         )
         is None
     )
+
+
+def test_mongo_primary_groups_follow_the_write_mode():
+    """reconcile lets Mongo's copy replace a newer Postgres row only where the
+    services write Mongo first."""
+    target = _target()
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "dual"}) == [
+        g for g in target.group_names()
+    ]
+    assert mongo_primary_groups(target, {}) == target.group_names()  # default: mongo
+    mixed = {
+        "DB_WRITE_MODE": "dual",
+        "DB_WRITE_MODE__forms": "postgres_primary_dual",
+        "DB_READ_SOURCE__forms": "postgres",
+    }
+    assert "forms" not in mongo_primary_groups(target, mixed)
+    assert "identity" in mongo_primary_groups(target, mixed)
+    assert mongo_primary_groups(target, {"DB_WRITE_MODE": "nonsense"}) == []
