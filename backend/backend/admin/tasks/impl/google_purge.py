@@ -93,11 +93,17 @@ class PurgeUnencryptedCredentials:
         config = state.DataConfig.from_env()
         names = _ordered(config.stores_for(TARGET, params.stores))
         if apply:
-            # An apply must cover every store the services still write: a row
-            # left readable in one would be copied back into the other by the
+            # An apply must cover every store the services still write, and
+            # Mongo whenever the runner has a Mongo connection: a row left
+            # readable in one store would be copied back into the other by the
             # next backfill or reconcile (neither store keeps a deletion
-            # tombstone here). A dry run may count a single store.
-            if any(name not in names for name in config.written(TARGET)):
+            # tombstone here). From 4.1 the services write Postgres alone, but
+            # the import from 4.0 (`googleform.migrate backfill`) still copies
+            # whatever Mongo holds. A dry run may count a single store.
+            required = set(config.written(TARGET))
+            if "mongo" in config.configured(TARGET):
+                required.add("mongo")
+            if any(name not in names for name in required):
                 raise Refusal("stores_incomplete")
         async with state.open_target_stores(config, TARGET, names, read_only=True) as stores:
             for store in stores:

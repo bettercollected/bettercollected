@@ -344,13 +344,19 @@ shows the count per store; the apply needs the usual confirmation code, deletes,
 counts in the audit log. Counts only, never ids, emails or tokens, and running it again deletes
 nothing. `stores: auto` covers the stores the services write (from 4.1 Postgres alone for the
 google group, whatever the runner's `DB_WRITE_MODE*` says), plus any other store the runner is
-configured for, like the other data tasks; an apply that leaves out a store the services still
-write is refused (`stores_incomplete`). It needs:
+configured for, like the other data tasks. An apply that leaves out a store the services still
+write, or Mongo while the runner has a Mongo connection, is refused (`stores_incomplete`).
 
-- the runner's Google Mongo connection only while Mongo still holds credentials that matter (a
-  store on 4.0; from 4.1 it is optional) (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`),
-  with a user that may delete from `Oauth2CredentialDocument` (`readWrite` on it, as for the
-  keyset tasks);
+Order: on 4.0.x, purge both stores before upgrading. On 4.1, finish the import from 4.0
+(`python -m googleform.migrate backfill`, then `verify`) first and purge after it: the import
+copies whatever Mongo holds, readable tokens included. A runner without a Mongo connection may
+apply on Postgres alone, and the task cannot tell whether the import has finished then.
+
+It needs:
+
+- the runner's Google Mongo connection while Mongo still holds credentials
+  (`TASK_RUNNER_MONGO_URI`, `TASK_RUNNER_GOOGLE_MONGO_DB`), with a user that may delete from
+  `Oauth2CredentialDocument` (`readWrite` on it, as for the keyset tasks);
 - the function `google.purge_unencrypted_credentials` in Postgres, created by
   `postgres/ensure-admin-roles.sh` (run it once after upgrading to 4.0.10 or later; `deploy.sh`
   does). Until then the task refuses with `purge_function_missing`. The runner's

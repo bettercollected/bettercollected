@@ -406,9 +406,10 @@ async def test_postgres_alone_is_complete_whatever_the_runners_write_mode(
     world, pg_env, superuser, monkeypatch
 ):
     """From 4.1 the google group is written to Postgres alone (the Google Forms
-    service refuses any other mode), so ``auto`` and ``postgres`` cover every
-    store the services write, whatever the runner's copy of ``DB_WRITE_MODE*``
-    says (unset, or a mode that would write Mongo for the other groups)."""
+    service refuses any other mode). With no Mongo connection on the runner,
+    ``auto`` and ``postgres`` are complete whatever the runner's copy of
+    ``DB_WRITE_MODE*`` says (unset, or a mode that would write Mongo for the
+    other groups). The docs say to run it after the import from 4.0."""
     for mode in (None, "dual", "mongo"):
         await _seed_postgres(superuser)
         if mode is None:
@@ -437,6 +438,30 @@ async def test_an_apply_must_cover_every_store_the_services_write(world, mongo, 
     assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
     assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
     assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+
+
+async def test_an_apply_with_a_mongo_connection_must_cover_mongo(world, mongo, superuser):
+    """The services write Postgres alone from 4.1, but the import from 4.0
+    (``googleform.migrate backfill``) still copies whatever Mongo holds: while
+    the runner has a Mongo connection, a Postgres-only apply is refused
+    (``stores_incomplete``) and deletes nothing; ``auto`` covers both stores."""
+    await _seed_postgres(superuser)
+    keep, delete = _mongo_documents()
+    await mongo.insert_many([*keep, *delete])
+    _, dry = await _run(world, {"stores": "postgres"}, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    assert dry["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
+    _, run = await _run(world, {"stores": "postgres"})
+    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
+    assert len(await _mongo_ids(mongo)) == len(keep) + len(delete)
+    assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+
+    _, run = await _both(world)
+    assert run["state"] == "succeeded", run
+    assert run["result"]["mongo"] == {"matched": len(delete), "deleted": len(delete)}
+    assert run["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": len(PG_DELETE)}
+    assert await _mongo_ids(mongo) == {str(d["_id"]) for d in keep}
+    assert await _pg_ids(superuser) == set(PG_KEEP)
 
 
 # -------------------------------------------------------- least privilege

@@ -1080,10 +1080,15 @@ empty, or `credentials.token` / `credentials.refresh_token` present; Postgres
   deleted counts. Running it again deletes nothing.
 - **Stores:** `auto` follows the store rule above (group `google`, written to Postgres alone from
   4.1, so `auto` is Postgres plus Mongo when the runner has a Mongo connection); `mongo`,
-  `postgres` or `both` name them. An apply must cover every store the services still write, else
-  it refuses with `stores_incomplete`: neither store keeps a deletion tombstone, so a row left in
-  the other store would come back with the next backfill or reconcile. A dry run may count a
-  single store. Use `auto`.
+  `postgres` or `both` name them. An apply must cover every store the services still write, and
+  Mongo whenever the runner has a Mongo connection, else it refuses with `stores_incomplete`:
+  neither store keeps a deletion tombstone, so a row left in Mongo would come back with the next
+  backfill (on 4.1 the import from 4.0, `python -m googleform.migrate backfill`, still copies
+  whatever Mongo holds) or reconcile. A dry run may count a single store. Use `auto`.
+- **Order on 4.1:** finish the import from 4.0 (backfill, then verify) first, then run the purge.
+  A runner without a Mongo connection may apply on Postgres alone; the gate cannot see Mongo
+  then, so a purge run before the import has finished is undone by it. Alternatively purge both
+  stores on 4.0.10 before upgrading.
 - **Counts only** in the result, the events and the audit log: never an id, an email or a token.
 - **Least privilege:** Mongo through the runner's Google Mongo connection (`MONGO_URI` /
   `TASK_RUNNER_GOOGLE_MONGO_DB`), `deleteMany` with the filter above (the user needs `readWrite`
