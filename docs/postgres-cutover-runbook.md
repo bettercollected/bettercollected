@@ -858,7 +858,7 @@ What the code does in each, checked against `v4.0.13`:
    - A copy that failed (`mirror write failed`) leaves the other store stale until something
      rewrites it. If a task of the other generation reads that stale copy and saves it, that save
      wins on both stores, a later `verify` is clean, and a clean full `verify` marks every
-     Postgres-side outbox entry recorded before it started as resolved
+     Postgres-side outbox entry recorded before it started (and the unverified Mongo-side ones) as resolved
      (`common/db/migrate/engine.py:1361-1377`). The lost write then leaves no trace except the
      entry, which is why the entries are listed *before* `verify` (below).
    - Two writes to one record at once, one from each generation, run their post-copy convergence in
@@ -874,20 +874,43 @@ What the code does in each, checked against `v4.0.13`:
    **Check, before anything else changes** (no service rolling, no one-off CLI running):
    1. **List first, then `verify`.** Per service, collect the `mirror write failed` lines of the
       roll's time (group, repository, method; they carry no ids) and the open outbox rows on both
-      sides: `SELECT table_name, op, row_id, left(error, 60), created_at FROM
-      <schema>.mirror_write_failures WHERE resolved_at IS NULL` (Postgres-side, as the service's role
-      or a superuser) and, in the service's Mongo database, `db.mirror_write_failures.find({resolved_at:
-      null}, {table_name: 1, op: 1, row_id: 1, error: 1, created_at: 1})`. Counts and ids only, never
-      record contents. The `row_id` is best-effort: up to 20 ids, an address replaced by a hash, or
-      `-` when the failed call named none (`common/db/runtime.py:121-145`); a `-` row names only
-      its repository and method. Keep the list outside the stores.
-   2. **Look at each listed record** before `verify` resolves anything: compare its two copies. A
-      record whose copies still differ holds a write the other store lacks. A record whose copies
-      agree but whose `updated_at` is later than the entry's `created_at` was saved again after
-      the failed copy, possibly from the stale copy; what was written in between is not recoverable
-      from the stores, and the step 2 backups predate it. Decide each with the people who own the data.
-      For a `-` row, treat the whole repository method as suspect and review that repository's
-      recent changes.
+      sides, the exception type only (the stored message can carry key values, such as the value
+      of a duplicate key, `common/db/runtime.py:140-142`):
+
+      ```sql
+      -- Postgres side, as the service's role or a superuser; <schema> is app, auth or google
+      SELECT table_name, op, row_id, split_part(error, ':', 1) AS error_type, created_at
+      FROM <schema>.mirror_write_failures WHERE resolved_at IS NULL ORDER BY created_at;
+      ```
+
+      ```js
+      // Mongo side, in the service's Mongo database; toArray() prints every document
+      db.mirror_write_failures.aggregate([
+        {$match: {resolved_at: null}},
+        {$project: {_id: 0, table_name: 1, op: 1, row_id: 1, created_at: 1,
+                    error_type: {$arrayElemAt: [{$split: ["$error", ":"]}, 0]}}},
+        {$sort: {created_at: 1}}]).toArray()
+      ```
+
+      Cross-check the number of rows on each side against `status --json` (`outbox`). The `row_id` is
+      best-effort and is **not only ids**: up to 20 values per row, any string argument of 64
+      characters or fewer is kept as it was passed (a title, a key, a token), only an address is
+      replaced by a hash (`email:…`), and a call that named none is `-` (`runtime.py:114-145`). A
+      `-` or hashed row names only its repository (the class name in `table_name`, not a collection)
+      and method, and cannot be looked up. Treat the list as sensitive: keep it only outside the
+      stores, in an access-controlled place, and never paste it into a ticket, a chat or a log.
+   2. **Look at each listed record** before `verify` resolves anything, without reading its
+      contents: compare its `updated_at` in the two stores, and run `reconcile --dry-run` (both
+      directions) and read `verify`'s counts and sampled ids for the collection. A record whose
+      copies differ shows as `mismatched` or `missing_in_*` and holds a write the other store lacks.
+      A record whose `updated_at` is later than the entry's `created_at` was saved again after the
+      failed copy, possibly from the stale copy; what was written in between is not recoverable from
+      the stores, and the step 2 backups predate it. A record whose `updated_at` did not move may
+      still have been saved again, since not every write bumps it (for the form imports only the
+      Mongo store does, `backend/backend/app/schemas/form_import.py:98`): the check can raise a
+      doubt, not remove one. Decide each with the people who own the data. A `-` row, or a hashed one,
+      cannot be looked up: treat the whole repository method as suspect and review that repository's
+      recent changes with its owners.
    3. **Then, per service:** `verify` over every collection (no `--group`) exits 0, and `status
       --json` shows `outbox` 0 for both stores and `mirror_failures.mongo.unresolved` and
       `mirror_failures.postgres.unresolved` 0. Counts only. This shows that the two stores agree now,
@@ -907,8 +930,11 @@ What the code does in each, checked against `v4.0.13`:
      Postgres; Mongo holds a write Postgres lacks): plain `reconcile` (`mongo->postgres`) first, but
      **only if `verify`'s differences are limited to the ids of that Mongo-side outbox**: per
      collection, its `mismatched` and `missing_in_*` counts do not exceed the distinct ids listed for
-     that repository, and the sampled ids it prints (at most 5 per kind, `engine.py:716-740`) are
-     among them. Otherwise stop and decide per record. The reason: plain `reconcile` compares
+     that collection's repository, and the sampled ids it prints (at most 5 per kind,
+     `engine.py:716-740`) are among them. The outbox names a repository class, not a collection, and
+     a `-` or hashed row maps to no collection at all: so **any `-` or hashed row, or any collection
+     with differences but no listed ids, means stop and decide per record**, not plain `reconcile`.
+     The reason: plain `reconcile` compares
      `updated_at` (copies Mongo's version where it is at least as new as Postgres's and keeps a row
      the application wrote to Postgres after it, counted as `newer_in_postgres`,
      `engine.py:1097-1121`), and not every Postgres write moves `updated_at` (for the form imports
@@ -920,8 +946,9 @@ What the code does in each, checked against `v4.0.13`:
      `postgres->mongo` replaces Mongo's copy whatever it holds (`engine.py:1140-1195`). The ids are
      in the listed rows (best-effort, as above), and the question per record is which of the two
      writes should stand.
-   A clean full `verify` resolves the Postgres-side entries recorded before it started and the
-   unverified copies; a full `reconcile` of the matching direction resolves the rest
+   A clean full `verify` resolves every Postgres-side entry recorded before it started, and the
+   unverified (`CopyUnverified:`) Mongo-side entries recorded before it started; a full `reconcile`
+   of the matching direction resolves the other Mongo-side entries
    (`engine.py:1332-1346`, `:1361-1377`). Go on only with `verify` at exit 0 and both outboxes at 0,
    after the listed records have been looked at.
 4. **Roll 2: Postgres only** (`postgres_primary_dual` → `postgres`), as a second rolling update:
