@@ -2,9 +2,9 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
-import { groupPipeKey, PipeContext, resolvePipesInText } from '@app/utils/answer-piping';
+import { PipeContext, groupPipeKey, resolvePipesInText } from '@app/utils/answer-piping';
+import { LogicSources, getGroupAnswerItems, getHiddenFieldIds, isFieldHiddenByLogic, logicSourcesById } from '@app/utils/conditional-logic';
 import { GROUP_AGGREGATE_LABELS, NUMERIC_AGGREGATES, NUMERIC_FIELD_TYPES } from '@app/utils/group-aggregates';
-import { getGroupAnswerItems, getHiddenFieldIds, isFieldHiddenByLogic, LogicSources, logicSourcesById } from '@app/utils/conditional-logic';
 
 /**
  * Repeating groups — a set of questions respondents fill several times (one
@@ -279,7 +279,7 @@ export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | unde
 export function plainTitle(field: StandardFormFieldDto | undefined): string {
     const title = field?.title;
     if (typeof title === 'string') return title.trim() || 'Untitled question';
-    const walk = (node: any): string => (node?.type === 'text' ? node.text ?? '' : node?.type === 'answerPipe' ? node.attrs?.label ?? '' : (node?.content ?? []).map(walk).join(''));
+    const walk = (node: any): string => (node?.type === 'text' ? (node.text ?? '') : node?.type === 'answerPipe' ? (node.attrs?.label ?? '') : (node?.content ?? []).map(walk).join(''));
     const text = title ? ((title as any).content ?? []).map(walk).join(' ').trim() : '';
     return text || (typeof field?.value === 'string' && field.value.trim()) || 'Untitled question';
 }
@@ -309,16 +309,27 @@ export function getGroupPipeOptions(field: StandardFormFieldDto, groupLabel: str
  * sibling pipes resolve against this item.
  */
 export function getItemHeader(field: StandardFormFieldDto, index: number, context: PipeContext, label?: string): string {
+    const { base, title } = getItemHeaderParts(field, index, context, label);
+    return title ? `${base}: ${title}` : base;
+}
+
+/**
+ * The pieces of an item header: `label` and `number` ("Applicant", 2), and
+ * `title`, the resolved item title template when it has content. Lets a view
+ * mark the creator's words (label, title) apart from the page's own.
+ */
+export function getItemHeaderParts(field: StandardFormFieldDto, index: number, context: PipeContext, label?: string): { label: string; number: number; base: string; title: string } {
     const { itemLabel, itemTitle } = getRepeatSettings(field);
     // `label`: the item name as the respondent reads it (the default one translated).
-    const base = `${label ?? itemLabel} ${index + 1}`;
-    if (!itemTitle?.trim()) return base;
+    const name = label ?? itemLabel;
+    const parts = { label: name, number: index + 1, base: `${name} ${index + 1}`, title: '' };
+    if (!itemTitle?.trim()) return parts;
     const scope = { groupId: field.id, index, childIds: getGroupChildren(field).map((c) => c.id) };
     // The group's own questions are always resolvable, even when the caller's
     // slides are stale or partial (e.g. a preview of a single page).
     const slides = [...(context.slides ?? []), { id: `${field.id}-scope`, index: -1, type: FieldTypes.SLIDE, properties: { fields: [field] } } as StandardFormFieldDto];
     const resolved = resolvePipesInText(itemTitle, { ...context, slides, answers: itemScopeAnswers(context.answers, scope) })?.trim();
-    return resolved ? `${base}: ${resolved}` : base;
+    return { ...parts, title: resolved ?? '' };
 }
 
 // `{{field:<id>}}` / `{{group:<id>:<aggregate>:<id>}}` tokens with an optional `|fallback`.

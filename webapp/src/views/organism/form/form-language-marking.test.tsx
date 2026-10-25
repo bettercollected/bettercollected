@@ -35,6 +35,7 @@ const group: StandardFormFieldDto = {
     title: 'Applicants',
     properties: { repeat: { minItems: 1, maxItems: 2, itemLabel: 'Aanvrager' }, fields: [short('name', 'Name')] } as any
 };
+const groupWith = (repeat: Record<string, any>): StandardFormFieldDto => ({ ...group, properties: { ...group.properties, repeat: { minItems: 1, maxItems: 2, ...repeat } } as any });
 const imageField: StandardFormFieldDto = { id: 'img', index: 0, type: FieldTypes.IMAGE_CONTENT, title: 'Photo', attachment: { href: '/media/photo.png', properties: { description: 'Het gebouw van voren' } } } as any;
 
 const loadForm = (language: string | undefined, extra: Record<string, any> = {}) =>
@@ -115,10 +116,37 @@ describe.each(CASES)('author text of a %s form on a %s page', (formLanguage, pag
         expect(start.closest('[lang]')?.getAttribute('lang') ?? null).not.toBe(formLanguage);
     });
 
-    it("marks a repeating group's item heading when the creator named the item", () => {
+    it("marks a repeating group's item name when the creator wrote it", () => {
         loadForm(formLanguage);
-        wrap(<RepeatingGroupField field={group} renderChild={(child) => <InputField field={child} />} />);
-        expect(langOf(screen.getByRole('heading', { name: 'Aanvrager 1' }))).toBe(expected);
+        wrap(<RepeatingGroupField field={groupWith({ itemLabel: 'Aanvrager' })} renderChild={(child) => <InputField field={child} />} />);
+        const heading = screen.getByRole('heading', { name: 'Aanvrager 1' });
+        expect(langOf(within(heading).getByText('Aanvrager'))).toBe(expected);
+    });
+
+    it("marks only the creator's pieces of an item heading: the name and the title, not the default name or the number", () => {
+        loadForm(formLanguage);
+        // title template only: the name is the page's default ("Item")
+        wrap(<RepeatingGroupField field={groupWith({ itemTitle: 'Gast' })} renderChild={(child) => <InputField field={child} />} />);
+        let heading = screen.getByRole('heading', { name: 'Item 1: Gast' });
+        expect(langOf(within(heading).getByText('Item'))).toBeNull();
+        expect(langOf(within(heading).getByText('Gast'))).toBe(expected);
+        cleanup();
+
+        // both
+        wrap(<RepeatingGroupField field={groupWith({ itemLabel: 'Aanvrager', itemTitle: 'Gast' })} renderChild={(child) => <InputField field={child} />} />);
+        heading = screen.getByRole('heading', { name: 'Aanvrager 1: Gast' });
+        expect(langOf(within(heading).getByText('Aanvrager'))).toBe(expected);
+        expect(langOf(within(heading).getByText('Gast'))).toBe(expected);
+        // the heading itself carries no language of its own
+        expect(heading.hasAttribute('lang')).toBe(false);
+    });
+
+    it("the verified-identity start button is the page's own text and stays unmarked", () => {
+        loadForm(formLanguage, { settings: { language: formLanguage, requireVerifiedIdentity: true } });
+        wrap(<WelcomePage isPreviewMode />);
+        const start = screen.getByRole('button', { name: pageLanguage === 'nl' ? /Bevestigen/i : /Verify/i });
+        expect(start.closest('[lang]')?.getAttribute('lang') ?? null).not.toBe(formLanguage);
+        expect(start.querySelector('[lang]')).toBeNull();
     });
 
     it("marks a picture's description", () => {
@@ -137,7 +165,7 @@ describe('what stays unmarked', () => {
 
     it("a repeating group's default item name is the page's, not the form's", () => {
         loadForm('nl');
-        const unnamed = { ...group, properties: { ...group.properties, repeat: { minItems: 1, maxItems: 2 } } } as StandardFormFieldDto;
+        const unnamed = groupWith({});
         wrap(<RepeatingGroupField field={unnamed} renderChild={(child) => <InputField field={child} />} />);
         expect(langOf(screen.getByRole('heading', { name: 'Item 1' }))).toBeNull();
     });
