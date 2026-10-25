@@ -435,13 +435,13 @@ MAIL_BILLING: Tuple[SettingSpec, ...] = (
 )
 
 GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
-    _text("GOOGLE_CLIENT_ID", "google", (AUTH, GOOGLE, WEBAPP), "Google OAuth client id.",
+    _text("GOOGLE_CLIENT_ID", "google", (BACKEND, AUTH, GOOGLE, WEBAPP), "Google OAuth client id.",
           tier=T3, max_length=300),
     _text("GOOGLE_PROJECT_ID", "google", (AUTH, GOOGLE), "Google project id.", tier=T3, max_length=200),
-    _secret("GOOGLE_CLIENT_SECRET", "google", (AUTH, GOOGLE), "Google OAuth client secret.", tier=T3),
-    _url("GOOGLE_AUTH_URI", "google", (AUTH, GOOGLE), "Google authorization endpoint.",
+    _secret("GOOGLE_CLIENT_SECRET", "google", (BACKEND, AUTH, GOOGLE), "Google OAuth client secret.", tier=T3),
+    _url("GOOGLE_AUTH_URI", "google", (BACKEND, AUTH, GOOGLE), "Google authorization endpoint.",
          "https://accounts.google.com/o/oauth2/auth"),
-    _url("GOOGLE_TOKEN_URI", "google", (AUTH, GOOGLE), "Google token endpoint.",
+    _url("GOOGLE_TOKEN_URI", "google", (BACKEND, AUTH, GOOGLE), "Google token endpoint.",
          "https://oauth2.googleapis.com/token"),
     _url("GOOGLE_AUTH_PROVIDER_X509_CERT_URL", "google", (AUTH, GOOGLE), "Google certificate endpoint.",
          "https://www.googleapis.com/oauth2/v1/certs"),
@@ -461,7 +461,7 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
     _text("GOOGLE_SHEET_SCOPE", "google", (GOOGLE,), "Scopes requested for sheet export.", tier=T3,
           max_length=2000,
           default="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"),
-    _url("GOOGLE_SHEET_REDIRECT_URL", "google", (GOOGLE,),
+    _url("GOOGLE_SHEET_REDIRECT_URL", "google", (BACKEND, GOOGLE),
          "Redirect address of the sheet export flow. Code default: http://localhost:3000/integrations/google/callback."),
     _text("GOOGLE_API_SERVICE_NAME", "google", (GOOGLE,), "Google API service name.", "drive", max_length=64),
     _text("GOOGLE_API_VERSION", "google", (GOOGLE,), "Google API version.", "v2", max_length=16),
@@ -471,6 +471,10 @@ GOOGLE_OAUTH: Tuple[SettingSpec, ...] = (
           "Google Forms import: on; readonly (imported data stays, no import, sync or call to "
           "Google: 403); off (410, the service is never called).",
           ENUM, tier=T2, default="on", choices=("on", "readonly", "off")),
+    _spec("GOOGLE_SHEETS_OAUTH", "google", (BACKEND,),
+          "Who runs the Google Sheets action's OAuth flow: google_service (the Google Forms "
+          "service, as before) or backend (the sign-in client, drive.file scope only).",
+          ENUM, tier=T2, default="google_service", choices=("backend", "google_service")),
     _url("AUTH_CALLBACK_URI", "google", (BACKEND,),
          "OAuth callback address (the code default is the auth address plus /auth/callback)."),
 )
