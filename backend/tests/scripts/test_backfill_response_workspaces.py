@@ -286,3 +286,17 @@ async def test_the_script_applies_only_after_a_complete_forms_import(monkeypatch
     await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
     assert await _main(["--store", "mongo", "--apply"]) == 0
     assert await _stamped(store) != before
+
+
+async def test_the_script_refuses_to_apply_when_mongo_cannot_be_read(monkeypatch, capsys):
+    from scripts.backfill_response_workspaces import _main
+    from tests.conftest import TEST_DATABASE_URL
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    monkeypatch.setenv(
+        "MONGO_URI", "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=300"
+    )
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    assert await _main(["--store", "mongo", "--apply"]) == 2
+    assert "refused (store_unreachable)" in capsys.readouterr().err

@@ -44,11 +44,10 @@ from typing import Dict, List, Optional, Sequence
 from bson import ObjectId
 from common.models.user import User
 from loguru import logger
-from pymongo.errors import PyMongoError
 
 from backend.app.exceptions import HTTPException
 from backend.db.forms_import import CODE as FORMS_IMPORT_INCOMPLETE
-from backend.db.forms_import import FormsImportIncomplete, ensure_imported
+from backend.db.forms_import import import_problem
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
@@ -91,14 +90,26 @@ def decide(forms: Dict[str, int]) -> Dict[str, str]:
 
 
 def backend_mongo_database():
-    """The backend's Mongo database while one is configured (``MONGO_URI``),
-    else None."""
-    if not (settings.mongo_settings.URI or "").strip():
-        return None
+    """The backend's Mongo database, opened as the startup import guard opens
+    it (``mongo_import_guard._database``): the container's client while a
+    group uses Mongo, else a client of its own while ``MONGO_URI`` is
+    configured (set, not just the built-in default). An async context
+    yielding None when neither: no Mongo, nothing to check."""
+    from backend.app.container import container
+    from backend.db.mongo_import_guard import _database, mongo_uri_configured
+    from backend.db.startup import mongo_required
+
+    return _database(
+        container.database_client() if mongo_required(container) else None,
+        mongo_uri_configured(settings.mongo_settings),
+        settings.mongo_settings.DB,
+    )
+
+
+def backend_postgres_engine():
     from backend.app.container import container
 
-    client = container.database_client()
-    return None if client is None else client[settings.mongo_settings.DB]
+    return container.pg_engine()
 
 
 class CaseDuplicateAccounts:
@@ -109,30 +120,33 @@ class CaseDuplicateAccounts:
         workspace_form_repo,
         auth_service,
         mongo_database=backend_mongo_database,
+        postgres_engine=backend_postgres_engine,
     ):
         self._http = http_client
         self._workspaces = workspace_repo
         self._workspace_forms = workspace_form_repo
         self._auth_service = auth_service
         self._mongo_database = mongo_database
+        self._postgres_engine = postgres_engine
 
     async def ensure_forms_imported(self) -> None:
-        """409 ``forms_import_incomplete`` while Mongo holds workspace links
-        of forms that Postgres does not (or, configured, cannot be read)."""
-        database = self._mongo_database()
-        if database is None:
-            return
-        try:
-            await ensure_imported(database, await self._workspace_forms.links_by_form())
-        except FormsImportIncomplete as error:
-            reason = str(error)
-        except PyMongoError:
-            reason = "Mongo could not be read: the forms import cannot be checked."
-        else:
+        """409 ``forms_import_incomplete`` until the forms import is complete
+        (``backend.db.forms_import``: a finished backfill recorded, or every
+        link of Mongo's 4.0 copy in Postgres), or while a configured Mongo
+        cannot be read. Without Mongo configured there is nothing to check."""
+        async with self._mongo_database() as database:
+            if database is None:
+                return
+            problem = await import_problem(
+                database,
+                await self._workspace_forms.links_by_form(),
+                self._postgres_engine(),
+            )
+        if problem is None:
             return
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
-            content={"code": FORMS_IMPORT_INCOMPLETE, "message": reason},
+            content={"code": FORMS_IMPORT_INCOMPLETE, "message": problem[1]},
         )
 
     async def _group_ids(self) -> List[List[str]]:

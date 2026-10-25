@@ -360,14 +360,29 @@ class PostgresBase:
         return links
 
 
-async def check_forms_import(mongo_database, postgres_links, *, writes: bool) -> None:
+async def check_forms_import(
+    mongo_database, postgres_links, *, writes: bool, engine=None
+) -> None:
     """A Mongo store reads the forms' workspace links from Postgres (4.1):
-    only once Postgres holds every link Mongo's 4.0 copy holds may anything
-    be written from them (``forms_import_incomplete``); a read-only run goes
+    only once the forms import is complete (``backend.db.forms_import``: a
+    finished backfill recorded, or every link of Mongo's 4.0 copy in
+    Postgres) may anything be written from them (``forms_import_incomplete``;
+    ``store_unreachable`` when Mongo cannot be read); a read-only run goes
     on, with a warning (its counts may name the wrong workspace)."""
-    from backend.db.forms_import import CODE, MESSAGE, missing_links
+    from pymongo.errors import PyMongoError
 
-    missing = await missing_links(mongo_database, postgres_links)
+    from backend.db.forms_import import CODE, MESSAGE, unimported_links
+
+    try:
+        missing = await unimported_links(mongo_database, postgres_links, engine)
+    except PyMongoError as error:
+        if writes:
+            raise Refusal("store_unreachable") from None
+        logger.warning(
+            "The forms import could not be checked (%s): Mongo could not be read.",
+            type(error).__name__,
+        )
+        return
     if not missing:
         return
     if writes:
@@ -437,7 +452,10 @@ async def open_stores(
             for store in mongo_stores:
                 store.links_source = postgres
             await check_forms_import(
-                mongo_stores[0].db, await postgres.links(), writes=not read_only
+                mongo_stores[0].db,
+                await postgres.links(),
+                writes=not read_only,
+                engine=postgres.engine,
             )
         yield stores
     finally:

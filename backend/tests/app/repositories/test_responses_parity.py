@@ -181,14 +181,18 @@ async def test_response_listings_compose_over_forms(sessions):
     assert (
         next(i for i in page.items if i["response_id"] == "r1")["form_title"] == "Alpha"
     )
-    await pages_equal(
-        lambda: mongo.get_form_responses(
-            ids, filter_query=FormResponseFilterQuery(data_owner_identifier="^b@")
-        ),
-        lambda: postgres.get_form_responses(
-            ids, filter_query=FormResponseFilterQuery(data_owner_identifier="^b@")
-        ),
-    )
+    # a filter value is literal text, ignoring case, in both stores: regex
+    # characters match themselves and a bad pattern is no error
+    for value, expected in (("B@EX", {"r2"}), ("^b@", set()), ("(", set()), ("a.example", set())):
+        page = await pages_equal(
+            lambda: mongo.get_form_responses(
+                ids, filter_query=FormResponseFilterQuery(data_owner_identifier=value)
+            ),
+            lambda: postgres.get_form_responses(
+                ids, filter_query=FormResponseFilterQuery(data_owner_identifier=value)
+            ),
+        )
+        assert {i["response_id"] for i in page.items} == expected, value
     await pages_equal(
         lambda: mongo.get_form_responses(
             ids, sort=SortRequest(sort_by="created_at", sort_order=SortOrder.ASCENDING)
@@ -216,6 +220,17 @@ async def test_response_listings_compose_over_forms(sessions):
         lambda: mongo.list(ids, False, data_subjects=True),
         lambda: postgres.list(ids, False, data_subjects=True),
     )
+    # the responders' email filter is literal text too
+    for value, expected in (("A@EXAMPLE", {"a@example.com"}), ("a.e", set()), ("[", set())):
+        page = await pages_equal(
+            lambda: mongo.list(
+                ids, False, FormResponseFilterQuery(email=value), data_subjects=True
+            ),
+            lambda: postgres.list(
+                ids, False, FormResponseFilterQuery(email=value), data_subjects=True
+            ),
+        )
+        assert {i["email"] for i in page.items} == expected, value
     stored = {r: await mongo.get_response(r) for r in ("r1", "r2", "r3")}
     await parity(
         mongo,

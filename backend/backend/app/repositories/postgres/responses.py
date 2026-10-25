@@ -27,7 +27,13 @@ from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
-from backend.app.repositories.postgres.forms import _fold, _oid, _sort_terms, _text
+from backend.app.repositories.postgres.forms import (
+    _contains,
+    _fold,
+    _oid,
+    _sort_terms,
+    _text,
+)
 from backend.app.repositories.response_scope import (
     ResponseScope,
     form_importers,
@@ -81,15 +87,15 @@ from camel_converter import to_camel, to_snake
 
 
 def _filter_terms(doc, filter_query) -> list:
-    """``create_filter_pipeline(filter_object=...)``: each set field is a
-    case-insensitive regex on its camelCase or snake_case key."""
+    """``create_filter_pipeline(filter_object=...)``: each set field is
+    literal text its camelCase or snake_case key contains, ignoring case."""
     if not filter_query:
         return []
     matching = filter_query.model_dump(exclude_unset=True, exclude_none=True)
     return [
         or_(
-            _text(doc[to_camel(key)]).op("~*")(value),
-            _text(doc[to_snake(key)]).op("~*")(value),
+            _contains(_text(doc[to_camel(key)]), value),
+            _contains(_text(doc[to_snake(key)]), value),
         )
         for key, value in matching.items()
     ]
@@ -243,7 +249,7 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         for key, value in matching.items():
             keys = {to_camel(key), to_snake(key)}
             if "email" in keys:
-                stmt = stmt.where(grouped.c.email.op("~*")(value))
+                stmt = stmt.where(_contains(grouped.c.email, value))
             else:  # the projected document has no such field
                 stmt = stmt.where(literal(False))
 

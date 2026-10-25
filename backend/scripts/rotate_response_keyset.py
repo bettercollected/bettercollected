@@ -92,9 +92,7 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     run_reencrypt,
     scan,
 )
-from backend.db.forms_import import CODE as FORMS_IMPORT_CODE
-from backend.db.forms_import import MESSAGE as FORMS_IMPORT_MESSAGE
-from backend.db.forms_import import FormsImportIncomplete, missing_links
+from backend.db.forms_import import import_problem
 from backend.admin.tasks.impl.keyset_state import DataConfig
 from backend.admin.tasks.impl.responses_common import (
     plan_task_stores,
@@ -316,6 +314,14 @@ def store_refusal_message(refusal: Refusal, target: Target) -> str:
     )
 
 
+class FormsImportRefused(Exception):
+    """A writing run while the forms import is incomplete (or unknown)."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
 async def _open_stores(
     target: Target, names: List[str], closers: list, *, writes: bool = False
 ) -> List:
@@ -353,12 +359,14 @@ async def _open_stores(
         for store in mongo_stores:
             store.links_source = postgres
         # only once the forms import is complete may anything be written from
-        # them (FormsImportIncomplete); a read goes on, with a warning
-        missing = await missing_links(mongo_stores[0].db, await postgres.links())
-        if missing and writes:
-            raise FormsImportIncomplete(missing)
-        if missing:
-            print(f"warning: {FORMS_IMPORT_MESSAGE.format(missing=missing)}", file=sys.stderr)
+        # them (FormsImportRefused); a read goes on, with a warning
+        problem = await import_problem(
+            mongo_stores[0].db, await postgres.links(), postgres.engine
+        )
+        if problem and writes:
+            raise FormsImportRefused(*problem)
+        if problem:
+            print(f"warning: {problem[1]}", file=sys.stderr)
     return stores
 
 
@@ -441,8 +449,8 @@ async def _main(argv: List[str]) -> int:
                 stores = await _open_stores(
                     target, plans[target.name], closers, writes=writes
                 )
-            except FormsImportIncomplete as error:
-                print(f"{target.name}: refused ({FORMS_IMPORT_CODE}): {error}", file=sys.stderr)
+            except FormsImportRefused as refused:
+                print(f"{target.name}: refused ({refused.code}): {refused}", file=sys.stderr)
                 return 2
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"

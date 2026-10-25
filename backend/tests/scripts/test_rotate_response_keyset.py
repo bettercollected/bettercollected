@@ -1035,3 +1035,48 @@ async def test_drop_old_refuses_when_its_write_mode_is_wrong_and_mongo_is_missin
     code, err = await cli(capsys, *drop, "--mongo-retired")
     assert code == 2 and "mongo_not_retired" in err
     assert not final_file.exists()
+
+
+async def test_writing_runs_wait_for_the_forms_import(monkeypatch):
+    """reencrypt and drop-old read Mongo's responses with the forms' links
+    from Postgres: they refuse while a link of Mongo's 4.0 copy is missing
+    there (``forms_import_incomplete``) or Mongo cannot be read
+    (``store_unreachable``); a dry run goes on; a finished import opens."""
+    from scripts.rotate_response_keyset import FormsImportRefused, _open_stores
+
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
+    data = Data()
+    await data.to_mongo(credentials=False)  # links: in Postgres and in Mongo
+    lost = WorkspaceFormDocument(
+        id=PydanticObjectId(), workspace_id=WS_B, form_id="f1", user_id="u"
+    )
+    db = container.database_client()[TEST_MONGO_DB]
+    await db["workspace_forms"].insert_one(to_bson(lost))
+    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    monkeypatch.setenv("MONGO_DB", TEST_MONGO_DB)
+
+    async def opened(writes):
+        closers = []
+        try:
+            return await _open_stores(RESPONSES, ["mongo"], closers, writes=writes)
+        finally:
+            for close in closers:
+                await close()
+
+    with pytest.raises(FormsImportRefused) as refused:
+        await opened(writes=True)
+    assert refused.value.code == "forms_import_incomplete"
+    assert str(WS_B) not in str(refused.value)
+    assert len(await opened(writes=False)) == 1  # read-only: warned, goes on
+
+    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    assert len(await opened(writes=True)) == 1
+
+    monkeypatch.setenv(
+        "MONGO_URI", "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=300"
+    )
+    with pytest.raises(FormsImportRefused) as refused:
+        await opened(writes=True)
+    assert refused.value.code == "store_unreachable"

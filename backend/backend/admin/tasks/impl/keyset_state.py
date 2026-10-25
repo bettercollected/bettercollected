@@ -520,7 +520,10 @@ async def open_target_stores(
             for store in mongo_stores:
                 store.links_source = postgres
             await check_forms_import(
-                mongo_stores[0].db, await postgres.links(), writes=not read_only
+                mongo_stores[0].db,
+                await postgres.links(),
+                writes=not read_only,
+                engine=postgres.engine,
             )
         yield stores
     finally:
