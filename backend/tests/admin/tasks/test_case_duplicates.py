@@ -286,34 +286,127 @@ async def test_the_exact_path_whatever_the_configured_url_ends_with(url):
 
 
 # --------------------------------------------------------------- refusals
+def _replying(status, **kwargs):
+    return httpx.MockTransport(lambda request: httpx.Response(status, **kwargs))
+
+
+def _raising(error):
+    def handler(request):
+        raise error("down", request=request)
+
+    return httpx.MockTransport(handler)
+
+
 @pytest.mark.parametrize(
-    "env,status,code",
+    "env,transport,code",
     [
-        ({impl.KEY_ENV: ""}, 200, "backend_not_configured"),
-        ({impl.URL_ENV: "file:///etc"}, 200, "backend_not_configured"),
-        ({}, 403, "backend_key_refused"),
-        ({}, 503, "backend_key_missing"),
-        ({}, 500, "backend_unreachable"),
+        ({impl.KEY_ENV: ""}, None, "backend_not_configured"),
+        ({impl.URL_ENV: "file:///etc"}, None, "backend_not_configured"),
+        # httpx.InvalidURL is not an httpx.HTTPError: still a refusal
+        ({impl.URL_ENV: "http://[::1/api/v1"}, None, "backend_not_configured"),
+        # the API itself: down or too slow; no key; another key
+        ({}, _raising(httpx.ConnectError), "backend_unreachable"),
+        ({}, _raising(httpx.ReadTimeout), "backend_unreachable"),
+        ({}, _replying(503), "backend_key_missing"),
+        ({}, _replying(403), "backend_key_refused"),
+        ({}, _replying(401), "backend_key_refused"),
+        # a backend without the routes (older than the task)
+        ({}, _replying(404), "backend_route_missing"),
+        # a redirect is never followed, and never looks like "unreachable"
+        ({}, _replying(307, headers={"location": "http://backend.test/x"}), "backend_redirect"),
+        ({}, _replying(301), "backend_redirect"),
+        ({}, _replying(308), "backend_redirect"),
+        # the API's own error, or a 502 that is not the API's auth report
+        ({}, _replying(500), "backend_error"),
+        ({}, _replying(400), "backend_error"),
+        ({}, _replying(502), "backend_error"),
+        ({}, _replying(502, json={"code": "something_else"}), "backend_error"),
+        ({}, _replying(502, json=["auth_error"]), "backend_error"),
+        # 200 but not the expected JSON
+        ({}, _replying(200, text="<html>"), "backend_bad_reply"),
+        ({}, _replying(200, json=[]), "backend_bad_reply"),
+        ({}, _replying(200, json={"groups": "x"}), "backend_bad_reply"),
+        ({}, _replying(200, json={"groups": [["x"]]}), "backend_bad_reply"),
+        # the API's call to auth failed (502 with its code)
+        ({}, _replying(502, json={"code": "auth_unreachable", "status": None}),
+         "auth_unreachable"),
+        ({}, _replying(502, json={"code": "auth_refused", "status": 403}), "auth_key_refused"),
+        ({}, _replying(502, json={"code": "auth_error", "status": 500}), "auth_error"),
+        ({}, _replying(502, json={"code": "auth_misconfigured", "status": None}),
+         "auth_misconfigured"),
+        ({}, _replying(502, json={"code": "deletion_unavailable", "status": 503}),
+         "deletion_unavailable"),
     ],
 )
-async def test_refusals(world, api, monkeypatch, env, status, code):
+async def test_refusals(world, api, monkeypatch, caplog, env, transport, code):
     for name, value in env.items():
         monkeypatch.setenv(name, value)
-    if status != 200:
-        monkeypatch.setattr(
-            impl, "transport", httpx.MockTransport(lambda request: httpx.Response(status))
-        )
+    if transport is not None:
+        monkeypatch.setattr(impl, "transport", transport)
+    caplog.set_level("WARNING", logger="backend.admin.tasks")
     _, run = await _run(world, dry_run=True)
     assert run["state"] == "refused" and run["refusal_code"] == code, run
+    assert code in meta.Refusals.__members__
 
 
-async def test_an_unreachable_api_refuses(world, api, monkeypatch):
-    def down(request):
-        raise httpx.ConnectError("down")
-
-    monkeypatch.setattr(impl, "transport", httpx.MockTransport(down))
+async def test_a_refusal_logs_the_status_and_code_never_the_body(world, api, monkeypatch, caplog):
+    monkeypatch.setattr(
+        impl,
+        "transport",
+        _replying(502, json={"code": "auth_refused", "status": 401, "detail": "x@example.com"}),
+    )
+    caplog.set_level("WARNING", logger="backend.admin.tasks")
     _, run = await _run(world, dry_run=True)
-    assert run["refusal_code"] == "backend_unreachable", run
+    assert run["refusal_code"] == "auth_key_refused", run
+    logged = [r.getMessage() for r in caplog.records if r.name == "backend.admin.tasks"]
+    assert any("auth_key_refused" in m and "502" in m for m in logged), logged
+    assert "example.com" not in " ".join(logged)
+
+
+async def test_a_deletion_that_cannot_start_refuses_the_apply(world, api, monkeypatch):
+    """The API cannot start the account deletion: the apply refuses with
+    ``deletion_unavailable`` (not ``backend_key_missing``)."""
+    dry_id, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    handler = api.handler
+
+    def no_deletions(request):
+        if request.method == "POST":
+            return httpx.Response(502, json={"code": "deletion_unavailable", "status": 503})
+        return handler(request)
+
+    monkeypatch.setattr(impl, "transport", httpx.MockTransport(no_deletions))
+    _, run = await _run(world)
+    assert run["state"] == "refused" and run["refusal_code"] == "deletion_unavailable", run
+
+
+async def test_a_refusal_during_the_apply_is_the_same_code(world, api, monkeypatch):
+    """The API loses auth after the dry run: the apply refuses with the code."""
+    dry_id, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    monkeypatch.setattr(
+        impl, "transport", _replying(502, json={"code": "auth_unreachable", "status": None})
+    )
+    _, run = await _run(world)
+    assert run["state"] == "refused" and run["refusal_code"] == "auth_unreachable", run
+
+
+async def test_an_id_with_a_trailing_newline_is_a_bad_reply_not_a_crash(world, api, monkeypatch):
+    """``^...$`` would accept "<id>\\n"; the id would then reach the drop's
+    URL, where httpx raises InvalidURL instead of the run refusing."""
+    def newline(request):
+        return httpx.Response(
+            200, json={"groups": [[{"id": A2 + "\n", "forms": 0, "decision": "drop"},
+                                   {"id": A1, "forms": 1, "decision": "keep"}]]}
+        )
+
+    monkeypatch.setattr(impl, "transport", httpx.MockTransport(newline))
+    _, run = await _run(world, dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "backend_bad_reply", run
+    async with impl.Backend("http://backend.test/api/v1", KEY) as backend:
+        with pytest.raises(impl.Refusal) as refused:
+            await backend.drop(A2 + "\n")
+    assert refused.value.code == "backend_bad_reply"
 
 
 async def test_a_malformed_reply_carries_nothing_into_events(world, api, monkeypatch):
@@ -325,5 +418,5 @@ async def test_a_malformed_reply_carries_nothing_into_events(world, api, monkeyp
 
     monkeypatch.setattr(impl, "transport", httpx.MockTransport(leaky))
     run_id, run = await _run(world, dry_run=True)
-    assert run["refusal_code"] == "backend_unreachable", run
+    assert run["refusal_code"] == "backend_bad_reply", run
     _no_emails(await world.events(run_id))

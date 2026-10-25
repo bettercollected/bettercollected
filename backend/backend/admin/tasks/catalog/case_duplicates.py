@@ -27,11 +27,33 @@ from backend.admin.tasks.spec import Params, Result, TaskMeta
 class Refusals(str, enum.Enum):
     # ADMIN_TASKS_API_KEY or ADMIN_TASKS_BACKEND_URL missing on the runner
     backend_not_configured = "backend_not_configured"
-    # the API is unreachable or answered with an error
+    # no connection to the API, or it timed out (ADMIN_TASKS_BACKEND_URL,
+    # the backend service down)
     backend_unreachable = "backend_unreachable"
-    # the API has no ADMIN_TASKS_API_KEY (503) or refused the runner's (403)
+    # the API has no ADMIN_TASKS_API_KEY (503) or refused the runner's (401/403)
     backend_key_missing = "backend_key_missing"
     backend_key_refused = "backend_key_refused"
+    # the API has no such route (404): usually a backend older than this task
+    backend_route_missing = "backend_route_missing"
+    # the API answered with a redirect (3xx, never followed): the URL or the
+    # path the runner requests is not the route's exact one
+    backend_redirect = "backend_redirect"
+    # the API answered 5xx or another unexpected status
+    backend_error = "backend_error"
+    # the API answered 200 with a body that is not the expected JSON
+    backend_bad_reply = "backend_bad_reply"
+    # the API's call to the auth service failed (the API answered 502 with
+    # its code): no connection to auth; auth refused the API's
+    # AUTH_INTERNAL_NOTIFY_KEY (401/403, the two services' keys differ); or
+    # auth answered another error
+    auth_unreachable = "auth_unreachable"
+    auth_key_refused = "auth_key_refused"
+    auth_error = "auth_error"
+    # the API's AUTH_BASE_URL is not a usable URL
+    auth_misconfigured = "auth_misconfigured"
+    # the API could not start an account deletion (the deletion workflow:
+    # Temporal or the jobs worker)
+    deletion_unavailable = "deletion_unavailable"
 
 
 class Events(str, enum.Enum):
