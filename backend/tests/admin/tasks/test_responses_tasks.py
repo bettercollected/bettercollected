@@ -885,43 +885,6 @@ async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(wor
 
 
 # ------------------------------------------------- the forms' links (4.1)
-async def test_mongo_stores_read_the_forms_links_from_postgres():
-    """The forms group is in Postgres only since 4.1: a task's Mongo store
-    reads the forms' workspace links there, never the frozen 4.0 copy in
-    Mongo, for the responses tasks and the keyset tasks."""
-    from backend.admin.tasks.impl import keyset_core
-    from backend.admin.tasks.impl.keyset_state import DataConfig, open_target_stores
-    from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
-
-    await _truncate_postgres()
-    links, _, _ = _documents()
-    workspace_forms = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
-    for link in links:
-        await workspace_forms.upsert(link)
-    expected = {"single": [str(WS_A)], "shared": [str(WS_A), str(WS_B)]}
-    # a Mongo the stores never reach: any read of its links would fail
-    NEVER_CONNECTED = "mongodb://mongo-not-used.invalid/?serverSelectionTimeoutMS=500"
-
-    config = StoreConfig(
-        mongo_uri=NEVER_CONNECTED, mongo_db=TEST_MONGO_DB, database_url=TEST_DATABASE_URL
-    )
-    classes = {"mongo": BackfillMongo, "postgres": BackfillPostgres}
-    async with open_stores(config, ["mongo"], classes, read_only=True) as (mongo,):
-        assert dict(await mongo.links()) == expected
-
-    data = DataConfig(
-        mongo_uri=NEVER_CONNECTED,
-        mongo_db=TEST_MONGO_DB,
-        google_mongo_db=TEST_MONGO_DB,
-        database_url=TEST_DATABASE_URL,
-        google_database_url=TEST_DATABASE_URL,
-    )
-    async with open_target_stores(
-        data, keyset_core.RESPONSES, ["mongo"], read_only=True
-    ) as (mongo,):
-        assert await mongo.links() == expected
-
-
 async def _mongo_links_copy(*extra):
     """The 4.0 copy of the forms' links in Mongo: the seeded ones (also in
     Postgres) plus ``extra`` (an import that has not copied them yet)."""
@@ -963,9 +926,10 @@ async def test_an_incomplete_forms_import_refuses_the_backfill_apply(world, seed
 
 
 async def test_writes_from_the_forms_links_wait_for_a_complete_import(seeded):
-    """Both openers (the responses tasks', the keyset tasks'): with links
-    Mongo holds and Postgres lacks, a read-only opening goes on and a
-    writing one refuses; a complete import opens for writes."""
+    """Both openers (the responses tasks', the keyset tasks') hand a Mongo
+    store the links in Postgres. With links Mongo holds and Postgres lacks, a
+    read-only opening goes on and a writing one refuses; a complete import
+    opens for writes."""
     from backend.admin.tasks.impl import keyset_core
     from backend.admin.tasks.impl.keyset_state import DataConfig, open_target_stores
     from backend.admin.tasks.impl.responses_common import StoreConfig, open_stores
@@ -1002,7 +966,10 @@ async def test_writes_from_the_forms_links_wait_for_a_complete_import(seeded):
                 pass
         assert refused.value.code == "forms_import_incomplete"
 
-    await PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None).upsert(lost)
+    postgres = PostgresWorkspaceFormRepository(container.pg_sessionmaker(), None)
+    await postgres.upsert(lost)
+    # Mongo's copy now lacks nothing; the links are read from Postgres
+    expected = await postgres.links_by_form()
     for opening in openers(read_only=False):
         async with opening as (mongo,):
-            assert mongo.links_source is not None
+            assert dict(await mongo.links()) == expected
