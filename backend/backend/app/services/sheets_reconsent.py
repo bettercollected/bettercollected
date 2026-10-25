@@ -18,8 +18,9 @@ submission that would run it, or opening it in the builder):
 
 Under ``google_service`` nothing is enforced: reconnecting there grants the
 broad scopes again, so a skipped action could never run again. Reconnecting
-replaces the action's parameters (the builder saves them anew), which clears
-the markers. Logs carry ids and counts only.
+under ``backend`` stores the new grant and clears the markers in one write,
+then revokes the old grant at Google (services/sheets_grant_revocation.py).
+Logs carry ids and counts only.
 """
 
 from __future__ import annotations

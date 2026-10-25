@@ -11,6 +11,7 @@ import pytest
 
 from backend.app.container import container
 from backend.app.services.google_sheets_oauth import DRIVE_FILE_SCOPE, SHEETS_API_URL
+from backend.app.services.sheets_grant_revocation import REVOKE_URL
 from backend.config import settings
 
 AUTH_URI = "https://accounts.fake-google.test/o/oauth2/auth"
@@ -36,6 +37,8 @@ class FakeGoogle:
         }
         self.sheets_status = 200
         self.sheets_body: dict = {"spreadsheetId": SPREADSHEET_ID}
+        self.revoke_status = 200
+        self.revoke_body: dict = {}
         # raise this from every request instead of answering (timeouts, ...)
         self.fail_with: Optional[Callable[[httpx.Request], Exception]] = None
 
@@ -49,12 +52,22 @@ class FakeGoogle:
     def sheets_requests(self) -> List[httpx.Request]:
         return [r for r in self.requests if str(r.url).startswith(SHEETS_API_URL)]
 
+    def revoke_requests(self) -> List[dict]:
+        return [
+            {k: v[0] for k, v in parse_qs(r.content.decode()).items()}
+            for r in self.requests
+            if str(r.url) == REVOKE_URL
+        ]
+
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         if self.fail_with is not None:
             raise self.fail_with(request)
         if request.method == "POST" and str(request.url) == TOKEN_URI:
             return httpx.Response(self.token_status, json=self.token_body)
+        if request.method == "POST" and str(request.url) == REVOKE_URL:
+            assert request.headers["content-type"] == "application/x-www-form-urlencoded"
+            return httpx.Response(self.revoke_status, json=self.revoke_body)
         if request.method == "POST" and request.url.path == "/v4/spreadsheets":
             assert request.url.host == "sheets.googleapis.com"
             return httpx.Response(self.sheets_status, json=self.sheets_body)
@@ -79,6 +92,7 @@ def fake_google(monkeypatch):
     google = FakeGoogle()
     for service in sheets_oauth_services():
         monkeypatch.setattr(service, "transport", google.transport)
+    monkeypatch.setattr(container.sheets_grant_service(), "transport", google.transport)
     return google
 
 
