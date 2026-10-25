@@ -5,8 +5,20 @@ CREDENTIALS = "Credentials"
 
 
 class IntegrationActionService:
-    def __init__(self, form_repo: FormRepository):
+    def __init__(self, form_repo: FormRepository, sheets_grants=None):
         self._form_repo = form_repo
+        # services/sheets_grant_revocation.py (GOOGLE_SHEETS_OAUTH=backend)
+        self._sheets_grants = sheets_grants
+
+    async def store_sheets_grant(
+        self, form_id: str, action_id: str, credentials: str
+    ) -> str:
+        """A new ``drive.file`` grant from the backend's Sheets flow: stored
+        with the re-consent markers cleared in one write, then the legacy
+        grant it replaced is revoked at Google (or a retry is queued)."""
+        return await self._sheets_grants.store_new_grant(
+            form_id=form_id, action_id=action_id, credential=credentials
+        )
 
     async def add_credentials_to_form_action(
         self, form_id: str, action_id: str, credentials: str

@@ -95,9 +95,25 @@ the backend:
   English or Dutch) through the auth service, with a link to the form's integrations. When the auth service
   cannot be reached, the next use tries again.
 
-Reconnecting (connect and save the action again) stores a `drive.file` credential and new parameters,
-which clears the marks. In `google_service` mode nothing is held back: reconnecting there grants the broad
-scopes again. Logs carry form, action and workspace ids and counts only.
+Reconnecting in `backend` mode stores the `drive.file` credential and clears the marks in one write; the
+old credential is replaced there and in the form's published versions, so no copy of it is left. Then the
+backend revokes the old grant at Google (`POST https://oauth2.googleapis.com/revoke` with its refresh token;
+the address is fixed in the code). Google's answer 200, or 400 `invalid_token` (already revoked or
+expired), counts as done. Any other answer, or Google not answering, never blocks the new grant: a
+`revoke_google_grant` job retries the revocation once an hour for two days. It runs on the Postgres job
+queue only, so set `JOBS_BACKEND__revoke_google_grant=postgres`; without it the failed revocation is only
+logged (`revocation retry not queued`) and the old grant stays at Google until the user removes it in their
+Google account. A job still pending after a day, or failed, shows in the admin portal's integrity monitor
+(`CREDENTIAL_PURGE overdue`, with the account-deletion purges).
+
+Google's revocation ends the user's whole grant to the OAuth client that issued the token. A legacy
+credential issued to the Google sign-in client itself (the Google Forms service configured with the same
+client as the backend) is therefore deleted but not revoked, since that would also revoke the new
+`drive.file` grant; this is logged as `reason=same_client`. Revoking the Google Forms service's grant also
+ends that user's connection for importing Google Forms, which they reconnect when they import again.
+
+In `google_service` mode nothing is held back or revoked: reconnecting there grants the broad scopes again.
+Logs carry form, action and workspace ids, outcomes and counts only, never a token.
 
 Before switching, count the actions concerned (read-only, counts only):
 

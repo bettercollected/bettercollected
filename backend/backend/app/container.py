@@ -98,6 +98,7 @@ from backend.app.repositories.workspace_responders_repository import (
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
+from backend.app.services.sheets_grant_revocation import SheetsGrantService
 from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.session_service import SessionService
@@ -505,9 +506,6 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
     )
 
-    integration_action_service: IntegrationActionService = providers.Singleton(
-        IntegrationActionService, form_repo=form_repo
-    )
     mcp_audit_log_repo: PostgresMcpAuditLogRepository = providers.Singleton(
         PostgresMcpAuditLogRepository, pg_sessionmaker
     )
@@ -527,6 +525,20 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         flags=flags,
         jobs=providers.Object(jobs_app),
+    )
+
+    # after re-consent: the new Sheets grant stored, the legacy one revoked
+    # (services/sheets_grant_revocation.py)
+    sheets_grant_service: SheetsGrantService = providers.Singleton(
+        SheetsGrantService,
+        form_repo=form_repo,
+        crypto=crypto,
+        temporal_service=temporal_service,
+    )
+    integration_action_service: IntegrationActionService = providers.Singleton(
+        IntegrationActionService,
+        form_repo=form_repo,
+        sheets_grants=sheets_grant_service,
     )
 
     aws_service: AWSS3Service = providers.Singleton(
