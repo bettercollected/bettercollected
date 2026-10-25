@@ -11,7 +11,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { scrollToDivById } from '@app/utils/scroll-utils';
+import { moveOnFrom } from '@app/utils/scroll-utils';
 import { cn } from '@app/shadcn/util/lib';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -68,7 +68,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                             if (!isBuilder) {
                                 addFieldLinearRatingAnswer(field.id, index);
                                 setTimeout(() => {
-                                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
+                                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) moveOnFrom(field.id, form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                                 }, 200);
                             }
                         }}

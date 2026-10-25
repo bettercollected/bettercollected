@@ -49,6 +49,24 @@ export function scrollToDivById(divId: string = '', scrollableDivId: string = 'q
     }
 }
 
+/**
+ * After a choice, bring the next question into view (and its text field into
+ * focus), as the choice fields do 200 ms after an answer. Only while the
+ * respondent is still at the question they answered: if focus has moved on
+ * in the meantime (Continue pressed, so the page is changing, or another
+ * question reached by keyboard), it stays where they put it. Before, the
+ * delayed move could focus a field on the page that was sliding away, and
+ * focus fell to the document when that page unmounted.
+ */
+export function moveOnFrom(answeredId: string, nextId: string | undefined) {
+    if (!nextId) return;
+    const answered = document.getElementById(answeredId);
+    const active = document.activeElement;
+    if (!answered) return;
+    if (active && active !== document.body && !answered.contains(active)) return;
+    scrollToDivById(nextId);
+}
+
 /** A question inside a repeating group item: into view, and its first control focused. */
 export function focusQuestionInGroup(scopedId: string) {
     const question = document.getElementById(scopedId);
