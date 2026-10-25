@@ -188,11 +188,32 @@ auth and google. For each group `g`:
    failed leaves an older application row in Postgres. Every `mongo->postgres` run keeps that row
    while the Postgres-side outbox is open, so `verify` never gets clean and the entries never
    resolve. You can tell because `newer_in_postgres` keeps growing and `verify` keeps reporting
-   mismatches in that group. The safe way out is manual. For each open Postgres-side entry, check
-   that its write is in Mongo by comparing the rows it names in both stores. Then resolve those
-   entries by hand (`UPDATE <schema>.mirror_write_failures SET resolved_at = now() WHERE id IN
-   (…)`), and run `reconcile` (`mongo->postgres`). A dedicated tool for this is planned before
-   any group goes to Phase 2.
+   mismatches in that group. The way out is `resolve-outbox`, run with the services' flags after
+   the `--group` copy above:
+   1. Run `reconcile` (`mongo->postgres`) once: it copies the records Mongo has and Postgres
+      lacks, and deletes copies of deleted records, so they do not hold the entries back.
+   2. `python -m backend.migrate --group g resolve-outbox` (a dry run; auth and google the same
+      way, without `--group`). For each open Postgres-side entry of `g` it compares, in both
+      stores, the rows the entry names (the ObjectIds among its recorded arguments) and every row
+      of the group. By default an entry is resolvable only on proof that Mongo holds what
+      Postgres holds: the same checksum, a row copied from Mongo, no live copy on either side,
+      or a Postgres row deleted since (a newer tombstone) with no Mongo copy. Timestamps never
+      prove anything. It prints counts only: `resolvable`, and `kept` by reason
+      (`missing_in_mongo`, `missing_in_postgres`, `older_in_mongo`, `superseded`,
+      `delete_pending`, `expired_one_side`, `group_differs` when a row the entry does not name
+      is not proven, `unknown_repository`). It exits 1 while any entry is kept.
+   3. Rerun it with `--apply`: it resolves the resolvable entries and keeps the rest (it never
+      resolves an entry recorded after it read them). To see which rows keep an entry, add
+      `--ids-file <new local path>`: the file gets the entry and row ids with each reason (mode
+      0600, never overwritten). Do not mail or paste it. Never resolve a kept entry by hand.
+   4. `superseded` means Mongo's copy differs and has a later `updated_at` (not older than the
+      entry). That is the stuck case itself, but it is no proof: a Mongo save built from a copy
+      that never got the Postgres write stamps a later time too. Check those rows in both stores
+      (`--ids-file`). Add `--accept-superseded` **only after confirming the newer Mongo version
+      should win: the Postgres changes of these entries will be discarded by reconcile.** If a
+      Postgres change must survive, copy it into Mongo by hand first, then rerun.
+   5. Run `reconcile` (`mongo->postgres`), then `verify`. With the entries resolved, Mongo's
+      copies replace the older rows, and `verify` comes back clean.
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending
@@ -681,6 +702,7 @@ docker compose -f docker-compose.deployment.yml run --rm --no-deps backend \
   /api/backend/.venv/bin/python -m backend.migrate status
 … status --json | preflight | backfill --max-minutes 30 | verify | reconcile | jobs-sweep --backend postgres
 … --group refdata backfill | --group refdata verify | --group refdata,analytics reconcile
+… --group refdata resolve-outbox [--apply] [--accept-superseded] [--ids-file <new path>]   # Phase 2 "stuck case"
 ```
 
 `status --json` prints one JSON document (`format: 1`): per collection its group, the counts in

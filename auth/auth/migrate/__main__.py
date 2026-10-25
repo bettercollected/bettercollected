@@ -1,4 +1,4 @@
-"""python -m auth.migrate [--group auth] {preflight,backfill,verify,reconcile,status}
+"""python -m auth.migrate [--group auth] {preflight,backfill,verify,reconcile,status,resolve-outbox}
 
 Runs as this service's role against its schema and Mongo database
 (plans/postgres-consolidation.md §5). The service has one repository group,
