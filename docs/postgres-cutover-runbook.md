@@ -345,6 +345,12 @@ other account's workspaces, transfer ownership), then delete the other account t
 product's account deletion, so its sessions, memberships and billing go with it. Never delete a
 row only in `auth.users`. Then upgrade again (or run `preflight` and `backfill` again).
 
+4.0.11 and later also have an admin task for this, `auth.resolve_case_duplicate_accounts`
+(docs/admin-service.md): run it on the previous version, before the upgrade or the import. It
+drops by fixed rules only the accounts that have no forms (or, when none in a group has forms,
+all but the one created last), and lists the groups where two or more accounts have forms for the
+handling above. Review its dry run first.
+
 ## Google credentials without a user id (once, after upgrading)
 
 The Google Forms integration encrypts a stored Google credential with a key derived from the

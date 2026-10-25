@@ -226,6 +226,8 @@ environment, whatever the tier.
 | `ADMIN_NOTIFY_MAX_PER_MINUTE` | admin | admin | int 1..600 |  | R | T5 | `30` |
 | `ADMIN_PORT` | admin | admin | int 1..65535 |  | R | T5 |  |
 | `ADMIN_RETENTION_INTERVAL_SECONDS` | admin | admin | int 10..86400 |  | R | T5 | `3600` |
+| `ADMIN_TASKS_API_KEY` | admin | backend, tasks | str | yes | R | T5 |  |
+| `ADMIN_TASKS_BACKEND_URL` | admin | tasks | str |  | R | T5 | `http://backend:8000/api/v1` |
 | `ADMIN_TASKS_MAX_REQUEST_AGE_HOURS` | admin | admin | int 1..24 |  | R | T5 | `24` |
 | `ADMIN_TASKS_SELFTEST` | admin | admin | bool |  | R | T5 | `false` |
 | `ADMIN_TRUSTED_PROXIES` | admin | admin | str |  | R | T5 |  |
@@ -311,6 +313,7 @@ environment, whatever the tier.
 |---|---|
 | `CLIENT_URL` | `API_CLIENT_URL` |
 | `GOOGLE_DATABASE_URL` | `DATABASE_URL` |
+| `TASK_RUNNER_BACKEND_URL` | `ADMIN_TASKS_BACKEND_URL` |
 | `TASK_RUNNER_DATABASE_URL` | `DATABASE_URL` |
 | `TASK_RUNNER_GOOGLE_DATABASE_URL` | `DATABASE_URL` |
 | `TASK_RUNNER_KEYSET` | `MASTER_ENCRYPTION_KEYSET` |

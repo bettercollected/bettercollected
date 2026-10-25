@@ -47,6 +47,7 @@ def test_every_expected_route_is_guarded():
         "/auth/{provider}/basic/callback",
         "/auth/callback",
         "/users",
+        "/users/case-duplicates",
         "/users/invite/send/mail",
         "/users/{user_id}",
         "/users/{user_id}/upgrade",

@@ -51,4 +51,17 @@ describe('the Themes page', () => {
         expect(saved.title).toBe('Pastel');
         expect(saved.primary).not.toBe(PASTEL.primary);
     });
+
+    it('says why when the server refuses a theme for contrast', async () => {
+        patch.mockResolvedValue({ error: { status: 422, data: { code: 'theme_contrast', message: 'customThemes.0: hard to read' } } });
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Edit Pastel' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Use the suggested colours' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await vi.waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
+        expect(await screen.findByRole('alert')).toHaveTextContent("This theme can't be saved yet");
+        expect(document.activeElement).toBe(screen.getByTestId('contrast-guard'));
+        // the editor stays open with the draft
+        expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    });
 });

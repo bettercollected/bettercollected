@@ -102,6 +102,46 @@ async def test_emails_are_unique_ignoring_case(repo):
     assert await repo.count() == 1
 
 
+async def test_case_duplicate_groups(repo):
+    """Accounts whose emails differ only in case, grouped by id; never an
+    email. ``uq_users_email_lower`` keeps them out of a 4.1 database, so the
+    index is dropped for the test (a store from before revision 0005) and
+    put back afterwards."""
+    from sqlalchemy import text
+
+    assert await repo.case_duplicate_groups() == []
+    ids = [RecordId(f"5f00000000000000000000{n:02d}") for n in range(1, 7)]
+    emails = [
+        "Pat@Example.com",
+        "pat@example.com",
+        "PAT@example.COM",
+        "solo@example.com",
+        "kim@example.com",
+        "Kim@example.com",
+    ]
+    engine = container.pg_engine()
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP INDEX auth.uq_users_email_lower"))
+    try:
+        for user_id, email in zip(ids, emails):
+            await repo.save_document(UserDocument(id=user_id, email=email))
+        groups = await repo.case_duplicate_groups()
+        assert groups == [
+            [str(ids[0]), str(ids[1]), str(ids[2])],
+            [str(ids[4]), str(ids[5])],
+        ]
+        assert "@" not in repr(groups)
+    finally:
+        async with engine.begin() as conn:
+            await conn.execute(text("DELETE FROM auth.users"))
+            await conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX uq_users_email_lower "
+                    "ON auth.users (lower(email))"
+                )
+            )
+
+
 async def test_user_metrics(repo):
     """The platform-metrics counts: users dated by id, activity by
     last_logged_in, a missing plan counted as FREE."""

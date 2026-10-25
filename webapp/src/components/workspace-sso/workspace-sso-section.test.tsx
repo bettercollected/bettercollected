@@ -11,6 +11,7 @@ import { store } from '@app/store/store';
 
 import en from '../../../public/locales/en/common.json';
 import nl from '../../../public/locales/nl/common.json';
+import { SSO_SETUP_GUIDE_URL } from './sso-self-hosting-guide';
 import WorkspaceSsoSection from './workspace-sso-section';
 
 const refetchMock = vi.fn();
@@ -239,6 +240,7 @@ describe('WorkspaceSsoSection', () => {
         const box = screen.getByTestId('sso-unavailable');
         expect(box.getAttribute('data-reason')).toBe('disabled');
         expect(box.textContent).toContain('not enabled on this instance');
+        expect(within(box).queryByTestId('sso-self-hosting')).toBeNull();
     });
 
     it('says SSO is switched on but not fully set up, without blaming SSO_ENABLED', () => {
@@ -251,6 +253,13 @@ describe('WorkspaceSsoSection', () => {
         expect(box.textContent).not.toContain('not enabled');
         // names or values of settings never reach the page
         expect(box.textContent).not.toMatch(/SSO_POLIS|SSO_REDIRECT|https?:/);
+        // a hosted workspace admin is pointed at the instance's administrator or support;
+        // the setup guide is a secondary link for people running their own instance
+        expect(box.textContent).toContain('Ask the administrator or support team of this instance to finish the setup.');
+        expect(box.textContent).not.toContain('docs/sso.md');
+        const guide = within(box).getByRole('link', { name: 'single sign-on setup guide' });
+        expect(guide.getAttribute('href')).toBe(SSO_SETUP_GUIDE_URL);
+        expect(guide.getAttribute('rel')).toBe('noopener noreferrer');
     });
 
     it('has the not-set-up text in English and Dutch', () => {
@@ -260,6 +269,9 @@ describe('WorkspaceSsoSection', () => {
             expect(locale.SSO.NOT_ENABLED).toContain('SSO_ENABLED');
             expect(locale.SCIM.NOT_CONFIGURED).toBeTruthy();
             expect(locale.SCIM.NOT_CONFIGURED).not.toContain('SSO_ENABLED');
+            expect(locale.SSO.NOT_CONFIGURED).not.toContain('docs/sso.md');
+            expect(locale.SCIM.NOT_CONFIGURED).not.toContain('docs/sso.md');
+            expect(locale.SSO.SELF_HOSTING).toMatch(/<1>.+<\/1>/);
         }
         expect(nl.SSO.NOT_CONFIGURED).toContain('nog niet helemaal ingesteld');
     });

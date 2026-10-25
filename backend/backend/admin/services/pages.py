@@ -30,7 +30,7 @@ from backend.admin.schema_heads import code_revisions
 from common.db.schema_guard import EngineRevisionSource, check_revision, compare_revisions
 from common.settings import sso_requirements
 from common.settings.inventory import all_specs
-from common.settings.registry import SettingSpec, Tier
+from common.settings.registry import SettingSpec, Tier, ValidationError, coerce_value
 
 HEARTBEAT_STALE_SECONDS = 120
 METRICS_CACHE_SECONDS = 60
@@ -374,6 +374,22 @@ def _stored(entry: Any) -> Any:
         return None
 
 
+_SSO_ENABLED_SPEC = next(s for s in all_specs() if s.key == sso_requirements.ENABLED_KEY)
+
+
+def _stored_enabled(entry: Any) -> bool:
+    """Whether the store row switches single sign-on on, parsed the way the
+    services parse it (``coerce_value``: "true", "1", "yes", "on" in any case,
+    or a JSON true). A value they cannot use leaves the default, off."""
+    value = _stored(entry)
+    if value is None:
+        return False
+    try:
+        return coerce_value(_SSO_ENABLED_SPEC, value) is True
+    except ValidationError:
+        return False
+
+
 def sso_status(service: str, states: list, entries: dict) -> SsoStatus:
     """Single sign-on on ``service`` from its heartbeats and the store rows.
     Live instances count when there are any; a setting is set when the store
@@ -394,7 +410,7 @@ def sso_status(service: str, states: list, entries: dict) -> SsoStatus:
     if any(sso_requirements.ENABLED_KEY in names for names in env_sets):
         enabled = "environment"
     else:
-        enabled = "on" if _stored(entries.get(sso_requirements.ENABLED_KEY)) is True else "off"
+        enabled = "on" if _stored_enabled(entries.get(sso_requirements.ENABLED_KEY)) else "off"
     if enabled == "off":
         return SsoStatus(service, enabled)
     return SsoStatus(

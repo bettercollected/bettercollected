@@ -21,7 +21,8 @@ _FORMS = Depends(google_forms_processing_allowed)
 
 class CredentialErasure(BaseModel):
     """Whose stored credentials to erase (account deletion). Both are required:
-    the store's delete matches either, so an empty one must never reach it."""
+    the store deletes the rows of ``user_id`` and, by ``email``, only the legacy
+    rows without a user id; an empty value must never reach it."""
 
     model_config = ConfigDict(extra="forbid")
 

@@ -137,7 +137,8 @@ class TestWorkspaces:
             "title": "Gradient 2026",
             "primary": "#101826",
             "secondary": "#2456CC",
-            "tertiary": "#818CA0",
+            # 3:1 on the paler gradient stop (the contrast check)
+            "tertiary": "#7A859B",
             "accent": "#F6F8FC",
             "background": {
                 "type": "gradient",

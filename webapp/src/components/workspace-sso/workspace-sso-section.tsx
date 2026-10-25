@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Check, CircleCheck, Copy, KeyRound, LifeBuoy, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import SsoSelfHostingGuide from '@app/components/workspace-sso/sso-self-hosting-guide';
 import environments from '@app/configs/environments';
 import { sso } from '@app/constants/locales/sso';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
@@ -481,6 +482,7 @@ export default function WorkspaceSsoSection() {
         return (
             <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="sso-unavailable" data-reason={overview.reason === 'not_configured' ? 'not_configured' : 'disabled'}>
                 {t(message)}
+                {overview.reason === 'not_configured' && <SsoSelfHostingGuide />}
             </p>
         );
     }

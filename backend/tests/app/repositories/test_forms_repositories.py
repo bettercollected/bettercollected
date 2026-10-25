@@ -416,6 +416,15 @@ async def test_workspace_form_visibility(sessions):
         await links.get_form_ids_in_workspaces_and_imported_by_user([ws], owner)
     )
     assert "pub" not in imported and "imported" in imported  # provider != "self"
+    # case-duplicate accounts: every provider, distinct forms, owned or imported
+    for workspaces, user_id, expected in (
+        ([ws], "nobody", 9),
+        ([], "u1", 9),
+        ([], owner.id, 1),
+        ([other], owner.id, 2),
+        ([], "nobody", 0),
+    ):
+        assert await links.count_forms_of_account(workspaces, user_id) == expected
     pinned.results[f"{len(pinned.results):02d} imported by user"] = imported
     await raises_status(
         409,
