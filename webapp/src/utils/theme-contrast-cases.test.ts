@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast } from './color-contrast';
-import * as themeContrast from './theme-contrast';
+import { themeContrastGuard } from './theme-contrast';
 
 /**
  * The colour pairs and themes shared with the server's publish check
@@ -65,14 +65,9 @@ describe('the shared themes', () => {
     });
 });
 
-// themeContrastGuard arrives with the builder's theme gallery; until then only
-// the pairs above run here (the server runs every case either way).
-type Guard = (theme: Record<string, any>) => { issues: Array<{ key: string; ratio: number; minimum: number }>; fix: Record<string, any> | null; imageGround: boolean };
-const guard = (themeContrast as unknown as Record<string, Guard | undefined>).themeContrastGuard;
-
-describe.skipIf(!guard).each(corpus.themes.map((theme) => [theme.name, theme] as const))('themeContrastGuard: %s', (_name, shared) => {
+describe.each(corpus.themes.map((theme) => [theme.name, theme] as const))('themeContrastGuard: %s', (_name, shared) => {
     it('finds the shared failures and suggests the shared colours', () => {
-        const result = guard!(shared.theme);
+        const result = themeContrastGuard(shared.theme as Parameters<typeof themeContrastGuard>[0]);
         expect(result.issues.map((issue) => issue.key)).toEqual(shared.issues.map((issue) => issue.key));
         result.issues.forEach((issue, i) => {
             expect(issue.ratio).toBeCloseTo(shared.issues[i].ratio, 5);
