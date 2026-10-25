@@ -576,14 +576,19 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Applies pending schema migrations at startup.", tier=T5),
     _float("DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS", "database", (BACKEND, AUTH, GOOGLE), None, 0, 3600,
            "Seconds to wait for the migration lock.", tier=T5),
+    # The Google Forms integration (and, in the backend, the refdata, analytics,
+    # ai, actions and google groups) is Postgres only since 4.1: there an unset
+    # value means postgres and any other value refuses the start.
     _spec("DB_READ_SOURCE", "database", (BACKEND, AUTH, GOOGLE),
-          "Where reads come from (DB_READ_SOURCE__<table> overrides one table).",
+          "Where reads come from (DB_READ_SOURCE__<group> overrides one group). "
+          "The Google Forms integration accepts postgres only.",
           ENUM, tier=T5, default="mongo", choices=("mongo", "postgres")),
     _spec("DB_WRITE_MODE", "database", (BACKEND, AUTH, GOOGLE),
-          "Which stores writes go to (DB_WRITE_MODE__<table> overrides one table).",
+          "Which stores writes go to (DB_WRITE_MODE__<group> overrides one group). "
+          "The Google Forms integration accepts postgres only.",
           ENUM, tier=T5, default="mongo",
           choices=("mongo", "dual", "postgres_primary_dual", "postgres")),
-    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND, AUTH, GOOGLE), 0.0, 0, 1,
+    _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND, AUTH), 0.0, 0, 1,
            "Share of reads compared against the other store.", tier=T5),
     _int("DB_POOL_SIZE", "database", _DB, 5, 1, 200, "Connection pool size.", tier=T5),
     _int("DB_MAX_OVERFLOW", "database", _DB, 5, 0, 200, "Extra connections above the pool.", tier=T5),

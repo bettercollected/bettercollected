@@ -80,10 +80,12 @@ rotate() {
 Each command prints a JSON report with key ids and counts only, and logs record ids and counts.
 By default (`--store auto`) it covers both targets and follows the same store rule as the keyset
 tasks ("The store rule" below): every store the services write, from `DB_WRITE_MODE` and its
-`__RESPONSES` / `__GOOGLE` overrides in the container's environment, primary first, then any
+`__RESPONSES` override in the container's environment (the Google credentials are in Postgres
+only since 4.1), primary first, then any
 other store the container is configured for (`MONGO_URI`; `DATABASE_URL`, or `GOOGLE_DATABASE_URL`
-for the Google credentials). An unset or unknown write mode stops it before anything is opened
-(`write_mode_unknown`): it is never guessed, not even as the services' default `mongo`. If the
+for the Google credentials). An unset write mode is the services' own default (`mongo` while the
+backend has groups on Mongo), as on a fresh stack where the services run on it too; a value that is
+not a write mode stops it before anything is opened (`write_mode_unknown`). If the
 container has none (the services read it from the settings store), add
 `-e DB_WRITE_MODE=<the services' value>` (and any override they use) to `rotate`. For
 `reencrypt`, `--target` and `--store mongo|postgres|both` narrow or override that; a named store
@@ -92,9 +94,9 @@ needs no write mode, only its connection. `drop-old` refuses both options and fo
 mode" below): it checks every target in BOTH stores, Mongo and Postgres, each configured, or
 refuses (`store_not_configured`); the write mode only orders them, and it refuses an empty store
 only when the services write it. `--mongo-retired` scans Postgres alone and is refused
-(`mongo_not_retired`) unless `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` and
-`DB_WRITE_MODE__GOOGLE` in the container all say `postgres` (an unset override follows
-`DB_WRITE_MODE`; an unset default refuses). Unlike the task, the script cannot check the services'
+(`mongo_not_retired`) unless `DB_WRITE_MODE` and `DB_WRITE_MODE__RESPONSES` in the container
+both say `postgres` (an unset override follows
+`DB_WRITE_MODE`; an unset default is the services' `mongo`, so it refuses). Unlike the task, the script cannot check the services'
 heartbeats (`write_stores` in `settings.service_state`) itself: before passing `--mongo-retired`,
 check there that no live backend or Google integration instance still writes Mongo (or reports
 nothing), for example with a dry run of `keyset.drop_old` with `mongo_retired`, which checks it.
@@ -251,9 +253,11 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in BOTH stores (Mongo and Postgres, both configured, else `store_not_configured`) finds no value on them, whatever the runner's write mode says; Postgres alone only with `mongo_retired` (see "Dropping a key once Mongo is retired" below). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). Only the primary store must hold records |
 
 **The store rule.** The runner works out which stores the services write from its own copy of
-their write mode: `DB_WRITE_MODE__RESPONSES` (responses) or `DB_WRITE_MODE__GOOGLE` (Google
-credentials), else `DB_WRITE_MODE`, from the root `.env`. Give it the values the services run with,
-and change them together during the move to Postgres.
+their write mode: `DB_WRITE_MODE__RESPONSES` (responses), else `DB_WRITE_MODE`, from the root
+`.env`. Give it the values the services run with, and change them together during the move to
+Postgres. The Google credentials are written to Postgres alone since 4.1 (the Google Forms
+integration refuses to start on any other mode), so the runner reads no write mode for them and
+ignores a `DB_WRITE_MODE__GOOGLE` left in its environment.
 
 | Write mode of the target's group | Stores the services write (primary first) | Runner needs |
 |---|---|---|
@@ -261,14 +265,15 @@ and change them together during the move to Postgres.
 | `dual` | Mongo, then Postgres | `MONGO_URI` and the Postgres URL |
 | `postgres_primary_dual` | Postgres, then Mongo | the Postgres URL and `MONGO_URI` |
 | `postgres` | Postgres | the Postgres URL (`DATABASE_URL` for responses, `GOOGLE_DATABASE_URL` for the Google credentials) |
-| unset or not a write mode | unknown | refused: `write_mode_unknown` |
+| unset | the services' default (`mongo` while the backend has groups on Mongo) | as for that mode |
+| not a write mode | unknown | refused: `write_mode_unknown` |
 
 `stores: auto` (on `reencrypt`, `verify` and the `responses.*` tasks, group `responses`) covers
 every store in that list, each of which must be configured (else `store_not_configured`), and then
-any other store the runner is configured for. The runner never guesses an unset write mode, not
-even the services' default (`mongo`): set `DB_WRITE_MODE=mongo` in the root `.env` on a stack that
-never started the move. `stores: mongo`, `postgres` or `both` name the stores instead and need no
-write mode.
+any other store the runner is configured for. An unset write mode is the services' own default,
+as on a fresh stack where the services run on it too; a value that is not a write mode is never
+guessed at (`write_mode_unknown`). `stores: mongo`, `postgres` or `both` name the stores instead and
+need no write mode.
 
 **`drop_old` does not rely on the runner's copy of the write mode to leave a store out.** A copy
 that is wrong (the services still on `dual`, the runner told `postgres`, no Mongo connection for
@@ -280,8 +285,8 @@ which one is the primary (the store that must hold records, and an unknown mode 
 **Dropping a key once Mongo is retired.** After the move, when no service writes Mongo any more,
 tick `mongo_retired`: a signed, audited statement (it is part of the signed run request and of the
 request's audit row, and needs its own dry run). The runner accepts it only when its
-`DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` and `DB_WRITE_MODE__GOOGLE` all say `postgres` (an
-unset override follows `DB_WRITE_MODE`; anything else refuses with `mongo_not_retired`) and
+`DB_WRITE_MODE` and `DB_WRITE_MODE__RESPONSES` both say `postgres` (an unset override follows
+`DB_WRITE_MODE`; anything else refuses with `mongo_not_retired`) and
 when every live backend and Google integration instance reports, in its settings heartbeat, that it
 writes Postgres alone (`write_stores`, from the service's own `DB_WRITE_MODE*`; admin revision 0018).
 An instance that still writes Mongo refuses with `consumer_writes_mongo`, one that does not report
