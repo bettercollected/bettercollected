@@ -30,6 +30,9 @@ from googleform.app.services.oauth_google import (
     OauthGoogleService,
     _crypto,
 )
+from googleform.app.containers import Container
+from googleform.app.models.oauth_credential import GoogleCredentialResponse
+from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.config import settings
 from common.constants import MESSAGE_OAUTH_INVALID_CLIENT, MESSAGE_OAUTH_INVALID_GRANT
 
@@ -172,6 +175,28 @@ def test_a_second_connect_updates_the_stored_credential(client, google):
     response = _round_trip(client, google)
 
     assert response.status_code == 200, response.text
+    assert _stored_token(client, google.email) == FAKE_ACCESS_TOKEN
+
+
+def test_reconnecting_a_legacy_row_stores_it_encrypted(client, google):
+    """A row connected by an older version has no user id, so its tokens could
+    not be encrypted; reconnecting gives it the signed-in user's id."""
+    repo = Container.oauth_credential_repo()
+    client.portal.call(
+        repo.save,
+        Oauth2CredentialDocument(
+            email=google.email,
+            provider="google",
+            credentials=GoogleCredentialResponse(token="old", refresh_token="old-r"),
+        ),
+    )
+
+    assert _round_trip(client, google).status_code == 200
+
+    rows = [r for r in client.portal.call(repo.list_all) if r.email == google.email]
+    assert len(rows) == 1
+    assert rows[0].user_id == "u-hot65"
+    assert isinstance(rows[0].credentials, bytes)
     assert _stored_token(client, google.email) == FAKE_ACCESS_TOKEN
 
 

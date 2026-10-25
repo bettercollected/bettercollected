@@ -1,4 +1,5 @@
 import json
+import logging
 from http import HTTPStatus
 from typing import Any
 
@@ -18,6 +19,33 @@ from common.services.crypto_service import crypto_service
 from common.clock import utcnow
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+
+log = logging.getLogger(__name__)
+
+
+def update_key(
+    stored: Oauth2CredentialDocument | None, item: Oauth2CredentialDocument
+) -> str | None:
+    """The user id a credential update is encrypted with, or None when nothing
+    may be written.
+
+    The encryption key is derived from the user id, so without one the tokens
+    could only be stored in plain text: such an update writes nothing. The
+    stored row's user id wins; the caller's (the OAuth callback knows the
+    signed-in user) gives a legacy row connected by an older version its user
+    id. Without a stored row there is nothing to update. Logs the row id only.
+    """
+    if stored is None:
+        log.warning("google credential update skipped: no stored credential")
+        return None
+    user_id = stored.user_id or item.user_id
+    if not user_id:
+        log.warning(
+            "google credential update skipped: credential %s has no user_id, "
+            "its tokens cannot be encrypted",
+            stored.id,
+        )
+    return user_id or None
 
 
 class OauthCredentialRepository:
@@ -107,8 +135,10 @@ class OauthCredentialRepository:
         """
         Update an OAuth2 credential document.
 
-        If an OAuth2 credential document with the given email and provider
-        already exists, it will be updated. Otherwise, a new document will be created.
+        The stored credential with the given email is updated, its tokens
+        encrypted with the user's key. Nothing is written when there is no
+        stored credential or no user id to derive the key from
+        (see :func:`update_key`); the caller then gets ``item`` back as given.
 
         Args:
             email (str): The email of the user to update the credential for.
@@ -124,13 +154,15 @@ class OauthCredentialRepository:
         try:
             provider: FormProvider | None = item.provider or FormProvider.GOOGLE
             document = await self.get(email, provider)
+            user_id = update_key(document, item)
+            if not user_id:
+                return WriteResult(item, [])  # nothing written
             credentials = item.credentials
-            if document:
-                item.id = document.id
-            if document.user_id:
-                item.credentials = OauthCredentialRepository.encrypt_token(
-                    user_id=document.user_id, token=json.dumps(dict(item.credentials))
-                )
+            item.id = document.id
+            item.user_id = user_id
+            item.credentials = OauthCredentialRepository.encrypt_token(
+                user_id=user_id, token=json.dumps(dict(item.credentials))
+            )
             await item.save()
             # what was stored (encrypted) is not what the caller gets (decrypted)
             stored = item.model_copy(deep=True)
