@@ -84,3 +84,23 @@ class TestDeleteUser:
     def test_a_missing_user_is_404_not_a_crash(self, app_runner):
         response = app_runner.delete("users/5f00000000000000000000ff")
         assert response.status_code == 404, response.text
+
+
+class TestCaseDuplicates:
+    """GET /users/case-duplicates: ids grouped by address, internal key only."""
+
+    def test_returns_the_groups_of_ids(self, app_runner):
+        groups = [["5f0000000000000000000001", "5f0000000000000000000002"]]
+        with patch.object(
+            UserService, "case_duplicate_groups", new=AsyncMock(return_value=groups)
+        ):
+            response = app_runner.get(
+                "users/case-duplicates", headers={"X-Internal-Key": KEY}
+            )
+        assert response.status_code == 200
+        assert response.json() == {"groups": groups}
+
+    def test_refused_without_the_internal_key(self, app_runner):
+        without_internal_key(app_runner)
+        response = app_runner.get("users/case-duplicates")
+        assert response.status_code == 403

@@ -267,6 +267,10 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
       AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
       MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
+      # The key the task runner presents to the internal admin-task routes
+      # (auth.resolve_case_duplicate_accounts); the same value on task-runner.
+      # Environment only. Unset: those routes answer 503.
+      ADMIN_TASKS_API_KEY: ${ADMIN_TASKS_API_KEY:-}
       # Schema migrations: deploy.sh runs them before the services roll. A stack
       # deployed without it (Docker Swarm / docker stack deploy, CI) can let each
       # service migrate its own schema at startup instead — replicas serialise on
@@ -435,6 +439,12 @@ services:
       DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
       DB_WRITE_MODE__GOOGLE: ${DB_WRITE_MODE__GOOGLE:-}
       GOOGLE_MONGO_DB: ${TASK_RUNNER_GOOGLE_MONGO_DB:-}
+      # auth.resolve_case_duplicate_accounts holds no access to the accounts: it
+      # calls the API's internal admin-task routes, which decide and start the
+      # product's account deletion. Unset key: the task refuses
+      # (backend_not_configured); the same value as the backend's.
+      ADMIN_TASKS_API_KEY: ${ADMIN_TASKS_API_KEY:-}
+      ADMIN_TASKS_BACKEND_URL: ${TASK_RUNNER_BACKEND_URL:-http://backend:8000/api/v1}
     # The image's own HEALTHCHECK probes port 8000, which this service does not serve:
     # left in place it reports the container unhealthy for good. It reports to the
     # portal's /health page through its heartbeat instead.

@@ -642,6 +642,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "bc_admin", tier=T5),
     _secret("TASKS_DATABASE_URL", "admin", (ADMIN,),
             "Postgres connection string of the data task runner (role bc_tasks).", tier=T5),
+    _secret("ADMIN_TASKS_API_KEY", "admin", (BACKEND, TASKS),
+            "Key the task runner presents to the API's internal admin-task routes "
+            "(the same value on both; unset: the routes answer 503).", tier=T5),
+    _text("ADMIN_TASKS_BACKEND_URL", "admin", (TASKS,),
+          "Address of the API's internal admin-task routes, as the data task runner reaches it.",
+          "http://backend:8000/api/v1", tier=T5),
     _bool("ADMIN_TASKS_SELFTEST", "admin", (ADMIN,), False,
           "Registers the runner's test-only tasks (never in production).", tier=T5),
     _int("ADMIN_TASKS_MAX_REQUEST_AGE_HOURS", "admin", (ADMIN,), 24, 1, 24,
@@ -748,6 +754,7 @@ ALIASES: Dict[str, str] = {
     "TASK_RUNNER_MONGO_URI": "MONGO_URI",
     "TASK_RUNNER_MONGO_DB": "MONGO_DB",
     "TASK_RUNNER_KEYSET": "MASTER_ENCRYPTION_KEYSET",
+    "TASK_RUNNER_BACKEND_URL": "ADMIN_TASKS_BACKEND_URL",
 }
 
 # Names in env files, compose files or code that no service reads as a setting.
