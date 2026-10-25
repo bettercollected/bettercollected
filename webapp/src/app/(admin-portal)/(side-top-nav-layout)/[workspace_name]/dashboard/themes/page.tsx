@@ -56,6 +56,14 @@ export default function ThemesPage() {
             toast({ description: successMessage });
             return true;
         }
+        // The server holds saved themes to the same contrast rules (422
+        // theme_contrast): say why, and point at the guard when it is open.
+        if (response.error?.data?.code === 'theme_contrast') {
+            setContrastBlocked(true);
+            guardRef.current?.focus();
+            toast({ description: t('THEME.CONTRAST_SAVE_BLOCKED'), variant: 'destructive' });
+            return false;
+        }
         toast({ description: 'Could not save your themes. Please try again.', variant: 'destructive' });
         return false;
     };

@@ -42,7 +42,10 @@ from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_images import first_party_or_kept
-from backend.app.services.form_themes import ensure_valid_saved_themes
+from backend.app.services.form_themes import (
+    ensure_readable_saved_themes,
+    ensure_valid_saved_themes,
+)
 from backend.app.services.custom_domain_service import (
     CustomDomainService,
     cleared_fields,
@@ -364,6 +367,9 @@ class WorkspaceService:
         workspace_document = await self._workspace_repo.get_workspace_by_id(
             workspace_id
         )
+        # colours that pass the publish check's contrast rules, as the Themes
+        # page asks; ones this workspace already stores are kept as they are
+        ensure_readable_saved_themes(custom_themes, workspace_document.custom_themes)
         # first-party background images only, as on a form; a saved theme's
         # address that is already stored is kept (services/form_images.py)
         keep = frozenset(
