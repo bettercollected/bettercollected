@@ -139,6 +139,7 @@ MONGO_DRIVEN = {
     "tests/app/migrate/test_mirror_order.py": ALL,
     "tests/app/migrate/test_mirror_verify.py": ALL,
     "tests/app/migrate/test_verify_agrees_with_reconcile.py": ALL,
+    "tests/app/migrate/test_resolve_outbox.py": ALL,
     "tests/app/repositories/test_beanie_pagination.py": ALL,
     "tests/app/repositories/test_form_groups.py": ALL,
     "tests/app/repositories/test_platform_metrics_parity.py": {"test_response_counts"},

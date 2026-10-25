@@ -31,6 +31,67 @@ GROUPS = BACKEND_GROUPS
 #: (``python -m backend.migrate``).
 POSTGRES_ONLY_GROUPS = ("refdata", "analytics", "ai", "actions", "identity", "forms")
 
+#: The routed repositories of the Postgres-only groups as 4.0 named them (an
+#: outbox entry names the repository, not the group). They are routed no
+#: more; ``resolve-outbox`` counts their open entries as
+#: ``postgres_only_leftover`` instead of keeping them as unknown.
+RETIRED_REPOSITORIES = {
+    "ActionRepository": "actions",
+    **dict.fromkeys(
+        (
+            "AIPreferenceMemoryRepository",
+            "CreateFormPromptRepository",
+            "FormAIInsightRepository",
+            "FormAISessionRepository",
+            "IdempotencyRepository",
+            "McpAuditLogRepository",
+            "WorkspaceAIProfileRepository",
+        ),
+        "ai",
+    ),
+    **dict.fromkeys(("FlowEventRepository", "RateLimitRepository"), "analytics"),
+    **dict.fromkeys(
+        (
+            "FormRepository",
+            "FormImportRepository",
+            "FormTemplateRepository",
+            "MediaLibraryRepository",
+            "WorkspaceConsentRepo",
+            "WorkspaceFormRepository",
+        ),
+        "forms",
+    ),
+    **dict.fromkeys(
+        (
+            "ScimDirectoryRepository",
+            "ScimEventRepository",
+            "ScimGroupMemberRepository",
+            "ScimGroupRepository",
+            "ScimUserRepository",
+            "SessionRepository",
+            "SsoConnectionRepository",
+            "SsoUsedStateRepository",
+            "UserTagsRepository",
+            "WorkspaceAPIKeyRepository",
+            "WorkspaceDomainRepository",
+            "WorkspaceInvitationRepo",
+            "WorkspaceRepository",
+            "WorkspaceUserRepository",
+        ),
+        "identity",
+    ),
+    **dict.fromkeys(
+        (
+            "AllowedOriginsRepository",
+            "CouponRepository",
+            "FormPluginProviderRepository",
+            "PriceSuggestionRepository",
+            "UserFeedbackRepo",
+        ),
+        "refdata",
+    ),
+}
+
 #: Mongo collection -> the repository group whose flags move it. Matches the
 #: ``group=`` of the routed repository serving it (a test keeps them in step);
 #: collections without a repository yet sit with their nearest relatives. The
