@@ -169,6 +169,21 @@ class PostgresUserRepository(PostgresRepositoryBase):
     async def delete_user(self, user_id: PydanticObjectId):
         return await self.delete_by_id(user_id)
 
+    async def case_duplicate_groups(self) -> List[List[str]]:
+        """Ids of the accounts whose emails are equal ignoring case, one sorted
+        list per address holding two or more; never an email."""
+        ids = func.array_agg(UserRow.id)
+        async with self._session() as session:
+            rows = (
+                await session.execute(
+                    select(ids)
+                    .where(UserRow.email.is_not(None))
+                    .group_by(func.lower(UserRow.email))
+                    .having(func.count() > 1)
+                )
+            ).all()
+        return sorted(sorted(str(i) for i in row[0]) for row in rows)
+
     # -- platform metrics (admin dashboard) ------------------------------------
     async def count_users(
         self, created_since: Optional[datetime.datetime] = None

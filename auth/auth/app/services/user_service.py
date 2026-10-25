@@ -28,6 +28,9 @@ class UserService:
     async def get_user_info_from_user_ids(self, user_ids: List[PydanticObjectId]):
         return await self.user_repo.get_users_by_ids(user_ids=user_ids)
 
+    async def case_duplicate_groups(self) -> List[List[str]]:
+        return await self.user_repo.case_duplicate_groups()
+
     async def get_users_info_from_emails(self, emails: List[EmailStr]):
         return await self.user_repo.get_users_by_emails(emails=emails)
 

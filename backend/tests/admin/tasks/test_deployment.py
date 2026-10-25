@@ -33,6 +33,8 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     # the data-store settings are optional (empty: the responses tasks refuse
     # with store_not_configured / keyset_missing)
     assert sorted(env) == [
+        "ADMIN_TASKS_API_KEY",
+        "ADMIN_TASKS_BACKEND_URL",
         "DATABASE_URL",
         "DB_WRITE_MODE",
         "DB_WRITE_MODE__GOOGLE",
@@ -46,6 +48,7 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
         "TASKS_DATABASE_URL",
     ]
     for name in (
+        "ADMIN_TASKS_API_KEY",
         "DB_WRITE_MODE",
         "DB_WRITE_MODE__GOOGLE",
         "DB_WRITE_MODE__RESPONSES",
@@ -67,6 +70,11 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
     for url in (app_url, google_url):
         for broad in ("bc_app", "bc_google:", "bc_auth", "bc_admin", "bc_jobs_exec", "bc_tasks:"):
             assert broad not in url
+    # the case-duplicates task reaches the API's internal routes only
+    assert env["ADMIN_TASKS_API_KEY"] == "${ADMIN_TASKS_API_KEY:-}"
+    assert env["ADMIN_TASKS_BACKEND_URL"] == (
+        "${TASK_RUNNER_BACKEND_URL:-http://backend:8000/api/v1}"
+    )
     assert env["TASKS_DATABASE_URL"].startswith("postgresql+asyncpg://bc_tasks:")
     assert "@app-postgres:" in env["TASKS_DATABASE_URL"]
     assert "ADMIN_TASKS_SELFTEST" not in json.dumps(COMPOSE)

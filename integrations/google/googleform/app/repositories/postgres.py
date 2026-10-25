@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from pydantic.networks import EmailStr
-from sqlalchemy import or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from common.constants import MESSAGE_DATABASE_EXCEPTION
@@ -103,8 +103,14 @@ class PostgresOauthCredentialRepository(PostgresRepositoryBase):
         return await self.save_document(document)
 
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
+        # by user id; by email only the legacy rows without one (the Mongo
+        # twin's filter: credential_filter_for_user)
+        legacy = and_(
+            func.coalesce(OAuthCredentialRow.user_id, "") == "",
+            OAuthCredentialRow.email == email,
+        )
+        if not user_id:
+            return await self.delete_where(legacy)
         return await self.delete_where(
-            or_(
-                OAuthCredentialRow.email == email, OAuthCredentialRow.user_id == user_id
-            )
+            or_(OAuthCredentialRow.user_id == user_id, legacy)
         )

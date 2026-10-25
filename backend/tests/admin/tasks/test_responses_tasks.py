@@ -761,6 +761,7 @@ def test_the_tasks_declare_what_the_portal_needs():
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         "google.purge_unencrypted_credentials",
+        "auth.resolve_case_duplicate_accounts",
     }
 
 

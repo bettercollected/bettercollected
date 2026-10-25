@@ -187,3 +187,26 @@ async def test_user_field_updates(stores):
     for repo in (mongo, postgres):
         with pytest.raises(NotFoundError):
             await repo.set_user_plan(PydanticObjectId(), Plans.PRO)
+
+
+async def test_case_duplicate_groups(stores):
+    """Accounts whose emails differ only in case, grouped by id in both
+    stores; never an email in what comes back."""
+    mongo, postgres = UserRepository(), PostgresUserRepository(stores)
+    ids = [PydanticObjectId(f"5f00000000000000000000{n:02d}") for n in range(1, 7)]
+    emails = [
+        "Pat@Example.com",
+        "pat@example.com",
+        "PAT@example.COM",
+        "solo@example.com",
+        "kim@example.com",
+        "Kim@example.com",
+    ]
+    for user_id, email in zip(ids, emails):
+        await UserDocument(id=user_id, email=email).insert()
+        await postgres.save_document(UserDocument(id=user_id, email=email))
+    expected = [[str(ids[0]), str(ids[1]), str(ids[2])], [str(ids[4]), str(ids[5])]]
+    for repo in (mongo, postgres):
+        groups = await repo.case_duplicate_groups()
+        assert groups == expected
+        assert "@" not in repr(groups)

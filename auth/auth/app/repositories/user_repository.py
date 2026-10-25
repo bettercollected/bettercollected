@@ -184,6 +184,15 @@ class UserRepository:
     async def delete_user(self, user_id: PydanticObjectId):
         return await UserDocument.find({"_id": user_id}).delete()
 
+    async def case_duplicate_groups(self) -> List[List[str]]:
+        """The ids of the accounts whose emails are equal ignoring case, one
+        sorted list per address holding two or more; ids only, never an email."""
+        groups: Dict[str, List[str]] = {}
+        for user in await UserDocument.find({"email": {"$ne": None}}).to_list():
+            if isinstance(user.email, str):
+                groups.setdefault(user.email.lower(), []).append(str(user.id))
+        return sorted(sorted(ids) for ids in groups.values() if len(ids) > 1)
+
     # -- platform metrics (admin dashboard) ------------------------------------
     # Users are dated by ObjectId (some documents have no created_at);
     # last_logged_in is an ISO string, compared at second precision.
