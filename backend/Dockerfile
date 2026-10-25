@@ -13,6 +13,11 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /api
 COPY ./backend ./backend
 COPY ./common ./common
+# The other services' Alembic revision files, read (parsed, never imported) by the
+# admin service's Health page for the heads this release expects
+# (backend/admin/schema_heads.py); same paths as in the repository.
+COPY ./auth/auth/migrations/versions ./auth/auth/migrations/versions
+COPY ./integrations/google/googleform/migrations/versions ./integrations/google/googleform/migrations/versions
 
 WORKDIR /api/backend
 # Install dependencies using uv

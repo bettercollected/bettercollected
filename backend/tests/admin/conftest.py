@@ -62,7 +62,7 @@ def roles_sql(
     sql = re.sub(r"\bbc_admin_counts\b", f"bc_admin_counts_{suffix}", sql)
     sql = re.sub(r"\bbc_admin\b", f"bc_admin_{suffix}", sql)
     sql = re.sub(r"\bbc_tasks_def\b", f"bc_tasks_def_{suffix}", sql)
-    sql = re.sub(r"\bbc_count_(app|auth)\b", rf"bc_count_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_count_(app|auth|google)\b", rf"bc_count_\1_{suffix}", sql)
     sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
@@ -272,6 +272,7 @@ async def server():
             srv.definer_role,
             f"bc_count_app_{suffix}",
             f"bc_count_auth_{suffix}",
+            f"bc_count_google_{suffix}",
         ):
             await _execute(postgres, f'DROP ROLE IF EXISTS "{role}"')
 

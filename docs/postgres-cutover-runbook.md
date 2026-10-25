@@ -99,7 +99,11 @@ Start on staging; repeat on production only after the staging gate.
    than 500 documents (a bulk delete) is not read back (`metrics.<group>.mirror_converge_skipped`):
    `verify` covers it. Collections Mongo expires by a TTL index (sessions, rate-limit counters,
    idempotency keys, flow events) treat an expired copy as absent, so one store's expiry is never
-   copied back from the other.
+   copied back from the other. The whole step, copies included, is capped at twice the mirror
+   timeout, so a hung store can't hold a request longer; a copy cut off by the cap is still
+   re-checked. When a copy was made but its re-check failed (or it was cut off), the outbox entry
+   reads `CopyUnverified: …`. `reconcile` leaves such entries open; only a clean full `verify`
+   (one that writes the marker) resolves them.
 2. **Preflight:** `python -m backend.migrate preflight` (and for auth/google). Non-zero exit means
    documents with non-ObjectId ids or duplicate unique keys (constraints *and* unique indexes;
    null and empty-string keys never collide); fix the data in Mongo first — backfill skips invalid
@@ -130,9 +134,11 @@ Start on staging; repeat on production only after the staging gate.
    holds what reconcile read, so a document the application changed in the meantime is left as
    the application wrote it and counted under `skipped` (an update never re-inserts a row the
    application deleted meanwhile). A run with skipped copies leaves the outbox open. **Always run
-   `verify` after a `reconcile`**: a record deleted while reconcile was running can still be copied
-   back in a window of milliseconds, and only a later `verify` (as `tombstoned`) shows it; if it
-   still differs, run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
+   `verify` after a `reconcile`**: it is what shows that the stores agree. A record deleted while
+   reconcile runs is not copied back: the Postgres insert checks for a newer tombstone in the same
+   statement, and a Mongo insert is checked again after it lands and removed when the record was
+   deleted meanwhile. Should anything still differ, `verify` shows it (a deleted record as
+   `tombstoned`); then run `reconcile` again, then `verify` again. Collections Mongo expires by a TTL
    index (sessions, rate-limit counters, idempotency keys, SSO states, SCIM, flow events) treat an
    expired copy as absent: reconcile never copies one.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
@@ -221,6 +227,11 @@ the delete (ids derived from a relation are) is newer, so it is not.
 | deleted in Postgres (primary, `postgres_primary_dual` or `postgres`), the Mongo delete failed or Mongo was no longer written: the document is only in Mongo | `missing_in_postgres`, `tombstoned` | deletes the document from Mongo |
 | deleted, but copies older than the delete are in both stores (brought back by an earlier reconcile, or restored from a backup) | `tombstoned` | reports it (`tombstoned` in its result) and changes nothing: delete both copies by hand, by id, after checking them |
 
+`reconcile --direction postgres->mongo` runs only while every group it covers is on
+`DB_WRITE_MODE=postgres_primary_dual`, so run it with the services' flags; the CLI refuses
+otherwise (`--dry-run` excepted). Under `dual` Mongo deletes first and records no tombstone for a
+document that isn't there, so a delete racing reconcile's Mongo insert could bring the record back.
+
 `reconcile` never copies a deleted record, in either direction, and deletes a surviving copy only
 while it is still the copy it read (same `updated_at`). Its result per collection gives `deleted`
 (surviving copies it deleted) and `tombstoned` (records left for an operator). A `verify` with any
@@ -234,7 +245,8 @@ record.
 Retention: tombstones are kept 120 days, enough for the cutover. Some ids are derived from personal
 data (a responder group member's id is a hash of the group and the email), so they are not kept
 longer. Mongo expires its tombstones with a TTL index (`deleted_at_ttl`). Each service prunes its
-expired Postgres tombstones as it records deletes (a bounded batch every 200 deletes), and
+expired Postgres tombstones as it records deletes (a bounded batch every 200 deletes, after
+the delete committed and in a transaction of its own), and
 `reconcile` prunes them at the end of each run. Drop the tables and the collection with the Mongo
 decommission (below).
 

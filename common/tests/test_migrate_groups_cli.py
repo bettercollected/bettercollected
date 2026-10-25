@@ -12,7 +12,12 @@ from common.db.groups import (
     parse_groups,
     validate_groups,
 )
-from common.db.migrate.cli import build_parser, main, select_collections
+from common.db.migrate.cli import (
+    build_parser,
+    main,
+    reconcile_to_mongo_refusal,
+    select_collections,
+)
 from common.db.migrate.cli import format_status
 from common.db.migrate.engine import Target, id_range
 
@@ -167,3 +172,58 @@ def test_status_summary_names_counts_states_and_the_marker():
         "code_version": "0.1.0+schema.0017",
     }
     assert "combined from group verifies" in format_status(report)
+
+
+# -- reconcile postgres->mongo only under postgres_primary_dual ----------------
+PPD = {"DB_WRITE_MODE": "postgres_primary_dual", "DB_READ_SOURCE": "postgres"}
+
+
+def test_reconcile_to_mongo_is_refused_unless_postgres_is_primary(capsys):
+    """Under dual, Mongo deletes first and records no tombstone for a document
+    that is not there, so a delete racing reconcile's Mongo insert could bring
+    the record back: the CLI refuses before connecting to anything."""
+    for env in (
+        {},
+        {"DB_WRITE_MODE": "dual"},
+        {"DB_WRITE_MODE": "postgres", "DB_READ_SOURCE": "postgres"},
+    ):
+        with pytest.raises(SystemExit) as exit_:
+            main(
+                ["reconcile", "--direction", "postgres->mongo"],
+                _target(),
+                prog="python -m backend.migrate",
+                env=env,
+            )
+        assert exit_.value.code == 2
+        assert "postgres_primary_dual" in capsys.readouterr().err
+
+
+def test_the_refusal_names_only_the_groups_not_on_postgres_primary_dual():
+    env = {**PPD, "DB_WRITE_MODE__forms": "dual"}
+    args = _args(
+        "--group", "forms,refdata", "reconcile", "--direction", "postgres->mongo"
+    )
+    refusal = reconcile_to_mongo_refusal(args, _target(), env)
+    assert refusal and "forms (dual)" in refusal and "refdata" not in refusal
+    args = _args("--group", "refdata", "reconcile", "--direction", "postgres->mongo")
+    assert reconcile_to_mongo_refusal(args, _target(), env) is None
+
+
+def test_other_reconciles_and_dry_runs_are_not_refused():
+    target = _target()
+    dual = {"DB_WRITE_MODE": "dual"}
+    assert reconcile_to_mongo_refusal(_args("reconcile"), target, dual) is None
+    assert (
+        reconcile_to_mongo_refusal(
+            _args("reconcile", "--direction", "postgres->mongo", "--dry-run"),
+            target,
+            dual,
+        )
+        is None
+    )
+    assert (
+        reconcile_to_mongo_refusal(
+            _args("reconcile", "--direction", "postgres->mongo"), target, PPD
+        )
+        is None
+    )

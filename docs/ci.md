@@ -37,7 +37,7 @@ migration CLI, store-wide tasks and scripts). They carry the `mongo` marker,
 assigned by the `MONGO_DRIVEN` list in the suite's `tests/conftest.py`; the
 Mongo-less runs pass `-m "not mongo"`, and they run with Mongo in one more
 backend job ("postgres, Mongo-driven tests") and in a second step of the
-Google job. A new test that needs a Mongo server goes on that list, or it
+Google and auth jobs. A new test that needs a Mongo server goes on that list, or it
 fails in the Mongo-less shards. Locally, the same run:
 
 ```sh

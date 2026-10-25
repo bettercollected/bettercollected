@@ -299,7 +299,10 @@ async def test_health_shows_heartbeats_stopped_and_unavailable_schemas(portal, a
     row = lambda name, extra="": re.search(rf"<th scope=\"row\">{name}</th>\s*{extra}.*?</tr>", html, re.S).group(0)
     assert "reporting" in row("backend", "<td>fresh</td>") and "stopped" in row("auth", "<td>old</td>")
     assert "current" in row("admin")
-    assert html.count("not available to this role") == 3
+    # before the application migrations the revision functions answer "no table yet"
+    for schema in ("app", "auth", "google"):
+        assert '<span class="bad">missing</span>' in row(schema)
+    assert "not available" not in html.split("Mirror outbox", 1)[0]
     assert "Reachable" in html
     await b.aclose()
 
