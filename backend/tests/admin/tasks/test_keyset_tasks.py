@@ -61,6 +61,7 @@ PLAIN = ("an answer", "a hidden value", "an internal note", "a message", "refres
 def data_env(monkeypatch, _initialized_app):
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("GOOGLE_DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setenv("MONGO_URI", "")  # tests that need one set it
 
 
 @pytest.fixture(autouse=True)
@@ -969,6 +970,68 @@ async def test_drop_old_needs_the_retirement_confirmed(world, stores):
     assert run["params"]["mongo_retired"] is True
     assert run["result"]["responses"].get("mongo") is None
     assert run["result"]["responses"]["postgres"]["records"] > 0
+    assert len(parse_keyset((await flow.stored()).value).key) == 1
+
+
+async def _record_backfill(collection, *, state, skipped=0):
+    from sqlalchemy import insert
+
+    from backend.app.container import container
+    from backend.db.models import MigrationProgress
+
+    table = MigrationProgress.__table__
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            insert(table).values(
+                collection=collection,
+                count=4,
+                skipped=skipped,
+                batch_size=200,
+                state=state,
+                last_id=None,
+            )
+        )
+
+
+async def test_drop_old_waits_for_the_import_from_4_0(world, stores, monkeypatch):
+    """The retirement statement does not prove that the import is over: a later
+    backfill could bring in a value on the key that was dropped. The drop
+    refuses (``import_incomplete``) while the runner has a Mongo connection, or
+    while ``migration_progress`` records an unfinished backfill of the
+    responses (or of the forms' links their contexts come from)."""
+    flow, new_id = await prepare(world, stores)
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
+
+    async def drop():
+        _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+        return run
+
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    run = await drop()
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    monkeypatch.setenv("MONGO_URI", "")
+    assert (await drop())["state"] == "succeeded"  # nothing recorded: a stack never imported
+
+    await _record_backfill("form_responses", state="running")
+    run = await drop()
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    from backend.app.container import container
+    from sqlalchemy import text
+
+    async def progress(**values):
+        async with container.pg_engine().begin() as conn:
+            await conn.execute(text("DELETE FROM app.migration_progress"))
+        await _record_backfill(**values)
+
+    await progress(collection="form_responses", state="done", skipped=1)
+    assert (await drop())["refusal_code"] == "import_incomplete"
+    await progress(collection="workspace_forms", state="paused")
+    assert (await drop())["refusal_code"] == "import_incomplete"
+    await progress(collection="form_responses", state="done")
+    assert (await drop())["state"] == "succeeded"
+    assert len(parse_keyset((await flow.stored()).value).key) == 2  # a dry run
+    _, run = await flow.both("keyset.drop_old", flow.params())
+    assert run["state"] == "succeeded", run
     assert len(parse_keyset((await flow.stored()).value).key) == 1
 
 

@@ -748,3 +748,38 @@ async def test_the_cli_refuses_without_postgres(command, tmp_path, capsys, monke
     code, err = await cli(capsys, *args)
     assert code == 2 and "store_not_configured" in err
     assert not final_file.exists()
+
+
+async def test_drop_old_waits_for_the_import_from_4_0(
+    stores, tmp_path, capsys, monkeypatch
+):
+    """As ``keyset.drop_old``: a Mongo connection here, or an unfinished
+    backfill recorded in migration_progress, refuses it (nothing written)."""
+    from sqlalchemy import text
+
+    await seed(stores, Data())
+    rotated_file, _, _ = await add_key_and_deploy(capsys, monkeypatch, tmp_path)
+    assert (await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file)))[0] == 0
+    final_file = tmp_path / "final.keyset"
+    drop = ["drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)]
+
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    code, err = await cli(capsys, *drop)
+    assert code == 2 and "import_incomplete" in err and "mongo-not-used" not in err
+    monkeypatch.setenv("MONGO_URI", "")
+
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO app.migration_progress (collection, count, skipped, "
+                "batch_size, state) VALUES ('form_responses', 4, 0, 200, 'running')"
+            )
+        )
+    code, err = await cli(capsys, *drop)
+    assert code == 2 and "import_incomplete" in err
+    assert not final_file.exists()
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(text("UPDATE app.migration_progress SET state = 'done'"))
+    code, dropped = await cli(capsys, *drop)
+    assert code == 0, dropped
+    assert final_file.exists()

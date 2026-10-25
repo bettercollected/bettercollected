@@ -54,6 +54,9 @@ class Target:
     values: Callable[[Dict[str, Any]], List[Tuple[Path, bytes]]]
     contexts: Callable[[Dict[str, Any], Dict[str, List[str]]], List[Tuple[str, str]]]
     needs_links: bool = False
+    # the 4.0 collections the import copies into this target's table (the rows of
+    # ``<schema>.migration_progress`` that say whether the import finished)
+    import_collections: Tuple[str, ...] = ()
 
 
 def _response_values(record: Dict[str, Any]) -> List[Tuple[Path, bytes]]:
@@ -107,6 +110,8 @@ RESPONSES = Target(
     values=_response_values,
     contexts=_response_contexts,
     needs_links=True,
+    # the links decide which workspace's context opens a value
+    import_collections=("form_responses", "workspace_forms"),
 )
 GOOGLE_CREDENTIALS = Target(
     name="google-credentials",
@@ -116,6 +121,7 @@ GOOGLE_CREDENTIALS = Target(
     fields=("user_id", "credentials"),
     values=_credential_values,
     contexts=_credential_contexts,
+    import_collections=("Oauth2CredentialDocument",),
 )
 TARGETS = {target.name: target for target in (RESPONSES, GOOGLE_CREDENTIALS)}
 
@@ -183,6 +189,32 @@ class PostgresStore:
                 if str(restored["workspace_id"]) not in workspaces:
                     workspaces.append(str(restored["workspace_id"]))
         return links
+
+    async def import_progress(self) -> Optional[List[Tuple[str, str, int]]]:
+        """``(collection, state, skipped)`` of this target's import collections
+        in ``<schema>.migration_progress`` (a collection never imported has no
+        row); None when this role may not read it."""
+        from sqlalchemy import Column, MetaData, Table, Text, BigInteger, select
+        from sqlalchemy.exc import DBAPIError
+
+        progress = Table(
+            "migration_progress",
+            MetaData(schema=self.target.schema),
+            Column("collection", Text, primary_key=True),
+            Column("state", Text),
+            Column("skipped", BigInteger),
+        )
+        stmt = select(progress.c.collection, progress.c.state, progress.c.skipped).where(
+            progress.c.collection.in_(self.target.import_collections)
+        )
+        try:
+            async with self.engine.connect() as conn:
+                return [
+                    (collection, state, int(skipped or 0))
+                    for collection, state, skipped in await conn.execute(stmt)
+                ]
+        except DBAPIError:
+            return None
 
     async def batch(self, after: Optional[str], limit: int) -> List[Dict[str, Any]]:
         from sqlalchemy import select

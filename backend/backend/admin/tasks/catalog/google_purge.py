@@ -9,9 +9,10 @@ without a user id") as a task, with exactly the runbook's filters:
 
 A dry run (required first) counts; the apply deletes and records the counts in
 the audit log. Mongo is not touched since 4.1: ``mongo`` and ``both`` refuse
-``store_retired``, and an apply refuses ``stores_incomplete`` while the runner
-still has a Mongo connection configured (the import from 4.0 would copy the
-rows held there back). Counts only: never an id, an email or a token. Running
+``store_retired``, and an apply refuses ``import_incomplete`` until the import
+from 4.0 is over (the runner has no Mongo connection and nothing unfinished is
+recorded in ``migration_progress``): running the import again would copy the
+rows still held in Mongo back. No manual step is needed once it is over. Counts only: never an id, an email or a token. Running
 it again deletes nothing.
 """
 
@@ -29,9 +30,12 @@ class Refusals(str, enum.Enum):
     # the Postgres function (postgres/ensure-admin-roles.sh) is missing, or the
     # runner's role may not execute it
     purge_function_missing = "purge_function_missing"
-    # an apply while the runner has a Mongo connection (a later backfill or
-    # reconcile of the import would copy the rows back)
+    # kept for runs made before this refusal was replaced by import_incomplete
     stores_incomplete = "stores_incomplete"
+    # an apply while the import from 4.0 is not over (a Mongo connection on the
+    # runner, or an unfinished backfill in migration_progress): a later backfill
+    # would copy the rows back
+    import_incomplete = "import_incomplete"
 
 
 class Events(str, enum.Enum):

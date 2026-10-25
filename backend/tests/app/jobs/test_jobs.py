@@ -84,6 +84,37 @@ async def test_response_deletion_is_scheduled_at_expiration_and_cancellable(
     await svc.delete_response_delete_schedule("r1")  # nothing to cancel is fine
 
 
+async def test_a_failed_enqueue_never_fails_the_stored_submission(
+    memory_jobs, monkeypatch
+):
+    """The response is already stored when its deletion is queued: a queue
+    failure is logged (id and error class only) and left to jobs-sweep, as the
+    Temporal path did, not turned into a 500."""
+    from loguru import logger
+
+    class Down:
+        def configure(self, **kwargs):
+            return self
+
+        async def defer_async(self, **kwargs):
+            raise ConnectionError("queue down: postgresql://user:pw-never-logged@db/x")
+
+    monkeypatch.setattr(tasks, "delete_response", Down())
+    messages = []
+    sink = logger.add(lambda m: messages.append(str(m)), level="ERROR")
+    try:
+        svc = service({"JOBS_BACKEND__delete_response": "postgres"})
+        response = StandardFormResponse(
+            response_id="r9", expiration="2031-01-02T03:04:05.000Z", answers={}
+        )
+        await svc.add_scheduled_job_for_deleting_response(response)  # no exception
+    finally:
+        logger.remove(sink)
+    logged = "".join(messages)
+    assert "r9" in logged and "ConnectionError" in logged
+    assert "pw-never-logged" not in logged
+
+
 async def test_user_deletion_is_deferred_once_with_an_encrypted_request(memory_jobs):
     svc = service({"JOBS_BACKEND__delete_user": "postgres"})
     deletion = UserDeletion(user_id="u1", email="someone-secret@example.com")

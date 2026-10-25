@@ -250,7 +250,9 @@ its settings heartbeat, that it writes Postgres alone (`write_stores`, from the 
 `DB_WRITE_MODE*`; admin revision 0018).
 An instance that still writes Mongo refuses with `consumer_writes_mongo`, one that does not report
 it (a build from before) with `consumer_write_stores_unknown`; the check runs again right before
-the key is written. Values left in Mongo, or in a Mongo backup or archive,
+the key is written. It also refuses (`import_incomplete`) until the import from 4.0 is over: while the runner has a
+`MONGO_URI`, or while `migration_progress` records an unfinished backfill of the responses (or of
+the forms' links), since a later backfill could bring in a value on the dropped key. Values left in Mongo, or in a Mongo backup or archive,
 are unreadable once the old key is dropped: keep the old keyset for as long as such an archive is
 kept.
 

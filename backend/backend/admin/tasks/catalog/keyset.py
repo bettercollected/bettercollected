@@ -48,6 +48,9 @@ class Refusals(str, enum.Enum):
     # Mongo was asked for (``mongo`` or ``both``), or ``drop_old`` without the
     # signed ``mongo_retired``: no task reads or writes Mongo any more
     store_retired = "store_retired"
+    # the import from 4.0 is not over: the runner has a Mongo connection, or
+    # migration_progress records an unfinished backfill of the target
+    import_incomplete = "import_incomplete"
     consumer_writes_mongo = "consumer_writes_mongo"
     consumer_write_stores_unknown = "consumer_write_stores_unknown"
     store_unreachable = "store_unreachable"

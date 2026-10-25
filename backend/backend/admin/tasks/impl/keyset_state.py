@@ -438,6 +438,26 @@ async def open_target_stores(
                 pass
 
 
+async def check_import_finished(store, mongo_configured: bool) -> None:
+    """Refuses ``import_incomplete`` unless the 4.0 import into this store is
+    over, so that no later backfill or reconcile can bring in a value on a key
+    that was dropped (or a row that was purged):
+
+    * the runner has a Mongo connection configured (``MONGO_URI``): the import
+      tooling may still run against it;
+    * ``<schema>.migration_progress`` records a collection of the target not
+      ``done``, or finished with documents skipped;
+    * a role that may not read ``migration_progress`` can say nothing more:
+      then the environment alone decides (a store never imported has no row).
+    A clean verify marker is not used: it states that a verify was clean once,
+    not that nothing will be copied later, and the runner's role cannot read it."""
+    if mongo_configured:
+        raise Refusal("import_incomplete")
+    for _collection, progress_state, skipped in await store.import_progress() or ():
+        if progress_state != "done" or skipped:
+            raise Refusal("import_incomplete")
+
+
 async def ping(store) -> None:
     async with store.engine.connect() as conn:
         await conn.execute(text("SELECT 1"))

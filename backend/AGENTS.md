@@ -168,7 +168,8 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   source and write mode during and after the cutover. The admin tasks and the break-glass scripts cover Postgres alone
   (`plan_task_stores`, `admin/tasks/impl/responses_common.py`): `stores: mongo` and `both` refuse
   `store_retired` before anything connects, no write mode is read, and `keyset.drop_old` needs the signed
-  `mongo_retired` param (`store_retired` without it).
+  `mongo_retired` param (`store_retired` without it) and a finished 4.0 import (`import_incomplete`:
+  `MONGO_URI` set on the runner, or an unfinished backfill in `migration_progress`).
 - **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,

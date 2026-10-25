@@ -273,20 +273,96 @@ async def test_an_apply_is_refused_while_the_runner_has_a_mongo_connection(
     """The services write Postgres alone from 4.1, but the import from 4.0
     (``googleform.migrate backfill``) copies whatever Mongo holds back: while
     the runner has a Mongo connection configured (it never uses it) an apply is
-    refused (``stores_incomplete``) and deletes nothing; a dry run counts."""
+    refused (``import_incomplete``) and deletes nothing; a dry run counts."""
     await _seed_postgres(superuser)
     monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
     _, dry = await _run(world, dry_run=True)
     assert dry["state"] == "succeeded", dry
     assert dry["result"]["postgres"] == {"matched": len(PG_DELETE), "deleted": 0}
     _, run = await _run(world)
-    assert run["state"] == "refused" and run["refusal_code"] == "stores_incomplete", run
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
     assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
 
     monkeypatch.delenv("MONGO_URI")
     _, run = await _both(world)
     assert run["state"] == "succeeded", run
     assert await _pg_ids(superuser) == set(PG_KEEP)
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def progress_table(server, google_table, superuser):
+    """google.migration_progress as the integration's migrations make it, readable
+    by the runner's data role (the grant the roles script gives the app schema's
+    one)."""
+    async with superuser.begin() as conn:
+        await conn.execute(text("DROP TABLE IF EXISTS google.migration_progress"))
+        await conn.execute(
+            text(
+                "CREATE TABLE google.migration_progress (collection text PRIMARY KEY, "
+                "state text NOT NULL, last_id text, skipped bigint NOT NULL DEFAULT 0)"
+            )
+        )
+        await conn.execute(
+            text(
+                "GRANT SELECT (collection, state, last_id, skipped) "
+                f'ON google.migration_progress TO "{server.data_google_role}"'
+            )
+        )
+    yield
+    async with superuser.begin() as conn:
+        await conn.execute(text("DROP TABLE google.migration_progress"))
+
+
+@pytest.mark.parametrize(
+    "state, skipped, refused",
+    [("running", 0, True), ("paused", 0, True), ("done", 3, True), ("done", 0, False)],
+)
+async def test_an_apply_follows_the_recorded_state_of_the_import(
+    world, pg_env, superuser, progress_table, state, skipped, refused
+):
+    """With no Mongo connection on the runner the import's own record decides:
+    an unfinished backfill of the credentials, or one that skipped documents,
+    refuses the apply; a finished one lets it through."""
+    await _seed_postgres(superuser)
+    async with superuser.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO google.migration_progress (collection, state, skipped) "
+                "VALUES ('Oauth2CredentialDocument', :s, :k)"
+            ),
+            {"s": state, "k": skipped},
+        )
+    _, dry = await _run(world, dry_run=True)
+    assert dry["state"] == "succeeded", dry  # counting is always allowed
+    _, run = await _run(world)
+    if refused:
+        assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+        assert await _pg_ids(superuser) == {*PG_DELETE, *PG_KEEP}
+    else:
+        assert run["state"] == "succeeded", run
+        assert await _pg_ids(superuser) == set(PG_KEEP)
+
+
+async def test_a_role_that_cannot_read_the_import_record_leaves_the_decision_to_the_environment(
+    world, pg_env, superuser, progress_table, server
+):
+    """The roles script does not grant ``google.migration_progress`` to the data
+    role yet: unreadable, the apply goes on (no Mongo connection configured)."""
+    await _seed_postgres(superuser)
+    async with superuser.begin() as conn:
+        await conn.execute(
+            text(
+                f'REVOKE SELECT ON google.migration_progress FROM "{server.data_google_role}"'
+            )
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO google.migration_progress (collection, state) "
+                "VALUES ('Oauth2CredentialDocument', 'running')"
+            )
+        )
+    _, run = await _both(world)
+    assert run["state"] == "succeeded", run
 
 
 # ------------------------------------------------- the filter's edges

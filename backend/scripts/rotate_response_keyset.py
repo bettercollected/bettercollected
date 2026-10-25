@@ -48,7 +48,8 @@ re-encrypted under a key the services do not have.
 ``drop-old`` always scans every target in Postgres (``--target`` / ``--store`` are
 refused), configured, or refuses (``store_not_configured``), as
 ``keyset.drop_old`` does (``keyset_state.DataConfig.drop_old_stores``).
-``--mongo-retired`` is required: it confirms that Mongo is retired and that
+The import from 4.0 must be over: no ``MONGO_URI`` here and no unfinished backfill in
+``migration_progress`` (``import_incomplete``). ``--mongo-retired`` is required: it confirms that Mongo is retired and that
 values left in Mongo or its backups become unreadable once the old key is
 dropped; without it the command refuses (``store_retired``), since Mongo is not
 scanned. It refuses, writing nothing,
@@ -79,7 +80,7 @@ from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     run_reencrypt,
     scan,
 )
-from backend.admin.tasks.impl.keyset_state import DataConfig
+from backend.admin.tasks.impl.keyset_state import DataConfig, check_import_finished
 from backend.admin.tasks.impl.responses_common import plan_task_stores
 from backend.admin.tasks.spec import Refusal
 from common.services.keyset import (
@@ -232,6 +233,10 @@ STORE_REFUSALS = {
         "--mongo-retired)"
     ),
     "store_not_configured": "Postgres is not configured here ({url_setting})",
+    "import_incomplete": (
+        "the import from 4.0 is not over: unset MONGO_URI here, and finish the "
+        "backfill that migration_progress records as unfinished"
+    ),
 }
 
 
@@ -251,6 +256,7 @@ def _data_config(env=os.environ) -> DataConfig:
     return DataConfig(
         database_url=_target_url(RESPONSES, env) or None,
         google_database_url=_target_url(GOOGLE_CREDENTIALS, env) or None,
+        mongo_configured=bool((env.get("MONGO_URI") or "").strip()),
     )
 
 
@@ -372,6 +378,15 @@ async def _main(argv: List[str]) -> int:
     try:
         for target in targets:
             stores = await _open_stores(target, plans[target.name], closers)
+            if args.command == "drop-old":
+                try:  # no later backfill may bring in a value on the dropped key
+                    for store in stores:
+                        await check_import_finished(
+                            store, _data_config().mongo_configured
+                        )
+                except Refusal as refusal:
+                    print(store_refusal_message(refusal, target), file=sys.stderr)
+                    return 2
             if args.command == "reencrypt":
                 report["mode"] = "dry-run" if args.dry_run else "apply"
                 report["targets"][target.name] = await run_reencrypt(

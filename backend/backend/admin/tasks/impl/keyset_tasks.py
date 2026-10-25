@@ -14,7 +14,9 @@ docs/response-keyset-rotation.md is carried over:
   found no value on it, and no primary store empty (no target or store
   selection exists for it). Postgres is the only store scanned (since 4.1):
   the operator signs ``mongo_retired``, that values left in Mongo (or in a
-  backup of it) become unreadable, or the task refuses ``store_retired``;
+  backup of it) become unreadable, or the task refuses ``store_retired``; it
+  also refuses ``import_incomplete`` until the import from 4.0 is over (no Mongo
+  connection on the runner, no unfinished backfill in ``migration_progress``);
   with a scan that did not finish it refuses.
 
 The keyset is never printed, logged, put in an event or a result: key ids and
@@ -432,6 +434,14 @@ class DropOld(_Base):
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
         plans = await self._ping_all(config, targets, "drop_old")
+        # and the import from 4.0 must be over: no later backfill may bring in a
+        # value on the key about to go (state.check_import_finished)
+        for target in targets:
+            async with state.open_target_stores(
+                config, target, plans[target.name], read_only=True
+            ) as stores:
+                for store in stores:
+                    await state.check_import_finished(store, config.mongo_configured)
         return keys, stored, value, parsed, config, targets, plans
 
     async def precheck(self, ctx, params) -> None:

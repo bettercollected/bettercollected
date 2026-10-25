@@ -46,12 +46,25 @@ def jobs_backend(env=os.environ) -> str:
     return value
 
 
+def require_database_url(env=os.environ) -> None:
+    """The Postgres queue needs the jobs role's URL: exit at start, naming the
+    setting, instead of failing on the first connection (a restart loop that
+    leaves ``run_action`` jobs without a consumer). Never echoes the value."""
+    if not (env.get("DATABASE_URL") or "").strip():
+        raise SystemExit(
+            "JOBS_BACKEND is postgres (the default) but DATABASE_URL is not set: set it "
+            "to the actions executor's jobs role URL (bc_jobs_exec), or set "
+            "JOBS_BACKEND=temporal to keep the Temporal workflow."
+        )
+
+
 if __name__ == "__main__":
     log_if_api_key_missing()
     # JOBS_BACKEND=postgres (the default): consume the procrastinate `actions`
     # queue instead of Temporal (plans/postgres-consolidation.md §7);
     # JOBS_BACKEND=temporal keeps the workflow.
     if jobs_backend() == "postgres":
+        require_database_url()
         from procrastinate_worker import main as run_procrastinate
 
         asyncio.run(run_procrastinate())

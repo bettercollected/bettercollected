@@ -5,9 +5,10 @@ Postgres goes through the runner's Google data role, which holds no DELETE: it
 may only execute ``google.purge_unencrypted_credentials``, a SECURITY DEFINER
 function made by ``postgres/ensure-admin-roles.sh`` that holds the filter and
 returns a count. A dry run opens the store read-only. Mongo is never touched
-(``store_retired``); an apply is refused while the runner still has a Mongo
-connection configured, because the import from 4.0
-(``googleform.migrate backfill``) would copy the rows still held in Mongo back.
+(``store_retired``). An apply is refused (``import_incomplete``) until the import
+from 4.0 is over: while the runner has a Mongo connection configured, or while
+``google.migration_progress`` (when the role can read it) records an unfinished
+backfill; running the import again would copy the rows still held in Mongo back.
 
 Counts only, in the result, the events and the audit log: never an id, an
 email or a token.
@@ -70,13 +71,6 @@ class PurgeUnencryptedCredentials:
     async def _gate(self, params, *, apply: bool) -> tuple:
         config = state.DataConfig.from_env()
         names = config.stores_for(TARGET, params.stores)
-        if apply and config.mongo_configured:
-            # A row left readable in Mongo would be copied back into Postgres by
-            # the next backfill or reconcile of the import from 4.0 (neither
-            # store keeps a deletion tombstone here). Mongo is not touched: run
-            # the apply where no Mongo is configured, after purging Mongo's copy
-            # as the cutover runbook describes.
-            raise Refusal("stores_incomplete")
         async with state.open_target_stores(config, TARGET, names, read_only=True) as stores:
             for store in stores:
                 try:
@@ -89,6 +83,12 @@ class PurgeUnencryptedCredentials:
                     raise Refusal("store_unreachable") from None
                 if not ready:
                     raise Refusal("purge_function_missing")
+                if apply:
+                    # Rows left in Mongo (4.0's copy) would come back if the import
+                    # ran again: only once it is over (state.check_import_finished)
+                    # may rows be purged from Postgres alone. Mongo is not touched,
+                    # and no manual step is needed while the import is not re-run.
+                    await state.check_import_finished(store, config.mongo_configured)
         return config, names
 
     async def precheck(self, ctx, params: catalog.PurgeParams) -> None:
