@@ -395,6 +395,25 @@ async def test_an_auth_failure_is_a_502_with_its_code_not_auths_status(
     assert deletions == []
 
 
+async def test_the_runner_reaches_these_routes_without_a_redirect(
+    _initialized_app, key, world, deletions, monkeypatch
+):
+    """The task runner's client against this app's real routes: both calls
+    answer 200 (a trailing slash would be a 307 the runner does not follow)."""
+    from backend.admin.tasks.impl import case_duplicates as runner
+
+    monkeypatch.setattr(runner, "transport", httpx.ASGITransport(app=_initialized_app))
+    async with runner.Backend("http://test/api/v1", KEY) as backend:
+        groups = await backend.groups()
+        assert _decisions(groups)[A2] == "drop"
+        assert await backend.drop(A2) == "queued"
+    assert deletions == [A2]
+    async with AsyncClient(
+        transport=httpx.ASGITransport(app=_initialized_app), base_url="http://test"
+    ) as raw:
+        assert (await raw.get(BASE + "/", headers=key)).status_code == 307
+
+
 async def test_a_whitespace_key_counts_as_unset(client: AsyncClient, auth, monkeypatch):
     monkeypatch.setattr(settings, "ADMIN_TASKS_API_KEY", "   ")
     for headers in ({KEY_HEADER: "   "}, {KEY_HEADER: ""}, {}):
