@@ -126,8 +126,11 @@ class CollectionReport:
     tombstoned: int = 0
     # copies of a collection Mongo expires by TTL that have expired, either
     # store: absent, as for reconcile (never a difference, never "clean" on
-    # their own account); ``mongo``/``postgres`` above still count them
+    # their own account); ``mongo``/``postgres`` above still count them.
+    # ``expired`` is the total, ``expired_mongo``/``expired_postgres`` per store
     expired: int = 0
+    expired_mongo: int = 0
+    expired_postgres: int = 0
     invalid_ids: int = 0
     duplicates: int = 0
     # preflight, a warning: distinct values (compared ignoring letter case)
@@ -143,6 +146,21 @@ class CollectionReport:
             "tombstoned": [],
         }
     )
+
+    @property
+    def live_mongo(self) -> int:
+        """Mongo's count without its expired copies."""
+        return self.mongo - self.expired_mongo
+
+    @property
+    def live_postgres(self) -> int:
+        """Postgres's count without its expired copies."""
+        return self.postgres - self.expired_postgres
+
+    def count_expired(self, *, mongo: int = 0, postgres: int = 0) -> None:
+        self.expired_mongo += mongo
+        self.expired_postgres += postgres
+        self.expired += mongo + postgres
 
     @property
     def clean(self) -> bool:
@@ -681,7 +699,7 @@ class Runner:
                         for oid, (_, doc) in pg_side.items()
                         if expired(from_canonical_document(doc), ttl, now)
                     ]
-                    report.expired += len(gone_mongo) + len(gone_pg)
+                    report.count_expired(mongo=len(gone_mongo), postgres=len(gone_pg))
                     for oid in gone_mongo:
                         del mongo_side[oid]
                     for oid in gone_pg:
@@ -722,10 +740,12 @@ class Runner:
                     report.samples["tombstoned"].append(row_id)
             reports.append(report)
             logger.info(
-                "verify %s: mongo=%d postgres=%d missing_in_postgres=%d missing_in_mongo=%d mismatched=%d drifted=%d tombstoned=%d",
+                "verify %s: mongo=%d postgres=%d expired_mongo=%d expired_postgres=%d missing_in_postgres=%d missing_in_mongo=%d mismatched=%d drifted=%d tombstoned=%d",
                 name,
                 report.mongo,
                 report.postgres,
+                report.expired_mongo,
+                report.expired_postgres,
                 report.missing_in_postgres,
                 report.missing_in_mongo,
                 report.mismatched,
@@ -743,7 +763,7 @@ class Runner:
     async def _rows_beyond(self, table, last_id, ttl, now, report) -> int:
         """How many Postgres rows have an id past Mongo's last one (all of
         them when Mongo has none); an expired copy is absent, so it is
-        counted under ``report.expired`` instead."""
+        counted under ``report.expired``/``expired_postgres`` instead."""
         if ttl is None:
             async with self.engine.connect() as conn:
                 extra = select(func.count()).select_from(table)
@@ -762,7 +782,7 @@ class Runner:
             after = rows[-1][0]
             for row_id, doc in rows:
                 if expired(from_canonical_document(doc), ttl, now):
-                    report.expired += 1
+                    report.count_expired(postgres=1)
                     continue
                 live += 1
                 if len(report.samples["missing_in_mongo"]) < 5:
@@ -1472,8 +1492,9 @@ class Runner:
     ) -> dict:
         """Record what a ``verify`` run proved (see :mod:`common.db.marker`):
         a ``group`` row per repository group whose collections were all
-        verified clean with equal counts, and the service marker when every
-        group was, in this run or by combining the latest group rows.
+        verified clean with equal live counts (expired TTL copies left out),
+        and the service marker when every group was, in this run or by
+        combining the latest group rows.
         ``subset``: the run was limited by ``--collections`` (never recorded)."""
         outcome: dict[str, Any] = {"groups": [], "marker": None, "reason": None}
         marker = self.target.marker
@@ -1496,17 +1517,25 @@ class Runner:
             outcome["reason"] = f"a backfill is running for: {', '.join(busy)}"
             return outcome
 
+        # an expired copy of a TTL collection is absent (see ``verify``):
+        # Mongo's TTL monitor drops its own, Postgres keeps them, so the
+        # counts compared and recorded are the live ones; the expired copies
+        # are recorded beside them
         def counts(name: str) -> dict:
             report = by_name[name]
             return {
                 "group": self.target.group_of(name),
-                "mongo": report.mongo,
-                "postgres": report.postgres,
+                "mongo": report.live_mongo,
+                "postgres": report.live_postgres,
+                "expired_mongo": report.expired_mongo,
+                "expired_postgres": report.expired_postgres,
             }
 
         def verified(name: str) -> bool:
             report = by_name.get(name)
-            return bool(report and report.clean and report.mongo == report.postgres)
+            return bool(
+                report and report.clean and report.live_mongo == report.live_postgres
+            )
 
         all_groups = self.target.group_names()
         clean_groups = [

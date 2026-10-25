@@ -95,6 +95,8 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
         "group": "refdata",
         "mongo": 2,
         "postgres": 2,
+        "expired_mongo": 0,
+        "expired_postgres": 0,
     }
     assert set(marker.collections) == set(_tables())
     assert "+schema.0021" in marker.code_version
