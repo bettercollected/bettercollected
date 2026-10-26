@@ -2,7 +2,7 @@
 requests and sees the data subjects, never their answers."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -16,7 +16,7 @@ from tests.app.controllers.data import testUser, testUser1, testUser2
 from tests.app.controllers.test_form_ai_insights import _seed_form_and_responses
 from tests.app.response_helpers import deletion_request_of
 
-officer = User(id=str(PydanticObjectId()), sub="officer@example.com")
+officer = User(id=str(RecordId()), sub="officer@example.com")
 SECRET = "my landlord's name is Mallory"
 
 
@@ -124,7 +124,7 @@ async def test_a_privacy_officer_completes_a_deletion_request(
 async def test_a_privacy_officer_deletes_nothing_else(client: AsyncClient, requested):
     # a response nobody asked to delete
     other = await container.workspace_form_service().submit_response(
-        PydanticObjectId(requested["ws"]),
+        RecordId(requested["ws"]),
         requested["form"],
         StandardFormResponse(answers={"q-feedback": {"type": "text", "text": "x"}}),
         testUser1,

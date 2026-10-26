@@ -6,7 +6,7 @@ are in test_workspace_owners.py."""
 from unittest.mock import patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from httpx import AsyncClient
 
@@ -25,8 +25,8 @@ from backend.app.services.authorization_service import (
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import invited_user, testUser, testUser1
 
-admin = User(id=str(PydanticObjectId()), sub="roles-admin@example.com")
-viewer = User(id=str(PydanticObjectId()), sub="roles-viewer@example.com")
+admin = User(id=str(RecordId()), sub="roles-admin@example.com")
+viewer = User(id=str(RecordId()), sub="roles-viewer@example.com")
 
 
 def _cookies(user: User) -> dict:
@@ -48,7 +48,7 @@ async def _add(workspace_id, user: User, roles, disabled=False):
 
 async def _stored_roles(workspace_id, user: User):
     membership = await container.workspace_user_repo().find_workspace_user(
-        PydanticObjectId(workspace_id), PydanticObjectId(user.id)
+        RecordId(workspace_id), RecordId(user.id)
     )
     return membership.roles
 
@@ -244,7 +244,7 @@ async def test_changing_the_role_of_a_non_member_is_not_found(
 async def test_an_invitation_carries_its_role_into_the_membership(
     client: AsyncClient, members, auth_service, role, stored, listed
 ):
-    newcomer = User(id=str(PydanticObjectId()), sub="newcomer@example.com")
+    newcomer = User(id=str(RecordId()), sub="newcomer@example.com")
     created = await client.post(
         f"{_members_url(members.id)}/invitations",
         json={"email": newcomer.sub, "role": role},
@@ -298,7 +298,7 @@ async def test_accepting_rechecks_the_inviter(
 ):
     """An Admin's invitation stops working once they no longer manage
     members (or no longer hold the role they gave)."""
-    newcomer = User(id=str(PydanticObjectId()), sub="late@example.com")
+    newcomer = User(id=str(RecordId()), sub="late@example.com")
     created = await client.post(
         f"{_members_url(members.id)}/invitations",
         json={"email": newcomer.sub, "role": "ADMIN"},
@@ -312,7 +312,7 @@ async def test_accepting_rechecks_the_inviter(
         await repo.delete(members.id, admin.id)
     else:
         membership = await repo.find_workspace_user(
-            members.id, PydanticObjectId(admin.id)
+            members.id, RecordId(admin.id)
         )
         membership.roles = [WorkspaceRoles.COLLABORATOR]
         await repo.save(membership)
@@ -326,7 +326,7 @@ async def test_accepting_rechecks_the_inviter(
     assert accepted.status_code == 403
     assert "invite you again" in accepted.text
     assert await repo.find_workspace_user(
-        members.id, PydanticObjectId(newcomer.id)
+        members.id, RecordId(newcomer.id)
     ) is None
 
 
@@ -345,7 +345,7 @@ async def test_an_invitation_with_an_unknown_role_loads_and_grants_nothing(
         workspace_id=members.id, invitation_token=invitation.invitation_token
     )
     assert stored.role == "SOMETHING_NEW"
-    future = User(id=str(PydanticObjectId()), sub="future@example.com")
+    future = User(id=str(RecordId()), sub="future@example.com")
     accepted = await client.post(
         f"{_members_url(members.id)}/invitations/{invitation.invitation_token}",
         params={"response_status": "ACCEPTED"},
@@ -373,7 +373,7 @@ async def test_inviting_again_changes_the_role(client: AsyncClient, members):
 
 # --- the billing owner (several owners: docs/enterprise-access-model.md)
 
-co_owner = User(id=str(PydanticObjectId()), sub="roles-co-owner@example.com")
+co_owner = User(id=str(RecordId()), sub="roles-co-owner@example.com")
 
 
 @pytest.fixture()
@@ -518,7 +518,7 @@ async def test_the_billing_owner_is_always_an_active_owner(
     if target_is == "admin":
         target = admin
     elif target_is == "disabled_owner":
-        target = User(id=str(PydanticObjectId()), sub="disabled-owner@example.com")
+        target = User(id=str(RecordId()), sub="disabled-owner@example.com")
         await _add(team_workspace.id, target, [WorkspaceRoles.OWNER], disabled=True)
     else:
         target = testUser1

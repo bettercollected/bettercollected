@@ -8,7 +8,7 @@ import json
 import os
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from dependency_injector import providers
 from sqlalchemy import select
 
@@ -77,7 +77,7 @@ async def add_origins(*origins):
 async def add_tags(*titles):
     """Workspace tags in Mongo only (the responses group, which verify covers)."""
     return [
-        await WorkspaceTags(workspace_id=PydanticObjectId(), title=t).save()
+        await WorkspaceTags(workspace_id=RecordId(), title=t).save()
         for t in titles
     ]
 
@@ -125,7 +125,7 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
     # the Postgres-only groups are imported, never verified: not in the marker
     assert set(marker.collections) == set(_tables()) - POSTGRES_ONLY_COLLECTIONS
     assert list(marker.groups) == MIGRATING
-    assert "+schema.0021" in marker.code_version
+    assert "+schema.0022" in marker.code_version
     assert marker.run_id == runner.run_id
     rows = await marker_rows()
     assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(MIGRATING) + [
@@ -138,7 +138,7 @@ async def test_a_dirty_group_blocks_the_marker_until_reconciled(target):
     async with Runner(target) as runner:
         await runner.backfill()
     # written to Mongo only, after the backfill: missing in Postgres
-    await WorkspaceTags(workspace_id=PydanticObjectId(), title="W").save()
+    await WorkspaceTags(workspace_id=RecordId(), title="W").save()
     async with Runner(target) as runner:
         outcome = await runner.record_verify(await runner.verify())
         assert "responses" not in outcome["groups"]

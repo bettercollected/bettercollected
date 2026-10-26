@@ -7,7 +7,7 @@ from typing import List
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -326,7 +326,7 @@ class TestWrites:
         self, workspace, workspace_form_response
     ):
         stored = await _stored(workspace_form_response["response_id"])
-        assert stored.workspace_id == PydanticObjectId(workspace.id)
+        assert stored.workspace_id == RecordId(workspace.id)
 
 
 # ------------------------------------------- copies sharing a provider response id

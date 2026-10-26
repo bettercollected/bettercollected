@@ -1,6 +1,6 @@
 from loguru import logger
 from http import HTTPStatus
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
@@ -13,7 +13,7 @@ class FormActionsService:
         self.form_repo = form_repo
 
     async def update_form_secrets(
-        self, form_id: PydanticObjectId, action_id: PydanticObjectId, payload
+        self, form_id: RecordId, action_id: RecordId, payload
     ):
         form = await self.form_repo.get_form_by_id(form_id)
         if not form:

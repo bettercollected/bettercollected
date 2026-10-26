@@ -3,7 +3,7 @@ repairs templates seeded before it did (forms created from them showed the
 question with nothing to answer)."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.schemas.template import FormTemplateDocument
@@ -19,7 +19,7 @@ from scripts.seed_flow_templates import (
 
 pytestmark = pytest.mark.asyncio
 
-WORKSPACE_ID = PydanticObjectId("65e5501d0000000000000001")
+WORKSPACE_ID = RecordId("65e5501d0000000000000001")
 # The flow templates written in seed_flow_templates.py; the Dutch-first ones
 # (scripts/dutch_first_templates.py) have their own copy rules and tests.
 FLOW_BUILDERS = tuple(b for b in TEMPLATE_BUILDERS if b not in BILINGUAL_BUILDERS)
@@ -96,7 +96,7 @@ async def test_an_existing_template_in_another_workspace_is_not_duplicated():
     """DEFAULT_WORKSPACE_ID can differ from where an earlier run seeded."""
     repo = container.form_template_repo()
     broken = await _seed_broken_lead_qualification()
-    other_workspace = PydanticObjectId("65e5501d0000000000000002")
+    other_workspace = RecordId("65e5501d0000000000000002")
 
     result = await seed_flow_templates(other_workspace, template_repo=repo)
 
@@ -312,7 +312,7 @@ async def test_the_repair_touches_only_the_seeds_own_templates():
     from scripts.seed_flow_templates import repair_leaflet_design
 
     repo = container.form_template_repo()
-    workspace = PydanticObjectId("65e5501d0000000000000003")
+    workspace = RecordId("65e5501d0000000000000003")
     payload = lead_qualification()
     own_questions = dict(payload, fields=[
         {"id": "p1", "index": 0, "type": "slide", "properties": {"layout": LAYOUT, "fields": [
@@ -343,7 +343,7 @@ async def test_the_repair_touches_only_the_seeds_own_templates():
 
 async def test_the_gallery_template_is_repaired_when_a_namesake_is_found_first():
     repo = container.form_template_repo()
-    workspace = PydanticObjectId("65e5501d0000000000000003")
+    workspace = RecordId("65e5501d0000000000000003")
     payload = lead_qualification()
     namesake = await _save_template(payload, workspace_id=workspace, settings={"is_public": False})
     seeded = await _save_template(payload)
@@ -431,7 +431,7 @@ async def test_the_repair_adds_no_section_titles_to_templates_it_does_not_own():
     from scripts.seed_flow_templates import repair_leaflet_design
 
     repo = container.form_template_repo()
-    workspace = PydanticObjectId("65e5501d0000000000000003")
+    workspace = RecordId("65e5501d0000000000000003")
     copy = await _save_template(lead_qualification(), workspace_id=workspace, imported_from=WORKSPACE_ID)
     namesake = await _save_template(lead_qualification(), workspace_id=workspace, settings={"is_public": False})
 

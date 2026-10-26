@@ -1,7 +1,7 @@
 import enum
 from fileinput import filename
 from typing import Optional
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi import UploadFile
 from pydantic import BaseModel
 from fastapi_camelcase import CamelModel
@@ -19,7 +19,7 @@ class MediaLibraryRequestDto(CamelModel):
 
 
 class MediaLibraryDto(BaseModel):
-    media_id: Optional[PydanticObjectId] = None
+    media_id: Optional[RecordId] = None
     workspace_id: Optional[str] = None
     media_url: Optional[str] = None
     media_type: Optional[MediaType] = None

@@ -14,7 +14,7 @@ import functools
 import os
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
@@ -126,7 +126,7 @@ async def test_form_writes_that_move_updated_at_verify_clean(target, mode):
     repo = forms_repo(mode)
     created = await repo.create_form(
         StandardForm(
-            form_id=str(PydanticObjectId()), title="Draft", builder_version="v2"
+            form_id=str(RecordId()), title="Draft", builder_version="v2"
         )
     )
     assert await verify(target, "forms") == {}
@@ -140,7 +140,7 @@ async def test_form_writes_that_move_updated_at_verify_clean(target, mode):
     # replayed: the conditional save moves updated_at past the stored value
     stored = await repo.get_form_document_by_id(created.form_id)
     updated = await repo.update_form_if_unchanged(
-        PydanticObjectId(created.form_id),
+        RecordId(created.form_id),
         StandardForm(form_id=created.form_id, title="Again", builder_version="v2"),
         stored.updated_at,
     )
@@ -161,7 +161,7 @@ async def test_a_save_of_a_document_each_store_loads_itself_verifies_clean(
         PostgresFormTemplateRepository(container.pg_sessionmaker()),
     )
     template = await repo.create_new_template(
-        PydanticObjectId(), StandardFormTemplate(title="T"), testUser
+        RecordId(), StandardFormTemplate(title="T"), testUser
     )
     assert await verify(target, "form_templates") == {}
     updated = await repo.update_template(
@@ -179,7 +179,7 @@ async def test_a_counter_created_and_bumped_on_both_stores_verifies_clean(target
         RateLimitRepository(),
         PostgresRateLimitRepository(container.pg_sessionmaker()),
     )
-    counter_id = str(PydanticObjectId())
+    counter_id = str(RecordId())
     expires = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)
     assert await repo.hit(counter_id, expires) == 1
     assert await verify(target, "rate_limit_counters") == {}
@@ -195,9 +195,9 @@ async def test_documents_built_on_both_stores_verify_clean(target, mode):
         ResponderGroupsRepository(),
         PostgresResponderGroupsRepository(container.pg_sessionmaker()),
     )
-    group = await repo.create_group(PydanticObjectId(), "Group")
+    group = await repo.create_group(RecordId(), "Group")
     await repo.add_emails_to_group(group.id, ["a@example.com", "b@example.com"])
-    await repo.add_group_to_form(str(PydanticObjectId()), group.id)
+    await repo.add_group_to_form(str(RecordId()), group.id)
     assert (
         await verify(
             target,
@@ -214,7 +214,7 @@ async def test_a_failed_mirror_write_is_repaired_by_reconcile(target, mode):
     healthy = forms_repo(mode)
     created = await healthy.create_form(
         StandardForm(
-            form_id=str(PydanticObjectId()), title="Draft", builder_version="v2"
+            form_id=str(RecordId()), title="Draft", builder_version="v2"
         )
     )
     document = await healthy.get_form_document_by_id(created.form_id)
@@ -223,7 +223,7 @@ async def test_a_failed_mirror_write_is_repaired_by_reconcile(target, mode):
     document.title = "Changed while the mirror was down"
     await down.save_form(document)
     await down.create_form(
-        StandardForm(form_id=str(PydanticObjectId()), title="New", builder_version="v2")
+        StandardForm(form_id=str(RecordId()), title="New", builder_version="v2")
     )
     assert down.metrics.mirror_failures[("forms", "save_form")] == 1
     assert down.metrics.mirror_failures[("forms", "create_form")] == 1
@@ -259,14 +259,14 @@ async def test_a_replayed_document_is_stored_exactly_on_mongo(clean_postgres):
     repo = forms_repo("postgres_primary_dual")
     created = await repo.create_form(
         StandardForm(
-            form_id=str(PydanticObjectId()), title="Draft", builder_version="v2"
+            form_id=str(RecordId()), title="Draft", builder_version="v2"
         )
     )
     collection = FormDocument.get_pymongo_collection()
     await collection.update_one({"_id": created.id}, {"$set": {"stale_key": 1}})
     stored = await repo.get_form_document_by_id(created.form_id)
     await repo.update_form_if_unchanged(
-        PydanticObjectId(created.form_id),
+        RecordId(created.form_id),
         StandardForm(form_id=created.form_id, title="Again", builder_version="v2"),
         stored.updated_at,
     )

@@ -391,7 +391,7 @@ async def test_bootstrap_generates_every_key_valid_and_prints_nothing(svc, serve
         assert value not in result.stdout + result.stderr
     assert shipped_secrets.is_fernet_key(stored["AUTH_AES_HEX_KEY"])
     assert len(keyset.parse_keyset(stored["MASTER_ENCRYPTION_KEYSET"]).key) == 1
-    assert "generated=5" in result.stdout and "master_key_fingerprint " in result.stdout
+    assert f"generated={len(host.GENERATED_KEYS)}" in result.stdout and "master_key_fingerprint " in result.stdout
     from common.settings.loader.runtime import keyset_fingerprint
 
     ids = [k.key_id for k in keyset.parse_keyset(stored["MASTER_ENCRYPTION_KEYSET"]).key]
@@ -479,7 +479,7 @@ async def test_bootstrap_checks_the_document_store_when_one_is_configured(svc):
         return False
 
     done = await host.bootstrap_keys(svc, CLI, environ=env, existing_stack=False, counts=empty_counts, mongo_check=empty)
-    assert len(done.generated) == 5 and done.keyset_fp.startswith("ks-")
+    assert len(done.generated) == len(host.GENERATED_KEYS) and done.keyset_fp.startswith("ks-")
 
 
 async def test_bootstrap_refuses_an_existing_stack_existing_keys_and_env_keys(svc):
@@ -502,7 +502,7 @@ async def test_bootstrap_refuses_an_existing_stack_existing_keys_and_env_keys(sv
 async def test_bootstrap_fill_missing_adds_only_the_missing_keys(svc):
     await svc.import_once("AUTH_JWT_SECRET", STRONG, CLI)
     done = await host.bootstrap_keys(svc, CLI, environ={}, existing_stack=False, counts=empty_counts, fill_missing=True)
-    assert "AUTH_JWT_SECRET" not in done.generated and len(done.generated) == 4
+    assert "AUTH_JWT_SECRET" not in done.generated and len(done.generated) == len(host.GENERATED_KEYS) - 1
     assert (await svc.stored()).values["AUTH_JWT_SECRET"] == STRONG
 
 
@@ -937,6 +937,6 @@ async def test_no_host_command_leaves_a_secret_in_the_audit_log_or_the_outbox(sv
             ).all()
         )
     secrets_ = [PLANT, *[v for k, v in (await svc.stored()).values.items() if k in host.GENERATED_KEYS]]
-    assert len(secrets_) == 6
+    assert len(secrets_) == len(host.GENERATED_KEYS) + 1
     for value in secrets_:
         assert value not in dump

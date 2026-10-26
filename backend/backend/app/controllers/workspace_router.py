@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
 from fastapi import Depends, Form, Query, UploadFile
@@ -104,7 +104,7 @@ class WorkspaceRouter(Routable):
     @get(
         "/{workspace_id}",
     )
-    async def _get_workspace_by_id(self, workspace_id: PydanticObjectId):
+    async def _get_workspace_by_id(self, workspace_id: RecordId):
         return await self.workspace_service.get_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -116,7 +116,7 @@ class WorkspaceRouter(Routable):
     async def check_handle_availability(
         self,
         workspace_name: str,
-        workspace_id: PydanticObjectId = None,
+        workspace_id: RecordId = None,
         user: User = Depends(get_user_if_logged_in),
     ):
         return await self.workspace_service.check_if_workspace_handle_is_unique(
@@ -130,7 +130,7 @@ class WorkspaceRouter(Routable):
     async def suggest_handles(
         self,
         workspace_name: str,
-        workspace_id: PydanticObjectId = None,
+        workspace_id: RecordId = None,
         user: User = Depends(get_user_if_logged_in),
     ):
         suggestion_list = await self.workspace_service.generate_unique_names_from_the_workspace_handle(
@@ -143,7 +143,7 @@ class WorkspaceRouter(Routable):
     )
     async def patch_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         profile_image: UploadFile = None,
         banner_image: UploadFile = None,
         title: Optional[str] = Form(None),
@@ -169,7 +169,7 @@ class WorkspaceRouter(Routable):
     @get("/{workspace_id}/permissions", response_model=WorkspacePermissionsDto)
     async def get_workspace_permissions(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_logged_user),
     ) -> WorkspacePermissionsDto:
         """What the caller may do in this workspace (the webapp shows and
@@ -184,7 +184,7 @@ class WorkspaceRouter(Routable):
     @get("/{workspace_id}/ai-profile")
     async def get_ai_profile(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_logged_user),
     ) -> AIProfileResponseDto:
         """The workspace's AI profile (org context for AI form features)."""
@@ -193,7 +193,7 @@ class WorkspaceRouter(Routable):
     @put("/{workspace_id}/ai-profile")
     async def update_ai_profile(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         profile: AIProfileDto,
         user: User = Depends(get_logged_user),
     ) -> AIProfileResponseDto:
@@ -205,7 +205,7 @@ class WorkspaceRouter(Routable):
     @get("/{workspace_id}/ai-settings")
     async def get_ai_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_logged_user),
     ) -> WorkspaceAISettingsDto:
         """Whether AI features are on for this workspace, which provider they
@@ -215,7 +215,7 @@ class WorkspaceRouter(Routable):
     @put("/{workspace_id}/ai-settings")
     async def update_ai_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: UpdateWorkspaceAISettingsDto,
         user: User = Depends(get_logged_user),
     ) -> WorkspaceAISettingsDto:
@@ -228,7 +228,7 @@ class WorkspaceRouter(Routable):
     @put("/{workspace_id}/ai-memory/settings")
     async def update_ai_memory_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: LearnPreferencesDto,
         user: User = Depends(get_logged_user),
     ) -> LearnPreferencesDto:
@@ -241,7 +241,7 @@ class WorkspaceRouter(Routable):
     @get("/{workspace_id}/api-keys")
     async def list_api_keys(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_logged_user),
     ) -> List[APIKeyDto]:
         """Workspace API keys (admin only; tokens never shown after creation)."""
@@ -250,7 +250,7 @@ class WorkspaceRouter(Routable):
     @post("/{workspace_id}/api-keys")
     async def create_api_key(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: CreateAPIKeyDto,
         user: User = Depends(get_logged_user),
     ) -> CreatedAPIKeyDto:
@@ -260,7 +260,7 @@ class WorkspaceRouter(Routable):
     @delete("/{workspace_id}/api-keys/{key_id}")
     async def revoke_api_key(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         key_id: str,
         user: User = Depends(get_logged_user),
     ) -> List[APIKeyDto]:
@@ -269,7 +269,7 @@ class WorkspaceRouter(Routable):
     @get("/{workspace_id}/ai-memory")
     async def get_ai_memory(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_logged_user),
     ) -> List[MemoryEntryDto]:
         """The caller's own AI preference memory in this workspace."""
@@ -278,7 +278,7 @@ class WorkspaceRouter(Routable):
     @post("/{workspace_id}/ai-memory")
     async def add_ai_memory_entry(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         entry: AddMemoryEntryDto,
         user: User = Depends(get_logged_user),
     ) -> List[MemoryEntryDto]:
@@ -287,7 +287,7 @@ class WorkspaceRouter(Routable):
     @delete("/{workspace_id}/ai-memory/{entry_id}")
     async def delete_ai_memory_entry(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         entry_id: str,
         user: User = Depends(get_logged_user),
     ) -> List[MemoryEntryDto]:
@@ -298,7 +298,7 @@ class WorkspaceRouter(Routable):
     @patch("/{workspace_id}/theme-presets")
     async def patch_workspace_theme_presets(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         custom_themes: List[WorkspaceThemeDto],
         user: User = Depends(get_logged_user),
     ) -> WorkspaceResponseDto:
@@ -310,7 +310,7 @@ class WorkspaceRouter(Routable):
     @post("/{workspace_id}/auth/otp/send")
     async def send_otp_for_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         receiver_email: EmailStr,
         # the mail's language (the form's); English unless Dutch
         locale: Optional[str] = Query(None, max_length=35),
@@ -323,7 +323,7 @@ class WorkspaceRouter(Routable):
         "/{workspace_id}/custom-domain",
     )
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: RecordId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.delete_custom_domain_of_workspace(
             workspace_id=workspace_id, user=user
@@ -334,13 +334,13 @@ class WorkspaceRouter(Routable):
         response_model=WorkspaceStatsDto,
     )
     async def get_workspace_stats(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: RecordId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.get_workspace_stats(workspace_id, user)
 
     @get("/{workspace_id}/verify-domain")
     async def verify_workspace_domain(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: RecordId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.verify_workspace_domain(
             workspace_id=workspace_id, user=user
@@ -348,7 +348,7 @@ class WorkspaceRouter(Routable):
 
     @post("/{workspace_id}/custom-domain/recheck")
     async def recheck_workspace_domain(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: RecordId, user: User = Depends(get_logged_user)
     ):
         """Ask the custom-domain service to run the DNS, certificate and origin
         checks again now (rate limited: 429 carries ``retry_after``)."""

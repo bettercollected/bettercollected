@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Any, Dict
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.workspace import WorkspaceResponseDto
@@ -32,14 +32,14 @@ class FormImportService:
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo  # routed
 
-    async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
+    async def get_form_workspace_by_id(self, workspace_id: RecordId):
         return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
 
     async def save_converted_form_and_responses(
         self,
         response_data: Dict[str, Any],
         form_response_data_owner: str,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ) -> StandardForm | None:
         form_data = FormImportResponse.model_validate(response_data)
         if not (form_data.form or form_data.responses):
@@ -77,7 +77,7 @@ class FormImportService:
             response_document = FormResponseDocument(**response.model_dump(mode="json"))
             response_document.id = stored_ids.get(response.response_id)
             response_document.form_id = standard_form.form_id
-            response_document.workspace_id = PydanticObjectId(workspace_id)
+            response_document.workspace_id = RecordId(workspace_id)
             data_owner_answer = response_document.answers.get(form_response_data_owner)
 
             if not response_document.dataOwnerIdentifier:

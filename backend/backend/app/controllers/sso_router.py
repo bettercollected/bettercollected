@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, post, put
 from common.models.user import User
 from fastapi import Depends, Request, Response
@@ -36,7 +36,7 @@ class WorkspaceSsoRouter(Routable):
 
     @get("/{workspace_id}/sso")
     async def overview(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ) -> SsoOverviewDto:
         return await container.sso_connection_service().overview(workspace_id, user)
 
@@ -51,7 +51,7 @@ class WorkspaceSsoRouter(Routable):
     )
     async def create_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: CreateSsoConnectionDto,
         user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
@@ -62,7 +62,7 @@ class WorkspaceSsoRouter(Routable):
     @post("/{workspace_id}/sso/connections/{connection_id}/enable")
     async def enable_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         connection_id: str,
         user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
@@ -73,7 +73,7 @@ class WorkspaceSsoRouter(Routable):
     @post("/{workspace_id}/sso/connections/{connection_id}/disable")
     async def disable_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         connection_id: str,
         user: User = Depends(get_full_user),
     ) -> SsoConnectionDto:
@@ -87,7 +87,7 @@ class WorkspaceSsoRouter(Routable):
     )
     async def delete_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         connection_id: str,
         user: User = Depends(get_full_user),
     ) -> Response:
@@ -99,7 +99,7 @@ class WorkspaceSsoRouter(Routable):
     @get("/{workspace_id}/sso/connections/{connection_id}/test")
     async def test_connection(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         connection_id: str,
         request: Request,
         user: User = Depends(get_full_user),
@@ -119,7 +119,7 @@ class WorkspaceSsoRouter(Routable):
     @put("/{workspace_id}/sso/settings")
     async def update_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: UpdateSsoSettingsDto,
         user: User = Depends(get_full_user),
     ) -> SsoSettingsDto:

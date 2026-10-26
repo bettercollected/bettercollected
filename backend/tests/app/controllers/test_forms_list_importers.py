@@ -8,7 +8,7 @@ workspace's form."""
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from httpx import AsyncClient
@@ -23,9 +23,9 @@ from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1
 
 OTHER_FORM_ID = "importers-other-form"
-outsider = User(id=str(PydanticObjectId()), sub="importers-outsider@example.com")
-disabled_admin = User(id=str(PydanticObjectId()), sub="importers-disabled@example.com")
-viewer = User(id=str(PydanticObjectId()), sub="importers-viewer@example.com")
+outsider = User(id=str(RecordId()), sub="importers-outsider@example.com")
+disabled_admin = User(id=str(RecordId()), sub="importers-disabled@example.com")
+viewer = User(id=str(RecordId()), sub="importers-viewer@example.com")
 
 
 def _cookies(user: User) -> dict:

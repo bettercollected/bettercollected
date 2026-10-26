@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post, get, patch, delete
 from fastapi import Depends, UploadFile, Form
 from common.models.user import User
@@ -56,7 +56,7 @@ class FormTemplateRouter(Routable):
     async def get_templates(
         self,
         v2: Optional[bool] = False,
-        workspace_id: Optional[PydanticObjectId] = None,
+        workspace_id: Optional[RecordId] = None,
         user: User = Depends(get_full_user),
     ):
         form_templates = await self.form_template_service.get_templates(
@@ -70,8 +70,8 @@ class FormTemplateRouter(Routable):
     @get("/templates/{template_id}", response_model=StandardFormTemplateCamelModel)
     async def get_template_by_id(
         self,
-        template_id: PydanticObjectId,
-        workspace_id: PydanticObjectId = None,
+        template_id: RecordId,
+        workspace_id: RecordId = None,
         user: User = Depends(get_user_if_logged_in),
     ):
         response = await self.form_template_service.get_template_by_id(
@@ -82,7 +82,7 @@ class FormTemplateRouter(Routable):
     @patch("/template/{template_id}/preview")
     async def patch_template_preview_image(
         self,
-        template_id: PydanticObjectId,
+        template_id: RecordId,
         preview_image: UploadFile = None,
         api_key=Depends(get_api_key),
     ):
@@ -95,8 +95,8 @@ class FormTemplateRouter(Routable):
     @post("/workspaces/{workspace_id}/form/{form_id}/template")
     async def create_template_from_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         user: User = Depends(get_full_user),
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
@@ -117,7 +117,7 @@ class FormTemplateRouter(Routable):
     )
     async def create_new_template(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         template_body: str = Form(),
         logo: UploadFile = None,
         cover_image: UploadFile = None,
@@ -139,8 +139,8 @@ class FormTemplateRouter(Routable):
     )
     async def import_template_to_workspace(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.import_form_template_to_workspace(
@@ -154,8 +154,8 @@ class FormTemplateRouter(Routable):
     )
     async def create_form_from_template(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.create_form_from_template(
@@ -169,8 +169,8 @@ class FormTemplateRouter(Routable):
     )
     async def update_template(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         logo: UploadFile = None,
         cover_image: UploadFile = None,
         template_body: str = Form(),
@@ -198,8 +198,8 @@ class FormTemplateRouter(Routable):
     )
     async def update_template_settings(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         settings: StandardTemplateSettingsCamelModel,
         user: User = Depends(get_full_user),
     ):
@@ -213,8 +213,8 @@ class FormTemplateRouter(Routable):
     @delete("/workspaces/{workspace_id}/template/{template_id}")
     async def delete_template(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         response = await self.form_template_service.delete_template(

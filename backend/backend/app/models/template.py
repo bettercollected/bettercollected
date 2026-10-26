@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.consent import ResponseRetentionType
 from common.models.standard_form import (
     LOGO_ALT_MAX_LENGTH,
@@ -37,9 +37,9 @@ class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):
 
 
 class StandardFormTemplate(BaseModel):
-    id: Optional[PydanticObjectId] = None
+    id: Optional[RecordId] = None
     builder_version: Optional[str] = None
-    workspace_id: Optional[PydanticObjectId] = None
+    workspace_id: Optional[RecordId] = None
     type: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
@@ -53,7 +53,7 @@ class StandardFormTemplate(BaseModel):
     fields: Optional[List[StandardFormField]] = None
     settings: Optional[StandardTemplateSetting] = StandardTemplateSetting()
     created_by: Optional[str] = None
-    imported_from: Optional[PydanticObjectId] = None
+    imported_from: Optional[RecordId] = None
     preview_image: Optional[str] = None
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None

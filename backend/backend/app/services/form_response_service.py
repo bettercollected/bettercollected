@@ -4,7 +4,7 @@ import re
 from http import HTTPStatus
 from typing import Any, Dict, List, NoReturn, Optional, Sequence, Set
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     InternalAnswerMeta,
@@ -80,7 +80,7 @@ from backend.app.services.respondent_feedback import (
     present_to_respondent,
     staff_feedback,
 )
-from backend.app.utils.hash import hash_string
+from backend.app.utils.respondent_identity import matches as identity_matches
 
 # An uploaded answer file's id is client-supplied: only a plain id (no "/",
 # not "." or "..") may ever become part of a storage key, so it can't name
@@ -138,7 +138,7 @@ class FormResponseService:
 
     async def get_all_workspace_responses(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         filter_query: FormResponseFilterQuery,
         sort: SortRequest,
         request_for_deletion: bool,
@@ -174,7 +174,7 @@ class FormResponseService:
 
     async def get_user_submissions(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User,
         request_for_deletion: bool = False,
     ):
@@ -214,7 +214,7 @@ class FormResponseService:
 
     async def get_workspace_form_submissions(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request_for_deletion: bool,
         form_id: str,
         filter_query: FormResponseFilterQuery,
@@ -264,7 +264,7 @@ class FormResponseService:
         return form_responses
 
     async def check_member_and_form_in_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: RecordId, form_id: str, user: User
     ):
         """Aggregate flow analytics: 403 without analytics.read, 404 unless
         the form belongs to the workspace."""
@@ -275,7 +275,7 @@ class FormResponseService:
     async def get_workspace_form_all_submissions(
         self,
         form_id: str,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User,
     ):
         # Every response of the form, unpaginated and decrypted: a bulk
@@ -292,7 +292,7 @@ class FormResponseService:
         )
 
     async def get_workspace_form_submission_paths(
-        self, form_id: str, workspace_id: PydanticObjectId, user: User
+        self, form_id: str, workspace_id: RecordId, user: User
     ) -> List[SubmissionPath]:
         """The path each submission of the form takes through its pages
         under the form's current (draft) rules, for the flow view's insights
@@ -313,7 +313,7 @@ class FormResponseService:
 
     @staticmethod
     def _submission_paths(
-        workspace_id: PydanticObjectId, form: Any, responses: Sequence[Any]
+        workspace_id: RecordId, form: Any, responses: Sequence[Any]
     ) -> List[SubmissionPath]:
         # Imported here: importing answer_validation with this module changes
         # the import order, and with it which spelling of an int/str union
@@ -351,7 +351,7 @@ class FormResponseService:
             )
         return paths
 
-    async def _form_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
+    async def _form_in_workspace(self, workspace_id: RecordId, form_id: str):
         # Scope the form to the workspace as well: without this the caller could
         # name any workspace they belong to and read another workspace's form.
         workspace_form = (
@@ -365,7 +365,7 @@ class FormResponseService:
             )
 
     async def get_workspace_submission(
-        self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: RecordId, response_id: str, user: User
     ):
         # Staff read any response of the workspace; otherwise this is the
         # respondent's own submission (checked by identity below).
@@ -404,7 +404,7 @@ class FormResponseService:
         if not (
             is_admin
             or response.dataOwnerIdentifier == user.sub
-            or response.anonymous_identity == hash_string(user.sub)
+            or identity_matches(response.anonymous_identity, user.sub)
         ):
             refuse_not_owner(permissions, MESSAGE_NOT_FOUND)
 
@@ -483,7 +483,7 @@ class FormResponseService:
             feedback=staff_view,
         )
 
-    async def _workspace_title(self, workspace_id: PydanticObjectId) -> Optional[str]:
+    async def _workspace_title(self, workspace_id: RecordId) -> Optional[str]:
         """The organisation's name, shown to respondents as the author of
         feedback in place of the staff member who posted it."""
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
@@ -491,7 +491,7 @@ class FormResponseService:
         return (workspace.title or None) if workspace else None
 
     async def request_for_response_deletion(
-        self, workspace_id: PydanticObjectId, response_id: str, user: User
+        self, workspace_id: RecordId, response_id: str, user: User
     ):
         # Staff may file one for any response; otherwise only its respondent.
         permissions = await self._authorization.effective_permissions(
@@ -510,10 +510,7 @@ class FormResponseService:
         if not (
             is_admin
             or response.dataOwnerIdentifier == user.sub
-            or (
-                response.anonymous_identity is not None
-                and response.anonymous_identity == hash_string(user.sub)
-            )
+            or identity_matches(response.anonymous_identity, user.sub)
         ):
             refuse_not_owner(permissions, "Response not found in workspace")
 
@@ -530,7 +527,7 @@ class FormResponseService:
         await self._form_response_repo.add_deletion_request(response, response_id)
 
     async def workspace_response(
-        self, workspace_id: PydanticObjectId, response_id: str
+        self, workspace_id: RecordId, response_id: str
     ) -> Optional[FormResponseDocument]:
         """The stored copy of ``response_id`` that belongs to ``workspace_id``
         (#768: a provider response is stored once per workspace), or None.
@@ -548,40 +545,40 @@ class FormResponseService:
         return await self._form_response_repo.count_unstamped(str(form_id))
 
     async def scope(
-        self, workspace_id: PydanticObjectId, form_ids: List[str]
+        self, workspace_id: RecordId, form_ids: List[str]
     ) -> ResponseScope:
         """The responses of ``form_ids`` (forms of the workspace) that belong
         to ``workspace_id`` (#768)."""
         return await response_scope(self._workspace_form_repo, workspace_id, form_ids)
 
-    async def in_workspace(self, response, workspace_id: PydanticObjectId) -> bool:
+    async def in_workspace(self, response, workspace_id: RecordId) -> bool:
         """Whether a stored response belongs to ``workspace_id`` (#768)."""
         return await response_in_workspace(
             self._workspace_form_repo, response, workspace_id
         )
 
     async def get_responses_count_in_workspace(
-        self, workspace_id: PydanticObjectId, workspace_form_ids: List[str]
+        self, workspace_id: RecordId, workspace_form_ids: List[str]
     ):
         return await self._form_response_repo.count_responses_for_form_ids(
             await self.scope(workspace_id, workspace_form_ids)
         )
 
     async def get_deletion_requests_count_in_workspace(
-        self, workspace_id: PydanticObjectId, form_ids: List[str]
+        self, workspace_id: RecordId, form_ids: List[str]
     ):
         return await self._form_response_repo.get_deletion_requests_count_in_workspace(
             await self.scope(workspace_id, form_ids)
         )
 
     async def delete_workspace_form_responses(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ):
         """A form unlinked from one of several workspaces: the responses and
         deletion requests collected through that workspace go with it."""
         return await self._form_response_repo.delete_in_scope(
             ResponseScope(
-                workspace_id=PydanticObjectId(workspace_id), form_ids=(str(form_id),)
+                workspace_id=RecordId(workspace_id), form_ids=(str(form_id),)
             )
         )
 
@@ -601,7 +598,7 @@ class FormResponseService:
 
     def decrypt_response_page(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         responses_page: Page[StandardFormResponseCamelModel],
     ):
         responses_page.items = self.decrypt_form_responses(
@@ -614,7 +611,7 @@ class FormResponseService:
         return await self._form_response_repo.get_all_expiring_responses()
 
     async def delete_workspaces_form_responses(
-        self, workspace_ids: List[PydanticObjectId], form_id: str
+        self, workspace_ids: List[RecordId], form_id: str
     ):
         """Deleted workspaces of a form that stays linked elsewhere (account
         deletion): their responses and deletion requests go, and so do the
@@ -624,7 +621,7 @@ class FormResponseService:
         for workspace_id in workspace_ids:
             await self._form_response_repo.delete_in_scope(
                 ResponseScope(
-                    workspace_id=PydanticObjectId(workspace_id),
+                    workspace_id=RecordId(workspace_id),
                     form_ids=(str(form_id),),
                     legacy_form_ids=(str(form_id),),
                 )
@@ -632,7 +629,7 @@ class FormResponseService:
 
     def decrypt_form_responses(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         responses: Sequence[StandardFormResponseCamelModel],
     ):
         for response in responses:
@@ -643,7 +640,7 @@ class FormResponseService:
 
     def decrypt_form_response(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         response: StandardFormResponseCamelModel,
     ):
         # A stored value that does not decrypt is emptied rather than failing
@@ -685,9 +682,9 @@ class FormResponseService:
 
     async def submit_form_response(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         response: StandardFormResponse,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ):
         response = await self._form_response_repo.save_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
@@ -697,10 +694,10 @@ class FormResponseService:
 
     async def patch_form_response(
         self,
-        form_id: PydanticObjectId,
-        document_id: PydanticObjectId,
+        form_id: RecordId,
+        document_id: RecordId,
         response: StandardFormResponse,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user=User,
     ):
         """``document_id``: the ``_id`` of the workspace's own copy, as
@@ -716,9 +713,9 @@ class FormResponseService:
 
     async def delete_form_response(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         response_id: str,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         expected_closures: Optional[int] = None,
     ):
         """``expected_closures``: completing a deletion request, the closes
@@ -736,7 +733,7 @@ class FormResponseService:
         return response_id
 
     async def has_pending_deletion_request(
-        self, workspace_id: PydanticObjectId, form_id: str, response_id: str
+        self, workspace_id: RecordId, form_id: str, response_id: str
     ) -> bool:
         response = await self.workspace_response(workspace_id, response_id)
         request = (
@@ -751,13 +748,13 @@ class FormResponseService:
         )
 
     async def _unresolved_copy(
-        self, workspace_id: PydanticObjectId, form_id: str, response_id: str
+        self, workspace_id: RecordId, form_id: str, response_id: str
     ) -> bool:
         """Whether a stored copy of (form_id, response_id) remains that is
         this workspace's or belongs to no workspace yet."""
         return any(
             str(copy.form_id) == str(form_id)
-            and copy.workspace_id in (None, PydanticObjectId(workspace_id))
+            and copy.workspace_id in (None, RecordId(workspace_id))
             for copy in await self._form_response_repo.list_by_response_id(
                 str(response_id)
             )
@@ -765,7 +762,7 @@ class FormResponseService:
 
     async def close_deletion_request(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         response_id: str,
         outcome: DeletionRequestOutcome,
@@ -847,7 +844,7 @@ class FormResponseService:
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)
 
-    async def get_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
+    async def get_by_uuid(self, workspace_id: RecordId, submission_uuid: str):
         # only a receipt of this workspace, with this workspace's form
         # settings, never another workspace's (#768)
         response = await self.workspace_response_by_uuid(workspace_id, submission_uuid)
@@ -917,7 +914,7 @@ class FormResponseService:
         pass
 
     async def workspace_response_by_uuid(
-        self, workspace_id: PydanticObjectId, submission_uuid: str
+        self, workspace_id: RecordId, submission_uuid: str
     ) -> Optional[FormResponseDocument]:
         return await pick_in_workspace(
             self._workspace_form_repo,
@@ -971,7 +968,7 @@ class FormResponseService:
 
     async def update_internal_answers(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         response_id: str,
         answers: Dict[str, Optional[Dict[str, Any]]],
@@ -1062,7 +1059,7 @@ class FormResponseService:
         )
 
     def _internal_answers_conflict(
-        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+        self, workspace_id: RecordId, response: StandardFormResponse
     ) -> HTTPException:
         """409 carrying the current state, so the editor can merge and retry."""
         latest = InternalAnswersResponse(
@@ -1081,7 +1078,7 @@ class FormResponseService:
 
     def _decrypted_internal_answers(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         response: StandardFormResponse,
         strict: bool = False,
     ) -> Dict[str, Any]:
@@ -1134,7 +1131,7 @@ class FormResponseService:
         self,
         file_fields: List[StandardFormField],
         response: StandardFormResponse,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
     ):
         for field in file_fields:
             file_answer = response.answers.get(field.id, {})

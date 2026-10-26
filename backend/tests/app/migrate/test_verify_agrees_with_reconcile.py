@@ -21,7 +21,7 @@ import datetime as dt
 import io
 import os
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from sqlalchemy import select
 
 from backend.app.container import container
@@ -60,7 +60,7 @@ async def target(clean_postgres):
 
 def counter(expires_at, hits=1):
     return {
-        "_id": PydanticObjectId(),
+        "_id": RecordId(),
         "hits": hits,
         "expires_at": expires_at,
         "created_at": PAST,
@@ -167,7 +167,7 @@ async def test_a_live_copy_missing_on_either_side_is_still_reported(target):
 
 def session_document():
     return {
-        "_id": PydanticObjectId(),
+        "_id": RecordId(),
         "user_id": "u1",
         "refresh_jti": "jti",
         "previous_refresh_jti": None,
@@ -251,7 +251,7 @@ async def test_postgres_primary_reconcile_keeps_a_newer_row_and_says_so(target):
 async def tag_edited_in_postgres_only(target):
     """A workspace tag Mongo holds as of PAST, renamed since in Postgres alone."""
     document = {
-        "_id": PydanticObjectId(),
+        "_id": RecordId(),
         "workspace_id": "w1",
         "title": "before",
         "created_at": PAST,

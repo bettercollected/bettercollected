@@ -6,7 +6,7 @@ Skipped unless DATABASE_URL points at a *_test database."""
 import os
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from sqlalchemy import select, text
 
 from backend.app.container import container

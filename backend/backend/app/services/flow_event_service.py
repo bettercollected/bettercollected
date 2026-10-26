@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Callable, Dict, FrozenSet, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from bson.errors import InvalidId
 
 from backend.app.repositories.postgres.forms import (
@@ -74,7 +74,7 @@ class FlowEventService:
 
     async def record(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_ref: str,
         event: FlowEventRequest,
         client: Optional[str],
@@ -138,7 +138,7 @@ class FlowEventService:
         )
 
     async def _servable_form(
-        self, workspace_id: PydanticObjectId, form_ref: str, fresh: bool = False
+        self, workspace_id: RecordId, form_ref: str, fresh: bool = False
     ) -> Optional[_ServableForm]:
         key = (str(workspace_id), form_ref)
         now = self._monotonic()
@@ -158,7 +158,7 @@ class FlowEventService:
         return form
 
     async def _load(
-        self, workspace_id: PydanticObjectId, form_ref: str, now: float
+        self, workspace_id: RecordId, form_ref: str, now: float
     ) -> Optional[_ServableForm]:
         # what the public form fetch serves: a form of this workspace (by id
         # or custom slug) with a published version
@@ -170,7 +170,7 @@ class FlowEventService:
         if workspace_form is None:
             return None
         try:
-            form_id = PydanticObjectId(workspace_form.form_id)
+            form_id = RecordId(workspace_form.form_id)
         except (InvalidId, TypeError, ValueError):
             return None
         published = await self._forms.get_latest_version_of_form(form_id)

@@ -33,7 +33,7 @@ from collections import OrderedDict
 from http import HTTPStatus
 from typing import Dict, Iterable, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from loguru import logger
 
@@ -318,7 +318,7 @@ class ImageService:
     # -- an image address pasted in the editor -------------------------------
 
     async def import_image(
-        self, workspace_id: PydanticObjectId, url: str, user: User
+        self, workspace_id: RecordId, url: str, user: User
     ) -> str:
         """Our address for the image at ``url``: as is when it is already
         first-party (an Unsplash photo by its canonical address), else a copy in

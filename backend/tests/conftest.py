@@ -1,11 +1,17 @@
 import asyncio
 from pathlib import Path
 import os
+import re
+import secrets
 import time
 from typing import Any, Coroutine
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+
+# The respondent identity key (RESPONDENT_IDENTITY_KEY) is a deployment secret
+# and never in the repository: a run without one gets a throwaway key.
+os.environ.setdefault("RESPONDENT_IDENTITY_KEY", secrets.token_hex(32))
 
 # pytest-xdist: each worker ("gw0", "gw1", ...) gets its own Mongo and Postgres
 # databases, named after the configured ones plus the worker id. This has to
@@ -43,6 +49,7 @@ from common.models.standard_form import StandardForm, StandardFormResponse
 
 from tests.app.auth_helpers import access_token
 from backend.app import get_application
+from backend.app import asgi as _asgi
 from backend.app.asgi import lifespan
 from backend.app.container import container
 from backend.app.handlers.database import init_db
@@ -67,6 +74,11 @@ from tests.app.controllers.data import (
 )
 
 load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
+
+# The API converts stored respondent identities in a background task after it
+# starts. The session app does not: tests that exercise the pass call it
+# themselves, and a pass running in the background would hold its advisory lock.
+_asgi.start_background_passes = lambda engine: None
 
 TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
 TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
@@ -134,14 +146,24 @@ def _database_name(url: str) -> str:
     return url.rsplit("/", 1)[-1].split("?")[0]
 
 
+_TEST_NAME = re.compile(r"(^|_)test($|_)")
+
+
+def _is_test_database(name: str) -> bool:
+    """``test`` as a whole word of the name (``bettercollected_test``,
+    ``x_test_gw0``); ``latest`` or ``contest_prod`` are not test databases."""
+    return bool(_TEST_NAME.search(name))
+
+
 def _postgres_configured() -> bool:
-    """A Postgres test database is available. Guarded: only databases whose name
-    contains "test" are ever created, migrated, truncated or dropped by the suite.
-    Under xdist the configured name must pass; the worker's adds a suffix."""
+    """A Postgres test database is available. Guarded: only databases with
+    ``test`` as a word of their name are ever created, migrated, truncated or
+    dropped by the suite. Under xdist the configured name must pass; the worker's
+    adds a suffix."""
     if not TEST_DATABASE_URL:
         return False
-    return "test" in _database_name(BASE_DATABASE_URL) and "test" in _database_name(
-        TEST_DATABASE_URL
+    return _is_test_database(_database_name(BASE_DATABASE_URL)) and _is_test_database(
+        _database_name(TEST_DATABASE_URL)
     )
 
 
@@ -304,6 +326,9 @@ async def _initialized_app(request):
         # Alembic drives its own event loop; keep it off the session loop.
         await asyncio.to_thread(_alembic_upgrade_head)
         await _apply_jobs_schema()
+        # A database kept from an earlier run holds that run's respondent identity
+        # key check (its key was a throwaway): the start would refuse this run's key.
+        await _truncate_postgres()
     elif container.flags().requires_postgres():
         raise RuntimeError(
             "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "
@@ -331,6 +356,18 @@ async def _initialized_app(request):
     settings.mongo_settings.URI = original_uri
     settings.mongo_settings.DB = original_db
     container.database_client.reset_override()
+
+
+@pytest.fixture(autouse=True)
+def _respondent_identity_state():
+    """The process-level key state (verified / known mismatch) is what the app's
+    start left; a test that changes it must not leak that into the next."""
+    from backend.app.utils import respondent_identity as ri
+
+    mismatch, verified = list(ri._key_mismatch_seen), list(ri._key_verified)
+    yield
+    ri._key_mismatch_seen[:] = mismatch
+    ri._key_verified[:] = verified
 
 
 @pytest_asyncio.fixture(autouse=True, loop_scope="session")

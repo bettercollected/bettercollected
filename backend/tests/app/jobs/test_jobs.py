@@ -8,7 +8,7 @@ import datetime as dt
 from dataclasses import asdict
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from procrastinate.testing import InMemoryConnector
 
 from backend.app.container import container

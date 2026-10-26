@@ -2,7 +2,7 @@
 service's rules (docs/enterprise-access-model.md, steps a and b)."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.container import container
@@ -151,14 +151,14 @@ def test_a_privacy_officer_never_reads_answers_whatever_else_they_hold(other):
 
 async def test_a_membership_with_an_unknown_role_loads_and_holds_nothing(workspace):
     """A role from a newer release (or legacy data) doesn't break loading."""
-    member = User(id=str(PydanticObjectId()), sub="future@example.com")
+    member = User(id=str(RecordId()), sub="future@example.com")
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=member.id, roles=["SOMETHING_NEW"]
         )
     )
     stored = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(member.id)
+        workspace.id, RecordId(member.id)
     )
     assert stored.roles == ["SOMETHING_NEW"]
     authorization = container.authorization_service()
@@ -176,7 +176,7 @@ async def test_no_user_or_bad_ids_hold_nothing(workspace):
 
 async def test_owner_admin_and_collaborator(workspace):
     authorization = container.authorization_service()
-    admin = User(id=str(PydanticObjectId()), sub="admin@example.com")
+    admin = User(id=str(RecordId()), sub="admin@example.com")
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=admin.id, roles=[WorkspaceRoles.ADMIN]
@@ -200,7 +200,7 @@ async def test_owner_admin_and_collaborator(workspace):
 
 async def test_a_disabled_membership_holds_nothing(workspace):
     """#770: an ADMIN role on a disabled membership grants nothing."""
-    disabled = User(id=str(PydanticObjectId()), sub="disabled@example.com")
+    disabled = User(id=str(RecordId()), sub="disabled@example.com")
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id,
@@ -238,7 +238,7 @@ async def test_form_scope_is_checked_after_the_permission(
     # a non-member learns nothing about the form: 403 first
     with pytest.raises(HTTPException) as refused:
         await authorization.authorize(
-            testUser1, P.FORM_EDIT, workspace.id, form_id=str(PydanticObjectId())
+            testUser1, P.FORM_EDIT, workspace.id, form_id=str(RecordId())
         )
     assert refused.value.status_code == 403
 

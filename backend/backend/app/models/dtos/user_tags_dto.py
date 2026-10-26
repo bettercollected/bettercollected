@@ -1,6 +1,6 @@
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi_camelcase import CamelModel
 
 from backend.app.models.enum.user_tag_enum import UserTagType
@@ -10,7 +10,7 @@ from backend.app.models.user_tags import UserTags
 class UserTagsDto(CamelModel, UserTags):
     """Model for updating user tags"""
 
-    user_id: PydanticObjectId
+    user_id: RecordId
     tags: List[UserTagType]
 
 

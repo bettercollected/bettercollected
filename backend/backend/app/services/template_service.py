@@ -1,7 +1,7 @@
 import os
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
 from common.models.user import User
@@ -42,7 +42,7 @@ class FormTemplateService:
     async def get_templates(
         self,
         v2: Optional[bool] = None,
-        workspace_id: PydanticObjectId = None,
+        workspace_id: RecordId = None,
         user: User = None,
     ):
         predefined_workspace = False
@@ -60,8 +60,8 @@ class FormTemplateService:
     async def get_template_by_id(
         self,
         user: User,
-        template_id: PydanticObjectId,
-        workspace_id: PydanticObjectId = None,
+        template_id: RecordId,
+        workspace_id: RecordId = None,
     ):
         if template_id and workspace_id:
             template = await self.form_template_repo.get_template_by_workspace_id_n_template_id(
@@ -83,7 +83,7 @@ class FormTemplateService:
         return template
 
     async def import_form_template_to_workspace(
-        self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
+        self, workspace_id: RecordId, user: User, template_id: RecordId
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
@@ -94,7 +94,7 @@ class FormTemplateService:
         )
 
     async def create_form_from_template(
-        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, template_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
@@ -115,7 +115,7 @@ class FormTemplateService:
 
     async def create_new_template(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         logo: UploadFile,
         cover_image: UploadFile,
         user: User,
@@ -124,7 +124,7 @@ class FormTemplateService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
-        template_body.id = PydanticObjectId()
+        template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
         elif not self._aws_service.public_key_of(template_body.logo):
@@ -150,8 +150,8 @@ class FormTemplateService:
 
     async def update_template(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         user: User,
         template_body: StandardFormTemplate,
         logo: UploadFile,
@@ -198,8 +198,8 @@ class FormTemplateService:
 
     async def update_template_settings(
         self,
-        workspace_id: PydanticObjectId,
-        template_id: PydanticObjectId,
+        workspace_id: RecordId,
+        template_id: RecordId,
         user: User,
         settings: StandardTemplateSetting,
     ):
@@ -217,7 +217,7 @@ class FormTemplateService:
         return template
 
     async def delete_template(
-        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, template_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_DELETE, workspace_id
@@ -232,7 +232,7 @@ class FormTemplateService:
         return await self.form_template_repo.delete_template(template_id)
 
     async def update_template_preview(
-        self, template_id: PydanticObjectId, preview_image: UploadFile
+        self, template_id: RecordId, preview_image: UploadFile
     ):
         template = await self.form_template_repo.get_template_by_id(
             template_id=template_id

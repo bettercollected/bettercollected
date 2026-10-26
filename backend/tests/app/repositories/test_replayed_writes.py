@@ -3,7 +3,7 @@ Mongo primary persisted, including the documents a repository writes to its
 group's other tables (deletion requests, workspace tags)."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.repositories.postgres.responses import (
     PostgresFormResponseRepository,
@@ -18,19 +18,19 @@ from tests.app.response_helpers import unlinked_scope
 async def test_a_deletion_request_is_mirrored_to_its_table(sessions):
     pg = PostgresFormResponseRepository(sessions, None, None)
     request = FormResponseDeletionRequest(
-        id=PydanticObjectId(), form_id="f-del", response_id="r-del", provider="self"
+        id=RecordId(), form_id="f-del", response_id="r-del", provider="self"
     )
     await pg.replay_write([request])
     (stored,) = await pg.list_deletion_requests_for_form_ids(
-        unlinked_scope(PydanticObjectId(), "f-del")
+        unlinked_scope(RecordId(), "f-del")
     )
     assert stored.response_id == "r-del" and stored.form_id == "f-del"
 
 
 async def test_a_workspace_tag_is_mirrored_to_its_table(sessions):
     pg = PostgresWorkspaceRespondersRepository(sessions)
-    workspace_id = PydanticObjectId()
-    tag = WorkspaceTags(id=PydanticObjectId(), workspace_id=workspace_id, title="vip")
+    workspace_id = RecordId()
+    tag = WorkspaceTags(id=RecordId(), workspace_id=workspace_id, title="vip")
     await pg.replay_write([tag])
     assert [t.title for t in await pg.get_workspace_tags(workspace_id)] == ["vip"]
 

@@ -29,6 +29,7 @@ from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.google_forms_settings import GoogleFormsSettings
 from backend.config.google_sheets_settings import GoogleSheetsSettings
 from backend.config.OpenAISettings import OpenAISettings
+from backend.config.respondent_identity_settings import RespondentIdentitySettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.scim_settings import SCIMSettings
@@ -81,6 +82,7 @@ class Application(StoreBackedSettings):
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
+    respondent_identity: RespondentIdentitySettings = RespondentIdentitySettings()
     mongo_settings: MongoSettings = MongoSettings()
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()

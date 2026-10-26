@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Any, List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import delete, get, patch, post
 from common.models.user import User
 from fastapi import Depends
@@ -78,7 +78,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def _get_workspace_form_responses(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         filter_query: FormResponseFilterQuery = Depends(None),
         sort: SortRequest = Depends(),
@@ -96,7 +96,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def get_workspace_form_all_submissions(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -113,7 +113,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def get_workspace_form_submission_paths(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -130,7 +130,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def export_workspace_form_submissions(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -145,7 +145,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def update_internal_answers(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         submission_id: str,
         body: InternalAnswersPatch,
@@ -168,7 +168,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def close_deletion_request(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         submission_id: str,
         body: CloseDeletionRequestBody,
@@ -202,7 +202,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def post_respondent_feedback(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         submission_id: str,
         body: RespondentFeedbackPost,
@@ -225,7 +225,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @post("/forms/{form_id}/flow-events")
     async def record_flow_event(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         event: FlowEventRequest,
         request: Request,
@@ -253,7 +253,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @get("/forms/{form_id}/flow-analytics")
     async def get_flow_analytics(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -270,7 +270,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def _get_all_workspace_responses(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         filter_query: FormResponseFilterQuery = Depends(None),
         sort: SortRequest = Depends(None),
         request_for_deletion: bool = False,
@@ -291,7 +291,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def _get_user_submissions_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request_for_deletion: bool = False,
         user: User = Depends(get_logged_user),
     ):
@@ -305,7 +305,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     )
     async def _get_workspace_form_response(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         submission_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -315,7 +315,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
 
     @get("/submissions/by-uuid/{submission_uuid}")
     async def get_submission_by_uuid(
-        self, workspace_id: PydanticObjectId, submission_uuid: str
+        self, workspace_id: RecordId, submission_uuid: str
     ):
         return await self._form_response_service.get_by_uuid(
             submission_uuid=submission_uuid, workspace_id=workspace_id
@@ -327,7 +327,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
     @user_tag_from_workspace(tag=UserTagType.DELETION_REQUEST_RECEIVED)
     async def _request_workspace_form_response_delete(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         submission_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -338,7 +338,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
 
     @delete("/submissions/by-uuid/{submission_uuid}")
     async def _request_workspace_form_response_delete_by_uuid(
-        self, workspace_id: PydanticObjectId, submission_uuid: str
+        self, workspace_id: RecordId, submission_uuid: str
     ):
         await self._form_response_service.request_for_response_deletion_by_uuid(
             workspace_id, submission_uuid

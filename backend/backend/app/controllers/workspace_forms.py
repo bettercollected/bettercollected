@@ -2,7 +2,7 @@ import json
 from http import HTTPStatus
 from typing import Any, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, patch, post, put, delete
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
@@ -147,7 +147,7 @@ class WorkspaceFormsRouter(Routable):
     @get("", response_model=Page[FormDtoCamelModel])
     async def get_workspace_forms(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         sort: SortRequest = Depends(),
         user: User = Depends(get_user_if_logged_in),
         published: bool = False,
@@ -172,7 +172,7 @@ class WorkspaceFormsRouter(Routable):
     )
     async def create_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_body: str = Form(),
         logo: UploadFile = None,
         cover_image: UploadFile = None,
@@ -195,7 +195,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/chat")
     async def chat_edit_form_with_ai(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIChatRequest,
         background_tasks: BackgroundTasks,
@@ -213,7 +213,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/proposals/{proposal_id}/accept")
     async def accept_ai_proposal(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         proposal_id: str,
         request: Optional[AcceptProposalRequest] = None,
@@ -233,7 +233,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/proposals/{proposal_id}/reject")
     async def reject_ai_proposal(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         proposal_id: str,
         user=Depends(get_logged_user),
@@ -249,7 +249,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/review")
     async def review_form_with_ai(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIReviewRequest,
         user=Depends(get_logged_user),
@@ -263,7 +263,7 @@ class WorkspaceFormsRouter(Routable):
     @get("/{form_id}/ai/insights")
     async def get_ai_insights(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user=Depends(get_logged_user),
     ) -> Optional[FormAIInsightsResponse]:
@@ -276,7 +276,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/insights")
     async def generate_ai_insights(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIInsightsRequest,
         user=Depends(get_logged_user),
@@ -290,7 +290,7 @@ class WorkspaceFormsRouter(Routable):
     @put("/{form_id}/ai/insights/settings")
     async def update_ai_insights_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIInsightsSettingsRequest,
         user=Depends(get_logged_user),
@@ -305,7 +305,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/ai/review/apply")
     async def apply_ai_review_fix(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: ApplyReviewFixRequest,
         user=Depends(get_logged_user),
@@ -318,7 +318,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/ai/outline")
     async def outline_form_with_ai(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: FormOutlineRequest,
         user=Depends(get_logged_user),
     ) -> FormOutlineResponse:
@@ -332,7 +332,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/ai/build")
     async def build_form_from_outline(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: BuildFromOutlineRequest,
         user=Depends(get_logged_user),
     ) -> BuildFromOutlineResponse:
@@ -345,7 +345,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/ai")
     async def create_form_with_ai(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         create_form: CreateFormWithAI,
         user=Depends(get_logged_user),
     ):
@@ -356,7 +356,7 @@ class WorkspaceFormsRouter(Routable):
     @post("/search")
     async def search_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         query: str,
         published: bool = False,
         user: User = Depends(get_user_if_logged_in),
@@ -376,7 +376,7 @@ class WorkspaceFormsRouter(Routable):
     )
     async def _get_form_by_id(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         response: Response,
         published: bool = False,
@@ -425,8 +425,8 @@ class WorkspaceFormsRouter(Routable):
     )
     async def patch_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         form_body: str = Form(),
         logo: UploadFile = None,
         cover_image: UploadFile = None,
@@ -456,8 +456,8 @@ class WorkspaceFormsRouter(Routable):
     @put("/{form_id}/logo", response_model=StandardFormCamelModel)
     async def upload_form_logo(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         file: UploadFile,
         user: User = Depends(get_logged_user),
     ):
@@ -471,8 +471,8 @@ class WorkspaceFormsRouter(Routable):
     @delete("/{form_id}/logo", response_model=StandardFormCamelModel)
     async def remove_form_logo(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         form = await self.workspace_form_service.remove_form_logo(
@@ -483,8 +483,8 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -498,8 +498,8 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/publish", response_model=FormDtoCamelModel)
     async def publish_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         form = await self.workspace_form_service.publish_form(
@@ -512,8 +512,8 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/response")
     async def respond_to_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         request: Request,
         files: list[UploadFile] = None,
         file_field_ids: list[str] = Form(None),
@@ -563,9 +563,9 @@ class WorkspaceFormsRouter(Routable):
     @patch("/{form_id}/response/{response_id}")
     async def patch_form_response(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
         files: list[UploadFile] = None,
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
@@ -602,8 +602,8 @@ class WorkspaceFormsRouter(Routable):
     )
     async def delete_form_response(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         response_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -619,7 +619,7 @@ class WorkspaceFormsRouter(Routable):
     @get("/{form_id}/versions/{version}", response_model=FormDtoCamelModel)
     async def get_form_with_version(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         version: FormVersion | int,
         user: User = Depends(get_user_if_logged_in),
@@ -633,7 +633,7 @@ class WorkspaceFormsRouter(Routable):
     )
     async def patch_settings_for_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         settings: SettingsPatchDto,
         user: User = Depends(get_logged_user),
@@ -656,7 +656,7 @@ class WorkspaceFormsRouter(Routable):
     @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         groups: GroupsDto,
         user: User = Depends(get_logged_user),
@@ -671,9 +671,9 @@ class WorkspaceFormsRouter(Routable):
     )
     async def delete_group_from_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
-        group_id: PydanticObjectId,
+        group_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.delete_group_from_form(
@@ -686,7 +686,7 @@ class WorkspaceFormsRouter(Routable):
     @user_tag(tag=UserTagType.FORM_IMPORTED)
     async def _import_form_to_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         provider: str,
         form: FormImportRequestBody,
         request: Request,
@@ -704,7 +704,7 @@ class WorkspaceFormsRouter(Routable):
     )
     async def _delete_form_from_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User = Depends(get_logged_user),
     ):
@@ -715,8 +715,8 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/actions")
     async def _add_action_to_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         add_action_to_form_params: AddActionToFormDto,
         user: User = Depends(get_logged_user),
     ):
@@ -730,8 +730,8 @@ class WorkspaceFormsRouter(Routable):
     @patch("/{form_id}/actions")
     async def update_form_actions(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         update_action_dto: UpdateActionInFormDto,
         user: User = Depends(get_logged_user),
     ):
@@ -746,9 +746,9 @@ class WorkspaceFormsRouter(Routable):
     @delete("/{form_id}/actions/{action_id}")
     async def _remove_action_from_form(
         self,
-        workspace_id: PydanticObjectId,
-        action_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        action_id: RecordId,
+        form_id: RecordId,
         trigger: Trigger = Trigger.on_submit,
         user: User = Depends(get_logged_user),
     ):
@@ -764,9 +764,9 @@ class WorkspaceFormsRouter(Routable):
     @get("/{form_id}/actions/{action_id}/reconsent")
     async def _action_reconsent_status(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         """Whether the action must be reconnected before it runs again
@@ -781,9 +781,9 @@ class WorkspaceFormsRouter(Routable):
     @patch("/{form_id}/action/{action_id}/update")
     async def update_action_from_temporal(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
         temporal_api_key=Depends(get_api_key),
     ):
 
