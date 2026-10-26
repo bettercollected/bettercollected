@@ -82,18 +82,22 @@ of the runbook) skips the import; it still needs the new key (section 2) and the
 What `./deploy.sh` does with the key on a compose stack (`ensure_identity_key`, run after the keys and
 before the import or any service start):
 
-- A key already in the shell or the root `.env` is used as it is, never overwritten. One set only in
+- A key already in the root `.env` is used as it is, never overwritten. One set only in
   `.env.deployment` is copied into `.env` (compose does not pass that file's value to the backend), and
-  the value is not shown.
+  the value is not shown. A key set only in the shell is used for that run and is **not saved
+  anywhere** (it is not compared with the store either): put it in `.env`.
 - With none anywhere, and a database that never had one, it generates one into the settings store
   (`settings-import`, which never overwrites) **and** into the root `.env`, and prints that it did, not
   the value. The backend reads the environment first, so `SETTINGS_STORE=off` stacks have it too.
-- It **stops before any service starts**, changing nothing, when: the database already has a key check
+- It **writes no key and starts no 4.1 service** when (the stack stays on 4.0; the image pull, the
+  schema migrations, `ensure-admin-roles` and the key import have already run by then): the database already has a key check
   (a 4.1 backend ran with some key) and no key is configured; `.env` and the store both hold a key and
   nothing says they are the same one (`BC_IDENTITY_KEY_SOURCE=env ./deploy.sh` says the one in `.env`
   is the intended one); or `SETTINGS_STORE=off` and the key is only in the store.
-- Back up the root `.env` with the stack's other secrets: that is where a copy of the key lives outside
-  the database.
+- Back up the key with the stack's other secrets. When `./deploy.sh` generated it, the root `.env`
+  holds a copy outside the database: back that file up. When the key exists only in the settings store
+  (a new stack's `bootstrap-keys`, or a `.env` that could not be written), there is no `.env` copy:
+  back up the settings store together with the master key, or put the key in `.env` yourself.
 
 The key rules, in short (full text: [respondent-identity.md](respondent-identity.md)):
 
@@ -112,10 +116,10 @@ The key rules, in short (full text: [respondent-identity.md](respondent-identity
 
 | Setting | 4.0.x | 4.1 |
 |---|---|---|
-| `JOBS_BACKEND` (and `JOBS_BACKEND__<job>`) | `temporal` | **`postgres`**: account deletion, scheduled response deletion, action runs, form imports and the credential and grant erasure jobs run on the Postgres queue. The compose file never sets it, so a stack that did not set it switches at the first 4.1 service. The `jobs-worker` service must be running (at least one replica). Orchestrated stacks: `JOBS_BACKEND=temporal` (or per job) keeps a kind on Temporal. Compose: Temporal is no longer part of the stack, so `./deploy.sh` refuses a `JOBS_BACKEND` or `JOBS_BACKEND__<job>` of `temporal` in `.env.deployment`, before it changes anything (remove the line or set `postgres`). |
+| `JOBS_BACKEND` (and `JOBS_BACKEND__<job>`) | `temporal` | **`postgres`**: account deletion, scheduled response deletion, action runs, form imports and the credential and grant erasure jobs run on the Postgres queue. The compose file never sets it, so a stack that did not set it switches at the first 4.1 service. The `jobs-worker` service must be running (at least one replica). Orchestrated stacks: `JOBS_BACKEND=temporal` (or per job) keeps a kind on Temporal. Compose: Temporal is no longer part of the stack, so `./deploy.sh` refuses a `JOBS_BACKEND` or `JOBS_BACKEND__<job>` of `temporal` in `.env.deployment`, before it starts or changes any container or data (remove the line or set `postgres`). |
 | actions executor `DATABASE_URL` (Swarm; the compose stack has no executor) | not needed | **Required while `JOBS_BACKEND` is `postgres`**: the URL of the `bc_jobs_exec` role. Without it (and without `JOBS_BACKEND=temporal`) the executor exits at start naming the setting. Set it **before** the 4.1 image reaches the executor. |
 | `API_INTERNAL_PORT` | not present | The backend also listens on 8001 (never publish it). The admin-task routes answer there only. |
-| `API_INTERNAL_ROUTES` | not present | `direct` by default (the code, the compose file and the settings inventory agree; 4.1 does not change it): the Temporal worker's and the executor's key-only routes also answer on port 8000, from private addresses. **Set `internal_port` once the workers call port 8001**; on Swarm or any stack whose port 8000 is reachable from outside, this is required, not optional. The compose stack no longer runs a Temporal worker, so nothing of its own calls those routes on port 8000. See [admin-service.md](admin-service.md#internal-routes). |
+| `API_INTERNAL_ROUTES` | not present | `direct` by default (the code, the compose file and the settings inventory agree; 4.1 does not change it): the Temporal worker's and the executor's key-only routes also answer on port 8000, from private addresses. **Set `internal_port` once the workers call port 8001**; on Swarm or any stack whose port 8000 is reachable from outside, this is required, not optional. The compose stack no longer runs a Temporal worker, so once Temporal is retired (`./deploy.sh` does it, 3C.5) nothing of its own calls those routes on port 8000; during the drain (up to `BC_TEMPORAL_DRAIN_SECONDS`) the old 4.0 worker still does, so leave `API_INTERNAL_ROUTES` at `direct` until the drain has finished. See [admin-service.md](admin-service.md#internal-routes). |
 | `SERVER_URL` (Temporal worker, executor), `ADMIN_TASKS_BACKEND_URL` (task runner) | the backend on port 8000 | `http://backend:8001/api/v1`. The compose stack does this itself for the task runner, and no longer runs a Temporal worker or an executor; on an orchestrated stack you set all of them. |
 | `GOOGLE_FORMS_IMPORT` | not present | `on` (default: unchanged behaviour), `readonly` (imported forms and responses stay, no new import, re-sync or call to Google) or `off`. Set the same value on the backend and the Google Forms service. See [RUNNING_INTEGRATIONS.md](RUNNING_INTEGRATIONS.md). |
 | `GOOGLE_SHEETS_OAUTH` | not present | `google_service` (default, unchanged) or `backend`. Leave it alone unless you have followed [RUNNING_INTEGRATIONS.md](RUNNING_INTEGRATIONS.md). |
@@ -168,7 +172,7 @@ The stack is **down while the import runs**: plan a window sized to your data.
 4. Once the new services are up, `./deploy.sh` also does what 3C describes for a compose stack, by
    itself and in this order:
    - **The identity pass** (`identity_pass`): runs `python -m backend.identity_rekey` in a one-off
-     backend container and prints `Respondent identity key fingerprint: <8 digits>` and the remaining
+     backend container and prints `Respondent identity key fingerprint: <8 hex characters>` and the remaining
      count. **Write the fingerprint down** with the key backup. A missing key, or one that is not the
      one that converted the stored identities (exit 3 or 4), fails the deploy; a pass still running
      elsewhere or leaving values is a warning with the command to repeat by hand.
@@ -220,7 +224,7 @@ steps 1 to 7; do not improvise the order. In outline:
    hand, in a one-off container (or `exec` in a backend task) with the backend's environment:
 
    ```bash
-   python -m backend.identity_rekey --expect-fingerprint <the 8 digits you wrote down>
+   python -m backend.identity_rekey --expect-fingerprint <the 8 hex characters you wrote down>
    ```
 
    Done when it exits 0 and reports `remaining` 0 for both tables. The other exit codes: 1 values
@@ -237,8 +241,8 @@ steps 1 to 7; do not improvise the order. In outline:
       queue: N`. If it fails, the deploy stops with the stack on 4.1 and Temporal untouched; fix the
       cause and run `./deploy.sh` again.
    2. It waits until Temporal runs no workflow (an account deletion in flight finishes through the new
-      backend, which the old worker still calls). Temporal's schedules are not counted: they were
-      moved to the queue in step 1. The wait is `BC_TEMPORAL_DRAIN_SECONDS` (default 300). If workflows
+      backend, which the old worker still calls). Temporal's schedules are not counted: step 1 copied
+      them onto the queue (they keep firing until the containers are removed). The wait is `BC_TEMPORAL_DRAIN_SECONDS` (default 300). If workflows
       remain, or Temporal cannot be asked, the deploy stops (the stack runs 4.1, the old containers
       are left) and prints how to list them: run `./deploy.sh` again later. `BC_TEMPORAL_DRAIN=skip
       ./deploy.sh` removes Temporal without waiting, and what is still running in it is lost.
@@ -315,8 +319,9 @@ In outline:
      `revoke_google_grant` (query in the runbook). Compose: 4.0.14 defaults to `temporal`, so set
      `JOBS_BACKEND=postgres` in `.env.deployment`. The 4.0.14 `./deploy.sh` brings Temporal, its
      worker and its database back, on the volume 4.1 kept (`temporal-postgres-data`), and starts
-     `mongodb` again as well: the flags above keep every service off it, and its volume is as the
-     upgrade left it. <!-- verify: written from the 4.0.14 compose file and deploy.sh, not from a rollback run of a real compose stack; what Temporal's schedules do when the worker returns, with the queue holding the same work, has not been exercised -->;
+     `mongodb` and `mongo-seed` again as well: the flags above mean no service reads or writes data in
+     it, but `mongod` and `mongo-seed` (which drops its seed account and creates missing
+     collections) still open the volume. <!-- verify: written from the 4.0.14 compose file and deploy.sh, not from a rollback run of a real compose stack; what Temporal's schedules do when the worker returns, with the queue holding the same work, has not been exercised -->;
    - the task runner's `ADMIN_TASKS_BACKEND_URL` and the workers' `SERVER_URL` back on port 8000;
      `GOOGLE_FORMS_IMPORT` and `API_INTERNAL_ROUTES` removed;
    - Orchestrated: `mongodb` stays at 0 replicas and `MONGO_*` stay out (compose: see the first item).

@@ -276,13 +276,13 @@ left to the next `jobs-sweep`; it no longer fails the submission. Roll a kind ba
 **On a compose stack, 4.1's `./deploy.sh` does all of this after the new release is up**
 (`retire_temporal`), when the stack still runs Temporal: the sweep, then a bounded wait until
 Temporal runs no workflow (`BC_TEMPORAL_DRAIN_SECONDS`, default 300; its schedules are not counted,
-the sweep moved them), then the removal of the Temporal worker, Temporal and Temporal's database
+the sweep copied them onto the queue; they keep firing until the containers go), then the removal of the Temporal worker, Temporal and Temporal's database
 containers, **keeping the volume** `<project>_temporal-postgres-data`. A failure, or workflows still
 running after the wait, stops the deploy with the stack on 4.1 and the old containers untouched; run
 `./deploy.sh` again later, or `BC_TEMPORAL_DRAIN=skip ./deploy.sh` to remove Temporal without waiting
 (what is still running in it is lost). The 4.1 compose file has no Temporal, Temporal database or
 worker service, and `./deploy.sh` refuses a `JOBS_BACKEND` or `JOBS_BACKEND__<job>` of `temporal` in
-`.env.deployment`, before it changes anything. The text of this section about keeping Temporal
+`.env.deployment`, before it starts or changes any container or data. The text of this section about keeping Temporal
 running is for 4.0.x and for an orchestrated stack, which does these steps by hand.
 
 ## Verified marker
@@ -576,15 +576,18 @@ Mongo), and the root `.env` has no `BC_LEGACY_MONGO_IMPORTED`. Then it:
 Before that import, and after the new services are up, the same `./deploy.sh` also does the 4.1
 steps that are not about Mongo (each is one function in the script):
 - **The respondent identity key** (`ensure_identity_key`, before the import or any service start). It
-  uses a `RESPONDENT_IDENTITY_KEY` set in the shell or the root `.env` as it is (one only in
+  uses a `RESPONDENT_IDENTITY_KEY` set in the root `.env` as it is (one only in
   `.env.deployment` is copied into `.env`, since compose does not pass that file's value to the
-  backend). With none anywhere, and a database that never had a key, it generates one into the
+  backend). A key set only in the shell is used for that run and saved nowhere: put it in `.env`.
+  With none anywhere, and a database that never had a key, it generates one into the
   settings store and into the root `.env`, printing that it did and never the value. It stops before
-  any service starts, changing nothing, when the database already has a key check and no key is
+  any 4.1 service starts, writing no key (the stack stays on 4.0; the image pull, migrations,
+  `ensure-admin-roles` and the key import have already run), when the database already has a key check and no key is
   configured, when `.env` and the store both hold a key and nothing says they are the same one
   (`BC_IDENTITY_KEY_SOURCE=env` says the `.env` one is intended), or when `SETTINGS_STORE=off` and the
-  key is only in the store. Keep the key forever, with the other secrets (`.env` is where a copy
-  lives outside the database).
+  key is only in the store. Keep the key forever, with the other secrets: `.env` has a copy when
+  `deploy.sh` generated the key; when it exists only in the store (a new stack's `bootstrap-keys`, or an
+  unwritable `.env`), back up the settings store together with the master key.
 - **The identity pass** (`identity_pass`), once the backend is up: `python -m backend.identity_rekey`
   in a one-off container, printing the key's fingerprint (write it down) and the remaining count; it
   retries while another process holds the lock, fails the deploy for a missing or wrong key (exit 3
@@ -1330,8 +1333,9 @@ lost.
      keep the `jobs-worker`, as above;
    - 4.0.x's `./deploy.sh` starts MongoDB, Temporal, the Temporal worker and Temporal's database
      again (they are in its service list). Temporal comes back on the volume 4.1 kept
-     (`temporal-postgres-data`); the flags above keep every service off Mongo, whose volume stays as
-     the upgrade left it. What Temporal's old schedules do when its worker returns, with the queue
+     (`temporal-postgres-data`); with the flags above no service reads or writes data in Mongo, but
+     `mongod` and `mongo-seed` (which drops its seed account and creates missing collections) still
+     open its volume. What Temporal's old schedules do when its worker returns, with the queue
      already holding the same work, has not been tried;
    - the root `.env` keeps `RESPONDENT_IDENTITY_KEY` and `BC_LEGACY_MONGO_IMPORTED` (4.0.x ignores
      both), and the `MONGO_URI` that 4.1 blanked stays blank (`.env.deployment.pre-4.1.<time>` holds the
