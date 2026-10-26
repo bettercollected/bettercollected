@@ -872,7 +872,10 @@ CREATE TABLE jobs.procrastinate_jobs (
     id bigserial PRIMARY KEY,
     task_name varchar(128) NOT NULL,
     args jsonb NOT NULL DEFAULT '{}',
-    status jobs.procrastinate_job_status NOT NULL DEFAULT 'todo'
+    status jobs.procrastinate_job_status NOT NULL DEFAULT 'todo',
+    scheduled_at timestamptz,
+    queue_name varchar(128) NOT NULL DEFAULT 'default',
+    attempts integer NOT NULL DEFAULT 0
 );
 CREATE TABLE jobs.procrastinate_events (
     id bigserial PRIMARY KEY,
