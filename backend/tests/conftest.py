@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 import os
+import re
 import secrets
 import time
 from typing import Any, Coroutine
@@ -145,14 +146,24 @@ def _database_name(url: str) -> str:
     return url.rsplit("/", 1)[-1].split("?")[0]
 
 
+_TEST_NAME = re.compile(r"(^|_)test($|_)")
+
+
+def _is_test_database(name: str) -> bool:
+    """``test`` as a whole word of the name (``bettercollected_test``,
+    ``x_test_gw0``); ``latest`` or ``contest_prod`` are not test databases."""
+    return bool(_TEST_NAME.search(name))
+
+
 def _postgres_configured() -> bool:
-    """A Postgres test database is available. Guarded: only databases whose name
-    contains "test" are ever created, migrated, truncated or dropped by the suite.
-    Under xdist the configured name must pass; the worker's adds a suffix."""
+    """A Postgres test database is available. Guarded: only databases with
+    ``test`` as a word of their name are ever created, migrated, truncated or
+    dropped by the suite. Under xdist the configured name must pass; the worker's
+    adds a suffix."""
     if not TEST_DATABASE_URL:
         return False
-    return "test" in _database_name(BASE_DATABASE_URL) and "test" in _database_name(
-        TEST_DATABASE_URL
+    return _is_test_database(_database_name(BASE_DATABASE_URL)) and _is_test_database(
+        _database_name(TEST_DATABASE_URL)
     )
 
 
@@ -345,6 +356,18 @@ async def _initialized_app(request):
     settings.mongo_settings.URI = original_uri
     settings.mongo_settings.DB = original_db
     container.database_client.reset_override()
+
+
+@pytest.fixture(autouse=True)
+def _respondent_identity_state():
+    """The process-level key state (verified / known mismatch) is what the app's
+    start left; a test that changes it must not leak that into the next."""
+    from backend.app.utils import respondent_identity as ri
+
+    mismatch, verified = list(ri._key_mismatch_seen), list(ri._key_verified)
+    yield
+    ri._key_mismatch_seen[:] = mismatch
+    ri._key_verified[:] = verified
 
 
 @pytest_asyncio.fixture(autouse=True, loop_scope="session")

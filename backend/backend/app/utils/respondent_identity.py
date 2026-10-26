@@ -54,6 +54,11 @@ class IdentityKeyMismatch(IdentityKeyError):
     """The configured key is not the one that converted the stored identities."""
 
 
+class IdentityKeyUnverified(IdentityKeyError):
+    """This process has not (or no longer) verified its key against the stored
+    key check, so it must not create or match identities yet."""
+
+
 class IdentityKeyUnconfirmed(IdentityKeyMismatch):
     """v2 identities are stored but no key check says which key made them."""
 
@@ -62,10 +67,23 @@ class IdentityKeyUnconfirmed(IdentityKeyMismatch):
 #: converted the stored identities: nothing may then be written with it (a
 #: second key in the data breaks matching for good). Cleared by a restart.
 _key_mismatch_seen = [False]
+#: set once the configured key is known to be the stored one (the start's key
+#: check, or a later verification); cleared when a verification fails for any
+#: other reason. Until it is set, nothing is created or matched with the key.
+_key_verified = [False]
 
 
 def mark_key_mismatch() -> None:
     _key_mismatch_seen[0] = True
+    _key_verified[0] = False
+
+
+def mark_key_verified() -> None:
+    _key_verified[0] = True
+
+
+def mark_key_unverified() -> None:
+    _key_verified[0] = False
 
 
 def key_mismatch_seen() -> bool:
@@ -125,12 +143,20 @@ def derive(key: bytes, legacy_md5_hex: str) -> str:
 def identity_of(email: str, key: Optional[bytes] = None) -> str:
     """The identity value stored for the signed-in ``email`` (``user.sub``).
     Refuses (:class:`IdentityKeyMismatch`) once the configured key is known to
-    differ from the one the stored identities were converted with."""
-    if key is None and _key_mismatch_seen[0]:
-        raise IdentityKeyMismatch(
-            "RESPONDENT_IDENTITY_KEY is not the key that converted the stored respondent "
-            "identities; refusing to write or match identities with it (restart with the right key)"
-        )
+    differ from the one the stored identities were converted with, and
+    (:class:`IdentityKeyUnverified`) while it is not verified against the stored
+    key check. The API answers both with a 503 (``identity_key_unavailable``)."""
+    if key is None:
+        if _key_mismatch_seen[0]:
+            raise IdentityKeyMismatch(
+                "RESPONDENT_IDENTITY_KEY is not the key that converted the stored respondent "
+                "identities; refusing to write or match identities with it (restart with the right key)"
+            )
+        if not _key_verified[0]:
+            raise IdentityKeyUnverified(
+                "RESPONDENT_IDENTITY_KEY is not verified against the stored key check yet; "
+                "refusing to write or match identities with it"
+            )
     return derive(key if key is not None else configured_key(), hash_string(email))
 
 
@@ -155,3 +181,26 @@ def matches(stored: Optional[str], email: str, key: Optional[bytes] = None) -> b
             )
         return False
     return hmac.compare_digest(stored.encode("utf-8"), identity_of(email, key).encode("utf-8"))
+
+
+#: what a respondent is told when identities cannot be created or matched; no
+#: fingerprint, key or cause (those are in the log only)
+UNAVAILABLE_DETAIL = "Anonymous submissions are temporarily unavailable. Please try again later."
+RETRY_AFTER_SECONDS = 30
+_last_unavailable_log = [float("-inf")]
+
+
+async def identity_key_unavailable(request, exc: IdentityKeyError):
+    """Exception handler: a 503 with a fixed body and ``Retry-After``; the cause
+    is only logged (at most once a minute)."""
+    from fastapi.responses import JSONResponse
+
+    now = time.monotonic()
+    if now - _last_unavailable_log[0] >= 60.0:
+        _last_unavailable_log[0] = now
+        logger.error("respondent identity unavailable ({}): {}", type(exc).__name__, exc)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": UNAVAILABLE_DETAIL},
+        headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
+    )

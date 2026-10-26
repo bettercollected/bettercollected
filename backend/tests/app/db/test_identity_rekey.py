@@ -384,7 +384,7 @@ async def test_v2_values_without_a_check_row_are_not_adopted_by_a_pass(clean_pos
             await identity_rekey.rekey_identities(container.pg_engine(), key, dry_run=dry_run)
         message = str(refused.value)
         assert key_check_value(key) not in message and key.hex() not in message
-        assert "--expect-fingerprint " + key_check_value(key)[:8] in message
+        assert "--expect-fingerprint <the recorded fingerprint>" in message
     assert await _key_check() is None
     assert (await _stored("form_responses"))[_oid("a", 2)] == hash_string(EMAILS[1])
 
@@ -518,7 +518,11 @@ async def test_the_background_task_runs_twice_and_stops_when_cancelled(monkeypat
     async def fake(engine):
         runs.append(engine)
 
+    async def verified(engine, *args, **kwargs):
+        return True
+
     monkeypatch.setattr(identity_rekey, "run_at_startup", fake)
+    monkeypatch.setattr(identity_rekey, "verify_key_until_known", verified)
     await identity_rekey.background_passes("engine", rerun_delay=0)
     assert runs == ["engine", "engine"]
 
@@ -613,7 +617,7 @@ async def test_the_command_adopts_v2_values_only_with_the_confirmed_fingerprint(
 
     unconfirmed = await _cli(env_key=cli_key)
     assert unconfirmed.returncode == 4
-    assert "--expect-fingerprint " + fingerprint in unconfirmed.stderr
+    assert "--expect-fingerprint <the recorded fingerprint>" in unconfirmed.stderr
     wrong = await _cli("--expect-fingerprint", "deadbeef", env_key=cli_key)
     assert wrong.returncode == 4
     assert await _key_check() is None
@@ -625,3 +629,86 @@ async def test_the_command_adopts_v2_values_only_with_the_confirmed_fingerprint(
     assert await _key_check() == key_check_value(raw)
     assert all(v.startswith("v2:") for v in (await _stored("form_responses")).values())
     assert cli_key not in adopted.stdout + adopted.stderr
+
+
+# ----------------------------------------------- an unchecked key never serves
+
+
+async def test_the_start_fails_hard_when_the_key_cannot_be_checked(clean_postgres, key, monkeypatch):
+    """A transient database error must not let a replica serve with a key it
+    could not check: the start fails (the container restarts)."""
+    monkeypatch.setattr(identity, "_key_verified", [False])
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("could not connect: password=hunter2")
+
+    monkeypatch.setattr(identity_rekey, "_ensure_key_check", broken)
+    with pytest.raises(identity.IdentityKeyUnverified) as refused:
+        await identity_rekey.check_key_at_startup(container.pg_engine(), key)
+    assert "hunter2" not in str(refused.value) and "RuntimeError" in str(refused.value)
+    assert not identity._key_verified[0]
+
+
+async def test_a_checked_key_marks_the_process_verified(clean_postgres, key, monkeypatch):
+    monkeypatch.setattr(identity, "_key_verified", [False])
+    with pytest.raises(identity.IdentityKeyUnverified):
+        identity.identity_of(EMAILS[0])  # nothing is created before the check
+    await identity_rekey.check_key_at_startup(container.pg_engine(), key)
+    monkeypatch.setattr(identity_rekey, "configured_key", lambda: key)
+    assert identity.identity_of(EMAILS[0]).startswith("v2:")
+
+
+async def test_a_failing_background_verification_blocks_identities_until_it_succeeds(
+    clean_postgres, key, monkeypatch
+):
+    monkeypatch.setattr(identity, "_key_verified", [True])
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
+    real = identity_rekey._ensure_key_check
+    calls, seen_during_retry = [], []
+
+    async def flaky(engine, k, **kwargs):
+        calls.append(1)
+        if len(calls) < 3:
+            raise RuntimeError("connection reset")
+        seen_during_retry.append(identity._key_verified[0])
+        return await real(engine, k, **kwargs)
+
+    monkeypatch.setattr(identity_rekey, "_ensure_key_check", flaky)
+    assert await identity_rekey.verify_key_until_known(
+        container.pg_engine(), key, retry_seconds=0
+    )
+    assert len(calls) == 3
+    assert seen_during_retry == [False]  # unverified while the check kept failing
+    assert identity._key_verified[0]
+
+
+async def test_a_mismatch_in_the_background_verification_is_final(clean_postgres, key, monkeypatch):
+    monkeypatch.setattr(identity, "_key_verified", [True])
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
+    engine = container.pg_engine()
+    await identity_rekey.rekey_identities(engine, secrets.token_bytes(32))
+    assert not await identity_rekey.verify_key_until_known(engine, key, retry_seconds=0)
+    assert identity.key_mismatch_seen() and not identity._key_verified[0]
+    monkeypatch.setattr(identity_rekey, "configured_key", lambda: key)
+    ran = []
+    monkeypatch.setattr(identity_rekey, "run_at_startup", lambda e: ran.append(e))
+    await identity_rekey.background_passes(engine, rerun_delay=0)
+    assert ran == []  # no conversion under a key that is not the stored one
+
+
+async def test_a_dry_run_reports_what_a_real_run_would_do(clean_postgres, key):
+    engine = container.pg_engine()
+    await _insert("form_responses", _oid("a", 1), hash_string(EMAILS[0]))
+    dry = await identity_rekey.rekey_identities(engine, key, dry_run=True)
+    assert dry.key_check == "would_write" and await _key_check() is None
+    assert (await identity_rekey.rekey_identities(engine, key)).key_check == "written"
+
+
+async def test_the_unconfirmed_message_has_no_ready_to_paste_command(clean_postgres, key):
+    await _insert("form_responses", _oid("a", 1), identity.identity_of(EMAILS[0], key))
+    with pytest.raises(identity.IdentityKeyUnconfirmed) as refused:
+        await identity_rekey.rekey_identities(container.pg_engine(), key)
+    message = str(refused.value)
+    assert f"--expect-fingerprint {key_check_value(key)[:8]}" not in message
+    assert "--expect-fingerprint <the recorded fingerprint>" in message
+    assert f"Only if {key_check_value(key)[:8]} is the fingerprint you recorded" in message

@@ -65,11 +65,14 @@ from backend.app.utils.respondent_identity import (
     IdentityKeyError,
     IdentityKeyMismatch,
     IdentityKeyUnconfirmed,
+    IdentityKeyUnverified,
     configured_key,
     convert_legacy,
     fingerprint_of,
     key_check_value,
     mark_key_mismatch,
+    mark_key_unverified,
+    mark_key_verified,
 )
 from backend.db.models import FormResponseRow, ResponseDeletionRequestRow
 
@@ -80,6 +83,8 @@ TABLES = {
 DEFAULT_BATCH = 500
 #: the second pass of an API start, for a 4.0 replica still writing MD5 during the roll
 RERUN_DELAY_SECONDS = 300.0
+#: how long the background verification waits before it tries the key check again
+VERIFY_RETRY_SECONDS = 30.0
 #: advisory lock key, a stable signed 64-bit number of this pass
 LOCK_KEY = int.from_bytes(
     hashlib.sha256(b"bettercollected:respondent-identity-rekey").digest()[:8],
@@ -96,7 +101,7 @@ class RekeyReport:
     changed_meanwhile: Dict[str, int] = field(default_factory=dict)
     remaining: Dict[str, int] = field(default_factory=dict)
     locked: bool = False
-    #: matched | written | adopted | None (locked)
+    #: matched | written | adopted | would_write | would_adopt (dry run) | None (locked)
     key_check: Optional[str] = None
     fingerprint: Optional[str] = None
 
@@ -219,9 +224,10 @@ async def _ensure_key_check(
         if has_v2 and not adopt:
             raise IdentityKeyUnconfirmed(
                 "v2 respondent identities are stored but nothing records which key made them "
-                f"(configured key fingerprint {fingerprint_of(expected)}). The API will not start: "
-                "if that is the key they were made with, confirm it once with "
-                f"python -m backend.identity_rekey --expect-fingerprint {fingerprint_of(expected)} "
+                f"(configured key fingerprint {fingerprint_of(expected)}). The API will not start. "
+                f"Only if {fingerprint_of(expected)} is the fingerprint you recorded at the first 4.1 "
+                "start, confirm it once with "
+                "python -m backend.identity_rekey --expect-fingerprint <the recorded fingerprint> "
                 "(otherwise set the right key). See docs/respondent-identity.md."
             )
         if write:
@@ -236,6 +242,8 @@ async def _ensure_key_check(
             winner = await read_key_check(conn)
             if winner != expected:
                 raise _mismatch(winner, expected)
+        if not write:  # a dry run: what a real run would have done
+            return "would_adopt" if has_v2 else "would_write"
         return "adopted" if has_v2 else "written"
 
 
@@ -325,18 +333,55 @@ async def check_key_at_startup(
     if engine is None:
         return
     key = key if key is not None else configured_key()
+    # Any failure fails the start (the container restarts): a replica that
+    # could not check its key must not serve and create identities with it.
+    # Mismatch errors name the problem; anything else is logged by class only
+    # (a database error message can carry values) and re-raised as a start refusal.
     try:
         state = await _ensure_key_check(engine, key, write=True)
     except IdentityKeyMismatch:  # also IdentityKeyUnconfirmed
         raise
-    except Exception as exc:  # noqa: BLE001 - class only: the message can carry values
-        logger.error("respondent identity key check failed ({})", type(exc).__name__)
-        return
+    except Exception as exc:  # noqa: BLE001 - class only
+        raise IdentityKeyUnverified(
+            f"the respondent identity key could not be checked against the database ({type(exc).__name__}); "
+            "refusing to start"
+        ) from None
+    mark_key_verified()
     logger.info(
         "respondent identity key fingerprint={} (key check {})",
         fingerprint_of(key_check_value(key)),
         state,
     )
+
+
+async def verify_key_until_known(
+    engine: Optional[AsyncEngine], key: Optional[bytes] = None, retry_seconds: Optional[float] = None
+) -> bool:
+    """The background re-verification of the key against the stored check, the
+    same check as the start's. Success marks the key verified; a mismatch marks
+    it known-wrong (nothing is created or matched with it) and ends the loop; any
+    other failure marks it unverified (the API answers 503 for what needs an
+    identity) and is retried until it succeeds. Returns whether it is verified."""
+    if engine is None:
+        return False
+    key = key if key is not None else configured_key()
+    while True:
+        try:
+            await _ensure_key_check(engine, key, write=True)
+        except IdentityKeyMismatch as exc:
+            mark_key_mismatch()
+            logger.error("respondent identity key refused: {}", exc)
+            return False
+        except Exception as exc:  # noqa: BLE001 - class only
+            mark_key_unverified()
+            logger.error(
+                "respondent identity key check failed ({}); identities are unavailable until it succeeds",
+                type(exc).__name__,
+            )
+            await asyncio.sleep(VERIFY_RETRY_SECONDS if retry_seconds is None else retry_seconds)
+            continue
+        mark_key_verified()
+        return True
 
 
 async def run_at_startup(engine: Optional[AsyncEngine]) -> Optional[RekeyReport]:
@@ -370,7 +415,11 @@ async def background_passes(
 ) -> None:
     """What the API runs after it has started: a pass now, and once more after
     ``rerun_delay`` seconds for a 4.0 replica that was still writing MD5 while
-    the roll finished. Its ``remaining`` counts are in the log lines."""
+    the roll finished. Its ``remaining`` counts are in the log lines. The key is
+    verified first (and retried while the check fails), see
+    :func:`verify_key_until_known`."""
+    if not await verify_key_until_known(engine):
+        return
     await run_at_startup(engine)
     await asyncio.sleep(RERUN_DELAY_SECONDS if rerun_delay is None else rerun_delay)
     await run_at_startup(engine)

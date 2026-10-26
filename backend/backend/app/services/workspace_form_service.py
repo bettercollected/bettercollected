@@ -1201,6 +1201,12 @@ class WorkspaceFormService:
             response.answers,
             today=(today, today) if client_today == today else None,
         )
+        # The anonymous identity is computed before anything is stored: a refusal
+        # (the key is not verified, see respondent_identity) must not leave
+        # uploaded files behind, and never falls back to another identity.
+        anonymous_identity = None
+        if bool(getattr(response, "anonymize", False)) and user:
+            anonymous_identity = identity_of(user.sub)
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:
@@ -1222,8 +1228,7 @@ class WorkspaceFormService:
         response.anonymous_identity = None
         if bool(getattr(response, "anonymize", False)):
             response.respondent_email = None
-            if user:
-                response.anonymous_identity = identity_of(user.sub)
+            response.anonymous_identity = anonymous_identity
         elif user:
             response.dataOwnerIdentifier = user.sub
 

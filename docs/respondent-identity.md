@@ -60,8 +60,20 @@ bug: matching refuses it (there is no MD5 fallback), and the conversion pass rep
   the command exits 4 and converts nothing. If a pass later finds that this process' key is not the stored one,
   the process stops creating or matching identities with it (an error is logged; restart with the right key).
   V2 values stored without a row are **never adopted by the API**: it refuses to start and says so. Only the
-  command adopts, with `--expect-fingerprint` naming the fingerprint the operator recorded for that key.
-  The first 4 bytes of the check (8 hex digits) are logged by every pass and start as
+  command adopts, with `--expect-fingerprint` naming the fingerprint the operator recorded for that key (the
+  refusal message deliberately shows no ready-to-paste command with the live fingerprint). A start that cannot
+  check its key for any other reason (database error, lock timeout) **fails too**, so the container restarts:
+  a replica never serves with a key it could not check.
+- **While a key is not trusted: 503.** A running process refuses to create or match identities when its key is
+  known to differ from the stored one, or when its background re-verification against the stored check fails
+  (it is retried every 30 s until it succeeds). Anonymous submissions, the respondent's own deletion-request
+  list and viewing or deleting their own anonymous response then answer `503` with the fixed body
+  `{"detail": "Anonymous submissions are temporarily unavailable. Please try again later."}` and a
+  `Retry-After` header; the cause (with the short fingerprints) is only in the log. Nothing falls back to the
+  address or another identity, no file of a refused submission is uploaded, and what needs no identity
+  (non-anonymous submissions, the submissions list) keeps working. A known mismatch ends with a restart using
+  the right key.
+- **Fingerprint.** The first 4 bytes of the check (8 hex digits) are logged by every pass and start as
   `key fingerprint=...`; write it down at the first start and pass it later as `--expect-fingerprint`.
 - **Migration 0022 builds its two partial indexes with a plain `CREATE INDEX`:** a brief write lock on
   `form_responses` and `responses_deletion_requests` while the indexes build. Fine at current sizes; for a much

@@ -38,7 +38,11 @@ from backend.app.services.internal_job_key import log_if_job_api_key_missing
 from backend.app.services.sso.startup import log_if_sso_incomplete
 from backend.app.services.umami_client import provision_umami_website
 from backend.app.utils import AiohttpClient
-from backend.app.utils.respondent_identity import require_identity_key
+from backend.app.utils.respondent_identity import (
+    IdentityKeyError,
+    identity_key_unavailable,
+    require_identity_key,
+)
 from backend.identity_rekey import check_key_at_startup, start_background_passes
 from scripts.seed_flow_templates import seed_flow_templates
 
@@ -254,6 +258,7 @@ def get_application(is_test_mode: bool = False):
     )
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(IdentityKeyError, identity_key_unavailable)
     app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_exception_handler(
         common.exceptions.http.HTTPException,
