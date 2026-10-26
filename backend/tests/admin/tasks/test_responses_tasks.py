@@ -14,7 +14,7 @@ import os
 import re
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import RespondentFeedback
 
 from backend.admin.tasks import catalog
@@ -567,7 +567,7 @@ async def _seed_scan():
     await _reset()
     link, responses = _scan_documents()
     extra = FormResponseDocument(
-        id=PydanticObjectId(),
+        id=RecordId(),
         response_id="pii",
         form_id=SCAN_FORM_ID,
         workspace_id=SCAN_WS,
@@ -770,10 +770,10 @@ async def test_a_record_whose_copy_is_already_stamped_is_counted_and_skipped(wor
     await _reset()
     links, responses, requests = _documents()
     twin = FormResponseDocument(
-        id=PydanticObjectId(), response_id="dup", form_id="single", provider="google"
+        id=RecordId(), response_id="dup", form_id="single", provider="google"
     )
     stamped_copy = FormResponseDocument(
-        id=PydanticObjectId(),
+        id=RecordId(),
         response_id="dup",
         form_id="single",
         provider="typeform",

@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post, get, patch
 from fastapi import Depends, Body
 from fastapi_pagination import Page
@@ -43,7 +43,7 @@ class WorkspaceRespondersController(Routable):
     )
     async def get_workspace_responders(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         filter_query: FormResponseFilterQuery = Depends(None),
         sort: SortRequest = Depends(None),
         user: User = Depends(get_logged_user),
@@ -57,7 +57,7 @@ class WorkspaceRespondersController(Routable):
         "/tags",
     )
     async def get_all_workspace_tags(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+        self, workspace_id: RecordId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_responders_service.get_workspace_tags(
             workspace_id, user
@@ -68,7 +68,7 @@ class WorkspaceRespondersController(Routable):
     )
     async def create_workspace_tag(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         create_request: WorkspaceTagRequest,
         user: User = Depends(get_logged_user),
     ):
@@ -81,7 +81,7 @@ class WorkspaceRespondersController(Routable):
     )
     async def patch_workspace_responder_with_email(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         email: str,
         patch_request: WorkspaceResponderPatchDto = Body(),
         user: User = Depends(get_logged_user),

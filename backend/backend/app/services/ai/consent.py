@@ -13,7 +13,7 @@ from http import HTTPStatus
 from typing import List, Optional
 from urllib.parse import urlparse
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -118,13 +118,13 @@ class AIConsentService:
         self._workspace_repo = workspace_repo
         self._authorization = authorization_service
 
-    async def consented_provider(self, workspace_id: PydanticObjectId) -> Optional[str]:
+    async def consented_provider(self, workspace_id: RecordId) -> Optional[str]:
         """The consented provider id, or None when the workspace has not
         opted in. Never raises for a missing workspace."""
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         return workspace_ai_provider(workspace)
 
-    async def require_enabled(self, workspace_id: PydanticObjectId) -> str:
+    async def require_enabled(self, workspace_id: RecordId) -> str:
         """The consented provider id, or 403 ``ai_not_enabled``."""
         provider = await self.consented_provider(workspace_id)
         if not provider:
@@ -134,13 +134,13 @@ class AIConsentService:
             )
         return provider
 
-    async def _is_admin(self, workspace_id: PydanticObjectId, user: User) -> bool:
+    async def _is_admin(self, workspace_id: RecordId, user: User) -> bool:
         return await self._authorization.has_permission(
             user, Permission.AI_MANAGE, workspace_id
         )
 
     async def get_settings(
-        self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, user: User
     ) -> WorkspaceAISettingsDto:
         # Every member sees whether AI is on (and sets their own preference).
         await self._authorization.authorize(user, Permission.FORM_READ, workspace_id)
@@ -157,7 +157,7 @@ class AIConsentService:
 
     async def update_settings(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         dto: UpdateWorkspaceAISettingsDto,
         user: User,
     ) -> WorkspaceAISettingsDto:

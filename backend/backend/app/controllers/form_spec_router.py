@@ -6,7 +6,7 @@ save stores anything. docs/spec/README.md describes the document."""
 
 from typing import Any, Dict, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post
 from common.models.user import User
 from fastapi import Depends, Header, Request
@@ -35,7 +35,7 @@ class FormSpecRouter(Routable):
     )
     async def validate_form_spec(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: Request,
         user: User = Depends(get_logged_user),
     ) -> Dict[str, Any]:
@@ -49,7 +49,7 @@ class FormSpecRouter(Routable):
     @post("/{form_id}/ops/dry-run", response_model=DryRunResponse)
     async def dry_run_form_ops(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: DryRunRequest,
         user: User = Depends(get_logged_user),
@@ -91,7 +91,7 @@ class FormSpecRouter(Routable):
     )
     async def save_form_ops(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: Request,
         if_match: Optional[str] = Header(None, alias="If-Match"),

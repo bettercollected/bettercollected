@@ -27,7 +27,7 @@ import json
 from http import HTTPStatus
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.form_spec import (
     SpecConversionError,
     form_to_spec_dict,
@@ -167,7 +167,7 @@ class EditorOpsService:
 
     # -- reading -----------------------------------------------------------
 
-    async def _load(self, workspace_id: PydanticObjectId, form_id: str):
+    async def _load(self, workspace_id: RecordId, form_id: str):
         """(stored draft, StandardForm, association settings) of a form of
         this workspace; None when it is not one."""
         association = await self._workspace_form_repo.find_workspace_form(
@@ -188,7 +188,7 @@ class EditorOpsService:
         )
 
     async def etag_for_editor(
-        self, user: Optional[User], workspace_id: PydanticObjectId, form_id: str
+        self, user: Optional[User], workspace_id: RecordId, form_id: str
     ) -> Optional[str]:
         """The draft's ETag for someone who may edit it while op saves are
         on, else None (the GET then simply has none)."""
@@ -202,7 +202,7 @@ class EditorOpsService:
         return await self._etag_of(loaded) if loaded else None
 
     async def editor_form(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ) -> Tuple[Dict[str, Any], str]:
         """(the draft as the editor's GET serves it, its ETag).
 
@@ -231,7 +231,7 @@ class EditorOpsService:
 
     async def save(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request,
         user: User,
@@ -321,7 +321,7 @@ class EditorOpsService:
 
     async def _apply(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         body: bytes,
         tags: List[str],
@@ -366,7 +366,7 @@ class EditorOpsService:
         return [r.model_dump(mode="json", by_alias=True) for r in results]
 
     async def _replay(
-        self, workspace_id: PydanticObjectId, form_id: str, stored: StoredResponse
+        self, workspace_id: RecordId, form_id: str, stored: StoredResponse
     ) -> JSONResponse:
         """A retry's answer: the stored results with the form as it is now
         and its current ETag, or the stored error as it was."""

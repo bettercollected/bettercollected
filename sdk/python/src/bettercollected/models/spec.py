@@ -139,6 +139,36 @@ class DateRule(BaseModel):
     field_id: str | None = Field(None, alias="fieldId", title="Fieldid")
 
 
+class Id(RootModel[str]):
+    root: str = Field(
+        None,
+        description="Stable id that page jumps name. Given when left out.",
+        pattern="^[A-Za-z0-9_-]{1,64}$",
+        title="Id",
+    )
+
+
+class Name(RootModel[str]):
+    root: str = Field(
+        None,
+        description="Short internal name, e.g. Eligible. Respondents never see it.",
+        max_length=60,
+        title="Name",
+    )
+
+
+class Title(RootModel[str]):
+    root: str = Field(None, max_length=300, title="Title")
+
+
+class Message(RootModel[str]):
+    root: str = Field(None, max_length=5000, title="Message")
+
+
+class ButtonText(RootModel[str]):
+    root: str = Field(None, max_length=80, title="Buttontext")
+
+
 class ColSpan(RootModel[int]):
     root: int = Field(
         None,
@@ -234,11 +264,22 @@ class SectionTitle(RootModel[str]):
     root: str = Field(None, max_length=120, title="Sectiontitle")
 
 
+class EndingId(RootModel[str]):
+    root: str = Field(
+        None,
+        description='The id of an ending of this form; only with target "__SUBMIT__".',
+        pattern="^[A-Za-z0-9_-]{1,64}$",
+        title="Endingid",
+    )
+
+
 class PageJump(BaseModel):
     """
     After this page, go to ``target`` (a page id, or "__SUBMIT__" to
     end the form) when the conditions match. The first matching jump wins;
-    no match goes to the next page.
+    no match goes to the next page. With "__SUBMIT__", ``endingId`` names
+    the ending shown after submitting (default: the form's default
+    ending).
     """
 
     model_config = ConfigDict(
@@ -248,6 +289,12 @@ class PageJump(BaseModel):
     operator: Literal["AND", "OR"] | None = Field(None, title="Operator")
     conditions: list[Condition] | None = Field(None, title="Conditions")
     target: str | None = Field(None, title="Target")
+    ending_id: EndingId | None = Field(
+        None,
+        alias="endingId",
+        description='The id of an ending of this form; only with target "__SUBMIT__".',
+        title="Endingid",
+    )
 
 
 class Position(BaseModel):
@@ -311,6 +358,24 @@ class Retention(BaseModel):
     value: int | str | None = Field(None, title="Value")
 
 
+class Highlight(RootModel[str]):
+    root: str = Field(
+        None,
+        description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
+        pattern="^#[0-9a-fA-F]{6}$",
+        title="Highlight",
+    )
+
+
+class Selection(RootModel[str]):
+    root: str = Field(
+        None,
+        description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
+        pattern="^#[0-9a-fA-F]{6}$",
+        title="Selection",
+    )
+
+
 class ThemeBackground(BaseModel):
     """
     Optional decoration of the page ground.
@@ -332,6 +397,11 @@ class ThemeBackground(BaseModel):
         alias="imageUrl",
         description="Only images from our own storage or Unsplash are shown.",
         title="Imageurl",
+    )
+    artwork: Literal["marble"] | None = Field(
+        None,
+        description="Built-in artwork served by the app (marble: a marbled endpaper). It fills the picture half of a welcome or ending page whose layout has one and no image of its own. Absent: none.",
+        title="Artwork",
     )
 
 
@@ -433,16 +503,34 @@ class WelcomePage(BaseModel):
 
 class Ending(BaseModel):
     """
-    A page shown after submitting.
+    A page shown after submitting. A page jump may choose one by its
+    ``id``; a plain submit shows the default ending (the one with
+    ``isDefault``, else the first).
     """
 
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
     )
-    title: str | None = Field(None, title="Title")
-    message: str | None = Field(None, title="Message")
-    button_text: str | None = Field(None, alias="buttonText", title="Buttontext")
+    id: Id | None = Field(
+        None,
+        description="Stable id that page jumps name. Given when left out.",
+        title="Id",
+    )
+    name: Name | None = Field(
+        None,
+        description="Short internal name, e.g. Eligible. Respondents never see it.",
+        title="Name",
+    )
+    is_default: bool | None = Field(
+        None,
+        alias="isDefault",
+        description="Shown after a plain submit. At most one ending.",
+        title="Isdefault",
+    )
+    title: Title | None = Field(None, title="Title")
+    message: Message | None = Field(None, title="Message")
+    button_text: ButtonText | None = Field(None, alias="buttonText", title="Buttontext")
     button_link: str | None = Field(
         None, alias="buttonLink", description="An http(s) URL.", title="Buttonlink"
     )
@@ -625,6 +713,84 @@ class Theme(BaseModel):
     style: str | None = Field(
         None, description="e.g. classic, sheet, studio, leaflet", title="Style"
     )
+    title_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="titleFont",
+        description="Face of titles and question labels. Absent: the text face (or the style's own title face).",
+        title="Titlefont",
+    )
+    body_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="bodyFont",
+        description="Face of everything else respondents read. Absent: public-sans.",
+        title="Bodyfont",
+    )
+    data_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="dataFont",
+        description="Face of data such as the submission number. Absent: the app's mono face.",
+        title="Datafont",
+    )
+    title_width: Literal["normal", "expanded"] | None = Field(
+        None,
+        alias="titleWidth",
+        description="Width of display titles: expanded is 125% on a face with a width axis (archivo).",
+        title="Titlewidth",
+    )
+    radius: Literal["sharp", "soft", "round"] | None = Field(
+        None,
+        description="Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.",
+        title="Radius",
+    )
+    button_style: Literal["filled", "outlined", "pill"] | None = Field(
+        None, alias="buttonStyle", description="Absent: filled.", title="Buttonstyle"
+    )
+    highlight: Highlight | None = Field(
+        None,
+        description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
+        title="Highlight",
+    )
+    selection: Selection | None = Field(
+        None,
+        description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
+        title="Selection",
+    )
+
+
+class Endings(RootModel[list[Ending]]):
+    root: list[Ending] = Field(
+        None, description="At most 20 endings.", max_length=20, title="Endings"
+    )
 
 
 class Page(BaseModel):
@@ -663,6 +829,14 @@ class FormSpec(BaseModel):
     spec_version: Literal["1"] = Field(..., alias="specVersion", title="Specversion")
     title: str | None = Field(None, title="Title")
     description: str | None = Field(None, title="Description")
+    language: (
+        Literal["nl", "en", "de", "fr", "es", "it", "pt", "pl", "da", "sv", "nb", "fi"]
+        | None
+    ) = Field(
+        None,
+        description="The language the form's own text (title, questions, choices) is written in, as a short BCP 47 tag. Respondent pages mark that text with it for screen readers and browsers. When a document that replaces a form leaves it out, the form keeps its language; null clears it.",
+        title="Language",
+    )
     welcome_page: WelcomePage | None = Field(None, alias="welcomePage")
     pages: list[Page] | None = Field(
         None,
@@ -670,7 +844,9 @@ class FormSpec(BaseModel):
         max_length=200,
         title="Pages",
     )
-    endings: list[Ending] | None = Field(None, title="Endings")
+    endings: Endings | None = Field(
+        None, description="At most 20 endings.", title="Endings"
+    )
     theme: Theme | None = None
     hidden_fields: list[str] | None = Field(
         None,

@@ -6,7 +6,7 @@ import time
 from typing import Dict, List, Optional
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -159,5 +159,5 @@ async def create_directory(client, workspace, cookies, polis=None):
 
 async def member_of(workspace_id, user_id) -> Optional[WorkspaceUserDocument]:
     return await container.workspace_user_repo().find_workspace_user(
-        PydanticObjectId(workspace_id), PydanticObjectId(user_id)
+        RecordId(workspace_id), RecordId(user_id)
     )

@@ -22,7 +22,7 @@ import json
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.form_spec import FormSpec, spec_to_form, spec_trust_settings
 from common.form_spec.adapters import SpecConversionError
 from common.models.standard_form import (
@@ -168,7 +168,7 @@ def _trust_patch(spec: FormSpec) -> Optional[UpdateFormSettingsOp]:
 
 
 async def _write_trust(
-    workspace_id: PydanticObjectId, form_id: str, spec: FormSpec
+    workspace_id: RecordId, form_id: str, spec: FormSpec
 ) -> None:
     """The document's trust settings, on this workspace's association only."""
     op = _trust_patch(spec)
@@ -249,7 +249,7 @@ class FormSpecWriter:
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
 
-    async def _load(self, workspace_id: PydanticObjectId, form_id: str):
+    async def _load(self, workspace_id: RecordId, form_id: str):
         """(stored draft, StandardForm, association settings), 404 otherwise."""
         form, settings = await self._spec.load(workspace_id, form_id)
         document = await self._form_repo.get_form_document_by_id(str(form_id))
@@ -260,7 +260,7 @@ class FormSpecWriter:
         return document, form, settings
 
     async def read(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ) -> Tuple[Dict[str, Any], str]:
         """(spec document, ETag)."""
         document, form, settings = await self._load(workspace_id, form_id)
@@ -273,7 +273,7 @@ class FormSpecWriter:
             raise precondition_failed()
 
     async def create(
-        self, workspace_id: PydanticObjectId, raw: Any, user: User
+        self, workspace_id: RecordId, raw: Any, user: User
     ) -> Tuple[str, Dict[str, Any], str]:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
@@ -295,7 +295,7 @@ class FormSpecWriter:
 
     async def replace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         raw: Any,
         if_match: Optional[List[str]],
@@ -314,7 +314,7 @@ class FormSpecWriter:
         try:
             await self._workspace_forms.update_form(
                 workspace_id=workspace_id,
-                form_id=PydanticObjectId(form_id),
+                form_id=RecordId(form_id),
                 form=form,
                 user=user,
                 expected_updated_at=document.updated_at or _EPOCH,
@@ -327,13 +327,13 @@ class FormSpecWriter:
         return await self.read(workspace_id, form_id)
 
     async def publish(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: RecordId, form_id: str, user: User
     ) -> Dict[str, Any]:
         """Publish through the product's publish (its checks included):
         ``{formId, published, slug}``."""
         await self._load(workspace_id, form_id)  # 404 for another workspace's
         await self._workspace_forms.publish_form(
-            workspace_id=workspace_id, form_id=PydanticObjectId(form_id), user=user
+            workspace_id=workspace_id, form_id=RecordId(form_id), user=user
         )
         association = await self._workspace_form_repo.find_workspace_form(
             workspace_id, form_id
@@ -346,7 +346,7 @@ class FormSpecWriter:
         return {"formId": form_id, "published": True, "slug": slug}
 
     async def preview_replace(
-        self, workspace_id: PydanticObjectId, form_id: str, raw: Any
+        self, workspace_id: RecordId, form_id: str, raw: Any
     ) -> Dict[str, Any]:
         """What a replace with ``raw`` would store, and the diff from now:
         ``{valid, errors, warnings, form, diff}``. Stores nothing."""
@@ -377,7 +377,7 @@ class FormSpecWriter:
 
     async def apply_ops(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         raw_ops: List[Any],
         atomic: bool,

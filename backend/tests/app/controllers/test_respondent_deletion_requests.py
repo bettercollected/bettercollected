@@ -10,7 +10,7 @@ from httpx import AsyncClient
 from backend.app.container import container
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.utils.hash import hash_string
+from backend.app.utils.respondent_identity import identity_of
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1, testUser2
 from tests.app.controllers.test_responses_per_workspace import (  # noqa: F401
@@ -81,7 +81,7 @@ async def test_a_request_filed_without_sharing_the_address_is_listed_to_its_resp
         workspace.id, published_form.form_id, response_id
     )
     assert request.dataOwnerIdentifier is None
-    assert request.anonymous_identity == hash_string(testUser1.sub)
+    assert request.anonymous_identity == identity_of(testUser1.sub)
     assert testUser1.sub not in request.model_dump_json()
 
     # and the submissions list still keeps the anonymous response off the account
@@ -123,7 +123,7 @@ async def _import_owned_by(workspace, user, slug, identity: str):
     converted = _converted(["r1"])
     if identity == "hash":
         converted["responses"][0]["dataOwnerIdentifier"] = None
-        converted["responses"][0]["anonymous_identity"] = hash_string(RESPONDENT.sub)
+        converted["responses"][0]["anonymous_identity"] = identity_of(RESPONDENT.sub)
     await container.form_import_service().save_converted_form_and_responses(
         converted, None, workspace_id=workspace.id
     )

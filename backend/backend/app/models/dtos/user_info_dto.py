@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic import EmailStr, BaseModel
 
 from common.enums.plan import Plans
@@ -8,7 +8,7 @@ from common.enums.roles import Roles
 
 
 class UserInfoDto(BaseModel):
-    id: Optional[PydanticObjectId] = None
+    id: Optional[RecordId] = None
     _id: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -21,4 +21,4 @@ class UserInfoDto(BaseModel):
 
     def __init__(self, _id="", **kwargs):
         super().__init__(**kwargs)
-        self.id = PydanticObjectId(_id)
+        self.id = RecordId(_id)

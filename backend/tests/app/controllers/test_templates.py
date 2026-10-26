@@ -2,7 +2,7 @@ import json
 
 import pytest
 from httpx import AsyncClient
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 
 from backend.app.container import container
@@ -66,7 +66,7 @@ class TestFormTemplates:
         assert template.status_code == 200
         actual_template_id = template.json().get("id")
         saved = await container.form_template_repo().get_template_by_id(
-            PydanticObjectId(actual_template_id)
+            RecordId(actual_template_id)
         )
         assert saved is not None and saved.workspace_id == workspace.id
 
@@ -512,7 +512,7 @@ class TestFormTemplates:
         predefined_workspace_template: FormTemplateDocument,
         workspace_template: FormTemplateDocument,
     ):
-        get_url = f"/api/v1/templates/{PydanticObjectId()}?workspace_id={workspace.id}"
+        get_url = f"/api/v1/templates/{RecordId()}?workspace_id={workspace.id}"
 
         template_by_id = await client.get(get_url, cookies=test_user_cookies)
 

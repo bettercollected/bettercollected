@@ -14,7 +14,7 @@ import datetime as dt
 from http import HTTPStatus
 from typing import Optional, Set
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from loguru import logger
 
 from backend.app.repositories.postgres.forms import (
@@ -71,7 +71,7 @@ class PdfImportService:
 
     async def start(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         data: bytes,
         file_name: Optional[str],
         user: User,
@@ -102,7 +102,7 @@ class PdfImportService:
             form=StandardForm(title=upload.title, fields=[]),
             user=user,
         )
-        import_id = PydanticObjectId()
+        import_id = RecordId()
         key = source_key(workspace_id, form.form_id, import_id, upload.extension)
         record = FormImportDocument(
             id=import_id,
@@ -143,7 +143,7 @@ class PdfImportService:
             seconds=self._settings.STALE_AFTER_S
         )
 
-    async def expire_stale(self, workspace_id: PydanticObjectId) -> int:
+    async def expire_stale(self, workspace_id: RecordId) -> int:
         """Fail the workspace's imports that stopped making progress (no
         heartbeat for ``STALE_AFTER_S``: their job's process died) with
         ``interrupted``, under the lock the limit check takes, and remove
@@ -184,7 +184,7 @@ class PdfImportService:
         except Exception:  # noqa: BLE001 — never hide why the start failed
             logger.exception("could not remove the draft form of a refused import")
 
-    async def _check_limits(self, workspace_id: PydanticObjectId) -> None:
+    async def _check_limits(self, workspace_id: RecordId) -> None:
         s = self._settings
         try:
             check_import_limits(
@@ -211,7 +211,7 @@ class PdfImportService:
             and self._flags.jobs_backend(JOB_NAME) is JobsBackend.POSTGRES
         )
 
-    async def _dispatch(self, import_id: PydanticObjectId) -> None:
+    async def _dispatch(self, import_id: RecordId) -> None:
         if self._on_postgres():
             from backend.jobs import tasks
 
@@ -234,7 +234,7 @@ class PdfImportService:
                 "a form import task ended with {}", type(task.exception()).__name__
             )
 
-    async def _run_in_process(self, import_id: PydanticObjectId) -> None:
+    async def _run_in_process(self, import_id: RecordId) -> None:
         try:
             # the heartbeat covers the retry waits too
             await self._pipeline.keep_alive(import_id, self._attempts(import_id))
@@ -245,7 +245,7 @@ class PdfImportService:
             except Exception:  # noqa: BLE001 — expired as interrupted later
                 logger.exception("form import {} could not be marked failed", import_id)
 
-    async def _attempts(self, import_id: PydanticObjectId) -> None:
+    async def _attempts(self, import_id: RecordId) -> None:
         """The run, retried while the sandbox is unreachable. Any other error
         reaches ``_run_in_process``, which fails the import."""
         from backend.app.services.pdf_import.sandbox import SandboxUnavailable
@@ -266,7 +266,7 @@ class PdfImportService:
             await asyncio.gather(*list(self._running), return_exceptions=True)
 
     async def get(
-        self, workspace_id: PydanticObjectId, import_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, import_id: RecordId, user: User
     ) -> FormImportDocument:
         await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         record = await self._repo.get(import_id)
@@ -292,7 +292,7 @@ class PdfImportService:
             )
         return record
 
-    async def list(self, workspace_id: PydanticObjectId, user: User):
+    async def list(self, workspace_id: RecordId, user: User):
         await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         return await self._repo.list_by_workspace(workspace_id)
 

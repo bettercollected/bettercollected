@@ -4,7 +4,7 @@ auth's Polis code flow. Polis and auth are stand-ins (tests/app/sso_helpers)."""
 from urllib.parse import urlsplit
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from httpx import AsyncClient
 from loguru import logger
@@ -103,7 +103,7 @@ async def test_an_unverified_claim_is_never_used(client, workspace, sso_on):
 
     await container.workspace_domain_repo().create(
         WorkspaceDomainDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             workspace_id=workspace.id,
             domain=DOMAIN,
             verification_token="0" * 32,
@@ -159,7 +159,7 @@ async def test_sign_in_creates_member_session_and_redirects(client, sso_workspac
     assert location.path == f"/{workspace.workspace_name}/dashboard/forms"
     account = auth.accounts["jane@" + DOMAIN]
     member = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(account["id"])
+        workspace.id, RecordId(account["id"])
     )
     assert member.roles == [WorkspaceRoles.VIEWER]  # the default
     token = reply.cookies.get("Authorization")
@@ -206,7 +206,7 @@ async def test_an_unassignable_default_role_falls_back(
     _, auth = sso_on_of()
     await sign_in(client)
     member = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(auth.accounts["jane@" + DOMAIN]["id"])
+        workspace.id, RecordId(auth.accounts["jane@" + DOMAIN]["id"])
     )
     assert member.roles == [WorkspaceRoles.VIEWER]
 
@@ -227,7 +227,7 @@ async def test_an_existing_member_is_never_downgraded(client, sso_workspace):
 
     assert reply.status_code == 307 and not sso_error(reply)
     member = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(account["id"])
+        workspace.id, RecordId(account["id"])
     )
     assert member.roles == [WorkspaceRoles.ADMIN]
 
@@ -676,7 +676,7 @@ async def test_the_configured_default_role_is_given(
     _, auth = sso_on_of()
     await sign_in(client)
     member = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(auth.accounts["jane@" + DOMAIN]["id"])
+        workspace.id, RecordId(auth.accounts["jane@" + DOMAIN]["id"])
     )
     assert member.roles == [stored]
 

@@ -8,7 +8,7 @@ postgres) runs its own composition.
 """
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi_pagination import Page, Params
 from fastapi_pagination.api import set_page, set_params
 
@@ -27,12 +27,12 @@ async def _seed():
     """Workspace ``ws`` with two linked forms (one titled like a Mongo field
     path), a form linked to another workspace only, and a response plus a
     deletion request on each; ``gone`` has responses but no form any more."""
-    ws, other = PydanticObjectId(), PydanticObjectId()
+    ws, other = RecordId(), RecordId()
     forms, links = container.form_repo(), container.workspace_form_repo()
     responses = container.form_response_repo()
     for form_id, title in (("f1", "Alpha"), ("f2", "$answers"), ("f3", "Other")):
         await forms.save_form(
-            FormDocument(id=PydanticObjectId(), form_id=form_id, title=title)
+            FormDocument(id=RecordId(), form_id=form_id, title=title)
         )
     for workspace_id, form_id, user_id in (
         (ws, "f1", "importer-1"),
@@ -42,7 +42,7 @@ async def _seed():
     ):
         await links.save(
             WorkspaceFormDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 workspace_id=workspace_id,
                 form_id=form_id,
                 user_id=user_id,
@@ -56,7 +56,7 @@ async def _seed():
     ):
         saved = await responses.save(
             FormResponseDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 form_id=form_id,
                 response_id=f"r-{form_id}",
                 workspace_id=workspace_id,
@@ -105,7 +105,7 @@ async def test_deletion_requests_carry_title_and_this_workspaces_importer():
 
 async def test_a_responders_own_listings_are_composed_too():
     ws, scope = await _seed()
-    user = User(id=str(PydanticObjectId()), sub="owner@example.com")
+    user = User(id=str(RecordId()), sub="owner@example.com")
     responses = container.form_response_repo()
     page_ctx, params_ctx = _page()
     with page_ctx, params_ctx:

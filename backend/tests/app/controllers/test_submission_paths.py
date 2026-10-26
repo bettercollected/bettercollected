@@ -7,7 +7,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from httpx import AsyncClient
 
@@ -21,10 +21,10 @@ from backend.app.services.form_response_service import FormResponseService
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser2
 
-viewer = User(id=str(PydanticObjectId()), sub="paths-viewer@example.com")
-reviewer = User(id=str(PydanticObjectId()), sub="paths-reviewer@example.com")
-editor = User(id=str(PydanticObjectId()), sub="paths-editor@example.com")
-officer = User(id=str(PydanticObjectId()), sub="paths-officer@example.com")
+viewer = User(id=str(RecordId()), sub="paths-viewer@example.com")
+reviewer = User(id=str(RecordId()), sub="paths-reviewer@example.com")
+editor = User(id=str(RecordId()), sub="paths-editor@example.com")
+officer = User(id=str(RecordId()), sub="paths-officer@example.com")
 SECRET = "the attic key is under the blue pot"
 
 
@@ -136,7 +136,7 @@ def test_deletion_only_stubs_are_not_submissions():
     stub = SimpleNamespace(answers=None, form_id="f")
     answered = SimpleNamespace(answers=_answers(YES), form_id="f")
     paths = FormResponseService._submission_paths(
-        PydanticObjectId(), form, [stub, answered]
+        RecordId(), form, [stub, answered]
     )
     assert len(paths) == 1
     assert paths[0].steps[0].page_id == "p1"

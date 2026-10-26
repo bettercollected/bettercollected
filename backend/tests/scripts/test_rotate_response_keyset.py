@@ -9,7 +9,7 @@ import os
 import stat
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from bson import ObjectId
 from sqlalchemy import text
 
@@ -40,8 +40,8 @@ from tests.conftest import _postgres_configured, _truncate_postgres
 
 pytestmark = pytest.mark.asyncio
 
-WS_A = PydanticObjectId("65e5501d00000000000000a1")
-WS_B = PydanticObjectId("65e5501d00000000000000b2")
+WS_A = RecordId("65e5501d00000000000000a1")
+WS_B = RecordId("65e5501d00000000000000b2")
 OLD_KEY = crypto_service.primary_key_id
 SECRETS = ("an answer", "a hidden value", "an internal note", "a message", "refresh-me")
 
@@ -65,20 +65,20 @@ class Data:
         self.expected = {}  # (target, record id, path) -> (context, plaintext)
         self.links = [
             WorkspaceFormDocument(
-                id=PydanticObjectId(), workspace_id=WS_A, form_id="f1", user_id="u"
+                id=RecordId(), workspace_id=WS_A, form_id="f1", user_id="u"
             ),
             WorkspaceFormDocument(
-                id=PydanticObjectId(), workspace_id=WS_A, form_id="f2", user_id="u"
+                id=RecordId(), workspace_id=WS_A, form_id="f2", user_id="u"
             ),
             WorkspaceFormDocument(
-                id=PydanticObjectId(), workspace_id=WS_B, form_id="f2", user_id="u"
+                id=RecordId(), workspace_id=WS_B, form_id="f2", user_id="u"
             ),
         ]
         self.responses = []
 
         def response(form_id, workspace, stamped=True, **values):
             document = FormResponseDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 form_id=form_id,
                 workspace_id=workspace if stamped else None,
             )
@@ -117,7 +117,7 @@ class Data:
         # nothing encrypted
         self.responses.append(
             FormResponseDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 form_id="f1",
                 workspace_id=WS_A,
                 answers={"q1": {"text": "plain"}},
@@ -129,7 +129,7 @@ class Data:
             # unstamped, its form in two workspaces, its values encrypted for
             # different ones: each value has to find its own context
             mixed = FormResponseDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 form_id="f2",
                 answers=_enc(WS_A, "f2", '{"q1": "an answer"}'),
                 hidden_fields=_enc(WS_B, "f2", '{"ref": "a hidden value"}'),
@@ -148,7 +148,7 @@ class Data:
             # a feedback message stored before CryptoService.encrypt stopped
             # passing "v1:..." through: looks like ciphertext, is plaintext
             legacy = FormResponseDocument(
-                id=PydanticObjectId(),
+                id=RecordId(),
                 form_id="f1",
                 workspace_id=WS_A,
                 answers=_enc(WS_A, "f1", '{"q1": "an answer"}'),

@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post, patch
 from fastapi import Depends
 
@@ -34,8 +34,8 @@ class TemporalRouter(Routable):
     @patch("/forms/{form_id}/actions/{action_id}/secrets")
     async def patch_form_secrets(
         self,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        form_id: RecordId,
+        action_id: RecordId,
         payload: FormActionsDto,
         api_key=Depends(get_api_key),
     ):

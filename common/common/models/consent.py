@@ -1,7 +1,7 @@
 import enum
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic import BaseModel
 
 

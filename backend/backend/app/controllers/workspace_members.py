@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, patch, post, delete
 from fastapi import Depends, HTTPException, Query
 from fastapi_pagination import Page
@@ -51,7 +51,7 @@ class WorkspaceMembersRouter(Routable):
         response_model=List[WorkspaceMemberDto],
     )
     async def get_workspace_members(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ):
         return await self.workspace_members_service.get_workspace_members(
             workspace_id=workspace_id, user=user
@@ -62,8 +62,8 @@ class WorkspaceMembersRouter(Routable):
     )
     async def delete_workspace_member(
         self,
-        workspace_id: PydanticObjectId,
-        user_id: PydanticObjectId,
+        workspace_id: RecordId,
+        user_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.delete_workspace_member(
@@ -73,8 +73,8 @@ class WorkspaceMembersRouter(Routable):
     @patch("/{user_id}", response_model=WorkspaceMemberDto)
     async def update_workspace_member_role(
         self,
-        workspace_id: PydanticObjectId,
-        user_id: PydanticObjectId,
+        workspace_id: RecordId,
+        user_id: RecordId,
         body: UpdateMemberRoleRequest,
         user: User = Depends(get_logged_user),
     ):
@@ -87,8 +87,8 @@ class WorkspaceMembersRouter(Routable):
     @post("/{user_id}/make-billing-owner")
     async def make_billing_owner(
         self,
-        workspace_id: PydanticObjectId,
-        user_id: PydanticObjectId,
+        workspace_id: RecordId,
+        user_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         """An owner makes another owner the billing owner; the previous
@@ -100,8 +100,8 @@ class WorkspaceMembersRouter(Routable):
     @post("/{user_id}/transfer-ownership", deprecated=True)
     async def transfer_workspace_ownership(
         self,
-        workspace_id: PydanticObjectId,
-        user_id: PydanticObjectId,
+        workspace_id: RecordId,
+        user_id: RecordId,
         user: User = Depends(get_logged_user),
     ):
         """The previous name of make-billing-owner, kept for webapps loaded
@@ -116,7 +116,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def get_workspace_invitations(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         return await self.workspace_members_service.get_workspace_invitations(
@@ -128,7 +128,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def create_a_workspace_invitation(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation: InvitationRequest,
         user: User = Depends(get_full_user),
         # the invitation mail's language; English unless Dutch
@@ -144,7 +144,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def get_invitation_by_token(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation_token: str,
         user: User = Depends(get_full_user),
     ):
@@ -157,7 +157,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def delete_invitation_by_token(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation_token: str,
         user: User = Depends(get_full_user),
     ):
@@ -172,7 +172,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def respond_to_invitation_request(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation_token: str,
         response_status: InvitationResponse,
         user: User = Depends(get_full_user),
@@ -189,7 +189,7 @@ class WorkspaceMembersRouter(Routable):
     )
     async def resend_invitation(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         invitation_id: str,
         user: User = Depends(get_full_user),
         # the mail's language, as on the first send; English unless Dutch

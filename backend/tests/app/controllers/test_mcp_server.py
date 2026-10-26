@@ -22,7 +22,7 @@ from backend.app.container import container
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
@@ -396,7 +396,7 @@ class TestMCPServer:
         """A key acts with its creator's current permissions: made while the
         creator was an Admin, it stops reading answers once they are a
         Privacy officer."""
-        officer = User(id=str(PydanticObjectId()), sub="mcp-officer@example.com")
+        officer = User(id=str(RecordId()), sub="mcp-officer@example.com")
         repo = container.workspace_user_repo()
         await repo.save(
             WorkspaceUserDocument(
@@ -412,7 +412,7 @@ class TestMCPServer:
         assert not allowed.get("isError"), allowed
 
         membership = await repo.find_workspace_user(
-            workspace.id, PydanticObjectId(officer.id)
+            workspace.id, RecordId(officer.id)
         )
         membership.roles = [WorkspaceRoles.PRIVACY_OFFICER]
         await repo.save(membership)
@@ -434,7 +434,7 @@ class TestMCPServer:
         """responses:read is a bulk read, so an export: a creator who can
         still read answers in the dashboard but not export them (Viewer,
         Reviewer) leaves the key refused."""
-        creator = User(id=str(PydanticObjectId()), sub="mcp-demoted@example.com")
+        creator = User(id=str(RecordId()), sub="mcp-demoted@example.com")
         repo = container.workspace_user_repo()
         await repo.save(
             WorkspaceUserDocument(
@@ -459,7 +459,7 @@ class TestMCPServer:
             assert not allowed.get("isError"), (tool, allowed)
 
         membership = await repo.find_workspace_user(
-            workspace.id, PydanticObjectId(creator.id)
+            workspace.id, RecordId(creator.id)
         )
         membership.roles = [WorkspaceRoles(demoted_to)]
         await repo.save(membership)
@@ -475,7 +475,7 @@ class TestMCPServer:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
     ):
-        creator = User(id=str(PydanticObjectId()), sub="mcp-creator@example.com")
+        creator = User(id=str(RecordId()), sub="mcp-creator@example.com")
         await container.workspace_user_repo().save(
             WorkspaceUserDocument(
                 workspace_id=workspace.id,

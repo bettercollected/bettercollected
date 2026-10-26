@@ -17,7 +17,7 @@ import stat
 
 import pytest
 import pytest_asyncio
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from dependency_injector import providers
 from pymongo import AsyncMongoClient
 from sqlalchemy import select
@@ -63,7 +63,7 @@ async def mongo(target):
 
 def tag_document(**changes):
     return {
-        "_id": PydanticObjectId(),
+        "_id": RecordId(),
         "workspace_id": "w1",
         "title": None,
         "created_at": PAST,

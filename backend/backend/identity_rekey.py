@@ -1,0 +1,500 @@
+"""python -m backend.identity_rekey [--dry-run] [--batch-size N] [--expect-fingerprint HEX]
+
+The one pass that moves every stored respondent identity to the keyed scheme
+(``v2:`` + HMAC-SHA256(RESPONDENT_IDENTITY_KEY, md5_hex(email)); see
+``backend.app.utils.respondent_identity``). It needs no address: the legacy
+value is the MD5 step of the formula, so ``HMAC(key, stored)`` is the new value.
+
+Where the identity is stored (both tables keep the JSON document in ``doc`` and
+a generated, indexed ``anonymous_identity`` column over it, so the update goes
+through ``doc``):
+
+* ``app.form_responses``: the response's own identity;
+* ``app.responses_deletion_requests``: the copy a deletion request keeps, which
+  the respondent's "my deletion requests" list matches on.
+
+Properties:
+
+* **Idempotent**: a value that already starts with ``v2:`` is never touched, so
+  the pass can run any number of times and on every start.
+* **Resumable**: rows are visited in id order in batches of ``--batch-size``;
+  each batch is its own transaction. The data is the checkpoint: a converted row
+  no longer matches the ``NOT LIKE 'v2:%'`` predicate, so an interrupted run
+  continues where it stopped without a checkpoint table (and without a schema
+  migration, which cannot hold the key).
+* **Safe beside live writers**: each row is updated only while it still holds
+  the value that was read (``WHERE ... = :old``) and only the one key of ``doc``
+  is rewritten (``jsonb_set``), never the whole document. Several processes can
+  start together: one advisory lock (``pg_try_advisory_lock``, a dedicated
+  connection) lets one of them run; the others skip.
+* **Wrong-key guard** (``app.respondent_identity_key_check``, 0022): HMAC-SHA256(key,
+  a fixed label), never the key. Every API start inserts the configured key's
+  row (``ON CONFLICT DO NOTHING``) and reads the winner back, so of replicas
+  with different keys only one can ever serve; the others refuse to start. A
+  pass whose key differs converts nothing, and marks the process so that
+  ``identity_of`` refuses to write or match (the API stops creating identities
+  with it). V2 values without a row are never adopted by the API (it refuses to
+  start); only this command adopts, with ``--expect-fingerprint`` confirming the
+  fingerprint the operator recorded.
+* **Counts only**: nothing logged or printed names an id, a value or a hash,
+  and an error is logged by its class (a database error message can carry the
+  statement's parameters, which here are identity values).
+
+Exit status: 0 nothing left to convert, 1 values remain or the run failed, 2
+another process holds the lock, 3 the key is missing or unusable, 4 the key is
+not the one that converted the stored identities (or not ``--expect-fingerprint``).
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import hashlib
+import hmac
+import json
+import sys
+from dataclasses import dataclass, field
+from typing import Dict, Optional
+
+from loguru import logger
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from backend.app.utils.respondent_identity import (
+    PREFIX,
+    IdentityKeyError,
+    IdentityKeyMismatch,
+    IdentityKeyUnconfirmed,
+    IdentityKeyUnverified,
+    configured_key,
+    convert_legacy,
+    fingerprint_of,
+    key_check_value,
+    mark_key_mismatch,
+    mark_key_unverified,
+    mark_key_verified,
+)
+from backend.db.models import FormResponseRow, ResponseDeletionRequestRow
+
+TABLES = {
+    "form_responses": FormResponseRow,
+    "responses_deletion_requests": ResponseDeletionRequestRow,
+}
+DEFAULT_BATCH = 500
+#: the second pass of an API start, for a 4.0 replica still writing MD5 during the roll
+RERUN_DELAY_SECONDS = 300.0
+#: how long the background verification waits before it tries the key check again
+VERIFY_RETRY_SECONDS = 30.0
+#: advisory lock key, a stable signed 64-bit number of this pass
+LOCK_KEY = int.from_bytes(
+    hashlib.sha256(b"bettercollected:respondent-identity-rekey").digest()[:8],
+    "big",
+    signed=True,
+)
+
+
+@dataclass
+class RekeyReport:
+    """Counts per table; never a value, an id or a hash."""
+
+    converted: Dict[str, int] = field(default_factory=dict)
+    changed_meanwhile: Dict[str, int] = field(default_factory=dict)
+    remaining: Dict[str, int] = field(default_factory=dict)
+    locked: bool = False
+    #: matched | written | adopted | would_write | would_adopt (dry run) | None (locked)
+    key_check: Optional[str] = None
+    fingerprint: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "converted": self.converted,
+            "changed_meanwhile": self.changed_meanwhile,
+            "remaining": self.remaining,
+            "locked": self.locked,
+            "key_check": self.key_check,
+            "key_fingerprint": self.fingerprint,
+        }
+
+    @property
+    def done(self) -> bool:
+        return not self.locked and not any(self.remaining.values())
+
+
+def _table(row) -> str:
+    return row.__table__.fullname  # a constant of the model, never user input
+
+
+async def _count_remaining(conn, row) -> int:
+    return int(
+        await conn.scalar(
+            text(
+                f"SELECT count(*) FROM {_table(row)} "
+                "WHERE anonymous_identity IS NOT NULL "
+                f"AND anonymous_identity NOT LIKE '{PREFIX}%'"
+            )
+        )
+    )
+
+
+async def _rekey_table(
+    engine: AsyncEngine, name: str, row, key: bytes, batch_size: int, report: RekeyReport
+) -> None:
+    table = _table(row)
+    select_batch = text(
+        f"SELECT id, anonymous_identity FROM {table} "
+        "WHERE id > :last AND anonymous_identity IS NOT NULL "
+        f"AND anonymous_identity NOT LIKE '{PREFIX}%' "  # the literal of the partial index (0022)
+        "ORDER BY id LIMIT :n"
+    )
+    # only the one key of the document, and only while it still holds what was read
+    update_one = text(
+        f"UPDATE {table} SET doc = jsonb_set(doc, '{{anonymous_identity}}', "
+        "to_jsonb(CAST(:new AS text))) "
+        "WHERE id = :id AND anonymous_identity = :old"
+    )
+    report.converted[name] = 0
+    report.changed_meanwhile[name] = 0
+    last = ""
+    while True:
+        async with engine.begin() as conn:
+            batch = (
+                await conn.execute(
+                    select_batch, {"last": last, "n": batch_size}
+                )
+            ).all()
+            for row_id, old in batch:
+                result = await conn.execute(
+                    update_one,
+                    {"id": row_id, "old": old, "new": convert_legacy(key, old)},
+                )
+                if result.rowcount == 1:
+                    report.converted[name] += 1
+                else:
+                    report.changed_meanwhile[name] += 1
+        if len(batch) < batch_size:
+            return
+        last = batch[-1][0]
+
+
+KEY_CHECK_TABLE = "app.respondent_identity_key_check"
+
+
+async def read_key_check(conn) -> Optional[str]:
+    return await conn.scalar(text(f"SELECT check_value FROM {KEY_CHECK_TABLE} WHERE id = 1"))
+
+
+def _mismatch(stored: str, expected: str) -> IdentityKeyMismatch:
+    # fingerprints only (4 bytes of an HMAC): never a check value, never a key
+    return IdentityKeyMismatch(
+        "RESPONDENT_IDENTITY_KEY is not the key that converted the stored respondent "
+        f"identities (configured key fingerprint {fingerprint_of(expected)}, stored "
+        f"{fingerprint_of(stored)}). Nothing was converted and the API will not start with it: "
+        "set the key the stack used at its first 4.1 start. See docs/respondent-identity.md."
+    )
+
+
+async def _ensure_key_check(
+    engine: AsyncEngine, key: bytes, *, write: bool, adopt: bool = False
+) -> str:
+    """Before any conversion, and at every API start: ``matched``, ``written``
+    (nothing was converted yet: this key's row is inserted, ``ON CONFLICT DO
+    NOTHING``, and the winner of a race between replicas is read back, so only
+    one key can ever be the stored one) or ``adopted`` (v2 values are stored
+    but no row says which key made them: only with ``adopt``, which only the
+    command grants, after the operator confirmed the key's fingerprint).
+    Raises :class:`IdentityKeyMismatch` on another key's row, and
+    :class:`IdentityKeyUnconfirmed` on v2 values without a row unless ``adopt``."""
+    expected = key_check_value(key)
+    async with engine.begin() as conn:
+        stored = await read_key_check(conn)
+        if stored is not None:
+            if not hmac.compare_digest(stored.encode(), expected.encode()):
+                raise _mismatch(stored, expected)
+            return "matched"
+        has_v2 = False
+        for row in TABLES.values():
+            has_v2 = has_v2 or bool(
+                await conn.scalar(
+                    text(
+                        f"SELECT EXISTS (SELECT 1 FROM {_table(row)} "
+                        f"WHERE anonymous_identity LIKE '{PREFIX}%')"
+                    )
+                )
+            )
+        if has_v2 and not adopt:
+            raise IdentityKeyUnconfirmed(
+                "v2 respondent identities are stored but nothing records which key made them "
+                f"(configured key fingerprint {fingerprint_of(expected)}). The API will not start. "
+                f"Only if {fingerprint_of(expected)} is the fingerprint you recorded at the first 4.1 "
+                "start, confirm it once with "
+                "python -m backend.identity_rekey --expect-fingerprint <the recorded fingerprint> "
+                "(otherwise set the right key). See docs/respondent-identity.md."
+            )
+        if write:
+            await conn.execute(
+                text(
+                    f"INSERT INTO {KEY_CHECK_TABLE} (id, check_value) VALUES (1, :v) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ),
+                {"v": expected},
+            )
+            # a replica with another key may have won the race: read the winner back
+            winner = await read_key_check(conn)
+            if winner != expected:
+                raise _mismatch(winner, expected)
+        if not write:  # a dry run: what a real run would have done
+            return "would_adopt" if has_v2 else "would_write"
+        return "adopted" if has_v2 else "written"
+
+
+async def rekey_identities(
+    engine: AsyncEngine,
+    key: bytes,
+    *,
+    batch_size: int = DEFAULT_BATCH,
+    dry_run: bool = False,
+    adopt: bool = False,
+) -> RekeyReport:
+    """Convert every stored legacy identity. ``dry_run`` only counts them (and
+    checks the key, writing nothing). Raises :class:`IdentityKeyMismatch`, before
+    converting anything, when another key converted the stored identities, and
+    :class:`IdentityKeyUnconfirmed` when v2 values exist without a key check
+    (``adopt``, the command's, with a confirmed fingerprint, takes the
+    configured key as theirs)."""
+    report = RekeyReport(fingerprint=fingerprint_of(key_check_value(key)))
+    async with engine.connect() as lock_conn:
+        if not await lock_conn.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
+            report.locked = True
+            return report
+        unlocked = False
+        try:
+            await lock_conn.rollback()  # the lock is session level; leave no transaction open
+            # the check row is written BEFORE the first conversion, so a crash
+            # mid-pass is covered by it too
+            report.key_check = await _ensure_key_check(
+                engine, key, write=not dry_run, adopt=adopt
+            )
+            if report.key_check == "adopted":
+                logger.warning(
+                    "respondent identity pass: v2 identities were stored without a key check; "
+                    "the configured key (fingerprint {}) was confirmed by the operator as the one that made them",
+                    report.fingerprint,
+                )
+            if not dry_run:
+                for name, row in TABLES.items():
+                    await _rekey_table(engine, name, row, key, batch_size, report)
+            async with engine.connect() as conn:
+                for name, row in TABLES.items():
+                    report.remaining[name] = await _count_remaining(conn, row)
+        finally:
+            try:
+                await lock_conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
+                await lock_conn.commit()
+                unlocked = True
+            except Exception:  # noqa: BLE001 - class only
+                logger.warning("respondent identity pass: advisory unlock failed")
+            if not unlocked:
+                # a pooled connection would keep the session lock for as long as it lives
+                try:
+                    await lock_conn.invalidate()
+                except Exception:  # noqa: BLE001
+                    logger.warning("respondent identity pass: could not drop the lock connection")
+    return report
+
+
+def log_report(report: RekeyReport) -> None:
+    if report.locked:
+        logger.info("respondent identity pass: another process is running it; skipped")
+    else:
+        logger.info(
+            "respondent identity pass: key fingerprint={} key_check={} converted={} "
+            "changed_meanwhile={} remaining={}",
+            report.fingerprint,
+            report.key_check,
+            report.converted,
+            report.changed_meanwhile,
+            report.remaining,
+        )
+    if not report.locked and any(report.remaining.values()):
+        logger.error(
+            "respondent identity pass: stored identities are still not v2 ({}); matching refuses them",
+            report.remaining,
+        )
+
+
+async def check_key_at_startup(
+    engine: Optional[AsyncEngine], key: Optional[bytes] = None
+) -> None:
+    """Before the API serves: record this key as the stored one when none is yet
+    (a race between replicas is decided by the unique row; the loser reads the
+    winner back) and refuse to start (raise) when it is not the key that made the
+    stored identities, or when v2 identities exist and nothing says which key
+    that was. No lock; the conversion itself comes from the background pass."""
+    if engine is None:
+        return
+    key = key if key is not None else configured_key()
+    # Any failure fails the start (the container restarts): a replica that
+    # could not check its key must not serve and create identities with it.
+    # Mismatch errors name the problem; anything else is logged by class only
+    # (a database error message can carry values) and re-raised as a start refusal.
+    try:
+        state = await _ensure_key_check(engine, key, write=True)
+    except IdentityKeyMismatch:  # also IdentityKeyUnconfirmed
+        raise
+    except Exception as exc:  # noqa: BLE001 - class only
+        raise IdentityKeyUnverified(
+            f"the respondent identity key could not be checked against the database ({type(exc).__name__}); "
+            "refusing to start"
+        ) from None
+    mark_key_verified()
+    logger.info(
+        "respondent identity key fingerprint={} (key check {})",
+        fingerprint_of(key_check_value(key)),
+        state,
+    )
+
+
+async def verify_key_until_known(
+    engine: Optional[AsyncEngine], key: Optional[bytes] = None, retry_seconds: Optional[float] = None
+) -> bool:
+    """The background re-verification of the key against the stored check, the
+    same check as the start's. Success marks the key verified; a mismatch marks
+    it known-wrong (nothing is created or matched with it) and ends the loop; any
+    other failure marks it unverified (the API answers 503 for what needs an
+    identity) and is retried until it succeeds. Returns whether it is verified."""
+    if engine is None:
+        return False
+    key = key if key is not None else configured_key()
+    while True:
+        try:
+            await _ensure_key_check(engine, key, write=True)
+        except IdentityKeyMismatch as exc:
+            mark_key_mismatch()
+            logger.error("respondent identity key refused: {}", exc)
+            return False
+        except Exception as exc:  # noqa: BLE001 - class only
+            mark_key_unverified()
+            logger.error(
+                "respondent identity key check failed ({}); identities are unavailable until it succeeds",
+                type(exc).__name__,
+            )
+            await asyncio.sleep(VERIFY_RETRY_SECONDS if retry_seconds is None else retry_seconds)
+            continue
+        mark_key_verified()
+        return True
+
+
+async def run_at_startup(engine: Optional[AsyncEngine]) -> Optional[RekeyReport]:
+    """One pass as the API runs it: whatever it finds (a 4.0 import, a 4.0
+    replica still writing during a rolling update) is converted, and a failure
+    never takes the API down (matching refuses a non-v2 value, so nothing is
+    exposed). A key that is not the one that converted the stored identities
+    converts nothing and is logged as an error."""
+    if engine is None:
+        return None
+    try:
+        report = await rekey_identities(engine, configured_key())
+    except IdentityKeyMismatch as exc:
+        # another key than the stored one: stop this process writing identities
+        # with it (submit_response refuses from now on) and say so loudly
+        mark_key_mismatch()
+        logger.error("respondent identity pass refused: {}", exc)
+        return None
+    except Exception as exc:  # noqa: BLE001 - class only: the message can carry values
+        logger.error(
+            "respondent identity pass failed ({}); run python -m backend.identity_rekey",
+            type(exc).__name__,
+        )
+        return None
+    log_report(report)
+    return report
+
+
+async def background_passes(
+    engine: Optional[AsyncEngine], rerun_delay: Optional[float] = None
+) -> None:
+    """What the API runs after it has started: a pass now, and once more after
+    ``rerun_delay`` seconds for a 4.0 replica that was still writing MD5 while
+    the roll finished. Its ``remaining`` counts are in the log lines. The key is
+    verified first (and retried while the check fails), see
+    :func:`verify_key_until_known`."""
+    if not await verify_key_until_known(engine):
+        return
+    await run_at_startup(engine)
+    await asyncio.sleep(RERUN_DELAY_SECONDS if rerun_delay is None else rerun_delay)
+    await run_at_startup(engine)
+
+
+def start_background_passes(engine: Optional[AsyncEngine]) -> Optional["asyncio.Task"]:
+    """Start :func:`background_passes`; the caller keeps the task and cancels it
+    at shutdown. ``None`` without a database."""
+    if engine is None:
+        return None
+    return asyncio.ensure_future(background_passes(engine))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="python -m backend.identity_rekey", description=__doc__.split("\n\n")[0])
+    parser.add_argument("--dry-run", action="store_true", help="count what would be converted; change nothing")
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH)
+    parser.add_argument(
+        "--expect-fingerprint",
+        metavar="HEX",
+        help="refuse (exit 4) unless the configured key's fingerprint (8 hex digits, logged by "
+        "every pass) is this one; also the confirmation that lets the command adopt the key for "
+        "v2 identities stored without a key check",
+    )
+    return parser
+
+
+async def run(args: argparse.Namespace) -> int:
+    from backend.app.container import container
+    from backend.db.startup import dispose_postgres
+
+    try:
+        key = configured_key()
+    except IdentityKeyError as exc:
+        logger.error("{}", exc)
+        return 3
+    fingerprint = fingerprint_of(key_check_value(key))
+    expected = (args.expect_fingerprint or "").strip().lower()
+    if expected and not hmac.compare_digest(expected.encode(), fingerprint.encode()):
+        logger.error(
+            "the configured RESPONDENT_IDENTITY_KEY has fingerprint {}, not the expected one",
+            fingerprint,
+        )
+        return 4
+    engine = container.pg_engine()
+    if engine is None:
+        logger.error("DATABASE_URL is not set")
+        return 1
+    try:
+        report = await rekey_identities(
+            engine,
+            key,
+            batch_size=max(1, args.batch_size),
+            dry_run=args.dry_run,
+            # v2 values without a key check are taken as made with this key only
+            # when the operator confirmed its fingerprint above
+            adopt=bool(expected),
+        )
+    except IdentityKeyMismatch as exc:
+        logger.error("{}", exc)
+        return 4
+    except Exception as exc:  # noqa: BLE001 - class only
+        logger.error("respondent identity pass failed ({})", type(exc).__name__)
+        return 1
+    finally:
+        await dispose_postgres(container)
+    print(json.dumps(report.to_dict(), sort_keys=True))
+    if report.locked:
+        return 2
+    return 0 if report.done else 1
+
+
+def main(argv=None) -> int:
+    return asyncio.run(run(build_parser().parse_args(argv)))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

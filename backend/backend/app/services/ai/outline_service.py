@@ -27,7 +27,7 @@ import time
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
@@ -417,7 +417,7 @@ class FormOutlineService:
 
     async def _grounded(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User,
         prompt: str,
         document: Optional[str],
@@ -430,7 +430,7 @@ class FormOutlineService:
 
     async def outline(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: FormOutlineRequest,
         user: User,
     ) -> FormOutline:
@@ -446,7 +446,7 @@ class FormOutlineService:
 
     async def build(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: BuildFromOutlineRequest,
         user: User,
         *,
@@ -500,7 +500,7 @@ class FormOutlineService:
 
     async def build_response(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: BuildFromOutlineRequest,
         user: User,
     ) -> BuildFromOutlineResponse:
@@ -514,7 +514,7 @@ class FormOutlineService:
 
     async def generate(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         prompt: str,
         user: User,
         requested_provider: Optional[str] = None,

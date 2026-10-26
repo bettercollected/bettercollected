@@ -6,7 +6,7 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import ActionState, ParameterValue
 from httpx import AsyncClient
 
@@ -20,8 +20,8 @@ from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser2
 
-FIRST = str(PydanticObjectId())
-SECOND = str(PydanticObjectId())
+FIRST = str(RecordId())
+SECOND = str(RecordId())
 
 
 async def _form(form_id):
@@ -44,7 +44,7 @@ async def _add_credentials(form_id, action_id, value):
 async def _attach_actions(form_id, *action_ids):
     form = await _form(form_id)
     form.actions = {
-        "on_submit": [ActionState(id=PydanticObjectId(a)) for a in action_ids]
+        "on_submit": [ActionState(id=RecordId(a)) for a in action_ids]
     }
     await container.form_repo().save_form(form)
 
@@ -97,8 +97,8 @@ class TestRefreshAndRemove:
         await _add_credentials(workspace_form.form_id, SECOND, "second-cred")
 
         await container.form_actions_service().update_form_secrets(
-            PydanticObjectId(workspace_form.form_id),
-            PydanticObjectId(SECOND),
+            RecordId(workspace_form.form_id),
+            RecordId(SECOND),
             FormActionsDto(
                 name="Credentials", value="second-refreshed", type="secrets"
             ),
@@ -117,8 +117,8 @@ class TestRefreshAndRemove:
         await _add_credentials(workspace_form.form_id, SECOND, "second-cred")
 
         await container.form_service().remove_action_from_form(
-            form_id=PydanticObjectId(workspace_form.form_id),
-            action_id=PydanticObjectId(FIRST),
+            form_id=RecordId(workspace_form.form_id),
+            action_id=RecordId(FIRST),
             trigger="on_submit",
         )
 
@@ -132,7 +132,7 @@ class TestRefreshAndRemove:
         await _add_credentials(workspace_form.form_id, SECOND, "second-cred")
 
         await container.form_repo().remove_action_from_all_forms(
-            action_id=PydanticObjectId(FIRST)
+            action_id=RecordId(FIRST)
         )
 
         form = await _form(workspace_form.form_id)
@@ -149,7 +149,7 @@ class TestRefreshAndRemove:
         await _add_credentials(workspace_form.form_id, SECOND, "second-cred")
 
         await container.form_repo().remove_action_from_all_forms(
-            action_id=PydanticObjectId(FIRST)
+            action_id=RecordId(FIRST)
         )
 
         assert await _secrets(workspace_form.form_id) == {
@@ -306,7 +306,7 @@ class TestRespondentAndPublicResponses:
     ):
         response = await _submit(workspace, configured_form.form_id, testUser2)
         version = await container.form_repo().get_latest_version_of_form(
-            PydanticObjectId(configured_form.form_id)
+            RecordId(configured_form.form_id)
         )
         assert version.secrets and version.parameters  # stored, as before
 
@@ -450,7 +450,7 @@ class TestActionDeleteCleanup:
 
         form = await _form(configured_form.form_id)
         versions = await container.form_repo().get_versions_of_form(
-            PydanticObjectId(configured_form.form_id)
+            RecordId(configured_form.form_id)
         )
         assert versions  # the published version had the action's secrets too
         for document in (form, *versions):

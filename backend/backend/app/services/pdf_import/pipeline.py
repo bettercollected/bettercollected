@@ -16,7 +16,7 @@ import datetime as dt
 import json
 from typing import Awaitable, Callable, List, Optional, Tuple, TypeVar
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from loguru import logger
 
 from backend.app.constants.themes import new_form_theme
@@ -221,7 +221,7 @@ class ImportPipeline:
         record.report["layout"] = totals
         return {"artifact": key, "primitives": sum(totals.values()), "counts": totals}
 
-    async def give_up(self, import_id: PydanticObjectId) -> FormImportDocument:
+    async def give_up(self, import_id: RecordId) -> FormImportDocument:
         """Retries are exhausted: the sandbox stayed unreachable. Fail the
         import so it no longer holds the workspace's import slot."""
         record, failed = await self._fail(
@@ -231,7 +231,7 @@ class ImportPipeline:
             logger.error("form import {} gave up waiting for the sandbox", import_id)
         return record
 
-    async def fail(self, import_id: PydanticObjectId) -> FormImportDocument:
+    async def fail(self, import_id: RecordId) -> FormImportDocument:
         """The import's job stopped on an error outside the run's own handling:
         fail it as the run fails one ("failed"), so it no longer holds the
         workspace's import slot and its empty draft goes."""
@@ -239,7 +239,7 @@ class ImportPipeline:
         return record
 
     async def _fail(
-        self, import_id: PydanticObjectId, code: str, message: str, refused=False
+        self, import_id: RecordId, code: str, message: str, refused=False
     ):
         """(the record, whether this call failed it): an import that already
         ended is left as it is."""
@@ -450,7 +450,7 @@ class ImportPipeline:
             raise RuntimeError("the draft form is missing")
         return document
 
-    async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
+    async def run(self, import_id: RecordId) -> FormImportDocument:
         record = await self._repo.get(import_id)
         if record is None or record.status in (
             ImportStatus.COMPLETED,
@@ -514,7 +514,7 @@ class ImportPipeline:
         await self._repo.save(record)
 
     async def keep_alive(
-        self, import_id: PydanticObjectId, work: Awaitable[T]
+        self, import_id: RecordId, work: Awaitable[T]
     ) -> Optional[T]:
         """Run ``work`` (the import's job: a run, or the in-process retries
         with their waits) while writing the import's heartbeat every
@@ -542,7 +542,7 @@ class ImportPipeline:
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
 
-    async def _beat(self, import_id: PydanticObjectId) -> bool:
+    async def _beat(self, import_id: RecordId) -> bool:
         """Write the heartbeat; False only when the import was expired as
         interrupted (a heartbeat that fails to write never stops the import)."""
         try:
