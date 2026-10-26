@@ -33,6 +33,12 @@ from backend.app.services.internal_job_key import log_if_job_api_key_missing
 from backend.app.services.sso.startup import log_if_sso_incomplete
 from backend.app.services.umami_client import provision_umami_website
 from backend.app.utils import AiohttpClient
+from backend.app.utils.respondent_identity import (
+    IdentityKeyError,
+    identity_key_unavailable,
+    require_identity_key,
+)
+from backend.identity_rekey import check_key_at_startup, start_background_passes
 from scripts.seed_flow_templates import seed_flow_templates
 
 
@@ -41,6 +47,9 @@ async def lifespan(app: FastAPI):
     """FastAPI lifespan context manager handling startup and shutdown."""
     # --- Startup ---
     logger.info("Execute FastAPI startup event handler.")
+    # The respondent identity hash is keyed: never serve without its key (a
+    # missing one would silently store and match unusable identities).
+    require_identity_key("the backend", settings.respondent_identity.KEY)
     log_if_internal_key_missing()
     log_if_job_api_key_missing()
     log_if_sso_incomplete()
@@ -50,6 +59,10 @@ async def lifespan(app: FastAPI):
     AiohttpClient.get_aiohttp_client()
 
     await check_postgres_at_startup(container)
+    # A key that is not the one that converted the stored identities stops the
+    # start here; the conversion itself runs in the background below, once the
+    # API serves (matching refuses a non-v2 value meanwhile).
+    await check_key_at_startup(container.pg_engine())
     jobs_on_postgres = postgres_jobs_enabled(container.flags())
     if jobs_on_postgres:
         await jobs_app.open_async()
@@ -137,10 +150,24 @@ async def lifespan(app: FastAPI):
     mcp_task = asyncio.create_task(_run_mcp_session_manager())
     await mcp_started.wait()
 
+    # Convert any stored identity that is not v2 yet, in the background: idempotent,
+    # one replica at a time, counts only, once more a few minutes later for a 4.0
+    # replica still writing (docs/respondent-identity.md). Never stops the API.
+    identity_task = start_background_passes(container.pg_engine())
+
     yield
 
     # --- Shutdown ---
     logger.info("Execute FastAPI shutdown event handler.")
+
+    if identity_task is not None:
+        identity_task.cancel()
+        try:
+            await identity_task
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:  # noqa: BLE001 — never skips the rest of the shutdown
+            logger.warning("respondent identity task ended with {}", type(exc).__name__)
 
     mcp_stop.set()
     await mcp_task
@@ -215,6 +242,7 @@ def get_application(is_test_mode: bool = False):
     )
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(IdentityKeyError, identity_key_unavailable)
     app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_exception_handler(
         common.exceptions.http.HTTPException,

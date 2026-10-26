@@ -17,6 +17,10 @@ Formats:
 ``key_pairs``   ``id:secret`` pairs separated by commas (edge assertion keys): an
                 identifier of letters, digits and ``._-`` and a secret of at
                 least 16 characters per pair.
+``identity_key`` the respondent identity key: hex or base64 text that decodes to
+                at least 32 random-looking bytes (``openssl rand -hex 32``); the
+                rules are in ``decode_identity_key``, the one place the text
+                becomes key bytes.
 ``secret_list`` one or two comma separated secrets of at least 16 characters
                 (webhook secrets: current first, previous second).
 
@@ -120,11 +124,83 @@ def check_secret_list(value: str) -> Optional[Problem]:
     return None
 
 
+MIN_IDENTITY_KEY_BYTES = 32
+MIN_IDENTITY_DISTINCT_BYTES = 16
+MIN_IDENTITY_ENTROPY_BITS = 4.0  # per byte; 32 random bytes measure 4.4 to 5.0
+MIN_IDENTITY_TEXT_CLASSES = 2
+_HEX = re.compile(r"^[0-9a-fA-F]+$")
+
+
+def _looks_weak(raw: bytes) -> bool:
+    """Bytes that cannot be 32 or more random bytes: too few distinct values,
+    a repeated block (``"0123456789abcdef" * 4``), a counting sequence
+    (``00 01 02 ...``) or a low bits-per-byte entropy."""
+    if len(set(raw)) < max(MIN_DISTINCT_CHARS, MIN_IDENTITY_DISTINCT_BYTES):
+        return True
+    if _repeats(raw):
+        return True
+    steps = {(b - a) % 256 for a, b in zip(raw, raw[1:])}
+    if len(steps) == 1:
+        return True
+    return _entropy(raw) < MIN_IDENTITY_ENTROPY_BITS
+
+
+def decode_identity_key(value: str) -> Optional[bytes]:
+    """The key bytes of a respondent identity key, or ``None`` when it is not
+    usable. These rules define the key forever (the stored identities depend on
+    the exact bytes), so they are fixed:
+
+    1. Surrounding whitespace is ignored; nothing else is.
+    2. Text of only hex digits is HEX and must have an even length
+       (``openssl rand -hex 32`` prints 64 digits for its 32 bytes). Hex always
+       wins: such text is never read as base64.
+    3. Any other text is BASE64, standard (``+/``) or url-safe (``-_``) alphabet,
+       padding optional; anything else is refused.
+    4. The decoded bytes are the key. There must be at least 32 and they must
+       look random: at least 16 distinct byte values, no repeated block, not a
+       counting sequence, at least 4.0 bits of entropy per byte. A base64 text
+       must also mix at least two of lower case, upper case, digits and symbols
+       (a plain lower-case passphrase that happens to decode is refused).
+    """
+    text = (value or "").strip()
+    if _HEX.match(text):
+        if len(text) % 2:
+            return None
+        raw = bytes.fromhex(text)
+    else:
+        try:
+            padded = text + "=" * (-len(text) % 4)
+            raw = base64.b64decode(padded.replace("-", "+").replace("_", "/"), validate=True)
+        except (binascii.Error, ValueError):
+            return None
+        classes = sum(
+            any(test(c) for c in text)
+            for test in (str.islower, str.isupper, str.isdigit, lambda c: c in "+/-_")
+        )
+        if classes < MIN_IDENTITY_TEXT_CLASSES:
+            return None
+    if len(raw) < MIN_IDENTITY_KEY_BYTES or _looks_weak(raw):
+        return None
+    return raw
+
+
+def check_identity_key(value: str) -> Optional[Problem]:
+    if value.strip().lower() in PLACEHOLDERS:
+        return "placeholder", "is a placeholder, not a secret"
+    if decode_identity_key(value) is None:
+        return (
+            "not_identity_key",
+            f"must be hex or base64 text of at least {MIN_IDENTITY_KEY_BYTES} random bytes (use `openssl rand -hex 32`)",
+        )
+    return None
+
+
 FORMAT_CHECKS: Dict[str, FormatCheck] = {
     "token": check_token,
     "fernet": check_fernet,
     "key_pairs": check_key_pairs,
     "secret_list": check_secret_list,
+    "identity_key": check_identity_key,
 }
 # every secret format a spec may name; ``tink_keyset`` is supplied by the caller
 SECRET_FORMATS = frozenset(FORMAT_CHECKS) | {"tink_keyset"}

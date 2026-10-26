@@ -56,7 +56,7 @@ from backend.app.repositories.response_scope import (
     form_importers,
     form_titles,
 )
-from backend.app.utils.hash import hash_string
+from backend.app.utils.respondent_identity import identity_of
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupFormDocument,
@@ -458,7 +458,7 @@ class PostgresFormResponseRepository(RecordRepository):
             return await self.get_deletion_requests(
                 scope,
                 data_owner_identifier=user.sub,
-                anonymous_identity=hash_string(user.sub),
+                anonymous_identity=identity_of(user.sub),
             )
         else:
             return await self.get_form_responses(scope, data_owner_identifier=user.sub)

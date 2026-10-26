@@ -889,6 +889,10 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   stored there (`python -m backend.seed_refdata --origin ...` on an empty table) or requests are blocked.
   A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
   place that adds or removes those origins) and stale ones are pruned at startup.
+- **Respondent identity** (anonymous responses): never compare or store `hash_string(email)`; use
+  `utils/respondent_identity.py` (`identity_of`, `matches`: `v2:` HMAC under `RESPONDENT_IDENTITY_KEY`, no MD5
+  fallback). The API refuses to start without the key; `identity_rekey.py` converts stored values. Details:
+  `docs/respondent-identity.md`.
 - Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and the Postgres engine — respect that
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`

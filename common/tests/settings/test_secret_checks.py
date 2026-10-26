@@ -91,6 +91,56 @@ def test_secret_list_is_one_or_two_secrets():
         assert sc.check_secret_list(bad)[0] == "bad_list", bad
 
 
+# ---------------------------------------------------------- identity key
+
+
+def test_an_identity_key_is_hex_or_base64_of_at_least_32_random_bytes():
+    import base64
+
+    raw = secrets.token_bytes(32)
+    for good in (raw.hex(), base64.b64encode(raw).decode(), base64.urlsafe_b64encode(raw).decode(),
+                 secrets.token_hex(64), f" {raw.hex()}\n"):
+        assert sc.check_identity_key(good) is None, good[:4]
+        assert sc.decode_identity_key(good) is not None
+    assert sc.decode_identity_key(raw.hex()) == raw  # hex first: `openssl rand -hex 32` means its bytes
+
+
+def test_a_short_alike_or_placeholder_identity_key_is_refused():
+    for bad, code in (
+        ("", "not_identity_key"),
+        ("short", "not_identity_key"),
+        (secrets.token_hex(31), "not_identity_key"),  # 31 bytes
+        (secrets.token_hex(16), "not_identity_key"),
+        ("ab" * 32, "not_identity_key"),  # 32 bytes, two values
+        ("a" * 64, "not_identity_key"),
+        ("changeme", "placeholder"),
+        ("z" * 70, "not_identity_key"),  # neither hex nor base64 of enough variety
+        ("0123456789abcdef" * 4, "not_identity_key"),  # a repeated block
+        (bytes(range(32)).hex(), "not_identity_key"),  # a counting sequence
+        (bytes(range(0, 64, 2)).hex(), "not_identity_key"),  # any arithmetic sequence
+        (bytes(range(1, 33)).hex() + "0", "not_identity_key"),  # odd number of hex digits
+        (bytes(i % 8 for i in range(33)).hex(), "not_identity_key"),  # 33 bytes of a few values
+        ("correcthorsebatterystaplecorrecthorsebatterystaple", "not_identity_key"),  # a base64-valid passphrase
+    ):
+        problem = sc.check_identity_key(bad)
+        assert problem is not None and problem[0] == code, bad
+        assert bad.strip() not in problem[1] or not bad.strip()  # never echoes the value
+
+
+def test_the_decode_rules_are_fixed():
+    """Hex first (even length, either case); else standard or url-safe base64
+    with optional padding; the decoded bytes are the key."""
+    import base64
+
+    raw = secrets.token_bytes(32)
+    assert sc.decode_identity_key(raw.hex().upper()) == raw
+    assert sc.decode_identity_key(base64.b64encode(raw).decode().rstrip("=")) == raw
+    assert sc.decode_identity_key(base64.urlsafe_b64encode(raw).decode().rstrip("=")) == raw
+    # 64 hex digits are 32 bytes of hex, never 48 bytes of base64
+    assert len(sc.decode_identity_key(raw.hex())) == 32
+    assert sc.decode_identity_key(raw.hex() + "0") is None
+
+
 # --------------------------------------------------------------- registry
 
 
@@ -139,6 +189,7 @@ def test_the_inventory_names_a_format_for_exactly_the_key_material():
         "MASTER_ENCRYPTION_KEYSET": "tink_keyset",
         "CUSTOM_DOMAIN_ASSERTION_KEYS": "key_pairs",
         "CUSTOM_DOMAIN_WEBHOOK_SECRETS": "secret_list",
+        "RESPONDENT_IDENTITY_KEY": "identity_key",
     }
     assert set(with_format.values()) <= sc.SECRET_FORMATS
 
