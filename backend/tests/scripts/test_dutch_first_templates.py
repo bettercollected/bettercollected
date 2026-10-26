@@ -259,6 +259,10 @@ def prose_of_templates() -> list:
     return rows
 
 
+@pytest.mark.skipif(
+    not FIXTURE.parent.is_dir(),
+    reason="the webapp tree is not present (a backend-only checkout)",
+)
 def test_the_webapp_plain_language_check_reads_the_current_wording():
     """The webapp's B1 check (a TypeScript test) runs over a copy of the
     templates' prose; this keeps the copy current. After changing a
@@ -394,3 +398,91 @@ async def test_a_seeded_dutch_template_becomes_a_dutch_form_that_publishes(
         workspace.id, template_repo=container.form_template_repo()
     )
     assert again["seeded"] == []
+
+
+async def _seeded_without_retention(build):
+    """A Dutch-first template as the seed stored it before templates carried a
+    retention period."""
+    from backend.app.container import container
+    from backend.app.schemas.template import FormTemplateDocument
+    from common.ids import RecordId
+
+    payload = build()
+    for i, page in enumerate(payload["fields"]):
+        page["index"] = i
+    template = FormTemplateDocument(
+        builder_version="v2",
+        type="form",
+        workspace_id=RecordId("65e5501d0000000000000001"),
+        title=payload["title"],
+        description=payload["description"],
+        fields=payload["fields"],
+        theme=template_theme(),
+        welcome_page=payload["welcome_page"],
+        thankyou_page=payload["thankyou_page"],
+        settings={"is_public": True, "language": payload["language"]},
+    )
+    return await container.form_template_repo().save(template)
+
+
+@pytest.mark.asyncio
+async def test_the_seed_gives_an_already_seeded_template_its_period_once():
+    from backend.app.container import container
+    from common.ids import RecordId
+
+    repo = container.form_template_repo()
+    build = BILINGUAL_BUILDERS[1]  # the Dutch housing application
+    old = await _seeded_without_retention(build)
+
+    first = await seed_flow_templates(RecordId("65e5501d0000000000000001"), template_repo=repo)
+    stored = await repo.get_template_by_id(old.id)
+    second = await seed_flow_templates(RecordId("65e5501d0000000000000001"), template_repo=repo)
+
+    assert first["retained"] == [build()["title"]]
+    assert stored.settings.response_expiration_type == ResponseRetentionType.DAYS
+    assert stored.settings.response_expiration == build()["response_expiration"]
+    # the rest of the template is as it was
+    assert stored.settings.is_public is True and stored.settings.language == "nl"
+    assert stored.title == old.title
+    assert second["retained"] == []
+
+
+@pytest.mark.asyncio
+async def test_the_repair_keeps_a_period_chosen_by_hand_and_other_templates():
+    from backend.app.container import container
+    from common.ids import RecordId
+    from scripts.seed_flow_templates import lead_qualification, repair_retention
+
+    repo = container.form_template_repo()
+    build = BILINGUAL_BUILDERS[1]
+    for kind, value in (("days", "7"), ("forever", None), ("date", "2099-01-01")):
+        template = await _seeded_without_retention(build)
+        template.settings.response_expiration_type = ResponseRetentionType(kind)
+        template.settings.response_expiration = value
+        await repo.save(template)
+        assert await repair_retention(repo, template.id) is False
+        kept = await repo.get_template_by_id(template.id)
+        assert kept.settings.response_expiration_type.value == kind
+        assert kept.settings.response_expiration == value
+        await repo.delete_template(template.id)
+
+    # one of the seed's flow templates has no period to give; a template
+    # that is not the seed's own is not touched
+    from backend.app.schemas.template import FormTemplateDocument
+
+    payload = lead_qualification()
+    flow = await repo.save(
+        FormTemplateDocument(
+            builder_version="v2",
+            type="form",
+            workspace_id=RecordId("65e5501d0000000000000001"),
+            title=payload["title"],
+            fields=payload["fields"],
+            settings={"is_public": True},
+        )
+    )
+    assert await repair_retention(repo, flow.id) is False
+    other = await _seeded_without_retention(build)
+    other.title = "Mijn eigen aanvraag"
+    await repo.save(other)
+    assert await repair_retention(repo, other.id) is False

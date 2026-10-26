@@ -475,8 +475,8 @@ ORGANISATION_REQUEST = BilingualTemplate(
             "place",
             "short_text",
             t(
-                "Over welke plek gaat uw verzoek?",
-                "Which place is your request about?",
+                "Welke plek hoort bij uw bericht, als die er is?",
+                "Which place goes with your message, if there is one?",
             ),
             t(
                 "Vul dit alleen in als het over een plek gaat, zoals een straat "

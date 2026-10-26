@@ -3,10 +3,14 @@ from typing import List
 
 from common.ids import RecordId
 from classy_fastapi import Routable, post, get, patch, delete
+from http import HTTPStatus
+
 from fastapi import Depends, UploadFile, Form
+from pydantic import ValidationError
 from common.models.user import User
 from typing import Optional
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import (
@@ -28,6 +32,24 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 
 
 from backend.app.services.user_service import get_full_user  # noqa: E402
+
+def template_from_form_body(body: str) -> StandardFormTemplateCamelModel:
+    """The template a multipart ``template_body`` describes; a 422 naming the
+    invalid fields (never their values) when it doesn't fit the model."""
+    try:
+        return StandardFormTemplateCamelModel(**json.loads(body))
+    except (ValidationError, ValueError, TypeError) as error:
+        places = (
+            sorted({".".join(str(p) for p in e["loc"]) for e in error.errors()})
+            if isinstance(error, ValidationError)
+            else []
+        )
+        raise HTTPException(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            content="The template is not valid"
+            + (f": {', '.join(places)}." if places else "."),
+        )
+
 
 @router(
     prefix="",
@@ -123,11 +145,11 @@ class FormTemplateRouter(Routable):
         cover_image: UploadFile = None,
         user: User = Depends(get_full_user),
     ):
-        template = json.loads(template_body)
+        template = template_from_form_body(template_body)
         response = await self.form_template_service.create_new_template(
             workspace_id=workspace_id,
             user=user,
-            template_body=StandardFormTemplateCamelModel(**template),
+            template_body=template,
             logo=logo,
             cover_image=cover_image,
         )
@@ -178,12 +200,12 @@ class FormTemplateRouter(Routable):
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
     ):
-        template = json.loads(template_body)
+        template = template_from_form_body(template_body)
         response = await self.form_template_service.update_template(
             workspace_id=workspace_id,
             template_id=template_id,
             user=user,
-            template_body=StandardFormTemplateCamelModel(**template),
+            template_body=template,
             logo=logo,
             cover_image=cover_image,
             user_tokens=UserTokens(
