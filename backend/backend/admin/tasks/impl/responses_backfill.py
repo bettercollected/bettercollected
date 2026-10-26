@@ -47,7 +47,6 @@ from typing import (
 
 from backend.admin.tasks.impl.responses_common import (
     CIPHERTEXT_PREFIX,
-    MongoBase,
     Opener,
     PostgresBase,
     load_keyset,
@@ -56,6 +55,7 @@ from backend.admin.tasks.impl.responses_common import (
 
 ENCRYPTED_FIELDS = ("answers", "hidden_fields", "internal_answers")
 PHASES = ("form_responses", "responses_deletion_requests")
+
 
 class StampConflict(Exception):
     """The record cannot take the workspace: a copy of it (same provider
@@ -137,42 +137,6 @@ def allowed_forms(
 
 
 # --------------------------------------------------------------------- stores
-class MongoStore(MongoBase):
-    async def unstamped(self, collection: str, after, limit: int) -> List[dict]:
-        query: Dict[str, Any] = {"workspace_id": None}
-        if after is not None:
-            query["_id"] = {"$gt": after}
-        projection = {"form_id": 1, "response_id": 1}
-        if collection == "form_responses":
-            projection.update({field: 1 for field in ENCRYPTED_FIELDS})
-        cursor = self.db[collection].find(query, projection).sort("_id", 1).limit(limit)
-        return [{**row, "key": row["_id"]} async for row in cursor]
-
-    async def response_workspaces(self, response_ids: Iterable[str]) -> Dict[str, str]:
-        ids = list(set(response_ids))
-        if not ids:
-            return {}
-        cursor = self.db["form_responses"].find(
-            {"response_id": {"$in": ids}, "workspace_id": {"$ne": None}},
-            {"response_id": 1, "workspace_id": 1},
-        )
-        return {row["response_id"]: str(row["workspace_id"]) async for row in cursor}
-
-    async def stamp(self, collection: str, key, workspace_id: str) -> int:
-        from bson import ObjectId
-
-        from pymongo.errors import DuplicateKeyError
-
-        try:
-            result = await self.db[collection].update_one(
-                {"_id": key, "workspace_id": None},
-                {"$set": {"workspace_id": ObjectId(workspace_id)}},
-            )
-        except DuplicateKeyError:
-            raise StampConflict() from None
-        return result.modified_count
-
-
 class PostgresStore(PostgresBase):
     @staticmethod
     def _row(collection: str):
@@ -268,7 +232,7 @@ class PostgresStore(PostgresBase):
         return 1
 
 
-STORE_CLASSES = {"mongo": MongoStore, "postgres": PostgresStore}
+STORE_CLASSES = {"postgres": PostgresStore}
 
 
 # ------------------------------------------------------------------------ run

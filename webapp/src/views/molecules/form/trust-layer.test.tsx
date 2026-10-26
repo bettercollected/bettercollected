@@ -204,27 +204,44 @@ describe('Privacy panel on respondent forms', () => {
         expect(row('retention')).toHaveTextContent('Tot 1 maart 2027.');
     });
 
-    it("always states the enforced period, with the creator's explanation next to it", () => {
+    // Every shape the retention setting can have, with the one sentence it
+    // must read (the backend applies it the same way: services/retention.py).
+    const RETENTION_SHAPES: Array<{ shape: string; settings: Record<string, unknown>; en: string; nl: string }> = [
+        { shape: 'no setting', settings: {}, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'forever', settings: { responseExpirationType: 'forever' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'forever with a stale value', settings: { responseExpirationType: 'forever', responseExpiration: '30' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'a value without a type', settings: { responseExpiration: '30' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'days', settings: { responseExpirationType: 'days', responseExpiration: '30' }, en: '30 days after you submit.', nl: '30 dagen na het insturen.' },
+        { shape: 'one day', settings: { responseExpirationType: 'days', responseExpiration: '1' }, en: '1 day after you submit.', nl: '1 dag na het insturen.' },
+        { shape: 'days out of range', settings: { responseExpirationType: 'days', responseExpiration: '99999' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'unreadable days', settings: { responseExpirationType: 'days', responseExpiration: '6 months' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' },
+        { shape: 'a date', settings: { responseExpirationType: 'date', responseExpiration: '2027-03-01' }, en: 'Until 1 March 2027.', nl: 'Tot 1 maart 2027.' },
+        { shape: 'a stored timestamp', settings: { responseExpirationType: 'date', responseExpiration: '2027-03-01T00:00:00.000Z' }, en: 'Until 1 March 2027.', nl: 'Tot 1 maart 2027.' },
+        { shape: 'an unreadable date', settings: { responseExpirationType: 'date', responseExpiration: 'next spring' }, en: 'No fixed period. They are kept until they are deleted.', nl: 'Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd.' }
+    ];
+
+    describe.each(RETENTION_SHAPES)('retention: $shape', ({ settings, en, nl }) => {
+        // The creator's own words, a period that disagrees with every shape:
+        // they are not shown, so the panel states one thing.
+        it.each([
+            ['en', en],
+            ['nl', nl]
+        ])('states exactly one period in %s', (language, sentence) => {
+            setBrowserLanguages([language]);
+            renderPanel({ ownerName: 'Acme', settings: { ...settings, retentionText: 'kept for 6 months' } });
+            openPanel();
+            const term = language === 'nl' ? 'Hoe lang ze bewaard worden' : 'How long they are kept';
+            expect(row('retention').textContent).toBe(`${term}${sentence}`);
+            expect(row('retention')).not.toHaveTextContent(/6 months/);
+            expect(screen.queryByTestId('privacy-retention-note')).not.toBeInTheDocument();
+        });
+    });
+
+    it('does not show the creator note beside the period, in any theme', () => {
         setBrowserLanguages(['en']);
-        // Text and period: both, the period first. The text never replaces it.
-        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Kept for 1 year', responseExpirationType: 'days', responseExpiration: '30' } });
+        renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Kept for 1 year', responseExpirationType: 'days', responseExpiration: '30' } });
         openPanel();
-        expect(row('retention')).toHaveTextContent('How long they are kept30 days after you submit. Kept for 1 year');
-        expect(screen.getByTestId('privacy-retention-note')).toHaveTextContent('Kept for 1 year');
-        unmount();
-
-        // A period without text: the period alone.
-        const second = renderPanel({ ownerName: 'Acme', settings: { retentionText: '   ', responseExpirationType: 'days', responseExpiration: '30' } });
-        openPanel();
-        expect(row('retention')).toHaveTextContent(/^How long they are kept30 days after you submit\.$/);
-        expect(screen.queryByTestId('privacy-retention-note')).not.toBeInTheDocument();
-        second.unmount();
-
-        // Text without a period: "until deleted", then the text.
-        setBrowserLanguages(['nl']);
-        renderPanel({ ownerName: 'Acme', settings: { retentionText: 'Tot het einde van het project', responseExpirationType: 'forever' } });
-        openPanel();
-        expect(row('retention')).toHaveTextContent('Geen vaste termijn. Ze worden bewaard tot ze worden verwijderd. Tot het einde van het project');
+        expect(row('retention').querySelector('dd')!.textContent).toBe('30 days after you submit.');
     });
 
     it('says sign-in is required on a private form, in English and Dutch', () => {

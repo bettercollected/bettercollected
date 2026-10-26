@@ -170,7 +170,7 @@ env_put() {
 # the worker drives cannot expose the backend's secrets. An existing file is never
 # changed (only its mode is made private). An item ending in * is a name prefix.
 service_env_file() {
-  local file=$1 line name value item match tmp
+  local file=$1 line name value item match tmp copied
   shift
   if [ -L "$file" ]; then
     echo "refused: $file is a symbolic link" >&2
@@ -181,6 +181,7 @@ service_env_file() {
     return 0
   fi
   tmp=$(mktemp .env.XXXXXX) || return 1
+  copied=""
   if [ -f .env.deployment ]; then
     while IFS= read -r line || [ -n "$line" ]; do
       name=$(printf '%s\n' "$line" | sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\2/p')
@@ -198,10 +199,19 @@ service_env_file() {
       [ -n "$value" ] || continue
       line=${line#"${line%%[![:space:]]*}"}
       printf '%s\n' "${line#export }" >> "$tmp"
+      case ", $copied," in *", $name,"*) ;; *) copied="${copied:+$copied, }$name" ;; esac
     done < .env.deployment
   fi
   chmod 600 "$tmp"
   mv "$tmp" "$file"
+  # names only, never a value: what the operator sees moved into the service's file
+  if [ -n "$copied" ]; then
+    echo "Created ${file} from .env.deployment with: ${copied}"
+  elif [ ! -f .env.deployment ]; then
+    echo "Created ${file}: .env.deployment is missing, so nothing was copied."
+  else
+    echo "Created ${file}: .env.deployment has none of the settings this service reads."
+  fi
 }
 
 # Runs `python -m backend.admin ARGS` in a one-off admin container: it has the
@@ -256,6 +266,16 @@ seed_setting() {
   fi
 }
 
+# The files (names only, joined with "and") in which the operator set a MONGO_URI of
+# their own: the root .env and .env.deployment. Empty when neither has a value.
+operator_mongo_uri_files() {
+  local file out=""
+  for file in .env .env.deployment; do
+    if file_has "$file" MONGO_URI; then out="${out:+$out and }$file"; fi
+  done
+  printf '%s' "$out"
+}
+
 # API_KEY and AES_HEX_KEY: the Temporal worker's copies of TEMPORAL_API_KEY and
 # AUTH_AES_HEX_KEY. The worker is not on the settings store and never gets the
 # master key, so the two values live in the root .env. Copies the legacy values
@@ -263,9 +283,11 @@ seed_setting() {
 copy_legacy_worker_keys() {
   if ! file_has .env API_KEY && file_has .env TEMPORAL_API_KEY; then
     env_put API_KEY "$(dotenv_value .env TEMPORAL_API_KEY)"
+    echo "Copied TEMPORAL_API_KEY to API_KEY in .env (the Temporal worker's copy; the value is not shown)."
   fi
   if ! file_has .env AES_HEX_KEY && file_has .env AUTH_AES_HEX_KEY; then
     env_put AES_HEX_KEY "$(dotenv_value .env AUTH_AES_HEX_KEY)"
+    echo "Copied AUTH_AES_HEX_KEY to AES_HEX_KEY in .env (the Temporal worker's copy; the value is not shown)."
   fi
 }
 
@@ -296,6 +318,7 @@ merge_worker_env() {
     fi
     if ! file_has .env "$var"; then
       env_put "$var" "${line#*=}"
+      echo "Stored ${var} in .env (the Temporal worker's key, generated with the stack's keys; the value is not shown)."
     fi
   done
 }
@@ -801,7 +824,7 @@ service_env_file .env.worker "${worker_env_keys[@]}" || exit 1
 # after the database and its migrations are in place and before any service
 # starts, because the services refuse to start without them.
 function stack_keys() {
-  local state rc dir
+  local state rc dir mongo_uri_files count
   state=$(store_keys_state) || {
     echo "Could not read the settings store (see the message above). Is SETTINGS_MASTER_KEY the key this stack has used?" >&2
     return 1
@@ -910,10 +933,32 @@ function stack_keys() {
   # The Mongo connection, only for the import of a stack from before 4.1 (a new
   # stack stores none): the root password its volume was created with (generated
   # by 4.0), or the original default for a stack whose files do not carry a
-  # MONGO_URI (the template used to ship it). Never overwrites a stored value; the
-  # import clears it once the data is in Postgres.
+  # MONGO_URI (the template used to ship it). The operator's own MONGO_URI always
+  # comes first: when .env or .env.deployment sets one, the local URI below is not
+  # generated or stored at all (an external Mongo is never replaced by the stack's
+  # own). seed_setting never overwrites a stored value; the import clears it once
+  # the data is in Postgres.
   if [ "$legacy_mongo_import" = true ] && [ "$existing_stack" = true ]; then
-    if file_has .env BC_MONGO_ROOT_PASSWORD; then
+    mongo_uri_files=$(operator_mongo_uri_files)
+    if [ -n "$mongo_uri_files" ]; then
+      if file_has .env.deployment MONGO_URI; then
+        echo "NOTE: MONGO_URI is set in ${mongo_uri_files}: that value is the operator's own and is kept; the stack's local Mongo URI is not stored."
+      else
+        # Only the root .env has it, and no service reads the root .env: without a value in
+        # .env.deployment or the store the import could not reach that Mongo, and by then
+        # the services would already be stopped. Stop here, before anything is stopped.
+        count=$(store_versions MONGO_URI) || count=""
+        if [ "${count:-0}" -gt 0 ]; then
+          echo "NOTE: MONGO_URI is set in .env, and the settings store holds one too: the stored value is used and the stack's local Mongo URI is not stored."
+        else
+          echo "" >&2
+          echo "STOPPED before any service was stopped: MONGO_URI is set in the root .env only. No service reads MONGO_URI from the root" >&2
+          echo ".env, so the import of this stack's MongoDB data could not reach that Mongo (and the stack's own Mongo URI is not stored" >&2
+          echo "over yours). Move the MONGO_URI line from .env to .env.deployment, then run ./deploy.sh again. Nothing was changed." >&2
+          return 1
+        fi
+      fi
+    elif file_has .env BC_MONGO_ROOT_PASSWORD; then
       seed_setting MONGO_URI "mongodb://root:$(dotenv_value .env BC_MONGO_ROOT_PASSWORD)@mongodb:27017" || {
         echo "Could not seed the MONGO_URI setting." >&2
         return 1

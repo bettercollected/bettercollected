@@ -538,7 +538,14 @@ class Trust(_Spec):
     handled."""
 
     purpose: Optional[str] = None
-    retention_text: Optional[str] = None
+    retention_text: Optional[str] = Field(
+        None,
+        description=(
+            "An internal note stored with the form. It is not shown to "
+            "respondents: they see only the retention period the form "
+            'enforces (see "retention").'
+        ),
+    )
     privacy_policy_url: Optional[str] = Field(None, description="An http(s) URL.")
     retention: Optional[Retention] = None
     require_verified_identity: Optional[bool] = None

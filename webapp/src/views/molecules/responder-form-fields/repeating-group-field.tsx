@@ -5,6 +5,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { v4 } from 'uuid';
 
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
@@ -21,7 +22,7 @@ import {
     ensureGroupItems,
     getDisplayedItemCount,
     getGroupChildren,
-    getItemHeader,
+    getItemHeaderParts,
     getItemHiddenChildIds,
     getRepeatSettings,
     ItemScope,
@@ -44,11 +45,17 @@ function GroupItem({
     header,
     removable,
     onRemove,
-    renderChild
+    renderChild,
+    labelLang,
+    titleLang
 }: {
     group: StandardFormFieldDto;
     index: number;
-    header: string;
+    header: { label: string; number: number; base: string; title: string };
+    /** The language of the item name when the creator wrote it (useFormContentLanguage), else undefined. */
+    labelLang?: string;
+    /** The same for the item title template. Answers piped into it are the respondent's and inherit this too (a known limit). */
+    titleLang?: string;
     removable: boolean;
     onRemove: () => void;
     renderChild: (child: StandardFormFieldDto) => ReactNode;
@@ -72,10 +79,15 @@ function GroupItem({
         <section aria-labelledby={headingId} className="flex flex-col gap-8 rounded-xl border bg-white/70 p-4 md:p-6" style={{ borderColor: (theme?.tertiary ?? '#818CA0') + '55' }}>
             <div className="flex items-center justify-between gap-3">
                 <ItemHeading id={headingId} className="text-black-900 text-base font-semibold">
-                    {header}
+                    <span lang={labelLang}>{header.label}</span> {header.number}
+                    {header.title && (
+                        <>
+                            : <span lang={titleLang}>{header.title}</span>
+                        </>
+                    )}
                 </ItemHeading>
                 {removable && (
-                    <button type="button" onClick={onRemove} className="text-black-700 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-black/5" aria-label={t('GROUP.REMOVE_LABEL', { header })}>
+                    <button type="button" onClick={onRemove} className="text-black-700 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-black/5" aria-label={t('GROUP.REMOVE_LABEL', { header: header.title ? `${header.base}: ${header.title}` : header.base })}>
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                         {t('GROUP.REMOVE')}
                     </button>
@@ -109,7 +121,13 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
     const { theme } = useFormState();
     const standardForm = useAppSelector(selectForm);
     const { t } = useRespondentLanguage();
-    const { minItems, maxItems } = getRepeatSettings(field);
+    const { minItems, maxItems, itemTitle } = getRepeatSettings(field);
+    // The creator's item name and title template are the form's text, marked
+    // with its language when that differs from the page's; the default item
+    // name ("Item") and the numbers are the page's.
+    const contentLang = useFormContentLanguage();
+    const labelLang = field.properties?.repeat?.itemLabel?.trim() ? contentLang : undefined;
+    const titleLang = itemTitle?.trim() ? contentLang : undefined;
     // The creator's item name as written; the default one in the respondent's language.
     const itemLabel = field.properties?.repeat?.itemLabel?.trim() || t('GROUP.ITEM');
     const answers = formResponse.answers ?? {};
@@ -157,7 +175,7 @@ export default function RepeatingGroupField({ field, renderChild }: { field: Sta
         <QuestionWrapper field={field} errorMessage={errorMessage} group>
             <div className="mt-2 flex flex-col gap-4">
                 {itemKeys.map((key, index) => (
-                    <GroupItem key={key} group={field} index={index} header={getItemHeader(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} />
+                    <GroupItem key={key} group={field} index={index} header={getItemHeaderParts(field, index, pipeContext, itemLabel)} removable={removable} onRemove={() => remove(index)} renderChild={renderChild} labelLang={labelLang} titleLang={titleLang} />
                 ))}
                 <div className="flex flex-wrap items-center gap-3">
                     <button

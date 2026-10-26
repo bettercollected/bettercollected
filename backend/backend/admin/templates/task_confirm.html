@@ -14,6 +14,38 @@
 </table>
 {% endif %}
 
+{% if changes_data %}
+<p class="banner banner-warn" role="note"><strong>{{ _("This changes data.") }}</strong>
+  {% if kind == "apply" %}{{ _("A real run writes to the stores the task covers; it cannot be undone from this page.") }}{% else %}{{ _("The resumed run continues writing from where the earlier run stopped.") }}{% endif %}</p>
+{% endif %}
+{% if kind == "apply" %}
+<section aria-labelledby="dry-counts">
+  <h2 id="dry-counts">{{ _("Last dry run with these parameters") }}</h2>
+  {% if dry %}
+  <p><a href="/tasks/runs/{{ dry.run.id }}">{{ dry.run.finished_at | ts }}</a>, {{ _("requested by") }} {{ dry.run.requested_by }}.
+    {% if dry.older_than_a_day %}<span class="warn">{{ _("That is more than 24 hours ago.") }}</span>{% endif %}</p>
+  {% if dry.result %}
+  <div class="table-scroll" tabindex="0" role="region" aria-label="{{ _('Dry run result') }}">
+  <table class="kv">
+    <caption>{{ _("What the dry run found or would change") }}</caption>
+    <tbody>
+    {% for path, value in dry.result %}
+    <tr><th scope="row"><code>{{ path }}</code></th><td>{% if value is sameas true %}{{ _("yes") }}{% elif value is sameas false %}{{ _("no") }}{% elif value is none %}-{% else %}{{ value }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% elif dry.result_note == "mismatch" %}
+  <p>{{ _("The stored result does not match the task's current result schema and is not shown.") }}</p>
+  {% else %}
+  <p>{{ _("That dry run recorded no result.") }}</p>
+  {% endif %}
+  {% else %}
+  <p>{{ _("No dry run with exactly these parameters has finished for this version of the task.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if token %}
 <p>{{ _("The code was accepted. This confirmation works once and expires in two minutes.") }}</p>
 <form method="post" action="{{ destination }}">

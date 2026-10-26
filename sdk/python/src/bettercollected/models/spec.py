@@ -347,7 +347,10 @@ class Trust(BaseModel):
     )
     purpose: str | None = Field(None, title="Purpose")
     retention_text: str | None = Field(
-        None, alias="retentionText", title="Retentiontext"
+        None,
+        alias="retentionText",
+        description='An internal note stored with the form. It is not shown to respondents: they see only the retention period the form enforces (see "retention").',
+        title="Retentiontext",
     )
     privacy_policy_url: str | None = Field(
         None,

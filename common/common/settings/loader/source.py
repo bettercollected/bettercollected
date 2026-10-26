@@ -30,6 +30,8 @@ __all__ = [
     "SnapshotSource",
     "SourceUnavailable",
     "instance_id",
+    "instance_role",
+    "set_instance_role",
 ]
 
 _SERVICE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
@@ -69,22 +71,47 @@ def _clean(raw: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.:-]", "-", raw)
 
 
-def instance_id(service: str = "service", directory: Optional[str] = None) -> str:
+_ROLE = re.compile(r"^[a-z][a-z0-9]{0,15}$")
+_instance_role: Optional[str] = None
+
+
+def set_instance_role(role: Optional[str]) -> None:
+    """Name the component this process is in its heartbeat (``jobs`` for the
+    backend's job worker; ``None`` for the service's main process). Call it
+    before the settings load, which starts the heartbeat. It only labels the
+    instance: the service a heartbeat belongs to is the database role that
+    reports it. Not an environment setting on purpose: nothing an operator
+    sets can rename an instance."""
+    global _instance_role
+    if role is not None and not _ROLE.match(role):
+        raise ValueError("an instance role is a short lower-case word")
+    _instance_role = role
+
+
+def instance_role() -> Optional[str]:
+    return _instance_role
+
+
+def instance_id(
+    service: str = "service", directory: Optional[str] = None, role: Optional[str] = None
+) -> str:
     """A stable id per container: ``service:hostname`` (the container hostname
     lives as long as the container, so recreating containers cannot pile up
-    reported states). Without a usable hostname, a random id kept in
-    ``directory`` (mode 600); without that, a random id for this process.
-    Letters, digits and ``_.:-`` only, at most 64 characters."""
+    reported states), ``service.role:hostname`` for a component that runs
+    beside the service's main process (``role``). Without a usable hostname, a
+    random id kept in ``directory`` (mode 600); without that, a random id for
+    this process. Letters, digits and ``_.:-`` only, at most 64 characters."""
+    name = f"{service}.{role}" if role and _ROLE.match(role) else service
     host = _clean(socket.gethostname() or "").strip("-")
     if host and host.lower() not in ("localhost", "localhost.localdomain"):
-        return f"{service}:{host}"[:64]
+        return f"{name}:{host}"[:64]
     if directory:
-        path = os.path.join(directory, f"instance-{service}")
+        path = os.path.join(directory, f"instance-{name}")
         try:
             with open(path, "r", encoding="ascii") as handle:
                 saved = _clean(handle.read().strip())
             if saved:
-                return f"{service}:{saved}"[:64]
+                return f"{name}:{saved}"[:64]
         except OSError:
             pass
         token = secrets.token_hex(8)
@@ -95,8 +122,8 @@ def instance_id(service: str = "service", directory: Optional[str] = None) -> st
                 handle.write(token)
         except OSError:
             pass
-        return f"{service}:{token}"[:64]
-    return f"{service}:{secrets.token_hex(8)}"[:64]
+        return f"{name}:{token}"[:64]
+    return f"{name}:{secrets.token_hex(8)}"[:64]
 
 
 def libpq_url(url: str) -> str:

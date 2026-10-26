@@ -3,7 +3,8 @@ registry. No writes; no secret value, length, prefix or hash ever leaves here.
 
 * Health: service heartbeats (names and numbers), the admin database and its
   Alembic state, the other schemas' Alembic state and their mirror outboxes
-  (unresolved/total rows), read through narrow definer functions.
+  (unresolved/total rows) and the job queue's counts, read through narrow
+  definer functions.
 * Configuration: the settings registry joined with ``settings.entries`` and the
   env-override *names* services report.
 * Metrics: ``admin.platform_counts()`` (counts only), cached for a minute.
@@ -12,6 +13,7 @@ registry. No writes; no secret value, length, prefix or hash ever leaves here.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 import time
@@ -36,6 +38,10 @@ HEARTBEAT_STALE_SECONDS = 120
 METRICS_CACHE_SECONDS = 60
 MAX_VALUE_SHOWN = 200
 OTHER_SCHEMAS = ("app", "auth", "google")
+# the job queue line turns amber when a job has waited this long for a worker
+# (the worker polls within seconds, so a quarter of an hour is a stuck or absent
+# worker, not load) or when any job has failed (failed rows stay until removed)
+QUEUE_WAIT_WARN_SECONDS = 15 * 60
 # the service that owns each of those schemas (and its mirror outbox)
 SCHEMA_SERVICE = {"app": "backend", "auth": "auth", "google": "google"}
 # services that report to ``settings.service_state`` (the registry's reader names)
@@ -64,6 +70,22 @@ class BadFilter(ValueError):
 
 
 # -- health ---------------------------------------------------------------------
+# a process that runs beside its service's main one labels its instance
+# "<service>.<role>:<host>" (common.settings.loader.source.instance_id)
+COMPONENT_LABELS = {"jobs": "jobs worker"}
+# what a heartbeat's write_stores can say about MongoDB: any value naming it
+_MONGO_STORE = "mongo"
+
+
+def component_of(service: str, instance: str) -> str:
+    """The component a heartbeat is from, by name: ``jobs worker`` for the
+    backend's job worker, ``""`` for the service's main process. Only the known
+    roles are named; the instance text is reported by the service itself."""
+    prefix, _, _host = instance.partition(":")
+    head, _, role = prefix.partition(".")
+    return COMPONENT_LABELS.get(role, "") if head == service else ""
+
+
 @dataclass(frozen=True)
 class Heartbeat:
     service: str
@@ -74,6 +96,12 @@ class Heartbeat:
     rejected: int
     age_seconds: int
     alive: bool
+    component: str = ""
+    write_stores: str = ""  # "", "mongo", "postgres" or "mongo,postgres"
+
+    @property
+    def writes_mongo(self) -> bool:
+        return _MONGO_STORE in self.write_stores.split(",")
 
 
 @dataclass(frozen=True)
@@ -91,6 +119,30 @@ class OutboxStatus:
     state: str  # clean | pending | missing | unavailable
     unresolved: Optional[int]
     total: Optional[int]
+
+
+@dataclass(frozen=True)
+class QueueStatus:
+    """The background job queue, counts only.
+
+    ``state``: ``ok``, ``warning`` (a job has waited longer than
+    ``QUEUE_WAIT_WARN_SECONDS`` or one has failed), ``missing`` (no job queue in
+    the database yet) or ``unavailable`` (the roles script has not been run since
+    this release)."""
+
+    state: str
+    todo: Optional[int] = None
+    scheduled: Optional[int] = None
+    doing: Optional[int] = None
+    failed: Optional[int] = None
+    oldest_todo_seconds: Optional[int] = None
+
+    @property
+    def stale(self) -> bool:
+        return (
+            self.oldest_todo_seconds is not None
+            and self.oldest_todo_seconds > QUEUE_WAIT_WARN_SECONDS
+        )
 
 
 @dataclass(frozen=True)
@@ -121,6 +173,7 @@ class Health:
     store_revision: Optional[int]
     outbox: list[OutboxStatus] = field(default_factory=list)
     sso: list[SsoStatus] = field(default_factory=list)
+    queue: Optional[QueueStatus] = None
 
     @property
     def sso_incomplete(self) -> bool:
@@ -142,6 +195,65 @@ class Health:
     @property
     def services_stopped(self) -> int:
         return sum(1 for h in self.heartbeats if not h.alive)
+
+    @property
+    def jobs_workers_alive(self) -> int:
+        return sum(1 for h in self.heartbeats if h.component == "jobs worker" and h.alive)
+
+    @property
+    def jobs_workers_stopped(self) -> int:
+        return sum(1 for h in self.heartbeats if h.component == "jobs worker" and not h.alive)
+
+    @property
+    def write_stores_unknown(self) -> int:
+        """Live instances that did not say which stores they write (a service from
+        before revision 0018, or a mode it could not read): MongoDB may still be
+        written by them."""
+        return sum(1 for h in self.heartbeats if h.alive and not h.write_stores)
+
+    @property
+    def mongo_writers(self) -> int:
+        """Live instances that still write MongoDB (the 4.0 import window)."""
+        return sum(1 for h in self.heartbeats if h.alive and h.writes_mongo)
+
+
+@dataclass(frozen=True)
+class AdminAccess:
+    """``ADMIN_ALLOWED_IPS`` as far as the signed-in admin needs it: how many
+    entries there are and which one lets this admin's own address in. The other
+    entries are not shown (they say where the operator's networks are, which no
+    page needs); ``PLATFORM_ADMIN_EMAILS`` is listed in full, as it always was."""
+
+    entries: int
+    address: Optional[str]
+    matched_entry: Optional[str]
+    via_gateway: bool  # the match is the admin network's gateway, not a real client entry
+
+
+def admin_access(gate: Any, client_ip: Optional[str]) -> Optional[AdminAccess]:
+    """None when the page has no gate settings (an embedded app without a gate)."""
+    if gate is None:
+        return None
+    gateway = getattr(gate, "edge_gateway", None)
+    networks = tuple(getattr(gate, "allowed_ips", ()))
+    gateway_net = ipaddress.ip_network(gateway) if gateway is not None else None
+    entries = len(networks) - (1 if gateway_net is not None and gateway_net in networks else 0)
+    try:
+        address = ipaddress.ip_address(client_ip) if client_ip else None
+    except ValueError:
+        address = None
+    matched = next(
+        (n for n in networks
+         if address is not None and address.version == n.version and address in n and n != gateway_net),
+        None,
+    )
+    via_gateway = matched is None and address is not None and gateway_net is not None and address in gateway_net
+    return AdminAccess(
+        entries=max(entries, 0),
+        address=str(address) if address is not None else None,
+        matched_entry=str(matched) if matched is not None else None,
+        via_gateway=via_gateway,
+    )
 
 
 # -- configuration --------------------------------------------------------------
@@ -420,6 +532,11 @@ def sso_status(service: str, states: list, entries: dict) -> SsoStatus:
     )
 
 
+def _write_stores(value: Any) -> str:
+    """Only the four values the column allows; anything else counts as not said."""
+    return value if value in ("mongo", "postgres", "mongo,postgres") else ""
+
+
 class PageService:
     def __init__(self, engine: AsyncEngine, clock: Clock):
         self._engine = engine
@@ -467,11 +584,14 @@ class PageService:
                             r.service, r.instance, r.revision_applied, behind,
                             r.restart_pending, r.rejected, max(int(r.age_seconds), 0),
                             r.age_seconds <= HEARTBEAT_STALE_SECONDS,
+                            component_of(r.service, r.instance),
+                            _write_stores(r.write_stores),
                         )
                     )
             except Exception:  # noqa: BLE001 - store tables unreadable: no heartbeats
                 beats = []
-        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox, sso)
+        queue = await self._queue() if db_ok else None
+        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox, sso, queue)
 
     async def _sso(self) -> list[SsoStatus]:
         """Which settings single sign-on still needs on each service, from the
@@ -517,6 +637,21 @@ class PageService:
             return OutboxStatus(service, "postgres", "missing", None, None)
         unresolved, total = counts
         return OutboxStatus(service, "postgres", "pending" if unresolved else "clean", unresolved, total)
+
+    async def _queue(self) -> QueueStatus:
+        """The job queue's counts through its definer function: "unavailable" when
+        the function is missing or refuses, never the error message."""
+        try:
+            async with self._engine.connect() as conn:
+                counts = await repo.queue_counts(conn)
+        except Exception:  # noqa: BLE001 - reported as "unavailable"
+            return QueueStatus("unavailable")
+        if counts is None:
+            return QueueStatus("missing")
+        status = QueueStatus("ok", **counts)
+        if status.stale or (status.failed or 0) > 0:
+            return QueueStatus("warning", **counts)
+        return status
 
     # configuration
     async def config(self) -> Config:

@@ -4,14 +4,20 @@ stored credentials that have no user id, or whose tokens are stored readable.
 The one-time cleanup of docs/postgres-cutover-runbook.md ("Google credentials
 without a user id") as a task, with exactly the runbook's filters:
 
-* Mongo ``Oauth2CredentialDocument``: ``user_id`` missing, null or empty, or
-  ``credentials.token`` / ``credentials.refresh_token`` present;
 * Postgres ``google.oauth_credentials``: ``user_id`` empty or null, or
   ``doc.credentials`` a JSON object without ``$binary``.
 
-A dry run (required first) counts per store; the apply deletes, Mongo first and
-then Postgres, so neither store copies a row back to the other, and records the
-counts in the audit log. Counts only: never an id, an email or a token. Running
+A dry run (required first) counts; the apply deletes and records the counts in
+the audit log. Mongo is not touched since 4.1: ``mongo`` and ``both`` refuse
+``store_retired``, and an apply refuses ``import_incomplete`` until the import
+from 4.0 is over (the runner has no Mongo connection and nothing unfinished is
+recorded in ``migration_progress``): running the import again would copy the
+rows still held in Mongo back. No manual step is needed once it is over. A
+store with no record at all (the stack never had Mongo, or its import never
+started) cannot be told apart: the operator confirms that the 4.0 import ran, or
+that the stack never had Mongo, before the apply. A data role that may not read
+``google.migration_progress`` refuses ``import_state_unreadable`` (re-run the
+roles script). Counts only: never an id, an email or a token. Running
 it again deletes nothing.
 """
 
@@ -24,15 +30,20 @@ from backend.admin.tasks.spec import Params, Result, TaskMeta
 
 class Refusals(str, enum.Enum):
     store_not_configured = "store_not_configured"
-    write_mode_unknown = "write_mode_unknown"
+    store_retired = "store_retired"
     store_unreachable = "store_unreachable"
     # the Postgres function (postgres/ensure-admin-roles.sh) is missing, or the
     # runner's role may not execute it
     purge_function_missing = "purge_function_missing"
-    # an apply that leaves out a store the services still write, or Mongo
-    # while the runner has a Mongo connection (a later backfill or reconcile
-    # would copy the rows back)
+    # kept for runs made before this refusal was replaced by import_incomplete
     stores_incomplete = "stores_incomplete"
+    # an apply while the import from 4.0 is not over (a Mongo connection on the
+    # runner, or an unfinished backfill in migration_progress): a later backfill
+    # would copy the rows back
+    import_incomplete = "import_incomplete"
+    # the runner's data role may not read google.migration_progress: re-run the
+    # roles script (postgres/ensure-admin-roles.sh), which grants it
+    import_state_unreadable = "import_state_unreadable"
 
 
 class Events(str, enum.Enum):
@@ -41,7 +52,7 @@ class Events(str, enum.Enum):
 
 
 class PurgeParams(Params):
-    stores: StoreChoice = StoreChoice.auto
+    stores: StoreChoice = StoreChoice.postgres
 
 
 class StorePurge(Result):
@@ -52,7 +63,7 @@ class StorePurge(Result):
 
 
 class PurgeResult(Result):
-    mongo: Optional[StorePurge] = None
+    mongo: Optional[StorePurge] = None  # runs made before 4.1 only
     postgres: Optional[StorePurge] = None
     matched: int = 0
     deleted: int = 0

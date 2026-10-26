@@ -324,7 +324,10 @@ def register(reg: RouteRegistry) -> None:
         portal, session = _portal(request), _session(request)
         form = await _form(request)
         action = form.get("action", "")
-        context: dict[str, Any] = {"summary": [], "hidden": [], "heading": "", "back": "/tasks"}
+        context: dict[str, Any] = {
+            "summary": [], "hidden": [], "heading": "", "back": "/tasks",
+            "changes_data": False, "dry": None,
+        }
         if action == "apply":
             meta = portal.tasks.meta(form.get("task", ""))
             if meta is None or not meta.mutating:
@@ -343,7 +346,8 @@ def register(reg: RouteRegistry) -> None:
                 kind="apply", destination=f"/tasks/{meta.name}/apply",
                 title=meta.title or meta.name, task=meta.name, version=meta.version,
                 summary=taskform.summary(fields, params), hidden=_hidden(fields, params),
-                back=f"/tasks/{meta.name}",
+                back=f"/tasks/{meta.name}", changes_data=meta.mutating,
+                dry=await portal.tasks.dry_run_for(meta, params),
             )
         elif action in ("cancel", "resume"):
             run_id = portal.tasks.parse_id(form.get("run_id", ""))
@@ -364,9 +368,11 @@ def register(reg: RouteRegistry) -> None:
                 if blocked is not None:
                     return await run_page(request, run_id, 409, notice=blocked)
                 name, parts = RESUME_ACTION, [str(run_id), target[1]]
+            resumed = portal.tasks.meta(target[0]) if action == "resume" else None
             context.update(
                 kind=action, destination=f"/tasks/runs/{run_id}/{action}", title=target[0],
                 task=target[0], version=None, run_id=str(run_id), back=f"/tasks/runs/{run_id}",
+                changes_data=bool(resumed is not None and resumed.mutating),
             )
         else:
             return Response(status_code=400)

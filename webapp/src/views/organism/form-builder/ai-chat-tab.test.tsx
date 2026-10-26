@@ -494,7 +494,7 @@ describe('AIChatTab', () => {
         chatEditMock.mockResolvedValue(
             success({
                 reply: 'Set the purpose and retention.',
-                results: [{ index: 0, op: 'update_form_settings', ok: true, message: 'Updated form settings: purpose, retention' }],
+                results: [{ index: 0, op: 'update_form_settings', ok: true, message: 'Updated form settings: purpose, internal retention note' }],
                 settings: { purpose: 'To schedule your appointment', retentionText: 'kept for 90 days' }
             })
         );

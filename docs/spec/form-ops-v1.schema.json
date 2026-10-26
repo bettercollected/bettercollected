@@ -1743,6 +1743,7 @@
             }
           ],
           "default": null,
+          "description": "An internal note stored with the form (empty string clears). It is not shown to respondents, who see only the retention period the form enforces; it does not set that period.",
           "title": "Retentiontext"
         },
         "privacyPolicyUrl": {

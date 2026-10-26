@@ -8,14 +8,16 @@ import pytest
 from loader_support import JWT, PLANTED, FakeSource, jwt_row, make_keys, plain_row, raw_of, runtime
 
 from common.settings.loader import reset
-from common.settings.loader.source import instance_id
+from common.settings.loader.source import instance_id, instance_role, set_instance_role
 
 
 @pytest.fixture(autouse=True)
 def _reset():
     reset()
+    set_instance_role(None)
     yield
     reset()
+    set_instance_role(None)
 
 
 def good(keys):
@@ -27,6 +29,46 @@ def test_instance_id_is_stable_per_container_and_valid(monkeypatch):
     assert instance_id("backend") == instance_id("backend") == "backend:3f9c1d2ab7e4"
     monkeypatch.setattr("socket.gethostname", lambda: "host name/with*odd" + "x" * 80)
     assert re.fullmatch(r"[A-Za-z0-9_.:-]{1,64}", instance_id("backend"))
+
+
+def test_a_component_beside_the_main_process_labels_its_instance(monkeypatch, tmp_path):
+    monkeypatch.setattr("socket.gethostname", lambda: "3f9c1d2ab7e4")
+    assert instance_id("backend", None, "jobs") == "backend.jobs:3f9c1d2ab7e4"
+    assert instance_id("backend", None, None) == "backend:3f9c1d2ab7e4"
+    # a role that is not a short lower-case word is ignored, never put into the id
+    assert instance_id("backend", None, "Jobs; drop") == "backend:3f9c1d2ab7e4"
+    monkeypatch.setattr("socket.gethostname", lambda: "localhost")
+    d = str(tmp_path / "ids")
+    assert instance_id("backend", d, "jobs").startswith("backend.jobs:")
+    assert (tmp_path / "ids" / "instance-backend.jobs").is_file()
+    assert not (tmp_path / "ids" / "instance-backend").exists()
+
+
+def test_the_instance_role_is_a_short_word_set_by_code():
+    assert instance_role() is None
+    set_instance_role("jobs")
+    assert instance_role() == "jobs"
+    for bad in ("", "Jobs", "jobs worker", "9jobs", "a" * 17, "jobs/../x"):
+        with pytest.raises(ValueError):
+            set_instance_role(bad)
+    assert instance_role() == "jobs"  # a refused value changes nothing
+    set_instance_role(None)
+    assert instance_role() is None
+
+
+def test_a_labelled_process_reports_its_label(tmp_path, monkeypatch):
+    seen = []
+
+    class Rec(FakeSource):
+        def report_state(self, instance, state):
+            seen.append(instance)
+
+    monkeypatch.setattr("socket.gethostname", lambda: "abc123")
+    set_instance_role("jobs")
+    rt = runtime(tmp_path, Rec(good(make_keys())))
+    rt.start()
+    rt.report()
+    assert seen == ["backend.jobs:abc123"]
 
 
 def test_instance_id_without_a_hostname_persists_a_random_id(monkeypatch, tmp_path):

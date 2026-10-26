@@ -71,3 +71,47 @@ def test_echo_free_removes_nested_strings_and_short_quoted_ones_only():
     assert echo_free("saw tokensecret here", {"k": ["tokensecret"]}) == "saw … here"
     assert echo_free("no input", None) == "no input"
     assert echo_free("x", 5) == "x"
+
+
+def test_echo_free_removes_short_values_as_whole_tokens_only():
+    # a short submitted value inside a longer word leaves the word alone
+    assert echo_free("format is not valid", "mat") == "format is not valid"
+    assert echo_free("the table is not a tab", ["tab"]) == "the table is not a …"
+    assert echo_free("pattern_x and x_pattern", "pattern") == "pattern_x and x_pattern"
+    # at the ends of the message, next to punctuation and quotes, it still goes
+    assert echo_free("secret", "secret") == "…"
+    assert echo_free("bad (secret), secret.", "secret") == "bad (…), …."
+    assert echo_free("saw 'abc' here", "abc") == "saw '…' here"
+    # a value whose own edge is not a letter or digit needs no boundary there
+    assert echo_free("x!ab#y", "!ab#") == "x…y"
+    assert echo_free("x-ab-y and ab", "-ab-") == "x…y and ab"
+    # several at once, longest first
+    assert echo_free("a.b.c is not a.b", ["a.b.c", "a.b"]) == "… is not …"
+    # regex characters in the submitted value are literal
+    assert echo_free("saw (x+ and .*", ["(x+", ".*"]) == "saw … and .*"  # ".*": short, only quoted
+    assert echo_free("saw abc here", [".*c"]) == "saw abc here"
+
+
+def test_echo_free_removes_a_long_value_wherever_it_occurs():
+    # a value glued to other text by a validator must not come back
+    assert echo_free("bad key_hunter2x", "hunter2x") == "bad key_…"
+    assert echo_free("hunter2x_id invalid", "hunter2x") == "…_id invalid"
+    assert echo_free("name hunter2x123", "hunter2x") == "name …123"
+    assert echo_free("user_!secret1x", "!secret1x") == "user_…"
+    assert echo_free("saw tokensecret here", {"k": ["tokensecret"]}) == "saw … here"
+    assert echo_free("saw 'tokensecret' here", "tokensecret") == "saw '…' here"
+    # seven characters is still the whole-token rule
+    assert echo_free("id_hunter2 x", "hunter2") == "id_hunter2 x"
+
+
+def test_echo_free_costs_little_on_large_input():
+    import time
+
+    message = "invalid value " * 70_000  # about 1 MB
+    leaves = [f"v{n:04d}" for n in range(150)] + ["x" * 5_000_000, "y" * 3_000_000]
+    start = time.perf_counter()
+    assert echo_free(message, leaves) == message  # nothing of it occurs
+    assert echo_free("short message", leaves) == "short message"  # longer leaves are skipped
+    near = "a" * 300_000
+    assert echo_free(near, ["aaa"]) == near  # every position is a near-match: still linear
+    assert time.perf_counter() - start < 2.0

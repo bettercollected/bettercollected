@@ -142,7 +142,12 @@ export default function WelcomePage({
                             }
                         }}
                     >
-                        {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? t('WELCOME.VERIFY_AND_START') : startButtonText(welcomePage?.buttonText, t('WELCOME.START'))}
+                        {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? (
+                            t('WELCOME.VERIFY_AND_START')
+                        ) : (
+                            // The creator's own wording is the form's text; the default is the page's.
+                            <span lang={startButtonText(welcomePage?.buttonText, '') ? contentLang : undefined}>{startButtonText(welcomePage?.buttonText, t('WELCOME.START'))}</span>
+                        )}
                     </Button>
                 </div>
             )}

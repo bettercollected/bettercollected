@@ -122,7 +122,7 @@ def test_code_revisions(target):
 async def test_mongo_only_flags_check_nothing(target):
     source = FakeRevisions(None)  # would fail the check if it were consulted
     await ensure_schema_ready(
-        load_flags({}),
+        load_flags({"JOBS_BACKEND": "temporal"}),
         None,
         target,
         env={AUTO_MIGRATE_KEY: "true"},

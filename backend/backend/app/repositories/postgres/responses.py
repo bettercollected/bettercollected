@@ -727,9 +727,11 @@ class PostgresFormResponseRepository(RecordRepository):
         """Staff closed ``request`` by hand: its outcome, who and when, applied
         to the stored request under its row lock. Refused with 409 when
         another close was recorded since ``request`` was read (a second staff
-        member, an import that no longer has the response); completing a
-        request by deleting its response (``delete_form_response``) records no
-        close and is no conflict."""
+        member, an import that no longer has the response), and a decline is
+        refused the same way when the request changed status since (its
+        response was deleted meanwhile). Completing a request by deleting its
+        response (``delete_form_response``) records no close and is no
+        conflict, so a completing close still follows the deletion."""
         async with self._session() as session, session.begin():
             stored = await _locked_doc(
                 session,
@@ -739,7 +741,12 @@ class PostgresFormResponseRepository(RecordRepository):
             )
             if stored is None:
                 raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-            if len(stored.closures) > len(request.closures):
+            if len(stored.closures) > len(request.closures) or (
+                # the data was deleted (and the request marked done) after
+                # the caller read it: a decline would say "not deleted"
+                status is DeletionRequestStatus.DECLINED
+                and stored.status != request.status
+            ):
                 raise HTTPException(
                     HTTPStatus.CONFLICT,
                     content={

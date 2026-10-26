@@ -26,13 +26,15 @@ export function retentionDate(value: unknown): string | null {
 
 /**
  * How long a form keeps answers, in plain words for respondents: always the
- * enforced period.
+ * enforced period, as one statement.
  *
  * It is read from the form's retention setting with the backend's rules
  * (services/retention.py, which applies that period to every submission), so
  * the stated period is the one that is applied. Without a readable period
  * nothing is invented: answers are kept until deleted. The creator's own
- * wording never replaces it (see `retentionExplanation`).
+ * wording (`retentionText`) is not shown to respondents: next to the enforced
+ * period it could say something else (e.g. "kept for 6 months" beside "no fixed
+ * period"), and the form must state only what is applied.
  */
 export function describeRetention(settings: FormSettings | undefined, t: Translate, language: string, variant: 'sentence' | 'value' = 'sentence'): string {
     // 'value' reads after a "How long they are kept:" label (the Leaflet
@@ -50,13 +52,4 @@ export function describeRetention(settings: FormSettings | undefined, t: Transla
         }
     }
     return t(k('UNTIL_DELETED'));
-}
-
-/**
- * The creator's explanation of the retention period (`retentionText`, e.g.
- * "until the project ends"), shown next to the enforced period and never
- * instead of it; null when there is none.
- */
-export function retentionExplanation(settings: Partial<NonNullable<FormSettings>> | undefined): string | null {
-    return settings?.retentionText?.trim() || null;
 }

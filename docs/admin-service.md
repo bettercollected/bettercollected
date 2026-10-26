@@ -285,8 +285,8 @@ described under "Settings pages" and "Task pages" below.
 | Page | What it shows |
 |---|---|
 | `/` | Cards linking to the pages below |
-| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access |
-| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS` |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access. The backend's jobs worker labels its heartbeat (`backend.jobs:<host>`) and has a status line and a tag of its own; a "MongoDB" line says whether any running instance still reports writing MongoDB (`write_stores`), and says "not known" instead of green while a running instance did not say (a service from before the report existed), and each heartbeat row shows what it writes. The job queue is shown as counts by state (see "Job queue" below); the Temporal workers are not shown (see "Not on the Health page" below) |
+| `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS`, and an "Address gate" block for `ADMIN_ALLOWED_IPS`: the number of entries, the signed-in admin's own address and the one entry that lets it in. The other entries are not shown (they say where the operator's networks are, which no admin needs); the admin addresses are, as they are the roster every admin shares |
 | `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts_app()` and `admin.platform_counts_auth()` |
 | `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
 | `/sessions` | Your live sessions (created, last seen, address, a short fingerprint of the browser identification) with the current one marked; revoke forms post, with the CSRF token, to the existing account routes |
@@ -319,6 +319,27 @@ before the application migrations have run the page says they are not available.
 (The earlier single `admin.platform_counts()` and its owner `bc_admin_counts` are
 dropped by the script.)
 
+**Job queue.** The Health page's "Job queue" section shows the background jobs
+(`jobs` schema, the queue behind account deletion, response expiry, credential
+purges and the other worker tasks) by counts only: due and waiting, scheduled for
+later (a response deletion set for its expiry, a retry waiting out its back-off),
+running, failed, and how long the longest-waiting due job has waited (from its
+deferral, or from the time it was scheduled for when that is later, so a retried job
+is not mistaken for a stuck one). It comes from `admin.queue_counts_app()`, which
+follows the model of `credential_purges_overdue()`: SECURITY DEFINER, owned by
+`bc_count_app`, `search_path` pinned, every table schema-qualified, EXECUTE for
+`bc_admin` alone, and column-level `SELECT` on `id`, `task_name`, `status` and
+`scheduled_at` of the queue's jobs table and `job_id`, `type` and `at` of its events
+table, never a job's arguments, queue, lock or worker. No job id, task name or
+payload is returned or shown. The line is amber ("needs attention", and a note on
+the dashboard card) when a due job has waited more than 15 minutes (the worker polls
+within seconds, so that means the jobs worker is stopped or stuck) or when any job
+has failed; failed jobs stay in the queue until removed, so that count does not fall
+by itself. Before `postgres/ensure-admin-roles.sh` has run since this release the
+section says "not available" and names the script; before the queue exists
+(`python -m backend.jobs.schema`, run by `deploy.sh` after the application
+migrations) it says there is no job queue yet.
+
 The Health page reads the other schemas the same way. Per owning schema,
 `admin.schema_revision_<schema>()` returns the revision(s) in its `alembic_version`
 and `admin.outbox_counts_<schema>()` the unresolved and total rows of its
@@ -339,6 +360,15 @@ expects come from the revision files in the backend image: its own and, copied i
 imported (`backend/admin/schema_heads.py`). The page reads the outboxes in PostgreSQL
 only; for MongoDB run `python -m backend.migrate status` (and `auth.migrate`,
 `googleform.migrate`) in the service's container.
+
+### Not on the Health page
+
+* **The Temporal workers** report nothing the portal can read: they stay off the settings store on purpose
+  (they drive a browser on user-supplied URLs and never get the master key), and the admin service has no network
+  path to Temporal and no Temporal client. Check them with `docker compose ps` / the Temporal UI.
+* **MongoDB** is reachable only from the backend's command line during the import of a 4.0 stack
+  (`python -m backend.migrate status`); the admin service has no MongoDB access, and no MongoDB container
+  runs otherwise. The "MongoDB" line on the page says only whether any running instance still writes it.
 
 ## Settings pages (changing settings)
 
@@ -594,11 +624,11 @@ What you provide, and what `deploy.sh` generates (once; a value already present 
 
 So a bundled install needs one value from you, `PLATFORM_ADMIN_EMAILS`, plus `ADMIN_ALLOWED_IPS` in the cases above; the master key is the one value you keep safe.
 
-**New install.** `deploy.sh` generates the secrets above, starts the database, creates the roles and applies every migration (including the `settings` schema), then runs `bootstrap-keys` in a one-off container before any service starts: the keys go into the store as the `cli` actor, only the fingerprint is printed, and the two worker copies are written to `.env` (mode 600, never printed). Then it seeds the reference data into Postgres (`python -m backend.seed_refdata` in a one-off backend container; a new stack has no MongoDB and no `MONGO_URI`, so the command's check for unimported Mongo data has nothing to read): the allowed origins, which the API's CORS and the post-sign-in redirect trust, and the Google Forms provider (enabled with `./deploy.sh googleform`). The origins are the web app's public addresses, `HTTP_SCHEME` (default `https`) with `DASHBOARD_DOMAIN` and `FORM_DOMAIN`, read from `.env.webapp` (else `.env.deployment`). With neither domain set the stack is taken for a local one: the origins are the local web app ports (`http://localhost:3000`, `3001`, `3002`), or the origin of `API_CLIENT_URL` when that is not a local address, never localhost on a stack with a public address. This runs only on a new stack (while `BC_FIRST_RUN_PENDING` is in `.env`; a failed seed stops the deploy before the services start, and the next run seeds again), and each table only while it is empty: an upgraded stack imports its reference data from Mongo instead (docs/postgres-cutover-runbook.md). Origins added later (a verified custom domain) are added by the application. Then the services start. Last it shows a one-time setup token on the console only (`./deploy.sh setup-token --new` shows another while setup is not finished; it needs a terminal). The token is in no container log: the one-off container is removed when the command ends.
+**New install.** `deploy.sh` generates the secrets above, starts the database, creates the roles and applies every migration (including the `settings` schema), then runs `bootstrap-keys` in a one-off container before any service starts: the keys go into the store as the `cli` actor, only the fingerprint is printed, and the two worker copies are written to `.env` (mode 600; `deploy.sh` prints their names, never the values). Then it seeds the reference data into Postgres (`python -m backend.seed_refdata` in a one-off backend container; a new stack has no MongoDB and no `MONGO_URI`, so the command's check for unimported Mongo data has nothing to read): the allowed origins, which the API's CORS and the post-sign-in redirect trust, and the Google Forms provider (enabled with `./deploy.sh googleform`). The origins are the web app's public addresses, `HTTP_SCHEME` (default `https`) with `DASHBOARD_DOMAIN` and `FORM_DOMAIN`, read from `.env.webapp` (else `.env.deployment`). With neither domain set the stack is taken for a local one: the origins are the local web app ports (`http://localhost:3000`, `3001`, `3002`), or the origin of `API_CLIENT_URL` when that is not a local address, never localhost on a stack with a public address. This runs only on a new stack (while `BC_FIRST_RUN_PENDING` is in `.env`; a failed seed stops the deploy before the services start, and the next run seeds again), and each table only while it is empty: an upgraded stack imports its reference data from Mongo instead (docs/postgres-cutover-runbook.md). Origins added later (a verified custom domain) are added by the application. Then the services start. Last it shows a one-time setup token on the console only (`./deploy.sh setup-token --new` shows another while setup is not finished; it needs a terminal). The token is in no container log: the one-off container is removed when the command ends.
 
 **A database that already holds data is never bootstrapped.** The two stores are checked in two places. The Postgres side (users, responses) is counted by `bootstrap-keys` itself. The Mongo side is **not** counted by `bootstrap-keys` in a `deploy.sh` run (its one-off container holds the admin database role and nothing else, never the Mongo root credentials, so the command's own Mongo check does not run there); `deploy.sh` decides it explicitly instead: a Mongo volume of this stack (found under the project name compose uses: the shell's or the root `.env`'s `COMPOSE_PROJECT_NAME`, else the directory name) or a `MONGO_URI` in `.env` or `.env.deployment` (an external Mongo it cannot look into) means the stack may hold data, and it never generates keys. In every such case `deploy.sh` stops before any service starts, stores no keys and says so: a new keyset could not read what the old one encrypted. Put the keys the stack has used in `.env` (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, `MASTER_ENCRYPTION_KEYSET`) and run `./deploy.sh` again; it imports them (see `settings-import`). Volumes found under a project name other than the one compose will use (say `COMPOSE_PROJECT_NAME` added to `.env` after the stack was created under the directory's name) are refused with the name to set, and no database password is generated while any volume of the stack exists, because those passwords are read only when a volume is created.
 
-**Which services read which env file.** Only the four services that read the settings store (`backend`, `jobs-worker`, `auth`, `integrations-googleform`; they hold the master key, so they can read every stored value anyway) get `.env.deployment` as their `env_file`. The Temporal worker (it drives a browser on user-supplied URLs) and the public webapp each get an env file of their own (`.env.worker`, `.env.webapp`, mode 600, git-ignored) holding only what that service reads, so a bug in the browser or the webapp cannot expose Stripe, Google or mail secrets, the Mongo credentials or any key. `deploy.sh` creates each file once from the lines of `.env.deployment` that service reads (empty values left out) and never changes it afterwards: edit those files for those services, not `.env.deployment`. `.env.deployment` itself is your own file and is not tracked: `deploy.sh` creates it from the template `.env.deployment.example` (mode 600) when it is missing, says so, and never overwrites an existing one. Running `docker compose` without `deploy.sh`? All three env files are optional for rendering (Compose 2.24 or newer); create them yourself (`(umask 077; cp .env.deployment.example .env.deployment)`). The lists live in `deploy.sh` (`webapp_env_keys`, `worker_env_keys`) and a test compares them with `docs/settings-inventory.md`. The Typeform integration was removed in 4.1: an `.env.typeform` left by an earlier release is no longer used (delete it when you no longer need it).
+**Which services read which env file.** Only the four services that read the settings store (`backend`, `jobs-worker`, `auth`, `integrations-googleform`; they hold the master key, so they can read every stored value anyway) get `.env.deployment` as their `env_file`. The Temporal worker (it drives a browser on user-supplied URLs) and the public webapp each get an env file of their own (`.env.worker`, `.env.webapp`, mode 600, git-ignored) holding only what that service reads, so a bug in the browser or the webapp cannot expose Stripe, Google or mail secrets, the Mongo credentials or any key. `deploy.sh` creates each file once from the lines of `.env.deployment` that service reads (empty values left out), prints the names (never the values) it copied into it, and never changes it afterwards: edit those files for those services, not `.env.deployment`. `.env.deployment` itself is your own file and is not tracked: `deploy.sh` creates it from the template `.env.deployment.example` (mode 600) when it is missing, says so, and never overwrites an existing one. Running `docker compose` without `deploy.sh`? All three env files are optional for rendering (Compose 2.24 or newer); create them yourself (`(umask 077; cp .env.deployment.example .env.deployment)`). The lists live in `deploy.sh` (`webapp_env_keys`, `worker_env_keys`) and a test compares them with `docs/settings-inventory.md`. The Typeform integration was removed in 4.1: an `.env.typeform` left by an earlier release is no longer used (delete it when you no longer need it).
 
 **Services `deploy.sh` starts.** Every deployment starts the webapp, backend, auth, the Temporal worker, Temporal and its database, Umami and its database, nginx, **the admin service, the jobs worker (it consumes the `default` queue: `delete_user` and `delete_response`), the document sandbox and the task runner**, plus the Google Forms integration when asked for (`./deploy.sh googleform`) and Polis with single sign-on. `./deploy.sh typeform` and `./deploy.sh both` (from before the Typeform removal in 4.1) are refused with exit code 2 before anything is changed. MongoDB is not part of a 4.1 stack: it starts only under the `legacy-mongo` compose profile, once, while `deploy.sh` imports a 4.0 stack's data into Postgres (docs/postgres-cutover-runbook.md, "Upgrading to 4.1"), and is stopped and its container removed afterwards; its volume is kept. `deploy.sh` warns when an `integrations-typeform` container from an earlier release still exists; it never removes it. `./deploy.sh print-services [preference]` prints the list; a test runs it through `docker compose up --dry-run`. The first-sign-in notice and the setup token are shown only once the admin service reports healthy. If a first run stops after the keys were stored (a failed start, a closed terminal), the next run still shows the master key fingerprint and the notice (`BC_FIRST_RUN_PENDING` in `.env` marks it until shown).
 
@@ -926,7 +956,7 @@ window: the deploy recreates every service and runs migrations.
 `deploy.sh` runs them, in this order, before the services start:
 
 - `postgres/ensure-admin-roles.sh`: creates the admin schema's roles and grants, the two
-  platform-count functions and the Health page's revision and outbox functions; idempotent, run before the migrations and again after them (the
+  platform-count functions and the Health page's revision, outbox and job queue functions; idempotent, run before the migrations and again after them (the
   task runner's data roles are granted on tables the other migrations create).
 - The **admin** schema's own chain, `0001` to `0017`, as the migration role `bc_admin_mig`.
 - The **application** schema: `0013` to `0016` (rate-limit counters, the AI notice stamp on
@@ -1066,23 +1096,15 @@ compose service passes them from the root `.env`, and they are empty by default
 |---|---|
 | `TASK_RUNNER_DATABASE_URL` | Postgres URL of the data role for the `app` schema. It defaults to `bc_tasks_data_app` (below), built from `BC_TASKS_DATA_APP_PASSWORD`; set it only to point at another dedicated role, never the backend's: that would give the runner the whole app schema next to the keyset |
 | `TASK_RUNNER_GOOGLE_DATABASE_URL` | the same for the Google credentials (`google` schema); defaults to `bc_tasks_data_google` from `BC_TASKS_DATA_GOOGLE_PASSWORD`, never the integration's role |
-| `TASK_RUNNER_MONGO_URI` / `TASK_RUNNER_MONGO_DB` | Mongo, while Mongo still holds responses (`TASK_RUNNER_MONGO_DB` defaults to `bettercollected_backend`). A read-only Mongo user is the recommended deployment for the check and for dry runs |
+| `TASK_RUNNER_MONGO_URI` | never used to connect: the tasks cover Postgres alone since 4.1. While it is set, `keyset.drop_old` and the Google credentials purge refuse (`import_incomplete`): unset it once the import from 4.0 is over. (`TASK_RUNNER_MONGO_DB`, `DB_WRITE_MODE*` and `TASK_RUNNER_GOOGLE_MONGO_DB` are no longer read) |
 | `TASK_RUNNER_KEYSET` | the response keyset for the read-only `responses.*` tasks and `keyset.verify` when it is not in the settings store; it never goes to a file or a log. The `keyset.*` tasks that change or re-encrypt ignore it and use the settings store only |
-| `DB_WRITE_MODE`, `DB_WRITE_MODE__RESPONSES` | the services' write mode (from the root `.env`; keep it equal to the services' and change it with them during the move to Postgres). It decides the stores `stores: auto` covers (every store the services still write) and the primary store of `keyset.drop_old`; unset, the services' default applies (`mongo` while the backend has groups on Mongo), as on a fresh stack where the services run on it too; a value that is not a write mode refuses with `write_mode_unknown`. The Google credentials need none: they are in Postgres only since 4.1 |
-| `TASK_RUNNER_GOOGLE_MONGO_DB` | the Google Forms integration's Mongo database (default `bettercollected_googleform`) |
-
-`stores: auto` covers every store the services still write for the task's group, as the
-runner's `DB_WRITE_MODE*` says (`mongo`: Mongo; `dual` and `postgres_primary_dual`: both;
-`postgres`: Postgres), each of which must be configured (else `store_not_configured`), and then
-any other store the runner is configured for; never fewer than the services write, so once Mongo
-is retired the tasks run on Postgres alone (unset `TASK_RUNNER_MONGO_URI`). With the write mode
-unset `auto` follows the services' default (`mongo` while the backend has groups on Mongo, so the
-runner then needs `TASK_RUNNER_MONGO_URI`); with one it cannot read it refuses
-(`write_mode_unknown`). `mongo`, `postgres` or `both` name the stores,
-need no write mode, and refuse if one is missing. `keyset.drop_old` does not follow `auto`: it
-scans both stores, each configured, or refuses, unless the operator ticks `mongo_retired` (signed and
-audited; accepted only with the runner's write mode `postgres` for every group), which scans
-Postgres alone (docs/response-keyset-rotation.md, "The store rule"). The scripts `backend/scripts/check_undecryptable_values.py`
+Postgres is the only store the tasks read or write: `stores: postgres` (the default; `auto` means the
+same, kept for parameters saved before 4.1) needs the data role's URL (else `store_not_configured`);
+`mongo` and `both` are refused with `store_retired` before anything connects. No write mode is read.
+`keyset.drop_old` scans Postgres alone and needs the operator's signed `mongo_retired` statement
+(`store_retired` without it); it also refuses (`import_incomplete`) until the import from 4.0 is
+over, and `import_state_unreadable` when the data role cannot read `migration_progress`
+(docs/response-keyset-rotation.md, "The store rule"). The scripts `backend/scripts/check_undecryptable_values.py`
 and `backend/scripts/backfill_response_workspaces.py` stay as command-line
 tools (the backfill gained `--workspace-id` and `--form-id`), sharing the same code.
 
@@ -1114,12 +1136,6 @@ The grants are in the roles script, not in a migration, because the tables belon
 reach the other's schema or anything its owner owns, and that a hostile trigger of either owner
 gets nothing from the other.
 
-Mongo, while it still holds responses: give the runner a dedicated user. For the check, `verify`
-and dry runs a read-only user is enough (`read` on the responses database and the Google
-integration's database). `responses.backfill_workspaces`, `keyset.reencrypt` and the other writing
-tasks need `readWrite` on exactly `form_responses` and `Oauth2CredentialDocument` (the
-credentials), and `read` on `workspace_forms`. Put its URI in `TASK_RUNNER_MONGO_URI`.
-
 ### Keyset tasks
 
 `keyset.add_key`, `keyset.promote`, `keyset.reencrypt`, `keyset.verify` and `keyset.drop_old`
@@ -1137,27 +1153,21 @@ empty, or `credentials.token` / `credentials.refresh_token` present; Postgres
 `google.oauth_credentials`: `user_id` empty or null, or `credentials` a JSON object without
 `$binary`).
 
-- **Dry run first** (required): the count per store; nothing changes, both stores are opened
-  read-only.
-- **Apply** (confirmation code, like every changing task): Mongo first, then Postgres, whatever
-  the services' primary store, so that neither store copies a row back to the other. One audit
-  row per store (`task.google.purged`, target `google_oauth` / the store) with the matched and
-  deleted counts. Running it again deletes nothing.
-- **Stores:** `auto` follows the store rule above (group `google`, written to Postgres alone from
-  4.1, so `auto` is Postgres plus Mongo when the runner has a Mongo connection); `mongo`,
-  `postgres` or `both` name them. An apply must cover every store the services still write, and
-  Mongo whenever the runner has a Mongo connection, else it refuses with `stores_incomplete`:
-  neither store keeps a deletion tombstone, so a row left in Mongo would come back with the next
-  backfill (on 4.1 the import from 4.0, `python -m googleform.migrate backfill`, still copies
-  whatever Mongo holds) or reconcile. A dry run may count a single store. Use `auto`.
+- **Dry run first** (required): the count; nothing changes, the store is opened read-only.
+- **Apply** (confirmation code, like every changing task): one audit row (`task.google.purged`,
+  target `google_oauth` / `postgres`) with the matched and deleted counts. Running it again
+  deletes nothing.
+- **Stores:** Postgres alone from 4.1 (`stores: postgres`, the default; `auto` means the same);
+  `mongo` and `both` refuse `store_retired`. An apply refuses `import_incomplete` until the import
+  from 4.0 is over (the runner has no Mongo connection, and `google.migration_progress` records no
+  unfinished backfill), and `import_state_unreadable` when the role cannot read that record:
+  running the import again would copy the rows still held in Mongo back (neither store keeps a
+  deletion tombstone). A store with no record at all cannot be told apart from one never imported:
+  confirm the import ran, or that the stack never had Mongo, before the apply.
 - **Order on 4.1:** finish the import from 4.0 (backfill, then verify) first, then run the purge.
-  A runner without a Mongo connection may apply on Postgres alone; the gate cannot see Mongo
-  then, so a purge run before the import has finished is undone by it. Alternatively purge both
-  stores on 4.0.10 before upgrading.
+  Alternatively purge both stores on 4.0.10 or later before upgrading.
 - **Counts only** in the result, the events and the audit log: never an id, an email or a token.
-- **Least privilege:** Mongo through the runner's Google Mongo connection (`MONGO_URI` /
-  `TASK_RUNNER_GOOGLE_MONGO_DB`), `deleteMany` with the filter above (the user needs `readWrite`
-  on `Oauth2CredentialDocument`). Postgres through `bc_tasks_data_google`, which has no DELETE: it
+- **Least privilege:** Postgres through `bc_tasks_data_google`, which has no DELETE: it
   calls `google.purge_unencrypted_credentials(apply)`, a `SECURITY DEFINER` function with a pinned
   `search_path` that holds the filter and returns the count. Its owner `bc_tasks_purge_google` is
   NOLOGIN and holds DELETE on that table alone; `postgres/ensure-admin-roles.sh` makes both.
@@ -1267,7 +1277,7 @@ row into `tasks.runs` and the runner executes it only if the signature verifies.
 |---|---|
 | `GET /tasks/<name>` | the parameter form, generated from the task's `Params` schema (text with length limit and pattern, numbers with a range, enums as selects, flags as checkboxes, lists of ids one per line with a maximum count); a type the form cannot express is not rendered and says so, and a required one removes the start buttons. Shows the last dry run |
 | `POST /tasks/<name>/dry-run` | CSRF, audited, at most 10 per admin per 5 minutes; no step-up. A read-only task has a single "Run" button that uses this route |
-| `POST /tasks/prepare` | the code step: verifies a fresh authenticator or recovery code (same lockouts as `/api/stepup`) and renders a confirmation page that holds a single-use token. It changes no task state |
+| `POST /tasks/prepare` | the code step: verifies a fresh authenticator or recovery code (same lockouts as `/api/stepup`) and renders a confirmation page that holds a single-use token. It changes no task state. The page for an apply says that the run changes data and shows the latest succeeded dry run with exactly the same parameters (who asked, when it finished, a note when it is over 24 hours old) with its result counters, rendered through the task's `Result` schema like the run page; for a resume it says that it changes data when the task does |
 | `POST /tasks/<name>/apply` | needs that token, bound to hash(task, version, canonical params hash, `dry_run=false`) |
 | `POST /tasks/runs/<id>/cancel` | token bound to the run id; sets `cancel_requested_at` (the only column the admin role may update); idempotent; only for queued or running runs |
 | `POST /tasks/runs/<id>/resume` | token bound to the run id and its params hash; a new signed request with `resumes_run_id` and the same params |
@@ -1345,8 +1355,8 @@ the master key can sign anything: that is inherent to a shared key (see
   every instance seen in the last 15 minutes and from each required service, they run again
   immediately before `keyset.drop_old` writes, and `drop_old` and `reencrypt` rely on a full
   scan of the data, not on the heartbeats, for the safety of the data itself. The one place a
-  heartbeat narrows a scan is `drop_old` with `mongo_retired` (Postgres alone): it needs the
-  operator's signed statement, the runner's write mode `postgres` for every group, and every live
+  heartbeat narrows a scan is `drop_old` (Postgres alone, Mongo is not scanned): it needs the
+  operator's signed `mongo_retired` statement, a finished import from 4.0, and every live
   instance reporting `write_stores = postgres` (admin revision 0018; the older six-argument
   `report_state` still works and reports them as unknown, which refuses).
 * A process that holds `SETTINGS_MASTER_KEY` can sign task requests and audit rows without any
@@ -1402,7 +1412,15 @@ touched.
 | `settings.service_state` | rows older than 7 days of a service with no newer row (a service that still reports prunes its own) |
 
 The admin role holds DELETE on `tasks.run_events`, `tasks.checkpoints` and
-`settings.service_state` for this; the runner role still can only append.
+`settings.service_state` for this; the runner role still can only append. A table grant
+cannot say "only old rows", so a `BEFORE DELETE` trigger on `settings.service_state`
+(`settings.service_state_delete_guard`, admin revision 0019) refuses, for any role that is
+neither the table's owner nor a superuser, the delete of a row that is not exactly what the
+loop removes: older than 7 days and of a service with no newer row. A stolen portal credential
+therefore cannot erase live heartbeats (the keyset gates and the integrity monitor read them);
+it can still delete the stale rows of a service that stopped reporting. `settings.report_state`
+runs as the owner and prunes the reporting service's own stale rows as before. Whoever owns the
+table can drop the trigger, as for the other guards in this schema.
 
 **Integrity.** Each pass runs the settings store check, verifies the next slice of the
 audit chain (up to 5000 rows) from a checkpoint kept in `admin.audit_verify_state` (the last

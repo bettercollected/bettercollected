@@ -12,8 +12,11 @@ docs/response-keyset-rotation.md is carried over:
   back before the write and read back after it before they are counted;
 * the old key is dropped only after a full scan of EVERY target in BOTH stores
   found no value on it, and no primary store empty (no target or store
-  selection exists for it); Postgres alone only when the operator signs
-  ``mongo_retired`` and the runner's write mode is postgres for every group;
+  selection exists for it). Postgres is the only store scanned (since 4.1):
+  the operator signs ``mongo_retired``, that values left in Mongo (or in a
+  backup of it) become unreadable, or the task refuses ``store_retired``; it
+  also refuses ``import_incomplete`` until the import from 4.0 is over (no Mongo
+  connection on the runner, no unfinished backfill in ``migration_progress``);
   with a scan that did not finish it refuses.
 
 The keyset is never printed, logged, put in an event or a result: key ids and
@@ -54,7 +57,6 @@ BASE_COUNTERS = (
     "values_reencrypted",
     "records_changed_concurrently",
     "records_readback_failed",
-    "mirror_records_copied",
 )
 
 
@@ -103,14 +105,14 @@ class _Base:
                 google_in_use=params.google_in_use,
             )
 
-    async def _ping_all(self, config, targets, choice, *, mongo_retired=False) -> Dict[str, List[str]]:
+    async def _ping_all(self, config, targets, choice) -> Dict[str, List[str]]:
         """Plan the stores of each target (``choice`` is a StoreChoice, or
-        ``"drop_old"``: both stores, or Postgres alone under a signed
-        ``mongo_retired``) and check each answers."""
+        ``"drop_old"``: Postgres, the one store scanned) and check each
+        answers."""
         plans: Dict[str, List[str]] = {}
         for target in targets:
             names = (
-                config.drop_old_stores(target, mongo_retired)
+                config.drop_old_stores(target)
                 if choice == "drop_old"
                 else config.stores_for(target, choice)
             )
@@ -295,56 +297,35 @@ class Reencrypt(_Base):
                             complete = False
                             break
                 else:
-                    primary, mirror = stores[0], (stores[1] if len(stores) > 1 else None)
+                    primary = stores[0]
 
-                    def walker(phase, store):
-                        async def on_batch(after, counts) -> bool:
-                            await ctx.checkpoint(
-                                {
-                                    "t": name,
-                                    "p": phase,
-                                    "a": str(after),
-                                    "d": base + counts.get("records", 0),
-                                }
-                            )
-                            await ctx.progress(base + counts.get("records", 0))
-                            return await ctx.cancelled()
+                    async def on_batch(after, counts) -> bool:
+                        await ctx.checkpoint(
+                            {
+                                "t": name,
+                                "p": "primary",
+                                "a": str(after),
+                                "d": base + counts.get("records", 0),
+                            }
+                        )
+                        await ctx.progress(base + counts.get("records", 0))
+                        return await ctx.cancelled()
 
-                        return on_batch
-
+                    # a checkpoint of another phase is a run made before 4.1,
+                    # past its Postgres walk (the Mongo copy is no longer walked)
                     if resume_phase == "primary":
                         counts, _last = await core.reencrypt_store(
                             primary,
                             target,
                             rotation,
-                            mirror=mirror,
                             batch_size=params.batch_size,
                             start_after=resume_after,
-                            on_batch=walker("primary", primary),
+                            on_batch=on_batch,
                             readback=True,
                         )
                         per_store[primary.name] = counts
                         await ctx.emit(
                             Events.reencrypted, _event_counts(counts), [state.event_target(name), primary.name]
-                        )
-                        if counts.get("stopped"):
-                            complete = False
-                    if complete and mirror is not None:
-                        # what the copy could not cover: rows only the mirror
-                        # holds, or whose value differed from the primary's
-                        after = resume_after if resume_phase == "mirror" else None
-                        counts, _last = await core.reencrypt_store(
-                            mirror,
-                            target,
-                            rotation,
-                            batch_size=params.batch_size,
-                            start_after=after,
-                            on_batch=walker("mirror", mirror),
-                            readback=True,
-                        )
-                        per_store[mirror.name] = counts
-                        await ctx.emit(
-                            Events.reencrypted, _event_counts(counts), [state.event_target(name), mirror.name]
                         )
                         if counts.get("stopped"):
                             complete = False
@@ -443,18 +424,28 @@ class DropOld(_Base):
         # every service must already encrypt with the primary: otherwise one
         # could still write a value under a key about to be dropped
         await self._ready(ctx, params, parsed, stored)
-        if params.mongo_retired:
-            # the services' own reports, not only the runner's copy of their mode
-            async with ctx.connection() as conn:
-                await state.check_consumers_off_mongo(conn)
+        if not params.mongo_retired:
+            # Mongo is no longer scanned: without the signed statement that it
+            # is retired, the old key would be dropped with values on it unseen
+            raise Refusal("store_retired")
+        # the services' own reports, not only the runner's environment
+        async with ctx.connection() as conn:
+            await state.check_consumers_off_mongo(conn)
         config = state.DataConfig.from_env()
         targets = state.selected_targets([])  # always every target
-        # both stores, configured and reachable, whatever the runner's copy of the
-        # write mode says; Postgres alone only under a signed mongo_retired
-        plans = await self._ping_all(
-            config, targets, "drop_old", mongo_retired=params.mongo_retired
-        )
+        plans = await self._ping_all(config, targets, "drop_old")
+        await self._import_over(config, targets, plans)
         return keys, stored, value, parsed, config, targets, plans
+
+    async def _import_over(self, config, targets, plans) -> None:
+        """The import from 4.0 must be over: no later backfill may bring in a
+        value on the key about to go (``state.check_import_finished``)."""
+        for target in targets:
+            async with state.open_target_stores(
+                config, target, plans[target.name], read_only=True
+            ) as stores:
+                for store in stores:
+                    await state.check_import_finished(store, config.mongo_configured)
 
     async def precheck(self, ctx, params) -> None:
         await self._gate(ctx, params)
@@ -493,12 +484,9 @@ class DropOld(_Base):
                     if counts.get("stopped"):
                         stopped = True
                         break
-                    # an empty PRIMARY store looks like a wrong or empty database; a
-                    # mirror may legitimately be behind
-                    if (
-                        counts.get("records", 0) == 0
-                        and store.name == config.primary_store(target)
-                        and not (target is core.GOOGLE_CREDENTIALS and params.allow_empty_google)
+                    # an empty store looks like a wrong or empty database
+                    if counts.get("records", 0) == 0 and not (
+                        target is core.GOOGLE_CREDENTIALS and params.allow_empty_google
                     ):
                         empty.append(f"{name}.{store.name}")
             out[name] = catalog.StoreCounts(
@@ -539,9 +527,10 @@ class DropOld(_Base):
             )
         # the scan can take hours: the consumers must still be ready NOW
         await self._ready(ctx, params, parsed, stored)
-        if params.mongo_retired:
-            async with ctx.connection() as conn:
-                await state.check_consumers_off_mongo(conn)
+        async with ctx.connection() as conn:
+            await state.check_consumers_off_mongo(conn)
+        # a backfill started during the scan would bring in values on the old key
+        await self._import_over(config, targets, plans)
         version, revision = await self._write(
             ctx, keys, stored, only_primary(parsed), "drop_old", {"dropped_count": len(old)}
         )

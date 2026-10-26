@@ -28,7 +28,7 @@ async def service_states(conn: AsyncConnection) -> list[Any]:
         await conn.execute(
             text(
                 "SELECT service, instance, revision_applied, restart_pending, "
-                "cardinality(rejected_keys) AS rejected, env_overrides, "
+                "cardinality(rejected_keys) AS rejected, env_overrides, write_stores, "
                 "extract(epoch FROM (now() - reported_at))::bigint AS age_seconds "
                 "FROM settings.service_state ORDER BY service, instance LIMIT 500"
             )
@@ -187,6 +187,25 @@ async def outbox_counts(conn: AsyncConnection, schema: str) -> Optional[tuple[in
     if row.unresolved is None or row.total is None:
         return None
     return max(int(row.unresolved), 0), max(int(row.total), 0)
+
+
+async def queue_counts(conn: AsyncConnection) -> Optional[dict[str, Optional[int]]]:
+    """The job queue's counts (``todo``, ``scheduled``, ``doing``, ``failed`` and
+    ``oldest_todo_seconds``, which is ``None`` while nothing waits), or ``None``
+    before the queue exists. Counts only: the definer function never selects a job's
+    arguments, and the answer is checked here like any other (whole numbers in the
+    known fields, nothing else)."""
+    raw = parse_json((await conn.execute(text("SELECT admin.queue_counts_app()"))).scalar_one())
+    if not isinstance(raw, dict):
+        return None
+    oldest = raw.get("oldest_todo_seconds")
+    return {
+        "todo": _n(raw.get("todo")),
+        "scheduled": _n(raw.get("scheduled")),
+        "doing": _n(raw.get("doing")),
+        "failed": _n(raw.get("failed")),
+        "oldest_todo_seconds": None if oldest is None else _n(oldest),
+    }
 
 
 _AUDIT_COLUMNS = (

@@ -91,6 +91,9 @@ INSTANCE_SMTP = {
     "server": "smtp.instance.example",
 }
 OWN_SMTP = {"Sender": "forms@acme.example", "server": "smtp.acme.example"}
+# what a workspace sends through its own server: the whole SMTP group is its
+# own (the instance's login is never mixed in), Password being a secret
+OWN_FULL_SMTP = {**OWN_SMTP, "Username": "acme-user", "Port": "2525"}
 
 
 def _overrides(values):
@@ -150,6 +153,10 @@ def _send(
         "title": workspace_title,
         "parameters": _overrides(workspace_values or {}),
     }
+    if workspace_values:
+        workspace["secrets"] = {
+            ACTION_ID: [_param("Password", crypto.encrypt("acme-pw"))]
+        }
     form = {
         "builder_version": "v2",
         "title": form_title,
@@ -182,7 +189,7 @@ def _headers(raw):
 
 def test_own_smtp_sends_in_the_workspaces_name_from_its_own_address(monkeypatch):
     config, raw = _send(
-        monkeypatch, "Acme Corp", "Job application", workspace_values=OWN_SMTP
+        monkeypatch, "Acme Corp", "Job application", workspace_values=OWN_FULL_SMTP
     )
     _, parsed = _headers(raw)
     assert config.MAIL_SERVER == "smtp.acme.example"
@@ -206,7 +213,7 @@ def test_titles_cannot_inject_headers(monkeypatch, own):
         monkeypatch,
         INJECTION,
         "Survey\r\nBcc: other@example.net\nX-Evil: 2",
-        workspace_values=OWN_SMTP if own else None,
+        workspace_values=OWN_FULL_SMTP if own else None,
     )
     head, parsed = _headers(raw)
     lines = head.splitlines()
@@ -221,7 +228,9 @@ def test_titles_cannot_inject_headers(monkeypatch, own):
 
 
 def test_long_titles_are_capped(monkeypatch):
-    config, raw = _send(monkeypatch, "W" * 300, "F" * 300, workspace_values=OWN_SMTP)
+    config, raw = _send(
+        monkeypatch, "W" * 300, "F" * 300, workspace_values=OWN_FULL_SMTP
+    )
     _, parsed = _headers(raw)
     assert config.MAIL_FROM_NAME == "W" * (FROM_NAME_MAX - 1) + "…"
     subject = " ".join(str(parsed["Subject"]).split())
@@ -235,7 +244,7 @@ def test_a_sender_that_is_not_one_address_is_refused(monkeypatch):
             "Acme",
             "Survey",
             workspace_values={
-                "server": "smtp.acme.example",
+                **OWN_FULL_SMTP,
                 "Sender": "forms@acme.example\r\nBcc: victim@example.net",
             },
         )

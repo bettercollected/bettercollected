@@ -68,6 +68,7 @@ from .source import (
     SnapshotSource,
     SourceUnavailable,
     instance_id,
+    instance_role,
 )
 
 __all__ = [
@@ -504,7 +505,8 @@ class SettingsRuntime:
         """Tell the store what this process applied. Raises ``SourceUnavailable``."""
         if self.source is not None:
             self.source.report_state(
-                instance_id(self.service, self.config.snapshot_dir), self.state()
+                instance_id(self.service, self.config.snapshot_dir, instance_role()),
+                self.state(),
             )
 
     def poll_once(self) -> bool:

@@ -1,7 +1,8 @@
 """The keyset rotation tasks end to end, through the real runner: the runner role
 on its own database (the settings store, the heartbeats, the audit trail), the
-data stores (Mongo and Postgres of the app's test setup) seeded with the
-dataset the rotation script's tests use, and the keyset in the settings store.
+data store (Postgres of the app's test setup, the only one since 4.1) seeded with
+the dataset the rotation script's tests use, and the keyset in the settings store.
+Mongo is refused (``store_retired``) and never connected to.
 
 The sequence add_key -> promote -> reencrypt -> verify -> drop_old runs per
 store choice (mongo, postgres, both = a dual write mode), and every guard has
@@ -40,7 +41,7 @@ from tests.admin.tasks.keyset_support import (
     heartbeat,
     import_keyset,
 )
-from tests.conftest import TEST_DATABASE_URL, TEST_MONGO_URI
+from tests.conftest import TEST_DATABASE_URL
 from tests.scripts.test_rotate_response_keyset import (  # noqa: F401 - fixtures
     Data,
     google_table,
@@ -60,22 +61,17 @@ PLAIN = ("an answer", "a hidden value", "an internal note", "a message", "refres
 def data_env(monkeypatch, _initialized_app):
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("GOOGLE_DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setenv("MONGO_URI", "")  # tests that need one set it
 
 
 @pytest.fixture(autouse=True)
 async def _clean_data(data_env):
-    """The suite's Mongo cleaning is switched off for tests/admin: start (and
-    leave) every test with empty data stores."""
+    """The suite's cleaning is switched off for tests/admin: start (and leave)
+    every test with empty data stores."""
     from backend.app.container import container
-    from tests.conftest import (
-        TEST_MONGO_DB,
-        _clear_mongo,
-        _postgres_configured,
-        _truncate_postgres,
-    )
+    from tests.conftest import _postgres_configured, _truncate_postgres
 
     async def clean():
-        await _clear_mongo(container.database_client()[TEST_MONGO_DB])
         if _postgres_configured():
             await _truncate_postgres()
 
@@ -99,19 +95,24 @@ class Flow:
         self.world, self.choice, self.data = world, choice, data
         self.versions = [OLD]  # every keyset the store has held
 
-    async def run(self, task, params=None, *, dry_run=False, resumes=None):
+    async def run(self, task, params=None, *, dry_run=False, resumes=None, ack=True):
+        """``keyset.drop_old`` carries ``mongo_retired`` (required since 4.1)
+        unless ``ack`` is false."""
+        params = dict(params or {})
+        if task == "keyset.drop_old" and ack:
+            params.setdefault("mongo_retired", True)
         self.world.clock.advance(1)
         run_id = await self.world.enqueue(
-            task, params or {}, dry_run=dry_run, resumes=resumes, requested_at=self.world.clock.now()
+            task, params, dry_run=dry_run, resumes=resumes, requested_at=self.world.clock.now()
         )
         await self.world.drain()
         return run_id, Run(await self.world.run(run_id))
 
-    async def both(self, task, params=None):
+    async def both(self, task, params=None, **kw):
         """The dry run, then the real run (the runner demands the dry run)."""
-        _, dry = await self.run(task, params, dry_run=True)
+        _, dry = await self.run(task, params, dry_run=True, **kw)
         assert dry["state"] == "succeeded", dry
-        run_id, run = await self.run(task, params)
+        run_id, run = await self.run(task, params, **kw)
         return run_id, run
 
     async def stored(self):
@@ -133,10 +134,8 @@ class Flow:
 
     @property
     def store_choice(self):
-        """The tasks' ``stores``: the choice itself, but ``auto`` with Mongo,
-        whose Google credentials are in Postgres (the Google Forms integration
-        writes Postgres alone since 4.1): ``auto`` covers both."""
-        return "auto" if self.choice == "mongo" else self.choice
+        """The tasks' ``stores``: Postgres, the only store."""
+        return self.choice
 
     async def rotate_to_new_primary(self):
         """add_key and promote, with consumers following each step."""
@@ -279,31 +278,18 @@ async def test_the_whole_rotation_ends_with_every_value_readable_and_the_old_key
     assert run["state"] == "succeeded", run
     result = meta.ScanResult.model_validate(run["result"])
     assert result.complete and result.primary_id == new_id and result.values_unopenable == 0
-    assert result.responses.model_dump()  # per store counts
+    assert result.responses.mongo is None  # Mongo is never covered
     assert await all_readable(flow, stored.value) == {new_id}
-    names = {"mongo": ["mongo"], "postgres": ["postgres"], "both": ["mongo", "postgres"]}
-    for name in names[flow.choice]:
-        counts = getattr(result.responses, name)
-        assert counts.records_readback_failed == 0
-        if name == ("mongo" if flow.choice != "postgres" else "postgres"):
-            assert counts.records_reencrypted > 0
-        else:  # the mirror was given the primary's new ciphertext: nothing left to do
-            assert counts.records_reencrypted + counts.records_current > 0
-    if flow.choice == "both":  # the mirror holds the same ciphertext
-        found = await stored_values("both")
-        by_store = {}
-        for (store, target, record, path), value in found.items():
-            by_store.setdefault((target, record, path), set()).add(value)
-        assert all(len(values) == 1 for values in by_store.values())
+    counts = result.responses.postgres
+    assert counts.records_readback_failed == 0 and counts.records_reencrypted > 0
 
     # idempotent: a second run finds everything current and writes nothing
     again_params = flow.params(primary_id=new_id, stores=flow.store_choice)
     again_before = await stored_values(flow.choice)
     _, again = await flow.run("keyset.reencrypt", again_params)
     assert again["state"] == "succeeded", again
-    for name in names[flow.choice]:
-        counts = getattr(meta.ScanResult.model_validate(again["result"]).responses, name)
-        assert counts.records_reencrypted == 0 and counts.values_reencrypted == 0
+    counts = meta.ScanResult.model_validate(again["result"]).responses.postgres
+    assert counts.records_reencrypted == 0 and counts.values_reencrypted == 0
     assert await stored_values(flow.choice) == again_before
 
     # verify: read only, every value opens, counts per key id in the events
@@ -557,7 +543,7 @@ async def test_reencrypt_never_writes_under_a_published_primary(world, flow):
 async def test_a_store_that_is_not_configured_refuses(world, flow, monkeypatch):
     new_id = await flow.rotate_to_new_primary()
     monkeypatch.setenv("DATABASE_URL", "")
-    monkeypatch.setenv("MONGO_URI", "")
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")  # does not stand in
     _, run = await flow.run("keyset.reencrypt", flow.params(primary_id=new_id), dry_run=True)
     assert run["refusal_code"] == "store_not_configured"
 
@@ -642,7 +628,7 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
     old_cipher = CryptoService(OLD)
     hits = {"n": 0}
 
-    originals = {cls: cls.write for cls in (core.MongoStore, core.PostgresStore)}
+    originals = {cls: cls.write for cls in (core.PostgresStore,)}
 
     def hook(cls):
         real = cls.write
@@ -660,13 +646,11 @@ async def test_a_value_changed_mid_run_is_left_for_the_next_run_and_reported(
 
         monkeypatch.setattr(cls, "write", write)
 
-    hook(core.MongoStore)
     hook(core.PostgresStore)
     run_id, run = await flow.run("keyset.reencrypt", params)
     assert run["state"] == "succeeded", run
     result = meta.ScanResult.model_validate(run["result"])
-    primary = {"mongo": "mongo", "postgres": "postgres", "both": "mongo"}[flow.choice]
-    assert getattr(result.responses, primary).records_changed_concurrently == 1
+    assert result.responses.postgres.records_changed_concurrently == 1
     events = await world.events(run_id)
     assert any(e["counts"].get("records_changed_concurrently") for e in events)
     stored = await flow.stored()
@@ -696,8 +680,7 @@ async def test_a_record_that_does_not_read_back_is_not_counted(world, flow, monk
     _, run = await flow.run("keyset.reencrypt", params)
     assert run["state"] == "succeeded", run
     result = meta.ScanResult.model_validate(run["result"])
-    primary = {"mongo": "mongo", "postgres": "postgres", "both": "mongo"}[flow.choice]
-    counts = getattr(result.responses, primary)
+    counts = result.responses.postgres
     assert counts.records_readback_failed == 1
     # it was written, so a further run finds it current and counts nothing for it
     stored = await flow.stored()
@@ -775,10 +758,8 @@ async def test_drop_old_refuses_an_empty_store(world, stores):
     await flow.run("keyset.reencrypt", params, dry_run=True)
     await flow.run("keyset.reencrypt", params)
     # the responses store reads as empty (a wrong or empty database)
-    from tests.conftest import _clear_mongo, TEST_MONGO_DB, _truncate_postgres
-    from backend.app.container import container
+    from tests.conftest import _truncate_postgres
 
-    await _clear_mongo(container.database_client()[TEST_MONGO_DB])
     await _truncate_postgres()
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
     assert run["state"] == "refused" and run["refusal_code"] == "store_empty"
@@ -858,9 +839,9 @@ def test_results_carry_ids_and_counters_only():
         check_result(task.result)
 
 
-# ------------------------------------------- every store, whatever the runner's mode
+# ------------------------------------------------------ Postgres is the only store
 async def prepare(world, choice, **kw):
-    """Promoted, consumers on it; the data as the choice has it."""
+    """Promoted, consumers on it; the data in Postgres."""
     data = Data(**kw)
     await seed(choice, data)
     await import_keyset(world.admin, OLD)
@@ -870,99 +851,81 @@ async def prepare(world, choice, **kw):
     return flow, new_id
 
 
-async def test_drop_old_looks_at_every_store_not_the_runners_write_mode(world, stores, monkeypatch):
-    """Services on Postgres, a runner left on the default write mode (Mongo):
-    the values in Postgres must still stop the drop (they used to be skipped)."""
-    if stores != "postgres":
-        pytest.skip("the scenario is Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
-    monkeypatch.setenv("DB_WRITE_MODE", "mongo")
-    monkeypatch.setenv("DB_READ_SOURCE", "mongo")
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "values_on_old_key", run
-    # reencrypt's `auto` is every configured store, so it moves them too
-    params = flow.params(primary_id=new_id)  # stores defaults to auto
-    _, dry = await flow.run("keyset.reencrypt", params, dry_run=True)
-    assert dry["state"] == "succeeded" and dry["result"]["values_stale"] > 0
-    _, moved = await flow.run("keyset.reencrypt", params)
-    assert moved["state"] == "succeeded", moved
-    assert moved["result"]["responses"]["postgres"]["records_reencrypted"] > 0
-    stored = await flow.stored()
-    assert await all_readable(flow, stored.value) == {new_id}
-    # the primary store is the one the write mode names: Mongo is empty, so the
-    # drop refuses until the runner has the services' write mode
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["refusal_code"] == "store_empty"
-    monkeypatch.setenv("DB_WRITE_MODE", "postgres")
-    monkeypatch.setenv("DB_READ_SOURCE", "postgres")
-    _, run = await flow.both("keyset.drop_old", flow.params())
+@pytest.fixture(autouse=True)
+def no_mongo_client(monkeypatch):
+    """No task opens a Mongo client, whatever it is asked for."""
+    import pymongo
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("a Mongo client was created")
+
+    monkeypatch.setattr(pymongo.AsyncMongoClient, "__init__", refuse)
+
+
+@pytest.mark.parametrize("choice", ["mongo", "both"])
+@pytest.mark.parametrize("task", ["keyset.reencrypt", "keyset.verify"])
+async def test_mongo_and_both_are_refused_and_nothing_connects(
+    world, stores, monkeypatch, task, choice
+):
+    """``store_retired`` before anything connects, even with a Mongo URI
+    configured: nothing is read, written or re-encrypted."""
+    flow, new_id = await prepare(world, stores)
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    before = await stored_values(stores)
+    params = {"keyset.reencrypt": flow.params(primary_id=new_id), "keyset.verify": {}}[task]
+    _, run = await flow.run(task, {**params, "stores": choice}, dry_run=True)
+    assert run["state"] == "refused" and run["refusal_code"] == "store_retired", run
+    assert await stored_values(stores) == before
+
+
+@pytest.mark.parametrize("task", ["keyset.reencrypt", "keyset.verify"])
+@pytest.mark.parametrize("choice", ["auto", "postgres"])
+async def test_auto_and_postgres_cover_postgres_whatever_the_runners_write_mode(
+    world, stores, monkeypatch, task, choice
+):
+    """No write mode is read (an unset, unknown or Mongo-writing one changes
+    nothing), and a leftover Mongo URI is not used: both choices cover Postgres
+    alone (``auto`` is kept for parameters saved before 4.1)."""
+    flow, new_id = await prepare(world, stores)
+    for mode in (None, "mongo", "dual", "nonsense"):
+        if mode is None:
+            monkeypatch.delenv("DB_WRITE_MODE", raising=False)
+        else:
+            monkeypatch.setenv("DB_WRITE_MODE", mode)
+        monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+        params = {"keyset.reencrypt": flow.params(primary_id=new_id), "keyset.verify": {}}[task]
+        _, run = await flow.run(task, {**params, "stores": choice}, dry_run=True)
+        assert run["state"] == "succeeded", (mode, run)
+        assert run["result"]["responses"].get("mongo") is None
+        assert run["result"]["responses"]["postgres"]["records"] > 0
+    _, run = await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores=choice))
     assert run["state"] == "succeeded", run
 
 
-async def test_a_mirror_that_is_empty_does_not_stop_the_drop(world, stores, monkeypatch):
-    if stores != "postgres":
-        pytest.skip("one populated store, the other empty")
-    flow, new_id = await prepare(world, "postgres")
-    params = flow.params(primary_id=new_id)
-    await flow.both("keyset.reencrypt", params)
-    _, run = await flow.both("keyset.drop_old", flow.params())  # mongo is the empty mirror
-    assert run["state"] == "succeeded", run
+def test_the_store_rule_plans_postgres_alone():
+    from backend.admin.tasks.catalog.responses_common import StoreChoice
 
-
-@pytest.mark.parametrize("missing", ["MONGO_URI", "DATABASE_URL", "GOOGLE_DATABASE_URL"])
-async def test_drop_old_needs_every_store_configured(world, stores, monkeypatch, missing):
-    if stores != "both":
-        pytest.skip("one run per missing variable is enough")
-    flow, new_id = await prepare(world, "both")
-    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores="both"))
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "succeeded", run
-    monkeypatch.setenv(missing, "")
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured"
-
-
-async def test_reencrypt_auto_is_every_configured_store(world, stores, monkeypatch):
-    if stores != "both":
-        pytest.skip("needs both stores populated")
-    flow, new_id = await prepare(world, "both")
-    monkeypatch.setenv("DB_WRITE_MODE", "mongo")  # the runner's mode would say Mongo only
-    monkeypatch.setenv("DB_READ_SOURCE", "mongo")
-    params = flow.params(primary_id=new_id)
-    await flow.run("keyset.reencrypt", params, dry_run=True)
-    _, run = await flow.run("keyset.reencrypt", params)
-    assert run["state"] == "succeeded", run
-    assert run["result"]["responses"]["mongo"] and run["result"]["responses"]["postgres"]
-    stored = await flow.stored()
-    assert await all_readable(flow, stored.value) == {new_id}
-
-
-# ------------------------------------- the store rule: what the services still write
-WRITTEN = {
-    "mongo": ["mongo"],
-    "dual": ["mongo", "postgres"],
-    "postgres_primary_dual": ["postgres", "mongo"],
-    "postgres": ["postgres"],
-}
-MODES = [None, *WRITTEN]
-
-
-def _env(default, responses=None, google=None, *, mongo=True, pg=True, google_pg=True):
-    env = {"MONGO_DB": "x"}
-    if mongo:
-        env["MONGO_URI"] = "mongodb://h"
-    if pg:
-        env["DATABASE_URL"] = "postgresql+asyncpg://h/app"
-    if google_pg:
-        env["GOOGLE_DATABASE_URL"] = "postgresql+asyncpg://h/google"
-    for key, value in (
-        ("DB_WRITE_MODE", default),
-        ("DB_WRITE_MODE__RESPONSES", responses),
-        ("DB_WRITE_MODE__google", google),
-    ):
-        if value is not None:
-            env[key] = value
-    return env
+    both_urls = {
+        "DATABASE_URL": "postgresql+asyncpg://h/app",
+        "GOOGLE_DATABASE_URL": "postgresql+asyncpg://h/google",
+        "MONGO_URI": "mongodb://h",
+    }
+    for env in (both_urls, {**both_urls, "DB_WRITE_MODE": "dual"}):
+        config = state.DataConfig.from_env(env)
+        for target in (core.RESPONSES, core.GOOGLE_CREDENTIALS):
+            for choice in (StoreChoice.auto, StoreChoice.postgres):
+                assert config.stores_for(target, choice) == ["postgres"]
+            for choice in (StoreChoice.mongo, StoreChoice.both):
+                assert _refusal(lambda: config.stores_for(target, choice)) == "store_retired"
+            assert config.drop_old_stores(target) == ["postgres"]
+    # Postgres of the target not configured: refused (a Mongo URI does not stand in)
+    no_responses = state.DataConfig.from_env({**both_urls, "DATABASE_URL": ""})
+    assert _refusal(lambda: no_responses.drop_old_stores(core.RESPONSES)) == "store_not_configured"
+    assert no_responses.drop_old_stores(core.GOOGLE_CREDENTIALS) == ["postgres"]
+    no_google = state.DataConfig.from_env({**both_urls, "GOOGLE_DATABASE_URL": ""})
+    assert _refusal(lambda: no_google.drop_old_stores(core.GOOGLE_CREDENTIALS)) == (
+        "store_not_configured"
+    )
 
 
 def _refusal(call):
@@ -973,110 +936,36 @@ def _refusal(call):
     return caught.value.code
 
 
-@pytest.mark.parametrize("default", MODES)
-@pytest.mark.parametrize("responses", MODES)
-@pytest.mark.parametrize("google", MODES)
-def test_the_store_rule_in_every_mode(default, responses, google):
-    """Every combination of the runner's DB_WRITE_MODE, DB_WRITE_MODE__RESPONSES
-    and DB_WRITE_MODE__google. The Google credentials' group is Postgres only
-    since 4.1: written to Postgres alone, whatever the runner's copy says.
-
-    ``auto`` (reencrypt, verify): never fewer stores than that group's services
-    write, primary first; an unknown mode refuses. ``drop_old`` does not trust
-    the runner's copy to leave a store out: both stores or refuse, unless a
-    signed ``mongo_retired``, which only a runner on postgres for every group
-    may use, and which then scans Postgres alone."""
-    from backend.admin.tasks.catalog.responses_common import StoreChoice
-
-    retired = default == "postgres" and responses in (None, "postgres")
-    for target, override in ((core.RESPONSES, responses), (core.GOOGLE_CREDENTIALS, google)):
-        # unset: the services' own default (mongo while the backend has groups on it)
-        mode = "postgres" if target is core.GOOGLE_CREDENTIALS else override or default or "mongo"
-        config = state.DataConfig.from_env(_env(default, responses, google))
-        assert config.mongo_retired() is retired
-        if retired:
-            assert config.drop_old_stores(target, True) == ["postgres"]
-            no_mongo = state.DataConfig.from_env(_env(default, responses, google, mongo=False))
-            assert no_mongo.drop_old_stores(target, True) == ["postgres"]
-        else:
-            assert _refusal(lambda: config.drop_old_stores(target, True)) == "mongo_not_retired"
-        written = WRITTEN[mode]
-        # drop_old without mongo_retired: both stores, primary first, whatever the mode
-        names = config.drop_old_stores(target, False)
-        assert names[: len(written)] == written and sorted(names) == ["mongo", "postgres"]
-        assert config.primary_store(target) == written[0]
-        for gone in (
-            _env(default, responses, google, mongo=False),
-            _env(default, responses, google, pg=False, google_pg=False),
-        ):
-            missing = state.DataConfig.from_env(gone)
-            assert _refusal(lambda: missing.drop_old_stores(target, False)) == "store_not_configured"
-        # auto: the written stores first, then any other configured store
-        assert config.stores_for(target, StoreChoice.auto) == names
-        assert config.stores_for(target, StoreChoice.both) == ["mongo", "postgres"]
-        only = state.DataConfig.from_env(
-            _env(
-                default, responses, google,
-                mongo="mongo" in written,
-                pg="postgres" in written or target is core.GOOGLE_CREDENTIALS,
-                google_pg="postgres" in written or target is core.RESPONSES,
-            )
-        )
-        assert only.stores_for(target, StoreChoice.auto) == written
-        for missing_store in written:  # a written store the runner cannot reach
-            gone = state.DataConfig.from_env(
-                _env(
-                    default, responses, google,
-                    mongo=missing_store != "mongo",
-                    pg=not (missing_store == "postgres" and target is core.RESPONSES),
-                    google_pg=not (
-                        missing_store == "postgres" and target is core.GOOGLE_CREDENTIALS
-                    ),
-                )
-            )
-            assert _refusal(lambda: gone.stores_for(target, StoreChoice.auto)) == "store_not_configured"
-
-
-@pytest.mark.parametrize("bad", ["Postgres-only", "both", "auto", "mongodb"])
-def test_a_write_mode_the_runner_cannot_read_refuses_and_is_never_echoed(bad):
-    config = state.DataConfig.from_env(_env(bad))
-    from backend.admin.tasks.spec import Refusal
-
-    with pytest.raises(Refusal) as caught:
-        config.drop_old_stores(core.RESPONSES, False)
-    assert caught.value.code == "write_mode_unknown"
-    assert "Postgres-only" not in repr(caught.value) and "Postgres-only" not in repr(config)
-    assert config.mongo_retired() is False
-    # the Postgres-only Google group needs no write mode: Postgres first
-    assert config.drop_old_stores(core.GOOGLE_CREDENTIALS, False) == ["postgres", "mongo"]
-
-
-def test_the_config_keeps_no_connection_string_in_its_write_mode_copy():
-    config = state.DataConfig.from_env({**_env("dual"), "AUTH_JWT_SECRET": "s3cret"})
-    assert set(config.env) == {"DB_WRITE_MODE"}
-    assert "s3cret" not in repr(config)
+def test_the_config_never_shows_a_connection_string():
+    config = state.DataConfig.from_env(
+        {
+            "DATABASE_URL": "postgresql+asyncpg://user:pw-never-shown@h/app",
+            "GOOGLE_DATABASE_URL": "postgresql+asyncpg://user:pw-never-shown@h/g",
+            "MONGO_URI": "mongodb://user:pw-never-shown@h",
+        }
+    )
+    assert "pw-never-shown" not in repr(config) and config.mongo_configured is True
 
 
 def test_mongo_retired_is_a_documented_parameter_off_by_default():
     params = meta.DropOldParams.model_validate({"typeform_acknowledged": True})
     assert params.mongo_retired is False
     schema = meta.DropOldParams.model_json_schema()["properties"]["mongo_retired"]
-    assert schema["type"] == "boolean" and "DB_WRITE_MODE=postgres" in schema["description"]
-    assert "mongo_not_retired" in {r.value for r in meta.Refusals}
+    assert schema["type"] == "boolean" and "retired" in schema["description"]
+    assert {"store_retired", "consumer_writes_mongo"} <= {r.value for r in meta.Refusals}
+    assert "mongo_not_retired" not in {r.value for r in meta.Refusals}
 
 
-async def test_drop_old_with_mongo_retired_scans_postgres_alone(world, stores, monkeypatch):
-    """After the cutover: the runner on postgres everywhere, MONGO_URI unset.
-    Without the signed statement the drop refuses; with it, Postgres alone is
-    scanned and the old key goes."""
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
+async def test_drop_old_needs_the_retirement_confirmed(world, stores):
+    """Mongo is not scanned: without ``mongo_retired`` the drop refuses
+    (``store_retired``) rather than drop a key that values in Mongo may still
+    use; with it, Postgres alone is scanned and the old key goes."""
+    flow, new_id = await prepare(world, stores)
     await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
-    monkeypatch.setenv("MONGO_URI", "")
-    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured", run
-    _, run = await flow.both("keyset.drop_old", flow.params(mongo_retired=True))
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True, ack=False)
+    assert run["refusal_code"] == "store_retired", run
+    assert len(parse_keyset((await flow.stored()).value).key) == 2
+    _, run = await flow.both("keyset.drop_old", flow.params())
     assert run["state"] == "succeeded", run
     assert run["params"]["mongo_retired"] is True
     assert run["result"]["responses"].get("mongo") is None
@@ -1084,25 +973,141 @@ async def test_drop_old_with_mongo_retired_scans_postgres_alone(world, stores, m
     assert len(parse_keyset((await flow.stored()).value).key) == 1
 
 
-async def test_drop_old_with_mongo_retired_still_refuses_old_values_in_postgres(
+async def _record_backfill(collection, *, state, skipped=0):
+    from sqlalchemy import insert
+
+    from backend.app.container import container
+    from backend.db.models import MigrationProgress
+
+    table = MigrationProgress.__table__
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            insert(table).values(
+                collection=collection,
+                count=4,
+                skipped=skipped,
+                batch_size=200,
+                state=state,
+                last_id=None,
+            )
+        )
+
+
+async def test_drop_old_waits_for_the_import_from_4_0(world, stores, monkeypatch):
+    """The retirement statement does not prove that the import is over: a later
+    backfill could bring in a value on the key that was dropped. The drop
+    refuses (``import_incomplete``) while the runner has a Mongo connection, or
+    while ``migration_progress`` records an unfinished backfill of the
+    responses (or of the forms' links their contexts come from)."""
+    flow, new_id = await prepare(world, stores)
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
+
+    async def drop():
+        _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+        return run
+
+    monkeypatch.setenv("MONGO_URI", "mongodb://mongo-not-used.invalid/")
+    run = await drop()
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    monkeypatch.setenv("MONGO_URI", "")
+    assert (await drop())["state"] == "succeeded"  # nothing recorded: a stack never imported
+
+    await _record_backfill("form_responses", state="running")
+    run = await drop()
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    from backend.app.container import container
+    from sqlalchemy import text
+
+    async def progress(**values):
+        async with container.pg_engine().begin() as conn:
+            await conn.execute(text("DELETE FROM app.migration_progress"))
+        await _record_backfill(**values)
+
+    await progress(collection="form_responses", state="done", skipped=1)
+    assert (await drop())["refusal_code"] == "import_incomplete"
+    await progress(collection="workspace_forms", state="paused")
+    assert (await drop())["refusal_code"] == "import_incomplete"
+    await progress(collection="form_responses", state="done")
+    assert (await drop())["state"] == "succeeded"
+    assert len(parse_keyset((await flow.stored()).value).key) == 2  # a dry run
+    _, run = await flow.both("keyset.drop_old", flow.params())
+    assert run["state"] == "succeeded", run
+    assert len(parse_keyset((await flow.stored()).value).key) == 1
+
+
+async def test_drop_old_checks_the_import_again_right_before_the_write(
     world, stores, monkeypatch
 ):
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, _new_id = await prepare(world, "postgres")  # nothing re-encrypted yet
-    monkeypatch.setenv("MONGO_URI", "")
-    _, run = await flow.run("keyset.drop_old", flow.params(mongo_retired=True), dry_run=True)
+    """A backfill that starts during a long scan is caught by the check made
+    right before the key write: the key is kept."""
+    flow, new_id = await prepare(world, stores)
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
+    await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    real = core.verify_store
+    started = []
+
+    async def then_a_backfill_starts(*args, **kw):
+        result = await real(*args, **kw)
+        if not started:  # after the first target's scan
+            started.append(True)
+            await _record_backfill("form_responses", state="running")
+        return result
+
+    monkeypatch.setattr(core, "verify_store", then_a_backfill_starts)
+    _, run = await flow.run("keyset.drop_old", flow.params())
+    assert run["state"] == "refused" and run["refusal_code"] == "import_incomplete", run
+    assert len(parse_keyset((await flow.stored()).value).key) == 2
+
+
+def _failing_store(sqlstate):
+    from sqlalchemy.exc import DBAPIError
+
+    class Orig(Exception):
+        pass
+
+    orig = Orig("boom")
+    orig.sqlstate = sqlstate
+
+    class Connection:
+        async def __aenter__(self):
+            raise DBAPIError("SELECT", {}, orig)
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class Engine:
+        def connect(self):
+            return Connection()
+
+    return core.PostgresStore(Engine(), core.RESPONSES)
+
+
+async def test_the_import_record_is_read_fail_closed():
+    """Permission denied refuses; an absent table is "nothing recorded"; any
+    other database error fails the task instead of passing the guard."""
+    from sqlalchemy.exc import DBAPIError
+
+    from backend.admin.tasks.spec import Refusal
+
+    with pytest.raises(Refusal) as refused:
+        await state.check_import_finished(_failing_store("42501"), False)
+    assert refused.value.code == "import_state_unreadable"
+    await state.check_import_finished(_failing_store("42P01"), False)  # passes
+    with pytest.raises(DBAPIError):
+        await state.check_import_finished(_failing_store("57014"), False)
+
+
+async def test_drop_old_still_refuses_old_values_in_postgres(world, stores):
+    flow, _new_id = await prepare(world, stores)  # nothing re-encrypted yet
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
     assert run["state"] == "refused" and run["refusal_code"] == "values_on_old_key", run
 
 
-async def test_a_mongo_retired_added_after_signing_is_refused(world, stores, monkeypatch):
+async def test_a_mongo_retired_added_after_signing_is_refused(world, stores):
     """The statement is bound into the signed request: a row whose stored params
     gained mongo_retired after signing never runs."""
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
+    flow, new_id = await prepare(world, stores)
     await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
-    monkeypatch.setenv("MONGO_URI", "")
     world.clock.advance(1)
     signed = flow.params()
     run_id = await world.enqueue(
@@ -1118,116 +1123,17 @@ async def test_a_mongo_retired_added_after_signing_is_refused(world, stores, mon
     assert len(parse_keyset((await flow.stored()).value).key) == 2
 
 
-@pytest.mark.parametrize(
-    "env",
-    [
-        {"DB_WRITE_MODE": "dual"},
-        {"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__RESPONSES": "postgres_primary_dual"},
-        # the google group is Postgres only: its flag does not retire the others
-        {"DB_WRITE_MODE": "dual", "DB_WRITE_MODE__google": "postgres"},
-        {"DB_WRITE_MODE": "", "DB_WRITE_MODE__RESPONSES": "postgres", "DB_WRITE_MODE__google": "postgres"},
-    ],
-)
-async def test_mongo_retired_refuses_unless_every_group_is_on_postgres(
-    world, stores, monkeypatch, env
+@pytest.mark.parametrize("missing", ["DATABASE_URL", "GOOGLE_DATABASE_URL"])
+async def test_drop_old_needs_postgres_configured_for_every_target(
+    world, stores, monkeypatch, missing
 ):
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
+    flow, new_id = await prepare(world, stores)
     await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
-    for name, value in env.items():
-        monkeypatch.setenv(name, value)
-    _, run = await flow.run("keyset.drop_old", flow.params(mongo_retired=True), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "mongo_not_retired", run
-    assert len(parse_keyset((await flow.stored()).value).key) == 2
-
-
-async def test_drop_old_refuses_a_runner_on_postgres_while_the_services_write_mongo(
-    world, stores, monkeypatch
-):
-    """The failure case: the services still run dual (writing Mongo), the
-    runner's copy says postgres and it has no MONGO_URI. drop_old must not scan
-    Postgres alone and drop a key the Mongo values still use: it refuses."""
-    if stores != "both":
-        pytest.skip("needs both stores populated")
-    flow, new_id = await prepare(world, "both")
-    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id, stores="postgres"))
-    monkeypatch.setenv("DB_WRITE_MODE", "postgres")
-    monkeypatch.setenv("DB_READ_SOURCE", "postgres")
-    monkeypatch.setenv("MONGO_URI", "")
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured", run
-    # with Mongo configured it is scanned, and its old-key values stop the drop
-    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
+    assert run["state"] == "succeeded", run
+    monkeypatch.setenv(missing, "")
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == "values_on_old_key", run
-    assert len(parse_keyset((await flow.stored()).value).key) == 2
-
-
-@pytest.mark.parametrize("task", ["keyset.drop_old", "keyset.reencrypt", "keyset.verify"])
-async def test_an_unreadable_write_mode_refuses_rather_than_guess(world, stores, monkeypatch, task):
-    if stores != "both":
-        pytest.skip("one data set is enough")
-    flow, new_id = await prepare(world, "both")
-    monkeypatch.setenv("DB_WRITE_MODE", "mongo-and-postgres")
-    params = {
-        "keyset.drop_old": flow.params(),
-        "keyset.reencrypt": flow.params(primary_id=new_id),
-        "keyset.verify": {},
-    }[task]
-    _, run = await flow.run(task, params, dry_run=task != "keyset.verify")
-    assert run["state"] == "refused" and run["refusal_code"] == "write_mode_unknown", run
-    if task != "keyset.drop_old":  # a named store choice needs no write mode
-        _, run = await flow.run(task, {**params, "stores": "both"}, dry_run=task != "keyset.verify")
-        assert run["state"] == "succeeded", run
-
-
-@pytest.mark.parametrize("task", ["keyset.reencrypt", "keyset.verify"])
-async def test_an_unset_write_mode_is_the_services_default(world, stores, monkeypatch, task):
-    """A fresh stack sets no DB_WRITE_MODE: the services then run on their
-    own default, and so does the runner's copy (Mongo first, while the backend
-    has groups on Mongo; the Google credentials in Postgres)."""
-    if stores != "both":
-        pytest.skip("one data set is enough")
-    flow, new_id = await prepare(world, "both")
-    monkeypatch.delenv("DB_WRITE_MODE")
-    params = {"keyset.reencrypt": flow.params(primary_id=new_id), "keyset.verify": {}}[task]
-    _, run = await flow.run(task, params, dry_run=task != "keyset.verify")
-    assert run["state"] == "succeeded", run
-    config = state.DataConfig.from_env()
-    assert config.primary_store(core.RESPONSES) == "mongo"
-    assert config.primary_store(core.GOOGLE_CREDENTIALS) == "postgres"
-
-
-def test_a_fresh_runner_without_a_write_mode_follows_the_services_default():
-    """No DB_WRITE_MODE at all: no refusal for the mode. The Google credentials
-    are in Postgres; the responses follow the services' default (Mongo while
-    the backend has groups on Mongo), whose store must then be configured."""
-    from backend.admin.tasks.catalog.responses_common import StoreChoice
-
-    fresh = state.DataConfig.from_env(_env(None, mongo=False))
-    assert fresh.stores_for(core.GOOGLE_CREDENTIALS, StoreChoice.auto) == ["postgres"]
-    assert _refusal(lambda: fresh.stores_for(core.RESPONSES, StoreChoice.auto)) == (
-        "store_not_configured"
-    )
-    assert fresh.mongo_retired() is False
-    assert state.DataConfig.from_env(_env(None)).stores_for(
-        core.RESPONSES, StoreChoice.auto
-    ) == ["mongo", "postgres"]
-
-
-async def test_reencrypt_and_verify_auto_need_no_mongo_once_the_services_stop_writing_it(
-    world, stores, monkeypatch
-):
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
-    monkeypatch.setenv("MONGO_URI", "")
-    _, run = await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
-    assert run["state"] == "succeeded", run
-    assert run["result"]["responses"].get("mongo") is None
-    _, run = await flow.run("keyset.verify", {})
-    assert run["state"] == "succeeded" and run["result"]["values_stale"] == 0, run
+    assert run["state"] == "refused" and run["refusal_code"] == "store_not_configured"
 
 
 @pytest.mark.parametrize(
@@ -1240,28 +1146,20 @@ async def test_reencrypt_and_verify_auto_need_no_mongo_once_the_services_stop_wr
         ("google", "", "consumer_write_stores_unknown"),
     ],
 )
-async def test_mongo_retired_refuses_while_a_service_reports_writing_mongo(
-    world, stores, monkeypatch, service, reported, code
+async def test_drop_old_refuses_while_a_service_reports_writing_mongo(
+    world, stores, service, reported, code
 ):
-    """The runner's copy of the write mode says postgres everywhere, but a
-    running service says (in its heartbeat) that it still writes Mongo, or does
-    not say: mongo_retired is refused, before and right before the key write."""
-    if stores != "postgres":
-        pytest.skip("Postgres-only data")
-    flow, new_id = await prepare(world, "postgres")
+    """A running service says (in its heartbeat) that it still writes Mongo, or
+    does not say: the drop is refused, before and right before the key write."""
+    flow, new_id = await prepare(world, stores)
     await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
-    monkeypatch.setenv("MONGO_URI", "")
     stored = await flow.stored()
     await heartbeat(
         world.owner, service, stored.value, instance="other",
         revision=stored.revision, write_stores=reported,
     )
-    _, run = await flow.run("keyset.drop_old", flow.params(mongo_retired=True), dry_run=True)
-    assert run["state"] == "refused" and run["refusal_code"] == code, run
-    # without mongo_retired both stores are scanned: the reports do not matter
-    monkeypatch.setenv("MONGO_URI", TEST_MONGO_URI)
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
-    assert run["state"] == "succeeded", run
+    assert run["state"] == "refused" and run["refusal_code"] == code, run
     assert len(parse_keyset((await flow.stored()).value).key) == 2
 
 

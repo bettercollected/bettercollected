@@ -257,7 +257,7 @@ environment, whatever the tier.
 | `DB_SHADOW_READ_SAMPLE` | database | backend | float 0..1 |  | R | T5 | `0.0` |
 | `DB_STATEMENT_TIMEOUT_MS` | database | backend, auth, google, jobs, admin | int 100..3.6e+06 |  | R | T5 | `30000` |
 | `DB_WRITE_MODE` | database | backend, auth, google | enum mongo/dual/postgres_primary_dual/postgres |  | R | T5 | `mongo` |
-| `JOBS_BACKEND` | jobs | backend, jobs, actions_executor | enum temporal/postgres |  | R | T5 | `temporal` |
+| `JOBS_BACKEND` | jobs | backend, jobs, actions_executor | enum temporal/postgres |  | R | T5 | `postgres` |
 | `JOBS_CONCURRENCY` | jobs | jobs, actions_executor | int 1..256 |  | R | T5 | `4` |
 | `JOBS_POOL_MAX` | jobs | jobs, actions_executor | int 1..100 |  | R | T5 | `4` |
 | `JOBS_POOL_MIN` | jobs | jobs | int 1..100 |  | R | T5 | `1` |

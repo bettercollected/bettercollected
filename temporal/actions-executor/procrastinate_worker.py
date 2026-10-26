@@ -4,7 +4,8 @@ Consumes the ``actions`` queue only, connecting as the ``bc_jobs_exec`` role
 whose search_path is the ``jobs`` schema (it can reach the queue tables and
 nothing else). The backend defers ``run_action`` by name; the body is here,
 the same ``run_action`` the Temporal activity wraps. Selected by
-``JOBS_BACKEND=postgres`` in main.py; the Temporal worker remains the default.
+``JOBS_BACKEND=postgres`` (the default) in main.py; ``JOBS_BACKEND=temporal`` runs the
+Temporal worker instead.
 """
 
 import asyncio

@@ -20,7 +20,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { resolvePipesInText } from '@app/utils/answer-piping';
 import { endingToShow } from '@app/utils/endings';
 import { httpUrl } from '@app/utils/http-url';
-import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { describeRetention } from '@app/utils/retention';
 import { actionText, actionTextOn } from '@app/utils/theme-contrast';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { formButtonStyle, themeFontStack } from '@app/views/molecules/theme/theme-root';
@@ -85,7 +85,6 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
         // band, then what happens to the answers now, in plain words: how long
         // they are kept, the respondent's rights, and the receipt number.
         const rule = leafletColours(theme).rule;
-        const retentionNote = retentionExplanation(standardForm?.settings);
         return (
             <>
                 {!accountInStrip && <UserAvatarDropDown disabled />}
@@ -105,7 +104,6 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
                             <li className="border-b py-3" style={{ borderColor: rule }}>
                                 {/* Every row names its subject, like the "Why we ask this:" notes. */}
                                 <span className="font-semibold">{t('PRIVACY.RETENTION')}:</span> {describeRetention(standardForm?.settings, t, language, 'value')}
-                                {retentionNote && <span style={{ color: softInk(theme) }}> {retentionNote}</span>}
                             </li>
                             <li className="border-b py-3" style={{ borderColor: rule }}>
                                 <span className="font-semibold">{t('PRIVACY.RIGHTS')}:</span> {t('PRIVACY.RIGHTS_TEXT')}{' '}
