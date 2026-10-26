@@ -5,7 +5,7 @@ import json
 from http import HTTPStatus
 from typing import Any, Dict, List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.form_spec import (
     SpecConversionError,
     form_to_spec_dict,
@@ -144,7 +144,7 @@ class FormSpecService:
         self._form_repo = form_repo
 
     async def validate_request(
-        self, workspace_id: PydanticObjectId, request: Any, user: User
+        self, workspace_id: RecordId, request: Any, user: User
     ) -> Dict[str, Any]:
         """Authorise, then read the body (at most MAX_DOCUMENT_BYTES) and
         check it: a non-member never gets the body read."""
@@ -153,7 +153,7 @@ class FormSpecService:
         # CPU-bound (up to 1 MB of JSON): off the event loop
         return await run_in_threadpool(check_spec_document, document)
 
-    async def load(self, workspace_id: PydanticObjectId, form_id: str):
+    async def load(self, workspace_id: RecordId, form_id: str):
         """(StandardForm, association settings) of a form of this workspace,
         404 otherwise. Callers authorise first."""
         association = await self._workspace_form_repo.find_workspace_form(
@@ -179,7 +179,7 @@ class FormSpecService:
 
     async def dry_run(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: DryRunRequest,
         user: User,

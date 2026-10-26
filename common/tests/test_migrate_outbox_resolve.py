@@ -5,7 +5,6 @@ suite, tests/app/migrate/test_resolve_outbox.py)."""
 import datetime as dt
 import os
 import stat
-from types import SimpleNamespace
 
 import pytest
 from bson import ObjectId
@@ -30,9 +29,7 @@ from common.db.migrate.outbox import (
     mongo_holds,
     object_ids,
     repository_group,
-    routed_repository_groups,
 )
-from common.db.routing import RoutingRepository
 
 UTC = dt.timezone.utc
 T0 = dt.datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
@@ -201,47 +198,6 @@ def test_an_unknown_repository_has_a_group_only_in_a_single_group_service():
     assert repository_group(many, "Unknown", {}) is None
     single = _target({"users": "auth"})
     assert repository_group(single, "UserRepository", {}) == "auth"
-
-
-def test_the_repository_map_reads_the_routed_repositories():
-    class MongoRepo:
-        ...
-
-    class TwinRepo:
-        ...
-
-    def postgres_repository(*args):  # stands in for common.db.runtime's
-        ...
-
-    class Provider(SimpleNamespace):
-        pass
-
-    def routed(group, mongo=None, postgres=None):
-        kwargs = {"group": group}
-        if mongo is not None:
-            kwargs["mongo"] = Provider(provides=mongo, args=(), kwargs={})
-        if postgres is not None:
-            kwargs["postgres"] = Provider(
-                provides=postgres_repository, args=(postgres, "sessions"), kwargs={}
-            )
-        return Provider(provides=RoutingRepository, args=(), kwargs=kwargs)
-
-    class Clash:
-        ...
-
-    container = SimpleNamespace(
-        providers={
-            "a": routed("forms", mongo=MongoRepo, postgres=TwinRepo),
-            "b": routed("refdata", postgres=TwinRepo),
-            "c": routed("forms", mongo=Clash),
-            "d": routed("ai", mongo=Clash),
-            "other": Provider(provides=dict, args=(), kwargs={"group": "x"}),
-        }
-    )
-    assert routed_repository_groups(container) == {
-        "MongoRepo": "forms",
-        "TwinRepo": "refdata",
-    }
 
 
 def test_the_summary_holds_counts_only():

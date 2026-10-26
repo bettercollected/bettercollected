@@ -7,7 +7,7 @@ from typing import List
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -326,7 +326,7 @@ class TestWrites:
         self, workspace, workspace_form_response
     ):
         stored = await _stored(workspace_form_response["response_id"])
-        assert stored.workspace_id == PydanticObjectId(workspace.id)
+        assert stored.workspace_id == RecordId(workspace.id)
 
 
 # ------------------------------------------- copies sharing a provider response id
@@ -434,7 +434,6 @@ class TestUnlinkWithUnattributedResponses:
             default_opener,
             run,
         )
-        from tests.conftest import TEST_MONGO_DB
 
         a, b = shared
         # stored before #768 through A's import: no workspace_id, encrypted
@@ -459,16 +458,8 @@ class TestUnlinkWithUnattributedResponses:
         )
         assert _ids(listed.json()["items"]) == {"rb1"}  # still linked, still B's
 
-        flags, stores = container.flags(), []
-        if flags.writes_mongo("responses"):
-            # the backfill covers Postgres alone since 4.1: stamp Mongo's copy
-            # (the store the routed repositories still read in these modes) by hand
-            await container.database_client()[TEST_MONGO_DB]["form_responses"].update_one(
-                {"response_id": "old", "workspace_id": None},
-                {"$set": {"workspace_id": a.id}},
-            )
-        if flags.writes_postgres("responses"):
-            stores.append(PostgresStore(container.pg_engine()))
+        # the backfill covers Postgres alone since 4.1
+        stores = [PostgresStore(container.pg_engine())]
         await run(stores, apply=True, opens=default_opener())
         assert (await _stored("old")).workspace_id == a.id
 

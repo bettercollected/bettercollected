@@ -88,11 +88,6 @@ def rate_limit_clock():
 
 
 @pytest.fixture(autouse=True)
-def no_silent_mirror_failures():
-    yield
-
-
-@pytest.fixture(autouse=True)
 def master_key(monkeypatch):
     monkeypatch.setenv(MASTER_KEY_KEY, MASTER_KEY)
     return MASTER_KEY

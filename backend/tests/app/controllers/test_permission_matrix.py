@@ -26,9 +26,8 @@ from typing import Callable, Dict, FrozenSet, Optional, Tuple
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.db.flags import ReadSource, WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -104,7 +103,7 @@ ROLES = (
 
 
 def _user(name: str) -> User:
-    return User(id=str(PydanticObjectId()), sub=f"matrix-{name}@example.com")
+    return User(id=str(RecordId()), sub=f"matrix-{name}@example.com")
 
 
 co_owner_user = _user("co-owner")
@@ -181,7 +180,7 @@ NOT_AUTHORIZED = "You are not authorized to perform this action."
 
 
 def _oid() -> str:
-    return str(PydanticObjectId())
+    return str(RecordId())
 
 
 @dataclass(frozen=True)
@@ -1059,7 +1058,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
     )
     form_import = await container.form_import_repo().save(
         FormImportDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             workspace_id=workspace.id,
             form_id=published_form.form_id,
             created_by=testUser.id,
@@ -1083,7 +1082,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
     )
     domain = await container.workspace_domain_repo().create(
         WorkspaceDomainDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             workspace_id=workspace.id,
             domain="matrix-domain.org",
             verification_token="0" * 32,
@@ -1092,8 +1091,8 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
     )
     other_domain = await container.workspace_domain_repo().create(
         WorkspaceDomainDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(),
+            id=RecordId(),
+            workspace_id=RecordId(),
             domain="matrix-elsewhere.org",
             verification_token="1" * 32,
             created_by=testUser1.id,
@@ -1152,20 +1151,6 @@ def _allowed(case: Case) -> FrozenSet[str]:
     return case.allowed
 
 
-# The matrix tests authorization, not storage, and seeding a workspace for each
-# of its ~1,450 cases is the slowest part of the app suite. It runs once, in the
-# Postgres-served mode (the store the service is moving to); in the Mongo and
-# mirrored modes it would only repeat the same endpoint x role checks.
-only_when_served_from_postgres = pytest.mark.skipif(
-    not (
-        container.flags().default_read is ReadSource.POSTGRES
-        and container.flags().default_write is WriteMode.POSTGRES
-    ),
-    reason="authorization, not storage: covered by the postgres mode",
-)
-
-
-@only_when_served_from_postgres
 @pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("case", CASES, ids=[case.name for case in CASES])
 async def test_permission_matrix(
@@ -1177,7 +1162,7 @@ async def test_permission_matrix(
         fake.replies = list(case.ai_replies)
         use_fake_provider(monkeypatch, fake)
         workspace = await container.workspace_repo().find_by_id(
-            PydanticObjectId(matrix["ws"])
+            RecordId(matrix["ws"])
         )
         await enable_ai(workspace)
         # allows insights on the form, then answers it with real questions
@@ -1284,7 +1269,7 @@ async def test_a_disabled_workspace_leaves_its_owner_read_and_privacy(
     deletion requests and reach their respondents' data (GDPR), and change
     nothing else; other members get nothing."""
     workspace = await container.workspace_repo().find_by_id(
-        PydanticObjectId(matrix["ws"])
+        RecordId(matrix["ws"])
     )
     workspace.disabled = True
     await container.workspace_repo().save(workspace)

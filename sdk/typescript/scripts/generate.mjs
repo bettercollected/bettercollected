@@ -36,6 +36,8 @@ schema.title = "FormSpec";
 const output = await compile(schema, "FormSpec", {
   additionalProperties: false,
   unreachableDefinitions: true,
+  // A bounded list (endings: at most 20) stays `T[]` instead of a union of tuples.
+  maxItems: -1,
   bannerComment:
     "/* Generated from docs/spec/form-spec-v1.schema.json by scripts/generate.mjs. Do not edit. */",
   style: { singleQuote: false },

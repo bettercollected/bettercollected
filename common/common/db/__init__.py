@@ -1,21 +1,13 @@
 """Postgres foundation shared by every Python service.
 
-Introduced by the Postgres consolidation (plans/postgres-consolidation.md).
 Services build their engine and sessions with :func:`make_engine` /
 :func:`make_sessionmaker`, declare rows on a :func:`make_base` base with the
-:class:`BaseRow` mixin, read the switching flags with :func:`load_flags`, and
-record mirror-write failures with the outbox models. Nothing in here talks to
-Mongo except the Mongo-side outbox document.
+:class:`BaseRow` mixin, and read the jobs backend flags with :func:`load_flags`.
+Postgres is the only store since 4.1; Mongo is read only by the import from
+4.0 (:mod:`common.db.migrate`), which uses its own client.
 """
 
 from common.db.base import BaseRow, NAMING_CONVENTION, OBJECT_ID_PATTERN, make_base
-from common.db.beanie_bridge import (
-    derived_object_id,
-    ensure_id,
-    from_row_doc,
-    row_values,
-    to_bson_dict,
-)
 from common.db.ddl import (
     HELPER_FUNCTIONS,
     drop_helper_function_ddl,
@@ -29,30 +21,19 @@ from common.db.canonical import (
     from_canonical_document,
 )
 from common.db.engine import DatabaseSettings, make_engine, make_sessionmaker, ping
-from common.db.flags import DbFlags, JobsBackend, ReadSource, WriteMode, load_flags
-from common.db.routing import (
-    MirrorFailure,
-    RoutingError,
-    RoutingMetrics,
-    RoutingRepository,
-    ShadowDiff,
-    WriteResult,
-    is_replayed,
-    is_write_op,
-    persisted_documents,
-    write_op,
+from common.db.flags import (
+    DbFlags,
+    FlagError,
+    JobsBackend,
+    load_flags,
+    refuse_stale_store_flags,
 )
 from common.db.runtime import (
     LazyRepository,
-    OutboxRecorder,
     build_engine,
     build_sessionmaker,
     check_postgres_at_startup,
     dispose_engine,
-    metrics_snapshot,
-    outbox_backlog,
-    postgres_repository,
-    redact,
 )
 from common.db.schema_guard import (
     AUTO_MIGRATE_KEY,
@@ -63,21 +44,10 @@ from common.db.schema_guard import (
     ensure_schema_ready,
 )
 from common.db.spine import SpineColumns
-from common.db.mongo import (
-    init_documents,
-    mongo_client,
-    mongo_required,
-    mongo_status,
-)
 from common.db.groups import SERVICE_GROUPS, SERVICE_SCHEMAS
 from common.db.marker import MarkerInfo, StoreMigrationMixin, migration_verified
-from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase
 from common.db.tombstones import DeletionTombstoneMixin
-from common.db.outbox import (
-    MIRROR_OPS,
-    MirrorWriteFailureDocument,
-    MirrorWriteFailureMixin,
-)
+from common.db.outbox import MIRROR_OPS, MirrorWriteFailureMixin
 
 __all__ = [
     "BaseRow",
@@ -94,10 +64,15 @@ __all__ = [
     "make_sessionmaker",
     "ping",
     "DbFlags",
+    "FlagError",
     "JobsBackend",
-    "ReadSource",
-    "WriteMode",
     "load_flags",
+    "refuse_stale_store_flags",
+    "LazyRepository",
+    "build_engine",
+    "build_sessionmaker",
+    "check_postgres_at_startup",
+    "dispose_engine",
     "AUTO_MIGRATE_KEY",
     "AuxiliarySchema",
     "MigrationTarget",
@@ -105,7 +80,6 @@ __all__ = [
     "auto_migrate_enabled",
     "ensure_schema_ready",
     "MIRROR_OPS",
-    "MirrorWriteFailureDocument",
     "MirrorWriteFailureMixin",
     "DeletionTombstoneMixin",
     "SERVICE_GROUPS",
@@ -113,8 +87,4 @@ __all__ = [
     "MarkerInfo",
     "StoreMigrationMixin",
     "migration_verified",
-    "init_documents",
-    "mongo_client",
-    "mongo_required",
-    "mongo_status",
 ]

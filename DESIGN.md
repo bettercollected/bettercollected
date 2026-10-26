@@ -298,12 +298,26 @@ These hold in every theme and every style; the colours are the form's own.
   stored forms don't change. The dropdown's list is never lettered.
 - **Scales and ratings.** Number scales are 48px square cells: white face,
   number in the theme's ink, `tertiary` edge, ink on hover; the chosen cell
-  fills with `secondary`, white semibold number. Star ratings sit in 48px
-  targets (40px stars), filled and outlined in `secondary`.
+  fills with `secondary`, white semibold number, and wears a small check
+  mark in its corner. Star ratings sit in 48px targets (40px stars), filled
+  and outlined in `secondary`, and say the answer in words under the stars
+  with a check mark ("4 of 5"). Both are radio groups named by their
+  question (`views/atoms/scale-radio-group.tsx`): one tab stop, the arrow
+  keys, Home and End choose, and so does a digit key (named in
+  `aria-keyshortcuts`) while focus is in the group. A key press does not move
+  on to the next question; a click does, after 200ms, as before. The mark
+  that appears on choosing (the dot or tick of an option, the check, the
+  chosen star) grows in over 160-200ms when the respondent chooses it (not
+  when a stored answer is shown again), and simply appears under reduced
+  motion. The line under the stars is always there, empty until the first
+  answer, so answering shifts nothing.
 - **Progress.** A 4px bar across the top of every question page: `secondary`
   on a 20% `tertiary` track, square ends, easing 300ms (none under reduced
   motion). It is decorative; "Page x of y" in the header says the same in
-  words. Back and the page count sit in the header row; Back is at least
+  words, and the bar fills exactly that fraction (page 1 of 3 is a third; the
+  welcome and ending pages are not steps; the ending fills it, and so does
+  a page whose answers make it submit the form, where the header says "Last
+  page"). Back and the page count sit in the header row; Back is at least
   44px tall.
 - **Required and optional.** Every answerable question is marked one way or
   the other: required with an asterisk (read out as "required"), optional

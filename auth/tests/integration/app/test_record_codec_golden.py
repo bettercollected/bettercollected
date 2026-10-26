@@ -8,7 +8,7 @@ describes itself (JSON schema) exactly like the Beanie class it replaced
 
 import pytest
 
-from common.db import from_row_doc
+from common.db.beanie_bridge import from_row_doc
 from common.db.codec_golden import build_cases, check
 from common.records import golden
 

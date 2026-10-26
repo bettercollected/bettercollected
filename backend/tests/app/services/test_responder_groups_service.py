@@ -6,7 +6,7 @@ from http import HTTPStatus
 from unittest.mock import AsyncMock
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.responder_groups_service import (
@@ -37,10 +37,10 @@ def _service():
 
 async def test_create_group_rejects_bad_regex_before_writing():
     service, repo = _service()
-    user = User(id=str(PydanticObjectId()), sub="admin@example.com")
+    user = User(id=str(RecordId()), sub="admin@example.com")
     with pytest.raises(HTTPException):
         await service.create_group(
-            PydanticObjectId(), "Glob", [], user, None, "", regex="*@corp.com"
+            RecordId(), "Glob", [], user, None, "", regex="*@corp.com"
         )
     repo.create_group.assert_not_awaited()
 
@@ -48,9 +48,9 @@ async def test_create_group_rejects_bad_regex_before_writing():
 async def test_update_group_rejects_bad_regex_before_writing():
     service, repo = _service()
     service.check_user_can_access_group = AsyncMock()
-    user = User(id=str(PydanticObjectId()), sub="admin@example.com")
+    user = User(id=str(RecordId()), sub="admin@example.com")
     with pytest.raises(HTTPException):
         await service.update_responder_group(
-            PydanticObjectId(), PydanticObjectId(), user, "Glob", [], "*@corp.com", ""
+            RecordId(), RecordId(), user, "Glob", [], "*@corp.com", ""
         )
     repo.update_group.assert_not_awaited()

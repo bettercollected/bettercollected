@@ -23,7 +23,6 @@ dependencies = [
     "loguru>=0.7.3",
     "requests>=2.32.5",
     "fastapi-camelcase>=2.0.0",
-    "beanie>=2.1.0",
     "dependency-injector>=4.49.1",
     "classy-fastapi>=0.7.0",
     "pyjwt>=2.15.1",
@@ -47,6 +46,8 @@ googleform = "googleform.__main__:main"
 
 [dependency-groups]
 dev = [
+    # the 4.0 codec, for the golden fixtures only (common/db/codec_golden.py)
+    "beanie>=2.2.0",
     "pytest>=8.0.0",
     "pytest-cov>=7.1.0",
     "pytest-asyncio>=1.4.0",

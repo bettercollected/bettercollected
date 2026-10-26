@@ -5,7 +5,7 @@ printing ids or values and without changing anything. Mongo is refused."""
 import json
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import RespondentFeedback
 from common.services.crypto_service import crypto_service
 
@@ -25,7 +25,7 @@ from tests.conftest import _postgres_configured, _truncate_postgres
 
 pytestmark = pytest.mark.asyncio
 
-WS = PydanticObjectId("65e5501d00000000000000a1")
+WS = RecordId("65e5501d00000000000000a1")
 # a leak-check needle too: long, so it can only match if the form id is printed
 FORM_ID = "form-id-never-printed"
 
@@ -38,7 +38,7 @@ def _encrypted(workspace_id, form_id, value):
 
 def _documents():
     link = WorkspaceFormDocument(
-        id=PydanticObjectId("65e5501d0000000000000001"),
+        id=RecordId("65e5501d0000000000000001"),
         workspace_id=WS,
         form_id=FORM_ID,
         user_id="u1",
@@ -46,7 +46,7 @@ def _documents():
 
     def response(response_id, **extra):
         return FormResponseDocument(
-            id=PydanticObjectId(), response_id=response_id, form_id=FORM_ID, **extra
+            id=RecordId(), response_id=response_id, form_id=FORM_ID, **extra
         )
 
     def feedback(message):

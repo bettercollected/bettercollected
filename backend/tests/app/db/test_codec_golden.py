@@ -10,7 +10,6 @@ from pathlib import Path
 from sqlalchemy import delete, select
 
 from backend.app.container import container
-from backend.app.handlers.database import document_models
 from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
@@ -64,7 +63,8 @@ from backend.app.schemas.workspace_responder import (
     WorkspaceTags,
 )
 from backend.db.base import Base
-from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
+from common.db import BaseRow, canonical_json, checksum
+from common.records.repository import RecordRepository
 from common.db.codec_golden import (
     build_cases,
     check,
@@ -79,9 +79,9 @@ FIXTURE = Path(__file__).parents[2] / "fixtures" / "codec_golden" / "backend.jso
 # codec path is covered by common/tests/test_codec_golden.py.
 NO_DOCUMENT_CLASS = {"scheduler_form_configs"}
 
-# The document classes on ``Record`` (groups served from Postgres only): not
-# Beanie documents, so not in ``document_models``. They win over a Beanie
-# class of the same collection (tests/app/db/beanie_originals.py).
+# The document classes, all on ``Record`` (every group is served from Postgres
+# only). The 4.0 Beanie classes they replaced are frozen in
+# tests/app/db/beanie_originals.py.
 RECORD_CLASSES = (
     AllowedOriginsDocument,
     FormPluginConfigDocument,
@@ -139,7 +139,7 @@ def _rows():
 
 
 def _models():
-    return [*document_models, *RECORD_CLASSES]
+    return list(RECORD_CLASSES)
 
 
 def _documents():
@@ -164,7 +164,7 @@ def test_decode_then_encode_gives_the_pinned_bytes(_initialized_app):
 async def test_postgres_stores_and_returns_the_pinned_bytes(clean_postgres):
     """JSONB keeps every pinned value (large integers, floats, Extended JSON tags)."""
     tables = {row.mongo_collection(): row for row in _rows()}
-    store = PostgresRepositoryBase(container.pg_sessionmaker())
+    store = RecordRepository(container.pg_sessionmaker())
     now = datetime.now(timezone.utc)
     problems = []
     for name, case in sorted(load(FIXTURE).items()):

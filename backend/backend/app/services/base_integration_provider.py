@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 
 class BaseIntegrationProvider(metaclass=ABCMeta):
@@ -9,8 +9,8 @@ class BaseIntegrationProvider(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    async def handle_basic_integration_callback(self, code: str, state: str, form_id: PydanticObjectId,
-                                                action_id: PydanticObjectId,
+    async def handle_basic_integration_callback(self, code: str, state: str, form_id: RecordId,
+                                                action_id: RecordId,
                                                 *args, **kwargs) -> (
             bool, str):
         pass

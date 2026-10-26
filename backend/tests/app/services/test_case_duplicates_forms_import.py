@@ -10,7 +10,7 @@ The tests that use the test Mongo are Mongo-driven (tests/conftest.py)."""
 from contextlib import asynccontextmanager
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pymongo import AsyncMongoClient
 from sqlalchemy import delete, insert
 
@@ -22,12 +22,12 @@ from backend.config import settings
 from backend.config.database import MongoSettings
 from backend.db.models import MigrationProgress
 from common.records import to_bson
-from tests.conftest import TEST_MONGO_DB
+from tests.conftest import mongo_database
 
 
 def _link(workspace_id, form_id):
     return WorkspaceFormDocument(
-        id=PydanticObjectId(), workspace_id=workspace_id, form_id=form_id, user_id="u1"
+        id=RecordId(), workspace_id=workspace_id, form_id=form_id, user_id="u1"
     )
 
 
@@ -56,7 +56,7 @@ def _service(workspace_form_repo=None, **stores):
 
 
 async def _refused(service):
-    for call in (service.plan, lambda: service.drop(str(PydanticObjectId()))):
+    for call in (service.plan, lambda: service.drop(str(RecordId()))):
         with pytest.raises(HTTPException) as refused:
             await call()
         assert refused.value.status_code == 409
@@ -82,11 +82,11 @@ async def _backfill_finished(last_id=None, skipped=0):
 
 @pytest.fixture
 def mongo(clean_postgres):
-    return container.database_client()[TEST_MONGO_DB]
+    return mongo_database()
 
 
 async def test_the_plan_and_drops_wait_for_a_complete_forms_import(mongo):
-    ws_a, ws_b = PydanticObjectId(), PydanticObjectId()
+    ws_a, ws_b = RecordId(), RecordId()
     imported, not_yet = _link(ws_a, "f1"), _link(ws_b, "f1")
     await container.workspace_form_repo().save(imported)
     await mongo["workspace_forms"].insert_many([to_bson(imported), to_bson(not_yet)])
@@ -97,14 +97,14 @@ async def test_the_plan_and_drops_wait_for_a_complete_forms_import(mongo):
 
     await container.workspace_form_repo().save(not_yet)
     assert await service.plan() == []
-    assert await service.drop(str(PydanticObjectId())) == "not_found"
+    assert await service.drop(str(RecordId())) == "not_found"
 
 
 async def test_a_link_deleted_after_a_finished_import_does_not_block(mongo):
     """Since 4.1 a link is deleted in Postgres only, so it stays in Mongo's
     frozen copy: a finished backfill (the startup guard's signal too) counts
     as a complete import; without one the missing link still refuses."""
-    deleted = _link(PydanticObjectId(), "f1")
+    deleted = _link(RecordId(), "f1")
     await mongo["workspace_forms"].insert_one(to_bson(deleted))
     service = _service(mongo_database=_opened(mongo))
     await _refused(service)
@@ -117,14 +117,14 @@ async def test_a_link_written_to_mongo_after_a_finished_backfill_refuses(mongo):
     """4.0 wrote a link after the backfill finished (a rollback, a rehearsal
     on the same database): past the backfill's last copied id, so the import
     is incomplete again until a backfill copies it."""
-    copied = _link(PydanticObjectId(), "f1")
+    copied = _link(RecordId(), "f1")
     await container.workspace_form_repo().save(copied)
     await mongo["workspace_forms"].insert_one(to_bson(copied))
     await _backfill_finished(last_id=copied.id)
     service = _service(mongo_database=_opened(mongo))
     assert await service.plan() == []
 
-    later = _link(PydanticObjectId(), "f2")  # a newer ObjectId
+    later = _link(RecordId(), "f2")  # a newer ObjectId
     await mongo["workspace_forms"].insert_one(to_bson(later))
     assert "1 workspace link" in await _refused(service)
     await _backfill_finished(last_id=later.id)  # the backfill ran again
@@ -132,7 +132,7 @@ async def test_a_link_written_to_mongo_after_a_finished_backfill_refuses(mongo):
 
 
 async def test_a_backfill_that_skipped_documents_falls_back_to_the_links(mongo):
-    missing = _link(PydanticObjectId(), "f1")
+    missing = _link(RecordId(), "f1")
     await mongo["workspace_forms"].insert_one(to_bson(missing))
     await _backfill_finished(last_id=missing.id, skipped=1)
     service = _service(mongo_database=_opened(mongo))
@@ -155,22 +155,20 @@ async def test_an_unreachable_mongo_refuses(clean_postgres):
 async def test_default_settings_without_mongo_in_use_check_nothing(
     clean_postgres, monkeypatch
 ):
-    """A fresh 4.1 install: ``MONGO_URI`` unset (only the built-in default)
-    and no group on Mongo. The routes work: nothing to import."""
-    if container.flags().uses_mongo(("responses",)):
-        pytest.skip("a group of this run uses Mongo")
+    """A fresh 4.1 install: ``MONGO_URI`` unset (only the built-in default).
+    The routes work: nothing to import."""
     monkeypatch.delenv("MONGO_URI", raising=False)
     monkeypatch.setattr(settings, "mongo_settings", MongoSettings())
     assert "URI" not in settings.mongo_settings.model_fields_set
     service = _service()  # the real Mongo and Postgres openers
     assert await service.plan() == []
-    assert await service.drop(str(PydanticObjectId())) == "not_found"
+    assert await service.drop(str(RecordId())) == "not_found"
 
 
 async def test_a_settled_backfill_reads_no_links(mongo):
     """With the recorded backfill settling it (done, nothing skipped, no
     newer Mongo link) every Postgres link is never loaded."""
-    copied = _link(PydanticObjectId(), "f1")
+    copied = _link(RecordId(), "f1")
     await mongo["workspace_forms"].insert_one(to_bson(copied))
     await _backfill_finished(last_id=copied.id)
 

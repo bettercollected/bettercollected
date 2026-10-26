@@ -10,11 +10,17 @@ duplicates exist.
 
 from __future__ import annotations
 
-from sqlalchemy import Index, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Index, SmallInteger, Text, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.base import S, Base
 from common.db import BaseRow, DeletionTombstoneMixin, MirrorWriteFailureMixin
 from common.db.migrate import MigrationProgressMixin, StoreMigrationMixin
+
+LEGACY_IDENTITY_WHERE = text(
+    "anonymous_identity IS NOT NULL AND anonymous_identity NOT LIKE 'v2:%'"
+)
 
 
 class WorkspaceRow(Base, BaseRow):
@@ -322,6 +328,13 @@ class FormResponseRow(Base, BaseRow):
         Index(None, "submission_uuid"),
         Index(None, "data_owner_identifier"),
         Index(None, "anonymous_identity"),
+        # the stored identities that are not v2 yet (0022): the conversion pass
+        # and its counts read only these, so a start that finds none is cheap
+        Index(
+            "ix_form_responses_legacy_identity",
+            "id",
+            postgresql_where=LEGACY_IDENTITY_WHERE,
+        ),
         Index(None, "expiration"),
     )
 
@@ -349,6 +362,11 @@ class ResponseDeletionRequestRow(Base, BaseRow):
             postgresql_nulls_not_distinct=True,
         ),
         Index(None, "status"),
+        Index(
+            "ix_deletion_requests_legacy_identity",
+            "id",
+            postgresql_where=LEGACY_IDENTITY_WHERE,
+        ),
     )
 
 
@@ -557,3 +575,17 @@ class DeletionTombstone(Base, DeletionTombstoneMixin):
     copies a deleted record back (common.db.tombstones). Ids only."""
 
     __tablename__ = "deletion_tombstones"
+
+
+class RespondentIdentityKeyCheck(Base):
+    """The one row that says which key converted the stored respondent
+    identities (0022): ``check_value`` is HMAC-SHA256(key, a fixed label), never
+    the key and not usable to match anyone (backend.identity_rekey)."""
+
+    __tablename__ = "respondent_identity_key_check"
+    id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+    check_value: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
+    __table_args__ = (CheckConstraint("id = 1", name="ck_respondent_identity_key_check_one_row"),)

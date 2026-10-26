@@ -15,10 +15,10 @@ import asyncio
 import json
 import sys
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.utils import AiohttpClient
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 from backend.db.startup import check_postgres_at_startup
 
 # the directories, their users and the workspaces live in the identity group
@@ -31,7 +31,7 @@ async def _resync(container, workspace_id: str | None, force: bool = False) -> d
     if workspace_id is None:
         return await service.resync_all("cli")
     directory = await container.scim_directory_repo().find_by_workspace(
-        PydanticObjectId(workspace_id)
+        RecordId(workspace_id)
     )
     if directory is None:
         raise SystemExit("This workspace has no directory.")
@@ -58,7 +58,7 @@ async def main(argv) -> int:
 
     AiohttpClient.get_aiohttp_client()
     try:
-        async with routed_repositories(*GROUPS) as container:
+        async with open_container() as container:
             await check_postgres_at_startup(container)
             result = await _resync(
                 container,

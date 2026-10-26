@@ -7,11 +7,9 @@ from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
-from pymongo import AsyncMongoClient
 
-from common.db import DatabaseSettings, RoutingMetrics
+from common.db import DatabaseSettings
 
-from backend.db.outbox import OutboxRecorder
 from backend.db.groups import load_backend_flags
 from backend.jobs.app import app as jobs_app
 from backend.db.session import (
@@ -150,24 +148,15 @@ current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 class AppContainer(containers.DeclarativeContainer):
     http_client: HttpClient = providers.Singleton(HttpClient)
 
-    database_client: AsyncMongoClient = providers.Object(None)
-    # Mongo/Postgres switching (plans/postgres-consolidation.md D5): read once at boot,
-    # validated; a bad combination, or a stale flag for a Postgres-only group
-    # (backend.db.groups.POSTGRES_ONLY_GROUPS), refuses to start.
+    # Postgres is the only store. The flags are read once at boot: the jobs
+    # backends, and a stale store setting left from the 4.0 cutover (for a group
+    # of backend.db.groups.POSTGRES_ONLY_GROUPS) refuses to start.
     flags = providers.Singleton(load_backend_flags)
-    # Postgres: engine and sessions exist only when DATABASE_URL is set; the
-    # routing layer treats the store as absent otherwise. Mirror-write failures
-    # land in the primary store's outbox (backend/db/outbox.py).
+    # The engine and sessions exist only when DATABASE_URL is set; startup
+    # refuses to run without it (backend.db.startup).
     db_settings = providers.Singleton(DatabaseSettings.from_env)
     pg_engine = providers.Singleton(build_engine, db_settings)
     pg_sessionmaker = providers.Singleton(build_sessionmaker, pg_engine)
-    outbox_recorder = providers.Singleton(OutboxRecorder, pg_sessionmaker)
-    mirror_timeout_s = providers.Callable(
-        lambda s: s.mirror_timeout_ms / 1000, db_settings
-    )
-    routing_metrics = providers.Singleton(
-        RoutingMetrics
-    )  # shared: counters keyed by group
 
     user_tags_repo: PostgresUserTagsRepository = providers.Singleton(
         PostgresUserTagsRepository, pg_sessionmaker

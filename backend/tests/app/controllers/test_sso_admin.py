@@ -2,7 +2,7 @@
 Polis's admin API and the auth service are stand-ins (tests/app/sso_helpers)."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from httpx import AsyncClient
 
@@ -389,7 +389,7 @@ async def _session(user_id: str) -> SessionDocument:
     now = utcnow()
     return await container.session_repo().save(
         SessionDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             user_id=user_id,
             refresh_jti="j",
             expires_at=now.replace(year=now.year + 1),
@@ -702,7 +702,7 @@ async def test_a_test_rechecks_the_oidc_endpoints(
 # -- review fixes: owner only --------------------------------------------------
 @pytest.fixture()
 async def admin_member(workspace):
-    admin = User(id=str(PydanticObjectId()), sub="admin@" + DOMAIN)
+    admin = User(id=str(RecordId()), sub="admin@" + DOMAIN)
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=admin.id, roles=[WorkspaceRoles.ADMIN]

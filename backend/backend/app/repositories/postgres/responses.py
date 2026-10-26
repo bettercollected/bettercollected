@@ -56,7 +56,7 @@ from backend.app.repositories.response_scope import (
     form_importers,
     form_titles,
 )
-from backend.app.utils.hash import hash_string
+from backend.app.utils.respondent_identity import identity_of
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupFormDocument,
@@ -185,8 +185,6 @@ async def _locked_doc(session, row, *where: Any, document=None):
 class PostgresFormResponseRepository(RecordRepository):
     row = FormResponseRow
     document = FormResponseDocument
-    # add_deletion_request
-    document_rows = {FormResponseDeletionRequest: ResponseDeletionRequestRow}
 
     def __init__(self, session_factory, form_repo, workspace_form_repo):
         super().__init__(session_factory)
@@ -460,7 +458,7 @@ class PostgresFormResponseRepository(RecordRepository):
             return await self.get_deletion_requests(
                 scope,
                 data_owner_identifier=user.sub,
-                anonymous_identity=hash_string(user.sub),
+                anonymous_identity=identity_of(user.sub),
             )
         else:
             return await self.get_form_responses(scope, data_owner_identifier=user.sub)
@@ -1070,7 +1068,6 @@ class PostgresFormResponseRepository(RecordRepository):
 class PostgresWorkspaceRespondersRepository(RecordRepository):
     row = WorkspaceResponderRow
     document = WorkspaceResponderDocument
-    document_rows = {WorkspaceTags: WorkspaceTagRow}  # create_workspace_tag
 
     async def create_workspace_tag(self, workspace_id: RecordId, title: str):
         """The workspace's tag of this title (created when there is none), its

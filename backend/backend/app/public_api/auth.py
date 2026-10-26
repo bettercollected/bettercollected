@@ -11,7 +11,7 @@ the wrapper in ``app.py``.
 from dataclasses import dataclass
 from http import HTTPStatus
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -43,7 +43,7 @@ class ApiCaller:
     user: User
 
     @property
-    def workspace_id(self) -> PydanticObjectId:
+    def workspace_id(self) -> RecordId:
         return self.key.workspace_id
 
     @property

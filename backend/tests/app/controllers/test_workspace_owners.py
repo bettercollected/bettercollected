@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from httpx import AsyncClient
 
@@ -45,9 +45,9 @@ from tests.app.sso_helpers import (
     verify_domain,
 )  # noqa: F401
 
-co_owner = User(id=str(PydanticObjectId()), sub="co-owner@" + DOMAIN)
-admin = User(id=str(PydanticObjectId()), sub="admin@" + DOMAIN)
-viewer = User(id=str(PydanticObjectId()), sub="viewer@" + DOMAIN)
+co_owner = User(id=str(RecordId()), sub="co-owner@" + DOMAIN)
+admin = User(id=str(RecordId()), sub="admin@" + DOMAIN)
+viewer = User(id=str(RecordId()), sub="viewer@" + DOMAIN)
 
 
 def _cookies(user: User) -> dict:
@@ -73,7 +73,7 @@ async def _add(workspace_id, user: User, roles, disabled=False, **fields):
 
 async def _membership(workspace_id, user: User):
     return await container.workspace_user_repo().find_workspace_user(
-        PydanticObjectId(workspace_id), PydanticObjectId(user.id)
+        RecordId(workspace_id), RecordId(user.id)
     )
 
 
@@ -188,7 +188,7 @@ async def test_an_admin_never_makes_an_owner(client: AsyncClient, owners, auth_s
 
 
 async def test_an_owner_invites_an_owner(client: AsyncClient, owners, auth_service):
-    newcomer = User(id=str(PydanticObjectId()), sub="new-owner@example.com")
+    newcomer = User(id=str(RecordId()), sub="new-owner@example.com")
     created = await client.post(
         f"{_members(owners.id)}/invitations",
         json={"email": newcomer.sub, "role": "OWNER"},
@@ -211,7 +211,7 @@ async def test_an_owner_invites_an_owner(client: AsyncClient, owners, auth_servi
 async def test_an_owner_invitation_lapses_with_its_senders_ownership(
     client: AsyncClient, owners, auth_service
 ):
-    newcomer = User(id=str(PydanticObjectId()), sub="late-owner@example.com")
+    newcomer = User(id=str(RecordId()), sub="late-owner@example.com")
     created = await client.post(
         f"{_members(owners.id)}/invitations",
         json={"email": newcomer.sub, "role": "OWNER"},
@@ -395,7 +395,7 @@ async def _session(user_id: str, method: str = "otp") -> SessionDocument:
     now = utcnow()
     return await container.session_repo().save(
         SessionDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             user_id=user_id,
             refresh_jti="j",
             method=method,

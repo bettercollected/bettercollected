@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post, patch, get, delete
 from fastapi import Depends
 from pydantic import EmailStr
@@ -40,7 +40,7 @@ class ResponderGroupsRouter(Routable):
         "",
     )
     async def get_groups_in_workspace(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ):
         return await self.responder_groups_service.get_groups_in_workspace(
             workspace_id=workspace_id, user=user
@@ -52,7 +52,7 @@ class ResponderGroupsRouter(Routable):
     @user_tag(tag=UserTagType.GROUP_CREATED)
     async def create(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         name: str,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
@@ -69,8 +69,8 @@ class ResponderGroupsRouter(Routable):
     )
     async def get_user_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         return await self.responder_groups_service.get_users_in_group(
@@ -83,8 +83,8 @@ class ResponderGroupsRouter(Routable):
     )
     async def update_user_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         name: Optional[str] = None,
         description: Optional[str] = None,
         emails: List[EmailStr] = None,
@@ -106,8 +106,8 @@ class ResponderGroupsRouter(Routable):
     )
     async def add_emails_to_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         emails: List[EmailStr],
         user: User = Depends(get_full_user),
     ):
@@ -120,8 +120,8 @@ class ResponderGroupsRouter(Routable):
     )
     async def delete_emails_from_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         emails: List[EmailStr],
         user: User = Depends(get_full_user),
     ):
@@ -135,8 +135,8 @@ class ResponderGroupsRouter(Routable):
     )
     async def delete_responder_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         await self.responder_groups_service.remove_responder_group(

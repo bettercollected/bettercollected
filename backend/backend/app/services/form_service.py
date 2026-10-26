@@ -3,7 +3,7 @@ from http import HTTPStatus
 from typing import Iterable, List, Optional
 
 from aiohttp import ServerDisconnectedError
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
@@ -97,7 +97,7 @@ class FormService:
 
     async def get_forms_in_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         sort: SortRequest,
         published: bool,
         pinned_only: bool,
@@ -145,7 +145,7 @@ class FormService:
         return forms_page
 
     async def _staff_view(
-        self, user: Optional[User], workspace_id: PydanticObjectId, published: bool
+        self, user: Optional[User], workspace_id: RecordId, published: bool
     ) -> bool:
         """Whether ``user`` sees the workspace's forms as staff (``form.read``).
         Members get the dashboard listing, search and single-form reads;
@@ -186,7 +186,7 @@ class FormService:
             )
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
+        self, workspace_id: RecordId, query: str, published: bool, user: User
     ):
         # before any query: drafts are staff-only, as in the listing
         staff = await self._staff_view(user, workspace_id, published)
@@ -217,7 +217,7 @@ class FormService:
 
     async def get_form_by_id(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User,
         published: bool = False,
@@ -240,7 +240,7 @@ class FormService:
         return form if is_admin else respondent_view(form)
 
     async def ai_notice_token(
-        self, workspace_id: PydanticObjectId, form_id_or_slug: str
+        self, workspace_id: RecordId, form_id_or_slug: str
     ) -> Optional[str]:
         """The AI notice token for a respondent's page of this form (#752), or
         None while the form shows no AI notice."""
@@ -253,7 +253,7 @@ class FormService:
 
     async def _get_form_by_id(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         user: User,
         is_admin: bool,
@@ -274,7 +274,7 @@ class FormService:
                 workspace_form.settings.private or workspace_form.settings.hidden
             ) and published:
                 form = await self._form_repo.get_latest_version_of_form(
-                    form_id=PydanticObjectId(workspace_form.form_id)
+                    form_id=RecordId(workspace_form.form_id)
                 )
                 return {
                     "formId": form.form_id,
@@ -314,7 +314,7 @@ class FormService:
                         status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                     )
                 form = await self._form_repo.get_latest_version_of_form(
-                    form_id=PydanticObjectId(workspace_form.form_id)
+                    form_id=RecordId(workspace_form.form_id)
                 )
                 if not form:
                     raise HTTPException(
@@ -388,7 +388,7 @@ class FormService:
         await self._form_repo.save_form_version(form_version_document)
         return await self._form_repo.save_form(form_document)
 
-    async def check_form_in_workspace(self, workspace_id: PydanticObjectId, form_id):
+    async def check_form_in_workspace(self, workspace_id: RecordId, form_id):
         if not await self._workspace_form_repo.find_workspace_form(
             workspace_id, str(form_id)
         ):
@@ -396,7 +396,7 @@ class FormService:
 
     async def patch_settings_in_workspace_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         settings: SettingsPatchDto,
         user: User,
@@ -504,12 +504,12 @@ class FormService:
     async def create_form(self, form: StandardForm) -> FormDocument:
         return await self._form_repo.create_form(form=form)
 
-    async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
+    async def update_form(self, form_id: RecordId, form: StandardForm):
         return await self._form_repo.update_form(form_id=form_id, form=form)
 
     async def update_form_if_unchanged(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         form: StandardForm,
         expected_updated_at: datetime,
     ):
@@ -522,7 +522,7 @@ class FormService:
     async def get_form_document_by_id(self, form_id: str):
         return await self._form_repo.get_form_document_by_id(form_id)
 
-    async def publish_form(self, form_id: PydanticObjectId):
+    async def publish_form(self, form_id: RecordId):
         form = await self._form_repo.get_form_document_by_id(str(form_id))
         latest_published_form = await self._form_repo.get_latest_version_of_form(
             form_id
@@ -562,7 +562,7 @@ class FormService:
 
     async def get_form_by_version(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         version: str | int,
         user: User,
@@ -580,7 +580,7 @@ class FormService:
 
     async def _get_form_by_version(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         version: str | int,
         user: User,
@@ -624,7 +624,7 @@ class FormService:
             return form[0]
         else:
             form = await self._form_repo.get_form_by_by_version(
-                form_id=PydanticObjectId(form_id), version=version
+                form_id=RecordId(form_id), version=version
             )
             if not form:
                 raise HTTPException(
@@ -635,7 +635,7 @@ class FormService:
 
     async def add_action_form(
         self,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
         add_action_to_form_params: AddActionToFormDto,
         action: ActionDto,
     ):
@@ -698,7 +698,7 @@ class FormService:
         return await self._form_repo.save_form(form)
 
     async def remove_action_from_form(
-        self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger
+        self, form_id: RecordId, action_id: RecordId, trigger: Trigger
     ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
 
@@ -716,7 +716,7 @@ class FormService:
         return (await self._form_repo.save_form(form)).actions
 
     async def update_state_of_action_in_form(
-        self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto
+        self, form_id: RecordId, update_action_dto: UpdateActionInFormDto
     ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         if form.actions and update_action_dto.trigger in form.actions:
@@ -734,7 +734,7 @@ class FormService:
         self,
         action_params: AddActionToFormDto,
         integration_name: FormIntegrationType,
-        form_id: PydanticObjectId,
+        form_id: RecordId,
     ):
         form_params = await self.integration_provider.get_integration_provider(
             integration_type=integration_name
@@ -743,5 +743,5 @@ class FormService:
         )
         return form_params
 
-    async def get_latest_version_of_form(self, form_id: PydanticObjectId):
+    async def get_latest_version_of_form(self, form_id: RecordId):
         return await self._form_repo.get_latest_version_of_form(form_id)

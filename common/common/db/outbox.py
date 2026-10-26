@@ -1,12 +1,11 @@
-"""Outboxes for mirror writes that failed (plans/postgres-consolidation.md §6).
+"""The outbox table of mirror writes that failed while 4.0 ran both stores.
 
-In dual-write mode the mirror write is bounded and never fails the request; a
-failure is recorded in the *primary* store so the reconciler can replay it:
-
-* Mongo primary → :class:`MirrorWriteFailureDocument` (collection
-  ``mirror_write_failures``) — services register it with Beanie.
-* Postgres primary → a per-schema table declared from
-  :class:`MirrorWriteFailureMixin` (``<schema>.mirror_write_failures``).
+Nothing writes it any more (the services have no mirror since 4.1). The
+per-schema table declared from :class:`MirrorWriteFailureMixin`
+(``<schema>.mirror_write_failures``) stays for the import from 4.0:
+``resolve-outbox`` (``python -m <service>.migrate``) reads and resolves the
+entries a 4.0 stack left behind. The tables are dropped with the other
+dual-run leftovers in 5.x.
 """
 
 from __future__ import annotations
@@ -17,8 +16,6 @@ from typing import Optional
 from sqlalchemy import BigInteger, Integer, Text, func, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
-
-from common.configs.mongo_document import MongoDocument
 
 MIRROR_OPS = ("insert", "update", "delete")
 
@@ -42,17 +39,3 @@ class MirrorWriteFailureMixin:
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
     resolved_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
-
-
-class MirrorWriteFailureDocument(MongoDocument):
-    """The Mongo-side outbox, for the phase in which Mongo is primary."""
-
-    table_name: str
-    row_id: str
-    op: str
-    error: str
-    attempts: int = 0
-    resolved_at: Optional[datetime] = None
-
-    class Settings:
-        name = "mirror_write_failures"

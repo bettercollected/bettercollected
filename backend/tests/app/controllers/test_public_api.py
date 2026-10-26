@@ -8,7 +8,7 @@ import json
 import re
 from typing import Any, Coroutine
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -143,7 +143,7 @@ class TestAuth:
     async def test_the_creators_current_permissions_apply(
         self, client: AsyncClient, workspace, workspace_form
     ):
-        creator = User(id=str(PydanticObjectId()), sub="api-creator@example.com")
+        creator = User(id=str(RecordId()), sub="api-creator@example.com")
         repo = container.workspace_user_repo()
         await repo.save(
             WorkspaceUserDocument(
@@ -157,7 +157,7 @@ class TestAuth:
         assert (await client.get(url, headers=_auth(token))).status_code == 200
 
         membership = await repo.find_workspace_user(
-            workspace.id, PydanticObjectId(creator.id)
+            workspace.id, RecordId(creator.id)
         )
         membership.roles = [WorkspaceRoles.VIEWER]
         await repo.save(membership)
@@ -1008,7 +1008,7 @@ class TestDeleteForm:
 
 
 async def _member(workspace, role) -> User:
-    user = User(id=str(PydanticObjectId()), sub="api-member@example.com")
+    user = User(id=str(RecordId()), sub="api-member@example.com")
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(workspace_id=workspace.id, user_id=user.id, roles=[role])
     )
@@ -1017,7 +1017,7 @@ async def _member(workspace, role) -> User:
 
 async def _set_role(workspace, user: User, role) -> None:
     repo = container.workspace_user_repo()
-    membership = await repo.find_workspace_user(workspace.id, PydanticObjectId(user.id))
+    membership = await repo.find_workspace_user(workspace.id, RecordId(user.id))
     membership.roles = [role]
     await repo.save(membership)
 

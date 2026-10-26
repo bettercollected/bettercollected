@@ -53,9 +53,9 @@ async def test_the_webhook_gets_the_event_and_user_id_only(webhook, event_type):
 
 @pytest.mark.asyncio
 async def test_an_object_id_user_id_is_sent_as_text(webhook):
-    from beanie import PydanticObjectId
+    from common.ids import RecordId
 
-    user_id = PydanticObjectId()
+    user_id = RecordId()
     await EventService().post_event(UserEventType.USER_CREATED, user_id)
 
     (request,) = webhook

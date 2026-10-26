@@ -1,8 +1,8 @@
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic import BaseModel
 
 
 class GroupsDto(BaseModel):
-    group_ids: List[PydanticObjectId]
+    group_ids: List[RecordId]

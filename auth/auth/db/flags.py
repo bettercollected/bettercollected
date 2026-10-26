@@ -17,45 +17,20 @@ from __future__ import annotations
 import os
 from typing import Mapping
 
-from common.db.flags import (
-    OVERRIDE_SEP,
-    READ_KEY,
-    WRITE_KEY,
-    DbFlags,
-    FlagError,
-    ReadSource,
-    WriteMode,
-)
+from common.db.flags import DbFlags, refuse_stale_store_flags
 
 GROUP = "auth"
 
-#: The flags auth runs with.
-POSTGRES_ONLY = DbFlags(
-    default_read=ReadSource.POSTGRES, default_write=WriteMode.POSTGRES
-)
-
-
-def _applies(key: str) -> bool:
-    """The service-wide flag, or the auth group's override."""
-    for base in (READ_KEY, WRITE_KEY):
-        if key == base:
-            return True
-        if key.startswith(base + OVERRIDE_SEP):
-            return key[len(base + OVERRIDE_SEP) :].lower() == GROUP
-    return False
+#: The flags auth runs with (it has no jobs).
+POSTGRES_ONLY = DbFlags()
 
 
 def load_auth_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
     """:data:`POSTGRES_ONLY`, or :class:`FlagError` naming each stale flag."""
-    stale = sorted(
-        f"{key}={value!r}"
-        for key, value in env.items()
-        if _applies(key) and value.strip().lower() not in ("", "postgres")
+    refuse_stale_store_flags(
+        env,
+        (GROUP,),
+        what="the auth service stores its data in Postgres only since 4.1 and "
+        "has no Mongo store any more.",
     )
-    if stale:
-        raise FlagError(
-            f"{', '.join(stale)}: the auth service stores its data in Postgres "
-            "only since 4.1 and has no Mongo store any more. Remove these "
-            "settings (or set them to postgres) and restart."
-        )
     return POSTGRES_ONLY

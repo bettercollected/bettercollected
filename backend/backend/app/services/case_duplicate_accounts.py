@@ -144,16 +144,13 @@ def decide(forms: Dict[str, int]) -> Dict[str, str]:
 
 def backend_mongo_database():
     """The backend's Mongo database, opened as the startup import guard opens
-    it (``mongo_import_guard._database``): the container's client while a
-    group uses Mongo, else a client of its own while ``MONGO_URI`` is
-    configured (set, not just the built-in default). An async context
-    yielding None when neither: no Mongo, nothing to check."""
-    from backend.app.container import container
+    it (``mongo_import_guard._database``): a client of its own while
+    ``MONGO_URI`` is configured (set, not just the built-in default). An
+    async context yielding None without one: no Mongo, nothing to check."""
     from backend.db.mongo_import_guard import _database, mongo_uri_configured
-    from backend.db.startup import mongo_required
 
     return _database(
-        container.database_client() if mongo_required(container) else None,
+        None,
         mongo_uri_configured(settings.mongo_settings),
         settings.mongo_settings.DB,
     )

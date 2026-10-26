@@ -1,11 +1,17 @@
 import asyncio
 from pathlib import Path
 import os
+import re
+import secrets
 import time
 from typing import Any, Coroutine
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+
+# The respondent identity key (RESPONDENT_IDENTITY_KEY) is a deployment secret
+# and never in the repository: a run without one gets a throwaway key.
+os.environ.setdefault("RESPONDENT_IDENTITY_KEY", secrets.token_hex(32))
 
 # pytest-xdist: each worker ("gw0", "gw1", ...) gets its own Mongo and Postgres
 # databases, named after the configured ones plus the worker id. This has to
@@ -26,26 +32,20 @@ if XDIST_WORKER:
         os.environ["DATABASE_URL"] = f"{_url}_{XDIST_WORKER}" + (
             f"?{_query}" if _query else ""
         )
-    # The mirror-write timeout (2 s by default) bounds request latency in
-    # production. With several workers sharing the CPUs and database servers,
-    # a mirror write occasionally stalled past it, and the test then failed on
-    # a "mirror failure" that was only a slow write. No test depends on the
-    # value; a real failure or hang still fails the test.
-    os.environ.setdefault("DB_MIRROR_TIMEOUT_MS", "10000")
 
 import httpx
 import pymongo
-from dependency_injector import providers
 import pytest
 import pytest_asyncio
+from common.db.beanie_bridge import offline_client
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
 
 from tests.app.auth_helpers import access_token
 from backend.app import get_application
+from backend.app import asgi as _asgi
 from backend.app.asgi import lifespan
 from backend.app.container import container
-from backend.app.handlers.database import init_db
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -53,7 +53,6 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
 from backend.config import settings
-from backend.db.startup import mongo_required
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -68,26 +67,32 @@ from tests.app.controllers.data import (
 
 load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
 
+# The API converts stored respondent identities in a background task after it
+# starts. The session app does not: tests that exercise the pass call it
+# themselves, and a pass running in the background would hold its advisory lock.
+_asgi.start_background_passes = lambda engine: None
+
 TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
 TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
 
 
-def _mongo_used() -> bool:
-    """Whether the flags leave any repository group on Mongo. When none is, the
-    app starts without it (MONGO_URI may point nowhere)."""
-    return mongo_required(container)
+#: Whether this session set the 4.0 Beanie classes up on the test Mongo (set at
+#: session start): when a selected test drives Mongo itself (marker ``mongo``:
+#: the import from 4.0). Otherwise the suite neither creates, clears nor drops
+#: a Mongo database, and the classes are set up offline. The application itself
+#: never connects to Mongo.
+_MONGO = {"connected": False, "client": None}
 
 
-#: Whether this session connected Beanie to the test Mongo (set at session
-#: start): when the flags use Mongo, or when a selected test drives Mongo
-#: itself (marker ``mongo``). Otherwise the suite neither creates, clears nor
-#: drops a Mongo database.
-_MONGO = {"connected": False}
+def mongo_database():
+    """The test Mongo database, as the 4.0 Beanie classes see it (only in a
+    session with ``mongo`` tests)."""
+    return _MONGO["client"][TEST_MONGO_DB]
 
 
 ALL = "*"
-#: Tests that drive a Mongo server themselves, whatever the flags: parity of the
-#: two stores, the migration CLI, the store-wide operator tasks and scripts.
+#: Tests that drive a Mongo server themselves: the import from 4.0 (the
+#: migration CLI), the store-wide operator tasks and scripts.
 #: They get the ``mongo`` marker. CI runs the Postgres mode without Mongo and
 #: ``-m "not mongo"``, and these in a job of their own with Mongo (docs/ci.md).
 #: A test missing here fails there on the unreachable Mongo: add it (the whole
@@ -96,6 +101,7 @@ MONGO_DRIVEN = {
     "tests/app/db/test_outbox.py": ALL,
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
+    "tests/app/migrate/test_reconcile_interleaved.py": ALL,
     "tests/app/migrate/test_marker.py": ALL,
     "tests/app/migrate/test_mirror_order.py": ALL,
     "tests/app/migrate/test_mirror_verify.py": ALL,
@@ -134,14 +140,24 @@ def _database_name(url: str) -> str:
     return url.rsplit("/", 1)[-1].split("?")[0]
 
 
+_TEST_NAME = re.compile(r"(^|_)test($|_)")
+
+
+def _is_test_database(name: str) -> bool:
+    """``test`` as a whole word of the name (``bettercollected_test``,
+    ``x_test_gw0``); ``latest`` or ``contest_prod`` are not test databases."""
+    return bool(_TEST_NAME.search(name))
+
+
 def _postgres_configured() -> bool:
-    """A Postgres test database is available. Guarded: only databases whose name
-    contains "test" are ever created, migrated, truncated or dropped by the suite.
-    Under xdist the configured name must pass; the worker's adds a suffix."""
+    """A Postgres test database is available. Guarded: only databases with
+    ``test`` as a word of their name are ever created, migrated, truncated or
+    dropped by the suite. Under xdist the configured name must pass; the worker's
+    adds a suffix."""
     if not TEST_DATABASE_URL:
         return False
-    return "test" in _database_name(BASE_DATABASE_URL) and "test" in _database_name(
-        TEST_DATABASE_URL
+    return _is_test_database(_database_name(BASE_DATABASE_URL)) and _is_test_database(
+        _database_name(TEST_DATABASE_URL)
     )
 
 
@@ -276,74 +292,83 @@ def _drop_test_db() -> None:
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def _initialized_app(request):
-    """Initialise the app (and Beanie) exactly once for the whole test session.
+    """Initialise the app exactly once for the whole test session.
 
-    Re-running the ASGI lifespan per test was the dominant cost of the suite:
-    `init_beanie` recreates indexes for every collection on each call. Everything
-    shares one session-scoped event loop (see the asyncio settings in
-    pyproject.toml) so the AsyncMongoClient created here stays valid for all
-    tests — the reason this was previously done per-test.
+    Re-running the ASGI lifespan per test was the dominant cost of the suite.
+    Everything shares one session-scoped event loop (see the asyncio settings
+    in pyproject.toml). The application itself never connects to Mongo; when a
+    ``mongo`` test is selected the 4.0 Beanie classes are set up on the test
+    Mongo as well (tests/app/db/beanie_originals.py), else offline.
     """
+    from tests.app.db.beanie_originals import init_originals
+
     original_uri = settings.mongo_settings.URI
     original_db = settings.mongo_settings.DB
     settings.mongo_settings.URI = TEST_MONGO_URI
     settings.mongo_settings.DB = TEST_MONGO_DB
-    container.database_client.reset_override()
 
-    mongo_tests = any(
+    _MONGO["connected"] = any(
         item.get_closest_marker("mongo") for item in request.session.items
     )
-    _MONGO["connected"] = _mongo_used() or mongo_tests
     if _MONGO["connected"]:
         _drop_test_db()
 
     worker_database = bool(XDIST_WORKER) and _postgres_configured()
     if worker_database:
         await _create_worker_database()
-    if _postgres_configured():
-        # Alembic drives its own event loop; keep it off the session loop.
-        await asyncio.to_thread(_alembic_upgrade_head)
-        await _apply_jobs_schema()
-    elif container.flags().requires_postgres():
+    if not _postgres_configured():
         raise RuntimeError(
-            "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "
+            "Postgres is the only store but DATABASE_URL is unset or does not "
             "point at a database whose name contains 'test'"
         )
+    # Alembic drives its own event loop; keep it off the session loop.
+    await asyncio.to_thread(_alembic_upgrade_head)
+    await _apply_jobs_schema()
+    # A database kept from an earlier run holds that run's respondent identity
+    # key check (its key was a throwaway): the start would refuse this run's key.
+    await _truncate_postgres()
 
-    # The flags leave Mongo unused but a selected test drives it: give the app
-    # a real client (the lifespan keeps a client already set) and set Beanie
-    # up on it as a Mongo-using start would, indexes included.
-    connect_anyway = _MONGO["connected"] and not _mongo_used()
-    if connect_anyway:
-        container.database_client.override(
-            providers.Object(pymongo.AsyncMongoClient(TEST_MONGO_URI))
-        )
+    if _MONGO["connected"]:
+        _MONGO["client"] = pymongo.AsyncMongoClient(TEST_MONGO_URI)
+        await init_originals(_MONGO["client"][TEST_MONGO_DB], required=True)
+    else:
+        await init_originals(offline_client()[TEST_MONGO_DB], required=False)
     app = get_application(is_test_mode=True)
     async with lifespan(app):
-        if connect_anyway:
-            await init_db(TEST_MONGO_DB, container.database_client(), required=True)
         yield app
 
     if _MONGO["connected"]:
+        await _MONGO["client"].close()
+        _MONGO["client"] = None
         _drop_test_db()
     if worker_database:
         await _drop_worker_database()
     settings.mongo_settings.URI = original_uri
     settings.mongo_settings.DB = original_db
-    container.database_client.reset_override()
+
+
+@pytest.fixture(autouse=True)
+def _respondent_identity_state():
+    """The process-level key state (verified / known mismatch) is what the app's
+    start left; a test that changes it must not leak that into the next."""
+    from backend.app.utils import respondent_identity as ri
+
+    mismatch, verified = list(ri._key_mismatch_seen), list(ri._key_verified)
+    yield
+    ri._key_mismatch_seen[:] = mismatch
+    ri._key_verified[:] = verified
 
 
 @pytest_asyncio.fixture(autouse=True, loop_scope="session")
 async def _clean_db(_initialized_app):
-    """Reset data before each test without re-initialising Beanie.
+    """Reset data before each test without re-initialising the app.
 
-    Clearing documents (rather than dropping the database) keeps the indexes and
-    collections created by the one-time init, so per-test setup stays cheap.
+    Clearing rows (rather than dropping the database) keeps the schema created
+    by the one-time init, so per-test setup stays cheap.
     """
     if _MONGO["connected"]:
-        await _clear_mongo(container.database_client()[TEST_MONGO_DB])
-    if _postgres_configured() and container.flags().requires_postgres():
-        await _truncate_postgres()
+        await _clear_mongo(mongo_database())
+    await _truncate_postgres()
     yield
 
 
@@ -673,23 +698,3 @@ def mock_get_workspace_by_query():
         "common.services.http_client.HttpClient.get",
         side_effect=get_workspace_by_query,
     )
-
-
-@pytest.fixture(autouse=True)
-def no_silent_mirror_failures(request):
-    """In a mirrored mode (dual / postgres_primary_dual) a failing mirror write
-    is swallowed by design: the request still succeeds and the outbox records
-    it. In tests that silence would hide a store that can't take a write, so
-    any mirror failure fails the test. Tests that exercise failures on purpose
-    mark themselves with @pytest.mark.allow_mirror_failures."""
-    metrics = container.routing_metrics()
-    before = dict(metrics.mirror_failures)
-    yield
-    if request.node.get_closest_marker("allow_mirror_failures"):
-        return
-    new = {
-        key: count - before.get(key, 0)
-        for key, count in metrics.mirror_failures.items()
-        if count > before.get(key, 0)
-    }
-    assert not new, f"mirror writes failed (group, method): {new}"
