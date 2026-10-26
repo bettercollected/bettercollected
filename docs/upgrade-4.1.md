@@ -41,17 +41,22 @@ of the runbook) skips the import; it still needs the new key (section 2) and the
 4. **The Mongo to Postgres import is complete.** Per service, `python -m <service>.migrate status`
    (`backend.migrate`, `auth.migrate`, `googleform.migrate`) shows the backfill `done` for every
    collection. Why this matters:
-   - The backend API, its job worker and `python -m backend.scim` **refuse to start** while a
-     collection of any backend group holds documents in Mongo, has no row in Postgres and has no
-     finished backfill. The log names the group, the collection, its count and the command. If
-     `MONGO_URI` is set but Mongo cannot be read, the start is refused as well. Details:
+   - **Every service that holds data refuses to start while the import is unfinished:** the backend
+     API, its job worker and `python -m backend.scim` for the backend's groups, the auth service for
+     its accounts and the Google Forms integration for its credentials and forms. A collection that
+     has documents in Mongo stops the start when a backfill of it is recorded in any state but
+     `done` (interrupted, paused, running, failed), **whatever rows Postgres already holds**, or when
+     none is recorded and its Postgres table is empty. The log names the group, the collection, its
+     count and the command to run (`python -m backend.migrate --group <g> backfill`,
+     `python -m auth.migrate --group auth backfill`,
+     `python -m googleform.migrate --group google backfill`). If `MONGO_URI` is set but Mongo cannot
+     be read, the start is refused as well. Details:
      ["Upgrading to 4.1"](postgres-cutover-runbook.md#upgrading-to-41--the-postgres-only-groups).
-   - `DB_DISCARD_UNIMPORTED_MONGO_DATA` (`all` or a list of groups) starts the backend anyway and
-     leaves that Mongo data behind. It is for a test stack whose data is worthless. Never set it on a
-     stack you care about, and remove it after the start.
-   - **The auth service and the Google Forms integration have no such check.** <!-- verify: no unimported-data guard in auth or googleform on the 4.1 code; checked by searching for the guard's import in both services, not by running them --> Started on an empty
-     Postgres they come up with no accounts or credentials. For them the `status` output above is the
-     only gate.
+   - `DB_DISCARD_UNIMPORTED_MONGO_DATA` starts a service anyway and leaves its Mongo data behind. It
+     takes `all` or the groups to give up (the backend's groups, `auth`, `google`), and it can sit in
+     one environment file the services share: each service ignores the other services' groups, so
+     only `all` or a name of its own discards anything. It is for a test stack whose data is
+     worthless. Never set it on a stack you care about, and remove it after the start.
    - Two more gates from the runbook: the `workspace_forms` backfill is `done` with `skipped` 0
      (otherwise the response tools refuse with `forms_import_incomplete`), and
      `python -m auth.migrate preflight` reports no accounts whose emails differ only in letter case
@@ -69,15 +74,15 @@ of the runbook) skips the import; it still needs the new key (section 2) and the
 
 | Setting | Where | What to do |
 |---|---|---|
-| `RESPONDENT_IDENTITY_KEY` | backend only (not the job worker, auth, the Google integration or the task runner) | **Required.** Generate once with `openssl rand -hex 32`. Compose: the root `.env`. Orchestrated: the backend's environment in the stack definition. <!-- verify: whether an upgraded stack can also store it in the settings store, and the command for it; the compose file passes the variable and treats empty as "read the store" --> A new compose stack gets one from `bootstrap-keys`; an upgrading stack does not, so set it yourself before the first 4.1 start. 4.0.x ignores it, so it is safe to add before the upgrade. |
+| `RESPONDENT_IDENTITY_KEY` | backend only (not the job worker, auth, the Google integration or the task runner) | **Required.** Generate it **once**, before you roll the backend to 4.1: `openssl rand -hex 32`. Compose: the root `.env`. Orchestrated: the backend's environment in the stack definition. Set it in the environment: it is a tier T4 secret, and the portal and `settings-set` handle tiers T1 to T3 only. A new compose stack gets one from `bootstrap-keys`; an upgrading stack does not, so set it yourself before the first 4.1 start. 4.0.x ignores it, so it is safe to add before the upgrade, and on an orchestrated stack it has to be deployed before the 4.1 tag is pushed. |
 
 The key rules, in short (full text: [respondent-identity.md](respondent-identity.md)):
 
 - **Keep it forever, with the other secrets.** The stored identities of anonymous responses are
   converted with it and cannot be converted back. A different key later makes every stored identity
   unmatchable: respondents could no longer find or delete their own anonymous submission.
-- **Never in a database backup, a ticket, a chat or the repository.** Keep a copy where you keep your
-  other keys. <!-- verify: if the key is kept in the settings store it is encrypted there with the master key, so a database backup then holds it encrypted; the guidance here is simply to hold an independent copy -->
+- **Never in a database backup, a ticket, a chat or the repository.** Keep it with the stack's other
+  secrets, outside the database, and restore it from there: a database restore does not bring it back.
 - The backend checks the key at every start against a check value it stores in Postgres (not the
   key). A replica with a different key does not start. **At the first 4.1 start, write down the 8
   hexadecimal digits after `key fingerprint=` in the log.** You will compare them later.
@@ -102,9 +107,9 @@ Remove them from the stack definition, `.env` and `.env.deployment`, and from th
 
 | Setting | What happens if it is still set on 4.1 |
 |---|---|
-| `DB_READ_SOURCE`, `DB_WRITE_MODE` | Unset, empty or `postgres` is fine. Any other value (`mongo`, `dual`, `postgres_primary_dual`) **stops the start** and names the setting. Backend: only the per-group forms (`DB_READ_SOURCE__<group>`, `DB_WRITE_MODE__<group>`, for `refdata`, `analytics`, `ai`, `actions`, `identity`, `forms`, `responses`) are checked; the service-wide value means nothing to it and is ignored. Auth and the Google Forms integration check the service-wide value **and** their own `__auth` / `__google` override. <!-- verify: read from the 4.1 code (refuse_stale_store_flags and its three callers), not run against a stack --> The task runner reads no write mode any more. |
+| `DB_READ_SOURCE`, `DB_WRITE_MODE` | Unset, empty or `postgres` is fine. Any other value (`mongo`, `dual`, `postgres_primary_dual`) **stops the start** and names the setting. Backend: only the per-group forms (`DB_READ_SOURCE__<group>`, `DB_WRITE_MODE__<group>`, for `refdata`, `analytics`, `ai`, `actions`, `identity`, `forms`, `responses`) are checked; the service-wide value means nothing to it and is ignored. Auth and the Google Forms integration check the service-wide value **and** their own `__auth` / `__google` override. The task runner reads no write mode any more. (`common/common/db/flags.py`, `refuse_stale_store_flags`.) |
 | `DB_SHADOW_READ_SAMPLE`, `DB_MIRROR_TIMEOUT_MS` | Read by nothing; ignored. |
-| `MONGO_URI`, `MONGO_DB`, `GOOGLE_MONGO_DB` | Read only by the import commands and by the backend's startup check (when `MONGO_URI` is set and unreadable the start is refused). Remove them once Mongo is off (4.). On the task runner, `TASK_RUNNER_MONGO_URI` set makes `keyset.drop_old` and the Google credentials purge refuse (`import_incomplete`); unset it. |
+| `MONGO_URI`, `MONGO_DB`, `GOOGLE_MONGO_DB` | Read only by the import commands and by the startup checks of the backend, auth and the Google Forms integration (a `MONGO_URI` that is set and unreadable refuses the start). Remove them once Mongo is off (4.). On the task runner, `TASK_RUNNER_MONGO_URI` set makes `keyset.drop_old` and the Google credentials purge refuse (`import_incomplete`); unset it. |
 | `BREVO_TRACKER_KEY`, `BREVO_TRACKER_API_URL`, `BREVO_CONTACTS_API_KEY` | Ignored, as are stored rows for them. |
 | `TYPEFORM_*` | Ignored. The `integrations-typeform` service is gone: scale it to 0 and remove it from the definition (keep it in your saved 4.0.x definition, for a rollback). Forms already imported from Typeform stay readable. `./deploy.sh typeform` and `./deploy.sh both` are refused; use `./deploy.sh` or `./deploy.sh googleform`. |
 
@@ -146,11 +151,11 @@ steps 1 to 7; do not improvise the order. In outline:
 
 1. Final `verify` and its gates (section 1), then the backups.
 2. Roll 1 (`postgres_primary_dual`), check, roll 2 (`postgres`), check: both on the 4.0.14 images.
-3. **Before the tag**, deploy the stored definition with the new items that 4.1 needs at its first
-   start: `RESPONDENT_IDENTITY_KEY` on `backend`, and the executor's `DATABASE_URL` or
-   `JOBS_BACKEND=temporal`. 4.0.x ignores the key, so this deploy changes nothing yet. This has to
-   come first: the tag updates the images with the environment of the last deploy, and a 4.1 backend
-   without the key refuses to start (Swarm then rolls it back by itself).
+3. **Before the tag** (the runbook's step 5, sub-step 2), deploy the stored definition with the new
+   items that 4.1 needs at its first start: `RESPONDENT_IDENTITY_KEY` on `backend`, and the
+   executor's `DATABASE_URL` or `JOBS_BACKEND=temporal`. 4.0.x ignores the key, so this deploy changes
+   nothing yet. This has to come first: the tag updates the images with the environment of the last
+   deploy, and a 4.1 backend without the key refuses to start (Swarm then rolls it back by itself).
 4. Roles and grants (`postgres/ensure-admin-roles.sh` of the 4.1 tag, as the database superuser
    inside the Postgres container), the task runner to 0 replicas, the 4.1 definition (image tags,
    internal listener URLs, no `MONGO_URI` on the runner, `integrations-typeform` at 0), push the tag,
@@ -194,7 +199,9 @@ steps 1 to 7; do not improvise the order. In outline:
    workflow and schedule already in Temporal has run (response deletion, account deletion, action
    runs): the old schedules fire into the worker, which calls the backend. When the Temporal UI (or
    CLI) shows no running workflow and no remaining schedule of those kinds, stop the worker and then
-   the Temporal server; keep their volume for a while. <!-- verify: the check is described, not scripted; also confirm nothing else (template previews, CSV export) still needs the Temporal worker before stopping it, and whether the compose file of 4.1 should stop shipping the service --> Until then do not remove them: the runbook, ["Jobs"](postgres-cutover-runbook.md#phase-2--serve-from-postgres-one-group-at-a-time),
+   the Temporal server; keep their volume for a while. On the 4.1 backend only three things start
+   Temporal work (account deletion, scheduled response deletion, action runs), and each is on the
+   queue by default, so nothing new arrives once they have run. <!-- verify: the UI/CLI check is described, not scripted, and the compose file of 4.1 still ships the Temporal services (removing them from the file is a separate change) --> Until then do not remove them: the runbook, ["Jobs"](postgres-cutover-runbook.md#phase-2--serve-from-postgres-one-group-at-a-time),
    explains why.
 
 ## 4. After the upgrade
@@ -207,7 +214,8 @@ steps 1 to 7; do not improvise the order. In outline:
    with. While the backend does not trust its key, those paths answer 503 and the cause is in the log
    (with the short fingerprints).
 2. **Health page** of the admin portal: every instance reporting, the `admin`, `app`, `auth` and
-   `google` schemas current, no unresolved outbox row, the job queue showing no failed job. On
+   `google` schemas current, no unresolved outbox row (rows a 4.0.x dual run left are cleared with
+   `resolve-outbox --apply --clear-postgres-only-leftovers`, see the runbook), the job queue showing no failed job. On
    an orchestrated stack, also run the `responses.check_undecryptable` task (it must find 0).
 3. **Mongo off, volume kept.** Scale `mongodb` (and `mongo-seed`, if present) to 0 and remove every
    `MONGO_*` variable from `backend`, `jobs-worker`, `auth`, `integrations-googleform` and
