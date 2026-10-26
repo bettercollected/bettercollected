@@ -629,3 +629,54 @@ def test_a_lock_timeout_is_a_retryable_409_and_other_errors_pass_through():
     with pytest.raises(DBAPIError):
         with _busy_on_lock_timeout():
             raise DBAPIError("SELECT 1", {}, _Orig("40001"))
+
+
+def complete_by_deleting(repo, read: FormResponseDeletionRequest):
+    """What a staff deletion committed meanwhile leaves on the request: marked
+    done, no close recorded."""
+
+    async def during(session):
+        done = read.model_copy(deep=True)
+        done.status = DeletionRequestStatus.SUCCESS
+        done.touch()
+        await session.execute(
+            repo._upsert_statement(row_values(done), ResponseDeletionRequestRow)
+        )
+
+    return during
+
+
+async def test_a_decline_after_the_deletion_committed_is_refused(sessions):
+    repo = responses_repo(sessions)
+    await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    outcome = await interleaved(
+        sessions,
+        lock_request(read.id),
+        lambda: repo.close_deletion_request(
+            read, DeletionRequestStatus.DECLINED, "staff-b", DeclineReason.OTHER
+        ),
+        complete_by_deleting(repo, read),
+    )
+    assert isinstance(outcome, HTTPException) and outcome.status_code == 409
+    assert outcome.content["code"] == "deletion_request_closed"
+    (request,) = await repo.list_deletion_requests_for_form_ids(scope())
+    assert request.status == DeletionRequestStatus.SUCCESS
+    assert request.closures == [] and request.decline_reason is None
+
+
+async def test_the_completing_close_still_follows_the_deletion_it_made(sessions):
+    repo = responses_repo(sessions)
+    await filed(repo)
+    (read,) = await repo.list_deletion_requests_for_form_ids(scope())
+    outcome = await interleaved(
+        sessions,
+        lock_request(read.id),
+        lambda: repo.close_deletion_request(
+            read, DeletionRequestStatus.SUCCESS, "staff-a"
+        ),
+        complete_by_deleting(repo, read),
+    )
+    assert not isinstance(outcome, BaseException)
+    assert outcome.status == DeletionRequestStatus.SUCCESS
+    assert [c.by for c in outcome.closures] == ["staff-a"]
