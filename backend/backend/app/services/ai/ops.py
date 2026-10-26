@@ -500,7 +500,14 @@ class FormSettingsPatch(_CamelModel):
     """
 
     purpose: Optional[str] = None  # empty string clears
-    retention_text: Optional[str] = None  # empty string clears
+    retention_text: Optional[str] = Field(
+        None,
+        description=(
+            "An internal note stored with the form (empty string clears). It is "
+            "not shown to respondents, who see only the retention period the "
+            "form enforces; it does not set that period."
+        ),
+    )
     privacy_policy_url: Optional[str] = None  # empty string clears
     require_verified_identity: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
@@ -1434,7 +1441,7 @@ def _apply_update_form_info(form: StandardForm, op: UpdateFormInfoOp) -> str:
 
 _SETTINGS_LABELS = {
     "purpose": "purpose",
-    "retention_text": "retention",
+    "retention_text": "internal retention note",
     "privacy_policy_url": "privacy policy link",
     "require_verified_identity": "verified-identity requirement",
     "allow_editing_response": "response editing",

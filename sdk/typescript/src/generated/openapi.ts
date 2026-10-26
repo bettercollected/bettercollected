@@ -920,7 +920,10 @@ export interface components {
         Trust: {
             /** Purpose */
             purpose?: string | null;
-            /** Retentiontext */
+            /**
+             * Retentiontext
+             * @description An internal note stored with the form. It is not shown to respondents: they see only the retention period the form enforces (see "retention").
+             */
             retentionText?: string | null;
             /**
              * Privacypolicyurl
