@@ -1,11 +1,16 @@
 import asyncio
 from pathlib import Path
 import os
+import secrets
 import time
 from typing import Any, Coroutine
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+
+# The respondent identity key (RESPONDENT_IDENTITY_KEY) is a deployment secret
+# and never in the repository: a run without one gets a throwaway key.
+os.environ.setdefault("RESPONDENT_IDENTITY_KEY", secrets.token_hex(32))
 
 # pytest-xdist: each worker ("gw0", "gw1", ...) gets its own Mongo and Postgres
 # databases, named after the configured ones plus the worker id. This has to
@@ -43,6 +48,7 @@ from common.models.standard_form import StandardForm, StandardFormResponse
 
 from tests.app.auth_helpers import access_token
 from backend.app import get_application
+from backend.app import asgi as _asgi
 from backend.app.asgi import lifespan
 from backend.app.container import container
 from backend.app.handlers.database import init_db
@@ -67,6 +73,11 @@ from tests.app.controllers.data import (
 )
 
 load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
+
+# The API converts stored respondent identities in a background task after it
+# starts. The session app does not: tests that exercise the pass call it
+# themselves, and a pass running in the background would hold its advisory lock.
+_asgi.start_background_passes = lambda engine: None
 
 TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
 TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")

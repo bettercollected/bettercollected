@@ -125,7 +125,7 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
     # the Postgres-only groups are imported, never verified: not in the marker
     assert set(marker.collections) == set(_tables()) - POSTGRES_ONLY_COLLECTIONS
     assert list(marker.groups) == MIGRATING
-    assert "+schema.0021" in marker.code_version
+    assert "+schema.0022" in marker.code_version
     assert marker.run_id == runner.run_id
     rows = await marker_rows()
     assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(MIGRATING) + [

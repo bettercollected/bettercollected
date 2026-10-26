@@ -80,7 +80,7 @@ from backend.app.services.respondent_feedback import (
     present_to_respondent,
     staff_feedback,
 )
-from backend.app.utils.hash import hash_string
+from backend.app.utils.respondent_identity import matches as identity_matches
 
 # An uploaded answer file's id is client-supplied: only a plain id (no "/",
 # not "." or "..") may ever become part of a storage key, so it can't name
@@ -404,7 +404,7 @@ class FormResponseService:
         if not (
             is_admin
             or response.dataOwnerIdentifier == user.sub
-            or response.anonymous_identity == hash_string(user.sub)
+            or identity_matches(response.anonymous_identity, user.sub)
         ):
             refuse_not_owner(permissions, MESSAGE_NOT_FOUND)
 
@@ -510,10 +510,7 @@ class FormResponseService:
         if not (
             is_admin
             or response.dataOwnerIdentifier == user.sub
-            or (
-                response.anonymous_identity is not None
-                and response.anonymous_identity == hash_string(user.sub)
-            )
+            or identity_matches(response.anonymous_identity, user.sub)
         ):
             refuse_not_owner(permissions, "Response not found in workspace")
 
