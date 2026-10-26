@@ -20,6 +20,10 @@ export interface FormSpec {
   specVersion: "1";
   title?: string | null;
   description?: string | null;
+  /**
+   * The language the form's own text (title, questions, choices) is written in, as a short BCP 47 tag. Respondent pages mark that text with it for screen readers and browsers. When a document that replaces a form leaves it out, the form keeps its language; null clears it.
+   */
+  language?: ("nl" | "en" | "de" | "fr" | "es" | "it" | "pt" | "pl" | "da" | "sv" | "nb" | "fi") | null;
   welcomePage?: WelcomePage | null;
   /**
    * At most 200 pages, with at most 2000 fields in all (group questions included).
@@ -27,6 +31,9 @@ export interface FormSpec {
    * @maxItems 200
    */
   pages?: Page[];
+  /**
+   * At most 20 endings.
+   */
   endings?: Ending[] | null;
   theme?: Theme | null;
   /**
@@ -81,6 +88,38 @@ export interface Theme {
    * e.g. classic, sheet, studio, leaflet
    */
   style?: string | null;
+  /**
+   * Face of titles and question labels. Absent: the text face (or the style's own title face).
+   */
+  titleFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+  /**
+   * Face of everything else respondents read. Absent: public-sans.
+   */
+  bodyFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+  /**
+   * Face of data such as the submission number. Absent: the app's mono face.
+   */
+  dataFont?: ("public-sans" | "atkinson-next" | "archivo" | "besley" | "rubik" | "atkinson-mono") | null;
+  /**
+   * Width of display titles: expanded is 125% on a face with a width axis (archivo).
+   */
+  titleWidth?: ("normal" | "expanded") | null;
+  /**
+   * Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.
+   */
+  radius?: ("sharp" | "soft" | "round") | null;
+  /**
+   * Absent: filled.
+   */
+  buttonStyle?: ("filled" | "outlined" | "pill") | null;
+  /**
+   * The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.
+   */
+  highlight?: string | null;
+  /**
+   * The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.
+   */
+  selection?: string | null;
 }
 /**
  * Optional decoration of the page ground.
@@ -98,6 +137,10 @@ export interface ThemeBackground {
    * Only images from our own storage or Unsplash are shown.
    */
   imageUrl?: string | null;
+  /**
+   * Built-in artwork served by the app (marble: a marbled endpaper). It fills the picture half of a welcome or ending page whose layout has one and no image of its own. Absent: none.
+   */
+  artwork?: "marble" | null;
 }
 /**
  * Where a page sits on the flow view's canvas (cosmetic).
@@ -112,7 +155,9 @@ export interface Position {
 /**
  * After this page, go to ``target`` (a page id, or "__SUBMIT__" to
  * end the form) when the conditions match. The first matching jump wins;
- * no match goes to the next page.
+ * no match goes to the next page. With "__SUBMIT__", ``endingId`` names
+ * the ending shown after submitting (default: the form's default
+ * ending).
  *
  * This interface was referenced by `FormSpec`'s JSON-Schema
  * via the `definition` "PageJump".
@@ -121,6 +166,10 @@ export interface PageJump {
   operator?: ("AND" | "OR") | null;
   conditions?: Condition[] | null;
   target?: string | null;
+  /**
+   * The id of an ending of this form; only with target "__SUBMIT__".
+   */
+  endingId?: string | null;
 }
 /**
  * One condition of a visibility rule or a page jump: the answer of
@@ -284,14 +333,7 @@ export interface FormField {
    * Short label shown with a date picker.
    */
   label?: string | null;
-  dateRules?:
-    | []
-    | [DateRule]
-    | [DateRule, DateRule]
-    | [DateRule, DateRule, DateRule]
-    | [DateRule, DateRule, DateRule, DateRule]
-    | [DateRule, DateRule, DateRule, DateRule, DateRule]
-    | null;
+  dateRules?: DateRule[] | null;
   whyWeAsk?: string | null;
   logic?: Logic | null;
   expression?: unknown;
@@ -413,12 +455,26 @@ export interface Repeat {
   exportLayout?: ("columns" | "rows") | null;
 }
 /**
- * A page shown after submitting.
+ * A page shown after submitting. A page jump may choose one by its
+ * ``id``; a plain submit shows the default ending (the one with
+ * ``isDefault``, else the first).
  *
  * This interface was referenced by `FormSpec`'s JSON-Schema
  * via the `definition` "Ending".
  */
 export interface Ending {
+  /**
+   * Stable id that page jumps name. Given when left out.
+   */
+  id?: string | null;
+  /**
+   * Short internal name, e.g. Eligible. Respondents never see it.
+   */
+  name?: string | null;
+  /**
+   * Shown after a plain submit. At most one ending.
+   */
+  isDefault?: boolean | null;
   title?: string | null;
   message?: string | null;
   buttonText?: string | null;
