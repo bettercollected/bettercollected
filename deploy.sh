@@ -165,6 +165,10 @@ env_unset() {
 # Appends VAR=VALUE to the root .env (dropping an earlier assignment of VAR first).
 env_put() {
   env_unset "$1" || return 1
+  # a last line without a newline would swallow the assignment appended below
+  if [ -s .env ] && [ -n "$(tail -c 1 .env)" ]; then
+    echo >> .env || return 1
+  fi
   printf '%s=%s\n' "$1" "$2" >> .env
 }
 
@@ -917,54 +921,120 @@ function stack_keys() {
 # The respondent identity key (docs/respondent-identity.md): the 4.1 backend refuses to
 # start without it. A new stack gets it from `bootstrap-keys`; a stack upgrading from 4.0
 # has its other keys already (in the store, or in the files they are imported from), so
-# `bootstrap-keys` is not run and nothing else would create it. Generated here once, only
-# when neither the environment (the shell, the root .env, .env.deployment) nor the store
-# has ever held one: into the settings store (`settings-import`, which never overwrites)
-# and into the root .env, the way an upgrade treats its other keys (the files keep them
-# until `settings-prune`, and `SETTINGS_STORE=off` still has them). Never overwritten,
-# never printed (identity_pass prints its fingerprint). Refused when this database
-# already has a key check (a 4.1 backend started with some key) and no key can be
-# found: a new key would not match what that one converted.
+# `bootstrap-keys` is not run and nothing else would create it. Where the backend reads
+# it from: the shell or the root .env (compose substitutes it into the service's
+# environment, which beats .env.deployment: a value only there never arrives, so it is
+# copied into .env here, unprinted), else the settings store (an environment value wins).
+# When neither has one it is generated here once: into the settings store
+# (`settings-import`, which never overwrites) and into the root .env, the way an upgrade
+# treats its other keys (the files keep them until `settings-prune`, and
+# `SETTINGS_STORE=off` reads only the environment). Never overwritten, never printed
+# (identity_pass prints its fingerprint). Refused when
+#  - this database already has a key check (a 4.1 backend started with some key) and no
+#    key can be found: a new key would not match what that one converted;
+#  - .env and the store both hold a key and nothing says they are the same one: the
+#    script cannot compare them without printing either. A key it generated itself is
+#    recorded as BC_IDENTITY_KEY_SHA256 (a hash of 32 random bytes) and passes;
+#    BC_IDENTITY_KEY_SOURCE=env says the .env key is the intended one;
+#  - SETTINGS_STORE=off and the key is only in the store.
+identity_tmp_dir=""
+identity_cleanup() {
+  [ -z "$identity_tmp_dir" ] || rm -rf "$identity_tmp_dir"
+  identity_tmp_dir=""
+}
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$1" | sha256sum | cut -d' ' -f1
+  else
+    printf '%s' "$1" | shasum -a 256 | cut -d' ' -f1
+  fi
+}
+
 ensure_identity_key() {
-  local count rows key dir out rc
-  if [ -n "${RESPONDENT_IDENTITY_KEY:-}" ] || file_has .env RESPONDENT_IDENTITY_KEY || file_has .env.deployment RESPONDENT_IDENTITY_KEY; then
-    echo "RESPONDENT_IDENTITY_KEY is set in the environment (shell, .env or .env.deployment): it is used as it is, none is generated."
+  local count rows key dir out rc store_off=false
+  case "$(printf '%s' "${SETTINGS_STORE-$(dotenv_value .env SETTINGS_STORE)}" | tr '[:upper:]' '[:lower:]')" in
+    off) store_off=true ;;
+  esac
+  if [ -n "${RESPONDENT_IDENTITY_KEY:-}" ]; then
+    echo "RESPONDENT_IDENTITY_KEY is set in the shell: it is used as it is, none is generated."
     return 0
+  fi
+  if ! file_has .env RESPONDENT_IDENTITY_KEY && file_has .env.deployment RESPONDENT_IDENTITY_KEY; then
+    if ! env_put RESPONDENT_IDENTITY_KEY "$(dotenv_value .env.deployment RESPONDENT_IDENTITY_KEY)"; then
+      echo "Could not copy RESPONDENT_IDENTITY_KEY from .env.deployment into .env. Nothing was started." >&2
+      return 1
+    fi
+    chmod 600 .env
+    echo "RESPONDENT_IDENTITY_KEY was set only in .env.deployment, which does not reach the backend's environment: it is copied into .env (the value is not shown)."
   fi
   count=$(store_versions RESPONDENT_IDENTITY_KEY) || count=""
   if [ -z "$count" ]; then
     echo "Could not read the settings store for RESPONDENT_IDENTITY_KEY." >&2
     return 1
   fi
-  # a new stack (bootstrap-keys) or an earlier run: the store has it
-  [ "$count" -eq 0 ] || return 0
+  if file_has .env RESPONDENT_IDENTITY_KEY; then
+    if [ "$count" -gt 0 ] && [ "${BC_IDENTITY_KEY_SOURCE:-}" != env ] \
+       && [ "$(dotenv_value .env BC_IDENTITY_KEY_SHA256)" != "$(sha256_of "$(dotenv_value .env RESPONDENT_IDENTITY_KEY)")" ]; then
+      echo "" >&2
+      echo "STOPPED before any service started: RESPONDENT_IDENTITY_KEY is set in .env and the settings store holds one too, and" >&2
+      echo "this script cannot tell whether they are the same key (it never prints either). The backend uses the one in .env." >&2
+      echo "If they differ, stored identities would be matched with the wrong key. If the key in .env is the one this stack has" >&2
+      echo "used, run BC_IDENTITY_KEY_SOURCE=env ./deploy.sh; otherwise remove it from .env (docs/respondent-identity.md)." >&2
+      return 1
+    fi
+    echo "RESPONDENT_IDENTITY_KEY is set in .env: it is used as it is, none is generated."
+    return 0
+  fi
+  if [ "$count" -gt 0 ]; then
+    # a new stack (bootstrap-keys) or an earlier run: the store has it, which is where the backend reads it
+    if [ "$store_off" = true ]; then
+      echo "" >&2
+      echo "STOPPED before any service started: SETTINGS_STORE=off makes the services read environment values only, but" >&2
+      echo "RESPONDENT_IDENTITY_KEY is only in the settings store. Put the key this stack has used in .env as" >&2
+      echo "RESPONDENT_IDENTITY_KEY=... (or remove SETTINGS_STORE=off) and run ./deploy.sh again (docs/respondent-identity.md)." >&2
+      return 1
+    fi
+    return 0
+  fi
   rows=$("${docker_compose_cmd[@]}" "${compose_files[@]}" exec -T app-postgres psql -U bettercollected -d bettercollected -Atc \
     "SELECT count(*) FROM app.respondent_identity_key_check" 2>/dev/null | tr -d '\r' | tail -n 1)
   if [ "$rows" != 0 ]; then
     echo "" >&2
     echo "STOPPED before any service started: this database was already used with a respondent identity key (or that" >&2
-    echo "could not be established), but RESPONDENT_IDENTITY_KEY is set nowhere (not in .env, .env.deployment or the" >&2
-    echo "settings store). A new key would not match the identities stored with the old one, so none is generated." >&2
+    echo "could not be established), but RESPONDENT_IDENTITY_KEY is set nowhere (not in .env or the settings store)." >&2
+    echo "A new key would not match the identities stored with the old one, so none is generated." >&2
     echo "Put the key this stack has used in .env as RESPONDENT_IDENTITY_KEY=... and run ./deploy.sh again" >&2
     echo "(docs/respondent-identity.md)." >&2
     return 1
   fi
   key=$(openssl rand -hex 32) || return 1
   dir=$(private_dir) || return 1
+  # the scratch directory goes on every way out, a signal included
+  identity_tmp_dir=$dir
+  trap identity_cleanup EXIT
+  trap 'identity_cleanup; exit 130' INT
+  trap 'identity_cleanup; exit 143' TERM HUP
   # a private file in a private directory, removed right after; the value is never an argument
   printf 'RESPONDENT_IDENTITY_KEY=%s\n' "$key" > "$dir/identity.env"
   admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/work")
   out=$(admin_cli settings-import --env-file /work/identity.env 2>&1)
   rc=$?
   admin_cli_opts=()
-  rm -rf "$dir"
+  identity_cleanup
+  trap - EXIT INT TERM HUP
   if [ "$rc" -ne 0 ]; then
     unset key
     printf '%s\n' "$out" | sed 's/^refused RESPONDENT_IDENTITY_KEY .*/refused RESPONDENT_IDENTITY_KEY (the generated value was not accepted)/' >&2
     echo "Could not store a new RESPONDENT_IDENTITY_KEY (see above). Nothing was started." >&2
     return 1
   fi
-  env_put RESPONDENT_IDENTITY_KEY "$key"
+  if ! env_put RESPONDENT_IDENTITY_KEY "$key" || ! env_put BC_IDENTITY_KEY_SHA256 "$(sha256_of "$key")"; then
+    unset key
+    echo "A new RESPONDENT_IDENTITY_KEY is in the settings store, but .env could not be written. Nothing was started." >&2
+    echo "Fix .env (is it writable?) and run ./deploy.sh again: the store's key is kept." >&2
+    return 1
+  fi
   unset key
   chmod 600 .env
   echo "Generated a new RESPONDENT_IDENTITY_KEY in the settings store and in .env (the value is not shown)."
@@ -1032,7 +1102,9 @@ identity_pass() {
 # running ./deploy.sh again repeats it.
 
 # The job kinds that an operator pinned to Temporal in .env.deployment cannot run in a
-# stack without it: refused before anything is changed.
+# stack without it: refused before anything is changed. (JOBS_BACKEND is an environment-only
+# setting, tier T5: the settings store cannot hold it, so the files are the only place to look;
+# compose passes nothing else to the services.)
 refuse_temporal_job_backend() {
   local line name value found=""
   [ -f .env.deployment ] || return 0
@@ -1058,7 +1130,12 @@ project_containers() {
 # Schedules are system workflows and not counted: they were moved to the queue.
 temporal_running() {
   local out
-  out=$(docker exec "$1" temporal workflow list --address temporal:7233 --query 'ExecutionStatus="Running"' --limit 200 2>&1) || { echo -1; return 0; }
+  local ns
+  # the namespace the old stack used: the backend's TEMPORAL_NAMESPACE, the worker's NAMESPACE (.env.worker, else .env.deployment)
+  ns=$(dotenv_value .env.deployment TEMPORAL_NAMESPACE)
+  [ -n "$ns" ] || ns=$(dotenv_value .env.worker NAMESPACE)
+  [ -n "$ns" ] || ns=$(dotenv_value .env.deployment NAMESPACE)
+  out=$(docker exec "$1" temporal workflow list --address temporal:7233 --namespace "${ns:-default}" --query 'ExecutionStatus="Running"' --limit 200 2>&1) || { echo -1; return 0; }
   printf '%s\n' "$out" | grep -E '^[[:space:]]*Running[[:space:]]' | grep -vc 'temporal-sys-' || true
 }
 

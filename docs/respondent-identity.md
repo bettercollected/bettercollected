@@ -44,15 +44,23 @@ bug: matching refuses it (there is no MD5 fallback), and the conversion pass rep
      upper case, digits and symbols (a lower-case passphrase that happens to decode is refused).
   Anything else (a short, repeating, patterned or placeholder value) is refused.
 - **Where it is read:** the environment, else the settings store, like the other keys. In the compose stack
-  `docker-compose.deployment.yml` passes it to the backend (empty means "read the store"); `bootstrap-keys`
-  generates it into the store of a **new** stack. A compose stack that upgrades gets it from `deploy.sh`, before any service starts: it generates the key once
+  `docker-compose.deployment.yml` passes `RESPONDENT_IDENTITY_KEY` from the shell or the **root `.env`** to the backend
+  (empty means "read the store"); a value only in `.env.deployment` does not reach the backend, because that entry of
+  the service's `environment` overrides the env file. `bootstrap-keys` generates the key into the store of a **new**
+  stack. A compose stack that upgrades gets it from `deploy.sh`, before any service starts: it generates the key once
   (`openssl rand -hex 32`), imports it into the store (`settings-import`, which never overwrites) and adds it to the root
-  `.env` like the other keys of an upgrade (so `SETTINGS_STORE=off` still has it), and never prints it. It does nothing
-  when the key is set in the shell, the root `.env` or `.env.deployment`, or is already in the store. It refuses to
-  generate one for a database that already has a key check (a 4.1 backend started with some key) when none can be
-  found, because a new key would not match. An orchestrated stack
-  sets it once in its stack definition. Only the backend needs it: not the jobs worker, auth, the Google integration or
-  the task runner.
+  `.env` like the other keys of an upgrade (`SETTINGS_STORE=off` reads only the environment), and never prints it.
+  `deploy.sh` leaves a key set in the shell or in `.env` as it is (a key only in `.env.deployment` is copied into `.env`,
+  unprinted), and does nothing when the store already has one. It stops, before any service starts, when
+  - the database already has a key check (a 4.1 backend started with some key) and no key can be found: a new key would
+    not match;
+  - `.env` and the store both hold a key and nothing says they are the same (it cannot compare them without printing
+    them; a key `deploy.sh` generated is recorded as `BC_IDENTITY_KEY_SHA256`, a hash of 32 random bytes, and passes;
+    `BC_IDENTITY_KEY_SOURCE=env ./deploy.sh` says the key in `.env` is the intended one);
+  - `SETTINGS_STORE=off` and the key is only in the store (put it in `.env`).
+
+  An orchestrated stack sets it once in its stack definition. Only the backend needs it: not the jobs worker, auth, the
+  Google integration or the task runner.
 - **Startup check:** the API refuses to start when it is missing, shorter than 32 bytes or low in variety
   (`require_identity_key`, first thing in the lifespan of `backend/backend/app/asgi.py`). The message names the
   setting and the command, never a value.

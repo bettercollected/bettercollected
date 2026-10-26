@@ -72,6 +72,9 @@ STUB = textwrap.dedent(
             print("cleared %s version=2" % cmd[1])
         elif verb == "settings-import" and "--env-file" in cmd:
             # the import of one generated value from a private file the host mounted at /work
+            if os.environ.get("STUB_IMPORT_ENV_HANGS"):
+                import time
+                time.sleep(60)
             if os.environ.get("STUB_IMPORT_ENV_FAILS"):
                 print("refused RESPONDENT_IDENTITY_KEY weak_secret SECRETVALUE-must-not-be-echoed")
                 sys.exit(1)
@@ -1355,6 +1358,9 @@ def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(si
     assert "Stored respondent identities are all converted" in done.stdout
     key = _dotenv(work)["RESPONDENT_IDENTITY_KEY"]
     assert (state / "store" / "RESPONDENT_IDENTITY_KEY").read_text() == key
+    # recorded as a hash, so a later run can tell that .env and the store hold the same key
+    import hashlib
+    assert _dotenv(work)["BC_IDENTITY_KEY_SHA256"] == hashlib.sha256(key.encode()).hexdigest()
     assert key not in done.stdout + done.stderr
     assert not any(key in c for c in calls)  # not an argument of any command
     assert oct((work / ".env").stat().st_mode & 0o777) == "0o600"
@@ -1373,6 +1379,8 @@ def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(si
 
 @pytest.mark.parametrize("where", ["env", "env_deployment", "shell"])
 def test_an_identity_key_the_operator_set_is_used_as_it_is(site, where):
+    """In the shell or the root .env: as it is. Only in .env.deployment: copied into .env, because compose
+    passes the backend only the root .env's (its `environment:` entry overrides the env file)."""
     work, state, _ = site
     _upgrade_env(work)
     extra = {}
@@ -1388,10 +1396,16 @@ def test_an_identity_key_the_operator_set_is_used_as_it_is(site, where):
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     assert not any("settings-import --env-file" in c for c in calls)
     assert not (state / "store" / "RESPONDENT_IDENTITY_KEY").exists()
-    assert "RESPONDENT_IDENTITY_KEY is set in the environment" in done.stdout
+    assert "RESPONDENT_IDENTITY_KEY is set in" in done.stdout
     assert "ab" * 32 not in done.stdout + done.stderr
     if where == "env":
         assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "ab" * 32  # untouched
+    elif where == "env_deployment":
+        assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "ab" * 32
+        assert "copied into .env" in done.stdout
+        assert (work / ".env.deployment").read_text().count("RESPONDENT_IDENTITY_KEY") == 1  # the operator's file is left alone
+    else:
+        assert "RESPONDENT_IDENTITY_KEY" not in _dotenv(work)
 
 
 def test_no_identity_key_is_generated_for_a_database_that_was_already_used_with_one(site):
@@ -1551,3 +1565,103 @@ def test_a_leftover_worker_env_file_is_reported_and_kept(site):
     assert done.returncode == 0
     assert ".env.worker from an earlier release still exists" in done.stderr
     assert (work / ".env.worker").read_text() == "COOKIE_DOMAIN=example.test\n"
+
+
+def _store_key(state, value="x"):
+    (state / "store").mkdir(exist_ok=True)
+    (state / "store" / "RESPONDENT_IDENTITY_KEY").write_text(value)
+
+
+def test_an_env_key_and_a_stored_key_that_cannot_be_shown_equal_stop_the_deploy(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("RESPONDENT_IDENTITY_KEY=" + "cd" * 32 + "\n")
+    _store_key(state)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "holds one too" in done.stderr and "BC_IDENTITY_KEY_SOURCE=env" in done.stderr
+    assert "cd" * 32 not in done.stdout + done.stderr
+    assert not any("up --build" in c for c in calls)
+    # a hash that does not belong to the key in .env is no better
+    with (work / ".env").open("a") as env:
+        env.write("BC_IDENTITY_KEY_SHA256=" + "0" * 64 + "\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    # the operator says .env's key is the intended one
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={"BC_IDENTITY_KEY_SOURCE": "env"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert any("up --build" in c for c in calls)
+    assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "cd" * 32
+
+
+def test_with_the_store_off_a_key_only_in_the_store_is_refused_and_a_new_one_goes_to_both(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("SETTINGS_STORE=off\n")
+    _store_key(state)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "SETTINGS_STORE=off" in done.stderr and "only in the settings store" in done.stderr
+    assert not any("up --build" in c for c in calls)
+    # the shell's value counts the way compose reads it
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra={"SETTINGS_STORE": "required"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    # no key anywhere: the generated one is in .env too, which is what the store-off services read
+    shutil.rmtree(state / "store")
+    (state / "calls.log").unlink()
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert re.fullmatch(r"[0-9a-f]{64}", _dotenv(work)["RESPONDENT_IDENTITY_KEY"])
+
+
+def test_the_scratch_directory_of_the_key_is_removed_on_success_failure_and_a_signal(site, tmp_path):
+    import signal
+    work, state, env = site
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    base = {"TMPDIR": str(scratch)}
+    _upgrade_env(work)
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=base)
+    assert done.returncode == 0 and not [p for p in scratch.rglob("identity.env")]
+    shutil.rmtree(state / "store")
+    (work / ".env").write_text((work / ".env").read_text().replace("RESPONDENT_IDENTITY_KEY=", "X_UNUSED=", 1))
+    with open(work / ".env") as f:
+        kept = [l for l in f.read().splitlines() if not l.startswith(("RESPONDENT_IDENTITY_KEY", "X_UNUSED", "BC_IDENTITY_KEY_SHA256"))]
+    (work / ".env").write_text("\n".join(kept) + "\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra={**base, "STUB_IMPORT_ENV_FAILS": "1"})
+    assert done.returncode == 1 and not [p for p in scratch.rglob("identity.env")]
+    # a signal while the import runs: the stand-in hangs, the whole process group is terminated
+    (state / "calls.log").unlink(missing_ok=True)
+    full = {**env, "STUB_VOLUMES": UPGRADE_VOLUMES, "BC_DEPLOY_RETRY_SLEEP": "0", "STUB_IMPORT_ENV_HANGS": "1", **base}
+    proc = subprocess.Popen(["bash", "deploy.sh"], cwd=work, env=full, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
+    import time
+    for _ in range(100):
+        if list(scratch.rglob("identity.env")):
+            break
+        time.sleep(0.1)
+    assert list(scratch.rglob("identity.env")), "the import never started"
+    os.killpg(proc.pid, signal.SIGTERM)
+    proc.communicate(timeout=30)
+    assert not list(scratch.rglob("identity.env"))
+    assert not [d for d in scratch.iterdir()]
+
+
+def test_the_temporal_namespace_of_the_old_stack_is_asked(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nTEMPORAL_NAMESPACE=custom-ns\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    asked = [c for c in _docker_calls(state) if "temporal workflow list" in c]
+    assert asked and all("--namespace custom-ns" in c for c in asked)
+    shutil.rmtree(state / "store", ignore_errors=True)
+    (state / "docker.log").unlink()
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n")
+    (work / ".env.worker").write_text("NAMESPACE=worker-ns\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
+    assert done.returncode == 0
+    assert all("--namespace worker-ns" in c for c in _docker_calls(state) if "temporal workflow list" in c)
