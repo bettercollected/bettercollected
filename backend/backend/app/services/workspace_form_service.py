@@ -178,6 +178,23 @@ def _usable_settings(form_settings: StandardFormSettings, drop_unusable: bool):
     return retention_type, retention_value, policy_url
 
 
+def _template_retention(workspace_form_settings) -> dict:
+    """The retention a template made from a form carries: the form's period
+    as ``checked_retention`` accepts it today, else nothing (a past end date
+    can't be applied to a copy)."""
+    try:
+        kind, value = checked_retention(
+            getattr(workspace_form_settings, "response_expiration_type", None),
+            getattr(workspace_form_settings, "response_expiration", None),
+            dt.date.today(),
+        )
+    except ValueError:
+        return {}
+    if kind is None:
+        return {}
+    return {"response_expiration_type": kind, "response_expiration": value}
+
+
 def _retention_key(kind, value):
     kind = getattr(kind, "value", kind) or None
     value = value.strip() if isinstance(value, str) else value
@@ -1395,11 +1412,17 @@ class WorkspaceFormService:
         # The language the questions are written in comes along; the form's
         # other own settings do not (as before).
         language = form.settings.language if form.settings else None
-        if language:
-            if is_template:
-                duplicated_form.settings = StandardTemplateSetting(language=language)
-            else:
-                duplicated_form.settings = StandardFormSettings(language=language)
+        if is_template:
+            # ... and, for a template, how long the form keeps its answers
+            # (kept on the form's workspace link), when that is a period a
+            # copy can still use.
+            retention = _template_retention(workspace_form.settings)
+            if language or retention:
+                duplicated_form.settings = StandardTemplateSetting(
+                    language=language or None, **retention
+                )
+        elif language:
+            duplicated_form.settings = StandardFormSettings(language=language)
         # A copy is a new form: first-party images only, as for a template copy
         # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
         # addresses do not carry over (services/form_images.py).

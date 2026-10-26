@@ -1469,7 +1469,14 @@ class PostgresFormTemplateRepository(RecordRepository):
                 return None
             template = decode(FormTemplateDocument, doc)
             template.fields = template_body.fields
-            template.settings = template_body.settings
+            # Only the settings the body names change: one it leaves out
+            # (public, language, retention) stays as stored; an explicit null
+            # clears it.
+            if template_body.settings is not None:
+                merged = template.settings or StandardTemplateSetting()
+                for name in template_body.settings.model_fields_set:
+                    setattr(merged, name, getattr(template_body.settings, name))
+                template.settings = merged
             template.title = template_body.title
             template.description = template_body.description
             template.button_text = template_body.button_text

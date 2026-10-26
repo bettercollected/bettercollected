@@ -2979,7 +2979,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:51838ba4dfba549e65ae591ba39e2a2a7efacfd9162c7384e5aae81a10c095db",
+  "checksum": "sha256:bb8d40e781b5d8fb2c62c9f334004444c4066ebd1432d19569ff4738c948eb51",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3144,7 +3144,9 @@
    "preview_image": "FormTemplateDocument.preview_image tëxt ✓ \"quoted\" \\ line\nbreak",
    "settings": {
     "is_public": true,
-    "language": "FormTemplateDocument.settings.language tëxt ✓ \"quoted\" \\ line\nbreak"
+    "language": "FormTemplateDocument.settings.language tëxt ✓ \"quoted\" \\ line\nbreak",
+    "response_expiration": "FormTemplateDocument.settings.response_expiration tëxt ✓ \"quoted\" \\ line\nbreak",
+    "response_expiration_type": "forever"
    },
    "thankyou_page": [
     {
@@ -3213,7 +3215,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/minimal": {
-  "checksum": "sha256:a4bde717e2dbf5f1a4802d48eeebbf562a164e27957624e0d4bdf06110b6eef8",
+  "checksum": "sha256:973e82937b0765ab5384552ea955354201548bb21d213af58aa2a0c7ffd99fd7",
   "doc": {
    "_id": {
     "$oid": "653cb4c7d1b402545c6cb428"
@@ -3233,7 +3235,9 @@
    "preview_image": null,
    "settings": {
     "is_public": false,
-    "language": null
+    "language": null,
+    "response_expiration": null,
+    "response_expiration_type": null
    },
    "thankyou_page": null,
    "theme": null,
@@ -3247,7 +3251,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:77e62a45b02f9920fcb3c98b17ef2e4516ecdb101f6738fd94b95ccb354c6915",
+  "checksum": "sha256:79bc6453aa58bd4cd6349a2d2df71c189b17e8769d06e3ff1d691249c07c00d6",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3412,7 +3416,9 @@
    "preview_image": "FormTemplateDocument.preview_image tëxt ✓ \"quoted\" \\ line\nbreak",
    "settings": {
     "is_public": true,
-    "language": "FormTemplateDocument.settings.language tëxt ✓ \"quoted\" \\ line\nbreak"
+    "language": "FormTemplateDocument.settings.language tëxt ✓ \"quoted\" \\ line\nbreak",
+    "response_expiration": "FormTemplateDocument.settings.response_expiration tëxt ✓ \"quoted\" \\ line\nbreak",
+    "response_expiration_type": "forever"
    },
    "thankyou_page": [
     {
