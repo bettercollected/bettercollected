@@ -1,25 +1,21 @@
 """Postgres runtime pieces every service wires the same way.
 
-Engine and session providers that are ``None`` without ``DATABASE_URL``, the
-twin-or-None factory, a lazy proxy for routed repositories that depend on
-each other, the startup reachability check, and the outbox recorder that
-files a mirror-write failure in the *primary* store. The backend grew these
-first (backend/db); auth and the google integration use them from here.
+Engine and session providers that are ``None`` without ``DATABASE_URL``, a
+lazy proxy for repositories that depend on each other, and the startup
+reachability check. The backend grew these first (backend/db); auth and the
+google integration use them from here.
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
-from typing import Any, Callable, Mapping, Optional, Sequence, Type
+from typing import Any, Callable, Mapping, Optional, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from common.db.engine import DatabaseSettings, make_engine, make_sessionmaker, ping
-from common.db.flags import DbFlags, ReadSource
-from common.db.outbox import MirrorWriteFailureDocument
-from common.db.routing import MirrorFailure
+from common.db.flags import DbFlags
 from common.db.schema_guard import AuxiliarySchema, MigrationTarget, ensure_schema_ready
 
 logger = logging.getLogger(__name__)
@@ -37,16 +33,6 @@ def build_sessionmaker(
     engine: Optional[AsyncEngine],
 ) -> Optional[async_sessionmaker[AsyncSession]]:
     return None if engine is None else make_sessionmaker(engine)
-
-
-def postgres_repository(
-    cls: Type[Any],
-    session_factory: Optional[async_sessionmaker[AsyncSession]],
-    *args: Any,
-    **kwargs: Any,
-) -> Optional[Any]:
-    """The Postgres twin of a repository, or ``None`` when Postgres is not configured."""
-    return None if session_factory is None else cls(session_factory, *args, **kwargs)
 
 
 class LazyRepository:
@@ -74,31 +60,18 @@ async def check_postgres_at_startup(
     *,
     env: Mapping[str, str] = os.environ,
 ) -> None:
-    """Reachability is checked only when the flags involve Postgres at all, and
-    is fatal only when a group *serves* from it: a mirror failing must never
-    take the application down. Once reachable, the service's schema
-    (``target``, plus ``auxiliary`` ones) is migrated when ``DB_AUTO_MIGRATE``
-    is on and must then be at the code's head — a reachable database with the
-    wrong schema refuses to start (:mod:`common.db.schema_guard`)."""
-    if not flags.requires_postgres():
-        return
+    """Postgres is the only store: it must be configured and reachable. Once
+    reachable, the service's schema (``target``, plus ``auxiliary`` ones) is
+    migrated when ``DB_AUTO_MIGRATE`` is on and must then be at the code's
+    head: a reachable database with the wrong schema refuses to start
+    (:mod:`common.db.schema_guard`)."""
     if engine is None:
-        raise RuntimeError(
-            "DB_*/JOBS_* flags require Postgres but DATABASE_URL is not set"
-        )
+        raise RuntimeError("Postgres is the only store but DATABASE_URL is not set")
     try:
         await ping(engine)
         logger.info("Postgres reachable (application database)")
     except Exception as exc:  # noqa: BLE001
-        if flags.serves_from_postgres():
-            raise RuntimeError(
-                "Postgres is unreachable and a repository group serves from it"
-            ) from exc
-        logger.error(
-            "Postgres unreachable at startup; it is only a mirror, continuing: %s",
-            type(exc).__name__,
-        )
-        return
+        raise RuntimeError("Postgres is unreachable") from exc
     if target is not None or auxiliary:
         await ensure_schema_ready(flags, engine, target, auxiliary, env=env)
 
@@ -106,123 +79,3 @@ async def check_postgres_at_startup(
 async def dispose_engine(engine: Optional[AsyncEngine]) -> None:
     if engine is not None:
         await engine.dispose()
-
-
-MAX_IDS = 20
-
-
-def redact(value: str) -> str:
-    """Outbox rows are read by operators: an address becomes a stable hash."""
-    if "@" in value:
-        return "email:" + hashlib.sha256(value.encode()).hexdigest()[:12]
-    return value
-
-
-def failure_ids(failure: MirrorFailure) -> str:
-    """Best-effort: the ids a failed mirror write touched, from its arguments
-    and the documents a replay tried to store. Strings are redacted."""
-    found: list[str] = []
-    values = (
-        list(failure.args) + list(failure.documents) + list(failure.kwargs.values())
-    )
-    for value in values:
-        if getattr(value, "id", None) is not None and hasattr(value, "save"):
-            found.append(str(value.id))
-        elif type(value).__name__ in ("ObjectId", "PydanticObjectId"):
-            found.append(str(value))
-        elif isinstance(value, str) and len(value) <= 64:
-            found.append(redact(value))
-        elif isinstance(value, (list, tuple)):
-            for item in list(value)[:MAX_IDS]:
-                if getattr(item, "id", None) is not None and hasattr(item, "save"):
-                    found.append(str(item.id))
-                elif isinstance(item, str) and len(item) <= 64:
-                    found.append(redact(item))
-    return ",".join(found[:MAX_IDS]) or "-"
-
-
-def failure_error(exc: BaseException) -> str:
-    return f"{type(exc).__name__}: {str(exc)[:200]}"
-
-
-class OutboxRecorder:
-    """Record a mirror-write failure in the primary store: a
-    ``MirrorWriteFailureDocument`` while Mongo is primary, a row of the
-    service's mirror_write_failures table once Postgres is. The reconciler
-    (migration CLI) drains both."""
-
-    def __init__(
-        self,
-        session_factory: Optional[async_sessionmaker[AsyncSession]],
-        row_cls: Type[Any],
-    ):
-        self._sessions = session_factory
-        self._row = row_cls
-
-    async def __call__(self, failure: MirrorFailure) -> None:
-        row_id = failure_ids(failure)
-        if failure.store is ReadSource.POSTGRES:
-            await MirrorWriteFailureDocument(
-                table_name=failure.repository,
-                row_id=row_id,
-                op=failure.method,
-                error=failure_error(failure.error),
-            ).insert()
-            return
-        if self._sessions is None:
-            logger.error(
-                "mirror to Mongo failed and Postgres is not configured to record it: %s %s",
-                failure.repository,
-                failure.method,
-            )
-            return
-        async with self._sessions() as session, session.begin():
-            session.add(
-                self._row(
-                    table_name=failure.repository,
-                    row_id=row_id,
-                    op=failure.method,
-                    error=failure_error(failure.error),
-                )
-            )
-
-
-def metrics_snapshot(metrics) -> dict:
-    """``RoutingMetrics`` counters as plain JSON, grouped by repository group."""
-    out: dict = {}
-    for name in (
-        "calls",
-        "mirror_failures",
-        "mirror_repairs",
-        "mirror_converge_skipped",
-        "shadow_reads",
-        "shadow_diffs",
-        "shadow_errors",
-    ):
-        for (group, method), count in getattr(metrics, name).items():
-            out.setdefault(group, {}).setdefault(name, {})[method] = count
-    return out
-
-
-async def outbox_backlog(session_factory, row_cls, *, mongo_used: bool = True) -> dict:
-    """Unresolved mirror-write failures in both stores (the outbox to drain).
-    A store the process does not use reports ``None``."""
-    from sqlalchemy import func, select
-
-    backlog: dict = {"mongo": None}
-    if mongo_used:
-        backlog["mongo"] = await MirrorWriteFailureDocument.find(
-            MirrorWriteFailureDocument.resolved_at == None  # noqa: E711 — Beanie query
-        ).count()
-    if session_factory is None:
-        backlog["postgres"] = None
-        return backlog
-    async with session_factory() as session:
-        backlog["postgres"] = (
-            await session.execute(
-                select(func.count())
-                .select_from(row_cls)
-                .where(row_cls.resolved_at.is_(None))
-            )
-        ).scalar_one()
-    return backlog

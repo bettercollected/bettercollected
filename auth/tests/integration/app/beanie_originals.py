@@ -11,8 +11,7 @@ import datetime as dt
 from typing import Annotated, List, Optional
 
 from beanie import Indexed
-from common.configs.mongo_document import MongoDocument
-from common.db.mongo import init_documents, mongo_client
+from common.db.beanie_bridge import MongoDocument, init_documents, offline_client
 from common.enums.plan import Plans
 
 
@@ -44,5 +43,5 @@ ORIGINALS = (UserDocument,)
 
 async def init_originals() -> None:
     """Beanie's class set-up without a server (a client that never connects)."""
-    client = mongo_client(None, required=False)
+    client = offline_client()
     await init_documents(client["auth_originals"], list(ORIGINALS), required=False)

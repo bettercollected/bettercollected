@@ -10,7 +10,6 @@ from typing import Optional
 import pytest
 from beanie import PydanticObjectId
 
-from common.clock import write_clock
 from common.exceptions import NotFoundError
 from common.ids import RecordId
 from common.records import Record, RecordSettings, settings_of
@@ -19,6 +18,7 @@ from tests.record_samples import (
     IsoRecord,
     SampleRecord,
     UnnamedRecord,
+    fixed_clock,
     init_beanie_documents,
 )
 
@@ -39,7 +39,7 @@ class ChildNote(Note):
 
 
 def test_construction_stamps_both_timestamps_with_one_reading():
-    with write_clock() as now:
+    with fixed_clock() as now:
         note = Note(body="x")
     assert note.created_at == note.updated_at == now
     assert note.id is None  # minted when stored
@@ -53,7 +53,7 @@ def test_given_timestamps_are_kept():
 
 async def test_stamping_matches_mongo_document():
     documents = await init_beanie_documents()
-    with write_clock() as now:
+    with fixed_clock() as now:
         for cls in (UnnamedRecord, documents["UnnamedRecord"]):
             assert cls(note="x").created_at == now
             assert cls.model_validate({"note": "x"}).created_at == now
@@ -63,7 +63,7 @@ async def test_stamping_matches_mongo_document():
 def test_touch_moves_only_updated_at():
     note = Note(created_at=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc))
     created = note.created_at
-    with write_clock() as now:
+    with fixed_clock() as now:
         assert note.touch() is note
     assert note.updated_at == now and note.created_at == created
 
@@ -106,7 +106,7 @@ async def test_settings_read_the_same_as_beanie():
 
 
 def test_verify_doc_exists_matches_mongo_document():
-    from common.configs.mongo_document import MongoDocument
+    from common.db.beanie_bridge import MongoDocument
 
     class FormResponseThing(Record):
         pass

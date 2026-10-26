@@ -13,14 +13,30 @@ untyped mappings, a record nested in a record (encoded with its own
 
 import datetime as dt
 import uuid
+from contextlib import contextmanager
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
+from unittest import mock
 
 from pydantic import BaseModel, Field, HttpUrl, RootModel, SecretStr
 
 from common.ids import RecordId
 from common.records import Record
+
+
+
+@contextmanager
+def fixed_clock() -> Iterator[dt.datetime]:
+    """Hold the clock the stamps read still, so a test can compare a stamp
+    with one reading (``common.clock.utcnow`` is read by ``Record`` and by the
+    4.0 ``MongoDocument``, which the codec tests compare it with)."""
+    now = dt.datetime.now(dt.timezone.utc)
+    with mock.patch("common.records.base.utcnow", lambda: now), mock.patch(
+        "common.db.beanie_bridge.utcnow", lambda: now
+    ):
+        yield now
+
 
 ISO_ENCODERS = {
     dt.datetime: lambda o: dt.datetime.isoformat(o),
@@ -151,7 +167,7 @@ def beanie_documents() -> Dict[str, type]:
     """The same classes as Beanie documents (``MongoDocument``), written out by
     hand: they define the bytes the fixture pins. Built on first use, since
     Beanie must then be initialised for them (see ``init_beanie_documents``)."""
-    from common.configs.mongo_document import MongoDocument
+    from common.db.beanie_bridge import MongoDocument
 
     class SampleRecord(MongoDocument, AllTypes):
         class Settings:
@@ -195,11 +211,9 @@ def beanie_documents() -> Dict[str, type]:
 
 async def init_beanie_documents() -> Dict[str, type]:
     """Initialise Beanie for the sample documents without a Mongo server."""
-    from pymongo import AsyncMongoClient
-
-    from common.db.mongo import NOT_USED_URI, init_documents
+    from common.db.beanie_bridge import init_documents, offline_client
 
     documents = beanie_documents()
-    database = AsyncMongoClient(NOT_USED_URI)["record_samples"]
+    database = offline_client()["record_samples"]
     await init_documents(database, list(documents.values()), required=False)
     return documents

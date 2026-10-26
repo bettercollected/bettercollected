@@ -17,14 +17,7 @@ from common.db.groups import (
     parse_groups,
     validate_groups,
 )
-from common.db.flags import (
-    OVERRIDE_SEP,
-    WRITE_KEY,
-    FlagError,
-    ReadSource,
-    WriteMode,
-    load_flags,
-)
+from common.db.flags import OVERRIDE_SEP, WRITE_KEY
 from common.db.migrate.engine import Runner, Target
 from common.db.migrate.outbox import OutboxResolver
 from common.db.schema_guard import MigrationTarget
@@ -362,28 +355,35 @@ async def resolve_outbox(
     return 0 if summary["resolvable"] == summary["in_scope"] else 1
 
 
-def mongo_primary_groups(target: Target, env: Mapping[str, str]) -> list[str]:
-    """The groups whose services write Mongo first (``mongo``/``dual``) by an
-    EXPLICIT setting in ``env``: ``DB_WRITE_MODE__<group>`` when the group has
-    one, else ``DB_WRITE_MODE``. A group whose mode is only the default (no
-    variable set), or flags that do not parse, never count: ``reconcile
-    --mongo-wins`` then keeps every newer Postgres row (fails safe)."""
-    try:
-        flags = (target.load_flags or load_flags)(env)
-    except FlagError:
-        return []
+def write_mode_in(
+    target: Target, env: Mapping[str, str], group: str
+) -> Optional[str]:
+    """The write mode the 4.0 stack being imported ran ``group`` with, as the
+    operator's ``env`` states it: ``DB_WRITE_MODE__<group>`` when the group
+    has one, else ``DB_WRITE_MODE``; None when neither is set. A group served
+    from Postgres only is always ``postgres``. Only the CLI reads this (a 4.1
+    service refuses every value but ``postgres``)."""
+    if group in target.postgres_only_groups:
+        return "postgres"
     prefix = WRITE_KEY + OVERRIDE_SEP
-    overridden = {
-        key[len(prefix) :].lower()
-        for key, value in env.items()
-        if key.startswith(prefix) and value != ""
-    }
-    base_set = env.get(WRITE_KEY, "") != ""
+    for key, value in env.items():
+        if key.startswith(prefix) and key[len(prefix) :].lower() == group and value:
+            return value.strip().lower()
+    value = env.get(WRITE_KEY, "")
+    return value.strip().lower() or None
+
+
+def mongo_primary_groups(target: Target, env: Mapping[str, str]) -> list[str]:
+    """The groups whose 4.0 services wrote Mongo first (``mongo``/``dual``) by
+    an EXPLICIT setting in ``env``: ``DB_WRITE_MODE__<group>`` when the group
+    has one, else ``DB_WRITE_MODE``. A group whose mode is only the default (no
+    variable set), or a value that is not a write mode, never counts:
+    ``reconcile --mongo-wins`` then keeps every newer Postgres row (fails
+    safe)."""
     return [
         g
         for g in target.migrating_groups()
-        if (g in overridden or base_set)
-        and flags.primary_store(g) is ReadSource.MONGO
+        if write_mode_in(target, env, g) in ("mongo", "dual")
     ]
 
 
@@ -397,24 +397,19 @@ def reconcile_to_mongo_refusal(
     delete then reaches Postgres first, with its tombstone, and reconcile's
     re-check after each Mongo insert sees it. Under ``dual`` Mongo deletes
     first and records no tombstone for a document that is not there, so a
-    delete racing an insert could bring the record back. A dry run writes
-    nothing and is always allowed."""
+    delete racing an insert could bring the record back. A group served from
+    Postgres only (4.1) never qualifies: nothing mirrors to Mongo any more. A
+    dry run writes nothing and is always allowed."""
     if args.command != "reconcile" or args.direction != "postgres->mongo":
         return None
     if args.dry_run:
         return None
-    try:
-        # each group's effective mode: the service's own loader, which pins
-        # its Postgres-only groups to postgres whatever the global flags say
-        flags = (target.load_flags or load_flags)(env)
-    except FlagError as exc:
-        return f"the write-mode flags do not parse: {exc}"
     collections = select_collections(args, target) or list(target.tables)
     groups = sorted({target.group_of(c) for c in collections})
     wrong = {
-        g: flags.write_mode(g).value
+        g: write_mode_in(target, env, g) or "mongo"
         for g in groups
-        if flags.write_mode(g) is not WriteMode.POSTGRES_PRIMARY_DUAL
+        if write_mode_in(target, env, g) != "postgres_primary_dual"
     }
     if not wrong:
         return None
@@ -422,7 +417,7 @@ def reconcile_to_mongo_refusal(
     return (
         "reconcile --direction postgres->mongo runs only while every group it "
         f"covers is on DB_WRITE_MODE=postgres_primary_dual; not: {named}. Run it "
-        "with the services' flags (see docs/postgres-cutover-runbook.md), or "
+        "with the 4.0 stack's flags (see docs/postgres-cutover-runbook.md), or "
         "--dry-run to see what it would do"
     )
 

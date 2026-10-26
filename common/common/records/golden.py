@@ -61,7 +61,7 @@ def _is_document_base(cls: type) -> bool:
     """Beanie's ``Document`` and ``MongoDocument``: what ``Record`` replaces.
     Other abstract bases (``BaseDocument``) are rebased like any class, so
     whatever they redeclare (its timestamp defaults) carries over."""
-    from common.configs.mongo_document import MongoDocument
+    from common.db.beanie_bridge import MongoDocument
 
     return cls is MongoDocument or (
         _is_document(cls) and cls.__module__.split(".")[0] == "beanie"

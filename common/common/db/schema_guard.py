@@ -1,8 +1,7 @@
 """Schema readiness at startup: refuse to serve on an unmigrated schema, and
 optionally migrate it first.
 
-A service whose persistence flags put a repository group on Postgres needs its
-own schema at the Alembic head of the code it runs; otherwise every request
+A service, whose only store is Postgres, needs its own schema at the Alembic head of the code it runs; otherwise every request
 touching a Postgres store fails with ``UndefinedTable``. So at startup:
 
 1. ``DB_AUTO_MIGRATE=true`` (opt-in, default off): ``alembic upgrade head`` for
@@ -17,7 +16,6 @@ touching a Postgres store fails with ``UndefinedTable``. So at startup:
    warns: migrations are expand-only, so the older code still runs on the
    newer schema, and refusing would turn every rollback into an outage.
 
-With every group on Mongo the check is skipped entirely (no database needed).
 deploy.sh's explicit migration step keeps working unchanged: it simply leaves
 nothing for step 1 to do.
 """
@@ -392,10 +390,7 @@ async def ensure_schema_ready(
     revision_source: Optional[RevisionSource] = None,
 ) -> None:
     """Migrate (when ``DB_AUTO_MIGRATE`` is on) and verify, or raise
-    :class:`SchemaNotReady`. Callers have checked the database is reachable.
-    Mongo-only flags need no database: nothing is checked or migrated."""
-    if not flags.requires_postgres():
-        return
+    :class:`SchemaNotReady`. Callers have checked the database is reachable."""
     if auto_migrate_enabled(env):
         if engine is None:
             raise SchemaNotReady(f"{AUTO_MIGRATE_KEY}=true but DATABASE_URL is not set")
@@ -432,7 +427,7 @@ async def ensure_schema_ready(
             ) from exc
 
     problems: list[str] = []
-    if target is not None and flags.uses_postgres_tables():
+    if target is not None:
         source = revision_source or EngineRevisionSource(_require(engine))
         check = await check_revision(target, source)
         if check.ok:
@@ -459,6 +454,6 @@ async def ensure_schema_ready(
 def _require(engine: Optional[AsyncEngine]) -> AsyncEngine:
     if engine is None:
         raise SchemaNotReady(
-            "DB_*/JOBS_* flags require Postgres but DATABASE_URL is not set"
+            "Postgres is the only store but DATABASE_URL is not set"
         )
     return engine

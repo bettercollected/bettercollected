@@ -1,45 +1,36 @@
 """Deletion tombstones: which ids were deleted, in which store, and when.
 
-While both stores are written, a row can exist on one side only for two
+While 4.0 wrote both stores, a row could exist on one side only for two
 opposite reasons: it was written there and its copy to the other side failed
-or has not been backfilled yet, or it was deleted on the other side and its
-mirror delete failed. ``reconcile`` used to treat every such row as the
-first case and copy it back, so a deleted response, deletion request or
-account could come back after a reconcile. A tombstone tells the two apart.
+or had not been backfilled yet, or it was deleted on the other side and its
+mirror delete failed. ``reconcile`` used to treat every such row as the first
+case and copy it back, so a deleted response, deletion request or account
+could come back after a reconcile. A tombstone tells the two apart.
 
-Every delete records one, in the store that deletes, in all write modes:
-
-* **Postgres** — :class:`common.db.pg_repository.PostgresRepositoryBase`'s
-  delete helpers write ``<schema>.deletion_tombstones`` in the same
-  transaction as the delete (:func:`record_postgres`);
-* **Mongo** — every document class initialised by
-  :func:`common.db.mongo.init_documents` gets a collection whose deletes
-  (``delete_one``, ``delete_many``, ``find_one_and_delete``, so also Beanie's
-  ``document.delete()`` and ``find(...).delete()``) first read the matching
-  ids, record them in the ``deletion_tombstones`` collection, and then delete
-  exactly those ids (:class:`TombstoningCollection`).
+Every Postgres delete records one in the same transaction
+(:class:`common.records.repository.RecordRepository`'s delete helpers write
+``<schema>.deletion_tombstones``, :func:`record_postgres`), so that the import
+from 4.0 (``python -m <service>.migrate``) still never brings a deleted record
+back. The Mongo side (a ``deletion_tombstones`` collection a 4.0 stack wrote)
+is only read.
 
 A tombstone holds only the collection name, the id and the time of the
-delete (the write clock, :func:`common.clock.utcnow`): no document content
-and no personal data. A copy is a *deletion victim* when a tombstone for its
-id, from either store, is newer than the copy's ``updated_at``
-(:func:`is_victim`): a document created again under the same id after the
-delete (ids derived from a relation are) is newer and so not a victim.
-``verify`` counts the victims still present as ``tombstoned``, and
+delete: no document content and no personal data. A copy is a *deletion
+victim* when a tombstone for its id, from either store, is newer than the
+copy's ``updated_at`` (:func:`is_victim`): a document created again under the
+same id after the delete (ids derived from a relation are) is newer and so not
+a victim. ``verify`` counts the victims still present as ``tombstoned``, and
 ``reconcile`` never copies a victim: it deletes a victim that exists on one
 side only and reports one present on both.
 
-Times are compared at millisecond precision: a routed write stamps both
-stores with one clock reading, and Mongo keeps milliseconds where Postgres
-keeps microseconds, so a record deleted and written again in the same write
-(relation-derived ids, as a responder group's members) must not look older
-than its own tombstone. Tombstone times are stored truncated as well.
+Times are compared at millisecond precision, as Mongo keeps milliseconds where
+Postgres keeps microseconds. Tombstone times are stored truncated as well.
 
-Retention: :data:`RETENTION_DAYS`, long enough for the cutover. Mongo expires
-its tombstones by a TTL index; Postgres ones are pruned, a bounded batch at a
-time, every :data:`PRUNE_EVERY` deletes a process records (after the delete
-committed, in a transaction of its own) and at the end of each ``reconcile``. Both go with the Mongo decommission: drop the
-``deletion_tombstones`` tables and the Mongo collection then.
+Retention: :data:`RETENTION_DAYS`, long enough for the import and the time a
+Mongo archive is kept. Postgres ones are pruned, a bounded batch at a time,
+every :data:`PRUNE_EVERY` deletes a process records (after the delete
+committed, in a transaction of its own) and at the end of each ``reconcile``.
+The ``deletion_tombstones`` tables go with the Mongo decommission.
 """
 
 from __future__ import annotations
@@ -47,8 +38,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional
 
-from pymongo.errors import BulkWriteError, OperationFailure
-from pymongo.results import DeleteResult
 from sqlalchemy import TIMESTAMP, Text, column, select, table, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Mapped, mapped_column
@@ -63,10 +52,7 @@ RETENTION_DAYS = 120
 #: A process prunes expired Postgres tombstones once per this many deletes.
 PRUNE_EVERY = 200
 PRUNE_BATCH = 1000
-#: Collections whose deletes are not tombstoned (the bookkeeping itself).
-NOT_TOMBSTONED = frozenset({COLLECTION, "mirror_write_failures"})
 CHUNK = 1000
-DUPLICATE_KEY = 11000
 
 
 class DeletionTombstoneMixin:
@@ -193,139 +179,8 @@ async def prune_postgres(
     return int(result.rowcount or 0)
 
 
-# -- Mongo --------------------------------------------------------------------
+# -- Mongo (the 4.0 archive, read by the import) ---------------------------------
 def mongo_tombstones(database):
+    """The ``deletion_tombstones`` collection a 4.0 stack recorded its Mongo
+    deletes in; only read, never written, by 4.1."""
     return database[COLLECTION]
-
-
-async def record_mongo(database, collection: str, ids: Iterable[Any], session=None):
-    """Record ``ids`` of ``collection`` as deleted now. One ``insert_many``
-    per chunk; an id already tombstoned (a duplicate key) has its
-    ``deleted_at`` moved to now instead."""
-    ids = [str(i) for i in ids]
-    if not ids:
-        return
-    at = to_ms(utcnow())
-    tombstones = mongo_tombstones(database)
-    for start in range(0, len(ids), CHUNK):
-        chunk = ids[start : start + CHUNK]
-        try:
-            await tombstones.insert_many(
-                [
-                    {
-                        "_id": f"{collection}:{i}",
-                        "collection": collection,
-                        "row_id": i,
-                        "deleted_at": at,
-                    }
-                    for i in chunk
-                ],
-                ordered=False,
-                session=session,
-            )
-        except BulkWriteError as error:
-            errors = error.details.get("writeErrors", [])
-            if any(e.get("code") != DUPLICATE_KEY for e in errors):
-                raise
-            again = [chunk[e["index"]] for e in errors]
-            await tombstones.update_many(
-                {"_id": {"$in": [f"{collection}:{i}" for i in again]}},
-                {"$set": {"deleted_at": at}},
-                session=session,
-            )
-
-
-async def ensure_mongo_ttl(database) -> None:
-    """Expire Mongo tombstones after :data:`RETENTION_DAYS` (idempotent; an
-    index made with another retention is changed in place)."""
-    seconds = int(timedelta(days=RETENTION_DAYS).total_seconds())
-    try:
-        await mongo_tombstones(database).create_index(
-            "deleted_at", name="deleted_at_ttl", expireAfterSeconds=seconds
-        )
-    except OperationFailure as error:
-        if error.code not in (85, 86):  # IndexOptionsConflict, IndexKeySpecsConflict
-            raise
-        await database.command(
-            "collMod",
-            COLLECTION,
-            index={"name": "deleted_at_ttl", "expireAfterSeconds": seconds},
-        )
-
-
-class TombstoningCollection:
-    """A pymongo collection whose deletes record a tombstone per deleted id
-    before deleting. Everything else is the wrapped collection's."""
-
-    def __init__(self, collection):
-        self._collection = collection
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._collection, name)
-
-    def __getitem__(self, name: str) -> Any:
-        return self._collection[name]
-
-    @property
-    def wrapped(self):
-        return self._collection
-
-    async def _record(self, ids, session) -> None:
-        await record_mongo(
-            self._collection.database, self._collection.name, ids, session=session
-        )
-
-    async def delete_one(self, filter: Mapping[str, Any], *args, **kwargs):
-        session = kwargs.get("session")
-        found = await self._collection.find_one(filter, {"_id": 1}, session=session)
-        if found is None:
-            return DeleteResult({"n": 0, "ok": 1}, True)
-        await self._record([found["_id"]], session)
-        return await self._collection.delete_one(
-            {"$and": [dict(filter), {"_id": found["_id"]}]}, *args, **kwargs
-        )
-
-    async def delete_many(self, filter: Mapping[str, Any], *args, **kwargs):
-        session = kwargs.get("session")
-        ids = [
-            d["_id"]
-            for d in await self._collection.find(
-                filter, {"_id": 1}, session=session
-            ).to_list()
-        ]
-        deleted = 0
-        for start in range(0, len(ids), CHUNK):
-            chunk = ids[start : start + CHUNK]
-            await self._record(chunk, session)
-            result = await self._collection.delete_many(
-                {"$and": [dict(filter), {"_id": {"$in": chunk}}]}, *args, **kwargs
-            )
-            deleted += result.deleted_count
-        return DeleteResult({"n": deleted, "ok": 1}, True)
-
-    async def find_one_and_delete(self, filter: Mapping[str, Any], *args, **kwargs):
-        session = kwargs.get("session")
-        found = await self._collection.find_one(
-            filter, {"_id": 1}, session=session, sort=kwargs.get("sort")
-        )
-        if found is None:
-            return None
-        await self._record([found["_id"]], session)
-        return await self._collection.find_one_and_delete(
-            {"$and": [dict(filter), {"_id": found["_id"]}]}, *args, **kwargs
-        )
-
-
-def tombstone_deletes(document_models: Iterable[type]) -> None:
-    """Give each initialised document class a :class:`TombstoningCollection`."""
-    for model in document_models:
-        get_settings = getattr(model, "get_settings", None)
-        if get_settings is None:
-            continue
-        settings = get_settings()
-        current = getattr(settings, "pymongo_collection", None)
-        if current is None or isinstance(current, TombstoningCollection):
-            continue
-        if settings.name in NOT_TOMBSTONED:
-            continue
-        settings.pymongo_collection = TombstoningCollection(current)

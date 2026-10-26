@@ -3,7 +3,7 @@ a flag naming another store for this service refuses, naming the setting."""
 
 import pytest
 
-from common.db.flags import FlagError, ReadSource, WriteMode
+from common.db.flags import FlagError
 from googleform.db.flags import load_google_flags
 
 
@@ -21,10 +21,7 @@ from googleform.db.flags import load_google_flags
 )
 def test_the_google_group_is_on_postgres(env):
     flags = load_google_flags(env)
-    assert flags.read_source("google") is ReadSource.POSTGRES
-    assert flags.write_mode("google") is WriteMode.POSTGRES
-    assert not flags.uses_mongo(["google"])
-    assert flags.requires_postgres()
+    assert flags.describe()["store"] == "postgres"
 
 
 @pytest.mark.parametrize(

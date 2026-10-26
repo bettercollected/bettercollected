@@ -3,7 +3,8 @@ import datetime as dt
 from bson import ObjectId
 
 from backend.app.schemas.standard_form_response import FormResponseDocument
-from common.db import document_checksum, from_row_doc, row_values, to_bson_dict
+from common.db import document_checksum
+from common.db.beanie_bridge import from_row_doc, row_values, to_bson_dict
 from tests.app.db.beanie_originals import AllowedOriginsDocument
 
 

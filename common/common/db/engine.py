@@ -52,8 +52,7 @@ class DatabaseSettings:
 
     The three timeouts are applied server-side on every connection, so no
     session — request path, worker, or migration — can hold a statement, a
-    lock, or an idle transaction indefinitely. ``mirror_timeout_ms`` bounds the
-    best-effort mirror write in dual-write mode (plans/postgres-consolidation.md §6).
+    lock, or an idle transaction indefinitely.
     """
 
     url: Optional[str]
@@ -63,7 +62,6 @@ class DatabaseSettings:
     statement_timeout_ms: int = 30_000
     lock_timeout_ms: int = 5_000
     idle_in_transaction_ms: int = 60_000
-    mirror_timeout_ms: int = 2_000
     echo: bool = False
 
     @classmethod
@@ -77,7 +75,6 @@ class DatabaseSettings:
             statement_timeout_ms=_int(env, "DB_STATEMENT_TIMEOUT_MS", 30_000),
             lock_timeout_ms=_int(env, "DB_LOCK_TIMEOUT_MS", 5_000),
             idle_in_transaction_ms=_int(env, "DB_IDLE_IN_TRANSACTION_MS", 60_000),
-            mirror_timeout_ms=_int(env, "DB_MIRROR_TIMEOUT_MS", 2_000),
             echo=_bool(env, "DB_ECHO", False),
         )
 

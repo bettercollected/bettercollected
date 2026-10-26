@@ -10,7 +10,6 @@ import pytest
 from common.db import load_flags
 from common.db.schema_guard import (
     AUTO_MIGRATE_KEY,
-    AuxiliarySchema,
     MigrationTarget,
     RevisionState,
     SchemaNotReady,
@@ -119,30 +118,10 @@ def test_code_revisions(target):
     assert known == {"0001", "0002"}
 
 
-async def test_mongo_only_flags_check_nothing(target):
-    source = FakeRevisions(None)  # would fail the check if it were consulted
-    await ensure_schema_ready(
-        load_flags({"JOBS_BACKEND": "temporal"}),
-        None,
-        target,
-        env={AUTO_MIGRATE_KEY: "true"},
-        revision_source=source,
-    )
-    assert source.calls == 0
-
-
-@pytest.mark.parametrize(
-    "env",
-    [
-        {"DB_WRITE_MODE": "dual"},
-        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
-        {"DB_WRITE_MODE__responses": "dual"},
-    ],
-)
-async def test_postgres_flags_refuse_a_schema_behind(target, env):
+async def test_a_schema_behind_is_refused(target):
     with pytest.raises(SchemaNotReady) as raised:
         await ensure_schema_ready(
-            load_flags(env),
+            load_flags({}),
             None,
             target,
             env={},
@@ -151,12 +130,12 @@ async def test_postgres_flags_refuse_a_schema_behind(target, env):
     assert "'app' is behind" in str(raised.value)
 
 
-async def test_postgres_flags_start_on_a_schema_ahead_with_a_warning(target, caplog):
+async def test_a_schema_ahead_starts_with_a_warning(target, caplog):
     """A rollback (or reschedule) onto an older image must not take the service
     down: migrations are expand-only, so the older code runs on the newer schema."""
     caplog.set_level("WARNING", logger="common.db.schema_guard")
     await ensure_schema_ready(
-        load_flags({"DB_WRITE_MODE": "dual"}),
+        load_flags({}),
         None,
         target,
         env={},
@@ -190,31 +169,11 @@ def test_lock_wait_is_configurable():
     assert lock_wait_seconds({"DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS": "soon"}) == 300
 
 
-async def test_postgres_flags_accept_head(target):
+async def test_a_schema_at_head_is_accepted(target):
     await ensure_schema_ready(
-        load_flags({"DB_WRITE_MODE": "dual"}),
+        load_flags({}),
         None,
         target,
         env={},
         revision_source=FakeRevisions(("0002",)),
     )
-
-
-async def test_jobs_only_flags_skip_the_table_schema(target):
-    """Jobs on Postgres touch only the jobs schema; the app schema is not checked."""
-    source = FakeRevisions(None)
-    aux = AuxiliarySchema(
-        name="jobs",
-        needed=lambda flags: False,
-        present=None,  # type: ignore[arg-type]
-        apply=None,  # type: ignore[arg-type]
-    )
-    await ensure_schema_ready(
-        load_flags({"JOBS_BACKEND": "postgres"}),
-        None,
-        target,
-        (aux,),
-        env={},
-        revision_source=source,
-    )
-    assert source.calls == 0

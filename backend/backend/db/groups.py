@@ -1,28 +1,15 @@
 """Repository groups, all served from Postgres only since 4.1.
 
 Their Mongo collections are read only by the import from 4.0
-(``python -m backend.migrate``). Until the last group left Mongo, a group's
-Mongo repositories could ``$lookup`` into another group's collections, which
-found nothing once the joined group stopped writing Mongo; ``MONGO_JOINS``
-recorded those joins and ``load_flags`` enforced the map at boot. The
-repositories now compose over each other instead of joining, and the map is
-empty.
+(``python -m backend.migrate``): the repositories have no Mongo side, no
+routing, no mirror and no shadow read, and compose over each other where a
+read crosses groups (backend.app.repositories.response_scope).
 """
 
 import os
-from dataclasses import replace
 from typing import Mapping, Sequence
 
-from common.db.flags import (
-    OVERRIDE_SEP,
-    READ_KEY,
-    WRITE_KEY,
-    DbFlags,
-    FlagError,
-    ReadSource,
-    WriteMode,
-    load_flags,
-)
+from common.db.flags import DbFlags, load_flags, refuse_stale_store_flags
 from common.db.groups import BACKEND_GROUPS
 
 GROUPS = BACKEND_GROUPS
@@ -169,13 +156,6 @@ COLLECTION_GROUPS = {
     "user_feedback": "refdata",
 }
 
-#: Group -> the groups its Mongo repositories ``$lookup`` into. Empty since
-#: the forms group is served from Postgres only (the responses repositories
-#: read a form's title and importer through the forms repositories,
-#: backend.app.repositories.response_scope), and no group has a Mongo
-#: repository any more.
-MONGO_JOINS: Mapping[str, Sequence[str]] = {}
-
 
 def _listed(names: Sequence[str]) -> str:
     """``a``, ``a and b``, ``a, b and c``."""
@@ -183,45 +163,17 @@ def _listed(names: Sequence[str]) -> str:
 
 
 def load_backend_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
-    """The backend's flags (:func:`common.db.load_flags`), with every group of
-    :data:`POSTGRES_ONLY_GROUPS` on Postgres whatever the defaults say. A
-    per-group flag left from the cutover that names another store for one
-    of them (``DB_READ_SOURCE__refdata=mongo``, ``DB_WRITE_MODE__ai=dual``
-    ...) refuses the start: the store it asks for is no longer there."""
-    prefixes = tuple(base + OVERRIDE_SEP for base in (READ_KEY, WRITE_KEY))
-
-    def pinned(key: str) -> bool:
-        """A per-group flag of a group served from Postgres only."""
-        return (
-            key.startswith(prefixes)
-            and key.split(OVERRIDE_SEP, 1)[1].lower() in POSTGRES_ONLY_GROUPS
-        )
-
-    stale = sorted(
-        f"{key}={value!r}"
-        for key, value in env.items()
-        if pinned(key) and value.strip().lower() not in ("", "postgres")
+    """The backend's flags (:func:`common.db.load_flags`: the jobs backends).
+    A per-group flag left from the cutover that names another store for a group
+    of :data:`POSTGRES_ONLY_GROUPS` (``DB_READ_SOURCE__refdata=mongo``,
+    ``DB_WRITE_MODE__ai=dual`` ...) refuses the start: the store it asks for
+    is no longer there. A service-wide ``DB_READ_SOURCE`` / ``DB_WRITE_MODE``
+    means nothing to the backend and is ignored."""
+    refuse_stale_store_flags(
+        env,
+        POSTGRES_ONLY_GROUPS,
+        what=f"the {_listed(POSTGRES_ONLY_GROUPS)} groups are served from "
+        "Postgres only since 4.1 and have no Mongo store any more.",
+        service_wide=False,
     )
-    if stale:
-        raise FlagError(
-            f"{', '.join(stale)}: the {_listed(POSTGRES_ONLY_GROUPS)} groups "
-            "are served from Postgres only since 4.1 and have no Mongo store any "
-            "more. Remove these settings (or set them to postgres) and restart."
-        )
-    # what is left of them (postgres, or empty) is implied: left out, so that
-    # e.g. a remaining DB_READ_SOURCE__actions=postgres is not checked against
-    # the default write mode
-    flags = load_flags(
-        {k: v for k, v in env.items() if not pinned(k)}, mongo_joins=MONGO_JOINS
-    )
-    return replace(
-        flags,
-        read_overrides={
-            **flags.read_overrides,
-            **{g: ReadSource.POSTGRES for g in POSTGRES_ONLY_GROUPS},
-        },
-        write_overrides={
-            **flags.write_overrides,
-            **{g: WriteMode.POSTGRES for g in POSTGRES_ONLY_GROUPS},
-        },
-    )
+    return load_flags(env)

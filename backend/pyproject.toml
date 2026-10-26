@@ -17,7 +17,6 @@ dependencies = [
     "requests>=2.32.5",
     "fastapi-camelcase>=2.0.0",
     "fastapi-utils>=0.8.0",
-    "beanie>=2.2.0",
     "dependency-injector>=4.49.1",
     "httpx>=0.28.1",
     # images/import and the Unsplash route pin connections (services/image_fetch.py)
@@ -57,6 +56,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # the 4.0 classes the import tests seed Mongo with (tests/app/db/beanie_originals.py)
+    "beanie>=2.2.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.4.0",
     "aioresponses>=0.7.9",
@@ -80,6 +81,5 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
-    "allow_mirror_failures: the test makes mirror writes fail on purpose",
-    "mongo: the test drives a Mongo server itself, whatever the flags (tests/conftest.py MONGO_DRIVEN)",
+    "mongo: the test drives a Mongo server itself, the import from 4.0 (tests/conftest.py MONGO_DRIVEN)",
 ]

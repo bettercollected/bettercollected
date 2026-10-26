@@ -7,7 +7,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
+    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
 ]
 
 [[package]]
@@ -364,7 +364,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "base58" },
-    { name = "beanie" },
     { name = "boto3" },
     { name = "camel-converter" },
     { name = "certifi" },
@@ -413,6 +412,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "aioresponses" },
+    { name = "beanie" },
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -424,7 +424,6 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.5" },
     { name = "base58", specifier = ">=2.1.1" },
-    { name = "beanie", specifier = ">=2.2.0" },
     { name = "boto3", specifier = ">=1.43.118" },
     { name = "camel-converter", specifier = ">=5.1.1" },
     { name = "certifi", specifier = ">=2026.10.23" },
@@ -473,6 +472,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aioresponses", specifier = ">=0.7.9" },
+    { name = "beanie", specifier = ">=2.2.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
@@ -854,24 +854,27 @@ source = { editable = "../common" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
-    { name = "beanie" },
     { name = "cryptography" },
+    { name = "pydantic" },
+    { name = "pymongo" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "tink" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.20.0" },
+    { name = "alembic", specifier = ">=1.20.1" },
     { name = "asyncpg", specifier = ">=0.32.0" },
-    { name = "beanie", specifier = ">=2.2.0" },
     { name = "cryptography", specifier = ">=50.0.2" },
+    { name = "pydantic", specifier = ">=2.14.1" },
+    { name = "pymongo", specifier = ">=4.18.3" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.54" },
     { name = "tink", specifier = ">=1.16.1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "beanie", specifier = ">=2.2.0" },
     { name = "black", specifier = ">=26.10.1" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
@@ -1279,7 +1282,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
+    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
 ]
 dependencies = [
     { name = "google-auth" },
