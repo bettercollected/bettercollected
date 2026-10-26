@@ -1,5 +1,9 @@
+from http import HTTPStatus
+from typing import List
+
 from beanie import PydanticObjectId
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_responder_dto import WorkspaceResponderPatchDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
@@ -9,6 +13,7 @@ from backend.app.repositories.postgres.responses import (
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
 
 
@@ -68,9 +73,26 @@ class WorkspaceRespondersService:
             user, Permission.PRIVACY_MANAGE, workspace_id
         )
 
+        if patch_request.tags:
+            await self._require_workspace_tags(workspace_id, patch_request.tags)
+
         return await self.workspace_responders_repo.patch_responder(
             workspace_id=workspace_id,
             email=email,
             metadata=patch_request.metadata,
             tags=patch_request.tags,
         )
+
+    async def _require_workspace_tags(
+        self, workspace_id: PydanticObjectId, tag_ids: List[PydanticObjectId]
+    ):
+        """404 unless every tag belongs to this workspace. A tag of another
+        workspace answers exactly like one that does not exist."""
+        own = {
+            str(tag.id)
+            for tag in await self.workspace_responders_repo.get_workspace_tags(
+                workspace_id=workspace_id
+            )
+        }
+        if any(str(tag_id) not in own for tag_id in tag_ids):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
