@@ -8,6 +8,8 @@ import { cn } from '@app/shadcn/util/lib';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
+import useJustChosen from './use-just-chosen';
+
 /** A radio (one answer) or a checkbox (several answers). */
 export type ChoiceKind = 'radio' | 'checkbox';
 
@@ -20,6 +22,8 @@ export type ChoiceKind = 'radio' | 'checkbox';
 export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; inverted?: boolean }) {
     // The chosen control wears the theme's highlight where it sets one
     // (theme-root.ts: an edge colour that reads on the page), else the secondary.
+    // The mark grows in when the respondent chooses, not when a chosen one is first shown.
+    const pop = useJustChosen(!!selected) ? 'form-choice-pop ' : '';
     const onSolid = 'var(--form-highlight-solid-ink, #ffffff)';
     const on = inverted ? onSolid : themed('--form-highlight-edge', theme?.secondary);
     const edge = selected ? on : inverted ? onSolid : theme?.tertiary;
@@ -31,7 +35,7 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border-2 border-(--choice-indicator) transition-colors duration-150 group-hover:border-(--choice-indicator-hover)"
                 style={{ ['--choice-indicator' as string]: edge, background: selected ? on : '#ffffff' }}
             >
-                {selected && <Check className="form-choice-pop h-3.5 w-3.5" strokeWidth={3} style={{ color: inverted ? themed('--form-highlight-solid', theme?.secondary) : '#ffffff' }} />}
+                {selected && <Check className={`${pop}h-3.5 w-3.5`} strokeWidth={3} style={{ color: inverted ? themed('--form-highlight-solid', theme?.secondary) : '#ffffff' }} />}
             </span>
         );
     }
@@ -42,7 +46,7 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-(--choice-indicator) bg-white transition-colors duration-150 group-hover:border-(--choice-indicator-hover)"
             style={{ ['--choice-indicator' as string]: edge }}
         >
-            {selected && <span className="form-choice-pop h-2.5 w-2.5 rounded-full" style={{ background: on }} />}
+            {selected && <span className={`${pop}h-2.5 w-2.5 rounded-full`} style={{ background: on }} />}
         </span>
     );
 }
@@ -160,7 +164,7 @@ export function OptionKeyHint({ letter, selected, theme, inverted = false }: { l
         <span
             aria-hidden="true"
             data-option-key-hint
-            className="flex h-7 w-7 shrink-0 items-center justify-center border font-mono text-[13px] font-semibold leading-none transition-colors duration-150"
+            className="flex h-7 w-7 shrink-0 items-center justify-center border font-mono text-[13px] leading-none font-semibold transition-colors duration-150"
             style={{ ...colours, borderRadius: KEY_CORNER[theme?.radius ?? 'soft'] ?? '4px' }}
         >
             {letter}
@@ -176,6 +180,7 @@ export function OptionKeyHint({ letter, selected, theme, inverted = false }: { l
  * asked for (`form-choice-pop`, tailwind.css).
  */
 export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; keyHint?: string; children: ReactNode }) {
+    const justChosen = useJustChosen(!!selected);
     return (
         <>
             {keyHint ? <OptionKeyHint letter={keyHint} selected={selected} theme={theme} inverted={solid} /> : <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />}
@@ -186,7 +191,7 @@ export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, chi
                 <Check
                     aria-hidden="true"
                     data-choice-check
-                    className="form-choice-pop h-5 w-5 shrink-0"
+                    className={cn(justChosen && 'form-choice-pop', 'h-5 w-5 shrink-0')}
                     strokeWidth={2.5}
                     style={{ color: solid ? 'var(--form-highlight-solid-ink, #ffffff)' : themed('--form-highlight-edge', theme?.secondary) }}
                 />

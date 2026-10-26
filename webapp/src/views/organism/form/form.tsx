@@ -6,14 +6,16 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import { useResponderFormLogo } from '@app/lib/hooks/use-form-logo';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { endingToShow } from '@app/utils/endings';
+import { progressPercent } from '@app/utils/form-progress';
+import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
 import { greetingCover, hasPictureSlot } from '@app/views/molecules/theme/theme-artwork';
 import { useBodyFormFace } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -95,15 +97,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const cover = greetingCover(standardForm.theme, standardForm.welcomePage?.layout, standardForm.welcomePage?.imageUrl, { privateForm: !!standardForm?.settings?.private });
     const ending = endingToShow(standardForm?.thankyouPage, endingId);
 
-    // The bar says what "Page x of y" in the header says (form-slide.tsx):
-    // page x of y fills x/y of the bar, and the ending fills it. The welcome
-    // and ending pages are not counted as steps; they made the first of
-    // three pages read 40%.
-    const getProgressValue = () => {
-        const pages = standardForm?.fields?.length || 1;
-        if (currentSlide === -2) return 100;
-        return (Math.min(Math.max(currentSlide, 0) + 1, pages) / pages) * 100;
-    };
+    // The bar says what "Page x of y" in the header says (utils/form-progress.ts).
+    const { formResponse } = useFormResponse();
+    const getProgressValue = () => progressPercent(standardForm?.fields, currentSlide, formResponse.answers || {});
 
     // Position of a slide along the journey: welcome → pages → thank-you.
     // The sentinels (-1 welcome, -2 thank-you) don't compare numerically.

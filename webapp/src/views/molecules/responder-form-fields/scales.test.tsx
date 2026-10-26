@@ -3,13 +3,17 @@
 // in colour; the keys never act outside the group.
 import React from 'react';
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import axe from 'axe-core';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
+import { setForm } from '@app/store/forms/slice';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { store } from '@app/store/store';
 import { scaleIndexForKey } from '@app/views/atoms/scale-radio-group';
 import { FormFieldComponent } from '@app/views/organism/form/form-slide';
@@ -80,7 +84,7 @@ describe('star rating', () => {
 
     it('chooses by click, shows the answer in words with a mark, and the chosen star is the tab stop', () => {
         renderField(scale(FieldTypes.RATING, { steps: 5 }));
-        expect(document.querySelector('[data-rating-readout]')).toBeNull();
+        expect(document.querySelector('[data-rating-readout]')!.textContent).toBe('');
         act(() => {
             fireEvent.click(screen.getByRole('radio', { name: 'Rate 4 of 5' }));
         });
@@ -116,25 +120,6 @@ describe('star rating', () => {
     it('names its digit key for assistive tech', () => {
         renderField(scale(FieldTypes.RATING, { steps: 5 }));
         expect(screen.getByRole('radio', { name: 'Rate 3 of 5' }).getAttribute('aria-keyshortcuts')).toBe('3');
-    });
-
-    it('does not move on to the next question after a key press', () => {
-        vi.useFakeTimers();
-        try {
-            const next = document.createElement('input');
-            renderField(scale(FieldTypes.RATING, { steps: 5 }));
-            document.body.appendChild(next);
-            const first = screen.getByRole('radio', { name: 'Rate 1 of 5' });
-            first.focus();
-            act(() => {
-                fireEvent.keyDown(first, { key: '3' });
-                vi.advanceTimersByTime(500);
-            });
-            expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Rate 3 of 5' }));
-            next.remove();
-        } finally {
-            vi.useRealTimers();
-        }
     });
 });
 
@@ -173,5 +158,190 @@ describe('number scale', () => {
         expect(screen.getByRole('radio', { name: '7' }).getAttribute('aria-checked')).toBe('true');
         // 10 has no digit key and so no shortcut named.
         expect(screen.getByRole('radio', { name: '10' }).getAttribute('aria-keyshortcuts')).toBeNull();
+    });
+});
+
+// A harness that opens page 0 of a form (so a choice can move on to the next
+// question) and lets a test read and prefill the answers.
+let response: ReturnType<typeof useFormResponse> | null = null;
+function Page({ fields }: { fields: StandardFormFieldDto[] }) {
+    const { responderState, setResponderState } = useResponderState();
+    response = useFormResponse();
+    React.useEffect(() => {
+        setResponderState({ ...responderState, currentSlide: 0 });
+    }, []);
+    return (
+        <>
+            {fields.map((f) => (
+                <FormFieldComponent key={f.id} field={f} slideIndex={0} />
+            ))}
+        </>
+    );
+}
+
+const open = (fields: StandardFormFieldDto[]) => {
+    const placed = fields.map((f, index) => ({ ...f, index }));
+    store.dispatch(setForm({ formId: `scales-${Math.random()}`, title: 'Scales', fields: [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: placed } }] } as any));
+    const tree = (key: string) => (
+        <ReduxProvider store={store}>
+            <Provider>
+                <Page key={key} fields={placed} />
+            </Provider>
+        </ReduxProvider>
+    );
+    const result = render(tree('first'));
+    // The same page shown again with the answers kept: as when a respondent comes back to it.
+    return { ...result, remount: () => result.rerender(tree('again')) };
+};
+
+const next = (): StandardFormFieldDto => ({ id: 'next', index: 1, type: FieldTypes.SHORT_TEXT, title: 'Anything else?' });
+const rating = (type: FieldTypes, properties: Partial<StandardFormFieldDto['properties']> = {}, extra: Partial<StandardFormFieldDto> = {}) => ({ ...scale(type, properties), ...extra });
+const prefill = (id: string, answer: object) => act(() => response!.setFormResponse({ ...response!.formResponse, answers: { ...(response!.formResponse.answers || {}), [id]: answer as any } }));
+
+describe.each([
+    ['star rating', FieldTypes.RATING, { steps: 5 }, 'Rate 3 of 5'],
+    ['number scale', FieldTypes.LINEAR_RATING, { steps: 5 }, '3']
+] as const)('%s moving on', (_name, type, properties, third) => {
+    it('moves on to the next question after a click, and not after a key press', async () => {
+        open([rating(type, properties), next()]);
+        // A click: the next question's text field takes focus once the delay has passed.
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: third }));
+        });
+        await waitFor(() => expect(document.activeElement).toBe(document.getElementById('input-field-next')), { timeout: 2000 });
+    });
+
+    it('stays at the scale after a key press', async () => {
+        open([rating(type, properties), next()]);
+        const first = screen.getAllByRole('radio')[0];
+        first.focus();
+        act(() => {
+            fireEvent.keyDown(first, { key: '3' });
+        });
+        await act(() => new Promise((resolve) => setTimeout(resolve, 450)));
+        expect(document.activeElement).toBe(screen.getByRole('radio', { name: third }));
+        expect(document.activeElement).not.toBe(document.getElementById('input-field-next'));
+    });
+});
+
+describe('scales as answered controls', () => {
+    it('the radio group of a required question is required, and invalid with the error', async () => {
+        for (const [type, name] of [
+            [FieldTypes.RATING, 'How was it?'],
+            [FieldTypes.LINEAR_RATING, 'How was it?']
+        ] as const) {
+            const { unmount } = open([rating(type, { steps: 5 }, { validations: { required: true } }), next()]);
+            const group = screen.getByRole('radiogroup', { name });
+            expect(group).toBeRequired();
+            expect(group).not.toHaveAttribute('aria-invalid');
+            act(() => response!.setInvalidFields({ q: ['REQUIRED'] }));
+            await waitFor(() => expect(screen.getByRole('radiogroup', { name })).toHaveAttribute('aria-invalid', 'true'));
+            expect(screen.getByRole('radiogroup', { name }).getAttribute('aria-describedby')).toBeTruthy();
+            unmount();
+        }
+    });
+
+    it('stores a star rating as 1 to n and a scale as its own number', () => {
+        open([rating(FieldTypes.RATING, { steps: 5 }), { ...scale(FieldTypes.LINEAR_RATING, { startFrom: 0, steps: 10 }), id: 'nps' }]);
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: 'Rate 1 of 5' }));
+        });
+        expect(response!.formResponse.answers!.q.number).toBe(1);
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: 'Rate 5 of 5' }));
+        });
+        expect(response!.formResponse.answers!.q.number).toBe(5);
+        const zero = screen.getByRole('radio', { name: '0' });
+        act(() => {
+            fireEvent.click(zero);
+        });
+        expect(response!.formResponse.answers!.nps.number).toBe(0);
+        expect(screen.getByRole('radio', { name: '0' }).getAttribute('aria-checked')).toBe('true');
+        // 0 is a value: the first radio is the chosen one and the tab stop.
+        expect(screen.getByRole('radio', { name: '0' }).tabIndex).toBe(0);
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: '10' }));
+        });
+        expect(response!.formResponse.answers!.nps.number).toBe(10);
+    });
+
+    it('shows a prefilled answer chosen, and editing it by keyboard replaces it', () => {
+        open([rating(FieldTypes.RATING, { steps: 5 }), { ...scale(FieldTypes.LINEAR_RATING, { startFrom: 0, steps: 10 }), id: 'nps' }]);
+        prefill('q', { type: 'RATING', number: 4 });
+        prefill('nps', { type: 'LINEAR_RATING', number: 0 });
+        expect(screen.getByRole('radio', { name: 'Rate 4 of 5' }).getAttribute('aria-checked')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Rate 4 of 5' }).tabIndex).toBe(0);
+        expect(document.querySelector('[data-rating-readout]')!.textContent).toBe('4 of 5');
+        expect(screen.getByRole('radio', { name: '0' }).getAttribute('aria-checked')).toBe('true');
+        const four = screen.getByRole('radio', { name: 'Rate 4 of 5' });
+        four.focus();
+        act(() => {
+            fireEvent.keyDown(four, { key: 'ArrowLeft' });
+        });
+        expect(response!.formResponse.answers!.q.number).toBe(3);
+        expect(screen.getByRole('radio', { name: 'Rate 3 of 5' }).getAttribute('aria-checked')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Rate 4 of 5' }).getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('the preview under a resting pointer follows a key choice, not the old rating', () => {
+        open([rating(FieldTypes.RATING, { steps: 5 })]);
+        const fills = () =>
+            [1, 2, 3, 4, 5].map(
+                (n) =>
+                    screen
+                        .getByRole('radio', { name: `Rate ${n} of 5` })
+                        .querySelector('[fill]')
+                        ?.getAttribute('fill') !== 'transparent'
+            );
+        const three = screen.getByRole('radio', { name: 'Rate 3 of 5' });
+        act(() => {
+            fireEvent.mouseOver(three);
+            fireEvent.click(three);
+        });
+        expect(fills()).toEqual([true, true, true, false, false]);
+        act(() => {
+            fireEvent.keyDown(three, { key: 'End' });
+        });
+        expect(fills()).toEqual([true, true, true, true, true]);
+    });
+
+    it('does not play the selection motion for an answer that is already there, only for a change', () => {
+        const view = open([rating(FieldTypes.RATING, { steps: 5 }), { ...scale(FieldTypes.LINEAR_RATING, { steps: 5 }), id: 'nps' }]);
+        prefill('q', { type: 'RATING', number: 4 });
+        prefill('nps', { type: 'LINEAR_RATING', number: 2 });
+        view.remount();
+        // Shown from a stored answer: no animation classes on the star, readout or check.
+        expect(document.querySelector('.form-star-settle')).toBeNull();
+        expect(document.querySelector('.form-choice-pop')).toBeNull();
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: 'Rate 5 of 5' }));
+        });
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: '4' }));
+        });
+        // A respondent's own change does play it.
+        expect(screen.getByRole('radio', { name: 'Rate 5 of 5' }).querySelector('.form-star-settle')).not.toBeNull();
+        expect(screen.getByRole('radio', { name: '4' }).querySelector('.form-choice-pop')).not.toBeNull();
+    });
+
+    it('keeps the line under the stars even before an answer, so answering shifts nothing', () => {
+        open([rating(FieldTypes.RATING, { steps: 5 })]);
+        const line = document.querySelector('[data-rating-readout]')!;
+        expect(line).not.toBeNull();
+        expect(line.textContent).toBe('');
+        expect(line.getAttribute('aria-hidden')).toBe('true');
+        expect(line.className).toContain('h-[18px]');
+    });
+
+    it('passes axe with an answer chosen in each', async () => {
+        const { container } = open([rating(FieldTypes.RATING, { steps: 5 }), { ...scale(FieldTypes.LINEAR_RATING, { steps: 5 }), id: 'nps', title: 'And the scale?' }]);
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: 'Rate 4 of 5' }));
+        });
+        act(() => {
+            fireEvent.click(screen.getByRole('radio', { name: '2' }));
+        });
+        const results = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
+        expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
     });
 });

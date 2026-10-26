@@ -14,6 +14,7 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { moveOnFrom } from '@app/utils/scroll-utils';
 import ScaleRadioGroup from '@app/views/atoms/scale-radio-group';
+import useJustChosen from '@app/views/atoms/use-just-chosen';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -34,6 +35,13 @@ export function scaleCellStyle(colours: Partial<FormTheme> | undefined, selected
         color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : colours?.primary,
         borderRadius: radius
     };
+}
+
+/** The check mark in the corner of the chosen number; it grows in when chosen, not when first shown. */
+function ChosenMark({ selected }: { selected: boolean }) {
+    const justChosen = useJustChosen(selected);
+    if (!selected) return null;
+    return <Check aria-hidden="true" data-scale-check className={justChosen ? 'form-choice-pop absolute top-0.5 right-0.5 h-2.5 w-2.5' : 'absolute top-0.5 right-0.5 h-2.5 w-2.5'} strokeWidth={3} />;
 }
 
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
@@ -87,7 +95,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                     )}
                 >
                     <span>{index}</span>
-                    {selected && <Check aria-hidden="true" data-scale-check className="form-choice-pop absolute top-1 right-1 h-3 w-3" strokeWidth={3} />}
+                    <ChosenMark selected={selected} />
                 </button>
             )}
         </ScaleRadioGroup>
