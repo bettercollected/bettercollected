@@ -92,7 +92,7 @@ async def test_health_names_the_jobs_worker_and_its_state(portal, app, superuser
         assert jobs and "backend.jobs:jw1" in jobs.group(0)
         api = re.search(r'<th scope="row">backend</th>\s*<td>backend:api1</td>.*?</tr>', html, re.S)
         assert api and "jobs worker" not in api.group(0)
-        assert "What is waiting in the queue is not shown" in section
+        assert "not shown" not in section and "<h2>Job queue</h2>" in html
     finally:
         async with superuser.begin() as conn:
             await conn.execute(text("DELETE FROM settings.service_state WHERE instance IN ('backend.jobs:jw1', 'backend:api1')"))

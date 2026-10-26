@@ -3,7 +3,8 @@ registry. No writes; no secret value, length, prefix or hash ever leaves here.
 
 * Health: service heartbeats (names and numbers), the admin database and its
   Alembic state, the other schemas' Alembic state and their mirror outboxes
-  (unresolved/total rows), read through narrow definer functions.
+  (unresolved/total rows) and the job queue's counts, read through narrow
+  definer functions.
 * Configuration: the settings registry joined with ``settings.entries`` and the
   env-override *names* services report.
 * Metrics: ``admin.platform_counts()`` (counts only), cached for a minute.
@@ -37,6 +38,10 @@ HEARTBEAT_STALE_SECONDS = 120
 METRICS_CACHE_SECONDS = 60
 MAX_VALUE_SHOWN = 200
 OTHER_SCHEMAS = ("app", "auth", "google")
+# the job queue line turns amber when a job has waited this long for a worker
+# (the worker polls within seconds, so a quarter of an hour is a stuck or absent
+# worker, not load) or when any job has failed (failed rows stay until removed)
+QUEUE_WAIT_WARN_SECONDS = 15 * 60
 # the service that owns each of those schemas (and its mirror outbox)
 SCHEMA_SERVICE = {"app": "backend", "auth": "auth", "google": "google"}
 # services that report to ``settings.service_state`` (the registry's reader names)
@@ -117,6 +122,30 @@ class OutboxStatus:
 
 
 @dataclass(frozen=True)
+class QueueStatus:
+    """The background job queue, counts only.
+
+    ``state``: ``ok``, ``warning`` (a job has waited longer than
+    ``QUEUE_WAIT_WARN_SECONDS`` or one has failed), ``missing`` (no job queue in
+    the database yet) or ``unavailable`` (the roles script has not been run since
+    this release)."""
+
+    state: str
+    todo: Optional[int] = None
+    scheduled: Optional[int] = None
+    doing: Optional[int] = None
+    failed: Optional[int] = None
+    oldest_todo_seconds: Optional[int] = None
+
+    @property
+    def stale(self) -> bool:
+        return (
+            self.oldest_todo_seconds is not None
+            and self.oldest_todo_seconds > QUEUE_WAIT_WARN_SECONDS
+        )
+
+
+@dataclass(frozen=True)
 class SsoStatus:
     """Single sign-on on one service, by setting name only.
 
@@ -144,6 +173,7 @@ class Health:
     store_revision: Optional[int]
     outbox: list[OutboxStatus] = field(default_factory=list)
     sso: list[SsoStatus] = field(default_factory=list)
+    queue: Optional[QueueStatus] = None
 
     @property
     def sso_incomplete(self) -> bool:
@@ -560,7 +590,8 @@ class PageService:
                     )
             except Exception:  # noqa: BLE001 - store tables unreadable: no heartbeats
                 beats = []
-        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox, sso)
+        queue = await self._queue() if db_ok else None
+        return Health(db_ok, db_ms, admin, others, beats, store_revision, outbox, sso, queue)
 
     async def _sso(self) -> list[SsoStatus]:
         """Which settings single sign-on still needs on each service, from the
@@ -606,6 +637,21 @@ class PageService:
             return OutboxStatus(service, "postgres", "missing", None, None)
         unresolved, total = counts
         return OutboxStatus(service, "postgres", "pending" if unresolved else "clean", unresolved, total)
+
+    async def _queue(self) -> QueueStatus:
+        """The job queue's counts through its definer function: "unavailable" when
+        the function is missing or refuses, never the error message."""
+        try:
+            async with self._engine.connect() as conn:
+                counts = await repo.queue_counts(conn)
+        except Exception:  # noqa: BLE001 - reported as "unavailable"
+            return QueueStatus("unavailable")
+        if counts is None:
+            return QueueStatus("missing")
+        status = QueueStatus("ok", **counts)
+        if status.stale or (status.failed or 0) > 0:
+            return QueueStatus("warning", **counts)
+        return status
 
     # configuration
     async def config(self) -> Config:

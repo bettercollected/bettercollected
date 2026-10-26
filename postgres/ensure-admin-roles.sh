@@ -25,6 +25,12 @@
 #                 by bc_count_app (the queue's `jobs` schema is the backend role's,
 #                 like `app`), column SELECT on the queue tables, never job
 #                 arguments; EXECUTE for bc_admin only.
+#   admin.queue_counts_app()
+#                 the Health page's job queue line: jobs waiting, scheduled for
+#                 later, running and failed, and how long the oldest waiting job
+#                 has been due; same model as credential_purges_overdue (owned by
+#                 bc_count_app, column SELECT on the queue tables, never job
+#                 arguments, EXECUTE for bc_admin only).
 #   admin.platform_counts_app(), admin.platform_counts_auth()
 #                 the metrics page's counts, ONE read-only SECURITY DEFINER function
 #                 per owning schema, each owned by a NOLOGIN role (bc_count_app,
@@ -656,6 +662,45 @@ BEGIN
 END
 $fn$;
 
+-- The Health page's job queue line (counts only, never a job's arguments, id or task):
+-- `todo` jobs that are due and waiting for a worker, `scheduled` ones whose time has not
+-- come (a response deletion set for its expiry, a retry back-off), `doing`, `failed`, and
+-- `oldest_todo_seconds`, how long the longest-waiting due job has been waiting: from its
+-- deferral, or from the time it was scheduled for when that is later (so a retry does not
+-- look like a stuck job). NULL when there is no job queue yet; oldest_todo_seconds is
+-- null when nothing is waiting.
+CREATE OR REPLACE FUNCTION admin.queue_counts_app() RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+DECLARE
+    counts record;
+    oldest bigint;
+BEGIN
+    IF to_regnamespace('jobs') IS NULL OR NOT has_schema_privilege('jobs', 'USAGE')
+       OR to_regclass('jobs.procrastinate_jobs') IS NULL
+       OR to_regclass('jobs.procrastinate_events') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    SELECT count(*) FILTER (WHERE j.status = 'todo'
+                              AND (j.scheduled_at IS NULL OR j.scheduled_at <= pg_catalog.now())) AS todo,
+           count(*) FILTER (WHERE j.status = 'todo' AND j.scheduled_at > pg_catalog.now()) AS scheduled,
+           count(*) FILTER (WHERE j.status = 'doing') AS doing,
+           count(*) FILTER (WHERE j.status = 'failed') AS failed
+      INTO counts FROM jobs.procrastinate_jobs j;
+    SELECT floor(extract(epoch FROM pg_catalog.now() - min(
+               greatest(e.at, coalesce(j.scheduled_at, e.at)))))::bigint
+      INTO oldest
+      FROM jobs.procrastinate_jobs j
+      JOIN jobs.procrastinate_events e ON e.job_id = j.id AND e.type = 'deferred'
+     WHERE j.status = 'todo'
+       AND (j.scheduled_at IS NULL OR j.scheduled_at <= pg_catalog.now());
+    RETURN jsonb_build_object(
+        'todo', counts.todo, 'scheduled', counts.scheduled,
+        'doing', counts.doing, 'failed', counts.failed,
+        'oldest_todo_seconds', CASE WHEN oldest IS NULL THEN NULL ELSE greatest(oldest, 0) END);
+END
+$fn$;
+
 -- The Health page's migration and outbox state, the same way: per owning schema,
 -- one function returning the schema's Alembic revision(s) and one returning the
 -- mirror outbox's unresolved and total row counts (counts only, never a row).
@@ -768,12 +813,13 @@ BEGIN
         GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;
     END IF;
     -- the job queue (schema `jobs`, also the backend role's): only the columns
-    -- admin.credential_purges_overdue() reads, never the job arguments
+    -- admin.credential_purges_overdue() and admin.queue_counts_app() read, never the
+    -- job arguments
     IF to_regnamespace('jobs') IS NOT NULL THEN
         GRANT USAGE ON SCHEMA jobs TO bc_count_app;
     END IF;
     IF to_regclass('jobs.procrastinate_jobs') IS NOT NULL THEN
-        GRANT SELECT (id, task_name, status) ON jobs.procrastinate_jobs TO bc_count_app;
+        GRANT SELECT (id, task_name, status, scheduled_at) ON jobs.procrastinate_jobs TO bc_count_app;
     END IF;
     IF to_regclass('jobs.procrastinate_events') IS NOT NULL THEN
         GRANT SELECT (job_id, type, at) ON jobs.procrastinate_events TO bc_count_app;
@@ -802,6 +848,9 @@ $own$;
 ALTER FUNCTION admin.credential_purges_overdue() OWNER TO bc_count_app;
 REVOKE ALL ON FUNCTION admin.credential_purges_overdue() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin.credential_purges_overdue() TO bc_admin;
+ALTER FUNCTION admin.queue_counts_app() OWNER TO bc_count_app;
+REVOKE ALL ON FUNCTION admin.queue_counts_app() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin.queue_counts_app() TO bc_admin;
 ALTER FUNCTION admin.platform_counts_app() OWNER TO bc_count_app;
 ALTER FUNCTION admin.platform_counts_auth() OWNER TO bc_count_auth;
 REVOKE ALL ON FUNCTION admin.platform_counts_app() FROM PUBLIC;

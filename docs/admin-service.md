@@ -285,7 +285,7 @@ described under "Settings pages" and "Task pages" below.
 | Page | What it shows |
 |---|---|
 | `/` | Cards linking to the pages below |
-| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access. The backend's jobs worker labels its heartbeat (`backend.jobs:<host>`) and has a status line and a tag of its own; a "MongoDB" line says whether any running instance still reports writing MongoDB (`write_stores`), and says "not known" instead of green while a running instance did not say (a service from before the report existed), and each heartbeat row shows what it writes. What is waiting in the job queue, and the Temporal workers, are not shown (see "Not on the Health page" below) |
+| `/health` | Service heartbeats from `settings.service_state` (names and numbers; no report for 120 s is "stopped"), database reachability, the Alembic state of the `admin`, `app`, `auth` and `google` schemas (current against the head the deployed code expects), and the mirror outbox (`mirror_write_failures`) of the backend, auth and Google services: unresolved and total rows in PostgreSQL, red while any is unresolved. The other schemas are read through definer functions (see below); MongoDB outboxes are not shown, the admin service has no MongoDB access. The backend's jobs worker labels its heartbeat (`backend.jobs:<host>`) and has a status line and a tag of its own; a "MongoDB" line says whether any running instance still reports writing MongoDB (`write_stores`), and says "not known" instead of green while a running instance did not say (a service from before the report existed), and each heartbeat row shows what it writes. The job queue is shown as counts by state (see "Job queue" below); the Temporal workers are not shown (see "Not on the Health page" below) |
 | `/config` | The settings registry joined with the store and the env-override names services report: section, readers, type, reload class, tier, source (store, environment, default), version, last change. Secrets show only "set" or "not set" and the last change, never a value, length, prefix or hash (the query never selects them). `NEXT_PUBLIC_*` keys are "build argument", tier T5 keys "environment only" with no values. Filters `section` and `tier` are validated allowlists (400 otherwise). Also lists the super admins from `PLATFORM_ADMIN_EMAILS`, and an "Address gate" block for `ADMIN_ALLOWED_IPS`: the number of entries, the signed-in admin's own address and the one entry that lets it in. The other entries are not shown (they say where the operator's networks are, which no admin needs); the admin addresses are, as they are the roster every admin shares |
 | `/metrics` | Platform counts (organisations, users, forms, responses, 12 weekly buckets). Counts only, read from Postgres through `admin.platform_counts_app()` and `admin.platform_counts_auth()` |
 | `/audit`, `GET /api/audit` | Newest first, keyset pagination (`before` is a `seq`), filters `actor`, `action` (exact or dot-separated prefix), `outcome`, `from`, `to` (a date or an ISO time; `to` as a date includes that day), `limit` up to 200; all validated (400 otherwise). Payloads are shown masked and escaped. The page shows the chain head and points to `python -m backend.admin audit-verify`; the chain is not verified inside a request. No export |
@@ -319,6 +319,27 @@ before the application migrations have run the page says they are not available.
 (The earlier single `admin.platform_counts()` and its owner `bc_admin_counts` are
 dropped by the script.)
 
+**Job queue.** The Health page's "Job queue" section shows the background jobs
+(`jobs` schema, the queue behind account deletion, response expiry, credential
+purges and the other worker tasks) by counts only: due and waiting, scheduled for
+later (a response deletion set for its expiry, a retry waiting out its back-off),
+running, failed, and how long the longest-waiting due job has waited (from its
+deferral, or from the time it was scheduled for when that is later, so a retried job
+is not mistaken for a stuck one). It comes from `admin.queue_counts_app()`, which
+follows the model of `credential_purges_overdue()`: SECURITY DEFINER, owned by
+`bc_count_app`, `search_path` pinned, every table schema-qualified, EXECUTE for
+`bc_admin` alone, and column-level `SELECT` on `id`, `task_name`, `status` and
+`scheduled_at` of the queue's jobs table and `job_id`, `type` and `at` of its events
+table, never a job's arguments, queue, lock or worker. No job id, task name or
+payload is returned or shown. The line is amber ("needs attention", and a note on
+the dashboard card) when a due job has waited more than 15 minutes (the worker polls
+within seconds, so that means the jobs worker is stopped or stuck) or when any job
+has failed; failed jobs stay in the queue until removed, so that count does not fall
+by itself. Before `postgres/ensure-admin-roles.sh` has run since this release the
+section says "not available" and names the script; before the queue exists
+(`python -m backend.jobs.schema`, run by `deploy.sh` after the application
+migrations) it says there is no job queue yet.
+
 The Health page reads the other schemas the same way. Per owning schema,
 `admin.schema_revision_<schema>()` returns the revision(s) in its `alembic_version`
 and `admin.outbox_counts_<schema>()` the unresolved and total rows of its
@@ -342,10 +363,6 @@ only; for MongoDB run `python -m backend.migrate status` (and `auth.migrate`,
 
 ### Not on the Health page
 
-* **The job queue** (`jobs.procrastinate_*`: waiting, running and failed jobs, the age of the oldest waiting
-  one) needs one more definer function in `postgres/ensure-admin-roles.sh`, owned by `bc_count_app` like
-  `admin.credential_purges_overdue()` (which already reads the queue's status columns and never the job
-  arguments). Until it exists the page says the queue is not shown.
 * **The Temporal workers** report nothing the portal can read: they stay off the settings store on purpose
   (they drive a browser on user-supplied URLs and never get the master key), and the admin service has no network
   path to Temporal and no Temporal client. Check them with `docker compose ps` / the Temporal UI.
@@ -939,7 +956,7 @@ window: the deploy recreates every service and runs migrations.
 `deploy.sh` runs them, in this order, before the services start:
 
 - `postgres/ensure-admin-roles.sh`: creates the admin schema's roles and grants, the two
-  platform-count functions and the Health page's revision and outbox functions; idempotent, run before the migrations and again after them (the
+  platform-count functions and the Health page's revision, outbox and job queue functions; idempotent, run before the migrations and again after them (the
   task runner's data roles are granted on tables the other migrations create).
 - The **admin** schema's own chain, `0001` to `0017`, as the migration role `bc_admin_mig`.
 - The **application** schema: `0013` to `0016` (rate-limit counters, the AI notice stamp on
