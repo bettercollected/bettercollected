@@ -100,12 +100,13 @@ third-party service ever sees responder data:
 `deploy.sh` brings up the full stack from
 [`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
 checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
-auth, Temporal + workers, nginx (`:3001`/`:3002`), the
-internal admin service, the jobs worker and the document sandbox, and
+auth, nginx (`:3001`/`:3002`), the
+internal admin service, the jobs worker (background jobs run on the Postgres
+queue; there is no Temporal in the stack since 4.1) and the document sandbox, and
 [Umami](https://umami.is) analytics (its tracker on `:3003` through nginx; its
 dashboard on `127.0.0.1:3004` only, with the built-in `admin`/`umami` login
-replaced by a generated password on the first run). Temporal and the
-databases are reachable on the compose network only.
+replaced by a generated password on the first run). The databases are
+reachable on the compose network only.
 
 **What you provide:** one value, `PLATFORM_ADMIN_EMAILS` (who may sign in to
 the internal admin portal), in the gitignored root `.env`; optionally
@@ -120,8 +121,11 @@ passwords, `UMAMI_APP_SECRET` and `SETTINGS_MASTER_KEY` into the root `.env`
 (keep that file, and back up `SETTINGS_MASTER_KEY` separately: without it the
 settings store cannot be read), and the stack's own keys (`AUTH_JWT_SECRET`,
 `AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`,
-`MASTER_ENCRYPTION_KEYSET`) straight into the settings store, where nothing
-prints them. On a new stack it ends by showing a one-time setup token on the
+`MASTER_ENCRYPTION_KEYSET`, and the respondent identity key
+`RESPONDENT_IDENTITY_KEY`) straight into the settings store, where nothing prints
+them. A stack upgrading from 4.0 gets the identity key on its first 4.1 deploy, in
+the store and in `.env` (back it up with the other keys, see
+`docs/respondent-identity.md`). On a new stack it ends by showing a one-time setup token on the
 console. Everything else is a setting in the store. Details, the host commands
 and the upgrade path: [docs/admin-service.md](docs/admin-service.md).
 **Upgrading from 4.0:** since 4.1 the stack runs on Postgres only and has no
@@ -164,9 +168,11 @@ behind a proxy) in the root `.env`, then re-run `./deploy.sh`. It imports the ke
 settings your files hold into the settings store (never overwriting), compares them,
 and tells you when to remove the old values with `./deploy.sh settings-prune`. Back up
 `SETTINGS_MASTER_KEY`: it cannot be recovered. If you deploy without `deploy.sh`, set
-the same random value as `TEMPORAL_API_KEY` in the backend and as `API_KEY` on the
-Temporal worker and the actions-executor; until then imports, scheduled deletions and
-form actions fail with 503 and the services log an error at startup.
+`RESPONDENT_IDENTITY_KEY` (`openssl rand -hex 32`, kept forever) on the backend, which
+refuses to start without it, and, if you run an actions executor, the same random value
+as `TEMPORAL_API_KEY` in the backend and as `API_KEY` on the executor; until then form
+actions fail with 503. A stack from before 4.1 that still runs Temporal has it retired
+by `deploy.sh` (see `docs/admin-service.md`, "Temporal is retired").
 
 ### CI deployments
 

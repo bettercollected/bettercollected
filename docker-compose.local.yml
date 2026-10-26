@@ -31,14 +31,13 @@ services:
         restart: on-failure
         
 
-    # Application database — the consolidation target for MongoDB and Temporal
+    # Application database — where MongoDB's and Temporal's data went
     # (plans/postgres-consolidation.md). One database, one schema per service
     # (app / auth / google / jobs) and one least-privilege role each, created on
     # first start by postgres/init/01-roles-schemas.sh. Local-only credentials —
     # deploy.sh generates real ones for deployments. Pinned major version on
     # purpose: an unpinned tag drifts to a new major that refuses the old
-    # on-disk format (see the note on the Temporal postgres in
-    # docker-compose.deployment.yml).
+    # on-disk format.
     app-postgres:
         image: postgres:16-alpine
         restart: unless-stopped

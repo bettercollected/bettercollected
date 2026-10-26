@@ -70,7 +70,7 @@ def test_postgres_health_checks_use_tcp_not_the_init_socket():
             if "pg_isready" in command:
                 checked += 1
                 assert "-h 127.0.0.1" in command, f"{name}: {command}"
-    assert checked >= 4  # temporal's, the application's, Umami's and Polis's databases
+    assert checked >= 3  # the application's, Umami's and Polis's databases
 
 
 def test_nginx_waits_for_the_webapp_and_restarts():
@@ -120,12 +120,9 @@ def test_published_ports_are_the_intended_ones():
 @pytest.mark.parametrize(
     "service",
     [
-        "temporal",
-        "postgresql",
         "app-postgres",
         "mongodb",
         "umami-postgresql",
-        "worker",
         "task-runner",
         "document-sandbox",
         "jobs-worker",
@@ -136,25 +133,31 @@ def test_published_ports_are_the_intended_ones():
 )
 def test_internal_services_publish_no_port(service):
     assert not SERVICES[service].get("ports"), service
-    assert not SERVICES[service].get("expose") or service in ("temporal",), service
+    assert not SERVICES[service].get("expose"), service
 
 
-def test_temporal_is_not_published_on_any_port():
-    # its frontend has no authentication
-    assert "7234" not in COMPOSE_TEXT and "7233:7233" not in COMPOSE_TEXT
-    assert "ports" not in SERVICES["temporal"]
+def test_temporal_is_not_part_of_the_stack():
+    """Since 4.1 background work runs on the Postgres job queue: no Temporal server, no
+    database for it and no Temporal worker (its frontend had no authentication, and a
+    worker that drives a browser on user-supplied URLs was the riskiest container of the
+    stack). deploy.sh retires the old containers of a stack from before 4.1 and keeps their
+    database volume; the compose file declares none of it."""
+    for name in ("temporal", "postgresql", "worker"):
+        assert name not in SERVICES, name
+    assert "temporal-postgres-data" not in COMPOSE["volumes"]
+    assert "7233" not in COMPOSE_TEXT and "7234" not in COMPOSE_TEXT
+    assert "temporalio" not in COMPOSE_TEXT and "temporal-worker" not in COMPOSE_TEXT
+    assert "TEMPORAL_SERVER_URL" not in COMPOSE_TEXT and "BC_TEMPORAL_DB_PASSWORD" not in COMPOSE_TEXT
+    for name, body in SERVICES.items():
+        assert "temporal" not in (body.get("depends_on") or {}), name
 
 
 # ----------------------------------------------------- credentials
 
 
 def test_no_default_credentials_on_new_volumes():
-    # Temporal's and Umami's databases take a generated password on a new volume;
+    # Umami's database takes a generated password on a new volume;
     # an old volume keeps the one it was created with (the variable is unset)
-    assert _env("postgresql")["POSTGRES_PASSWORD"] == "${BC_TEMPORAL_DB_PASSWORD:-temporal}"
-    temporal_env = SERVICES["temporal"]["environment"]
-    assert "POSTGRES_PWD=${BC_TEMPORAL_DB_PASSWORD:-temporal}" in temporal_env
-    assert "POSTGRES_PWD=temporal" not in temporal_env
     assert _env("umami-postgresql")["POSTGRES_PASSWORD"] == "${BC_UMAMI_DB_PASSWORD:-umami}"
     assert _env("umami")["DATABASE_URL"] == (
         "postgresql://umami:${BC_UMAMI_DB_PASSWORD:-umami}@umami-postgresql:5432/umami"
@@ -250,7 +253,7 @@ def test_the_master_key_is_in_no_other_service():
     assert holders == MASTER_KEY_HOLDERS
 
 
-@pytest.mark.parametrize("service", ["worker", "webapp", "nginx"])
+@pytest.mark.parametrize("service", ["webapp", "nginx"])
 def test_services_outside_the_store_get_no_store_variables(service):
     env = _env(service)
     for name in ("SETTINGS_MASTER_KEY", "SETTINGS_STORE", "SETTINGS_SNAPSHOT_DIR", "DATABASE_URL"):
@@ -258,22 +261,13 @@ def test_services_outside_the_store_get_no_store_variables(service):
     assert "settings-snapshots" not in json.dumps(SERVICES[service])
 
 
-def test_the_worker_keeps_two_keys_in_env_and_never_the_master_key():
-    env = _env("worker")
-    assert env["API_KEY"] == "${API_KEY:-}"
-    assert env["AES_HEX_KEY"] == "${AES_HEX_KEY:-}"
-    for forbidden in (
-        "SETTINGS_MASTER_KEY",
-        "MASTER_ENCRYPTION_KEYSET",
-        "AUTH_JWT_SECRET",
-        "AUTH_INTERNAL_NOTIFY_KEY",
-        "ADMIN_DATABASE_URL",
-    ):
-        assert forbidden not in json.dumps(SERVICES["worker"])
-    # its environment file never carries the master key either
+def test_no_env_file_template_or_service_carries_the_master_key_for_a_worker():
+    # the .env.deployment template never carries the master key
     assert "SETTINGS_MASTER_KEY" not in (ROOT / ".env.deployment.example").read_text()
-    assert "worker" not in COMPOSE["networks"]  # default network only, no database role
-    assert "volumes" not in SERVICES["worker"]
+    # and the Temporal worker's two key copies (API_KEY, AES_HEX_KEY) are not passed to anything
+    for name in SERVICES:
+        env = _env(name)
+        assert "API_KEY" not in env and "AES_HEX_KEY" not in env, name
 
 
 def test_the_typeform_integration_is_gone():
@@ -325,7 +319,12 @@ def test_deploy_runs_bootstrap_keys_before_the_services_start():
     up = DEPLOY[DEPLOY.index("function dockerup()") :]
     assert _position(up, "stack_keys || exit 1") < _position(up, 'up --build -d "$@"')
     keys = DEPLOY[DEPLOY.index("function stack_keys()") :]
-    assert "bootstrap-keys" in keys and "--export-worker /out/worker.env" in keys
+    assert "bootstrap-keys" in keys and "--export-worker" not in DEPLOY  # no Temporal worker to hand keys to
+    # the respondent identity key (a stack upgrading from 4.0 has none), generated before any service starts
+    assert _position(up, "stack_keys || exit 1") < _position(up, "ensure_identity_key || exit 1") < _position(up, 'up --build -d "$@"')
+    # after the roll: the conversion of the stored identities, then Temporal's retirement (the new
+    # backend answers the old worker's calls while it finishes what it runs)
+    assert _position(up, 'up --build -d "$@"') < _position(up, "identity_pass || exit 1") < _position(up, "retire_temporal || exit 1")
     # the migrations (which create the store's tables) come first
     assert _position(up, "alembic.ini upgrade head") < _position(up, "stack_keys || exit 1")
 
@@ -336,10 +335,11 @@ def test_deploy_generates_the_operator_free_secrets_and_not_the_store_keys():
         "APP_POSTGRES_PASSWORD",
         "BC_TASKS_DATA_GOOGLE_PASSWORD",
         "UMAMI_APP_SECRET",
-        "BC_TEMPORAL_DB_PASSWORD",
         "BC_UMAMI_DB_PASSWORD",
     ):
         assert var in DEPLOY
+    # Temporal's database is not part of the stack: no password is generated for it
+    assert not re.search(r"BC_TEMPORAL_DB_PASSWORD=", DEPLOY)
     before = DEPLOY[: DEPLOY.index("function stack_keys()")]
     loop = re.search(r"for var in (APP_POSTGRES_PASSWORD[^;]*); do", before).group(1)
     assert "AUTH_INTERNAL_NOTIFY_KEY" not in loop and "TEMPORAL_API_KEY" not in loop
@@ -382,7 +382,8 @@ def test_deploy_never_prints_a_secret():
 
 def test_the_one_off_admin_container_has_no_generated_key():
     admin = _env("admin")
-    for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY", "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET"):
+    for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY", "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET",
+                "RESPONDENT_IDENTITY_KEY"):
         assert key not in admin  # `bootstrap-keys` refuses an environment that carries one
     assert "env_file" not in SERVICES["admin"]
 
@@ -467,11 +468,8 @@ def test_a_minimal_env_renders_a_bootable_config(tmp_path):
     # the stored keys render empty, which means "read the store"
     for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET"):
         assert rendered["backend"]["environment"][key] == ""
-    worker = rendered["worker"]["environment"]
-    assert "SETTINGS_MASTER_KEY" not in worker
+    assert not {"temporal", "worker", "postgresql"} & set(rendered)  # not part of the stack since 4.1
     assert rendered["admin"]["environment"]["PLATFORM_ADMIN_EMAILS"] == "ops@example.test"
-    assert rendered["temporal"].get("ports") in (None, [])
-    assert not any("7233" in str(p) or "7234" in str(p) for p in rendered["temporal"].get("ports") or [])
 
 
 # ------------------------------------------------ what each service receives
@@ -483,7 +481,6 @@ ENV_DEPLOYMENT_READERS = ("backend", "jobs-worker", "auth", "integrations-google
 # the services with an env file of their own, written by deploy.sh from .env.deployment
 OWN_ENV_FILE = {
     "webapp": ".env.webapp",
-    "worker": ".env.worker",
 }
 
 
@@ -530,37 +527,31 @@ def _covered(key: str, items: list) -> bool:
     return any(key.startswith(i[:-1]) if i.endswith("*") else key == i for i in items)
 
 
-def test_the_webapp_and_worker_env_files_cover_what_those_services_read():
-    """Every setting the inventory says the webapp or the Temporal worker reads reaches
-    it (from its own env file or from the compose file), and the lists name nothing
-    that is a secret of another service."""
+def test_the_webapp_env_file_covers_what_the_webapp_reads():
+    """Every setting the inventory says the webapp reads reaches it (from its own env file
+    or from the compose file), and the list names nothing that is a secret of another service."""
     inventory = _inventory_readers()
-    for service, reader, keys, skip in (
-        ("webapp", "webapp", _deploy_list("webapp_env_keys"), set()),
-        # AUTH_AES_HEX_KEY is listed for the worker only because its AES_HEX_KEY is a copy
-        ("worker", "temporal_worker", _deploy_list("worker_env_keys"), {"AUTH_AES_HEX_KEY"}),
-    ):
-        provided = list(keys) + list(_env(service))
-        for name, who in inventory.items():
-            if reader in who and name not in skip:
-                assert _covered(name, provided), (service, name)
+    provided = list(_deploy_list("webapp_env_keys")) + list(_env("webapp"))
+    for name, who in inventory.items():
+        if "webapp" in who:
+            assert _covered(name, provided), name
     never = (
         "STRIPE_", "GOOGLE_CLIENT_SECRET", "MAIL_", "MONGO_URI", "MASTER_ENCRYPTION_KEYSET", "AUTH_JWT_SECRET",
         "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY", "TEMPORAL_API_KEY", "SETTINGS_MASTER_KEY", "TYPEFORM_",
-        "UMAMI_PASSWORD", "DATABASE_URL",
+        "UMAMI_PASSWORD", "DATABASE_URL", "RESPONDENT_IDENTITY_KEY",
     )
-    for name in ("webapp_env_keys", "worker_env_keys"):
-        for item in _deploy_list(name):
-            assert not item.startswith(never), (name, item)
+    for item in _deploy_list("webapp_env_keys"):
+        assert not item.startswith(never), item
+    # the Temporal worker has no env file list any more
+    assert "worker_env_keys" not in DEPLOY
 
 
 def test_first_party_services_cannot_gain_privileges():
-    for name in ("webapp", "worker", "backend", "jobs-worker", "auth", "integrations-googleform"):
+    for name in ("webapp", "backend", "jobs-worker", "auth", "integrations-googleform"):
         assert "no-new-privileges:true" in SERVICES[name]["security_opt"], name
     # the services that need no capability at all drop every one (the backend and jobs
     # worker keep root's file access: they open the document sandbox's socket directory)
-    for name in ("webapp", "worker"):
-        assert SERVICES[name]["cap_drop"] == ["ALL"], name
+    assert SERVICES["webapp"]["cap_drop"] == ["ALL"]
     assert "cap_add" not in COMPOSE_TEXT
     assert SERVICES["nginx"]["image"] == "nginx:1.28-alpine"
 
@@ -635,7 +626,7 @@ DUMMY = {
     # a value left over from before the Typeform removal reaches only the store readers too
     "TYPEFORM_CLIENT_SECRET": "DUMMY-typeform-secret-9",
 }
-NEVER_TO_PUBLIC_OR_BROWSER_SERVICES = ("worker", "webapp")
+NEVER_TO_PUBLIC_OR_BROWSER_SERVICES = ("webapp",)
 
 
 def _render(workdir: Path, extra_env: dict | None = None) -> dict:
@@ -664,9 +655,8 @@ def _holders(rendered: dict) -> dict:
 @pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
 def test_a_populated_env_deployment_reaches_only_the_store_readers(tmp_path):
     """The rendered configuration, with every secret an operator may keep in
-    .env.deployment filled in (as an upgraded stack has them): the Chromium worker and the
-    public webapp hold none of them, and neither does any service outside the four that read
-    the settings store."""
+    .env.deployment filled in (as an upgraded stack has them): the public webapp holds
+    none of them, and neither does any service outside the four that read the settings store."""
     shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
     (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
     holders = _holders(_render(tmp_path))
@@ -674,7 +664,7 @@ def test_a_populated_env_deployment_reaches_only_the_store_readers(tmp_path):
         assert set(services) <= set(ENV_DEPLOYMENT_READERS), (name, services)
         for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES + ("nginx", "mongo-seed",
                                                               "admin", "task-runner", "document-sandbox",
-                                                              "umami", "temporal", "mongodb"):
+                                                              "umami", "mongodb"):
             assert service not in services, (name, service)
 
 
@@ -698,14 +688,12 @@ def test_the_service_env_files_deploy_sh_writes_are_the_only_extra_input(tmp_pat
     shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
     (tmp_path / ".env.deployment").write_text("".join(f"{k}={v}\n" for k, v in DUMMY.items()))
     (tmp_path / ".env.webapp").write_text("UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n")
-    (tmp_path / ".env.worker").write_text("COOKIE_DOMAIN=example.test\n")
+    (tmp_path / ".env.worker").write_text("COOKIE_DOMAIN=example.test\n")  # left by a pre-4.1 stack
     (tmp_path / ".env.typeform").write_text("TYPEFORM_CLIENT_ID=DUMMY-tid\n")  # left by a pre-4.1 stack
     rendered = _render(tmp_path)
     assert rendered["webapp"]["environment"]["UNSPLASH_ACCESS_KEY"] == "DUMMY-unsplash"
-    assert rendered["worker"]["environment"]["COOKIE_DOMAIN"] == "example.test"
+    assert "worker" not in rendered and "example.test" not in json.dumps(rendered)  # the old file reaches nothing
     assert "integrations-typeform" not in rendered and "DUMMY-tid" not in json.dumps(rendered)
-    # the worker's whole environment: its own file plus the compose file's few values
-    assert set(rendered["worker"]["environment"]) == {"API_KEY", "AES_HEX_KEY", "TEMPORAL_SERVER_URL", "COOKIE_DOMAIN"}
     for name, services in _holders(rendered).items():
         for service in NEVER_TO_PUBLIC_OR_BROWSER_SERVICES:
             assert service not in services, (name, service)
@@ -753,12 +741,14 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
         created.add(name)
         todo.extend(services[name].get("depends_on") or {})
     required = {
-        "webapp", "nginx", "backend", "auth", "postgresql", "temporal", "worker",
+        "webapp", "nginx", "backend", "auth",
         "umami-postgresql", "umami", "app-postgres", "admin", "jobs-worker", "document-sandbox", "task-runner",
     }
     assert required <= created, sorted(required - created)
     # MongoDB is not part of a 4.1 stack (the legacy-mongo profile starts it for the import only)
     assert not {"mongodb", "mongo-seed"} & created
+    # nor is Temporal, its database or its worker
+    assert not {"temporal", "postgresql", "worker"} & created
     # typeform and both (pre-4.1 preferences) are refused by deploy.sh
     extra = {"googleform": {"integrations-googleform"}, "": set()}[preference]
     assert extra <= created

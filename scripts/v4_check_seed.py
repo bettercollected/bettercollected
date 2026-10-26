@@ -23,6 +23,8 @@ WORKSPACES = 2
 FORMS_PER_WORKSPACE = (2, 1)
 RESPONSES_PER_FORM = 2
 USERS = 4
+ANON_EMAIL = "dummy-respondent-{}-{}@example.test"
+EXPIRATION = "2099-01-01T00:00:00.000Z"
 
 
 async def main() -> None:
@@ -31,6 +33,7 @@ async def main() -> None:
     from backend.app.schemas.standard_form_response import FormResponseDocument
     from backend.app.schemas.workspace import WorkspaceDocument
     from backend.app.schemas.workspace_form import WorkspaceFormDocument
+    from backend.app.utils.hash import hash_string
     from backend.config import settings
     from common.services.crypto_service import crypto_service
 
@@ -61,6 +64,11 @@ async def main() -> None:
                     provider="self",
                     answers=crypto_service.encrypt(workspace_id=str(workspace.id), form_id=form_id, data=answers),
                     hidden_fields=crypto_service.encrypt(workspace_id=str(workspace.id), form_id=form_id, data=hidden),
+                    # the first response of each form was submitted anonymously: 3.x stored the MD5 of
+                    # the signed-in address (the 4.1 identity pass converts it)
+                    anonymous_identity=hash_string(ANON_EMAIL.format(number, form_number)) if response_number == 0 else None,
+                    # one response is to be deleted on a date: 3.x scheduled that in Temporal, 4.1 on the job queue
+                    **({"expiration": EXPIRATION, "expiration_type": "date"} if (number, form_number, response_number) == (0, 0, 0) else {}),
                 ).save()
                 responses += 1
 

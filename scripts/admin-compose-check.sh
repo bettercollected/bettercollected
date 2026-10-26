@@ -8,8 +8,8 @@
 #   scripts/admin-compose-check.sh
 #
 # Besides the admin service it checks the deployment properties around it: a
-# minimal operator-provided .env renders, no internal port is published, the
-# worker never gets the master key, no service outside the settings-store readers
+# minimal operator-provided .env renders, no internal port is published, no
+# Temporal service is part of the stack, no service outside the settings-store readers
 # receives the secrets of a populated .env.deployment, no built-in credentials
 # remain on a new stack (the Mongo seed leaves no seeduser; Umami's dashboard is not
 # published, nginx passes only its tracker), and the host commands deploy.sh runs
@@ -138,7 +138,6 @@ gateway="${subnet%.0/29}.1"
 admin_pw="$(openssl rand -hex 16)"
 mig_pw="$(openssl rand -hex 16)"
 master_key="$(openssl rand -base64 48 | tr -d '\n')"
-temporal_pw="$(openssl rand -hex 16)"
 umami_pw="$(openssl rand -hex 16)"
 mongo_pw="$(openssl rand -hex 16)"
 
@@ -170,7 +169,6 @@ full_env="$work/full.env"
     echo "BC_ADMIN_MIG_PASSWORD=$mig_pw"
     echo "SETTINGS_MASTER_KEY=$master_key"
     # what deploy.sh generates for a new stack's internal databases
-    echo "BC_TEMPORAL_DB_PASSWORD=$temporal_pw"
     echo "BC_UMAMI_DB_PASSWORD=$umami_pw"
     echo "BC_MONGO_ROOT_PASSWORD=$mongo_pw"
     echo "ADMIN_PORT=$port"
@@ -236,13 +234,10 @@ s = c["services"]
 store = ["backend", "jobs-worker", "auth", "integrations-googleform"]
 env = lambda n: s[n].get("environment") or {}
 print("published=" + ",".join(sorted(n for n, v in s.items() if v.get("ports"))))
-print("temporal_ports=%d" % len(s["temporal"].get("ports") or []))
+print("temporal_services=" + ",".join(sorted(n for n in s if n in ("temporal", "worker", "postgresql"))))
 print("master_key_holders=" + ",".join(sorted(n for n, v in s.items() if "SETTINGS_MASTER_KEY" in env(n))))
-print("worker_master_key=%s" % ("SETTINGS_MASTER_KEY" in env("worker")))
-print("worker_keys=" + ",".join(k for k in ("API_KEY", "AES_HEX_KEY") if k in env("worker")))
 print("store_required=" + ",".join(n for n in store if env(n).get("SETTINGS_STORE") == "required"))
 print("pins=%d" % sum(1 for n in store[:1] + store[2:] for k in ("DEBUG", "API_DOCS_ENABLED") if k in env(n)))
-print("temporal_db_pw=" + env("postgresql")["POSTGRES_PASSWORD"])
 print("umami_db_pw=" + env("umami-postgresql")["POSTGRES_PASSWORD"])
 print("mongo_pw=" + env("mongodb")["MONGO_INITDB_ROOT_PASSWORD"])
 print("mongo_seed_pw=" + env("mongo-seed")["MONGO_ROOT_PASSWORD"])
@@ -256,14 +251,11 @@ print("stored_keys_empty=%s" % all(env("backend")[k] == "" for k in ("AUTH_JWT_S
 props="$(dc --profile legacy-mongo config --format json 2>/dev/null | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$props_py" 2>/dev/null)"
 gotp() { printf '%s\n' "$props" | grep "^$1="; }
 expect "only the intended services publish a port" "published=admin,backend,nginx,umami,webapp" "$(gotp published)"
-expect "temporal publishes no port" "temporal_ports=0" "$(gotp temporal_ports)"
+expect "no Temporal, Temporal database or Temporal worker service (not part of the stack since 4.1)" "temporal_services=" "$(gotp temporal_services)"
 expect "the master key reaches the store readers, the admin service and the task runner only" \
   "master_key_holders=admin,auth,backend,integrations-googleform,jobs-worker,task-runner" "$(gotp master_key_holders)"
-expect "the worker has no master key" "worker_master_key=False" "$(gotp worker_master_key)"
-expect "the worker keeps its two keys in env" "worker_keys=API_KEY,AES_HEX_KEY" "$(gotp worker_keys)"
 expect "the services read the settings store (required)" "store_required=backend,jobs-worker,auth,integrations-googleform" "$(gotp store_required)"
 expect "DEBUG and API_DOCS_ENABLED are not pinned" "pins=0" "$(gotp pins)"
-expect "temporal's database has the generated password" "temporal_db_pw=$temporal_pw" "$(gotp temporal_db_pw)"
 expect "umami's database has the generated password" "umami_db_pw=$umami_pw" "$(gotp umami_db_pw)"
 expect "mongo's root has the generated password" "mongo_pw=$mongo_pw" "$(gotp mongo_pw)"
 expect "the seed job uses the same password" "mongo_seed_pw=$mongo_pw" "$(gotp mongo_seed_pw)"
@@ -276,8 +268,7 @@ expect "the stored keys render empty (read the store)" "stored_keys_empty=True" 
 # The compose file is rendered from a copy next to a .env.deployment that holds every
 # secret an operator may keep there (as an upgraded stack does), plus the per-service
 # env files deploy.sh writes. Only the four services that read the settings store (and
-# so hold the master key anyway) may carry those values; the Chromium worker and the
-# public webapp must not, and the worker's whole environment is its few variables.
+# so hold the master key anyway) may carry those values; the public webapp must not.
 echo "== (i) what each service receives (rendered with a populated .env.deployment)"
 render="$work/render"
 mkdir -m 700 "$render"
@@ -290,7 +281,6 @@ dummies=(
 )
 printf '%s\n' "${dummies[@]}" > "$render/.env.deployment"
 printf 'UNSPLASH_ACCESS_KEY=DUMMY-unsplash\n' > "$render/.env.webapp"
-printf 'COOKIE_DOMAIN=example.test\n' > "$render/.env.worker"
 holders_py='
 import json, sys
 c = json.load(sys.stdin)["services"]
@@ -299,7 +289,6 @@ store = {"backend", "jobs-worker", "auth", "integrations-googleform"}
 outside = sorted({"%s>%s" % (k, s) for k, v in dummy.items() for s, b in c.items() if v in json.dumps(b) and s not in store})
 print("outside_store=" + ",".join(outside))
 env = lambda n: ",".join(sorted((c[n].get("environment") or {}).keys()))
-print("worker_env=" + env("worker"))
 print("webapp_own_file=%s" % ((c["webapp"].get("environment") or {}).get("UNSPLASH_ACCESS_KEY")))
 print("env_file_users=" + ",".join(sorted(n for n, b in c.items() if b.get("env_file"))))
 print("caps_dropped=" + ",".join(sorted(n for n, b in c.items() if b.get("cap_drop") == ["ALL"])))
@@ -309,11 +298,10 @@ holders="$(docker compose -p "$project" -f "$render/docker-compose.deployment.ym
   | docker run --rm -i --entrypoint /api/backend/.venv/bin/python "$image" -I -c "$holders_py" "${dummies[@]}" 2>/dev/null)"
 goth() { printf '%s\n' "$holders" | grep "^$1="; }
 expect "no secret of .env.deployment reaches a service outside the store readers" "outside_store=" "$(goth outside_store)"
-expect "the Chromium worker's whole environment" "worker_env=AES_HEX_KEY,API_KEY,COOKIE_DOMAIN,TEMPORAL_SERVER_URL" "$(goth worker_env)"
 expect "the webapp reads its own env file" "webapp_own_file=DUMMY-unsplash" "$(goth webapp_own_file)"
-expect "the worker and webapp services drop every capability" "caps_dropped=admin,document-sandbox,task-runner,webapp,worker" "$(goth caps_dropped)"
+expect "the webapp and the internal services drop every capability" "caps_dropped=admin,document-sandbox,task-runner,webapp" "$(goth caps_dropped)"
 expect "every first-party service is barred from gaining privileges" \
-  "no_new_privileges=admin,auth,backend,document-sandbox,integrations-googleform,jobs-worker,task-runner,webapp,worker" "$(goth no_new_privileges)"
+  "no_new_privileges=admin,auth,backend,document-sandbox,integrations-googleform,jobs-worker,task-runner,webapp" "$(goth no_new_privileges)"
 
 # --- (j) nginx passes Umami's tracker and nothing else ---------------------------------
 echo "== (j) the public Umami port passes only the tracker script and the event endpoint"
@@ -476,6 +464,7 @@ expect "no generated key value appears in the command's output" "0" "$leaked"
 expect "the store holds AUTH_JWT_SECRET afterwards" "1" "$(cli settings-history AUTH_JWT_SECRET 2>/dev/null | sed -n 's/^versions=//p')"
 cli bootstrap-keys >/dev/null 2>&1
 expect "a second bootstrap-keys is refused" "1" "$?"
+expect "bootstrap-keys stored the respondent identity key too (one version)" "1" "$(cli settings-history RESPONDENT_IDENTITY_KEY 2>/dev/null | sed -n 's/^versions=//p')"
 super "insert into auth.users(id, doc) values ('0', '{}')" >/dev/null
 cli bootstrap-keys --fill-missing >"$cli_out" 2>&1
 rc=$?
