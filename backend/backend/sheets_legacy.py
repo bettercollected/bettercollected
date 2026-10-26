@@ -18,7 +18,7 @@ import asyncio
 import json
 import sys
 
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 
 # forms (their actions' secrets and parameters); actions are Postgres only
 GROUPS = ("forms",)
@@ -30,7 +30,7 @@ async def main(argv) -> int:
     if argv:
         print("usage: python -m backend.sheets_legacy (no arguments)")
         return 2
-    async with routed_repositories(*GROUPS) as container:
+    async with open_container() as container:
         counts = await count_legacy_sheets_actions(
             container.form_repo(), container.action_repository(), container.crypto()
         )

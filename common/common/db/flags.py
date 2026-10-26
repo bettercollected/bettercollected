@@ -1,39 +1,34 @@
-"""The switches that move a repository group between Mongo and Postgres.
+"""Persistence switches: where jobs run, and the refusal of stale store flags.
 
-Read once at startup (decision D5): a flip is a rolling restart, visible in the
-deploy history. Values are validated here so a misconfiguration fails the
-process at boot instead of silently reading a store nothing writes to.
+Every repository group of every service is served from Postgres only since
+4.1: there is no routing between Mongo and Postgres, no mirror and no shadow
+read, and the services do not connect to Mongo. What is left here:
 
-    DB_READ_SOURCE            mongo | postgres                       (default mongo)
-    DB_WRITE_MODE             mongo | dual | postgres_primary_dual | postgres   (default mongo)
-    DB_READ_SOURCE__<group>   per-group override, e.g. DB_READ_SOURCE__responses=postgres
-    DB_WRITE_MODE__<group>    per-group override
-    DB_SHADOW_READ_SAMPLE     0.0–1.0 share of reads also issued to the other store and diffed
     JOBS_BACKEND__<job>       temporal | postgres per job type       (default postgres)
     JOBS_BACKEND              default for jobs without an override
+
+and the settings of the cutover, which a service still *reads* only to refuse
+a value that asks for a store that is no longer there (:func:`refuse_stale_store_flags`):
+
+    DB_READ_SOURCE            must be unset or ``postgres``
+    DB_WRITE_MODE             must be unset or ``postgres``
+    DB_READ_SOURCE__<group>   as above, per group
+    DB_WRITE_MODE__<group>    as above, per group
+
+``DB_SHADOW_READ_SAMPLE`` is no longer read by anything. The settings
+themselves are retired separately (the settings inventory still lists them).
+
+Read once at startup (decision D5): a change is a rolling restart, visible in
+the deploy history. Values are validated here so a misconfiguration fails the
+process at boot.
 """
 
 from __future__ import annotations
 
 import os
-import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable, Mapping, Optional
-
-
-class ReadSource(str, Enum):
-    MONGO = "mongo"
-    POSTGRES = "postgres"
-
-
-class WriteMode(str, Enum):
-    MONGO = "mongo"  # Mongo only (today)
-    DUAL = "dual"  # Mongo primary, Postgres mirror
-    POSTGRES_PRIMARY_DUAL = (
-        "postgres_primary_dual"  # Postgres primary, Mongo mirror (rollback window)
-    )
-    POSTGRES = "postgres"  # Postgres only (after removal)
+from typing import Iterable, Mapping
 
 
 class JobsBackend(str, Enum):
@@ -43,23 +38,12 @@ class JobsBackend(str, Enum):
 
 READ_KEY = "DB_READ_SOURCE"
 WRITE_KEY = "DB_WRITE_MODE"
-SAMPLE_KEY = "DB_SHADOW_READ_SAMPLE"
 JOBS_KEY = "JOBS_BACKEND"
 OVERRIDE_SEP = "__"
 
-# A read source must be a store the write mode actually writes to.
-_VALID_COMBINATIONS = {
-    (ReadSource.MONGO, WriteMode.MONGO),
-    (ReadSource.MONGO, WriteMode.DUAL),
-    (ReadSource.MONGO, WriteMode.POSTGRES_PRIMARY_DUAL),
-    (ReadSource.POSTGRES, WriteMode.DUAL),
-    (ReadSource.POSTGRES, WriteMode.POSTGRES_PRIMARY_DUAL),
-    (ReadSource.POSTGRES, WriteMode.POSTGRES),
-}
-
 
 class FlagError(ValueError):
-    """A flag has an unknown value or an unsafe combination."""
+    """A flag has an unknown value, or asks for a store that is no longer there."""
 
 
 def _parse(enum_cls, key: str, raw: str):
@@ -81,190 +65,71 @@ def _overrides(env: Mapping[str, str], base_key: str, enum_cls) -> dict:
 
 @dataclass(frozen=True)
 class DbFlags:
-    default_read: ReadSource = ReadSource.MONGO
-    default_write: WriteMode = WriteMode.MONGO
-    read_overrides: Mapping[str, ReadSource] = field(default_factory=dict)
-    write_overrides: Mapping[str, WriteMode] = field(default_factory=dict)
-    shadow_read_sample: float = 0.0
+    """What the process runs with: the backend of each job kind."""
+
     jobs_default: JobsBackend = JobsBackend.POSTGRES
     jobs_overrides: Mapping[str, JobsBackend] = field(default_factory=dict)
 
-    # -- per group -------------------------------------------------------
-    def read_source(self, group: str) -> ReadSource:
-        return self.read_overrides.get(group.lower(), self.default_read)
-
-    def write_mode(self, group: str) -> WriteMode:
-        return self.write_overrides.get(group.lower(), self.default_write)
-
-    def primary_store(self, group: str) -> ReadSource:
-        mode = self.write_mode(group)
-        if mode in (WriteMode.MONGO, WriteMode.DUAL):
-            return ReadSource.MONGO
-        return ReadSource.POSTGRES
-
-    def mirror_store(self, group: str) -> Optional[ReadSource]:
-        mode = self.write_mode(group)
-        if mode is WriteMode.DUAL:
-            return ReadSource.POSTGRES
-        if mode is WriteMode.POSTGRES_PRIMARY_DUAL:
-            return ReadSource.MONGO
-        return None
-
-    def writes_mongo(self, group: str) -> bool:
-        return self.write_mode(group) is not WriteMode.POSTGRES
-
-    def writes_postgres(self, group: str) -> bool:
-        return self.write_mode(group) is not WriteMode.MONGO
-
-    # -- jobs --------------------------------------------------------------
     def jobs_backend(self, job: str) -> JobsBackend:
         return self.jobs_overrides.get(job.lower(), self.jobs_default)
 
-    def describe(self, groups: Iterable[str] = (), jobs: Iterable[str] = ()) -> dict:
-        """What is in effect, per group and job kind — logged at boot and served
-        by the status endpoints so a flip is auditable after the fact."""
-        names = sorted({*groups, *self.read_overrides, *self.write_overrides})
+    def describe(self, jobs: Iterable[str] = ()) -> dict:
+        """What is in effect per job kind — logged at boot and served by the
+        status endpoint so a change is auditable after the fact."""
         job_names = sorted({*jobs, *self.jobs_overrides})
         return {
-            "defaults": {
-                "read_source": self.default_read.value,
-                "write_mode": self.default_write.value,
-                "jobs_backend": self.jobs_default.value,
-            },
-            "groups": {
-                g: {
-                    "read_source": self.read_source(g).value,
-                    "write_mode": self.write_mode(g).value,
-                }
-                for g in names
-            },
+            "store": "postgres",
+            "jobs_backend_default": self.jobs_default.value,
             "jobs": {j: self.jobs_backend(j).value for j in job_names},
-            "shadow_read_sample": self.shadow_read_sample,
         }
 
-    # -- whole process -----------------------------------------------------
-    def should_shadow_read(self, rng: random.Random | None = None) -> bool:
-        if self.shadow_read_sample <= 0:
-            return False
-        return (rng or random).random() < self.shadow_read_sample
 
-    def serves_from_postgres(self) -> bool:
-        """Whether any group reads from or writes primarily to Postgres — i.e. an
-        unreachable Postgres would break requests, not just the mirror."""
-        groups = {"*"} | set(self.read_overrides) | set(self.write_overrides)
-        for group in groups:
-            read = self.default_read if group == "*" else self.read_source(group)
-            mode = self.default_write if group == "*" else self.write_mode(group)
-            if read is ReadSource.POSTGRES or mode in (
-                WriteMode.POSTGRES_PRIMARY_DUAL,
-                WriteMode.POSTGRES,
-            ):
-                return True
+def stale_store_flags(
+    env: Mapping[str, str], groups: Iterable[str], *, service_wide: bool = True
+) -> list[str]:
+    """``KEY='value'`` for every store flag in ``env`` that asks for a store
+    other than Postgres: ``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` themselves
+    (when ``service_wide``) and their ``__<group>`` overrides for ``groups``."""
+    wanted = {g.lower() for g in groups}
+
+    def applies(key: str) -> bool:
+        for base in (READ_KEY, WRITE_KEY):
+            if key == base:
+                return service_wide
+            if key.startswith(base + OVERRIDE_SEP):
+                return key[len(base + OVERRIDE_SEP) :].lower() in wanted
         return False
 
-    def uses_postgres_tables(self) -> bool:
-        """Whether any repository group reads from or writes to Postgres (as
-        primary, mirror or shadow) — i.e. the service's own schema must be at
-        its migration head. Jobs on Postgres touch only the ``jobs`` schema."""
-        if (
-            self.default_write is not WriteMode.MONGO
-            or self.default_read is ReadSource.POSTGRES
-        ):
-            return True
-        if any(m is not WriteMode.MONGO for m in self.write_overrides.values()):
-            return True
-        if any(r is ReadSource.POSTGRES for r in self.read_overrides.values()):
-            return True
-        return self.shadow_read_sample > 0
+    return sorted(
+        f"{key}={value!r}"
+        for key, value in env.items()
+        if applies(key) and value.strip().lower() not in ("", "postgres")
+    )
 
-    def uses_mongo(self, groups: Iterable[str] = ()) -> bool:
-        """Whether any of ``groups`` (a service's repository groups; empty: the
-        defaults and every overridden group) reads from Mongo, writes to it as
-        primary or mirror, or may shadow-read it. False only once every group
-        is on ``DB_READ_SOURCE=postgres`` and ``DB_WRITE_MODE=postgres`` with
-        no shadow reads: then nothing the service serves touches Mongo and it
-        starts without it (:mod:`common.db.mongo`). The jobs backends do not
-        count: a job runs on Temporal or the ``jobs`` schema, never on Mongo."""
-        if self.shadow_read_sample > 0:
-            return True  # a shadow read goes to the other store, Mongo included
-        names = {g.lower() for g in groups} or (
-            {"*"} | set(self.read_overrides) | set(self.write_overrides)
-        )
-        for group in names:
-            read = self.default_read if group == "*" else self.read_source(group)
-            mode = self.default_write if group == "*" else self.write_mode(group)
-            if read is ReadSource.MONGO or mode is not WriteMode.POSTGRES:
-                return True
-        return False
 
-    def requires_postgres(self) -> bool:
-        """Whether the process needs a working DATABASE_URL at all."""
-        return (
-            self.uses_postgres_tables()
-            or self.jobs_default is JobsBackend.POSTGRES
-            or JobsBackend.POSTGRES in self.jobs_overrides.values()
+def refuse_stale_store_flags(
+    env: Mapping[str, str],
+    groups: Iterable[str],
+    *,
+    what: str,
+    service_wide: bool = True,
+) -> None:
+    """Raise :class:`FlagError` naming each flag in ``env`` that asks for a
+    store other than Postgres: it asks for one that is no longer there.
+    ``what`` is the sentence that says why (it names the service or groups)."""
+    stale = stale_store_flags(env, groups, service_wide=service_wide)
+    if stale:
+        raise FlagError(
+            f"{', '.join(stale)}: {what} Remove these settings (or set them "
+            "to postgres) and restart."
         )
 
-    def validate(self, mongo_joins: Mapping[str, Iterable[str]] = {}) -> None:
-        """``mongo_joins``: group -> groups whose collections its *Mongo*
-        repositories ``$lookup`` into. Such a join finds nothing once the joined
-        group stops writing Mongo, so while a group still reads from Mongo the
-        groups it joins into must keep writing Mongo (``dual`` or
-        ``postgres_primary_dual`` are fine, ``postgres`` is not). Once the
-        joining group is served from Postgres its twins compose instead and the
-        constraint lifts. The application declares the map; the flags enforce it."""
-        groups = {"*"} | set(self.read_overrides) | set(self.write_overrides)
-        for group in groups:
-            read = self.default_read if group == "*" else self.read_source(group)
-            write = self.default_write if group == "*" else self.write_mode(group)
-            if (read, write) not in _VALID_COMBINATIONS:
-                where = "defaults" if group == "*" else f"group {group!r}"
-                raise FlagError(
-                    f"{where}: reading from {read.value} while write mode is {write.value} "
-                    f"would read a store nothing writes to"
-                )
-        if not 0.0 <= self.shadow_read_sample <= 1.0:
-            raise FlagError(
-                f"{SAMPLE_KEY} must be between 0 and 1, got {self.shadow_read_sample}"
-            )
-        for group, joined in mongo_joins.items():
-            if self.read_source(group) is ReadSource.POSTGRES:
-                continue  # served by its twins, which compose over the routed repos
-            stopped = [g for g in joined if self.write_mode(g) is WriteMode.POSTGRES]
-            if stopped:
-                raise FlagError(
-                    f"group(s) {', '.join(repr(g) for g in stopped)} cannot stop writing "
-                    f"mongo (DB_WRITE_MODE=postgres) while group {group!r} still reads from "
-                    f"mongo: its Mongo repositories join into their collections. Serve "
-                    f"{group!r} from postgres first, or keep them on postgres_primary_dual."
-                )
 
-
-def load_flags(
-    env: Mapping[str, str] = os.environ,
-    mongo_joins: Mapping[str, Iterable[str]] = {},
-) -> DbFlags:
-    """Parse and validate the flags from ``env``; raises :class:`FlagError` on a bad
-    value. ``mongo_joins`` is the cutover-order map (see ``DbFlags.validate``)."""
-    raw_sample = env.get(SAMPLE_KEY, "")
-    try:
-        sample = float(raw_sample) if raw_sample != "" else 0.0
-    except ValueError:
-        raise FlagError(f"{SAMPLE_KEY}={raw_sample!r} is not a number") from None
-    flags = DbFlags(
-        default_read=_parse(
-            ReadSource, READ_KEY, env.get(READ_KEY) or ReadSource.MONGO.value
-        ),
-        default_write=_parse(
-            WriteMode, WRITE_KEY, env.get(WRITE_KEY) or WriteMode.MONGO.value
-        ),
-        read_overrides=_overrides(env, READ_KEY, ReadSource),
-        write_overrides=_overrides(env, WRITE_KEY, WriteMode),
-        shadow_read_sample=sample,
+def load_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
+    """Parse the jobs flags from ``env``; raises :class:`FlagError` on a bad value."""
+    return DbFlags(
         jobs_default=_parse(
             JobsBackend, JOBS_KEY, env.get(JOBS_KEY) or JobsBackend.POSTGRES.value
         ),
         jobs_overrides=_overrides(env, JOBS_KEY, JobsBackend),
     )
-    flags.validate(mongo_joins)
-    return flags

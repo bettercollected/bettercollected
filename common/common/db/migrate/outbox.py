@@ -94,42 +94,6 @@ REASONS = (
 )
 
 
-def routed_repository_groups(container: Any) -> dict[str, str]:
-    """Repository name -> group for every routed repository a
-    dependency-injector container declares. The name is what
-    ``RoutingRepository`` reports in a mirror failure: the class of its Mongo
-    implementation, else of its Postgres one. A name claimed by two groups is
-    left out (its entries are then kept: the group is unknown)."""
-    from common.db.routing import RoutingRepository
-
-    found: dict[str, str] = {}
-    clashing: set[str] = set()
-    for provider in container.providers.values():
-        if getattr(provider, "provides", None) is not RoutingRepository:
-            continue
-        kwargs = getattr(provider, "kwargs", {}) or {}
-        group = kwargs.get("group")
-        name = _implementation_name(kwargs.get("mongo"))
-        if name is None:
-            name = _implementation_name(kwargs.get("postgres"), twin=True)
-        if not isinstance(group, str) or name is None:
-            continue
-        if found.get(name, group) != group:
-            clashing.add(name)
-        found[name] = group
-    return {name: group for name, group in found.items() if name not in clashing}
-
-
-def _implementation_name(provider: Any, *, twin: bool = False) -> Optional[str]:
-    if provider is None:
-        return None
-    provides = getattr(provider, "provides", None)
-    if twin:  # Singleton(postgres_repository, TwinClass, sessions, ...)
-        args = getattr(provider, "args", ()) or ()
-        provides = args[0] if args else None
-    return provides.__name__ if isinstance(provides, type) else None
-
-
 def repository_group(
     target, repository: str, known: Mapping[str, str]
 ) -> Optional[str]:

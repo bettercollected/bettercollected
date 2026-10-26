@@ -185,8 +185,6 @@ async def _locked_doc(session, row, *where: Any, document=None):
 class PostgresFormResponseRepository(RecordRepository):
     row = FormResponseRow
     document = FormResponseDocument
-    # add_deletion_request
-    document_rows = {FormResponseDeletionRequest: ResponseDeletionRequestRow}
 
     def __init__(self, session_factory, form_repo, workspace_form_repo):
         super().__init__(session_factory)
@@ -1070,7 +1068,6 @@ class PostgresFormResponseRepository(RecordRepository):
 class PostgresWorkspaceRespondersRepository(RecordRepository):
     row = WorkspaceResponderRow
     document = WorkspaceResponderDocument
-    document_rows = {WorkspaceTags: WorkspaceTagRow}  # create_workspace_tag
 
     async def create_workspace_tag(self, workspace_id: RecordId, title: str):
         """The workspace's tag of this title (created when there is none), its

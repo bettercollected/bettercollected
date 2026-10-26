@@ -13,9 +13,8 @@ MIGRATIONS = MigrationTarget.for_package(
     _package, SCHEMA, service="backend/backend/admin"
 )
 
-# The admin service always serves from Postgres, whatever the public API's
-# persistence flags say.
-_FLAGS = load_flags({"DB_WRITE_MODE": "postgres", "DB_READ_SOURCE": "postgres"})
+# The admin service reads no persistence flags: its only store is Postgres.
+_FLAGS = load_flags({})
 
 
 def make_engine(settings: AdminSettings) -> AsyncEngine:

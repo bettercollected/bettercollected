@@ -700,8 +700,9 @@ source = { editable = "../../common" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
-    { name = "beanie" },
     { name = "cryptography" },
+    { name = "pydantic" },
+    { name = "pymongo" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "tink" },
 ]
@@ -710,14 +711,16 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.20.0" },
     { name = "asyncpg", specifier = ">=0.32.0" },
-    { name = "beanie", specifier = ">=2.2.0" },
     { name = "cryptography", specifier = ">=50.0.2" },
+    { name = "pydantic", specifier = ">=2.14.1" },
+    { name = "pymongo", specifier = ">=4.18.3" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.54" },
     { name = "tink", specifier = ">=1.16.1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "beanie", specifier = ">=2.2.0" },
     { name = "black", specifier = ">=26.10.1" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
@@ -1253,7 +1256,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "beanie" },
     { name = "classy-fastapi" },
     { name = "common" },
     { name = "cryptography" },
@@ -1281,6 +1283,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "aioresponses" },
+    { name = "beanie" },
     { name = "black" },
     { name = "flake8" },
     { name = "flake8-docstrings" },
@@ -1296,7 +1299,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.5" },
-    { name = "beanie", specifier = ">=2.1.0" },
     { name = "classy-fastapi", specifier = ">=0.7.0" },
     { name = "common", editable = "../../common" },
     { name = "cryptography", specifier = ">=50.0.0" },
@@ -1324,6 +1326,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aioresponses", specifier = ">=0.7.9" },
+    { name = "beanie", specifier = ">=2.2.0" },
     { name = "black", specifier = ">=26.10.1" },
     { name = "flake8", specifier = ">=7.4.1" },
     { name = "flake8-docstrings", specifier = ">=1.7.0" },

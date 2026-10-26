@@ -463,7 +463,7 @@ async def _main() -> None:
     so Mongo is never connected) and seeds through the app's template
     repository. Startup auto-seeding (asgi.py) calls seed_flow_templates()
     directly."""
-    from backend.cli_store import routed_repositories
+    from backend.cli_store import open_container
     from backend.config import settings
     from backend.db.startup import check_postgres_at_startup
 
@@ -472,7 +472,7 @@ async def _main() -> None:
         print("DEFAULT_WORKSPACE_ID is not set — refusing to seed without a stable predefined-templates workspace id.")
         return
 
-    async with routed_repositories("forms") as container:
+    async with open_container() as container:
         await check_postgres_at_startup(container)
         result = await seed_flow_templates(workspace_id, container.form_template_repo())
     for title in result["seeded"]:
