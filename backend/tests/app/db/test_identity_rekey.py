@@ -543,10 +543,37 @@ async def test_the_background_task_runs_twice_and_stops_when_cancelled(monkeypat
 async def test_the_scans_use_the_partial_index_of_the_identities_still_to_convert(clean_postgres):
     """The queries carry the index's literal predicate, so a start that finds
     nothing left reads the (empty) index and not the tables."""
-    for oid in (_oid("a", 1), _oid("a", 2)):
-        await _insert("form_responses", oid, "v2:" + "0" * 64)
+    # Enough converted rows, analysed, that the empty partial index is clearly the
+    # cheapest path: with two rows the planner may just as well walk the primary
+    # key, and on some server versions it did.
+    async with container.pg_engine().begin() as conn:
+        for table, prefix in (("form_responses", "a"), ("responses_deletion_requests", "b")):
+            await conn.execute(
+                text(
+                    f"INSERT INTO app.{table} (id, doc, created_at, _bc_checksum) "
+                    "VALUES (:i, CAST(:d AS jsonb), now(), 'x')"
+                ),
+                [
+                    {
+                        "i": _oid(prefix, n),
+                        "d": json.dumps(
+                            {
+                                "_id": {"$oid": _oid(prefix, n)},
+                                "form_id": "form-1",
+                                "response_id": f"r-{_oid(prefix, n)}",
+                                "anonymous_identity": "v2:" + "0" * 64,
+                            }
+                        ),
+                    }
+                    for n in range(1, 301)
+                ],
+            )
+    async with container.pg_engine().begin() as conn:
+        for table in ("form_responses", "responses_deletion_requests"):
+            await conn.execute(text(f"ANALYZE app.{table}"))
     async with container.pg_engine().begin() as conn:
         await conn.execute(text("SET LOCAL enable_seqscan = off"))
+        await conn.execute(text("SET LOCAL enable_bitmapscan = off"))
         for table, index in (
             ("form_responses", "ix_form_responses_legacy_identity"),
             ("responses_deletion_requests", "ix_deletion_requests_legacy_identity"),
