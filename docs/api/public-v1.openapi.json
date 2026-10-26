@@ -4098,7 +4098,8 @@
                 "type": "null"
               }
             ],
-            "title": "Retentiontext"
+            "title": "Retentiontext",
+            "description": "An internal note stored with the form. It is not shown to respondents: they see only the retention period the form enforces (see \"retention\")."
           },
           "privacyPolicyUrl": {
             "anyOf": [

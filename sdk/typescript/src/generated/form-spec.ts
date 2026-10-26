@@ -453,6 +453,9 @@ export interface Logo {
  */
 export interface Trust {
   purpose?: string | null;
+  /**
+   * An internal note stored with the form. It is not shown to respondents: they see only the retention period the form enforces (see "retention").
+   */
   retentionText?: string | null;
   /**
    * An http(s) URL.

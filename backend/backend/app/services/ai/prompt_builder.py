@@ -168,8 +168,12 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   one, never the welcome page or the ending.)
 - {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?}}
   (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
-  data is collected, "retentionText" how long it is kept — e.g. "kept for 90
-  days". An empty string clears a text value. Visibility/distribution settings
+  data is collected. "retentionText" is an internal note that respondents never
+  see: they are told only the retention period the form enforces, which is a
+  setting a person changes in the builder and which you cannot set. Never write
+  a retention period into "retentionText" and never tell the user it changes how
+  long answers are kept; leave it alone unless the user asks for that internal
+  note. An empty string clears a text value. Visibility/distribution settings
   are not editable here.)
 - {"op":"set_form_language","language":"nl"|"en"|"de"|"fr"|"es"|"it"|"pt"|"pl"|"da"|"sv"|"nb"|"fi"|null}
   (the language the form's text is written in; respondent pages mark the text with it so

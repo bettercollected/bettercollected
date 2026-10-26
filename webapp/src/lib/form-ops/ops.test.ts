@@ -228,7 +228,7 @@ describe('form-level ops', () => {
 
     it('checks settings and writes them like apply_settings_ops', () => {
         const { doc, result } = one({ op: 'update_form_settings', patch: { purpose: '  ', retentionText: ' 90 days ', showSubmissionNumber: true } });
-        expect(result.message).toBe('Updated form settings: purpose, retention, submission numbers');
+        expect(result.message).toBe('Updated form settings: purpose, internal retention note, submission numbers');
         expect(doc.settings).toMatchObject({ retentionText: '90 days', showSubmissionNumber: true });
         expect((doc.settings as any).purpose).toBeUndefined();
         expect(one({ op: 'update_form_settings', patch: { privacyPolicyUrl: 'javascript:alert(1)' } }).result.message).toBe('The privacy policy link must be an http(s) URL.');

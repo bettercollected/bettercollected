@@ -296,16 +296,24 @@ class PostgresFormResponseRepository(RecordRepository):
             .correlate(grouped)
             .scalar_subquery()
         )
-        stmt = (
-            select(
-                grouped.c.email,
-                grouped.c.responses,
-                deletion_requests.label("deletion_requests"),
-                wr.doc,
+        # this workspace's record only, the oldest if it has several
+        responder = (
+            select(wr.doc)
+            .where(
+                wr.workspace_id == str(scope.workspace_id),
+                wr.email == grouped.c.email,
             )
-            .outerjoin(wr, wr.email == grouped.c.email)  # any workspace, as the $lookup
-            .order_by(grouped.c.email, wr.created_at, wr.id)
+            .order_by(wr.id)
+            .limit(1)
+            .correlate(grouped)
+            .scalar_subquery()
         )
+        stmt = select(
+            grouped.c.email,
+            grouped.c.responses,
+            deletion_requests.label("deletion_requests"),
+            responder.label("responder"),
+        ).order_by(grouped.c.email)
         # create_filter_pipeline(..., default_sort=False): filters only, no sort
         matching = (
             filter_query.model_dump(exclude_unset=True, exclude_none=True)
@@ -341,7 +349,9 @@ class PostgresFormResponseRepository(RecordRepository):
                         (
                             await session.execute(
                                 select(WorkspaceTagRow.doc).where(
-                                    WorkspaceTagRow.id.in_(tag_ids)
+                                    WorkspaceTagRow.id.in_(tag_ids),
+                                    WorkspaceTagRow.workspace_id
+                                    == str(scope.workspace_id),
                                 )
                             )
                         )
