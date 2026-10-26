@@ -281,6 +281,10 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
       AUTH_AES_HEX_KEY: ${AUTH_AES_HEX_KEY:-}
       MASTER_ENCRYPTION_KEYSET: ${MASTER_ENCRYPTION_KEYSET:-}
+      # Key of the respondent identity hash (at least 32 random bytes; the API
+      # refuses to start without it). Generated into the store on a new stack;
+      # an upgrade sets it once (docs/respondent-identity.md).
+      RESPONDENT_IDENTITY_KEY: ${RESPONDENT_IDENTITY_KEY:-}
       # The key the task runner presents to the internal admin-task routes
       # (auth.resolve_case_duplicate_accounts); the same value on task-runner.
       # Environment only. Unset: those routes answer 503.

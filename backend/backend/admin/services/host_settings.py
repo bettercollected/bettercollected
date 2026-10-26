@@ -80,6 +80,7 @@ GENERATED_KEYS = (
     "AUTH_INTERNAL_NOTIFY_KEY",
     "TEMPORAL_API_KEY",
     "MASTER_ENCRYPTION_KEYSET",
+    "RESPONDENT_IDENTITY_KEY",
 )
 ENV_SOURCE = "env-file"  # the pseudo service of an env file: reads every key
 
