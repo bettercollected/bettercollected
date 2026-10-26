@@ -8,8 +8,7 @@ skipped (services/sheets_reconsent.py). Run it before switching
 ``GOOGLE_SHEETS_OAUTH`` to ``backend`` to size the reconnect mail.
 
 Read-only: it changes nothing. Counts only, never ids, titles, addresses or
-tokens. Reads through the routed repositories, so it follows the services'
-read source (``DB_READ_SOURCE``).
+tokens. Reads through the container's repositories (Postgres).
 """
 
 from __future__ import annotations

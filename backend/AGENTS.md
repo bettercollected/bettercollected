@@ -350,10 +350,9 @@ and the nightly procrastinate periodic task `scim_reconcile`. Storage: `scim_dir
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment
 needs but that don't belong in a migration. Pattern to follow for new ones: a reusable `async def seed_x(...)`
-function that assumes Beanie is already initialized (so it can be called from `lifespan` on every boot), plus a thin
+function that takes its repositories as arguments (so it can be called from `lifespan` on every boot), plus a thin
 `_main()`/`if __name__ == "__main__":` CLI wrapper that connects the stores itself for one-off manual runs. Reads
-and writes go through the container's routed repositories, never Beanie documents directly (the direct-access guard,
-`tests/app/test_direct_db_access.py`, fails on that), so every persistence mode sees them. Never
+and writes go through the container's repositories. Never
 overwrite existing data — check-then-create, so re-running (including "run" via a normal app restart) is always safe.
 
 **`seed_flow_templates.py`** — seeds the flow-native template gallery (branching used as the hook: support triage,
@@ -376,8 +375,7 @@ up new/changed templates the next time it restarts, no manual step required.
   That repair recognises the script's own templates by title, `builder_version="v2"`, public, not imported,
   and exactly the builder's questions (type + title); a theme changed by hand is kept, nothing is created,
   and forms made from a template keep their stored theme. The existence
-  check, that repair and new templates all go through the routed template repository, so the store that serves
-  templates (Mongo, mirrored or Postgres) is the one checked and written.
+  check, that repair and new templates all go through the template repository.
 - Every choice-type field needs its choices stored: the responder renders yes/no, dropdown and multiple-choice
   options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
   `_choices(...)`.
@@ -872,12 +870,12 @@ one of ours; `services/image_urls.py` is the single allow-list:
 ## Run / test
 
 ```bash
-./run.sh                 # uvicorn backend.app:get_application --reload :8000  (needs Mongo up first)
+./run.sh                 # uvicorn backend.app:get_application --reload :8000  (needs Postgres up first)
 uv sync                  # install (uv, never pip/poetry)
 DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432/bettercollected_test uv run pytest
-# the same suite mirrored / served from Postgres (what CI runs):
-DB_WRITE_MODE=dual ... uv run pytest
-DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
+# without Mongo, as the CI shards run it (a fresh install has MONGO_URI empty):
+MONGO_URI="" uv run pytest -m "not mongo"
+uv run pytest -m mongo                   # the import tests: need a Mongo server (MONGO_URI)
 uv run pytest -n 4 --dist loadgroup      # in parallel (CI): each xdist worker gets <db>_gwN in Mongo and Postgres
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
 DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
@@ -891,7 +889,7 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   stored there (`python -m backend.seed_refdata --origin ...` on an empty table) or requests are blocked.
   A workspace's custom domain is added only while it is verified (`services/custom_domain_origins.py`, the one
   place that adds or removes those origins) and stale ones are pruned at startup.
-- Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that
+- Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and the Postgres engine — respect that
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.
