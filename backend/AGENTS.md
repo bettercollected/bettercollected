@@ -107,7 +107,8 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   the 4.0 Beanie classes it plants in a real Mongo are frozen in `tests/app/db/beanie_originals.py`, Beanie being a
   test-only dependency).
   Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
-  an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
+  an empty table and no finished backfill (`backend/db/mongo_import_guard.py`, a wrapper of the shared core `common/db/migrate/import_guard.py`, which auth and the
+  Google integration use too; fix: `python -m backend.migrate --group
   <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
   Mongo-less tests run with `MONGO_URI=""`. `verify`/`reconcile` skip these groups by default and exit 2 when one is
   named (`Target.postgres_only_groups`).

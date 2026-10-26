@@ -29,6 +29,7 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 MONGO_DRIVEN = (
     "tests/db/test_migrate_tombstones.py",
     "tests/db/test_migrate_email_case.py",
+    "tests/db/test_import_guard.py",
 )
 
 

@@ -26,32 +26,45 @@ cannot tell whether data would be lost.
 start anyway for the groups it names (``all``, or a comma-separated list),
 leaving their Mongo data behind; every start with it set logs a warning per
 collection it lets through. Never set by default.
+
+The checks themselves are shared with auth and the Google integration
+(:mod:`common.db.migrate.import_guard`); this module supplies the backend's
+groups, tables and migration CLI.
 """
 
 from __future__ import annotations
 
 import os
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Iterable, Mapping, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 from loguru import logger
-from pymongo import AsyncMongoClient
-from pymongo.errors import PyMongoError
-from sqlalchemy import Table, exists, select
+from sqlalchemy import Table
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.db.groups import COLLECTION_GROUPS, POSTGRES_ONLY_GROUPS
-from common.db.migrate.progress import STATE_DONE
+from common.db.migrate import import_guard as _core
+from common.db.migrate.import_guard import (  # noqa: F401 — the shared core's API
+    OVERRIDE_KEY,
+    SERVER_SELECTION_TIMEOUT_MS,
+    GuardResult,
+    PostgresState,
+    Unimported,
+    UnimportedMongoData,
+    mongo_database as _database,
+    mongo_documents,
+    mongo_uri_configured,
+    override_groups as _override_groups,
+    postgres_state,
+)
 
-OVERRIDE_KEY = "DB_DISCARD_UNIMPORTED_MONGO_DATA"
-#: how long a client of the guard's own waits for Mongo (unless the URI says)
-SERVER_SELECTION_TIMEOUT_MS = 10_000
+MIGRATE_MODULE = "backend.migrate"
 
 
-class UnimportedMongoData(RuntimeError):
-    """A Postgres-only group's data is in Mongo but was not imported, or
-    Mongo, configured, could not be read."""
+def override_groups(
+    env: Mapping[str, str], groups: Iterable[str] = POSTGRES_ONLY_GROUPS
+) -> frozenset[str]:
+    """The groups :data:`OVERRIDE_KEY` names (``all``: every one)."""
+    return _override_groups(env, groups)
 
 
 def guarded_collections(
@@ -68,133 +81,11 @@ def collection_tables() -> dict[str, Table]:
     import backend.db.models  # noqa: F401 — registers every row
     from backend.db.base import Base
 
-    return {
-        mapper.class_.mongo_collection(): mapper.local_table
-        for mapper in Base.registry.mappers
-        if hasattr(mapper.class_, "mongo_collection")
-        and mapper.local_table.name
-        not in ("mirror_write_failures", "migration_progress")
-    }
-
-
-@dataclass(frozen=True)
-class PostgresState:
-    """Which guarded collections' tables have rows, and which were imported."""
-
-    has_rows: frozenset[str] = frozenset()
-    imported: frozenset[str] = frozenset()
-
-
-@dataclass(frozen=True)
-class Unimported:
-    group: str
-    collection: str
-    mongo: int  # documents in Mongo (estimated)
-
-
-@dataclass
-class GuardResult:
-    #: Mongo data that blocks the start
-    blocking: list[Unimported] = field(default_factory=list)
-    #: Mongo data left behind on the operator's say-so (OVERRIDE_KEY)
-    discarded: list[Unimported] = field(default_factory=list)
-    #: whether Mongo was asked at all
-    mongo_checked: bool = False
-
-
-async def postgres_state(
-    engine: AsyncEngine, tables: Mapping[str, Table], progress: Table
-) -> PostgresState:
-    """``SELECT EXISTS`` per table, and the collections with a finished backfill."""
-    async with engine.connect() as conn:
-        has_rows = {
-            name
-            for name, table in tables.items()
-            if (await conn.execute(select(exists().select_from(table)))).scalar()
-        }
-        imported = set(
-            (
-                await conn.execute(
-                    select(progress.c.collection).where(
-                        progress.c.collection.in_(list(tables)),
-                        progress.c.state == STATE_DONE,
-                    )
-                )
-            ).scalars()
-        )
-    return PostgresState(frozenset(has_rows), frozenset(imported))
-
-
-async def mongo_documents(database: Any, collections: Iterable[str]) -> dict[str, int]:
-    """Collection -> its (estimated) document count, for the non-empty ones."""
-    found: dict[str, int] = {}
-    for name in collections:
-        coll = database[name]
-        if await coll.find_one({}, {"_id": 1}) is None:
-            continue
-        # metadata only; at least 1, since a document was just found
-        found[name] = max(1, await coll.estimated_document_count())
-    return found
-
-
-def override_groups(
-    env: Mapping[str, str], groups: Iterable[str] = POSTGRES_ONLY_GROUPS
-) -> frozenset[str]:
-    """The groups :data:`OVERRIDE_KEY` names (``all``: every one)."""
-    groups = tuple(groups)
-    raw = (env.get(OVERRIDE_KEY) or "").strip().lower()
-    if not raw:
-        return frozenset()
-    names = [n.strip() for n in raw.split(",") if n.strip()]
-    if names == ["all"]:
-        return frozenset(groups)
-    unknown = [n for n in names if n not in groups]
-    if unknown:
-        raise UnimportedMongoData(
-            f"{OVERRIDE_KEY}: unknown group(s) {', '.join(unknown)}; it takes "
-            f"'all' or a comma-separated list of {', '.join(groups)}"
-        )
-    return frozenset(names)
-
-
-def mongo_uri_configured(settings_obj: Any) -> str:
-    """The ``MONGO_URI`` an operator set (environment or settings store), or
-    ``""`` when only the built-in default applies."""
-    if "URI" not in settings_obj.model_fields_set:
-        return ""
-    return (settings_obj.URI or "").strip()
-
-
-@asynccontextmanager
-async def _database(
-    client: Optional[Any], uri: str, name: str
-) -> AsyncIterator[Optional[Any]]:
-    """The Mongo database to probe: on the process's connected client when it
-    has one, else on a client of its own on ``uri``; None without either."""
-    if client is not None:
-        yield client[name]
-        return
-    if not uri:
-        yield None
-        return
-    options = {}
-    if "serverselectiontimeoutms" not in uri.lower():
-        options["serverSelectionTimeoutMS"] = SERVER_SELECTION_TIMEOUT_MS
-    own = AsyncMongoClient(uri, **options)
-    try:
-        yield own[name]
-    finally:
-        await own.close()
-
-
-def _listed(items: Iterable[Unimported]) -> str:
-    return "; ".join(
-        f"{u.group}: {u.collection} ({u.mongo} in Mongo, 0 in Postgres)" for u in items
-    )
+    return _core.collection_tables(Base)
 
 
 def import_command(groups: Iterable[str]) -> str:
-    return f"python -m backend.migrate --group {','.join(groups)} backfill"
+    return _core.import_command(MIGRATE_MODULE, groups)
 
 
 async def check_unimported_mongo_data(
@@ -207,78 +98,30 @@ async def check_unimported_mongo_data(
     groups: Iterable[str] = POSTGRES_ONLY_GROUPS,
     state: Optional[PostgresState] = None,
 ) -> GuardResult:
-    """Raise :class:`UnimportedMongoData` when a guarded collection holds Mongo
-    data that Postgres does not (see the module docstring).
+    """:func:`common.db.migrate.import_guard.check_unimported_mongo_data` for
+    the backend's ``groups``.
 
     ``client``: the process's connected Mongo client, when a repository group
     uses Mongo (else None); ``uri``: the configured ``MONGO_URI`` (``""``:
     none); ``state``: the Postgres side, probed on ``engine`` when not given."""
     groups = tuple(groups)
-    discard = override_groups(env, groups)
-    if discard:
-        logger.warning(
-            "{} is set ({}): Mongo data of these groups that was never imported "
-            "into Postgres is left behind. Remove it once the start is through.",
-            OVERRIDE_KEY,
-            ", ".join(sorted(discard)),
-        )
-    collections = guarded_collections(groups)
+    tables = progress = None
     if state is None:
         from backend.db.models import MigrationProgress
 
         tables = collection_tables()
-        # a collection without a table has nothing to import into
-        collections = {c: g for c, g in collections.items() if c in tables}
-        state = await postgres_state(
-            engine,
-            {c: tables[c] for c in collections},
-            MigrationProgress.__table__,
-        )
-    candidates = [
-        c for c in collections if c not in state.has_rows and c not in state.imported
-    ]
-    result = GuardResult()
-    if not candidates:
-        return result
-    try:
-        async with _database(client, uri, database) as db:
-            if db is None:
-                logger.info(
-                    "MONGO_URI is not set: no Mongo data to import for {}",
-                    ", ".join(groups),
-                )
-                return result
-            result.mongo_checked = True
-            found = await mongo_documents(db, candidates)
-    except PyMongoError as exc:
-        raise UnimportedMongoData(
-            f"MONGO_URI is set but Mongo could not be read ({type(exc).__name__}), so "
-            f"it is unknown whether the {', '.join(groups)} groups have data there "
-            "that was never imported into Postgres. Make Mongo reachable, or, once "
-            "it holds nothing to keep, remove MONGO_URI (see "
-            "docs/postgres-cutover-runbook.md, 'Upgrading to 4.1')."
-        ) from exc
-    for name, count in found.items():
-        item = Unimported(collections[name], name, count)
-        (result.discarded if item.group in discard else result.blocking).append(item)
-    for item in result.discarded:
-        logger.warning(
-            "{}: starting WITHOUT the Mongo data of {} ({}, {} documents): it was "
-            "never imported into Postgres",
-            OVERRIDE_KEY,
-            item.group,
-            item.collection,
-            item.mongo,
-        )
-    if result.blocking:
-        blocked = [g for g in groups if any(u.group == g for u in result.blocking)]
-        raise UnimportedMongoData(
-            "Refusing to start: the "
-            f"{', '.join(blocked)} group(s) are served from Postgres only since 4.1, "
-            "and Mongo holds data of theirs that was never imported into Postgres: "
-            f"{_listed(result.blocking)}. Import it with "
-            f"`{import_command(blocked)}` (then `python -m backend.migrate status`), "
-            f"and start again. To discard that data instead, set {OVERRIDE_KEY}="
-            f"{','.join(blocked)} (docs/postgres-cutover-runbook.md, 'Upgrading to 4.1')."
-        )
-    return result
+        progress = MigrationProgress.__table__
+    return await _core.check_unimported_mongo_data(
+        engine,
+        collections=guarded_collections(groups),
+        tables=tables,
+        progress=progress,
+        migrate_module=MIGRATE_MODULE,
+        client=client,
+        uri=uri,
+        database=database,
+        groups=groups,
+        env=env,
+        state=state,
+        log=logger,
+    )

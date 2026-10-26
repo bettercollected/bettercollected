@@ -12,6 +12,7 @@ from sqlalchemy import insert
 
 from backend.app.container import container
 from backend.db import mongo_import_guard as guard
+from common.db.migrate import import_guard as core
 from backend.db.groups import COLLECTION_GROUPS, POSTGRES_ONLY_GROUPS
 from backend.db.models import MigrationProgress
 from backend.db.mongo_import_guard import (
@@ -142,7 +143,7 @@ async def test_without_mongo_uri_the_start_never_contacts_mongo(group, monkeypat
     def no_client(*args, **kwargs):
         raise AssertionError("Mongo contacted")
 
-    monkeypatch.setattr(guard, "AsyncMongoClient", no_client)
+    monkeypatch.setattr(core, "AsyncMongoClient", no_client)
     result = await check(client=None, uri="", groups=(group,))
     assert not result.mongo_checked and result.blocking == []
 
