@@ -10,6 +10,7 @@ import dataclasses
 import logging
 import os
 import subprocess
+import traceback
 import sys
 import uuid
 from pathlib import Path
@@ -18,6 +19,7 @@ import pytest
 import pytest_asyncio
 from bson import ObjectId
 from pymongo import AsyncMongoClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -127,8 +129,6 @@ async def test_a_collection_emptied_after_its_import_starts(engine, mongo_db, co
     async with Runner(target) as runner:
         await runner.backfill(None)
     async with engine.begin() as conn:
-        from sqlalchemy import text
-
         await conn.execute(text('DELETE FROM "auth"."users"'))
     assert (await check_mongo_import(engine)).blocking == []
 
@@ -149,14 +149,46 @@ async def test_the_override_starts_with_a_warning(
 
 
 @pytest.mark.asyncio
-async def test_the_override_names_the_services_groups_only(
+async def test_other_services_groups_are_ignored_and_unknown_ones_refused(
     engine, mongo_db, configured, monkeypatch
 ):
+    """One environment file serves the stack: ``refdata`` meant for the backend
+    neither stops this service nor discards its data; a name no service knows
+    is a typo."""
     await insert_users(mongo_db)
-    monkeypatch.setenv(OVERRIDE_KEY, "forms")
+    monkeypatch.setenv(OVERRIDE_KEY, "refdata,ai")
+    with pytest.raises(UnimportedMongoData, match="auth: "):
+        await check_mongo_import(engine)
+    monkeypatch.setenv(OVERRIDE_KEY, "nonsense")
     with pytest.raises(UnimportedMongoData, match="unknown group"):
         await check_mongo_import(engine)
+    monkeypatch.setenv(OVERRIDE_KEY, "refdata,auth")
+    assert (await check_mongo_import(engine)).blocking == []
     monkeypatch.setenv(OVERRIDE_KEY, "all")
+    assert (await check_mongo_import(engine)).blocking == []
+
+
+@pytest.mark.asyncio
+async def test_a_partly_imported_stack_refuses_the_start(engine, mongo_db, configured):
+    """The import stopped after a batch: some rows are in Postgres, the rest is
+    only in Mongo. Rows in the table must not pass for an import."""
+    await insert_users(mongo_db, 60)
+    base = build_target(os.environ["DATABASE_URL"])
+    target = dataclasses.replace(base, mongo_db=mongo_db.name, mongo_uri=MONGO_URI)
+    async with Runner(target) as runner:
+        result = await runner.backfill(None, max_batches=1, batch_size=25)
+    assert result["users"]["state"] != "done"
+    async with engine.connect() as conn:
+        copied = (await conn.execute(text('SELECT count(*) FROM "auth"."users"'))).scalar()
+    assert 0 < copied < 60
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check_mongo_import(engine)
+    message = str(refused.value)
+    assert "import unfinished: backfill" in message
+    assert "python -m " in message and "--group auth backfill" in message
+    # finishing the import lets the start through
+    async with Runner(target) as runner:
+        await runner.backfill(None)
     assert (await check_mongo_import(engine)).blocking == []
 
 
@@ -178,7 +210,8 @@ async def test_a_set_but_unreachable_mongo_refuses_the_start(engine, configured)
     with pytest.raises(UnimportedMongoData) as refused:
         await check_mongo_import(engine)
     assert "MONGO_URI is set but Mongo could not be read" in str(refused.value)
-    assert "127.0.0.1" not in str(refused.value)  # never the URI
+    text_ = "".join(traceback.format_exception(refused.value))
+    assert "127.0.0.1" not in text_  # never the URI, not even in the traceback
 
 
 PROGRAM = """

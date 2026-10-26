@@ -143,4 +143,4 @@ def test_a_set_but_unreachable_mongo_uri_refuses_the_start(_postgres_schema):
     assert "UnimportedMongoData" in result.stderr
     assert "MONGO_URI is set but Mongo could not be read" in result.stderr
     assert "ready" not in result.stdout
-    assert "127.0.0.1" not in result.stderr.split("UnimportedMongoData")[-1]
+    assert "127.0.0.1:1" not in result.stderr  # the driver's host:port stays out of the traceback

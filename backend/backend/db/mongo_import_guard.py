@@ -8,11 +8,15 @@ origins, no coupon codes, no price suggestions, no AI memories, no actions.
 So every process that serves these groups checks at startup, per collection
 of those groups (``COLLECTION_GROUPS``), and refuses to start when
 
-- the Mongo collection holds at least one document,
-- its Postgres table holds no row, and
-- no finished backfill of it is recorded (``migration_progress``): once a
-  collection was imported, an empty table is the application's doing (rows
-  deleted or expired since), not a missing import.
+- the Mongo collection holds at least one document, and
+- its import is not finished: a backfill of it is recorded
+  (``migration_progress``) in any state but ``done`` (interrupted, paused,
+  running, failed: whatever rows it copied, the rest is missing), or none is
+  recorded and its Postgres table holds no row.
+
+A finished backfill is the import: once a collection was imported, an empty
+table is the application's doing (rows deleted or expired since), not a missing
+import.
 
 The probes are cheap: ``SELECT EXISTS`` per table and one read of the
 backfill checkpoints first; Mongo is asked only about the collections whose

@@ -5,8 +5,10 @@ says. Services supply their own collections; here a made-up one with two groups.
 Mongo is a stand-in that counts what it is asked (or a real client on a closed
 port for the unreachable case); the Postgres probe runs on a live Postgres."""
 
+import asyncio
 import logging
 import os
+import traceback
 
 import pytest
 from sqlalchemy import text
@@ -29,6 +31,8 @@ SCHEMA = "common_guard_test"
 Base = make_base(SCHEMA)
 DB = "guard_db"
 UNREACHABLE = "mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=500"
+WITH_PASSWORD = "mongodb://user:secret@host.example"
+INVALID = "mongodb://user:secret@"
 COLLECTIONS = {"Accounts": "people", "Notes": "people", "Things": "stuff"}
 GROUPS = ("people", "stuff")
 
@@ -150,12 +154,142 @@ async def test_a_configured_but_unreachable_mongo_refuses_without_the_uri():
     assert "127.0.0.1" not in message  # never the URI (it may hold a password)
 
 
+async def test_the_traceback_never_carries_the_host_and_port():
+    """The driver's error names the host and port (and so may a password): it
+    is not chained into the refusal."""
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(client=None, uri=UNREACHABLE)
+    exc = refused.value
+    assert exc.__cause__ is None and exc.__context__ is None
+    text = "".join(traceback.format_exception(exc))
+    assert "127.0.0.1" not in text and ":1/" not in text
+    assert "ServerSelectionTimeoutError" in text  # the class stays
+
+
+class RecordingClient:
+    def __init__(self, uri, **options):
+        RecordingClient.seen = (uri, options)
+
+    def __getitem__(self, name):
+        return FakeDatabase({})
+
+    async def close(self):
+        return None
+
+
+async def test_a_client_of_the_guards_own_has_bounded_waits(monkeypatch):
+    monkeypatch.setattr(guard, "AsyncMongoClient", RecordingClient)
+    await check(uri="mongodb://db.example")
+    options = RecordingClient.seen[1]
+    assert options == {
+        "serverSelectionTimeoutMS": guard.SERVER_SELECTION_TIMEOUT_MS,
+        "connectTimeoutMS": guard.CONNECT_TIMEOUT_MS,
+        "socketTimeoutMS": guard.SOCKET_TIMEOUT_MS,
+    }
+
+
+async def test_a_uri_that_sets_a_timeout_keeps_it(monkeypatch):
+    monkeypatch.setattr(guard, "AsyncMongoClient", RecordingClient)
+    uri = "mongodb://db.example/?socketTimeoutMS=500&SERVERSELECTIONTIMEOUTMS=700"
+    await check(uri=uri)
+    assert set(RecordingClient.seen[1]) == {"connectTimeoutMS"}
+
+
+async def test_a_stalled_mongo_refuses_within_the_probe_cap(monkeypatch):
+    class Stalled(FakeCollection):
+        async def find_one(self, *args, **kwargs):
+            await asyncio.sleep(30)
+
+    class StalledDatabase(FakeDatabase):
+        def __getitem__(self, name):
+            return Stalled(self, name)
+
+    monkeypatch.setattr(guard, "PROBE_TIMEOUT_S", 0.2)
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check({DB: StalledDatabase({})})
+    assert "could not be read (TimeoutError)" in str(refused.value)
+
+
+async def test_a_client_that_cannot_be_built_refuses_without_its_message(monkeypatch):
+    def broken(uri, **options):
+        raise ValueError(f"bad option in {WITH_PASSWORD}")
+
+    monkeypatch.setattr(guard, "AsyncMongoClient", broken)
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(uri=WITH_PASSWORD)
+    text = "".join(traceback.format_exception(refused.value))
+    assert "could not be read (ValueError)" in text
+    assert "secret" not in text and "host.example" not in text
+
+
+async def test_an_invalid_uri_refuses_without_the_uri():
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(uri=INVALID)
+    text = "".join(traceback.format_exception(refused.value))
+    assert "could not be read" in text and "secret" not in text
+
+
 async def test_an_unreachable_mongo_is_not_asked_when_nothing_is_missing():
     result = await check(
         uri=UNREACHABLE,
         state=PostgresState(has_rows=frozenset(COLLECTIONS)),
     )
     assert not result.mongo_checked
+
+
+# -- a partial import ---------------------------------------------------------
+@pytest.mark.parametrize("backfill", ["running", "paused", "error"])
+async def test_an_unfinished_backfill_refuses_even_with_rows_in_postgres(backfill):
+    """2 of 5 accounts copied: the rest is missing, whatever Postgres holds."""
+    client, _ = fake_client({"Accounts": 5})
+    state = PostgresState(
+        has_rows=frozenset({"Accounts"}), unfinished={"Accounts": backfill}
+    )
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(client, state=state)
+    message = str(refused.value)
+    assert (
+        f"people: Accounts (5 in Mongo, import unfinished: backfill {backfill})"
+        in message
+    )
+    assert "0 in Postgres" not in message
+    assert "python -m demo.migrate --group people backfill" in message
+
+
+async def test_a_finished_backfill_or_the_applications_own_rows_start():
+    client, database = fake_client({"Accounts": 5, "Notes": 5, "Things": 5})
+    result = await check(
+        client,
+        state=PostgresState(
+            has_rows=frozenset({"Accounts", "Things"}),  # no backfill recorded: the app's
+            imported=frozenset({"Notes"}),  # done: the import
+        ),
+    )
+    assert result.blocking == [] and database.asked == []
+
+
+async def test_an_unfinished_backfill_of_an_empty_mongo_collection_starts():
+    client, database = fake_client({})
+    result = await check(
+        client,
+        state=PostgresState(
+            has_rows=frozenset(COLLECTIONS), unfinished={"Accounts": "paused"}
+        ),
+    )
+    assert result.blocking == [] and database.asked == ["Accounts"]
+
+
+async def test_the_override_covers_a_partial_import_too(caplog):
+    client, _ = fake_client({"Accounts": 5})
+    state = PostgresState(
+        has_rows=frozenset({"Accounts"}), unfinished={"Accounts": "paused"}
+    )
+    with caplog.at_level(logging.WARNING):
+        result = await check(client, state=state, env={OVERRIDE_KEY: "people"})
+    assert [(d.collection, d.backfill) for d in result.discarded] == [
+        ("Accounts", "paused")
+    ]
+    assert "WITHOUT the Mongo data of people (Accounts, 5 documents)" in caplog.text
 
 
 # -- the override -------------------------------------------------------------
@@ -191,10 +325,31 @@ async def test_the_override_is_silent_when_nothing_is_missing(caplog):
     assert "WITHOUT" not in caplog.text
 
 
-@pytest.mark.parametrize("value", ["nonsense", "people,nonsense", "true", "auth"])
+@pytest.mark.parametrize("value", ["nonsense", "people,nonsense", "true", "all,people"])
 async def test_an_override_naming_an_unknown_group_refuses(value):
     with pytest.raises(UnimportedMongoData, match="unknown group"):
         await check(fake_client({})[0], env={OVERRIDE_KEY: value})
+
+
+@pytest.mark.parametrize("value", ["refdata", "auth,google", "refdata, ai"])
+async def test_other_services_groups_are_ignored_not_refused(value, caplog):
+    """One environment file serves the whole stack: ``refdata`` for the backend
+    must not stop this service, nor discard its data."""
+    client, _ = fake_client({"Accounts": 2})
+    with caplog.at_level(logging.INFO):
+        with pytest.raises(UnimportedMongoData) as refused:
+            await check(client, env={OVERRIDE_KEY: value})
+    assert "people: Accounts (2 in Mongo" in str(refused.value)
+    assert "of other services: ignored here" in caplog.text
+
+
+async def test_a_list_with_other_services_groups_still_honours_its_own(caplog):
+    client, _ = fake_client({"Accounts": 2})
+    with caplog.at_level(logging.INFO):
+        result = await check(client, env={OVERRIDE_KEY: "refdata,people"})
+    assert result.blocking == []
+    assert [d.collection for d in result.discarded] == ["Accounts"]
+    assert "refdata, which is a group of other services" in caplog.text
 
 
 def test_override_groups_reads_all_a_list_or_nothing():

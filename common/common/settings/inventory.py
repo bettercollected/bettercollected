@@ -605,7 +605,7 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
            "Share of reads compared against the other store.", tier=T5),
     _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, AUTH, GOOGLE, JOBS),
           "Starts despite Mongo data never imported for these Postgres-only groups "
-          "of the service (all, or a comma-separated list); that data is left behind.",
+          "(all, or a list; others' groups ignored); that data is left behind.",
           tier=T5),
     _int("DB_POOL_SIZE", "database", _DB, 5, 1, 200, "Connection pool size.", tier=T5),
     _int("DB_MAX_OVERFLOW", "database", _DB, 5, 0, 200, "Extra connections above the pool.", tier=T5),
