@@ -190,7 +190,7 @@ export interface StandardFormDto {
         language?: string | null;
         /** Trust-layer content: why the data is collected (shown to responders). */
         purpose?: string;
-        /** Plain-words retention, e.g. "kept for 90 days". */
+        /** Legacy free-text note on retention. Not shown to respondents: the period they read comes from responseExpiration* only (utils/retention.ts). */
         retentionText?: string;
         // "Allow AI insights on responses" (#716): while on, respondents see
         // a notice naming the provider; only responses submitted from a page
