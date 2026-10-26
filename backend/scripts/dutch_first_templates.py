@@ -11,7 +11,9 @@ its English twin beside it, and built into two templates (settings.language
 - one question per page, so every screen asks one thing;
 - every question says why it is asked ("why we ask this", shown under it);
 - honest defaults: only what a first assessment needs is required, nothing
-  is pre-selected, and follow-up questions are skipped unless they apply;
+  is pre-selected, follow-up questions are skipped unless they apply, and
+  answers are deleted after a fixed number of days (the form's retention
+  setting, so it is enforced and stated to the respondent by the page);
 - no identity numbers and no documents: those are arranged in person.
 
 Dutch uses "u" where an organisation writes to the public (housing, school,
@@ -83,6 +85,11 @@ class BilingualTemplate:
     ending_message: Text
     questions: Tuple[Question, ...]
     start: Text = field(default_factory=lambda: t("Beginnen", "Start"))
+    # Days a response is kept (the form's enforced retention setting: the
+    # server deletes it then and the respondent page says so). Only a period
+    # the organisation needs for the first assessment; the creator can change
+    # it. Never a free-text claim in the template's wording.
+    retention_days: int = 0
 
 
 NOT_BEFORE_TODAY = ({"comparison": "on_or_after", "target": "today"},)
@@ -91,6 +98,7 @@ BEFORE_TODAY = ({"comparison": "before", "target": "today"},)
 
 HOUSING_APPLICATION = BilingualTemplate(
     key="housing_application",
+    retention_days=180,
     title=t("Aanvraag huurwoning", "Rental home application"),
     description=t(
         "Vraag een huurwoning aan. Het invullen duurt ongeveer 5 minuten.",
@@ -249,6 +257,7 @@ HOUSING_APPLICATION = BilingualTemplate(
 
 SCHOOL_ENROLMENT = BilingualTemplate(
     key="school_enrolment",
+    retention_days=365,
     title=t("Aanmelding voor school", "School enrolment"),
     description=t(
         "Meld uw kind aan bij onze school. Het invullen duurt ongeveer 5 minuten.",
@@ -408,6 +417,7 @@ SCHOOL_ENROLMENT = BilingualTemplate(
 
 ORGANISATION_REQUEST = BilingualTemplate(
     key="organisation_request",
+    retention_days=90,
     title=t("Verzoek aan onze organisatie", "Request to our organisation"),
     description=t(
         "Stel ons een vraag of doe een verzoek. Het invullen duurt ongeveer 3 minuten.",
@@ -465,8 +475,8 @@ ORGANISATION_REQUEST = BilingualTemplate(
             "place",
             "short_text",
             t(
-                "Gaat het over een bepaalde plek? Waar is dat?",
-                "Is it about a particular place? Where is it?",
+                "Over welke plek gaat uw verzoek?",
+                "Which place is your request about?",
             ),
             t(
                 "Vul dit alleen in als het over een plek gaat, zoals een straat "
@@ -489,8 +499,8 @@ ORGANISATION_REQUEST = BilingualTemplate(
             "call_me",
             "yes_no",
             t(
-                "Wilt u liever gebeld worden dan een e-mail krijgen?",
-                "Would you rather we phoned you than emailed you?",
+                "Mogen we u bellen in plaats van te mailen?",
+                "May we phone you instead of emailing you?",
             ),
             t(
                 "Daarna vragen we alleen naar het telefoonnummer of het "
@@ -529,6 +539,7 @@ ORGANISATION_REQUEST = BilingualTemplate(
 
 NEW_COLLEAGUE = BilingualTemplate(
     key="new_colleague",
+    retention_days=90,
     title=t("Welkom als nieuwe collega", "Welcome, new colleague"),
     description=t(
         "Geef je gegevens door voor je eerste werkdag. Het invullen duurt "
@@ -702,6 +713,7 @@ NEW_COLLEAGUE = BilingualTemplate(
 
 EVENT_REGISTRATION = BilingualTemplate(
     key="event_registration",
+    retention_days=180,
     title=t("Aanmelden voor een evenement", "Event registration"),
     description=t(
         "Meld je aan voor ons evenement. Het invullen duurt ongeveer 2 minuten.",
@@ -892,6 +904,8 @@ def build_template(template: BilingualTemplate, lang: str) -> dict:
         "description": template.description[lang],
         "category": None,
         "language": lang,
+        "response_expiration_type": "days",
+        "response_expiration": str(template.retention_days),
         "fields": pages,
         "welcome_page": {
             "title": template.title[lang],

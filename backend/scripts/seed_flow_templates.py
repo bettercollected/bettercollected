@@ -445,7 +445,13 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
                 "buttonText": "Start",
             },
             thankyou_page=payload.get("thankyou_page") or [{"layout": LAYOUT}],
-            settings={"is_public": True, "language": payload.get("language")},
+            settings={
+                "is_public": True,
+                "language": payload.get("language"),
+                # The Dutch-first templates keep answers for a fixed period.
+                "response_expiration_type": payload.get("response_expiration_type"),
+                "response_expiration": payload.get("response_expiration"),
+            },
         )
         await template_repo.save(template)
         seeded.append(payload["title"])
