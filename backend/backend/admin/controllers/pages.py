@@ -33,6 +33,14 @@ def _session(request: Request):
     return request.scope["state"]["session"]
 
 
+def _access(request: Request):
+    """The address gate as the signed-in admin may see it (``None`` without a gate)."""
+    return pg.admin_access(
+        getattr(request.app.state, "gate_settings", None),
+        request.scope["state"].get("client_ip"),
+    )
+
+
 async def _shell(request: Request, active: str) -> dict:
     """What every signed-in page's header needs."""
     portal, session = _portal(request), _session(request)
@@ -91,7 +99,7 @@ def register(reg: RouteRegistry) -> None:
             return await _bad_request(
                 request, "config.html", "config", "section" if section not in config.sections and section else "tier",
                 config=config, rows=[], section="", tier="",
-                admins=sorted(portal.settings.admin_emails),
+                admins=sorted(portal.settings.admin_emails), access=_access(request),
             )
         rows = [
             r for r in config.rows
@@ -100,6 +108,7 @@ def register(reg: RouteRegistry) -> None:
         return await _page(
             request, "config.html", "config", config=config, rows=rows, section=section,
             tier=tier, error=None, admins=sorted(portal.settings.admin_emails),
+            access=_access(request),
         )
 
     @reg.route("/metrics", level=Level.SECOND_FACTOR)

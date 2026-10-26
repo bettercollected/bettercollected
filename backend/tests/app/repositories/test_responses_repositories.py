@@ -19,6 +19,9 @@ regenerated to make a change pass. Skipped unless DATABASE_URL points at a
 import datetime as dt
 from pathlib import Path
 
+from fastapi_pagination import Page, Params
+from fastapi_pagination.api import set_page, set_params
+
 from backend.app.container import container
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
@@ -34,6 +37,11 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.schemas.workspace_responder import (
+    WorkspaceResponderDocument,
+    WorkspaceTags,
+)
+from backend.db.models import WorkspaceTagRow
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from common.records import RecordId
@@ -453,6 +461,70 @@ async def test_add_respondent_feedback_appends(sessions):
     assert "respondent" in str(stored.answers)
     assert await postgres.add_respondent_feedback(gone, entry(4)) is None
     case.check()
+
+
+async def test_responders_are_listed_per_workspace(sessions):
+    """Two workspaces hold responses from one email, each with its own
+    responder record (metadata, tags). Each listing carries its own record
+    and only its own workspace's tags, one row per email even where a
+    workspace has two records for it."""
+    a, b = oid(1), oid(2)
+    await container.form_repo().save_form(FormDocument(form_id="p1", title="Provider"))
+    for workspace, user in ((a, "ua"), (b, "ub")):
+        await container.workspace_form_repo().save(
+            WorkspaceFormDocument(workspace_id=workspace, form_id="p1", user_id=user)
+        )
+    postgres = responses_repo(sessions)
+    responders = PostgresWorkspaceRespondersRepository(sessions)
+    await seed(
+        postgres,
+        response("p1", "a1", 1, answers={}, workspace_id=a, dataOwnerIdentifier="r@x"),
+        response("p1", "a2", 2, answers={}, workspace_id=a, dataOwnerIdentifier="s@x"),
+        response("p1", "b1", 3, answers={}, workspace_id=b, dataOwnerIdentifier="r@x"),
+    )
+    tag_a = WorkspaceTags(id=oid(10), workspace_id=a, title="alpha-tag")
+    tag_b = WorkspaceTags(id=oid(11), workspace_id=b, title="beta-tag")
+    for tag in (tag_a, tag_b):
+        await responders.upsert(tag, row=WorkspaceTagRow)
+    for record in (  # oldest first: the first of a workspace's duplicates is read
+        WorkspaceResponderDocument(
+            id=oid(20),
+            workspace_id=a,
+            email="r@x",
+            metadata={"team": "alpha"},
+            # a tag of another workspace that got stored (before it was refused)
+            tags=[tag_a.id, tag_b.id],
+        ),
+        WorkspaceResponderDocument(
+            id=oid(21),
+            workspace_id=b,
+            email="r@x",
+            metadata={"team": "beta"},
+            tags=[tag_b.id],
+        ),
+        WorkspaceResponderDocument(
+            id=oid(22),
+            workspace_id=a,
+            email="r@x",
+            metadata={"team": "duplicate"},
+            tags=[],
+        ),
+    ):
+        await responders.upsert(record)
+
+    expected = {
+        a: [("r@x", {"team": "alpha"}, ["alpha-tag"]), ("s@x", None, [])],
+        b: [("r@x", {"team": "beta"}, ["beta-tag"])],
+    }
+    for workspace, rows in expected.items():
+        scope = ResponseScope(workspace, ("p1",))
+        with set_page(Page), set_params(Params(page=1, size=10)):
+            page = await postgres.list(scope, False, data_subjects=True)
+        assert page.total == len(rows)
+        assert [
+            (i["email"], i.get("metadata"), [t["title"] for t in i["tags"]])
+            for i in page.items
+        ] == rows
 
 
 async def test_responses_are_read_per_workspace(sessions):

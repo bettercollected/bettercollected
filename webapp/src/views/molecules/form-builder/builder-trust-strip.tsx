@@ -38,7 +38,7 @@ export function TrustStripNudge() {
     const { setPropertiesTab } = usePropertiesTab();
 
     const settings = standardForm?.settings;
-    if (settings?.purpose || settings?.retentionText || settings?.responseExpirationType || settings?.privacyPolicyUrl) return null;
+    if (settings?.purpose || settings?.responseExpirationType || settings?.privacyPolicyUrl) return null;
 
     return (
         <button

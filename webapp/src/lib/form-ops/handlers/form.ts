@@ -25,7 +25,7 @@ export const updateFormInfo: Handler<UpdateFormInfoOp> = (ctx, op) => {
 
 const SETTINGS_LABELS: Record<keyof FormSettingsPatch, string> = {
     purpose: 'purpose',
-    retentionText: 'retention',
+    retentionText: 'internal retention note',
     privacyPolicyUrl: 'privacy policy link',
     requireVerifiedIdentity: 'verified-identity requirement',
     allowEditingResponse: 'response editing',

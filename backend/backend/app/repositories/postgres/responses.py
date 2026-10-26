@@ -296,16 +296,24 @@ class PostgresFormResponseRepository(RecordRepository):
             .correlate(grouped)
             .scalar_subquery()
         )
-        stmt = (
-            select(
-                grouped.c.email,
-                grouped.c.responses,
-                deletion_requests.label("deletion_requests"),
-                wr.doc,
+        # this workspace's record only, the oldest if it has several
+        responder = (
+            select(wr.doc)
+            .where(
+                wr.workspace_id == str(scope.workspace_id),
+                wr.email == grouped.c.email,
             )
-            .outerjoin(wr, wr.email == grouped.c.email)  # any workspace, as the $lookup
-            .order_by(grouped.c.email, wr.created_at, wr.id)
+            .order_by(wr.id)
+            .limit(1)
+            .correlate(grouped)
+            .scalar_subquery()
         )
+        stmt = select(
+            grouped.c.email,
+            grouped.c.responses,
+            deletion_requests.label("deletion_requests"),
+            responder.label("responder"),
+        ).order_by(grouped.c.email)
         # create_filter_pipeline(..., default_sort=False): filters only, no sort
         matching = (
             filter_query.model_dump(exclude_unset=True, exclude_none=True)
@@ -341,7 +349,9 @@ class PostgresFormResponseRepository(RecordRepository):
                         (
                             await session.execute(
                                 select(WorkspaceTagRow.doc).where(
-                                    WorkspaceTagRow.id.in_(tag_ids)
+                                    WorkspaceTagRow.id.in_(tag_ids),
+                                    WorkspaceTagRow.workspace_id
+                                    == str(scope.workspace_id),
                                 )
                             )
                         )
@@ -717,9 +727,11 @@ class PostgresFormResponseRepository(RecordRepository):
         """Staff closed ``request`` by hand: its outcome, who and when, applied
         to the stored request under its row lock. Refused with 409 when
         another close was recorded since ``request`` was read (a second staff
-        member, an import that no longer has the response); completing a
-        request by deleting its response (``delete_form_response``) records no
-        close and is no conflict."""
+        member, an import that no longer has the response), and a decline is
+        refused the same way when the request changed status since (its
+        response was deleted meanwhile). Completing a request by deleting its
+        response (``delete_form_response``) records no close and is no
+        conflict, so a completing close still follows the deletion."""
         async with self._session() as session, session.begin():
             stored = await _locked_doc(
                 session,
@@ -729,7 +741,12 @@ class PostgresFormResponseRepository(RecordRepository):
             )
             if stored is None:
                 raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-            if len(stored.closures) > len(request.closures):
+            if len(stored.closures) > len(request.closures) or (
+                # the data was deleted (and the request marked done) after
+                # the caller read it: a decline would say "not deleted"
+                status is DeletionRequestStatus.DECLINED
+                and stored.status != request.status
+            ):
                 raise HTTPException(
                     HTTPStatus.CONFLICT,
                     content={

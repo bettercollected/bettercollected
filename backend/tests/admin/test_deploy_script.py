@@ -1083,3 +1083,176 @@ def test_a_mongo_uri_put_back_after_the_import_is_pointed_out_not_imported_again
     assert "NOTE: MONGO_URI is set in .env.deployment, but this stack's Mongo data was imported" in done.stdout
     assert not any(".migrate" in c or "--profile legacy-mongo" in c for c in calls)
     assert "MONGO_URI=mongodb://root:root@mongodb:27017" in (work / ".env.deployment").read_text()
+
+
+# --- the operator's own MONGO_URI comes first; key names, never values -----------------
+
+LOCAL_MONGO = "mongodb://root:root@mongodb:27017"
+UPGRADE_VOLUMES = "mongo-data,app-postgres-data,temporal-postgres-data,umami-db-data"
+EXTERNAL_URI = "mongodb://u:DUMMY-external-pw@db.example.test:27017"
+
+
+def test_the_local_mongo_uri_is_seeded_with_the_volumes_own_password(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("BC_MONGO_ROOT_PASSWORD=volpw123\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert (state / "store" / "MONGO_URI").read_text() == "mongodb://root:volpw123@mongodb:27017"
+    assert "volpw123" not in done.stdout + done.stderr
+
+
+@pytest.mark.parametrize("store_complete", [False, True])
+def test_an_operator_mongo_uri_in_env_deployment_is_never_replaced_by_the_local_one(site, store_complete):
+    """An external Mongo configured in .env.deployment: the stack's own Mongo URI is not
+    seeded, on the run that imports the files into the store and on one that does not."""
+    work, state, _ = site
+    _upgrade_env(work)
+    (work / ".env.deployment").write_text(f"UMAMI_PASSWORD=\nMONGO_URI={EXTERNAL_URI}\n")
+    if store_complete:
+        store = state / "store"
+        store.mkdir()
+        for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY",
+                    "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET"):
+            (store / key).write_text("x")
+        with (work / ".env").open("a") as env:
+            env.write("TEMPORAL_API_KEY=" + "t" * 48 + "\n")
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not (state / "store" / "MONGO_URI").exists()
+    assert not any("settings-set MONGO_URI" in c for c in calls)
+    assert "NOTE: MONGO_URI is set in .env.deployment: that value is the operator's own and is kept" in done.stdout
+    assert "move it to .env.deployment" not in done.stdout
+    assert "DUMMY-external-pw" not in done.stdout + done.stderr
+    # the import itself still runs, from the operator's value
+    assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
+
+
+def test_a_mongo_uri_only_in_the_root_env_stops_the_deploy_before_any_service_is_stopped(site):
+    """No service reads MONGO_URI from the root .env: the import could not reach that Mongo,
+    and the services would already be stopped by then. Stopped first, with what to do."""
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write(f"MONGO_URI={EXTERNAL_URI}\n")
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "STOPPED before any service was stopped: MONGO_URI is set in the root .env only" in done.stderr
+    assert "Move the MONGO_URI line from .env to .env.deployment, then run ./deploy.sh again. Nothing was changed." in done.stderr
+    # nothing stopped, no import, no start, the local URI not stored over the operator's
+    assert not any(" stop " in c or c.startswith("stop ") or ".migrate" in c or "up --build" in c or "legacy-mongo" in c for c in calls)
+    assert not (state / "store" / "MONGO_URI").exists()
+    assert not any("settings-set MONGO_URI" in c for c in calls)
+    assert "BC_LEGACY_MONGO_IMPORTED" not in _dotenv(work)
+    assert "DUMMY-external-pw" not in done.stdout + done.stderr
+
+
+def test_a_mongo_uri_in_the_root_env_and_in_the_store_uses_the_stored_one(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write(f"MONGO_URI={EXTERNAL_URI}\n")
+    store = state / "store"
+    store.mkdir()
+    (store / "MONGO_URI").write_text(EXTERNAL_URI)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "the settings store holds one too: the stored value is used" in done.stdout
+    assert (store / "MONGO_URI").read_text() == EXTERNAL_URI
+    assert not any("settings-set MONGO_URI" in c for c in calls)
+    assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
+    assert "DUMMY-external-pw" not in done.stdout + done.stderr
+
+
+def test_a_stored_mongo_uri_is_never_overwritten(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    store = state / "store"
+    store.mkdir()
+    (store / "MONGO_URI").write_text(EXTERNAL_URI)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert (store / "MONGO_URI").read_text() == EXTERNAL_URI
+    assert not any("settings-set MONGO_URI" in c for c in calls)
+
+
+def test_a_blank_mongo_uri_is_no_operator_value(site):
+    """The line a finished import leaves behind (blanked) is not an operator value."""
+    work, state, _ = site
+    _upgrade_env(work)
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nMONGO_URI=\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert (state / "store" / "MONGO_URI").read_text() == LOCAL_MONGO
+    assert "that value is the operator's own" not in done.stdout
+
+
+def test_a_new_stack_never_seeds_a_mongo_uri(site):
+    work, state, _ = site
+    done, calls = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("MONGO_URI" in c for c in calls)
+    assert not (state / "store" / "MONGO_URI").exists()
+
+
+def test_the_names_of_the_settings_copied_into_each_service_file_are_printed_never_values(site):
+    work, state, _ = site
+    (work / ".env.deployment").write_text(
+        "STRIPE_SECRET=sk_live_dummy\nUNSPLASH_ACCESS_KEY=unsplash-secret-value\nGOOGLE_CLIENT_ID=gid-value\n"
+        "export UMAMI_SCRIPT_URL=http://host:3003/script.js\nGOOGLE_PICKER_API_KEY=\n"
+        "COOKIE_DOMAIN=cookie.example.test\nNAMESPACE=ns-value\nCOOKIE_DOMAIN=again.example.test\n"
+    )
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    out = done.stdout
+    # names in file order, once each, empty values left out (they are not copied either)
+    assert "Created .env.webapp from .env.deployment with: UNSPLASH_ACCESS_KEY, GOOGLE_CLIENT_ID, UMAMI_SCRIPT_URL\n" in out
+    assert "Created .env.worker from .env.deployment with: COOKIE_DOMAIN, NAMESPACE\n" in out
+    shown = out + done.stderr
+    for value in ("sk_live_dummy", "unsplash-secret-value", "gid-value", "cookie.example.test",
+                  "again.example.test", "ns-value", "script.js"):
+        assert value not in shown
+    # a file that already exists is left alone, and nothing is reported as copied
+    (state / "calls.log").unlink()
+    done, _ = _run(site, volumes="mongo-data,app-postgres-data")
+    assert "Created .env.webapp" not in done.stdout and "Created .env.worker" not in done.stdout
+
+
+def test_a_service_file_with_nothing_to_copy_says_so(site):
+    work, _, _ = site
+    (work / ".env.deployment").write_text("STRIPE_SECRET=sk_live_dummy\n")
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "Created .env.webapp: .env.deployment has none of the settings this service reads." in done.stdout
+    assert "sk_live_dummy" not in done.stdout + done.stderr
+
+
+def test_the_worker_key_copies_are_reported_by_name_never_value(site):
+    work, _, _ = site
+    (work / ".env").write_text(
+        "AUTH_JWT_SECRET=" + "j" * 64 + "\nAUTH_AES_HEX_KEY=" + "A" * 43 + "=\n"
+        "MASTER_ENCRYPTION_KEYSET=" + "k" * 40 + "\nTEMPORAL_API_KEY=" + "t" * 48 + "\n"
+        "SETTINGS_MASTER_KEY=" + "m" * 64 + "\n"
+    )
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "Copied TEMPORAL_API_KEY to API_KEY in .env" in done.stdout
+    assert "Copied AUTH_AES_HEX_KEY to AES_HEX_KEY in .env" in done.stdout
+    shown = done.stdout + done.stderr
+    for secret in ("t" * 48, "A" * 43, "j" * 64, "m" * 64):
+        assert secret not in shown
+    # a second run copies nothing, so says nothing
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert "Copied TEMPORAL_API_KEY" not in done.stdout and "Stored API_KEY" not in done.stdout
+
+
+def test_the_generated_worker_keys_are_reported_by_name_never_value(site):
+    work, _, _ = site
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "Stored API_KEY in .env" in done.stdout and "Stored AES_HEX_KEY in .env" in done.stdout
+    values = _dotenv(work)
+    shown = done.stdout + done.stderr
+    for key in ("API_KEY", "AES_HEX_KEY", "SETTINGS_MASTER_KEY", "APP_POSTGRES_PASSWORD", "UMAMI_APP_SECRET"):
+        assert values[key] not in shown, key
