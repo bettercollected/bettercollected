@@ -1,0 +1,63 @@
+{
+  "_note": "Throwaway keys generated only for this file; they protect nothing. Written with pycryptodome 3.24.1 installed, so the test proves what 3.x wrote still decrypts.",
+  "tink_keyset_b64": "ewogICJwcmltYXJ5S2V5SWQiOiAxNjI3NjkyNzMzLAogICJrZXkiOiBbCiAgICB7CiAgICAgICJrZXlEYXRhIjogewogICAgICAgICJ0eXBlVXJsIjogInR5cGUuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmNyeXB0by50aW5rLkFlc0djbUtleSIsCiAgICAgICAgInZhbHVlIjogIkdpQVVkQjNtUDNFRFMrUUQ2SFIremROcGlLL0tRai9najVOOXR3OGROaEF6c0E9PSIsCiAgICAgICAgImtleU1hdGVyaWFsVHlwZSI6ICJTWU1NRVRSSUMiCiAgICAgIH0sCiAgICAgICJzdGF0dXMiOiAiRU5BQkxFRCIsCiAgICAgICJrZXlJZCI6IDE2Mjc2OTI3MzMsCiAgICAgICJvdXRwdXRQcmVmaXhUeXBlIjogIlRJTksiCiAgICB9CiAgXQp9",
+  "stored_responses": [
+    {
+      "workspace_id": "ws-golden-1",
+      "form_id": "form-golden-1",
+      "context": "",
+      "plaintext": "a plain answer",
+      "ciphertext_b64": "djE6AWEEnr37NU+jKghJdPEuE11L8h4xaFeTYoR6cxnr1OMJBt6SBcdl+G9CwFBxxrk="
+    },
+    {
+      "workspace_id": "ws-golden-1",
+      "form_id": "form-golden-1",
+      "context": "",
+      "plaintext": "{\"answer\": [\"a\", \"b\"], \"n\": 3}",
+      "ciphertext_b64": "djE6AWEEnr3ZHdDXg/CEF//2EkVISHnQAseNkGzzyfOLdomKl3gg/hkbrq52o51YPL0uLwcwLvjg7v46l8OizOMV"
+    },
+    {
+      "workspace_id": "ws-golden-2",
+      "form_id": "form-golden-9",
+      "context": "email",
+      "plaintext": "someone@example.invalid",
+      "ciphertext_b64": "djE6AWEEnr1rtTJ3q4a1IfZM4MYJqezZ/cxgGi37na4GDRuPxGpygYx9DiNl7q0yMBSk7fXnoHnmvLc="
+    },
+    {
+      "workspace_id": "ws-golden-2",
+      "form_id": "form-golden-9",
+      "context": "",
+      "plaintext": "naïve café – 日本語 ✓",
+      "ciphertext_b64": "djE6AWEEnr2ZzHkk7ZkwMca5vKmhWuz3Qm+cIxxJ66uoqE6SIPJnWJpDwNBITvZznqkvJKEUyt8bXdnmSuukclAk"
+    },
+    {
+      "workspace_id": "ws-golden-3",
+      "form_id": "form-golden-3",
+      "context": "",
+      "plaintext": "v1:looks-like-a-prefix",
+      "ciphertext_b64": "djE6AWEEnr0lKJxaxPllzi7oQvWRpzOK0a32duCHbttscpaRc/geVtbOQKNMxURhgagfy3cj7SOESQ=="
+    },
+    {
+      "workspace_id": "ws-golden-3",
+      "form_id": "form-golden-3",
+      "context": "",
+      "plaintext": "",
+      "ciphertext_b64": "djE6AWEEnr0Jrob7vsxjqmHxOCQZV2jWRF8PRJBblU85c6Ec"
+    }
+  ],
+  "fernet_key": "vbKlWWIqo8w1vTQA2x2ADeZGE2K2vaOztJ8tXjKAuZ8=",
+  "fernet_credentials": [
+    {
+      "plaintext": "credential-json-golden",
+      "token": "gAAAAABq36KB9WbWARkUsEACp2xGY-1ipTjG3Rm25dbhGHracNH9Kt69ty7BPoS3vCwzZHrvfgF7-m-j0jvdeoMqWadUN9zClqoJHYT7oldfck_KiTtRBC0="
+    },
+    {
+      "plaintext": "refresh-token-golden-ü",
+      "token": "gAAAAABq36KBPgkSyBdoqiBQn1Xv2A_ouL9f_VDuUJBw6PGP8syFcVFMkl8ccXcr_Iyhz37tBXrGMJgUx9vfInXRT0MEYSPwwipPgyhuWMY8FKClZ7DAEhA="
+    },
+    {
+      "plaintext": "",
+      "token": "gAAAAABq36KBP3IQ7P4rCgN6U8eXa2340D3znw3fIab2O-mSKNcHzaleudpsc2ZeF7DzIbGITw3fZblcD1vQu9ErlxOKgIz5fA=="
+    }
+  ]
+}
