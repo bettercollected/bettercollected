@@ -1129,16 +1129,39 @@ def test_an_operator_mongo_uri_in_env_deployment_is_never_replaced_by_the_local_
     assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
 
 
-def test_a_mongo_uri_only_in_the_root_env_is_not_replaced_and_is_pointed_out(site):
+def test_a_mongo_uri_only_in_the_root_env_stops_the_deploy_before_any_service_is_stopped(site):
+    """No service reads MONGO_URI from the root .env: the import could not reach that Mongo,
+    and the services would already be stopped by then. Stopped first, with what to do."""
     work, state, _ = site
     _upgrade_env(work)
     with (work / ".env").open("a") as env:
         env.write(f"MONGO_URI={EXTERNAL_URI}\n")
     done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "STOPPED before any service was stopped: MONGO_URI is set in the root .env only" in done.stderr
+    assert "Move the MONGO_URI line from .env to .env.deployment, then run ./deploy.sh again. Nothing was changed." in done.stderr
+    # nothing stopped, no import, no start, the local URI not stored over the operator's
+    assert not any(" stop " in c or c.startswith("stop ") or ".migrate" in c or "up --build" in c or "legacy-mongo" in c for c in calls)
     assert not (state / "store" / "MONGO_URI").exists()
     assert not any("settings-set MONGO_URI" in c for c in calls)
-    assert "NOTE: MONGO_URI is set in .env: that value is the operator's own and is kept" in done.stdout
-    assert "move it to .env.deployment" in done.stdout
+    assert "BC_LEGACY_MONGO_IMPORTED" not in _dotenv(work)
+    assert "DUMMY-external-pw" not in done.stdout + done.stderr
+
+
+def test_a_mongo_uri_in_the_root_env_and_in_the_store_uses_the_stored_one(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write(f"MONGO_URI={EXTERNAL_URI}\n")
+    store = state / "store"
+    store.mkdir()
+    (store / "MONGO_URI").write_text(EXTERNAL_URI)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "the settings store holds one too: the stored value is used" in done.stdout
+    assert (store / "MONGO_URI").read_text() == EXTERNAL_URI
+    assert not any("settings-set MONGO_URI" in c for c in calls)
+    assert _index(calls, "backend.migrate verify") < _index(calls, "up --build")
     assert "DUMMY-external-pw" not in done.stdout + done.stderr
 
 

@@ -207,6 +207,8 @@ service_env_file() {
   # names only, never a value: what the operator sees moved into the service's file
   if [ -n "$copied" ]; then
     echo "Created ${file} from .env.deployment with: ${copied}"
+  elif [ ! -f .env.deployment ]; then
+    echo "Created ${file}: .env.deployment is missing, so nothing was copied."
   else
     echo "Created ${file}: .env.deployment has none of the settings this service reads."
   fi
@@ -822,7 +824,7 @@ service_env_file .env.worker "${worker_env_keys[@]}" || exit 1
 # after the database and its migrations are in place and before any service
 # starts, because the services refuse to start without them.
 function stack_keys() {
-  local state rc dir mongo_uri_files
+  local state rc dir mongo_uri_files count
   state=$(store_keys_state) || {
     echo "Could not read the settings store (see the message above). Is SETTINGS_MASTER_KEY the key this stack has used?" >&2
     return 1
@@ -939,10 +941,22 @@ function stack_keys() {
   if [ "$legacy_mongo_import" = true ] && [ "$existing_stack" = true ]; then
     mongo_uri_files=$(operator_mongo_uri_files)
     if [ -n "$mongo_uri_files" ]; then
-      echo "NOTE: MONGO_URI is set in ${mongo_uri_files}: that value is the operator's own and is kept; the stack's local Mongo URI is not stored."
-      if ! file_has .env.deployment MONGO_URI; then
-        echo "      The services read MONGO_URI from .env.deployment or the settings store, not from the root .env: move it to .env.deployment,"
-        echo "      or the import cannot reach that Mongo."
+      if file_has .env.deployment MONGO_URI; then
+        echo "NOTE: MONGO_URI is set in ${mongo_uri_files}: that value is the operator's own and is kept; the stack's local Mongo URI is not stored."
+      else
+        # Only the root .env has it, and no service reads the root .env: without a value in
+        # .env.deployment or the store the import could not reach that Mongo, and by then
+        # the services would already be stopped. Stop here, before anything is stopped.
+        count=$(store_versions MONGO_URI) || count=""
+        if [ "${count:-0}" -gt 0 ]; then
+          echo "NOTE: MONGO_URI is set in .env, and the settings store holds one too: the stored value is used and the stack's local Mongo URI is not stored."
+        else
+          echo "" >&2
+          echo "STOPPED before any service was stopped: MONGO_URI is set in the root .env only. No service reads MONGO_URI from the root" >&2
+          echo ".env, so the import of this stack's MongoDB data could not reach that Mongo (and the stack's own Mongo URI is not stored" >&2
+          echo "over yours). Move the MONGO_URI line from .env to .env.deployment, then run ./deploy.sh again. Nothing was changed." >&2
+          return 1
+        fi
       fi
     elif file_has .env BC_MONGO_ROOT_PASSWORD; then
       seed_setting MONGO_URI "mongodb://root:$(dotenv_value .env BC_MONGO_ROOT_PASSWORD)@mongodb:27017" || {
