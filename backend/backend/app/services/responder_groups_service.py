@@ -223,13 +223,14 @@ class ResponderGroupsService:
     async def _linked_group_owners(
         self, form_id: str
     ) -> Dict[RecordId, Optional[RecordId]]:
-        """group id -> the workspace that owns it, for the form's groups."""
-        groups = await self.responder_groups_repo.get_groups_by_form_ids([form_id])
+        """group id -> the workspace that owns it, for every group linked to
+        the form, whatever its workspace. Only the save logic below reads this:
+        it must see other workspaces' links to keep them; no reply is built
+        from it."""
+        owners = await self.responder_groups_repo.get_linked_group_owners(form_id)
         return {
-            _oid(group["_id"]): (
-                _oid(group["workspace_id"]) if group.get("workspace_id") else None
-            )
-            for group in groups.get(form_id, [])
+            _oid(group_id): _oid(owner) if owner else None
+            for group_id, owner in owners.items()
         }
 
     async def add_groups_to_form(
@@ -263,9 +264,13 @@ class ResponderGroupsService:
             for group_id, owner in owners.items()
             if owner is not None and owner in other_workspaces
         ]
-        return await self.responder_groups_repo.add_groups_to_form(
+        own_groups = {*own, *unlinked}
+        links = await self.responder_groups_repo.add_groups_to_form(
             form_id, own + unlinked + kept
         )
+        # the workspace's own links only: another workspace's stay linked but
+        # are not reported back
+        return [link for link in links if _oid(link.group_id) in own_groups]
 
     async def remove_group_from_form(
         self,

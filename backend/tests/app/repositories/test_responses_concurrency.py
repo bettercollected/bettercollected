@@ -360,7 +360,7 @@ async def test_groups_saved_on_one_form_at_once_leave_one_of_the_sets(sessions):
             + [repo.add_groups_to_form(form, [c.id]) for _ in range(3)]
         )
     )
-    linked = {str(g["_id"]) for g in (await repo.get_groups_by_form_ids([form]))[form]}
+    linked = {str(g["_id"]) for g in (await repo.get_groups_by_form_ids([form], WORKSPACE))[form]}
     assert linked in ({str(a.id), str(b.id)}, {str(c.id)})
 
 
@@ -385,7 +385,7 @@ async def test_removing_a_group_removes_its_members_and_links_together(sessions)
             )
         ).all()
     assert members == [] and groups == []
-    assert (await repo.get_groups_by_form_ids(["f1"]))["f1"] == []
+    assert (await repo.get_groups_by_form_ids(["f1"], WORKSPACE))["f1"] == []
 
 
 # ----------------------------------------------- deterministic interleavings
@@ -555,7 +555,7 @@ async def test_groups_saved_on_a_form_wait_for_the_save_in_progress(sessions):
         sessions, hold, lambda: repo.add_groups_to_form(form, [a.id, b.id]), during
     )
     assert {str(link.group_id) for link in links} == {str(a.id), str(b.id)}
-    found = await repo.get_groups_by_form_ids([form])
+    found = await repo.get_groups_by_form_ids([form], WORKSPACE)
     assert {str(g["_id"]) for g in found[form]} == {str(a.id), str(b.id)}
 
 

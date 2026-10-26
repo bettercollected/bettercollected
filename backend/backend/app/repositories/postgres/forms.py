@@ -349,9 +349,11 @@ class PostgresFormRepository(RecordRepository):
         self._responses = form_responses  # PostgresFormResponseRepository
 
     # -- shared enrichment ----------------------------------------------------
-    async def _attach_groups(self, forms: List[dict]) -> None:
+    async def _attach_groups(self, forms: List[dict], workspace_id: RecordId) -> None:
+        """The workspace's own groups only: a form held by several workspaces
+        never carries another workspace's groups."""
         by_form = await self._groups.get_groups_by_form_ids(
-            [form["form_id"] for form in forms]
+            [form["form_id"] for form in forms], workspace_id
         )
         for form in forms:
             form["groups"] = by_form.get(form["form_id"], [])
@@ -419,7 +421,7 @@ class PostgresFormRepository(RecordRepository):
                 form["is_published"] = bool(published)
             forms.append(form)
         if forms:
-            await self._attach_groups(forms)
+            await self._attach_groups(forms, workspace_id)
             if is_admin:
                 await self._attach_counts(forms, workspace_id)
         return forms
@@ -507,7 +509,7 @@ class PostgresFormRepository(RecordRepository):
         if forms:
             await self._attach_counts(forms, workspace_id)
             if get_actions:
-                await self._attach_groups(forms)
+                await self._attach_groups(forms, workspace_id)
         return forms
 
     async def get_published_forms_in_workspace(
@@ -1159,9 +1161,9 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             )
         workspace_forms = [from_canonical_document(doc) for doc in docs]
         if is_not_admin and user:
-            # private forms stay visible to responders their groups admit
-            # (a member of any of the form's groups, or a regex of one of this
-            # workspace's groups, as in 4.0)
+            # private forms stay visible to responders this workspace's own
+            # groups admit (a member, or a regex match); another workspace's
+            # groups on the same form count for nothing here
             admitted = await self._groups.get_form_ids_accessible_to(
                 [wf["form_id"] for wf in workspace_forms], user.sub, workspace_id
             )
