@@ -17,11 +17,7 @@ from backend.db.models import AllowedOriginRow, MigrationProgress, WorkspaceRow
 from backend.migrate.__main__ import _tables
 from common.db.base import SOURCE_APP, SOURCE_BACKFILL
 from common.db.migrate import Runner, Target
-from tests.app.db.beanie_originals import (
-    AllowedOriginsDocument,
-    AllowedOriginsRepository,
-    PostgresAllowedOriginsRepository,
-)
+from tests.app.db.beanie_originals import AllowedOriginsDocument
 
 
 @pytest.fixture
@@ -42,15 +38,12 @@ async def rows(table):
 
 
 async def test_backfill_verify_reconcile_round_trip(target):
-    mongo = AllowedOriginsRepository()
     for origin in ("https://a.example", "https://b.example", "https://c.example"):
-        await mongo.add(origin)
+        await AllowedOriginsDocument(origin=origin).save()
     ws = WorkspaceDocument(title="W", workspace_name="w1", owner_id="o")
     await ws.save()
-    # one row the application already dual-wrote: backfill must leave it alone
-    app_written = await PostgresAllowedOriginsRepository(
-        container.pg_sessionmaker()
-    ).add("https://app.example")
+    # one row the application already wrote: backfill must leave it alone
+    app_written = await container.allowed_origins_repo().add("https://app.example")
     await AllowedOriginsDocument(
         id=app_written.id, origin="https://changed-in-mongo.example"
     ).save()
@@ -110,9 +103,8 @@ async def test_backfill_verify_reconcile_round_trip(target):
 
 
 async def test_backfill_resumes_from_its_checkpoint_and_dry_run_writes_nothing(target):
-    mongo = AllowedOriginsRepository()
     for i in range(60):
-        await mongo.add(f"https://{i}.example")
+        await AllowedOriginsDocument(origin=f"https://{i}.example").save()
     async with Runner(target) as runner:
         assert (await runner.backfill(["allowed_origins"], dry_run=True))[
             "allowed_origins"
@@ -137,7 +129,7 @@ async def test_backfill_resumes_from_its_checkpoint_and_dry_run_writes_nothing(t
 
 
 async def test_verify_reports_rows_mongo_no_longer_has(target):
-    postgres = PostgresAllowedOriginsRepository(container.pg_sessionmaker())
+    postgres = container.allowed_origins_repo()
     orphan = await postgres.add("https://only-in-postgres.example")
     async with Runner(target) as runner:
         (report,) = await runner.verify(["allowed_origins"])

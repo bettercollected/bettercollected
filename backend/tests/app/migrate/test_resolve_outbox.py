@@ -2,8 +2,8 @@
 outbox entries whose write Mongo holds, after a group was rolled back from
 ``postgres_primary_dual`` to ``dual`` (the runbook's "stuck case").
 
-The backend has no routed group left, so these run on the test Target of
-``tests/app/migrate/routed.py``, for which ``responses`` is still routed.
+The backend has no migrating group left, so these run on the test Target of
+``tests/app/migrate/routed.py``, for which ``responses`` still migrates.
 
 Skipped unless DATABASE_URL points at a *_test database."""
 
@@ -18,15 +18,13 @@ import stat
 import pytest
 import pytest_asyncio
 from common.ids import RecordId
-from dependency_injector import providers
 from pymongo import AsyncMongoClient
 from sqlalchemy import select
 
-from backend.app.container import AppContainer, container
+from backend.app.container import container
 from backend.db.groups import POSTGRES_ONLY_GROUPS, RETIRED_REPOSITORIES
 from backend.db.models import DeletionTombstone, MirrorWriteFailure, WorkspaceTagRow
-from backend.migrate.__main__ import repository_groups
-from common.db import RoutingRepository
+from backend.migrate.__main__ import build_target as real_build_target
 from common.db.base import SOURCE_APP
 from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner
@@ -143,14 +141,13 @@ async def resolve_group(target, group, *argv):
 
 
 # -- the repository map -----------------------------------------------------------
-def test_the_application_has_no_routed_repository_left():
-    """Every group is served from Postgres only: no provider of the container
-    is routed, so the map ``resolve-outbox`` reads off it is empty and every
-    entry of a group's 4.0 repositories is counted as left over."""
-    for provider in AppContainer.providers.values():
-        if isinstance(provider, providers.Singleton):
-            assert provider.provides is not RoutingRepository
-    assert repository_groups() == {}
+def test_the_application_has_no_repository_map():
+    """Every group is served from Postgres only: no repository has a Mongo
+    side, so the Target maps none and every entry of a group's 4.0 repositories
+    is counted as left over (``retired_repositories``)."""
+    real = real_build_target("postgresql+asyncpg://unused")
+    assert real.repository_groups is None
+    assert real.retired_repositories == RETIRED_REPOSITORIES
 
 
 def test_the_routed_fixtures_name_their_repositories_and_group(target):
@@ -366,7 +363,6 @@ async def test_postgres_only_leftovers_are_counted_apart(target):
 
 def test_the_retired_repositories_are_postgres_only_and_routed_no_more():
     assert set(RETIRED_REPOSITORIES.values()) == set(POSTGRES_ONLY_GROUPS)
-    assert not set(RETIRED_REPOSITORIES) & set(repository_groups())
 
 
 # -- the stuck case, end to end ----------------------------------------------------

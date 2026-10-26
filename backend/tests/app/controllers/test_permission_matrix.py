@@ -28,7 +28,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from common.ids import RecordId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.db.flags import ReadSource, WriteMode
 from common.models.standard_form import StandardFormResponse
 from common.models.user import User
 from httpx import AsyncClient
@@ -1152,20 +1151,6 @@ def _allowed(case: Case) -> FrozenSet[str]:
     return case.allowed
 
 
-# The matrix tests authorization, not storage, and seeding a workspace for each
-# of its ~1,450 cases is the slowest part of the app suite. It runs once, in the
-# Postgres-served mode (the store the service is moving to); in the Mongo and
-# mirrored modes it would only repeat the same endpoint x role checks.
-only_when_served_from_postgres = pytest.mark.skipif(
-    not (
-        container.flags().default_read is ReadSource.POSTGRES
-        and container.flags().default_write is WriteMode.POSTGRES
-    ),
-    reason="authorization, not storage: covered by the postgres mode",
-)
-
-
-@only_when_served_from_postgres
 @pytest.mark.parametrize("role", ROLES)
 @pytest.mark.parametrize("case", CASES, ids=[case.name for case in CASES])
 async def test_permission_matrix(

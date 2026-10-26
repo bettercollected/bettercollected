@@ -7,7 +7,7 @@ the rebased classes serialise and describe themselves (JSON schema) exactly
 as the Beanie ones. See common/common/records/golden.py.
 """
 
-from common.db import from_row_doc
+from common.db.beanie_bridge import from_row_doc
 from common.db.codec_golden import build_cases, check
 from common.records import golden
 

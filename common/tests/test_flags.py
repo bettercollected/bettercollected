@@ -1,99 +1,13 @@
-import random
-
 import pytest
 
-from common.db import JobsBackend, ReadSource, WriteMode, load_flags
-from common.db.flags import FlagError, FlagError
+from common.db import JobsBackend, load_flags, refuse_stale_store_flags
+from common.db.flags import FlagError, stale_store_flags
 
 
-def test_defaults_are_todays_behaviour():
+def test_defaults_put_every_job_on_the_postgres_queue():
     flags = load_flags({})
-    assert flags.read_source("forms") is ReadSource.MONGO
-    assert flags.write_mode("forms") is WriteMode.MONGO
-    assert flags.primary_store("forms") is ReadSource.MONGO
-    assert flags.mirror_store("forms") is None
     assert flags.jobs_backend("delete_user") is JobsBackend.POSTGRES
-    assert flags.shadow_read_sample == 0.0
-    # the job queue is in Postgres by default; with the jobs on Temporal nothing needs it
-    assert flags.requires_postgres() is True
-    assert load_flags({"JOBS_BACKEND": "temporal"}).requires_postgres() is False
-
-
-def test_dual_write_mirrors_to_postgres():
-    flags = load_flags({"DB_WRITE_MODE": "dual"})
-    assert flags.primary_store("forms") is ReadSource.MONGO
-    assert flags.mirror_store("forms") is ReadSource.POSTGRES
-    assert flags.writes_mongo("forms") and flags.writes_postgres("forms")
-    assert flags.requires_postgres() is True
-
-
-def test_per_group_overrides_and_case_insensitivity():
-    flags = load_flags(
-        {
-            "DB_WRITE_MODE": "dual",
-            "DB_READ_SOURCE__Responses": "postgres",
-            "DB_WRITE_MODE__responses": "postgres_primary_dual",
-        }
-    )
-    assert flags.read_source("responses") is ReadSource.POSTGRES
-    assert flags.read_source("RESPONSES") is ReadSource.POSTGRES
-    assert flags.read_source("forms") is ReadSource.MONGO
-    assert flags.primary_store("responses") is ReadSource.POSTGRES
-    assert flags.mirror_store("responses") is ReadSource.MONGO
-    assert flags.mirror_store("forms") is ReadSource.POSTGRES
-
-
-def test_postgres_only_writes_nothing_to_mongo():
-    flags = load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"})
-    assert flags.writes_mongo("forms") is False
-    assert flags.mirror_store("forms") is None
-
-
-@pytest.mark.parametrize(
-    "env",
-    [
-        {"DB_READ_SOURCE": "postgres"},  # reading a store nothing writes to
-        {"DB_READ_SOURCE": "mongo", "DB_WRITE_MODE": "postgres"},
-        {
-            "DB_WRITE_MODE": "dual",
-            "DB_READ_SOURCE__forms": "postgres",
-            "DB_WRITE_MODE__forms": "mongo",
-        },
-    ],
-)
-def test_reading_an_unwritten_store_is_rejected(env):
-    with pytest.raises(FlagError, match="nothing writes to"):
-        load_flags(env)
-
-
-@pytest.mark.parametrize(
-    "env, message",
-    [
-        ({"DB_READ_SOURCE": "maria"}, "not one of"),
-        ({"DB_WRITE_MODE__forms": "sometimes"}, "not one of"),
-        ({"JOBS_BACKEND__delete_user": "celery"}, "not one of"),
-        ({"DB_SHADOW_READ_SAMPLE": "1.5"}, "between 0 and 1"),
-        ({"DB_SHADOW_READ_SAMPLE": "lots"}, "not a number"),
-    ],
-)
-def test_bad_values_fail_at_startup(env, message):
-    with pytest.raises(FlagError, match=message):
-        load_flags(env)
-
-
-def test_empty_values_fall_back_to_defaults():
-    flags = load_flags(
-        {"DB_READ_SOURCE": "", "DB_WRITE_MODE": "", "DB_READ_SOURCE__forms": ""}
-    )
-    assert flags.read_source("forms") is ReadSource.MONGO
-
-
-def test_shadow_read_sampling():
-    flags = load_flags({"DB_WRITE_MODE": "dual", "DB_SHADOW_READ_SAMPLE": "0.25"})
-    rng = random.Random(42)
-    hits = sum(flags.should_shadow_read(rng) for _ in range(10_000))
-    assert 2_200 < hits < 2_800
-    assert load_flags({}).should_shadow_read(rng) is False
+    assert flags.jobs_default is JobsBackend.POSTGRES
 
 
 def test_jobs_backend_per_job():
@@ -101,117 +15,100 @@ def test_jobs_backend_per_job():
     assert flags.jobs_backend("delete_user") is JobsBackend.POSTGRES
     assert flags.jobs_backend("run_action") is JobsBackend.TEMPORAL
     assert flags.jobs_backend("RUN_ACTION") is JobsBackend.TEMPORAL
-    assert flags.requires_postgres() is True
     assert (
         load_flags({"JOBS_BACKEND": "temporal"}).jobs_backend("anything")
         is JobsBackend.TEMPORAL
     )
-
-
-def test_serves_from_postgres_distinguishes_mirror_only_from_serving():
-    assert load_flags({}).serves_from_postgres() is False
+    # an empty override falls back to the default
     assert (
-        load_flags({"DB_WRITE_MODE": "dual"}).serves_from_postgres() is False
-    )  # mirror only
-    assert (
-        load_flags({"DB_WRITE_MODE__refdata": "dual"}).serves_from_postgres() is False
+        load_flags({"JOBS_BACKEND__run_action": ""}).jobs_backend("run_action")
+        is JobsBackend.POSTGRES
     )
-    assert (
-        load_flags(
-            {"DB_READ_SOURCE__refdata": "postgres", "DB_WRITE_MODE__refdata": "dual"}
-        ).serves_from_postgres()
-        is True
-    )
-    assert (
-        load_flags({"DB_WRITE_MODE": "postgres_primary_dual"}).serves_from_postgres()
-        is True
-    )
-
-
-def test_mongo_joins_enforce_cutover_order():
-    joins = {"responses": ["forms"]}  # Mongo responses repos $lookup forms
-    # forms may mirror or be served from postgres as long as it keeps writing mongo
-    load_flags({"DB_WRITE_MODE__forms": "dual"}, joins)
-    load_flags(
-        {
-            "DB_READ_SOURCE__forms": "postgres",
-            "DB_WRITE_MODE__forms": "postgres_primary_dual",
-        },
-        joins,
-    )
-    # ...but cannot stop writing mongo while responses still reads there
-    with pytest.raises(FlagError, match="'forms' cannot stop writing mongo"):
-        load_flags(
-            {"DB_READ_SOURCE__forms": "postgres", "DB_WRITE_MODE__forms": "postgres"},
-            joins,
-        )
-    # once responses is served from postgres the constraint lifts
-    load_flags(
-        {
-            "DB_READ_SOURCE__forms": "postgres",
-            "DB_WRITE_MODE__forms": "postgres",
-            "DB_READ_SOURCE__responses": "postgres",
-            "DB_WRITE_MODE__responses": "postgres",
-        },
-        joins,
-    )
-    load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, joins)
-
-
-def test_describe_reports_what_is_in_effect():
-    flags = load_flags(
-        {"DB_WRITE_MODE__forms": "dual", "JOBS_BACKEND__run_action": "temporal"}
-    )
-    described = flags.describe(
-        groups=["forms", "identity"], jobs=["delete_user", "run_action"]
-    )
-    assert described["defaults"] == {
-        "read_source": "mongo",
-        "write_mode": "mongo",
-        "jobs_backend": "postgres",
-    }
-    assert described["groups"]["forms"] == {
-        "read_source": "mongo",
-        "write_mode": "dual",
-    }
-    assert described["groups"]["identity"] == {
-        "read_source": "mongo",
-        "write_mode": "mongo",
-    }
-    assert described["jobs"] == {"delete_user": "postgres", "run_action": "temporal"}
 
 
 @pytest.mark.parametrize(
-    "env, expected",
+    "env",
+    [{"JOBS_BACKEND": "celery"}, {"JOBS_BACKEND__delete_user": "celery"}],
+)
+def test_a_bad_jobs_value_fails_at_startup(env):
+    with pytest.raises(FlagError, match="not one of"):
+        load_flags(env)
+
+
+def test_the_store_flags_of_the_cutover_mean_nothing_to_the_parser():
+    """The jobs flags are all it reads: the store settings of the cutover are
+    only ever *refused* (below), never interpreted."""
+    flags = load_flags(
+        {
+            "DB_READ_SOURCE": "mongo",
+            "DB_WRITE_MODE": "dual",
+            "DB_SHADOW_READ_SAMPLE": "lots",
+            "JOBS_BACKEND__delete_user": "temporal",
+        }
+    )
+    assert flags.jobs_backend("delete_user") is JobsBackend.TEMPORAL
+
+
+def test_describe_names_the_store_and_the_jobs():
+    described = load_flags({"JOBS_BACKEND__run_action": "temporal"}).describe(
+        ["delete_user"]
+    )
+    assert described == {
+        "store": "postgres",
+        "jobs_backend_default": "postgres",
+        "jobs": {"delete_user": "postgres", "run_action": "temporal"},
+    }
+
+
+# -- stale store flags ------------------------------------------------------------
+@pytest.mark.parametrize(
+    "env",
     [
-        ({}, "mongo"),
-        ({"DB_WRITE_MODE": "mongo"}, "mongo"),
-        ({"DB_WRITE_MODE": "dual"}, "mongo,postgres"),
-        ({"DB_WRITE_MODE": "postgres_primary_dual"}, "mongo,postgres"),
-        ({"DB_WRITE_MODE": "postgres"}, "postgres"),
-        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__responses": "dual"}, "mongo,postgres"),
-        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__identity": "postgres"}, "postgres"),
-        ({"DB_WRITE_MODE": "sideways"}, ""),
-        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__google": "nope"}, ""),
+        {},
+        {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"},
+        {"DB_READ_SOURCE": " Postgres ", "DB_WRITE_MODE__forms": ""},
+        {"DB_WRITE_MODE__other": "dual"},  # another group's override: not ours
+        {"DB_SHADOW_READ_SAMPLE": "0.5"},  # read by nothing any more
     ],
 )
-def test_write_stores_report_is_every_store_any_group_writes(env, expected):
-    from common.settings.write_stores import write_stores_report
+def test_postgres_or_nothing_is_fine(env):
+    assert stale_store_flags(env, ["forms"]) == []
+    refuse_stale_store_flags(env, ["forms"], what="the forms group is Postgres.")
 
-    assert write_stores_report(env) == expected
+
+@pytest.mark.parametrize(
+    "key, value",
+    [
+        ("DB_READ_SOURCE", "mongo"),
+        ("DB_WRITE_MODE", "dual"),
+        ("DB_WRITE_MODE", "postgres_primary_dual"),
+        ("DB_WRITE_MODE", "nonsense"),
+        ("DB_READ_SOURCE__forms", "mongo"),
+        ("DB_WRITE_MODE__FORMS", "dual"),
+    ],
+)
+def test_a_flag_asking_for_another_store_is_refused_naming_it(key, value):
+    with pytest.raises(FlagError) as refused:
+        refuse_stale_store_flags({key: value}, ["forms"], what="Postgres only.")
+    message = str(refused.value)
+    assert f"{key}={value!r}" in message and "Postgres only." in message
+    assert "Remove these settings" in message
 
 
-def test_write_stores_report_reads_the_flags_the_way_load_flags_does():
-    """The heartbeat's copy (common.settings stays free of common.db) agrees with
-    the flags on which stores each mode writes."""
-    from common.settings.write_stores import write_stores_report
+def test_the_service_wide_flags_can_be_left_out():
+    """The backend ignores ``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` (they mean
+    nothing to it) and refuses only a group's own override."""
+    env = {"DB_READ_SOURCE": "mongo", "DB_WRITE_MODE": "dual"}
+    assert stale_store_flags(env, ["forms"], service_wide=False) == []
+    env = {**env, "DB_WRITE_MODE__forms": "dual"}
+    assert stale_store_flags(env, ["forms"], service_wide=False) == [
+        "DB_WRITE_MODE__forms='dual'"
+    ]
 
-    for mode in WriteMode:
-        flags = load_flags({"DB_WRITE_MODE": mode.value, "DB_READ_SOURCE": "postgres"
-                            if mode is WriteMode.POSTGRES else "mongo"})
-        expected = {
-            store for store, writes in (
-                ("mongo", flags.writes_mongo("x")), ("postgres", flags.writes_postgres("x"))
-            ) if writes
-        }
-        assert write_stores_report({"DB_WRITE_MODE": mode.value}) == ",".join(sorted(expected))
+
+def test_every_stale_flag_is_listed_once_sorted():
+    env = {"DB_WRITE_MODE": "dual", "DB_READ_SOURCE": "mongo"}
+    assert stale_store_flags(env, []) == [
+        "DB_READ_SOURCE='mongo'",
+        "DB_WRITE_MODE='dual'",
+    ]

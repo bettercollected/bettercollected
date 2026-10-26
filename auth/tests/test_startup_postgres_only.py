@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 
 from auth.db.flags import POSTGRES_ONLY, load_auth_flags
-from common.db import ReadSource, WriteMode
 from common.db.flags import FlagError
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
@@ -75,10 +74,7 @@ def boot(env_changes: dict) -> subprocess.CompletedProcess:
 def test_auth_is_on_postgres(env):
     flags = load_auth_flags(env)
     assert flags == POSTGRES_ONLY
-    assert flags.read_source("auth") is ReadSource.POSTGRES
-    assert flags.write_mode("auth") is WriteMode.POSTGRES
-    assert flags.uses_mongo(["auth"]) is False
-    assert flags.requires_postgres() and flags.serves_from_postgres()
+    assert flags.describe()["store"] == "postgres"
 
 
 @pytest.mark.parametrize(

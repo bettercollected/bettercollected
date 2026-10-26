@@ -203,8 +203,6 @@ def test_there_is_no_option_to_guess_ambiguous_records():
 
 
 async def test_after_the_backfill_each_workspace_reads_its_own(store):
-    if container.flags().read_source("responses").value != store.name:
-        pytest.skip("the routed repositories read the other store in this mode")
     await run([store], apply=True, opens=default_opener())
     repo, links = container.form_response_repo(), container.workspace_form_repo()
 

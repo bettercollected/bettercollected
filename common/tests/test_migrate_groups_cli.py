@@ -19,6 +19,7 @@ from common.db.migrate.cli import (
     reconcile_to_mongo_refusal,
     select_collections,
     skipped_groups,
+    write_mode_in,
 )
 from common.db.migrate.cli import format_status
 from common.db.migrate.engine import Target, id_range
@@ -232,29 +233,10 @@ def test_other_reconciles_and_dry_runs_are_not_refused():
 
 
 # -- groups served from Postgres only: never verified or reconciled ------------
-def _pinning(group):
-    """A service's flag loader that serves ``group`` from Postgres only."""
-    from dataclasses import replace
-
-    from common.db.flags import ReadSource, WriteMode, load_flags
-
-    def load(env):
-        flags = load_flags(env)
-        return replace(
-            flags,
-            read_overrides={**flags.read_overrides, group: ReadSource.POSTGRES},
-            write_overrides={**flags.write_overrides, group: WriteMode.POSTGRES},
-        )
-
-    return load
-
-
 def _pg_only_target():
     from dataclasses import replace
 
-    return replace(
-        _target(), postgres_only_groups=("refdata",), load_flags=_pinning("refdata")
-    )
+    return replace(_target(), postgres_only_groups=("refdata",))
 
 
 BOTH_STORES = [
@@ -318,18 +300,18 @@ def test_a_postgres_only_group_can_still_be_backfilled():
     ]
 
 
-def test_the_refusal_reads_each_groups_effective_mode():
-    """The service's own flag loader decides, not the global flags: a group it
-    pins to postgres is not on postgres_primary_dual, whatever DB_WRITE_MODE says."""
-    from dataclasses import replace
-
-    target = replace(_target(), load_flags=_pinning("forms"))
-    args = _args("reconcile", "--direction", "postgres->mongo")
-    refusal = reconcile_to_mongo_refusal(args, target, PPD)
-    assert refusal and "forms (postgres)" in refusal
-    assert "identity" not in refusal and "refdata" not in refusal
-    # with its default loader the same environment passes
-    assert reconcile_to_mongo_refusal(args, _target(), PPD) is None
+def test_write_modes_are_the_4_0_stacks_as_the_operator_states_them():
+    """``DB_WRITE_MODE__<group>`` wins over ``DB_WRITE_MODE`` (the group's name
+    in any case); a group served from Postgres only is always on postgres,
+    whatever the environment says; nothing set is no mode at all."""
+    target = _pg_only_target()
+    env = {"DB_WRITE_MODE": "dual", "DB_WRITE_MODE__Forms": " Postgres_Primary_Dual "}
+    assert write_mode_in(target, env, "forms") == "postgres_primary_dual"
+    assert write_mode_in(target, env, "identity") == "dual"
+    assert write_mode_in(target, env, "refdata") == "postgres"
+    assert write_mode_in(target, {}, "identity") is None
+    assert write_mode_in(target, {"DB_WRITE_MODE": ""}, "identity") is None
+    assert write_mode_in(target, {"DB_WRITE_MODE__forms": ""}, "forms") is None
 
 
 def test_the_refusal_skips_postgres_only_groups_by_default():
