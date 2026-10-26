@@ -55,6 +55,7 @@ jobs:
             google: ${{ steps.plan.outputs.google }}
             common: ${{ steps.plan.outputs.common }}
             webapp: ${{ steps.plan.outputs.webapp }}
+            executor: ${{ steps.plan.outputs.executor }}
             modes: ${{ steps.plan.outputs.modes }}
             backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
@@ -328,6 +329,41 @@ jobs:
                   DB_WRITE_MODE: postgres
               run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m mongo
 
+    # The actions executor (temporal/actions-executor): its Postgres queue driver
+    # (psycopg with its bundled libpq) and its mail, token and key checks have
+    # tests. No database or Temporal server is needed.
+    executor-tests:
+        name: Actions executor tests (pytest)
+        needs: plan
+        if: needs.plan.outputs.executor == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        defaults:
+            run:
+                working-directory: temporal/actions-executor
+        env:
+            VIRTUAL_ENV: ""
+            # scratch values for the settings the tests read (not secrets)
+            API_KEY: ci-test-only-api-key
+            AES_HEX_KEY: "O-_wZyOtEjETmtamsaMMQkHJ3UIR2YqG7KrcmcQsKU8="
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              run: uv sync --frozen
+
+            - name: Run the actions executor tests
+              run: uv run --frozen pytest
+
     common-tests:
         name: Common tests (pytest)
         needs: plan
@@ -470,6 +506,7 @@ jobs:
             - auth-tests
             - google-tests
             - common-tests
+            - executor-tests
             - webapp-build
             - webapp-tests
         runs-on: ubuntu-latest
