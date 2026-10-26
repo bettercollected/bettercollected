@@ -13,6 +13,56 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.14] - 2026-10-26
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations, roles, SQL or new settings,** and no compose change.
+- **This is the rollback target for 4.1.** A stack cutting over to 4.1 should run 4.0.14 or later
+  first; a rollback from 4.1 then lands on code that finishes 4.1's queued erasure jobs and reads
+  its SSO rows (see the cutover runbook's rollback section). After such a rollback keep
+  `JOBS_BACKEND=postgres` and the backend `jobs-worker` running until no `todo` or `doing` job of
+  the two erasure kinds is left.
+- **Responder groups on shared forms:** an old link to a group whose workspace does not hold the
+  form no longer admits anyone. The 4.0.13 notes' counts-only query (`links_to_foreign_group`)
+  shows whether a stack has any.
+- **Mail actions with their own SMTP:** a workspace or form that sets only some SMTP settings now
+  gets its mail refused with a message naming the missing ones, instead of borrowing the
+  instance's login. Set the full group (server, port, user name, password, sender) or none.
+- **Rollback:** 4.0.13 can run against a 4.0.14 database; nothing is stored differently.
+
+### Fixed
+
+- A stack rolled back from 4.1 to 4.0.x now finishes what 4.1 left in the job queue instead
+  of failing it as an unknown task. The two erasure jobs run for real: an account's stored
+  provider credentials are deleted (`purge_provider_credentials`) and an old Google grant is
+  revoked at Google (`revoke_google_grant`), both retried hourly for two days and logging ids
+  and outcomes only. On 4.0 the purge deletes the stored credentials but does not revoke the
+  grant at Google (4.1's Google service does); the provider service's request carries the
+  account's email in its query string, as 4.0's account deletion does. 4.1's two periodic
+  jobs (`sso_release_retry`, `recheck_verified_domains`) complete without doing anything and are not scheduled again.
+- SSO connections that 4.1 marked `release_pending` (a deleted workspace's connection Polis had
+  not released yet) can be read again after a rollback. They behave like disabled ones: they
+  never sign anyone in, and no admin call acts on them.
+
+### Security
+
+- A mail action's SMTP settings (server, port, user name, password and sender) now come from one
+  side only: either all from the workspace or form, or all from the instance's defaults. Before,
+  a workspace that changed only the server had the instance's SMTP login sent to its own server.
+  Settings an override leaves out stay empty and the mail is refused with a message naming them.
+- A form held by several workspaces now carries each workspace's own responder groups only. Before,
+  one workspace's form listing included the other workspace's groups (name, description and email
+  pattern), and those groups also decided which respondents could open a private form in the
+  other workspace. Each workspace now sees, edits and is gated by its own groups, and saving one
+  workspace's groups leaves the other's linked.
+- A workspace's data-subjects (responders) list now shows only that workspace's
+  own responder notes and tags. When two workspaces had responses from the same
+  email address, each could see the other's notes and tag names, and the row
+  could appear twice. Tagging a responder now also refuses tags that belong to
+  another workspace.
+
 ## [4.0.13] - 2026-10-25
 
 ### Upgrade notes
@@ -1523,7 +1573,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...HEAD
+[4.0.14]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...v4.0.14
 [4.0.13]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...v4.0.13
 [4.0.12]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...v4.0.12
 [4.0.11]: https://github.com/bettercollected/bettercollected/compare/v4.0.10...v4.0.11
