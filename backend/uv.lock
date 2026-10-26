@@ -7,7 +7,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
+    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
 ]
 
 [[package]]
@@ -426,7 +426,7 @@ requires-dist = [
     { name = "base58", specifier = ">=2.1.1" },
     { name = "beanie", specifier = ">=2.2.0" },
     { name = "boto3", specifier = ">=1.43.112" },
-    { name = "camel-converter", specifier = ">=5.1.1" },
+    { name = "camel-converter", specifier = ">=6.0.0" },
     { name = "certifi", specifier = ">=2026.10.19" },
     { name = "classy-fastapi", specifier = "==0.7.0" },
     { name = "common", editable = "../common" },
@@ -552,11 +552,11 @@ wheels = [
 
 [[package]]
 name = "camel-converter"
-version = "5.1.1"
+version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6f/fb/58f39ce79ec56e480ac86e4c6a7758d2ee7503c7e9c6f91f535dcbae81da/camel_converter-5.1.1.tar.gz", hash = "sha256:fd601b343695025e9d4ec316845d1fe6011cd2ded763397032feb1ef74855b7e", size = 50295, upload-time = "2026-08-25T01:03:26.402Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/9e/f730007f9786ea64f319d6dbb2979853e1e7fa0e044074f401523157366f/camel_converter-6.0.0.tar.gz", hash = "sha256:46cd2c5608f81442ce36853a21c14c2b08313806cfb00dba4353e3b944575d20", size = 51163, upload-time = "2026-10-10T02:08:14.684Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/9f/fcfe35d042eb4405d158aaba613dc712f18350c5e6ea3e2376c8a8dcbe10/camel_converter-5.1.1-py3-none-any.whl", hash = "sha256:7cf028484efd7cf0200a05812307e97e83f161af256552e8dfe5833150bab21c", size = 6968, upload-time = "2026-08-25T01:03:25.416Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/71/53efdd418759d57de014c2e3929022ecafd0c88176cff6b30a8518d219dc/camel_converter-6.0.0-py3-none-any.whl", hash = "sha256:ca5e712b57dd3139ee12f6959e32dd37cfa32ea27f120c281f2aa3930d2dc853", size = 6909, upload-time = "2026-10-10T02:08:13.854Z" },
 ]
 
 [[package]]
@@ -1279,7 +1279,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
+    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
 ]
 dependencies = [
     { name = "google-auth" },
