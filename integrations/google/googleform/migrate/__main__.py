@@ -11,21 +11,12 @@ import sys
 
 import googleform
 from googleform.config import settings
-from googleform.db.base import SCHEMA, Base
+from googleform.db.base import SCHEMA
+from googleform.db.import_guard import collection_tables as _tables
 from googleform.db.models import MigrationProgress, StoreMigration
 import googleform.db.models  # noqa: F401 — registers every row
 from common.db.migrate import Target
 from common.db.migrate.cli import code_version, main
-
-
-def _tables():
-    return {
-        mapper.class_.mongo_collection(): mapper.local_table
-        for mapper in Base.registry.mappers
-        if hasattr(mapper.class_, "mongo_collection")
-        and mapper.local_table.name
-        not in ("mirror_write_failures", "migration_progress")
-    }
 
 
 def build_target(database_url: str) -> Target:

@@ -107,7 +107,8 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   the 4.0 Beanie classes it plants in a real Mongo are frozen in `tests/app/db/beanie_originals.py`, Beanie being a
   test-only dependency).
   Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
-  an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
+  an empty table and no finished backfill (`backend/db/mongo_import_guard.py`, a wrapper of the shared core `common/db/migrate/import_guard.py`, which auth and the
+  Google integration use too; fix: `python -m backend.migrate --group
   <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
   Mongo-less tests run with `MONGO_URI=""`. `verify`/`reconcile` skip these groups by default and exit 2 when one is
   named (`Target.postgres_only_groups`).
@@ -389,8 +390,16 @@ up new/changed templates the next time it restarts, no manual step required.
   same questions: one question per page, a "why we ask this" line on every question, few required answers,
   nothing pre-selected, no ID numbers or documents, follow-up pages skipped unless a yes/no question is answered
   yes (page jumps on yes/no only: choice conditions are not used there). `tests/scripts/test_dutch_first_templates.py`
-  checks the twins match, the wording rules, the jump paths and that a form made from one publishes. Change
-  wording in that file, then delete the seeded template by title to re-seed it.
+  checks the twins match, the wording rules, the jump paths, that every template ships a retention period (days,
+  carried as `settings.response_expiration_type` / `response_expiration`, so a form made from it enforces it) and
+  that a form made from one publishes. The prose of both languages is copied to
+  `webapp/src/utils/plain-language/dutch-first-templates.fixture.json`, which the webapp's B1 check tests run over
+  (rewrite it with `REGENERATE_TEMPLATE_PROSE=1` after a wording change). Change wording in that file, then delete
+  the seeded template by title to re-seed it. A Dutch-first template seeded before it carried a period gets it from
+  the seed (`repair_retention`) when BOTH retention keys are empty; a period set by hand stays. A template's period is
+  checked like a form's when a template is created or updated (422), an update keeps the settings its body leaves
+  out (an explicit null clears), and a form saved as a template carries its period. Importing a template into another
+  workspace still resets its settings (`import_template_to_workspace`), as before.
 - To force a re-seed of a changed template, delete it from `form_templates` first (by title) — the next restart (or
   a manual run) recreates it.
 - Manual one-off run (e.g. without restarting the app): `uv run python -m scripts.seed_flow_templates` from `backend/`.

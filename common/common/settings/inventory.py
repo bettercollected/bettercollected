@@ -601,9 +601,10 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           choices=("mongo", "dual", "postgres_primary_dual", "postgres")),
     _float("DB_SHADOW_READ_SAMPLE", "database", (BACKEND,), 0.0, 0, 1,
            "Share of reads compared against the other store.", tier=T5),
-    _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, JOBS),
+    _text("DB_DISCARD_UNIMPORTED_MONGO_DATA", "database", (BACKEND, AUTH, GOOGLE, JOBS),
           "Starts despite Mongo data never imported for these Postgres-only groups "
-          "(all, or a comma-separated list); that data is left behind.", tier=T5),
+          "(all, or a list; others' groups ignored); that data is left behind.",
+          tier=T5),
     _int("DB_POOL_SIZE", "database", _DB, 5, 1, 200, "Connection pool size.", tier=T5),
     _int("DB_MAX_OVERFLOW", "database", _DB, 5, 0, 200, "Extra connections above the pool.", tier=T5),
     _int("DB_POOL_TIMEOUT_S", "database", _DB, 10, 1, 600, "Seconds to wait for a connection.", tier=T5),

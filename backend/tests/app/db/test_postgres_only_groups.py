@@ -200,6 +200,7 @@ async def test_the_command_refuses_while_mongo_holds_unimported_refdata(
     check (backend/db/mongo_import_guard.py): the command refuses instead."""
     from backend.app.container import container
     from backend.db import mongo_import_guard as guard
+    from common.db.migrate import import_guard as core
 
     class Collection:
         def __init__(self, name):
@@ -227,6 +228,6 @@ async def test_the_command_refuses_while_mongo_holds_unimported_refdata(
 
     monkeypatch.setattr("backend.db.startup.dispose_postgres", _no_dispose)
     monkeypatch.setattr(guard, "mongo_uri_configured", lambda _: "mongodb://mongo")
-    monkeypatch.setattr(guard, "AsyncMongoClient", Client)
+    monkeypatch.setattr(core, "AsyncMongoClient", Client)
     assert await run(build_parser().parse_args([])) == 2
     assert await container.allowed_origins_repo().list_origins() == []

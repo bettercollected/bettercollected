@@ -11,21 +11,12 @@ import sys
 
 import auth
 from auth.config import settings
-from auth.db.base import SCHEMA, Base
+from auth.db.base import SCHEMA
+from auth.db.import_guard import collection_tables as _tables
 from auth.db.models import MigrationProgress, StoreMigration
 import auth.db.models  # noqa: F401 — registers every row
 from common.db.migrate import Target
 from common.db.migrate.cli import code_version, main
-
-
-def _tables():
-    return {
-        mapper.class_.mongo_collection(): mapper.local_table
-        for mapper in Base.registry.mappers
-        if hasattr(mapper.class_, "mongo_collection")
-        and mapper.local_table.name
-        not in ("mirror_write_failures", "migration_progress")
-    }
 
 
 def build_target(database_url: str) -> Target:

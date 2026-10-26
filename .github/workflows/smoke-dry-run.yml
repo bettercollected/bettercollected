@@ -25,9 +25,9 @@ env:
     VIRTUAL_ENV: ""
     # the stack's own values, as in ci.yml: nothing here is a real secret
     DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/bettercollected_test
-    # no Mongo, as on a fresh install: the backend does not contact it (a set
-    # but unreachable MONGO_URI refuses the backend's start); auth ignores it
-    # with every group on Postgres
+    # no Mongo, as on a fresh install: the backend, auth and the Google
+    # integration do not contact it (a set but unreachable MONGO_URI refuses
+    # their start)
     MONGO_URI: ""
     DB_READ_SOURCE: postgres
     DB_WRITE_MODE: postgres
@@ -35,6 +35,8 @@ env:
     AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
     AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
     AUTH_INTERNAL_NOTIFY_KEY: smoke-dry-run-notify-key-0123456789abcdef
+    # throwaway key for this throwaway stack; the backend refuses to start without one
+    RESPONDENT_IDENTITY_KEY: 47f6ce52f726b6c3ccc59f80c02b124bf7a7eff313a4b8ed95f37a9f25e7ae00
     MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
     API_ROOT_PATH: /api/v1
     API_ENVIRONMENT: local

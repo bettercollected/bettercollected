@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 from http import HTTPStatus
 
@@ -17,11 +18,43 @@ from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_logo import logo_key, read_logo_upload
+from backend.app.services.retention import checked_retention
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
 from backend.config import settings
+
+
+RETENTION_KEYS = ("response_expiration_type", "response_expiration")
+
+
+def check_template_retention(
+    incoming: Optional[StandardTemplateSetting],
+    stored: Optional[StandardTemplateSetting] = None,
+) -> None:
+    """A template's retention period, checked as a form's is (422 when it
+    can't be applied) and stored in its normalised form.
+
+    Only a body that names one of the two keys is looked at, so a template
+    stored before this check (or by the seed) still saves. The period is
+    the incoming one over the stored one; an explicit null clears it."""
+    if incoming is None or not any(key in incoming.model_fields_set for key in RETENTION_KEYS):
+        return
+    pair = {
+        key: getattr(incoming if key in incoming.model_fields_set else stored, key, None)
+        for key in RETENTION_KEYS
+    }
+    try:
+        kind, value = checked_retention(
+            pair["response_expiration_type"],
+            pair["response_expiration"],
+            dt.date.today(),
+        )
+    except ValueError as error:
+        raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=str(error))
+    incoming.response_expiration_type = kind
+    incoming.response_expiration = value
 
 
 class FormTemplateService:
@@ -124,6 +157,8 @@ class FormTemplateService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
+        # before anything is stored or uploaded
+        check_template_retention(template_body.settings)
         template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
@@ -166,6 +201,7 @@ class FormTemplateService:
             raise HTTPException(
                 HTTPStatus.FORBIDDEN, "You are not allowed to update this template."
             )
+        check_template_retention(template_body.settings, template.settings)
         if logo:
             # The previous file stays: forms and imported copies made from this
             # template may still show it.
