@@ -95,14 +95,14 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const cover = greetingCover(standardForm.theme, standardForm.welcomePage?.layout, standardForm.welcomePage?.imageUrl, { privateForm: !!standardForm?.settings?.private });
     const ending = endingToShow(standardForm?.thankyouPage, endingId);
 
+    // The bar says what "Page x of y" in the header says (form-slide.tsx):
+    // page x of y fills x/y of the bar, and the ending fills it. The welcome
+    // and ending pages are not counted as steps; they made the first of
+    // three pages read 40%.
     const getProgressValue = () => {
-        const totalSlides = (standardForm?.fields?.length || 0) + 2;
-        let currentSlideIndex = 1;
-        if (currentSlide >= 0) {
-            currentSlideIndex = currentSlide + 2;
-        }
-        if (currentSlide === -2) currentSlideIndex = (standardForm.fields?.length || 0) + 2;
-        return (currentSlideIndex / totalSlides) * 100;
+        const pages = standardForm?.fields?.length || 1;
+        if (currentSlide === -2) return 100;
+        return (Math.min(Math.max(currentSlide, 0) + 1, pages) / pages) * 100;
     };
 
     // Position of a slide along the journey: welcome → pages → thank-you.

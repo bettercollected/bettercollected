@@ -993,7 +993,7 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 /*
- * Selection feedback on a lettered option card (views/atoms/choice.tsx): the
+ * Selection feedback (views/atoms/choice.tsx, the scales): the control or
  * check mark of a chosen answer grows in over 160ms. Only when the
  * respondent hasn't asked for reduced motion; then it simply appears.
  */
@@ -1008,9 +1008,25 @@ input[type='number']::-webkit-outer-spin-button {
     }
 }
 
+/* The star just chosen settles in with a slight overshoot. */
+@keyframes form-star-settle {
+    0% {
+        transform: scale(0.82);
+    }
+    60% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .form-choice-pop {
         animation: form-choice-pop 160ms ease-out;
+    }
+    .form-star-settle {
+        animation: form-star-settle 200ms ease-out;
     }
 }
 

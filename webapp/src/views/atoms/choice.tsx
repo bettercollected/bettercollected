@@ -31,7 +31,7 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border-2 border-(--choice-indicator) transition-colors duration-150 group-hover:border-(--choice-indicator-hover)"
                 style={{ ['--choice-indicator' as string]: edge, background: selected ? on : '#ffffff' }}
             >
-                {selected && <Check className="h-3.5 w-3.5" strokeWidth={3} style={{ color: inverted ? themed('--form-highlight-solid', theme?.secondary) : '#ffffff' }} />}
+                {selected && <Check className="form-choice-pop h-3.5 w-3.5" strokeWidth={3} style={{ color: inverted ? themed('--form-highlight-solid', theme?.secondary) : '#ffffff' }} />}
             </span>
         );
     }
@@ -42,7 +42,7 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-(--choice-indicator) bg-white transition-colors duration-150 group-hover:border-(--choice-indicator-hover)"
             style={{ ['--choice-indicator' as string]: edge }}
         >
-            {selected && <span className="h-2.5 w-2.5 rounded-full" style={{ background: on }} />}
+            {selected && <span className="form-choice-pop h-2.5 w-2.5 rounded-full" style={{ background: on }} />}
         </span>
     );
 }

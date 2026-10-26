@@ -108,19 +108,19 @@ describe('fields are answerable, not just rendered', () => {
 
     it('rating stars keep their DOM nodes on hover and show the answer under the pointer', () => {
         renderField(base(FieldTypes.RATING, { properties: { fields: [], steps: 5 } }));
-        const third = screen.getByRole('button', { name: 'Rate 3 of 5' });
+        const third = screen.getByRole('radio', { name: 'Rate 3 of 5' });
         act(() => {
             fireEvent.mouseOver(third);
         });
         // A component declared inside render remounted every star on hover.
-        expect(screen.getByRole('button', { name: 'Rate 3 of 5' })).toBe(third);
+        expect(screen.getByRole('radio', { name: 'Rate 3 of 5' })).toBe(third);
         act(() => {
             fireEvent.click(third);
         });
         // Still hovering: stars 1-3 are filled with the accent, 4-5 are empty.
-        const fills = [1, 2, 3, 4, 5].map((n) => screen.getByRole('button', { name: `Rate ${n} of 5` }).querySelector('[fill]')?.getAttribute('fill'));
+        const fills = [1, 2, 3, 4, 5].map((n) => screen.getByRole('radio', { name: `Rate ${n} of 5` }).querySelector('[fill]')?.getAttribute('fill'));
         expect(fills.slice(0, 3).every((f) => f && f !== 'transparent')).toBe(true);
         expect(fills.slice(3)).toEqual(['transparent', 'transparent']);
-        expect(screen.getByRole('button', { name: 'Rate 3 of 5' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Rate 3 of 5' }).getAttribute('aria-checked')).toBe('true');
     });
 });
