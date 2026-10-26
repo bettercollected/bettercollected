@@ -496,8 +496,6 @@ SERVICES: Tuple[SettingSpec, ...] = (
           max_length=100),
     _text("UMAMI_WEBSITE_NAME", "analytics", (BACKEND,), "Analytics website name.", "BetterCollected",
           max_length=100),
-    _secret("SENTRY_DSN", "monitoring", (BACKEND, AUTH, GOOGLE), "Error report destination."),
-    _bool("SENTRY_DEBUG", "monitoring", (BACKEND, AUTH, GOOGLE), False, "Verbose error reporter."),
     _secret("UNSPLASH_ACCESS_KEY", "integrations", (BACKEND, WEBAPP),
             "Photo library access key (read by the webapp's photo picker; the backend does not use it and starts without it)."),
     _url("UNSPLASH_BASE_URL", "integrations", (BACKEND,), "Photo library API address.",
@@ -809,6 +807,7 @@ NOT_A_SETTING: Dict[str, str] = {
 # store until a later release prunes them.
 _TYPEFORM_GONE = "Typeform integration, removed in 4.1; ignored"
 _BREVO_GONE = "marketing tracker (Brevo), removed; ignored"
+_SENTRY_GONE = "error reporter (Sentry), removed; ignored"
 RETIRED: Dict[str, str] = {
     "TYPEFORM_API_URI": _TYPEFORM_GONE,
     "TYPEFORM_AUTH_URI": _TYPEFORM_GONE,
@@ -823,6 +822,8 @@ RETIRED: Dict[str, str] = {
     "BREVO_CONTACTS_API_KEY": _BREVO_GONE,
     "BREVO_TRACKER_API_URL": _BREVO_GONE,
     "BREVO_TRACKER_KEY": _BREVO_GONE,
+    "SENTRY_DEBUG": _SENTRY_GONE,
+    "SENTRY_DSN": _SENTRY_GONE,
 }
 
 

@@ -1087,16 +1087,16 @@ SQL
   expect "the dry run changed neither .env nor .env.deployment" "$env_sum $dep_sum" "$(sha256sum "$S_DIR/.env" | cut -d' ' -f1) $(sha256sum "$S_DIR/.env.deployment" | cut -d' ' -f1)"
   expect "the dry run left no .pruned or .pre-v4 file" "0" "$(find "$S_DIR" -maxdepth 1 \( -name "*.pruned" -o -name "*.pre-v4.*" \) | wc -l | tr -d " ")"
   expect "the MAIL and SSO values are kept (never offered for removal)" "0" "$(grep -cE '^ +would_prune (MAIL_|SSO_)' "$work/prune.out")"
-  # conflicts are reported, never chosen: the two readers of SENTRY_DEBUG disagree (a hand-edited compose file)
+  # conflicts are reported, never chosen: the two readers of API_DOCS_ENABLED disagree (a hand-edited compose file)
   cp "$S_DIR/docker-compose.deployment.yml" "$work/compose.good"
-  sed -i -E '/^  backend:/,/^    env_file:/ s/^    environment:$/&\n      SENTRY_DEBUG: "false"/; /^  auth:/,/^    env_file:/ s/^    environment:$/&\n      SENTRY_DEBUG: "true"/' "$S_DIR/docker-compose.deployment.yml"
+  sed -i -E '/^  backend:/,/^    env_file:/ s/^    environment:$/&\n      API_DOCS_ENABLED: "false"/; /^  auth:/,/^    env_file:/ s/^    environment:$/&\n      API_DOCS_ENABLED: "true"/' "$S_DIR/docker-compose.deployment.yml"
   local conflict
   conflict="$(sdeploy settings-import --dry-run 2>&1; echo "rc=$?")"
-  case "$conflict" in *"conflict SENTRY_DEBUG"*) ok "services that disagree on a value are reported as a conflict" ;; *) bad "services that disagree on a value are reported as a conflict" ;; esac
+  case "$conflict" in *"conflict API_DOCS_ENABLED"*) ok "services that disagree on a value are reported as a conflict" ;; *) bad "services that disagree on a value are reported as a conflict" ;; esac
   case "$conflict" in *"rc=0") bad "a conflict makes the import exit non-zero" ;; *) ok "a conflict makes the import exit non-zero" ;; esac
-  case "$conflict" in *"imported SENTRY_DEBUG"*) bad "the import chose a side" ;; *) ok "the import did not choose a side" ;; esac
+  case "$conflict" in *"imported API_DOCS_ENABLED"*) bad "the import chose a side" ;; *) ok "the import did not choose a side" ;; esac
   cp "$work/compose.good" "$S_DIR/docker-compose.deployment.yml"
-  expect "nothing was stored for the conflicting key" "versions=0" "$(sdeploy settings-history SENTRY_DEBUG 2>/dev/null | tail -n 1 | tr -d '\r')"
+  expect "nothing was stored for the conflicting key" "versions=0" "$(sdeploy settings-history API_DOCS_ENABLED 2>/dev/null | tail -n 1 | tr -d '\r')"
 
   upgrade_portal
   UPGRADE_COUNTS="$before"

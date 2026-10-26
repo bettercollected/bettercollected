@@ -33,7 +33,6 @@ from backend.config.respondent_identity_settings import RespondentIdentitySettin
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.scim_settings import SCIMSettings
-from backend.config.sentry_setting import SentrySettings
 from backend.config.sso_settings import SSOSettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
@@ -87,7 +86,6 @@ class Application(StoreBackedSettings):
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     custom_domain: CustomDomainSettings = CustomDomainSettings()
-    sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
     default_workspace_settings: DefaultResourcesWorkspaceSettings = (
         DefaultResourcesWorkspaceSettings()

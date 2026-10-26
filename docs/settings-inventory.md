@@ -122,8 +122,6 @@ environment, whatever the tier.
 | `MAIL_USER` | mail | auth, admin | str |  | R | T3 |  |
 | `MAIL_USE_CREDENTIALS` | mail | auth, admin | bool |  | R | T3 | `true` |
 | `MAIL_VALIDATE_CERTS` | mail | auth, admin | bool |  | R | T3 | `true` |
-| `SENTRY_DEBUG` | monitoring | backend, auth, google | bool |  | R | T1 | `false` |
-| `SENTRY_DSN` | monitoring | backend, auth, google | str | yes | R | T2 |  |
 | `API_CLOUDFLARE_IPS` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUSTED_PROXIES` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUST_CLOUDFLARE` | network | backend | bool |  | R | T3 | `true` |
@@ -361,6 +359,8 @@ environment, whatever the tier.
 | `BREVO_CONTACTS_API_KEY` | marketing tracker (Brevo), removed; ignored |
 | `BREVO_TRACKER_API_URL` | marketing tracker (Brevo), removed; ignored |
 | `BREVO_TRACKER_KEY` | marketing tracker (Brevo), removed; ignored |
+| `SENTRY_DEBUG` | error reporter (Sentry), removed; ignored |
+| `SENTRY_DSN` | error reporter (Sentry), removed; ignored |
 | `TYPEFORM_API_URI` | Typeform integration, removed in 4.1; ignored |
 | `TYPEFORM_AUTH_URI` | Typeform integration, removed in 4.1; ignored |
 | `TYPEFORM_BASIC_REDIRECT_URI` | Typeform integration, removed in 4.1; ignored |

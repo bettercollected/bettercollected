@@ -151,7 +151,7 @@ recovered, so the portal reminds the operator to back it up. Upgrading from 3.x:
 
 ## Observability
 
-Sentry + Elastic APM are initialized across services (backend `asgi.py`, and the Python services generally). Product
+Elastic APM is initialized across services (backend `asgi.py`, and the Python services generally). Product
 analytics use **Umami**, self-hosted as its own compose service (`umami_client.py` + `analytics_service.py` query it;
 the webapp loads its tracker script directly from `UMAMI_SCRIPT_URL` and calls `umami.track()` to attribute public
 form views to a canonical `/{workspace_name}/forms/{slug}` path regardless of client-host vs. custom-domain routing —

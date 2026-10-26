@@ -9,7 +9,6 @@ from auth.config.apm_settings import APMSettings
 from auth.config.database import MongoSettings
 from auth.config.google_settings import GoogleSettings
 from auth.config.mail_settings import MailSettings
-from auth.config.sentry_setting import SentrySettings
 from auth.config.sso_settings import SSOSettings
 from auth.config.stripe import StripeSettings
 from auth.version import __version__
@@ -58,7 +57,6 @@ class Application(StoreBackedSettings):
     google_settings: GoogleSettings = GoogleSettings()
     mail_settings: MailSettings = MailSettings()
     stripe_settings: StripeSettings = StripeSettings()
-    sentry_settings: SentrySettings = SentrySettings()
     sso_settings: SSOSettings = SSOSettings()
 
     ORGANIZATION_NAME: Optional[str] = "Better Collected"
