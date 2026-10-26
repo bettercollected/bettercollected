@@ -11,7 +11,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
 import { httpUrl } from '@app/utils/http-url';
-import { describeRetention, retentionExplanation } from '@app/utils/retention';
+import { describeRetention } from '@app/utils/retention';
 import { measurePrimaryActionFit } from '@app/utils/panel-fit';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -124,7 +124,6 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     const purpose = settings?.purpose?.trim();
     // Rendered as a link: http(s) only (the backend refuses anything else).
     const privacyUrl = httpUrl(settings?.privacyPolicyUrl);
-    const retentionNote = retentionExplanation(settings);
     // A private form is served only to signed-in members of an admitted group.
     const signInRequired = !!(settings?.requireVerifiedIdentity || settings?.private);
     const aiUsed = !!settings?.aiInsightsEnabled;
@@ -138,20 +137,9 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     rows.push({
         key: 'retention',
         term: t('PRIVACY.RETENTION'),
-        // The enforced period always; the creator's explanation next to it.
-        detail: (
-            <>
-                {describeRetention(settings as StandardFormDto['settings'], t, language, 'value')}
-                {retentionNote && (
-                    <>
-                        {' '}
-                        <span className="text-black-600" data-testid="privacy-retention-note">
-                            {retentionNote}
-                        </span>
-                    </>
-                )}
-            </>
-        )
+        // One statement: the period the server enforces. Nothing the creator
+        // typed is shown beside it, so the panel can't contradict itself.
+        detail: describeRetention(settings as StandardFormDto['settings'], t, language, 'value')
     });
     rows.push({ key: 'identity', term: t('PRIVACY.IDENTITY'), detail: signInRequired ? t('PRIVACY.IDENTITY_REQUIRED') : t('PRIVACY.IDENTITY_NOT_REQUIRED') });
     if (aiUsed) rows.push({ key: 'ai', term: t('PRIVACY.AI'), detail: aiProvider ? t('PRIVACY.AI_USED', { provider: aiProvider }) : t('PRIVACY.AI_USED_NO_PROVIDER') });

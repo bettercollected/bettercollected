@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { httpUrl } from '@app/utils/http-url';
-import { MAX_RETENTION_DAYS, describeRetention, retentionDate, retentionDays, retentionExplanation } from '@app/utils/retention';
+import { MAX_RETENTION_DAYS, describeRetention, retentionDate, retentionDays } from '@app/utils/retention';
 
 type RetentionKind = 'forever' | 'days' | 'date';
 
@@ -29,7 +29,6 @@ export default function TrustSettingsEditor() {
     const [patchFormSettings] = usePatchFormSettingsMutation();
 
     const [purpose, setPurpose] = useState(form?.settings?.purpose ?? '');
-    const [retention, setRetention] = useState(form?.settings?.retentionText ?? '');
     const [privacyUrl, setPrivacyUrl] = useState(form?.settings?.privacyPolicyUrl ?? '');
     const [keepKind, setKeepKind] = useState<RetentionKind>((form?.settings?.responseExpirationType as RetentionKind) || 'forever');
     const [keepValue, setKeepValue] = useState(form?.settings?.responseExpiration ?? '');
@@ -39,7 +38,6 @@ export default function TrustSettingsEditor() {
 
     useEffect(() => {
         setPurpose(form?.settings?.purpose ?? '');
-        setRetention(form?.settings?.retentionText ?? '');
         setPrivacyUrl(form?.settings?.privacyPolicyUrl ?? '');
         setKeepKind((form?.settings?.responseExpirationType as RetentionKind) || 'forever');
         setKeepValue(form?.settings?.responseExpiration ?? '');
@@ -70,8 +68,8 @@ export default function TrustSettingsEditor() {
         }
         await save(kind === 'forever' ? { responseExpirationType: 'forever' } : { responseExpirationType: kind, responseExpiration: value.trim() });
     };
-    // The enforced period, with the creator's explanation next to it.
-    const previewRetention = [describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language, 'value'), retentionExplanation({ retentionText: retention })].filter(Boolean).join(' ');
+    // The enforced period: the one statement responders read.
+    const previewRetention = describeRetention({ ...(form?.settings as any), responseExpirationType: keepKind, responseExpiration: keepValue }, tRespondent, language, 'value');
 
     const inputClass = 'border-control focus:border-black-400 w-full rounded-lg border p-2 text-xs';
 
@@ -83,11 +81,6 @@ export default function TrustSettingsEditor() {
             <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-black-700">Purpose</span>
                 <input type="text" placeholder="e.g. To schedule your appointment" value={purpose} onChange={(e) => setPurpose(e.target.value)} onBlur={() => save({ purpose: purpose.trim() })} className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-black-700">Why answers are kept this long (optional)</span>
-                <input type="text" placeholder="e.g. Until the project ends" value={retention} onChange={(e) => setRetention(e.target.value)} onBlur={() => save({ retentionText: retention.trim() })} className={inputClass} />
-                <span className="text-[11px] text-black-600">Explanation shown next to the period below. Respondents always see the period itself.</span>
             </label>
             <div className="flex flex-col gap-1">
                 <label htmlFor="keep-answers" className="text-xs font-medium text-black-700">

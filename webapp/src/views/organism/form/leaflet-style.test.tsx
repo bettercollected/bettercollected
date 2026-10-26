@@ -161,6 +161,14 @@ describe('Leaflet style', () => {
         window.history.replaceState(null, '', '/');
     });
 
+    it("the ending states one period: the creator's own wording is not added beside it", async () => {
+        store.dispatch(setForm({ ...(store.getState() as any).form, settings: { retentionText: 'kept for 6 months' } } as any));
+        wrap(<ThankyouPage isPreviewMode />);
+        const next = await screen.findByTestId('leaflet-next');
+        expect(within(next).getAllByRole('listitem')[0].textContent).toBe('How long they are kept: No fixed period. They are kept until they are deleted.');
+        expect(next).not.toHaveTextContent(/6 months/);
+    });
+
     it('a section title of its own goes on the bar and in the contents; the heading stays in the band', async () => {
         const form = (store.getState() as any).form;
         const titled = { ...form.fields[1], properties: { ...form.fields[1].properties, sectionTitle: '  Your  visit ' } };
