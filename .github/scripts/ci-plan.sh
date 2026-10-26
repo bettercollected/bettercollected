@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Decides what a CI run covers; writes step outputs to $GITHUB_OUTPUT (or stdout).
 #
-# Pull requests: the Postgres persistence mode only, and only the suites the
-# changed files can affect. Push to develop or a release/** branch, the nightly schedule and a manual
-# run (scope "full"): every suite in every mode.
+# Pull requests: only the suites the changed files can affect. Push to develop or
+# a release/** branch, the nightly schedule and a manual run (scope "full"): every
+# suite. There is one persistence mode (Postgres is the only store since 4.1).
 #
 # Path rules are deliberately conservative: a file that is not known to be
 # prose or to belong to one service runs everything. Tests read files across
@@ -29,7 +29,6 @@ esac
 # Full runs are not waited on, so they use fewer, longer shards.
 BACKEND_SHARDS=12
 [ "$full" = true ] && BACKEND_SHARDS=8
-SIDE_SHARDS=2 # mongo and dual (full runs), without the admin suite
 # a manual run may try another count (to measure)
 if [[ "${SHARDS:-}" =~ ^[0-9]+$ ]] && [ "$SHARDS" -ge 1 ] && [ "$SHARDS" -le 16 ]; then
     BACKEND_SHARDS=$SHARDS
@@ -69,40 +68,26 @@ else
     done <<<"$CHANGED_FILES"
 fi
 
-# Backend matrix: Postgres in shards always; Mongo and dual (without the admin
-# suite, which does not depend on the mode) only on full runs.
-#
-# The Postgres shards run without Mongo (no server, MONGO_URI on a closed
-# port): every group is on Postgres, so the services must start and serve
-# without it. The tests that drive Mongo themselves (marker "mongo": store
-# parity, the migration CLI, store-wide tasks) run in one more Postgres job,
-# with Mongo.
+# Backend matrix: Postgres in shards. They run without Mongo (no server,
+# MONGO_URI empty, as on a fresh install): every group is on Postgres, so the
+# services must start and serve without it. The tests that drive Mongo
+# themselves (marker "mongo": the import from 4.0, the migration CLI, store-wide
+# tasks) run in one more Postgres job, with Mongo.
 #
 # Every job runs against POSTGRES_IMAGE (ci.yml: the oldest supported major
 # version) except one, against POSTGRES_IMAGE_NEWEST: the tests of the migration
 # chains and of the database role scripts (postgres/), where a behaviour change
 # between major versions would show.
-entry() { # mode read_source write_mode group splits ignore mongo(present|absent) marker [postgres(newest)] [paths]
-    echo "{\"mode\":\"$1\",\"read_source\":\"$2\",\"write_mode\":\"$3\",\"group\":$4,\"splits\":$5,\"ignore\":\"$6\",\"mongo\":\"$7\",\"marker\":\"$8\",\"postgres\":\"${9:-}\",\"paths\":\"${10:-}\"}"
+entry() { # label group splits ignore mongo(present|absent) marker [postgres(newest)] [paths]
+    echo "{\"mode\":\"$1\",\"group\":$2,\"splits\":$3,\"ignore\":\"$4\",\"mongo\":\"$5\",\"marker\":\"$6\",\"postgres\":\"${7:-}\",\"paths\":\"${8:-}\"}"
 }
 entries=()
 for g in $(seq 1 "$BACKEND_SHARDS"); do
-    entries+=("$(entry "postgres, no Mongo" postgres postgres "$g" "$BACKEND_SHARDS" "" absent "not mongo")")
+    entries+=("$(entry "no Mongo" "$g" "$BACKEND_SHARDS" "" absent "not mongo")")
 done
-entries+=("$(entry "postgres, Mongo-driven tests" postgres postgres 1 1 "" present mongo)")
-entries+=("$(entry "postgres, newest server: migrations and roles" postgres postgres 1 1 "" absent "not mongo" \
+entries+=("$(entry "Mongo-driven tests" 1 1 "" present mongo)")
+entries+=("$(entry "newest server: migrations and roles" 1 1 "" absent "not mongo" \
     newest "tests/admin tests/app/db tests/app/migrate")")
-modes='["postgres"]'
-if [ "$full" = true ]; then
-    for mode in mongo dual; do
-        write=""
-        [ "$mode" = dual ] && write=dual
-        for g in $(seq 1 "$SIDE_SHARDS"); do
-            entries+=("$(entry "$mode" "" "$write" "$g" "$SIDE_SHARDS" "--ignore=tests/admin" present "")")
-        done
-    done
-    modes='["mongo","dual","postgres"]'
-fi
 matrix="{\"include\":[$(
     IFS=,
     echo "${entries[*]}"
@@ -118,7 +103,6 @@ out=${GITHUB_OUTPUT:-/dev/stdout}
     echo "webapp=$webapp"
     echo "smoke=$smoke"
     echo "executor=$executor"
-    echo "modes=$modes"
     echo "backend_matrix=$matrix"
 } >>"$out"
-echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke executor=$executor modes=$modes" >&2
+echo "full=$full backend=$backend auth=$auth google=$google common=$common webapp=$webapp smoke=$smoke executor=$executor" >&2

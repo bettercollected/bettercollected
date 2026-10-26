@@ -20,16 +20,16 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 | Path | Stack | Port | Role |
 |---|---|---|---|
 | [webapp/](webapp/) | Next.js 14 + TS, Redux Toolkit / RTK Query | 3000 | All UI: builder, dashboards, responder portal, billing |
-| [backend/](backend/) | FastAPI + Beanie (MongoDB) + SQLAlchemy (PostgreSQL) | 8000 | Core API — the hub everything routes through |
+| [backend/](backend/) | FastAPI + SQLAlchemy (PostgreSQL) | 8000 | Core API — the hub everything routes through |
 | [auth/](auth/) | FastAPI + fastapi-users + Stripe | 8001 | Identity (OAuth / email-OTP / JWT) + Stripe billing |
 | [integrations/google/](integrations/google/) | FastAPI + Google APIs | 8003 | Google Forms/Drive/Sheets provider microservice |
 | [temporal/worker/](temporal/worker/) | temporalio + Selenium | — | Background jobs: imports, deletions, template previews |
 | [temporal/csv-worker/](temporal/csv-worker/) | temporalio | — | CSV export of responses |
 | [temporal/actions-executor/](temporal/actions-executor/) | temporalio | — | Runs user-defined form-action code |
-| [common/](common/) | Python package (Beanie/JWT/crypto) | — | Shared models/enums/services for all Python services |
+| [common/](common/) | Python package (records/JWT/crypto) | — | Shared models/enums/services for all Python services |
 
-**Infra** (via `docker-compose.local.yml` / `docker-compose.deployment.yml`): **MongoDB** (app data),
-**PostgreSQL `app-postgres`** (the application database replacing MongoDB and Temporal — one schema per
+**Infra** (via `docker-compose.local.yml` / `docker-compose.deployment.yml`): **MongoDB** (the 4.0 data, read only by the import to 4.1),
+**PostgreSQL `app-postgres`** (the application database that replaced MongoDB, and replaces Temporal — one schema per
 service, `app`/`auth`/`google`/`jobs`, one least-privilege role each; runbook in `docs/postgres-cutover-runbook.md`),
 **PostgreSQL + Temporal server** (workflow engine), **Redis**, **nginx** (routes the admin / client / custom-domain
 hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, tracker on `:3003` via nginx, dashboard on `127.0.0.1:3004` — see
@@ -56,9 +56,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for request-level data flow.
 ## Layering conventions
 
 - **Python (FastAPI) services** follow `fastapi-mvc`: **Controllers** (class-based via `classy-fastapi`) →
-  **Services** (business logic, wired by `dependency-injector`) → **Repositories** (routed: a Mongo implementation and
-  its Postgres twin behind one `RoutingRepository`, chosen per group by `DB_*` flags — see `backend/AGENTS.md`
-  "Persistence") → **Beanie Documents** (MongoDB) / **rows** (PostgreSQL, `<service>/db/models.py`).
+  **Services** (business logic, wired by `dependency-injector`) → **Repositories** (Postgres only since 4.1, on
+  `common.records.repository.RecordRepository` — see `backend/AGENTS.md` "Persistence") → **Records**
+  (`common.records.Record`, plain pydantic models) / **rows** (PostgreSQL, `<service>/db/models.py`).
   Put business logic in services, DB access in repositories, HTTP shape in controllers. Never query a store from a
   controller or service.
 - **Frontend** is Redux Toolkit + **RTK Query** for all server state (~16 API slices, all against `/api/v1`), plain
