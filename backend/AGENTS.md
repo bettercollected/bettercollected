@@ -27,7 +27,7 @@ backend/
       container.py    # dependency-injector AppContainer (wires repos -> services)
       router.py       # aggregates all routers into root_api_router
       asgi.py         # get_application() app factory
-    config/           # settings: api, auth, database, temporal, aws, redis, sentry, apm, openai, umami
+    config/           # settings: api, auth, database, temporal, aws, redis, apm, openai, umami
     cli/              # `backend serve` -> gunicorn+uvicorn (prod)
     tests/
 ```

@@ -385,6 +385,19 @@ def test_the_former_marketing_tracker_keys_are_retired_not_settings():
         assert _classified(key)
 
 
+# The error reporter (Sentry) is removed; stacks still set its two variables (and the
+# store may hold rows for them): both are ignored, never refused.
+SENTRY_KEYS = {"SENTRY_DSN", "SENTRY_DEBUG"}
+
+
+def test_the_former_error_reporter_keys_are_retired_not_settings():
+    assert SENTRY_KEYS <= set(RETIRED)
+    assert not any(s.key.startswith("SENTRY_") for s in all_specs())
+    assert SENTRY_KEYS <= full_registry().retired
+    for key in SENTRY_KEYS:
+        assert _classified(key)
+
+
 @monorepo
 def test_aliases_point_at_registered_keys_and_are_read():
     keys = {s.key for s in all_specs()}

@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 from googleform.config.apm_settings import APMSettings
 from googleform.config.database import MongoSettings
-from googleform.config.sentry_setting import SentrySettings
 from googleform.version import __version__
 
 from pydantic_settings import BaseSettings
@@ -106,7 +105,6 @@ class Application(StoreBackedSettings):
 
     apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()
-    sentry_settings: SentrySettings = SentrySettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

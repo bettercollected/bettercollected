@@ -4,7 +4,6 @@ import json
 import logging
 
 import auth
-import sentry_sdk
 from auth.app.container import container
 from auth.app.controllers.internal_key import log_if_internal_key_missing
 from auth.app.exceptions import (
@@ -19,9 +18,6 @@ from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from auth.config import settings
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from common.exceptions import NotFoundError
 from common.settings import sso_requirements
@@ -94,26 +90,6 @@ def get_application():
     """
     log.debug("Initialize FastAPI application node.")
     container.wire(packages=[auth.app])
-    sentry_settings = settings.sentry_settings
-
-    sentry_sdk.init(
-        dsn=sentry_settings.DSN,
-        max_breadcrumbs=50,
-        debug=sentry_settings.DEBUG,
-        release=settings.API_VERSION,
-        environment=settings.API_ENVIRONMENT,
-        attach_stacktrace=True,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production,
-        traces_sample_rate=1.0,
-        integrations=[
-            AsyncioIntegration(),
-            HttpxIntegration(),
-            LoguruIntegration(),
-        ],
-    )
-
     app = FastAPI(
         title=settings.API_TITLE,
         debug=settings.DEBUG,
