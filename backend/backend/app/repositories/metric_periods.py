@@ -13,7 +13,7 @@ precision against ``iso_second``, the Postgres spine column against ``utc``.
 import datetime as dt
 from typing import Any, Dict, List, Optional, Sequence
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from sqlalchemy import and_, func, select
 
 
@@ -24,9 +24,9 @@ def utc(moment: dt.datetime) -> dt.datetime:
     return moment.astimezone(dt.timezone.utc).replace(microsecond=0)
 
 
-def object_id_at(moment: dt.datetime) -> PydanticObjectId:
+def object_id_at(moment: dt.datetime) -> RecordId:
     """The smallest ObjectId minted at ``moment``."""
-    return PydanticObjectId.from_datetime(utc(moment))
+    return RecordId.from_datetime(utc(moment))
 
 
 def iso_second(moment: dt.datetime) -> str:

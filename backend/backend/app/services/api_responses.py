@@ -13,7 +13,7 @@ import datetime as dt
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from loguru import logger
 
@@ -48,7 +48,7 @@ def _status(value: Any) -> Optional[str]:
     return str(getattr(value, "value", value))
 
 
-def _decrypted(workspace_id: PydanticObjectId, form_id: str, data: Any) -> dict:
+def _decrypted(workspace_id: RecordId, form_id: str, data: Any) -> dict:
     if isinstance(data, (bytes, str)):
         try:
             data = json.loads(
@@ -65,7 +65,7 @@ def _decrypted(workspace_id: PydanticObjectId, form_id: str, data: Any) -> dict:
 
 
 async def list_response_summaries(
-    workspace_id: PydanticObjectId, form_id: str, limit: int, skip: int = 0
+    workspace_id: RecordId, form_id: str, limit: int, skip: int = 0
 ) -> Tuple[List[Dict[str, Any]], int]:
     """(summaries of one page, most recent first; the form's total). The
     caller has checked that the form belongs to the workspace."""
@@ -102,7 +102,7 @@ async def list_response_summaries(
 
 
 async def response_detail(
-    workspace_id: PydanticObjectId, response_id: str
+    workspace_id: RecordId, response_id: str
 ) -> Optional[Dict[str, Any]]:
     """One response of the workspace with its answers, or None when the
     workspace has no copy of it (or its form is not one of the workspace's)."""

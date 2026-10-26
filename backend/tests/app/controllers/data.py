@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from common.models.user import User
 
@@ -244,16 +244,16 @@ workspace_attribute_1 = {
 }
 
 testUser = User(
-    id=str(PydanticObjectId()), sub="test@email.com", roles=["ADMIN", "FORM_CREATOR"]
+    id=str(RecordId()), sub="test@email.com", roles=["ADMIN", "FORM_CREATOR"]
 )
-testUser1 = User(id=str(PydanticObjectId()), sub="bettercollected@email.com")
+testUser1 = User(id=str(RecordId()), sub="bettercollected@email.com")
 testUser2 = User(
-    id=str(PydanticObjectId()), sub="random@email.com", roles=["FORM_RESPONDER"]
+    id=str(RecordId()), sub="random@email.com", roles=["FORM_RESPONDER"]
 )
-proUser = User(id=str(PydanticObjectId()), sub="prouser@gmail.com", plan="PRO")
+proUser = User(id=str(RecordId()), sub="prouser@gmail.com", plan="PRO")
 
 invited_user = User(
-    id=str(PydanticObjectId()), sub="invited_daemon@gmail.com", roles=["FORM_RESPONDER"]
+    id=str(RecordId()), sub="invited_daemon@gmail.com", roles=["FORM_RESPONDER"]
 )
 
 invitation_request = {"email": "invited_daemon@gmail.com", "role": "COLLABORATOR"}

@@ -7,7 +7,7 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from httpx import AsyncClient
@@ -23,9 +23,9 @@ from tests.app.controllers.data import invited_user, testUser, testUser1, testUs
 from tests.app.response_helpers import deletion_request_of
 from tests.app.services.test_internal_fields import NAME, REFERENCE, _form_payload
 
-admin_user = User(id=str(PydanticObjectId()), sub="branches-admin@example.com")
-disabled_admin = User(id=str(PydanticObjectId()), sub="branches-disabled@example.com")
-invitee = User(id=str(PydanticObjectId()), sub="invitee@example.com")
+admin_user = User(id=str(RecordId()), sub="branches-admin@example.com")
+disabled_admin = User(id=str(RecordId()), sub="branches-disabled@example.com")
+invitee = User(id=str(RecordId()), sub="invitee@example.com")
 
 
 def _cookies(user: User) -> dict:

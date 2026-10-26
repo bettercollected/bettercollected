@@ -7,7 +7,7 @@ import http.cookies
 from urllib.parse import urlsplit
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from starlette.responses import Response
 
@@ -155,7 +155,7 @@ async def test_a_disabled_membership_gets_no_session(client, sso_workspace):
     assert sso_error(reply) == "sso_membership_disabled"
     assert "Authorization" not in reply.cookies
     member = await container.workspace_user_repo().find_workspace_user(
-        workspace.id, PydanticObjectId(account["id"])
+        workspace.id, RecordId(account["id"])
     )
     assert member.disabled is True
 
@@ -168,7 +168,7 @@ async def test_the_seat_race_gives_the_seat_back(workspace, monkeypatch):
         return True  # both racers passed the first look
 
     monkeypatch.setattr(service, "has_free_seat", looked_free)
-    late = User(id=str(PydanticObjectId()), sub="late@" + DOMAIN)
+    late = User(id=str(RecordId()), sub="late@" + DOMAIN)
     with pytest.raises(SeatLimitReached):
         await service.add_sso_member(workspace.id, late, WorkspaceRoles.COLLABORATOR)
     assert await service.find_member(workspace.id, late.id) is None
@@ -228,7 +228,7 @@ async def test_an_sso_session_never_keeps_a_stored_admin_role(
     client, sso_workspace, fake_status
 ):
     fake_status.roles = ["FORM_RESPONDER", "FORM_CREATOR", "ADMIN"]
-    jane = User(id=str(PydanticObjectId()), sub="jane@" + DOMAIN, email_verified=True)
+    jane = User(id=str(RecordId()), sub="jane@" + DOMAIN, email_verified=True)
     token = await _refresh_token(jane, method="sso")
     reply = await refresh(client, token)
     assert reply.status_code == 200, reply.text
@@ -264,11 +264,11 @@ async def test_refresh_ends_non_sso_sessions_on_required_domains(
     client, required, fake_status, method, user_is_owner, scope, survives
 ):
     workspace = required
-    user_id = testUser.id if user_is_owner else str(PydanticObjectId())
+    user_id = testUser.id if user_is_owner else str(RecordId())
     user = User(id=user_id, sub="someone@" + DOMAIN, email_verified=True)
     fake_status.email = "someone@" + DOMAIN
     extra = (
-        {"scope": scope, "scope_workspace_id": str(PydanticObjectId())} if scope else {}
+        {"scope": scope, "scope_workspace_id": str(RecordId())} if scope else {}
     )
     token = await _refresh_token(user, method=method, **extra)
     reply = await refresh(client, token)
@@ -283,7 +283,7 @@ async def test_refresh_ends_non_sso_sessions_on_required_domains(
 
 async def test_refresh_leaves_other_domains_alone(client, required, fake_status):
     fake_status.email = "carol@elsewhere-corp.org"
-    user = User(id=str(PydanticObjectId()), sub="carol@elsewhere-corp.org")
+    user = User(id=str(RecordId()), sub="carol@elsewhere-corp.org")
     token = await _refresh_token(user, method="otp")
     assert (await refresh(client, token)).status_code == 200
 
@@ -294,7 +294,7 @@ async def other_workspace(required):
     other = WorkspaceDocument(
         title="Other",
         workspace_name="other-ws",
-        owner_id=str(PydanticObjectId()),
+        owner_id=str(RecordId()),
         description="",
     )
     return await container.workspace_repo().save(other)
@@ -522,7 +522,7 @@ async def test_without_sso_required_a_code_is_a_full_session(
 async def other_workspace_plain(sso_workspace):
     return await container.workspace_repo().save(
         WorkspaceDocument(
-            title="Plain", workspace_name="plain-ws", owner_id=str(PydanticObjectId())
+            title="Plain", workspace_name="plain-ws", owner_id=str(RecordId())
         )
     )
 
@@ -548,7 +548,7 @@ async def test_a_respondent_session_is_not_signed_in_on_a_third_workspace(
 ):
     third = await container.workspace_repo().save(
         WorkspaceDocument(
-            title="Third", workspace_name="third-ws", owner_id=str(PydanticObjectId())
+            title="Third", workspace_name="third-ws", owner_id=str(RecordId())
         )
     )
     cookies = await _respondent_cookies(client, required, other_workspace)
@@ -573,7 +573,7 @@ async def test_a_respondent_session_is_anonymous_on_optional_sign_in_routes(
 
     third = await container.workspace_repo().save(
         WorkspaceDocument(
-            title="Third", workspace_name="third-ws2", owner_id=str(PydanticObjectId())
+            title="Third", workspace_name="third-ws2", owner_id=str(RecordId())
         )
     )
     cookies = await _respondent_cookies(client, required, other_workspace)
@@ -640,7 +640,7 @@ async def test_a_replayed_failed_test_records_nothing(client, workspace, sso_on)
 
 # -- a new SSO sign-in ends the browser's previous session ----------------------
 async def test_the_previous_session_is_revoked(client, sso_workspace, fake_status):
-    old_user = User(id=str(PydanticObjectId()), sub="old@elsewhere-corp.org")
+    old_user = User(id=str(RecordId()), sub="old@elsewhere-corp.org")
     old_refresh = await _refresh_token(old_user, method="otp")
     assert len(await container.session_service().list_for_user(old_user.id)) == 1
     started = await start(client)

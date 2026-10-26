@@ -4,7 +4,7 @@ a deleted workspace's connections Polis could not delete are kept as
 or squatted entity IDs. Polis is a stand-in (tests/app/sso_helpers)."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend import sso as sso_cli
 from backend.app.container import container
@@ -139,7 +139,7 @@ async def holders(workspace, workspace_1, sso_on):
     workspace's recorded one, a live workspace's unrecorded one and another
     product's."""
     polis, _ = sso_on
-    gone = str(PydanticObjectId())
+    gone = str(RecordId())
     recorded = await add_connection(workspace.id, client_id="c-in-use")
     polis.entity_holders = [
         _holder("c-orphaned", gone),

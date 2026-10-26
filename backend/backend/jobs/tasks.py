@@ -113,12 +113,12 @@ async def import_form(context, import_id: str) -> str:
     the import record, so a retry only redoes the stage that failed. On the
     last attempt an unreachable sandbox fails the import instead of leaving
     it queued."""
-    from beanie import PydanticObjectId
+    from common.ids import RecordId
 
     from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 
     pipeline = _container().pdf_import_pipeline()
-    import_id = PydanticObjectId(import_id)
+    import_id = RecordId(import_id)
     try:
         # the heartbeat keeps a long stage from looking interrupted
         record = await pipeline.keep_alive(import_id, pipeline.run(import_id))

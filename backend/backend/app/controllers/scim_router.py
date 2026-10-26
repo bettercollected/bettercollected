@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, post, put
 from common.models.user import User
 from fastapi import Depends, Request, Response
@@ -38,7 +38,7 @@ class WorkspaceScimRouter(Routable):
 
     @get("/{workspace_id}/scim")
     async def overview(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ) -> DirectoryOverviewDto:
         return await container.scim_directory_service().overview(workspace_id, user)
 
@@ -52,7 +52,7 @@ class WorkspaceScimRouter(Routable):
     )
     async def create_directory(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: CreateDirectoryDto,
         user: User = Depends(get_full_user),
     ) -> DirectoryCredentialsDto:
@@ -63,13 +63,13 @@ class WorkspaceScimRouter(Routable):
 
     @post("/{workspace_id}/scim/directory/rotate")
     async def rotate_token(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ) -> DirectoryCredentialsDto:
         return await container.scim_directory_service().rotate(workspace_id, user)
 
     @delete("/{workspace_id}/scim/directory")
     async def delete_directory(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ) -> DirectoryDeletedDto:
         """Members stay; the directory's deactivations are lifted where a
         seat is free."""
@@ -78,7 +78,7 @@ class WorkspaceScimRouter(Routable):
     @put("/{workspace_id}/scim/groups/{group_id}")
     async def set_group_role(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         group_id: str,
         request: GroupRoleDto,
         user: User = Depends(get_full_user),
@@ -95,7 +95,7 @@ class WorkspaceScimRouter(Routable):
     )
     async def resync(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: Optional[ResyncRequestDto] = None,
         user: User = Depends(get_full_user),
     ) -> ResyncDto:
@@ -106,7 +106,7 @@ class WorkspaceScimRouter(Routable):
 
     @post("/{workspace_id}/scim/directory/cleanup")
     async def cleanup(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ) -> DirectoryDto:
         """Retry deleting the previous Polis directory after a rotation."""
         return await container.scim_directory_service().cleanup(workspace_id, user)

@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.container import container
@@ -296,7 +296,7 @@ async def test_an_upgrade_does_not_undo_the_directory(
 
 async def test_legacy_disabled_memberships_count_as_plan(workspace):
     legacy = WorkspaceUserDocument(
-        workspace_id=workspace.id, user_id=PydanticObjectId(), disabled=True
+        workspace_id=workspace.id, user_id=RecordId(), disabled=True
     )
     assert legacy.enable_for("directory") is False and legacy.disabled
     assert legacy.enable_for("plan") is True and not legacy.disabled
@@ -410,9 +410,9 @@ async def test_a_second_membership_for_the_same_user_is_not_created(workspace):
     repo = container.workspace_user_repo()
     first = await repo.add_if_absent(
         WorkspaceUserDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             workspace_id=workspace.id,
-            user_id=PydanticObjectId(invited_user.id),
+            user_id=RecordId(invited_user.id),
             roles=[WorkspaceRoles.ADMIN],
         )
     )
@@ -565,16 +565,16 @@ async def test_identical_events_in_one_batch_are_both_applied(
 def _legacy(workspace_id, user_id=None) -> WorkspaceUserDocument:
     """A membership a plan downgrade disabled before reasons were recorded."""
     return WorkspaceUserDocument(
-        id=PydanticObjectId(),
-        workspace_id=PydanticObjectId(workspace_id),
-        user_id=PydanticObjectId(user_id) if user_id else PydanticObjectId(),
+        id=RecordId(),
+        workspace_id=RecordId(workspace_id),
+        user_id=RecordId(user_id) if user_id else RecordId(),
         roles=[WorkspaceRoles.VIEWER],
         disabled=True,
     )
 
 
 def test_a_legacy_row_keeps_the_plans_reason():
-    legacy = _legacy(PydanticObjectId())
+    legacy = _legacy(RecordId())
     assert legacy.holds_seat
     legacy.disable_for("directory")
     assert legacy.disabled_reasons == ["plan", "directory"]
@@ -588,7 +588,7 @@ async def test_a_legacy_row_keeps_its_plan_reason(clean_postgres):
         PostgresWorkspaceUserRepository,
     )
 
-    workspace_id = PydanticObjectId()
+    workspace_id = RecordId()
     repo = PostgresWorkspaceUserRepository(container.pg_sessionmaker())
     legacy = await repo.add_if_absent(_legacy(workspace_id))
     stored = await repo.find_workspace_user(workspace_id, legacy.user_id)
@@ -634,7 +634,7 @@ async def test_an_invite_over_the_cap_is_refused_while_downgraded(
     await container.workspace_service().downgrade_user_workspace(testUser.id)
     assert (await member_of(workspace.id, invited_user.id)).disabled
 
-    newcomer = User(id=str(PydanticObjectId()), sub="newcomer@example.com")
+    newcomer = User(id=str(RecordId()), sub="newcomer@example.com")
     with pytest.raises(HTTPException):
         await service.add_user_to_workspace_with_role(
             workspace.id, newcomer, WorkspaceRoles.VIEWER

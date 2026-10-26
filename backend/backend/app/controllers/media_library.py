@@ -1,5 +1,5 @@
 from typing import List
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, post
 from fastapi import Depends, UploadFile
 from common.models.user import User
@@ -59,7 +59,7 @@ class MediaLibrary(Routable):
     async def delete_media_from_workspace(
         self,
         workspace_id: str,
-        media_id: PydanticObjectId,
+        media_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         return await self.media_library_service.delete_media_from_library_of_workspace(

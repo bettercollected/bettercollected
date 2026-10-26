@@ -1,7 +1,7 @@
 """Images served from, or copied into, our own storage
 (``services/image_service.py``)."""
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, post
 from common.models.user import User
 from fastapi import Depends
@@ -57,7 +57,7 @@ class ImagesRouter(Routable):
     )
     async def import_image(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         body: ImageImportRequest,
         user: User = Depends(get_logged_user),
     ) -> ImageImportResponse:

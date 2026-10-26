@@ -5,7 +5,7 @@ import re
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from loguru import logger
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
@@ -312,7 +312,7 @@ class WorkspaceFormService:
         self.crypto = crypto
 
     async def check_form_exists_in_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: RecordId, form_id: str
     ):
         if not await self.workspace_form_repository.check_if_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=form_id
@@ -322,7 +322,7 @@ class WorkspaceFormService:
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         provider: str,
         form_import: FormImportRequestBody,
         user: User,
@@ -428,14 +428,14 @@ class WorkspaceFormService:
         return response_data
 
     async def check_if_user_can_import_more_forms(
-        self, user: User, workspace_id: PydanticObjectId
+        self, user: User, workspace_id: RecordId
     ):
         # Forms are unlimited on every plan — there is no per-workspace form
         # cap. (Responses have never been capped either.)
         return True
 
     async def delete_form_from_workspace(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: RecordId, form_id: str, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_DELETE, workspace_id
@@ -443,14 +443,14 @@ class WorkspaceFormService:
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self._delete_form(workspace_id, form_id)
 
-    async def delete_draft_form(self, workspace_id: PydanticObjectId, form_id: str):
+    async def delete_draft_form(self, workspace_id: RecordId, form_id: str):
         """Remove a draft the system created for the user (a PDF import that
         did not finish): no access check, and the import record stays (its
         caller clears the record's form)."""
         return await self._delete_form(workspace_id, form_id, with_imports=False)
 
     async def _delete_form(
-        self, workspace_id: PydanticObjectId, form_id: str, with_imports: bool = True
+        self, workspace_id: RecordId, form_id: str, with_imports: bool = True
     ):
         workspace_ids = (
             await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id)
@@ -502,20 +502,20 @@ class WorkspaceFormService:
 
         return "Form deleted from workspace."
 
-    async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
+    async def get_form_ids_in_workspace(self, workspace_id: RecordId):
         return await self.workspace_form_repository.get_form_ids_in_workspace(
             workspace_id
         )
 
     async def get_form_ids_in_workspaces_and_imported_by_user(
-        self, workspace_ids: List[PydanticObjectId], user: User
+        self, workspace_ids: List[RecordId], user: User
     ):
         return await self.workspace_form_repository.get_form_ids_in_workspaces_and_imported_by_user(
             workspace_ids=workspace_ids, user=user
         )
 
     async def get_form_ids_imported_by_user(
-        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+        self, workspace_id: RecordId, user_id: RecordId
     ):
         return await self.workspace_form_repository.get_form_ids_imported_by_user(
             workspace_id, str(user_id)
@@ -523,9 +523,9 @@ class WorkspaceFormService:
 
     async def add_groups_to_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
-        group_ids: List[PydanticObjectId],
+        group_ids: List[RecordId],
         user: User,
     ):
         await self.authorization_service.authorize(
@@ -543,9 +543,9 @@ class WorkspaceFormService:
 
     async def delete_group_from_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
-        group_id: PydanticObjectId,
+        group_id: RecordId,
         user: User,
     ):
         await self.authorization_service.authorize(
@@ -564,7 +564,7 @@ class WorkspaceFormService:
     async def delete_forms_with_ids(
         self,
         form_ids: List[str],
-        workspace_ids: Optional[List[PydanticObjectId]] = None,
+        workspace_ids: Optional[List[RecordId]] = None,
         user_id: Optional[str] = None,
     ):
         """Account deletion: the forms of the deleted workspaces
@@ -591,7 +591,7 @@ class WorkspaceFormService:
     async def _keep_forms_of_remaining_workspaces(
         self,
         form_ids: List[str],
-        workspace_ids: List[PydanticObjectId],
+        workspace_ids: List[RecordId],
         user_id: Optional[str],
     ) -> List[str]:
         """Unlink the shared forms from the deleted workspaces only; returns
@@ -616,11 +616,11 @@ class WorkspaceFormService:
                 continue
             leaving = {str(link.workspace_id) for link in form_links if removed(link)}
             await self.form_response_service.delete_workspaces_form_responses(
-                [PydanticObjectId(w) for w in leaving], str(form_id)
+                [RecordId(w) for w in leaving], str(form_id)
             )
             for workspace_id in leaving:
                 await self.workspace_form_repository.delete_form_in_workspace(
-                    workspace_id=PydanticObjectId(workspace_id), form_id=str(form_id)
+                    workspace_id=RecordId(workspace_id), form_id=str(form_id)
                 )
         return entirely
 
@@ -632,7 +632,7 @@ class WorkspaceFormService:
 
     async def create_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form: StandardForm,
         user: User,
         logo: UploadFile = None,
@@ -684,7 +684,7 @@ class WorkspaceFormService:
             settings, drop_unusable=drop_unusable_settings
         )
         checked_logo = await read_logo_upload(logo) if logo else None
-        form.form_id = str(PydanticObjectId())
+        form.form_id = str(RecordId())
         if form.theme is None and not keep_theme:
             form.theme = new_form_theme()
         keep_section_titles(form, None)
@@ -734,8 +734,8 @@ class WorkspaceFormService:
 
     async def update_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         form: StandardForm,
         user: User,
         logo: UploadFile = None,
@@ -899,8 +899,8 @@ class WorkspaceFormService:
 
     async def set_form_logo(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         logo: UploadFile,
         user: User,
     ):
@@ -914,7 +914,7 @@ class WorkspaceFormService:
         return updated
 
     async def remove_form_logo(
-        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, form_id: RecordId, user: User
     ):
         """Unlink the draft's logo; its file goes once the live version no
         longer shows it either (at the next publish)."""
@@ -958,9 +958,9 @@ class WorkspaceFormService:
 
     async def patch_response(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
         form_files: Optional[Any],
         response: StandardFormResponseCamelModel,
         user: User,
@@ -1099,8 +1099,8 @@ class WorkspaceFormService:
 
     async def submit_response(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         response: StandardFormResponse,
         user: User,
         form_files: list[FormFileResponse] = None,
@@ -1115,7 +1115,7 @@ class WorkspaceFormService:
         )
         # Feedback is the staff's to write, never part of a submission.
         response.respondent_feedback = None
-        response.response_id = str(PydanticObjectId())
+        response.response_id = str(RecordId())
 
         workspace_form_ids = (
             await self.workspace_form_repository.get_form_ids_in_workspace(
@@ -1249,8 +1249,8 @@ class WorkspaceFormService:
 
     async def delete_form_response(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         response_id: str,
         user: User,
     ):
@@ -1279,7 +1279,7 @@ class WorkspaceFormService:
         )
 
     async def publish_form(
-        self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, form_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
@@ -1345,7 +1345,7 @@ class WorkspaceFormService:
             workspace_form.settings.custom_url = new_slug
             await self.workspace_form_repository.save(workspace_form)
 
-    async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
+    async def get_form_workspace_by_id(self, workspace_id: RecordId):
         return await self.form_import_service.get_form_workspace_by_id(
             workspace_id=workspace_id
         )
@@ -1353,8 +1353,8 @@ class WorkspaceFormService:
     # for duplicate and template of form
     async def duplicate_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         user: User,
         is_template: bool = False,
         user_tokens: UserTokens = None,
@@ -1404,7 +1404,7 @@ class WorkspaceFormService:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id
         else:
-            duplicated_form.form_id = str(PydanticObjectId())
+            duplicated_form.form_id = str(RecordId())
         # The copy gets its own copy of the logo file.
         duplicated_form.logo = self._copy_logo(
             "templates" if is_template else duplicated_form.form_id, form.logo
@@ -1436,8 +1436,8 @@ class WorkspaceFormService:
 
     async def add_action_to_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         add_action_to_form_params: AddActionToFormDto,
         user: User,
     ):
@@ -1487,9 +1487,9 @@ class WorkspaceFormService:
 
     async def remove_action_from_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
         trigger: Trigger,
         user: User,
     ):
@@ -1505,8 +1505,8 @@ class WorkspaceFormService:
 
     async def update_action_status_in_form(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
         update_action_dto: UpdateActionInFormDto,
         user: User,
     ):
@@ -1570,9 +1570,9 @@ class WorkspaceFormService:
 
     async def action_reconsent_status(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
         user: User,
     ) -> dict:
         """Opening an action in the builder: whether it must be reconnected
@@ -1608,9 +1608,9 @@ class WorkspaceFormService:
 
     async def update_action_from_temporal(
         self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        action_id: PydanticObjectId,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
     ):
         form = await self.form_service.get_form_document_by_id(str(form_id))
         form_action = [

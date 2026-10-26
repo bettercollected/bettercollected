@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic import BaseModel, EmailStr, Field
 
 from common.enums.plan import Plans
@@ -24,7 +24,7 @@ class UserResponseDto(BaseModel):
     Model for returning information about a user.
     """
 
-    id: PydanticObjectId
+    id: RecordId
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: str

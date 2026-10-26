@@ -6,7 +6,7 @@ from typing import Optional
 from urllib.parse import quote
 from uuid import uuid4
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import RespondentFeedback
 from common.models.user import User
@@ -66,7 +66,7 @@ class RespondentFeedbackService:
 
     async def post_feedback(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         response_id: str,
         body: RespondentFeedbackPost,
@@ -143,7 +143,7 @@ class RespondentFeedbackService:
         )
 
     async def _notify_respondent(
-        self, workspace_id: PydanticObjectId, response, access_token: Optional[str]
+        self, workspace_id: RecordId, response, access_token: Optional[str]
     ) -> bool:
         """Ask the auth service to email the respondent a notice that links to
         their submission page. Never the status or the message: only the form

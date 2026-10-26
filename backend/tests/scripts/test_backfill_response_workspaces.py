@@ -8,7 +8,7 @@ apply is a no-op."""
 import json
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.repositories.postgres.forms import PostgresWorkspaceFormRepository
@@ -33,8 +33,8 @@ from tests.conftest import _postgres_configured, _truncate_postgres
 
 pytestmark = pytest.mark.asyncio
 
-WS_A = PydanticObjectId("65e5501d00000000000000a1")
-WS_B = PydanticObjectId("65e5501d00000000000000b2")
+WS_A = RecordId("65e5501d00000000000000a1")
+WS_B = RecordId("65e5501d00000000000000b2")
 
 
 def _answers(workspace_id, form_id):
@@ -49,19 +49,19 @@ def _documents():
     """single: linked to A only; shared: A (first) and B; gone: unlinked."""
     links = [
         WorkspaceFormDocument(
-            id=PydanticObjectId("65e5501d0000000000000001"),
+            id=RecordId("65e5501d0000000000000001"),
             workspace_id=WS_A,
             form_id="single",
             user_id="u1",
         ),
         WorkspaceFormDocument(
-            id=PydanticObjectId("65e5501d0000000000000002"),
+            id=RecordId("65e5501d0000000000000002"),
             workspace_id=WS_A,
             form_id="shared",
             user_id="u1",
         ),
         WorkspaceFormDocument(
-            id=PydanticObjectId("65e5501d0000000000000003"),
+            id=RecordId("65e5501d0000000000000003"),
             workspace_id=WS_B,
             form_id="shared",
             user_id="u2",
@@ -70,7 +70,7 @@ def _documents():
 
     def response(response_id, form_id, **extra):
         return FormResponseDocument(
-            id=PydanticObjectId(), response_id=response_id, form_id=form_id, **extra
+            id=RecordId(), response_id=response_id, form_id=form_id, **extra
         )
 
     responses = [
@@ -84,7 +84,7 @@ def _documents():
         response("o1", "gone", answers=_answers(WS_A, "gone")),
     ]
     requests = [
-        FormResponseDeletionRequest(id=PydanticObjectId(), form_id=f, response_id=r)
+        FormResponseDeletionRequest(id=RecordId(), form_id=f, response_id=r)
         for f, r in (("shared", "sh_a"), ("shared", "sh_x"), ("single", "sg_a"))
     ]
     return links, responses, requests

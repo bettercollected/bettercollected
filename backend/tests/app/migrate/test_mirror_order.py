@@ -18,7 +18,7 @@ import os
 import time
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.config import settings
@@ -137,7 +137,7 @@ async def verify(target, *collections):
 
 async def new_form(repo, title="Draft"):
     return await repo.create_form(
-        StandardForm(form_id=str(PydanticObjectId()), title=title, builder_version="v2")
+        StandardForm(form_id=str(RecordId()), title=title, builder_version="v2")
     )
 
 
@@ -195,7 +195,7 @@ async def test_replayed_writes_mirrored_out_of_order_leave_the_newer_version(
     async def second():
         current = await repo.get_form_document_by_id(created.form_id)
         await repo.update_form_if_unchanged(
-            PydanticObjectId(created.form_id),
+            RecordId(created.form_id),
             StandardForm(form_id=created.form_id, title="Two", builder_version="v2"),
             current.updated_at,
         )
@@ -203,7 +203,7 @@ async def test_replayed_writes_mirrored_out_of_order_leave_the_newer_version(
     await out_of_order(
         held,
         lambda: repo.update_form_if_unchanged(
-            PydanticObjectId(created.form_id),
+            RecordId(created.form_id),
             StandardForm(form_id=created.form_id, title="One", builder_version="v2"),
             stored.updated_at,
         ),
@@ -271,7 +271,7 @@ async def test_a_mirror_that_keeps_changing_is_a_reported_mirror_failure(
 
     async def drifting_read(entry, ids, store):
         if store is ReadSource.POSTGRES:  # another writer keeps changing the mirror
-            await set_postgres_title(created.id, f"Drifted {PydanticObjectId()}")
+            await set_postgres_title(created.id, f"Drifted {RecordId()}")
         return await real_read(entry, ids, store)
 
     monkeypatch.setattr(convergence, "_read", drifting_read)

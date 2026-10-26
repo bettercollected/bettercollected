@@ -12,7 +12,7 @@ import datetime as dt
 import os
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -38,10 +38,10 @@ def days_ago(days: float) -> dt.datetime:
     return NOW - dt.timedelta(days=days)
 
 
-def minted_at(moment: dt.datetime) -> PydanticObjectId:
+def minted_at(moment: dt.datetime) -> RecordId:
     """An ObjectId created at ``moment`` (random tail, so ids never collide)."""
-    stamp = PydanticObjectId.from_datetime(moment).binary[:4]
-    return PydanticObjectId(stamp + os.urandom(8))
+    stamp = RecordId.from_datetime(moment).binary[:4]
+    return RecordId(stamp + os.urandom(8))
 
 
 async def seed(repositories, method, *documents):
@@ -55,7 +55,7 @@ async def test_workspace_form_counts(sessions):
     the 4.0 Mongo repository while both stores existed."""
     links = PostgresWorkspaceFormRepository(sessions, None)
     forms = PostgresFormRepository(sessions, None, None)
-    workspace_id = PydanticObjectId()
+    workspace_id = RecordId()
 
     def workspace_form(form_id, user_id, created, provider):
         settings = (
@@ -106,7 +106,7 @@ async def test_response_counts(sessions):
 
     def response(response_id, submitted, **extra):
         return FormResponseDocument(
-            id=PydanticObjectId(),  # minted now: imports keep the submission time
+            id=RecordId(),  # minted now: imports keep the submission time
             form_id="f1",
             response_id=response_id,
             created_at=submitted,

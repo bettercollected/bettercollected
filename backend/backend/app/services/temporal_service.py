@@ -12,7 +12,7 @@ from backend.jobs import tasks
 from bson import ObjectId
 
 import loguru
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.configs.crypto import Crypto
 from common.models.standard_form import StandardFormResponse, StandardForm
 from common.models.user import User

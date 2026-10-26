@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceConsentRepo,
@@ -18,7 +18,7 @@ class WorkspaceConsentService:
         self._workspace_consent_repo: PostgresWorkspaceConsentRepo = workspace_consent_repo
         self._authorization = authorization_service
 
-    async def get_workspace_consents(self, workspace_id: PydanticObjectId, user: User):
+    async def get_workspace_consents(self, workspace_id: RecordId, user: User):
         # The catalog is what form builders pick from (form.edit) and what
         # the privacy programme maintains (privacy.manage).
         if not await self._authorization.has_permission(
@@ -32,7 +32,7 @@ class WorkspaceConsentService:
         )
 
     async def create_workspace_consent(
-        self, workspace_id: PydanticObjectId, consent: ConsentCamelModel, user: User
+        self, workspace_id: RecordId, consent: ConsentCamelModel, user: User
     ):
         await self._authorization.authorize(
             user, Permission.PRIVACY_MANAGE, workspace_id

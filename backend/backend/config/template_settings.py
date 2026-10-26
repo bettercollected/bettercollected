@@ -1,12 +1,12 @@
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from common.settings.loader.pydantic_source import StoreBackedSettings
 
 
 class DefaultResourcesWorkspaceSettings(StoreBackedSettings):
-    WORKSPACE_ID: Optional[PydanticObjectId] = None
+    WORKSPACE_ID: Optional[RecordId] = None
     SHOW_TEMPLATES: bool = False
     # Auto-seed the flow-native template gallery (scripts/seed_flow_templates.py)
     # on every app startup. Idempotent (skips templates that already exist) and

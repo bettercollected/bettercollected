@@ -20,14 +20,14 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Set, Tuple
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 
 @dataclass(frozen=True)
 class ResponseScope:
     """The responses of ``form_ids`` that belong to ``workspace_id``."""
 
-    workspace_id: PydanticObjectId
+    workspace_id: RecordId
     form_ids: Tuple[str, ...]
     # forms linked to this workspace only: unstamped responses are its own
     legacy_form_ids: Tuple[str, ...] = ()
@@ -58,7 +58,7 @@ def owners_by_form(workspace_forms: Iterable[Any]) -> Dict[str, Set[str]]:
 
 
 async def response_scope(
-    workspace_form_repo, workspace_id: PydanticObjectId, form_ids: Iterable[str]
+    workspace_form_repo, workspace_id: RecordId, form_ids: Iterable[str]
 ) -> ResponseScope:
     """The scope of ``workspace_id`` over ``form_ids`` (forms the caller has
     already checked belong to it); ``workspace_form_repo`` is the routed
@@ -73,14 +73,14 @@ async def response_scope(
     )
     workspace = str(workspace_id)
     return ResponseScope(
-        workspace_id=PydanticObjectId(workspace_id),
+        workspace_id=RecordId(workspace_id),
         form_ids=form_ids,
         legacy_form_ids=tuple(f for f in form_ids if owners.get(f) == {workspace}),
     )
 
 
 async def response_in_workspace(
-    workspace_form_repo, response: Optional[Any], workspace_id: PydanticObjectId
+    workspace_form_repo, response: Optional[Any], workspace_id: RecordId
 ) -> bool:
     """Whether one stored response (or deletion request) belongs to
     ``workspace_id``: by its ``workspace_id``, or, stored before #768 without
@@ -95,7 +95,7 @@ async def response_in_workspace(
 
 
 async def pick_in_workspace(
-    workspace_form_repo, copies: Iterable[Any], workspace_id: PydanticObjectId
+    workspace_form_repo, copies: Iterable[Any], workspace_id: RecordId
 ) -> Optional[Any]:
     """Of the stored copies of one response (a provider response is stored
     once per workspace that imported it), the one that belongs to
@@ -109,7 +109,7 @@ async def pick_in_workspace(
 async def find_response_in_workspace(
     form_response_repo,
     workspace_form_repo,
-    workspace_id: PydanticObjectId,
+    workspace_id: RecordId,
     response_id: str,
 ) -> Optional[Any]:
     """The copy of ``response_id`` that belongs to ``workspace_id``."""
