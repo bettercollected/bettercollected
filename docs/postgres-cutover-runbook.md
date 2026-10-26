@@ -770,11 +770,13 @@ What the code does in each, checked against `v4.0.13`:
   container. The task runner never loads them: on 4.0.x it reads its own `DB_WRITE_MODE*` only, to
   decide which stores a task covers (`postgres_primary_dual`: Postgres then Mongo; `postgres`:
   Postgres only); from 4.1 its tasks cover Postgres alone and read no write mode.
-- **Writes and their copy.** A routed write goes to the primary store, then to the other one,
+- **Writes and their copy.** (`common/db/routing.py`, `convergence.py` and `mongo.py`, which this section
+  describes, were removed in 4.1: the text below keeps its meaning for the 4.0.x tasks it is about, and
+  their line numbers are gone with the files; `release/4.0` still has them.) A routed write goes to the primary store, then to the other one,
   bounded by `DB_MIRROR_TIMEOUT_MS` (2 s), and the copy can never fail the request
-  (`common/db/routing.py:257-276`, `:295-312`, timeout `:172`). Afterwards the copy of every row the
+  (the 4.0 routing layer). Afterwards the copy of every row the
   write touched is compared with the primary's and rewritten where they differ, so two writes that
-  reach the copy in the other order do not leave it with the older version (`routing.py:314-364`).
+  reach the copy in the other order do not leave it with the older version (the 4.0 convergence check).
   A copy that failed is recorded in the *primary's* store (`common/db/runtime.py:148-187`): in a
   Mongo collection while Mongo is primary, in the service's `mirror_write_failures` table while
   Postgres is. In `status --json` these are `mirror_failures.mongo` (a Postgres copy under a Mongo
@@ -788,14 +790,14 @@ What the code does in each, checked against `v4.0.13`:
   check is the same as under `dual` (`common/db/schema_guard.py:435-445`). Nothing at startup looks
   at the verified marker (`migration_verified` is read only by `status`, `common/db/migrate/engine.py:1773`).
   Mongo stays connected while any group uses it and is not connected at all once every group is on
-  `postgres` (`flags.py:180-198`, `common/db/mongo.py:40-50`).
+  `postgres` (the 4.0 flags and Mongo startup).
 - **What to look at.** Each replica logs `persistence flags` once at start
   (`backend/backend/db/startup.py:42`, `auth/auth/app/asgi.py:64`,
   `integrations/google/googleform/app/asgi.py:58`) with `read_source` and `write_mode` per group.
   Health's `write_stores` reads `mongo,postgres` for both `dual` and `postgres_primary_dual` and
   `postgres` after step 4 (`common/settings/write_stores.py:12-17`), so Health tells step 4 apart
-  but not step 3. Logs: `mirror write failed` (`routing.py:371`) is a failed copy; `mirror copy
-  repaired` (`routing.py:358`) is a copy rewritten after two writes arrived out of order, a few of
+  but not step 3. Logs: `mirror write failed` is a failed copy; `mirror copy
+  repaired` is a copy rewritten after two writes arrived out of order, a few of
   which are expected while old and new tasks overlap.
 
 **Before you start**
@@ -890,12 +892,12 @@ What the code does in each, checked against `v4.0.13`:
      entry, which is why the entries are listed *before* `verify` (below).
    - Two writes to one record at once, one from each generation, run their post-copy convergence in
      opposite directions (an old task treats Mongo as primary, a new one Postgres): each copies its
-     primary over the other store and re-reads, up to three rounds (`common/db/convergence.py:49`).
+     primary over the other store and re-reads, up to three rounds.
      It ends with one value on both stores (the other write is lost, silently) or with `Diverged`,
-     which is recorded in the primary's outbox (`convergence.py:320`, `routing.py:348-354`): the
+     which is recorded in the primary's outbox: the
      Mongo side for an old task, the Postgres side for a new one, so "both above 0" below catches it.
-   - A write that touched more than 500 rows (a bulk delete or update, `MAX_CONVERGED_IDS`,
-     `convergence.py:54`; the log says `mirror convergence skipped`, `routing.py:328-336`) is not
+   - A write that touched more than 500 rows (a bulk delete or update, `MAX_CONVERGED_IDS`;
+     the log says `mirror convergence skipped`) is not
      converged and records no entry. Only the `verify` after the roll covers those rows.
 
    **Check, before anything else changes** (no service rolling, no one-off CLI running):
@@ -1123,7 +1125,7 @@ details differ):
   filling.
 - **Mongo** was last written during step 4 of the cutover (the last roll in which a 4.0.x task copied
   writes to it). 4.0.x starts without it
-  (`common/db/mongo.py:3-9`; the CI suites of the backend, auth and the Google integration run this
+  (the 4.0 Mongo startup; the CI suites of the backend, auth and the Google integration run this
   way), so the rollback does not need it at all.
 
 **Rollback (images back; Postgres stays the only store).** No Mongo, no `reconcile`; nothing is

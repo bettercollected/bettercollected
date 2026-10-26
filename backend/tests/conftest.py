@@ -89,6 +89,7 @@ MONGO_DRIVEN = {
     "tests/app/db/test_outbox.py": ALL,
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
+    "tests/app/migrate/test_reconcile_interleaved.py": ALL,
     "tests/app/migrate/test_marker.py": ALL,
     "tests/app/migrate/test_mirror_order.py": ALL,
     "tests/app/migrate/test_mirror_verify.py": ALL,

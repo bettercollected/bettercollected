@@ -62,16 +62,19 @@ def test_other_errors_are_not_swallowed():
 
 
 @pytest.mark.parametrize(
-    "env, expected",
+    "env",
     [
-        ({}, "mongo"),
-        ({"DB_WRITE_MODE": "postgres"}, "postgres"),
-        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__RESPONSES": "dual"}, "mongo,postgres"),
-        ({"DB_WRITE_MODE": "postgres", "DB_WRITE_MODE__auth": ""}, "postgres"),
-        ({"DB_WRITE_MODE": "bogus"}, ""),
+        {},
+        {"DB_WRITE_MODE": "postgres"},
+        {"DB_WRITE_MODE": "dual"},  # a stale service-wide setting the backend ignores
+        {"DB_WRITE_MODE": "mongo", "DB_WRITE_MODE__RESPONSES": "dual"},
+        {"DB_WRITE_MODE": "bogus"},
     ],
 )
-def test_the_runtime_reports_what_its_environment_writes(monkeypatch, env, expected):
+def test_a_41_process_reports_postgres_whatever_its_environment_says(env):
+    """Nothing writes Mongo any more, so a setting left from the cutover (or an
+    unset one, which used to mean mongo) cannot make the admin keyset task see a
+    consumer that writes it."""
     from common.settings.write_stores import write_stores_report
 
-    assert write_stores_report(env) == expected
+    assert write_stores_report(env) == "postgres"
