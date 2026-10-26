@@ -17,10 +17,10 @@ backend/
     app/
       controllers/    # class-based routes (classy-fastapi Routables) — one file per domain
       services/       # business logic (~40 services) — the fat layer, DI-injected
-      repositories/   # data access wrapping Beanie documents
-      schemas/        # Beanie Document definitions == MongoDB collections
+      repositories/   # data access (Postgres): the repositories in postgres/*.py
+      schemas/        # stored document definitions (Record classes) == the collections 4.0 had in MongoDB
       models/         # DTOs (dtos/), dataclasses/, enum/, types/, filter_queries/
-      handlers/       # startup wiring: database.py (Beanie init), logging
+      handlers/       # startup wiring: logging
       middlewares/    # DynamicCORSMiddleware, timing
       schedulers/     # form_schedular.py: expired-response deletion, called by workers via /temporal
       jobs/           # procrastinate app, tasks, worker and schema entrypoints (JOBS_BACKEND=postgres)
@@ -34,11 +34,11 @@ backend/
 
 ## Request layering (follow this — don't shortcut it)
 
-`Controller (HTTP shape) → Service (business logic) → Repository (Mongo access) → Beanie Document`
+`Controller (HTTP shape) → Service (business logic) → Repository (Postgres access) → Record`
 
 - New endpoint: add a method to the relevant Routable in `controllers/`, decorated appropriately; put logic in a
-  `services/` class; do all Mongo access through a `repositories/` class. Wire new services/repos in `container.py`.
-- Never query Beanie directly from a controller.
+  `services/` class; do all data access through a `repositories/` class. Wire new services/repos in `container.py`.
+- Never query the database directly from a controller.
 
 ## Authorization (workspace permissions)
 
@@ -85,23 +85,27 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 (classy-fastapi Routables) or `register_plugin_class` (the plugin proxy). Follow an existing controller
 (e.g. `workspace_forms.py`) as a template — constructor injection, `self.router` methods, camelCase response models.
 
-## Persistence (MongoDB → PostgreSQL, in progress)
+## Persistence (PostgreSQL only since 4.1)
 
-Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
-runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
+Application data lives in PostgreSQL (`app-postgres`, schema `app`); the MongoDB of 4.0 is read only by the import
+(`python -m backend.migrate`), with pymongo. There is no Beanie, no routing between stores, no mirror and no shadow
+read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
 
 - **Every group is served from Postgres only (4.1)** (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`: `refdata`,
   `analytics`, `ai`, `actions`, `identity`, `forms` and `responses`): there is no Mongo repository and no routing. The
   documents are `common.records.Record` classes, the repositories the `app/repositories/postgres/*.py` classes on
   `RecordRepository` (the container hands them out directly), and a `DB_*__<group>` flag other than `postgres`
-  refuses the start. No Mongo query joins across groups (`MONGO_JOINS` is empty): the workspace repository reads a
+  refuses the start (`load_backend_flags`; the store settings of the cutover are read for that refusal alone, the
+  service-wide `DB_READ_SOURCE` / `DB_WRITE_MODE` mean nothing to the backend). No query joins across groups: the workspace repository reads a
   workspace's copy of an action through the actions repository, the template repository reads the title of the
   workspace a template was imported from through the workspace repository (`with_origin_titles` in
   `postgres/forms.py`), and the responses repository reads a form's title and importer through the forms
   repositories (`form_titles` / `form_importers` in `app/repositories/response_scope.py`). A fresh store gets its
-  reference data from `python -m backend.seed_refdata`. `RoutingRepository`, `@write_op` and the outbox remain only
-  for the 4.0 import tooling and its tests (`tests/app/migrate/routed.py` keeps a test-only routed group so
-  backfill, verify and reconcile stay covered); they go with the Beanie documents.
+  reference data from `python -m backend.seed_refdata`. What remains of the 4.0 dual run is the import tooling
+  (`common/db/migrate/`: backfill, verify, reconcile, `resolve-outbox`, tombstones, the verified marker), with its tests
+  (`tests/app/migrate/routed.py` keeps a test-only migrating group, `responses`, so verify and reconcile stay covered;
+  the 4.0 Beanie classes it plants in a real Mongo are frozen in `tests/app/db/beanie_originals.py`, Beanie being a
+  test-only dependency).
   Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
   an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
   <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
@@ -118,24 +122,21 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   which merges into the decrypted answers inside its transaction and encrypts them again.
 - **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
   group's repository (see `postgres/forms.py`, `response_scope.py`). Never query Mongo or Postgres from a service or controller.
-- **No Beanie calls outside the repositories.** `document.save()`, `SomeDocument.find_one(...)` and friends in a
-  service, controller or script reach Mongo only: dual mode never mirrors them and a group read from Postgres loses
-  them. `tests/app/test_direct_db_access.py` (and its auth and google copies, over `common/db/access_guard.py`) fails
-  on any such call outside `app/repositories/` and `migrate/`; add a repository method instead. An allow-list entry
-  needs a written reason.
+- **No Beanie, no Mongo client in the application.** `common/tests/test_no_beanie_in_runtime.py` fails when a
+  runtime module imports Beanie (or Motor, mongomock) or a service lists it among its runtime dependencies. The only
+  Mongo access is the import's own pymongo client (`common/db/migrate/`, `backend/db/mongo_import_guard.py`).
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
-- **Mongo is not used** (`common/db/mongo.py`, `DbFlags.uses_mongo`): the backend, its job worker, auth and the Google
-  service start without it — Beanie is set up with no request to the server on a client that never connects
-  (`mongo-not-used.invalid`), and `/persistence/status` reports `"mongo": {"used": false, "status": "not used"}`.
-  Startup code that touches Mongo outside the repositories (indexes, seeds, outbox counts) must check
-  `mongo_required` first. A test that drives Mongo itself (the import tooling) goes on `MONGO_DRIVEN` in
-  `tests/conftest.py` (CI's Postgres shards run without Mongo; docs/ci.md).
+- **Mongo is not used:** the backend, its job worker, auth and the Google service never connect to it
+  (`/persistence/status` reports `"mongo": {"used": false, "status": "not used"}`). The one exception is the startup check
+  for unimported 4.0 data, which opens a client of its own while `MONGO_URI` is set. A test that drives Mongo itself (the
+  import tooling) goes on `MONGO_DRIVEN` in `tests/conftest.py` (CI's Postgres shards run without Mongo; docs/ci.md);
+  such a session also sets the frozen 4.0 Beanie classes up on the test Mongo (`mongo_database()`).
 - **Schema check at startup** (`common/db/schema_guard.py`, wired in `backend/db/startup.py`; auth and google pass
-  their own `MigrationTarget` in their `asgi.py`): when any group reads/writes Postgres the service refuses to start
-  unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job
-  kind is on Postgres). All-Mongo flags skip it. `deploy.sh` migrates explicitly; `DB_AUTO_MIGRATE=true` (default
+  their own `MigrationTarget` in their `asgi.py`): the service refuses to start unless Postgres is configured and
+  reachable and its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when
+  a job kind is on Postgres). `deploy.sh` migrates explicitly; `DB_AUTO_MIGRATE=true` (default
   off) makes each service run `alembic upgrade head` in-process at startup instead, serialised across replicas by a
   per-schema Postgres advisory lock (a waiting replica gives up after `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS`, default
   300; the migration's own DDL waits at most 60s for a table lock). A new revision has to ship with the code that
@@ -153,32 +154,32 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   are deliberately no default privileges. Sessions, email-code sign-in, CSRF and gate levels 2-4 live in
   `services/sessions.py`, `services/signin.py`, `gate/checkers.py`, `gate/csrf.py` and `controllers/portal.py` (pages are
   Jinja2 templates with no inline script or style; details in `docs/admin-service.md`). The viewing pages (dashboard, health, configuration, metrics, audit log, sessions) are in `controllers/pages.py`, `services/pages.py` and `repositories/views.py`; they are GET-only at the second-factor level and never select secret values. The settings and task pages (which change state, behind a fresh code) and the setup wizard are described in `docs/admin-service.md`. Platform counts come from two definer functions, `admin.platform_counts_app()` and `admin.platform_counts_auth()` (created by `postgres/ensure-admin-roles.sh`, each owned by a NOLOGIN role of its own schema, `bc_count_app` / `bc_count_auth`, with column-level SELECT on that schema only; never a superuser, they call only `pg_catalog` functions, no definer function may read tables of more than one owning role; the admin roles cannot read `app`/`auth`; `repositories/views.py` combines the answers as data). The Health page reads the other schemas' Alembic revisions and mirror-outbox counts the same way (`admin.schema_revision_<schema>()`, `admin.outbox_counts_<schema>()`, owners `bc_count_app` / `bc_count_auth` / `bc_count_google`), against heads parsed from the revision files in the image (`schema_heads.py`; `backend/Dockerfile` copies the auth and Google ones). Admin writes are serialised by row locks (`admin.take_lock`, migration 0013), never advisory locks; the runner's audit rows go through `tasks.audit_append` / `settings.task_write_keyset` (migration 0015), the runner role has no access to `admin.audit_log`; settings history rows are never updated (re-wraps append to `settings.history_wraps`). Pages show a permanent reminder to back up `SETTINGS_MASTER_KEY`. Tests: `tests/admin/`.
-- **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
-  primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
-  are logged at boot.
+- **The outbox of 4.0** (`mirror_write_failures`, a Postgres table per schema and the Mongo collection a 4.0 stack
+  wrote) is read by `resolve-outbox` and drained by `reconcile` during the import; nothing writes it in 4.1. The
+  effective flags (the jobs backends) are logged at boot and served on `GET /persistence/status` (admin).
 - **Operator commands** that touch application data (`jobs-sweep`, `backend.custom_domain`,
-  `backend.membership_duplicates`) go through the routed repositories, booted with `backend/cli_store.py`
-  (Mongo only while one of their groups still uses it), never a raw Mongo collection, so they follow the read
-  source and write mode during and after the cutover. The admin tasks and the break-glass scripts cover Postgres alone
-  (`plan_task_stores`, `admin/tasks/impl/responses_common.py`): `stores: mongo` and `both` refuse
+  `backend.membership_duplicates`) go through the container's repositories, booted with `backend/cli_store.py`
+  (`open_container`, Postgres only), never a raw Mongo collection. The admin tasks and the break-glass scripts cover
+  Postgres alone (`plan_task_stores`, `admin/tasks/impl/responses_common.py`): `stores: mongo` and `both` refuse
   `store_retired` before anything connects, no write mode is read, and `keyset.drop_old` needs the signed
   `mongo_retired` param (`store_retired` without it) and a finished 4.0 import (`import_incomplete`:
   `MONGO_URI` set on the runner, or an unfinished backfill in `migration_progress`).
-- **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
+- **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,resolve-outbox,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
   adaptive batches, `--max-minutes`, advisory lock) and never overwrites a row the application wrote
   (`_bc_source = 'app'`); `verify` compares counts, per-row checksums and a sampled round-trip; `reconcile` fixes
-  drift with Mongo authoritative (`--direction postgres->mongo` for the fallback) and drains the outboxes (full runs
-  only); deletes are never propagated. `--group <g>` limits preflight/backfill/verify/reconcile/status to a
+  drift with Mongo authoritative (`--direction postgres->mongo` is refused unless the 4.0 stack's write modes, as the
+  operator's environment states them, say Postgres was primary) and drains the outboxes (full runs only); a deleted
+  record (a tombstone) is deleted on the side that still has it, never copied back. `--group <g>` limits preflight/backfill/verify/reconcile/status to a
   repository group (`backend/db/groups.py` `COLLECTION_GROUPS`; a test keeps it in step with the container's
-  `group=`). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
+  `COLLECTION_GROUPS` map). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
   (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
   machine-readable view.
 - **Tests:** the Postgres repositories' results are pinned in JSON fixtures written from the 4.0 parity runs
   (`tests/fixtures/forms_repositories.json`, `responses_repositories.json`; `tests/app/repositories/pinned.py`),
-  never regenerated to make a change pass. Test fixtures go through `container.<repo>()`, never Beanie. The Mongo and
-  dual modes still run on full CI runs but every group is pinned to Postgres, so they exercise the same code.
+  never regenerated to make a change pass. Test fixtures go through `container.<repo>()`; Beanie appears only in the
+  frozen originals of the import tests (`tests/app/db/beanie_originals.py`). CI runs one Postgres mode (docs/ci.md).
 - **The `doc` codec is pinned** (`common/db/codec_golden.py`): golden fixtures in each service's
   `tests/fixtures/codec_golden/` hold the exact `doc` JSON and `_bc_checksum` of synthetic instances of every
   mirrored document class (plus raw BSON documents in `common`). A new class shows up as unpinned cases, a new
@@ -187,8 +188,7 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   migration plan, not a fixture update.
 
 A new collection is a `Record` class (`common.records`) with a row in `backend/db/models.py` and an Alembic revision;
-there is no Beanie registration any more ([backend/app/handlers/database.py](backend/app/handlers/database.py) keeps
-only the outbox document until the Beanie removal). Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
+there is no Beanie registration. Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
 `common` package, not from here.
 Background jobs go through `services/temporal_service.py`, which dispatches per job kind (`JOBS_BACKEND__<job>`)
 to a procrastinate job on Postgres (default; `backend/jobs/`; worker:
@@ -350,10 +350,9 @@ and the nightly procrastinate periodic task `scim_reconcile`. Storage: `scim_dir
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment
 needs but that don't belong in a migration. Pattern to follow for new ones: a reusable `async def seed_x(...)`
-function that assumes Beanie is already initialized (so it can be called from `lifespan` on every boot), plus a thin
+function that takes its repositories as arguments (so it can be called from `lifespan` on every boot), plus a thin
 `_main()`/`if __name__ == "__main__":` CLI wrapper that connects the stores itself for one-off manual runs. Reads
-and writes go through the container's routed repositories, never Beanie documents directly (the direct-access guard,
-`tests/app/test_direct_db_access.py`, fails on that), so every persistence mode sees them. Never
+and writes go through the container's repositories. Never
 overwrite existing data — check-then-create, so re-running (including "run" via a normal app restart) is always safe.
 
 **`seed_flow_templates.py`** — seeds the flow-native template gallery (branching used as the hook: support triage,
@@ -376,8 +375,7 @@ up new/changed templates the next time it restarts, no manual step required.
   That repair recognises the script's own templates by title, `builder_version="v2"`, public, not imported,
   and exactly the builder's questions (type + title); a theme changed by hand is kept, nothing is created,
   and forms made from a template keep their stored theme. The existence
-  check, that repair and new templates all go through the routed template repository, so the store that serves
-  templates (Mongo, mirrored or Postgres) is the one checked and written.
+  check, that repair and new templates all go through the template repository.
 - Every choice-type field needs its choices stored: the responder renders yes/no, dropdown and multiple-choice
   options from `properties.choices` (yes/no falls back to Yes/No, the others show nothing). Use `_yes_no()` and
   `_choices(...)`.
@@ -872,12 +870,12 @@ one of ours; `services/image_urls.py` is the single allow-list:
 ## Run / test
 
 ```bash
-./run.sh                 # uvicorn backend.app:get_application --reload :8000  (needs Mongo up first)
+./run.sh                 # uvicorn backend.app:get_application --reload :8000  (needs Postgres up first)
 uv sync                  # install (uv, never pip/poetry)
 DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432/bettercollected_test uv run pytest
-# the same suite mirrored / served from Postgres (what CI runs):
-DB_WRITE_MODE=dual ... uv run pytest
-DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
+# without Mongo, as the CI shards run it (a fresh install has MONGO_URI empty):
+MONGO_URI="" uv run pytest -m "not mongo"
+uv run pytest -m mongo                   # the import tests: need a Mongo server (MONGO_URI)
 uv run pytest -n 4 --dist loadgroup      # in parallel (CI): each xdist worker gets <db>_gwN in Mongo and Postgres
 uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
 DB_AUTO_MIGRATE=true ./run.sh                # or: migrate app + jobs schemas at startup (advisory-locked)
@@ -895,7 +893,7 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   `utils/respondent_identity.py` (`identity_of`, `matches`: `v2:` HMAC under `RESPONDENT_IDENTITY_KEY`, no MD5
   fallback). The API refuses to start without the key; `identity_rekey.py` converts stored values. Details:
   `docs/respondent-identity.md`.
-- Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and Mongo client and init Beanie — respect that
+- Startup/shutdown hooks in `asgi.py` create/close the aiohttp client and the Postgres engine — respect that
   lifecycle when adding global resources (register them in the container, close them on shutdown).
 - Settings come from the aggregated `settings` object in `config/`; add new config there rather than reading `os.environ`
   scattered through services.

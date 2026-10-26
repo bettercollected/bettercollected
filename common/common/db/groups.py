@@ -1,10 +1,11 @@
-"""Repository groups per service: the unit a cutover flag and the migration CLI act on.
+"""Repository groups per service: the unit the migration CLI acts on.
 
-A group names the repositories (and so the tables) that move between Mongo
-and Postgres together (``DB_READ_SOURCE__<group>``, ``DB_WRITE_MODE__<group>``).
-The migration CLIs accept ``--group <g>`` to backfill, verify or reconcile only
-the collections of those groups; each service declares which group every one
-of its collections belongs to.
+A group names the repositories (and so the tables) that moved from Mongo to
+Postgres together during the 4.0 cutover (``DB_READ_SOURCE__<group>``,
+``DB_WRITE_MODE__<group>``, which a 4.1 service only refuses to see set to
+another store). The migration CLIs accept ``--group <g>`` to backfill, verify
+or reconcile only the collections of those groups; each service declares which
+group every one of its collections belongs to.
 """
 
 from __future__ import annotations

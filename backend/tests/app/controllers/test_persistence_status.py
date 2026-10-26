@@ -1,11 +1,9 @@
-"""The operator status endpoint: admin-only, and it reflects the flags in effect,
-the shared routing counters and the outbox backlog."""
+"""The operator status endpoint: admin-only, and it reflects the jobs flags in
+effect and whether Postgres answers."""
 
-import pytest
 from httpx import AsyncClient
 
 from backend.app.container import container
-from backend.db.groups import GROUPS
 from tests.app.controllers.data import testUser
 
 
@@ -16,7 +14,7 @@ async def test_status_is_admin_only(client: AsyncClient, test_user_cookies_1):
     assert response.status_code == 403
 
 
-async def test_status_reports_flags_counters_and_outbox(
+async def test_status_reports_the_jobs_backends_and_postgres(
     client: AsyncClient, test_user_cookies, workspace_form_response
 ):
     assert testUser.is_admin()
@@ -24,22 +22,12 @@ async def test_status_reports_flags_counters_and_outbox(
     assert response.status_code == 200
     body = response.json()
     flags = container.flags()
-    assert (
-        body["flags"]["groups"]["identity"]["read_source"]
-        == flags.read_source("identity").value
-    )
+    assert body["flags"]["store"] == "postgres"
     assert (
         body["flags"]["jobs"]["delete_user"] == flags.jobs_backend("delete_user").value
     )
-    # every group is served from Postgres only (4.1): nothing is routed, so
-    # the fixture's writes leave no routing counters
-    assert body["metrics"] == {}
-    mongo_used = flags.uses_mongo(GROUPS)
-    assert body["mongo"] == {
-        "used": mongo_used,
-        "status": "used" if mongo_used else "not used",
-    }
-    # a store the backend does not use has no backlog to report (None)
-    assert set(body["outbox"]) == {"mongo", "postgres"}
-    assert body["outbox"]["mongo"] == (0 if mongo_used else None)
-    assert body["postgres"]["configured"] == (container.pg_engine() is not None)
+    # Postgres is the only store: Mongo is never used, and there is no routing
+    # or outbox to report any more
+    assert body["mongo"] == {"used": False, "status": "not used"}
+    assert "metrics" not in body and "outbox" not in body
+    assert body["postgres"] == {"configured": True, "reachable": True}

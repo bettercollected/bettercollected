@@ -158,7 +158,9 @@ async def test_the_jobs_worker_builds_the_cipher_first(monkeypatch):
 
     monkeypatch.setattr(worker, "crypto_service", NoKeyset())
     monkeypatch.setattr(
-        worker, "open_mongo", lambda *a, **k: pytest.fail("started without a keyset")
+        worker,
+        "check_postgres_at_startup",
+        lambda *a, **k: pytest.fail("started without a keyset"),
     )
     with pytest.raises(Exception, match="neither in the environment nor in the settings store"):
         await worker.main()

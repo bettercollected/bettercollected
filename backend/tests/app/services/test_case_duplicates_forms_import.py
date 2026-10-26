@@ -22,7 +22,7 @@ from backend.config import settings
 from backend.config.database import MongoSettings
 from backend.db.models import MigrationProgress
 from common.records import to_bson
-from tests.conftest import TEST_MONGO_DB
+from tests.conftest import mongo_database
 
 
 def _link(workspace_id, form_id):
@@ -82,7 +82,7 @@ async def _backfill_finished(last_id=None, skipped=0):
 
 @pytest.fixture
 def mongo(clean_postgres):
-    return container.database_client()[TEST_MONGO_DB]
+    return mongo_database()
 
 
 async def test_the_plan_and_drops_wait_for_a_complete_forms_import(mongo):
@@ -155,10 +155,8 @@ async def test_an_unreachable_mongo_refuses(clean_postgres):
 async def test_default_settings_without_mongo_in_use_check_nothing(
     clean_postgres, monkeypatch
 ):
-    """A fresh 4.1 install: ``MONGO_URI`` unset (only the built-in default)
-    and no group on Mongo. The routes work: nothing to import."""
-    if container.flags().uses_mongo(("responses",)):
-        pytest.skip("a group of this run uses Mongo")
+    """A fresh 4.1 install: ``MONGO_URI`` unset (only the built-in default).
+    The routes work: nothing to import."""
     monkeypatch.delenv("MONGO_URI", raising=False)
     monkeypatch.setattr(settings, "mongo_settings", MongoSettings())
     assert "URI" not in settings.mongo_settings.model_fields_set

@@ -1,5 +1,6 @@
 """The backend API and its job worker start and serve without Mongo (every
-repository group is on Postgres since 4.1, common/db/mongo.py), and refuse to
+repository group is on Postgres since 4.1 and the application never connects to
+Mongo), and refuse to
 start on an unreachable Mongo while MONGO_URI is set at all: then the check
 for unimported data of the Postgres-only groups
 (backend/db/mongo_import_guard.py) must read it.
@@ -25,11 +26,21 @@ UNREACHABLE = "mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=1000"
 DB_KEYS = ("DB_READ_SOURCE", "DB_WRITE_MODE", "DB_SHADOW_READ_SAMPLE", "JOBS_BACKEND")
 ALL_POSTGRES = {"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}
 
-API = """
+CLIENTS = """
+import gc
+
+from pymongo import AsyncMongoClient, MongoClient
+
+
+def MONGO_CLIENTS():
+    return sum(isinstance(o, (AsyncMongoClient, MongoClient)) for o in gc.get_objects())
+
+"""
+
+API = CLIENTS + """
 from fastapi.testclient import TestClient
 
 from backend.app import get_application
-from backend.app.container import container
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser
 
@@ -42,14 +53,12 @@ with TestClient(get_application()) as client:
     assert status.status_code == 200, status.status_code
     body = status.json()
     print("mongo:", body["mongo"])
-    print("outbox mongo:", body["outbox"]["mongo"])
-    print("mongo hosts:", sorted(container.database_client().topology_description.server_descriptions()))
+    print("mongo clients:", MONGO_CLIENTS())
 """
 
-WORKER = """
+WORKER = CLIENTS + """
 import asyncio
 
-from backend.app.container import container
 from backend.jobs import worker
 
 
@@ -59,7 +68,7 @@ async def run_worker_async(**kwargs):
 
 worker.app.run_worker_async = run_worker_async
 asyncio.run(worker.main())
-print("mongo hosts:", sorted(container.database_client().topology_description.server_descriptions()))
+print("mongo clients:", MONGO_CLIENTS())
 """
 
 pytestmark = pytest.mark.skipif(
@@ -90,15 +99,14 @@ def test_the_api_starts_and_serves_without_mongo_when_every_group_is_on_postgres
     result = boot(API, ALL_POSTGRES, mongo_uri="")
     assert result.returncode == 0, result.stderr[-3000:]
     assert "mongo: {'used': False, 'status': 'not used'}" in result.stdout
-    assert "outbox mongo: None" in result.stdout
-    assert "mongo-not-used.invalid" in result.stdout
+    assert "mongo clients: 0" in result.stdout
 
 
 def test_the_job_worker_starts_without_mongo_when_every_group_is_on_postgres():
     result = boot(WORKER, ALL_POSTGRES, mongo_uri="")
     assert result.returncode == 0, result.stderr[-3000:]
     assert "worker ran: ['default']" in result.stdout
-    assert "mongo-not-used.invalid" in result.stdout
+    assert "mongo clients: 0" in result.stdout
 
 
 def operator_cli(module: str, *argv: str) -> str:

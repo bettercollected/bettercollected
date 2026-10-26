@@ -22,7 +22,6 @@ from pathlib import Path
 import pytest
 from bson import ObjectId
 
-from common.clock import write_clock
 from common.db import beanie_bridge
 from common.db import canonical as db_canonical
 from common.db.base import SOURCE_APP
@@ -45,6 +44,7 @@ from tests.record_samples import (
     HolderRecord,
     IsoRecord,
     SampleRecord,
+    fixed_clock,
     init_beanie_documents,
 )
 
@@ -270,7 +270,7 @@ def test_a_nested_record_round_trips_with_its_own_encoders():
 async def test_decoding_a_doc_without_timestamps_stamps_it_like_beanie(documents):
     doc = encode(SampleRecord.model_construct(text="x", id=RecordId()))
     assert doc["created_at"] is None
-    with write_clock() as now:
+    with fixed_clock() as now:
         record = decode(SampleRecord, doc)
         document = beanie_bridge.from_row_doc(documents["sample_records"], doc)
     assert record.created_at == record.updated_at == document.created_at == now
@@ -296,7 +296,7 @@ def test_a_time_without_an_encoder_cannot_be_stored_as_with_beanie():
 
 
 def test_one_clock_for_every_stamp_within_a_write():
-    with write_clock() as now:
+    with fixed_clock() as now:
         record = _sample()
     assert record.created_at == record.updated_at == now
     assert json.loads(json.dumps(row_values(record)["doc"]))  # JSON-safe

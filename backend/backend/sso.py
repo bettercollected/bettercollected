@@ -24,7 +24,7 @@ import asyncio
 import json
 import sys
 
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 from backend.config import settings
 
 # the SSO connections and the workspaces live in the identity group
@@ -52,7 +52,7 @@ async def main(argv) -> int:
     if not settings.sso.is_configured:
         print("Single sign-on is not configured here (SSO_ENABLED and SSO_POLIS_*).")
         return 2
-    async with routed_repositories(*GROUPS) as container:
+    async with open_container() as container:
         service = container.sso_connection_service()
         if args.command == "release-pending":
             result = await service.retry_pending_releases(limit=1000)

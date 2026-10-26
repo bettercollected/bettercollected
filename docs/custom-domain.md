@@ -169,10 +169,9 @@ whose TXT record is still missing 24 hours after import is suspended.
 
 1. Export the reference map (hostname → workspace id):
    `python -m backend.custom_domain export-reference-map --out bc-domains.json`.
-   Like every command below it reads the workspaces through the routed
-   repository, so from the store the backend reads (`DB_READ_SOURCE`,
-   `DB_READ_SOURCE__identity`); run it with the backend's environment. Mongo
-   is opened only while the `identity` or `refdata` group still uses it.
+   Like every command below it reads the workspaces through the workspace
+   repository, from Postgres (`DATABASE_URL`); run it with the backend's
+   environment. It never opens Mongo.
 2. On the service host (for the hosted service, its operator runs this):
    `custom-domain legacy import --application bettercollected
    --reference-map bc-domains.json --grandfather --dry-run`, resolve every

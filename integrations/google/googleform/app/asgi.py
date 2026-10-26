@@ -55,7 +55,7 @@ async def on_startup():
     AiohttpClient.get_aiohttp_client()
     log.info(
         "persistence flags: %s",
-        json.dumps(Container.flags().describe(["google"]), sort_keys=True),
+        json.dumps(Container.flags().describe(), sort_keys=True),
     )
     await check_postgres_at_startup(
         Container.flags(), Container.pg_engine(), MIGRATIONS

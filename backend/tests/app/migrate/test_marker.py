@@ -9,14 +9,12 @@ import os
 
 import pytest
 from common.ids import RecordId
-from dependency_injector import providers
 from sqlalchemy import select
 
-from backend.app.container import AppContainer, container
+from backend.app.container import container
 from backend.db.groups import COLLECTION_GROUPS, GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
 from backend.migrate.__main__ import _tables
-from common.db import RoutingRepository, load_flags, write_op
 from common.db.marker import SCOPE_GROUP, SCOPE_SERVICE, migration_verified
 from common.db.migrate import Runner
 from common.db.migrate.cli import (
@@ -25,12 +23,7 @@ from common.db.migrate.cli import (
     reconcile_to_mongo_refusal,
     run,
 )
-from tests.app.db.beanie_originals import (
-    AllowedOriginsDocument,
-    AllowedOriginsRepository,
-    PostgresAllowedOriginsRepository,
-    WorkspaceTags,
-)
+from tests.app.db.beanie_originals import AllowedOriginsDocument, WorkspaceTags
 from tests.app.migrate.routed import (
     MIGRATING,
     POSTGRES_ONLY as POSTGRES_ONLY_GROUPS,
@@ -70,8 +63,8 @@ POSTGRES_ONLY_COLLECTIONS = {
 
 
 async def add_origins(*origins):
-    mongo = AllowedOriginsRepository()
-    return [await mongo.add(o) for o in origins]
+    """Allowed origins in Mongo only (a 4.0 document each)."""
+    return [await AllowedOriginsDocument(origin=o).save() for o in origins]
 
 
 async def add_tags(*titles):
@@ -88,19 +81,16 @@ def test_every_migrated_collection_has_a_valid_group():
     assert set(COLLECTION_GROUPS.values()) == set(GROUPS)
 
 
-def test_no_routed_repository_is_left_in_the_application():
-    """Every group is served from Postgres only: the container has no routed
-    repository. The test fixture's group map still matches the Postgres
-    repository that stores each collection."""
-    for name, provider in AppContainer.providers.items():
-        if isinstance(provider, providers.Singleton):
-            assert provider.provides is not RoutingRepository, f"{name} is routed"
+def test_the_test_groups_repositories_store_its_collections():
+    """The test Target's group map matches the Postgres repository that stores
+    each collection of the group that still migrates here."""
     from backend.app.repositories.postgres.responses import (
         PostgresWorkspaceRespondersRepository,
     )
+    from backend.db.models import WorkspaceTagRow
 
     cls = PostgresWorkspaceRespondersRepository
-    for row in [cls.row, *cls.document_rows.values()]:
+    for row in [cls.row, WorkspaceTagRow]:
         assert COLLECTION_GROUPS[row.mongo_collection()] == "responses"
 
 
@@ -182,8 +172,9 @@ async def test_the_last_groups_verify_is_a_full_verify(target):
 async def test_verify_sees_a_postgres_row_before_the_first_mongo_id(target):
     """A Postgres-only row whose id sorts below every Mongo id was outside each
     batch's id range; verify now counts it, so it cannot pass as clean."""
-    postgres = PostgresAllowedOriginsRepository(container.pg_sessionmaker())
-    orphan = await postgres.add("https://only-in-postgres.example")
+    orphan = await container.allowed_origins_repo().add(
+        "https://only-in-postgres.example"
+    )
     await add_origins("https://a.example", "https://b.example")
     async with Runner(target) as runner:
         await runner.backfill(["allowed_origins"])
@@ -194,32 +185,28 @@ async def test_verify_sees_a_postgres_row_before_the_first_mongo_id(target):
 
 
 # -- reconcile and deletes ----------------------------------------------------
-class MongoDeleteFails(AllowedOriginsRepository):
-    @write_op
-    async def delete_by_origin(self, origin: str) -> None:
-        raise ConnectionError("mongo unavailable")
-
-
-@pytest.mark.allow_mirror_failures
 async def test_reconcile_completes_a_postgres_delete_whose_mongo_mirror_failed(target):
-    """Under postgres_primary_dual a delete whose Mongo mirror failed leaves the
-    document in Mongo and an outbox row in Postgres. The delete left a
-    tombstone, so verify reports the document as a deleted record still
-    present, ``reconcile --direction postgres->mongo`` deletes it from Mongo
-    (and drains the outbox), and it never comes back into Postgres."""
-    repo = RoutingRepository(
-        group="refdata",
-        flags=load_flags(
-            {"DB_WRITE_MODE": "postgres_primary_dual", "DB_READ_SOURCE": "postgres"}
-        ),
-        mongo=MongoDeleteFails(),
-        postgres=PostgresAllowedOriginsRepository(container.pg_sessionmaker()),
-        on_mirror_failure=container.outbox_recorder(),
-    )
-    kept = await repo.add("https://kept.example")
-    gone = await repo.add("https://deleted.example")
-    assert await AllowedOriginsDocument.get(gone.id) is not None  # mirrored
-    await repo.delete_by_origin("https://deleted.example")
+    """A 4.0 stack on postgres_primary_dual left a document in Mongo that
+    Postgres had deleted (its Mongo mirror delete failed) and an outbox row in
+    Postgres. The delete left a tombstone, so verify reports the document as a
+    deleted record still present, ``reconcile --direction postgres->mongo``
+    deletes it from Mongo (and drains the outbox), and it never comes back into
+    Postgres."""
+    origins = container.allowed_origins_repo()
+    kept = await AllowedOriginsDocument(origin="https://kept.example").save()
+    gone = await AllowedOriginsDocument(origin="https://deleted.example").save()
+    for document in (kept, gone):  # both stores held both, as the mirror made them
+        await origins.upsert(_record(document))
+    await origins.delete_by_origin("https://deleted.example")  # leaves a tombstone
+    async with container.pg_sessionmaker()() as session, session.begin():
+        session.add(
+            MirrorWriteFailure(
+                table_name="AllowedOriginsRepository",
+                row_id=str(gone.id),
+                op="delete_by_origin",
+                error="ConnectionError: mongo unavailable",
+            )
+        )
 
     async with container.pg_engine().connect() as conn:
         ids = (await conn.execute(select(AllowedOriginRow.id))).scalars().all()
@@ -230,7 +217,6 @@ async def test_reconcile_completes_a_postgres_delete_whose_mongo_mirror_failed(t
     async with Runner(target) as runner:
         (before,) = await runner.verify(["allowed_origins"])
         assert before.missing_in_postgres == 1 and before.tombstoned == 1
-        # the kept row agrees: its replay stored the row's document exactly
         assert before.mismatched == 0
         result = await runner.reconcile(direction="postgres->mongo")
         assert result["allowed_origins"]["deleted"] == 1
@@ -248,6 +234,20 @@ async def test_reconcile_completes_a_postgres_delete_whose_mongo_mirror_failed(t
     async with container.pg_engine().connect() as conn:
         ids = (await conn.execute(select(AllowedOriginRow.id))).scalars().all()
     assert ids == [str(kept.id)]  # the deleted row did not come back
+
+
+def _record(document):
+    """The application's record for a 4.0 Beanie document (same id and stamps)."""
+    from backend.app.schemas.allowed_origin import (
+        AllowedOriginsDocument as AllowedOriginsRecord,
+    )
+
+    return AllowedOriginsRecord(
+        id=document.id,
+        origin=document.origin,
+        created_at=document.created_at,
+        updated_at=document.updated_at,
+    )
 
 
 async def test_a_partial_reconcile_leaves_the_outbox_alone(target):
@@ -381,14 +381,16 @@ def test_verify_and_reconcile_refuse_a_postgres_only_group_by_name(
         assert f"served from Postgres only: {group}" in capsys.readouterr().err
 
 
-def test_reconcile_to_mongo_reads_the_backend_flags(target):
-    """The backend's own loader decides each group's mode: a stale flag for a
-    Postgres-only group refuses, as it refuses the services' start."""
+def test_reconcile_to_mongo_reads_the_4_0_stacks_write_modes(target):
+    """The 4.0 stack's write mode of each group it covers decides: a group that
+    still wrote Mongo first (an explicit ``dual``) refuses it."""
     args = _args("reconcile", "--direction", "postgres->mongo")
     refusal = reconcile_to_mongo_refusal(
-        args, target, {**PPD, "DB_WRITE_MODE__ai": "dual"}
+        args, target, {**PPD, "DB_WRITE_MODE__responses": "dual"}
     )
-    assert refusal and "DB_WRITE_MODE__ai='dual'" in refusal
+    assert refusal and "responses (dual)" in refusal
+    # the groups served from Postgres only are not covered: nothing else refuses
+    assert reconcile_to_mongo_refusal(args, target, PPD) is None
 
 
 async def test_progress_is_untouched_by_verify(target):

@@ -21,7 +21,6 @@ from backend.db.mongo_import_guard import (
     check_unimported_mongo_data,
     guarded_collections,
 )
-from tests.app.db.beanie_originals import PostgresAllowedOriginsRepository
 from tests.conftest import _postgres_configured
 
 pytestmark = pytest.mark.skipif(
@@ -197,9 +196,7 @@ async def test_an_override_naming_an_unknown_group_refuses():
 
 
 async def test_the_postgres_probe_finds_rows_and_finished_backfills():
-    await PostgresAllowedOriginsRepository(container.pg_sessionmaker()).add(
-        "https://a.example"
-    )
+    await container.allowed_origins_repo().add("https://a.example")
     async with container.pg_engine().begin() as conn:
         await conn.execute(
             insert(MigrationProgress.__table__),

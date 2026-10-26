@@ -30,6 +30,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # the 4.0 classes the import tests seed Mongo with (tests/integration/app/beanie_originals.py)
+    "beanie>=2.2.0",
     "pytest>=8.0.0",
     "pytest-cov>=7.1.0",
     "pytest-asyncio>=1.4.0",

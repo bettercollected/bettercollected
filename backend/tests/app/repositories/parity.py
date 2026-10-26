@@ -1,17 +1,28 @@
-"""The parity harness of the dual run: each step runs on the Mongo repository
-and its Postgres twin, and both must return the same (ids, timestamps and
-write-result objects aside). Used by the ``test_*_parity.py`` modules of the
-groups that still have both stores."""
+"""Helpers of the repository tests: a result shaped for comparison (``strip``)
+and the Postgres sessions fixture. (The parity harness of the dual run, which
+ran each step on the Mongo repository and its Postgres twin, went with the
+Mongo repositories.)"""
 
 from typing import Any
 
 import pytest
+from pydantic import BaseModel
 from pymongo.results import DeleteResult, UpdateResult
 
 from backend.app.container import container
-from common.db.routing import normalise_result
 
 VOLATILE = {"id", "_id", "created_at", "updated_at", "revision_id"}
+
+
+def normalise_result(value: Any) -> Any:
+    """Shape a repository result for comparison: models to plain JSON data."""
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    if isinstance(value, dict):
+        return {str(k): normalise_result(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [normalise_result(v) for v in value]
+    return value
 
 
 def strip(value: Any) -> Any:
@@ -26,27 +37,6 @@ def strip(value: Any) -> Any:
     if isinstance(value, list):
         return [strip(v) for v in value]
     return value
-
-
-async def both_raise(exc_type, mongo_call, postgres_call):
-    """Both calls raise ``exc_type``, with the same status or message."""
-    from backend.app.exceptions import HTTPException
-
-    with pytest.raises(exc_type) as m:
-        await mongo_call()
-    with pytest.raises(exc_type) as p:
-        await postgres_call()
-    if exc_type is HTTPException:
-        assert m.value.status_code == p.value.status_code
-    else:
-        assert str(m.value) == str(p.value)
-
-
-async def parity(mongo, postgres, steps):
-    for name, args in steps:
-        m = await getattr(mongo, name)(*args())
-        p = await getattr(postgres, name)(*args())
-        assert strip(m) == strip(p), f"{type(mongo).__name__}.{name} differs"
 
 
 @pytest.fixture

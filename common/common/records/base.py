@@ -1,6 +1,6 @@
 """``Record``: the base of every stored document, without Beanie.
 
-A drop-in for :class:`common.configs.mongo_document.MongoDocument` as far as
+A drop-in for the 4.0 ``MongoDocument`` (``common.db.beanie_bridge``) as far as
 the repositories, services and API are concerned (see the package docstring
 for what is deliberately left out). It keeps:
 
