@@ -4,22 +4,32 @@ defaults (few required answers, nothing pre-selected, follow-ups only after a
 yes), and a form made from one keeps its language, publishes and accepts the
 answers the template asks for."""
 
+import datetime as dt
+import json
+import os
 import re
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
 
+from common.models.consent import ResponseRetentionType
 from common.models.standard_form import WHY_WE_ASK_MAX_LENGTH, StandardForm
 
 from backend.app.services.answer_validation import validate_answers, visited_slides
 from backend.app.services.publish_checks import ID_NUMBER_TITLE, publish_problems
+from backend.app.services.retention import MAX_RETENTION_DAYS, checked_retention
 from scripts.dutch_first_templates import (
     BILINGUAL_BUILDERS,
     BILINGUAL_TEMPLATES,
     LANGUAGES,
     build_template,
 )
-from scripts.seed_flow_templates import TEMPLATE_BUILDERS, seed_flow_templates
+from scripts.seed_flow_templates import (
+    TEMPLATE_BUILDERS,
+    seed_flow_templates,
+    template_theme,
+)
 
 # What each template requires, and nothing more (the rest is optional).
 REQUIRED = {
@@ -50,7 +60,10 @@ SAMPLE_ANSWERS = {
 
 
 def _form(payload: dict) -> StandardForm:
+    # As seeded: the template's theme comes with the form, so the publish
+    # checks include theme_contrast.
     return StandardForm(
+        theme=template_theme(),
         title=payload["title"],
         description=payload["description"],
         fields=payload["fields"],
@@ -177,6 +190,90 @@ def test_plain_language_and_no_government_wording(build):
             assert len(sentence.split()) <= MAX_WORDS_PER_SENTENCE, sentence
 
 
+# The respondent page states the retention from the setting; a template must
+# not also claim one in its own words (the two could disagree).
+RETENTION_CLAIM = re.compile(
+    r"\b(bewaar\w*|verwijder\w*|gewist|wissen|we\s+houden|retain\w*|retention"
+    r"|delet\w+|erase\w*|we\s+keep\s+(it|your|this|them|the)|kept|stored?\s+for)\b"
+    r"|\b\d+\s*(dagen|weken|maanden|jaar|days|weeks|months|years)\b",
+    re.IGNORECASE,
+)
+
+
+@pytest.mark.parametrize("build", BILINGUAL_BUILDERS, ids=lambda b: b.__name__)
+def test_answers_are_deleted_after_a_set_period_not_promised_in_words(build):
+    payload = build()
+    template = next(t for t in BILINGUAL_TEMPLATES if build.__name__.startswith(t.key))
+    assert payload["response_expiration_type"] == "days"
+    days = int(payload["response_expiration"])
+    assert 1 <= days <= MAX_RETENTION_DAYS
+    assert days == template.retention_days
+    # the form's own retention setting, as the server reads it
+    form = _form(payload)
+    assert checked_retention(
+        payload["response_expiration_type"],
+        payload["response_expiration"],
+        dt.date.today(),
+    ) == (ResponseRetentionType.DAYS, str(days))
+    for text in _texts(payload):
+        assert not RETENTION_CLAIM.search(text), text
+    assert form.settings.language == payload["language"]
+
+
+def test_twins_keep_answers_equally_long():
+    for template in BILINGUAL_TEMPLATES:
+        nl, en = (build_template(template, lang) for lang in LANGUAGES)
+        assert nl["response_expiration"] == en["response_expiration"]
+
+
+FIXTURE = (
+    Path(__file__).resolve().parents[3]
+    / "webapp/src/utils/plain-language/dutch-first-templates.fixture.json"
+)
+
+
+def prose_of_templates() -> list:
+    """Every sentence a respondent reads in the templates (not the choices or
+    button labels), by language: what the webapp's plain-language (B1) check
+    runs over (plain-language/dutch-first-templates.test.ts)."""
+    rows = []
+    for template in BILINGUAL_TEMPLATES:
+        for lang in LANGUAGES:
+            payload = build_template(template, lang)
+            texts = [
+                ("title", payload["title"]),
+                ("description", payload["description"]),
+                ("welcome", payload["welcome_page"]["description"]),
+            ]
+            for ending in payload["thankyou_page"]:
+                texts += [("ending", ending["title"]), ("ending", ending["message"])]
+            for question in _questions(payload):
+                texts += [
+                    ("question", question["title"]),
+                    ("why", question["properties"]["why_we_ask"]),
+                ]
+            rows += [
+                {"template": template.key, "language": lang, "kind": kind, "text": text}
+                for kind, text in texts
+            ]
+    return rows
+
+
+@pytest.mark.skipif(
+    not FIXTURE.parent.is_dir(),
+    reason="the webapp tree is not present (a backend-only checkout)",
+)
+def test_the_webapp_plain_language_check_reads_the_current_wording():
+    """The webapp's B1 check (a TypeScript test) runs over a copy of the
+    templates' prose; this keeps the copy current. After changing a
+    template's wording, regenerate it with REGENERATE_TEMPLATE_PROSE=1."""
+    rows = prose_of_templates()
+    if os.environ.get("REGENERATE_TEMPLATE_PROSE") == "1":
+        lines = ",\n".join("  " + json.dumps(row, ensure_ascii=False) for row in rows)
+        FIXTURE.write_text("[\n" + lines + "\n]\n")
+    assert json.loads(FIXTURE.read_text()) == rows
+
+
 def _answer(question: dict, yes: bool) -> dict:
     if question["type"] == "yes_no":
         return {"boolean": yes}
@@ -273,6 +370,7 @@ async def test_a_seeded_dutch_template_becomes_a_dutch_form_that_publishes(
         assert order.index(template.title["nl"]) < order.index(template.title["en"])
 
     dutch = by_title["Aanmelding voor school"]
+    listed_dutch_school = dutch
     created = await client.post(
         f"/api/v1/workspaces/{workspace.id}/template/{dutch['id']}",
         cookies=test_user_cookies,
@@ -280,6 +378,10 @@ async def test_a_seeded_dutch_template_becomes_a_dutch_form_that_publishes(
     assert created.status_code == 200, created.text
     form = created.json()
     assert form["settings"]["language"] == "nl"
+    # the template's retention is the new form's enforced one
+    assert listed_dutch_school["settings"]["responseExpirationType"] == "days"
+    assert form["settings"]["responseExpirationType"] == "days"
+    assert form["settings"]["responseExpiration"] == "365"
     assert form["welcomePage"]["buttonText"] == "Beginnen"
     assert [e["title"] for e in form["thankyouPage"]] == ["Bedankt voor uw aanmelding"]
     first = form["fields"][0]["properties"]["fields"][0]
@@ -296,3 +398,91 @@ async def test_a_seeded_dutch_template_becomes_a_dutch_form_that_publishes(
         workspace.id, template_repo=container.form_template_repo()
     )
     assert again["seeded"] == []
+
+
+async def _seeded_without_retention(build):
+    """A Dutch-first template as the seed stored it before templates carried a
+    retention period."""
+    from backend.app.container import container
+    from backend.app.schemas.template import FormTemplateDocument
+    from common.ids import RecordId
+
+    payload = build()
+    for i, page in enumerate(payload["fields"]):
+        page["index"] = i
+    template = FormTemplateDocument(
+        builder_version="v2",
+        type="form",
+        workspace_id=RecordId("65e5501d0000000000000001"),
+        title=payload["title"],
+        description=payload["description"],
+        fields=payload["fields"],
+        theme=template_theme(),
+        welcome_page=payload["welcome_page"],
+        thankyou_page=payload["thankyou_page"],
+        settings={"is_public": True, "language": payload["language"]},
+    )
+    return await container.form_template_repo().save(template)
+
+
+@pytest.mark.asyncio
+async def test_the_seed_gives_an_already_seeded_template_its_period_once():
+    from backend.app.container import container
+    from common.ids import RecordId
+
+    repo = container.form_template_repo()
+    build = BILINGUAL_BUILDERS[1]  # the Dutch housing application
+    old = await _seeded_without_retention(build)
+
+    first = await seed_flow_templates(RecordId("65e5501d0000000000000001"), template_repo=repo)
+    stored = await repo.get_template_by_id(old.id)
+    second = await seed_flow_templates(RecordId("65e5501d0000000000000001"), template_repo=repo)
+
+    assert first["retained"] == [build()["title"]]
+    assert stored.settings.response_expiration_type == ResponseRetentionType.DAYS
+    assert stored.settings.response_expiration == build()["response_expiration"]
+    # the rest of the template is as it was
+    assert stored.settings.is_public is True and stored.settings.language == "nl"
+    assert stored.title == old.title
+    assert second["retained"] == []
+
+
+@pytest.mark.asyncio
+async def test_the_repair_keeps_a_period_chosen_by_hand_and_other_templates():
+    from backend.app.container import container
+    from common.ids import RecordId
+    from scripts.seed_flow_templates import lead_qualification, repair_retention
+
+    repo = container.form_template_repo()
+    build = BILINGUAL_BUILDERS[1]
+    for kind, value in (("days", "7"), ("forever", None), ("date", "2099-01-01")):
+        template = await _seeded_without_retention(build)
+        template.settings.response_expiration_type = ResponseRetentionType(kind)
+        template.settings.response_expiration = value
+        await repo.save(template)
+        assert await repair_retention(repo, template.id) is False
+        kept = await repo.get_template_by_id(template.id)
+        assert kept.settings.response_expiration_type.value == kind
+        assert kept.settings.response_expiration == value
+        await repo.delete_template(template.id)
+
+    # one of the seed's flow templates has no period to give; a template
+    # that is not the seed's own is not touched
+    from backend.app.schemas.template import FormTemplateDocument
+
+    payload = lead_qualification()
+    flow = await repo.save(
+        FormTemplateDocument(
+            builder_version="v2",
+            type="form",
+            workspace_id=RecordId("65e5501d0000000000000001"),
+            title=payload["title"],
+            fields=payload["fields"],
+            settings={"is_public": True},
+        )
+    )
+    assert await repair_retention(repo, flow.id) is False
+    other = await _seeded_without_retention(build)
+    other.title = "Mijn eigen aanvraag"
+    await repo.save(other)
+    assert await repair_retention(repo, other.id) is False

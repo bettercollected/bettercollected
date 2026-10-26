@@ -13,10 +13,7 @@ document layer's NotFoundError).
 One method crosses a group boundary: ``get_workspace_with_action_by_id``
 reads workspaces (identity) and workspace_actions (actions). In 4.0 Mongo
 joined them with ``$lookup``; it composes the two reads through the actions
-repository (:func:`with_workspace_action`). The forms group's Mongo
-repositories, which still serve the forms group in the mongo and dual modes,
-read workspaces through this group's repositories too (no join into
-identity is left, see ``backend.db.groups.MONGO_JOINS``).
+repository (:func:`with_workspace_action`).
 """
 
 import datetime

@@ -1,10 +1,10 @@
 name: CI
 
-# Pull requests run the Postgres persistence mode (what the service is moving
-# to) and only the suites their changes can affect; the backend suite is split
-# into shards that run in parallel. Every push to develop, the nightly run and a
-# manual run test everything: every suite, in the Mongo, dual and Postgres modes.
-# How the split works and how to refresh it: docs/ci.md.
+# Postgres is the only store (4.1), so there is one persistence mode. Pull
+# requests run only the suites their changes can affect; the backend suite is
+# split into shards that run in parallel. Every push to develop, the nightly run
+# and a manual run test everything: every suite. How the split works and how to
+# refresh it: docs/ci.md.
 on:
     pull_request:
         branches:
@@ -20,7 +20,7 @@ on:
     workflow_dispatch:
         inputs:
             scope:
-                description: "full: every suite in every mode; pr: what a pull request runs, for all suites"
+                description: "full: every suite; pr: what a pull request runs, for all suites"
                 type: choice
                 options:
                     - full
@@ -64,7 +64,6 @@ jobs:
             webapp: ${{ steps.plan.outputs.webapp }}
             smoke: ${{ steps.plan.outputs.smoke }}
             executor: ${{ steps.plan.outputs.executor }}
-            modes: ${{ steps.plan.outputs.modes }}
             backend_matrix: ${{ steps.plan.outputs.backend_matrix }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -108,11 +107,10 @@ jobs:
               with:
                   persist-credentials: false
 
-            # Postgres always, MongoDB where the entry uses it (the Mongo and
-            # dual modes, and the tests that drive Mongo themselves). The
-            # Postgres shards run without it: with every group on Postgres the
-            # backend must start and serve with Mongo unreachable. Both boot
-            # while the dependencies install.
+            # Postgres always, MongoDB only where the entry uses it (the tests
+            # that drive Mongo themselves: the import from 4.0). The shards run
+            # without it: the backend must start and serve with Mongo
+            # unreachable. Both boot while the dependencies install.
             - name: Start the test databases
               working-directory: .
               env:
@@ -151,13 +149,11 @@ jobs:
             # Without Mongo, MONGO_URI is empty, as on a fresh install: the
             # backend then starts without contacting Mongo at all (a MONGO_URI
             # that is set but unreachable refuses the start: the check for
-            # unimported Postgres-only data, backend/db/mongo_import_guard.py).
+            # unimported 4.0 data, backend/db/mongo_import_guard.py).
             # MARKER "not mongo" leaves out the tests that drive Mongo
             # themselves; "mongo" runs only those (tests/conftest.py).
             - name: Run backend tests (${{ matrix.mode }} ${{ matrix.group }}/${{ matrix.splits }})
               env:
-                  DB_READ_SOURCE: ${{ matrix.read_source }}
-                  DB_WRITE_MODE: ${{ matrix.write_mode }}
                   SPLITS: ${{ matrix.splits }}
                   GROUP: ${{ matrix.group }}
                   IGNORE: ${{ matrix.ignore }}
@@ -176,19 +172,18 @@ jobs:
                       --splits "$SPLITS" --group "$GROUP" --splitting-algorithm least_duration "${extra[@]}"
 
     auth-tests:
-        name: Auth tests (${{ matrix.mode }})
+        name: Auth tests
         needs: plan
         if: needs.plan.outputs.auth == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        strategy:
-            fail-fast: false
-            matrix:
-                mode: [postgres]
-        # auth is served from Postgres only (auth/db/flags.py): it refuses the
-        # Mongo and dual flags, so the Postgres mode is its only one. The suite
-        # runs with MONGO_URI on a closed port: the service starts and serves
-        # without Mongo (tests/test_startup_postgres_only.py boots it so).
+        # auth is served from Postgres only (auth/db/flags.py): it refuses a
+        # stale Mongo or dual flag. The suite runs with MONGO_URI empty, as on
+        # a fresh install: the service starts and serves without contacting
+        # Mongo (tests/test_startup_postgres_only.py boots it so). A MONGO_URI
+        # that is set refuses the start while Mongo holds accounts that were
+        # never imported (auth/db/import_guard.py; tests/db/test_import_guard.py
+        # runs against the Mongo server below).
         defaults:
             run:
                 working-directory: auth
@@ -222,9 +217,9 @@ jobs:
               working-directory: .
               run: .github/scripts/test-dbs.sh wait
 
-            - name: Run auth tests (${{ matrix.mode }})
+            - name: Run auth tests
               env:
-                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+                  MONGO_URI: ""
               run: uv run --frozen pytest -m "not mongo"
 
             # The few tests that drive a real Mongo server (the import from 4.0,
@@ -235,16 +230,15 @@ jobs:
                   .github/scripts/test-dbs.sh start mongo
                   .github/scripts/test-dbs.sh wait
 
-            - name: Run the auth tests that drive Mongo (postgres)
+            - name: Run the auth tests that drive Mongo
               env:
                   MONGO_URI: mongodb://localhost:27017
               run: uv run --frozen pytest -m mongo
 
     google-tests:
-        name: Google integration tests (${{ matrix.mode }})
+        name: Google integration tests
         # The service is served from Postgres only (googleform/db/flags.py): it
-        # refuses the Mongo and dual flags, so the Postgres mode is its only one.
-        # The google unit suite has pre-existing failures from aiohttp/pydantic API
+        # refuses a stale Mongo or dual flag. The google unit suite has pre-existing failures from aiohttp/pydantic API
         # drift (tests/unit/app/utils/test_aiohttp_client.py, tests/unit/app/views,
         # tests/unit/app/test_asgi.py) that predate the Postgres work and were never
         # run in CI. This job runs everything else; repairing those is a follow-up.
@@ -252,10 +246,6 @@ jobs:
         if: needs.plan.outputs.google == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        strategy:
-            fail-fast: false
-            matrix:
-                mode: [postgres]
         defaults:
             run:
                 working-directory: integrations/google
@@ -274,10 +264,13 @@ jobs:
               with:
                   persist-credentials: false
 
-            # The suite runs before Mongo exists, with MONGO_URI on a closed
-            # port: the service must start and serve without it. Mongo then
-            # starts for the few tests that drive it themselves (the import
-            # from 4.0; marker "mongo", tests/conftest.py).
+            # The suite runs before Mongo exists, with MONGO_URI empty, as on a
+            # fresh install: the service must start and serve without it (a
+            # MONGO_URI that is set but unreachable refuses the start, the
+            # check for unimported 4.0 data, googleform/db/import_guard.py).
+            # Mongo then starts for the few tests that drive it themselves
+            # (the import from 4.0 and that check; marker "mongo",
+            # tests/conftest.py).
             - name: Start the test databases
               working-directory: .
               run: .github/scripts/test-dbs.sh start postgres
@@ -296,9 +289,9 @@ jobs:
               working-directory: .
               run: .github/scripts/test-dbs.sh wait
 
-            - name: Run google tests (${{ matrix.mode }})
+            - name: Run google tests
               env:
-                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+                  MONGO_URI: ""
               run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m "not mongo"
 
             - name: Start MongoDB for the tests that drive it
@@ -307,10 +300,7 @@ jobs:
                   .github/scripts/test-dbs.sh start mongo
                   .github/scripts/test-dbs.sh wait
 
-            - name: Run the google tests that drive Mongo (postgres)
-              env:
-                  DB_READ_SOURCE: postgres
-                  DB_WRITE_MODE: postgres
+            - name: Run the google tests that drive Mongo
               run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m mongo
 
     # The actions executor (temporal/actions-executor): its entry point picks the

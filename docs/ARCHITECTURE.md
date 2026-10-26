@@ -30,7 +30,7 @@ Deep reference for how bettercollected fits together. For day-to-day agent guida
                         │      └───────┬───────┘  │   └──────┬───────────────┘
                         ▼              ▼          ▼          ▼
                  ┌──────────────────────────────────────────────────────┐
-                 │  MongoDB (app data, Beanie ODM)   ·   Redis (cache)    │
+                 │  PostgreSQL (app data, SQLAlchemy)  ·  Redis (cache)   │
                  └──────────────────────────────────────────────────────┘
 
   Shared Python package `common/` (models, enums, JWT, crypto, HTTP client) is imported by
@@ -121,20 +121,16 @@ workflows above, which stay for jobs queued there before the switch
 
 ## Data stores
 
-- **MongoDB** — application data via Beanie Documents, today's authoritative store. Backend collections are
-  registered in [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core
-  models come from `common/`.
-- **PostgreSQL (`app-postgres`)** — the application database that is replacing MongoDB and Temporal
-  (see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)). One database, one schema per
+- **PostgreSQL (`app-postgres`)** — the application database since 4.1 (it replaced MongoDB and is replacing
+  Temporal; see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)). One database, one schema per
   service (`app`, `auth`, `google`, `jobs`), one least-privilege role each — the actions-executor's role can reach
-  `jobs` only, because it runs user-authored code. Every repository in backend, auth and the google integration has
-  a Postgres twin behind a `RoutingRepository`; per-group flags (`DB_READ_SOURCE__<g>`, `DB_WRITE_MODE__<g>`) move
-  a group from Mongo to mirrored (`dual`) to served-from-Postgres, with Mongo kept current by a reverse mirror until
-  removal. Mirror failures go to an outbox; shadow reads compare the stores on live traffic; the flags in effect
-  are logged at boot and served on `GET /persistence/status`. Since 4.1 some groups are served from Postgres
-  only, with no Mongo side and no routing: the backend's `refdata`, `analytics`, `ai` and `actions`, the auth
-  service and the Google integration; their 4.0 Mongo data is read only by the import
-  (`python -m <service>.migrate`).
+  `jobs` only, because it runs user-authored code. Every repository in backend, auth and the google integration is
+  a Postgres repository (`common.records.repository.RecordRepository`) over a `common.records.Record` class; there
+  is no routing between stores, no mirror and no shadow read. The jobs flags in effect are logged at boot and
+  served on `GET /persistence/status`. Core models come from `common/`.
+- **MongoDB** — the 4.0 application data, read only by the import to 4.1 (`python -m <service>.migrate`, with its
+  own pymongo client) and by the startup check that refuses to start while a group's Mongo data was not imported.
+  No service connects to it, and Beanie is a test-only dependency.
 - **PostgreSQL (Temporal)** — used only by the Temporal server (auto-setup image), not by application code;
   goes away with Temporal.
 - **Redis** — caching (notably in `integrations/google`).

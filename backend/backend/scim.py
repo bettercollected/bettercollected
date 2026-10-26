@@ -18,7 +18,7 @@ import sys
 from common.ids import RecordId
 
 from backend.app.utils import AiohttpClient
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 from backend.db.startup import check_postgres_at_startup
 
 # the directories, their users and the workspaces live in the identity group
@@ -58,7 +58,7 @@ async def main(argv) -> int:
 
     AiohttpClient.get_aiohttp_client()
     try:
-        async with routed_repositories(*GROUPS) as container:
+        async with open_container() as container:
             await check_postgres_at_startup(container)
             result = await _resync(
                 container,

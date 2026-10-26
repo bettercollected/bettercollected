@@ -29,6 +29,7 @@ from googleform.app.utils import AiohttpClient
 from googleform.config import settings
 import googleform
 from googleform.db.base import SCHEMA
+from googleform.db.import_guard import check_mongo_import
 
 log = logging.getLogger(__name__)
 
@@ -55,11 +56,13 @@ async def on_startup():
     AiohttpClient.get_aiohttp_client()
     log.info(
         "persistence flags: %s",
-        json.dumps(Container.flags().describe(["google"]), sort_keys=True),
+        json.dumps(Container.flags().describe(), sort_keys=True),
     )
     await check_postgres_at_startup(
         Container.flags(), Container.pg_engine(), MIGRATIONS
     )
+    # the schema is there: refuse while 4.0 data sits in Mongo, never imported
+    await check_mongo_import(Container.pg_engine())
 
 
 async def on_shutdown():

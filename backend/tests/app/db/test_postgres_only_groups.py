@@ -5,12 +5,7 @@ store gets its reference data from ``python -m backend.seed_refdata``."""
 
 import pytest
 
-from backend.db.groups import (
-    GROUPS,
-    MONGO_JOINS,
-    POSTGRES_ONLY_GROUPS,
-    load_backend_flags,
-)
+from backend.db.groups import GROUPS, POSTGRES_ONLY_GROUPS, load_backend_flags
 from backend.seed_refdata import (
     DEFAULT_ORIGINS,
     build_parser,
@@ -18,7 +13,6 @@ from backend.seed_refdata import (
     run,
     seed_refdata,
 )
-from common.db import ReadSource, WriteMode
 from common.db.flags import FlagError
 
 
@@ -37,29 +31,16 @@ from common.db.flags import FlagError
         {"DB_READ_SOURCE__responses": "postgres", "DB_WRITE_MODE__Responses": ""},
     ],
 )
-def test_the_groups_are_on_postgres_whatever_the_defaults(env):
+def test_the_groups_load_whatever_the_service_wide_settings_say(env):
+    """Only a per-group flag naming another store refuses the start: a
+    service-wide ``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` means nothing to the
+    backend. What is left of the flags is the jobs backends."""
     flags = load_backend_flags(env)
-    for group in POSTGRES_ONLY_GROUPS:
-        assert flags.read_source(group) is ReadSource.POSTGRES
-        assert flags.write_mode(group) is WriteMode.POSTGRES
-    assert flags.uses_mongo(POSTGRES_ONLY_GROUPS) is False
-    assert flags.requires_postgres()
+    assert flags.describe()["store"] == "postgres"
 
 
 def test_no_group_is_left_to_route():
     assert set(POSTGRES_ONLY_GROUPS) == set(GROUPS)
-    flags = load_backend_flags({"DB_WRITE_MODE": "dual", "DB_READ_SOURCE": "mongo"})
-    assert flags.uses_mongo(GROUPS) is False
-
-
-def test_no_mongo_query_joins_across_groups():
-    """A ``$lookup`` into a group served from Postgres only would find nothing
-    (its Mongo collections are no longer written). The last ones went with
-    the forms group: the responses repositories read a form's title and
-    importer through the forms repositories, and the forms repositories read
-    responses and responder groups through the responses group's. With the
-    responses group on Postgres too no group has a Mongo store."""
-    assert MONGO_JOINS == {}
 
 
 @pytest.mark.parametrize(
@@ -219,6 +200,7 @@ async def test_the_command_refuses_while_mongo_holds_unimported_refdata(
     check (backend/db/mongo_import_guard.py): the command refuses instead."""
     from backend.app.container import container
     from backend.db import mongo_import_guard as guard
+    from common.db.migrate import import_guard as core
 
     class Collection:
         def __init__(self, name):
@@ -246,6 +228,6 @@ async def test_the_command_refuses_while_mongo_holds_unimported_refdata(
 
     monkeypatch.setattr("backend.db.startup.dispose_postgres", _no_dispose)
     monkeypatch.setattr(guard, "mongo_uri_configured", lambda _: "mongodb://mongo")
-    monkeypatch.setattr(guard, "AsyncMongoClient", Client)
+    monkeypatch.setattr(core, "AsyncMongoClient", Client)
     assert await run(build_parser().parse_args([])) == 2
     assert await container.allowed_origins_repo().list_origins() == []

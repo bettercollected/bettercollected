@@ -1,6 +1,7 @@
 from typing import Optional, List
 
 from common.ids import RecordId
+from common.models.consent import ResponseRetentionType
 from common.models.standard_form import (
     LOGO_ALT_MAX_LENGTH,
     LogoPosition,
@@ -21,6 +22,14 @@ class StandardTemplateSetting(BaseModel):
     # The language the template's questions are written in (a form's
     # settings.language), passed on to the forms made from it.
     language: Optional[str] = None
+    # How long the forms made from the template keep their answers, as a
+    # form's settings.response_expiration_type / response_expiration (days
+    # as a whole number). Passed on to the new form, where the server
+    # enforces it and the respondent page states it; a period that can no
+    # longer be applied is left out of the copy (workspace_form_service
+    # ``_usable_settings``).
+    response_expiration_type: Optional[ResponseRetentionType] = None
+    response_expiration: Optional[str] = None
 
 
 class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):

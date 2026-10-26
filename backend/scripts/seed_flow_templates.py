@@ -260,6 +260,43 @@ def _add_missing_section_titles(pages, seeded_pages) -> int:
     return added
 
 
+def _blank(value) -> bool:
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
+async def repair_retention(template_repo, template_id) -> bool:
+    """Give a Dutch-first template that was seeded before templates carried a
+    retention period the period its builder sets.
+
+    Touches only the script's own templates (``_seed_payload_of``) and only
+    while BOTH retention keys are empty, so a period chosen by hand (days,
+    a date or "forever") stays. Never creates anything. Idempotent: a
+    repaired template has its period. Returns True if it changed."""
+    from common.models.consent import ResponseRetentionType
+
+    from backend.app.models.template import StandardTemplateSetting
+
+    template = await template_repo.get_template_by_id(template_id)
+    if template is None:
+        return False
+    payload = _seed_payload_of(template)
+    if payload is None or not payload.get("response_expiration_type"):
+        return False
+    settings = template.settings or StandardTemplateSetting()
+    if not (
+        _blank(settings.response_expiration_type)
+        and _blank(settings.response_expiration)
+    ):
+        return False
+    settings.response_expiration_type = ResponseRetentionType(
+        payload["response_expiration_type"]
+    )
+    settings.response_expiration = payload["response_expiration"]
+    template.settings = settings
+    await template_repo.save(template)
+    return True
+
+
 async def repair_leaflet_design(template_repo, template_id) -> bool:
     """Move a predefined template this script seeded before it used Leaflet
     to the Leaflet preset and style and the layout Leaflet is made for, and
@@ -390,14 +427,17 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
     templates all go through it, so whichever store serves templates (Mongo,
     mirrored or Postgres) is the one checked and written. Safe to call
     repeatedly: existing templates are left untouched, never overwritten,
-    except that their missing yes/no choices are repaired and the script's
+    except that their missing yes/no choices are repaired, the script's
     own templates still wearing the old seeded theme move to Leaflet
-    (``repair_leaflet_design``).
+    (``repair_leaflet_design``) and the Dutch-first ones without a retention
+    period get theirs (``repair_retention``).
 
     Returns {"seeded": [...], "skipped": [...], "repaired": [...],
-    "restyled": [...]} (titles).
+    "restyled": [...], "retained": [...]} (titles). ``retained`` lists the
+    Dutch-first templates that had no retention period and were given theirs
+    (``repair_retention``).
     """
-    seeded, skipped, repaired, restyled = [], [], [], []
+    seeded, skipped, repaired, restyled, retained = [], [], [], [], []
     # The gallery's own templates, so one there is repaired even when a
     # template elsewhere has the same title.
     gallery = await template_repo.get_templates_with_creator(
@@ -421,6 +461,8 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
                 # Only the script's own templates, see _seed_payload_of.
                 if await repair_leaflet_design(template_repo, template_id):
                     restyled.append(payload["title"])
+                if await repair_retention(template_repo, template_id):
+                    retained.append(payload["title"])
             continue
         # fix slide/field indexes
         for i, slide in enumerate(payload["fields"]):
@@ -445,7 +487,13 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
                 "buttonText": "Start",
             },
             thankyou_page=payload.get("thankyou_page") or [{"layout": LAYOUT}],
-            settings={"is_public": True, "language": payload.get("language")},
+            settings={
+                "is_public": True,
+                "language": payload.get("language"),
+                # The Dutch-first templates keep answers for a fixed period.
+                "response_expiration_type": payload.get("response_expiration_type"),
+                "response_expiration": payload.get("response_expiration"),
+            },
         )
         await template_repo.save(template)
         seeded.append(payload["title"])
@@ -454,6 +502,7 @@ async def seed_flow_templates(workspace_id, template_repo) -> dict:
         "skipped": skipped,
         "repaired": repaired,
         "restyled": restyled,
+        "retained": retained,
     }
 
 
@@ -463,7 +512,7 @@ async def _main() -> None:
     so Mongo is never connected) and seeds through the app's template
     repository. Startup auto-seeding (asgi.py) calls seed_flow_templates()
     directly."""
-    from backend.cli_store import routed_repositories
+    from backend.cli_store import open_container
     from backend.config import settings
     from backend.db.startup import check_postgres_at_startup
 
@@ -472,7 +521,7 @@ async def _main() -> None:
         print("DEFAULT_WORKSPACE_ID is not set — refusing to seed without a stable predefined-templates workspace id.")
         return
 
-    async with routed_repositories("forms") as container:
+    async with open_container() as container:
         await check_postgres_at_startup(container)
         result = await seed_flow_templates(workspace_id, container.form_template_repo())
     for title in result["seeded"]:
@@ -481,6 +530,8 @@ async def _main() -> None:
         print(f"skip (exists): {title}")
     for title in result["restyled"]:
         print(f"moved to Leaflet: {title}")
+    for title in result["retained"]:
+        print(f"retention period set: {title}")
 
 
 if __name__ == "__main__":

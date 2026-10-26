@@ -1163,6 +1163,29 @@ async def test_drop_old_refuses_while_a_service_reports_writing_mongo(
     assert len(parse_keyset((await flow.stored()).value).key) == 2
 
 
+@pytest.mark.parametrize("service", ["backend", "google"])
+@pytest.mark.parametrize(
+    "env",
+    [{}, {"DB_WRITE_MODE": "dual"}, {"DB_WRITE_MODE": "mongo", "DB_READ_SOURCE": "mongo"}],
+    ids=["unset", "stale-dual", "stale-mongo"],
+)
+async def test_a_41_service_is_not_taken_for_one_writing_mongo(world, stores, service, env):
+    """What a running 4.1 service reports comes from its own environment
+    (``write_stores_report``). With ``DB_WRITE_MODE`` unset, or a service-wide
+    ``dual`` the backend ignores, it used to say mongo and so refused the drop."""
+    from common.settings.write_stores import write_stores_report
+
+    flow, new_id = await prepare(world, stores)
+    await flow.both("keyset.reencrypt", flow.params(primary_id=new_id))
+    stored = await flow.stored()
+    await heartbeat(
+        world.owner, service, stored.value, instance="other",
+        revision=stored.revision, write_stores=write_stores_report(env),
+    )
+    _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert run["state"] == "succeeded", run
+
+
 # ------------------------------------------------------- the other drop guards
 async def test_drop_old_no_longer_waits_for_typeform(world, flow):
     """Neither an unticked acknowledgement nor a leftover instance of the

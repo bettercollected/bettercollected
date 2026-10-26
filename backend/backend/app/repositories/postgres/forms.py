@@ -16,10 +16,9 @@ The 4.0 aggregation pipelines' ``$lookup``s fall into two kinds
 * **into another group** (responder groups, response and deletion-request
   counts in ``responses``; the workspace a template was imported from in
   ``identity``) are *composed*: the repository reads its own tables, then asks
-  the other group's repository in one batched call, so the answer comes from
-  whichever store serves that group. The responses group's repositories read
-  forms the same way (``response_scope.form_titles``): no Mongo query joins
-  into forms (``backend.db.groups.MONGO_JOINS``).
+  the other group's repository in one batched call. The responses group's
+  repositories read forms the same way (``response_scope.form_titles``): no
+  query joins into another group's tables.
 
 Results keep the raw-document shape of the aggregations (``FormDtoCamelModel``
 and friends consume dicts), rebuilt from the row's canonical ``doc``.
@@ -341,7 +340,6 @@ def _fold_settings(form: dict, workspace_form: dict) -> None:
 class PostgresFormRepository(RecordRepository):
     row = FormRow
     document = FormDocument
-    document_rows = {FormVersionsDocument: FormVersionRow}  # publish_form
 
     def __init__(self, session_factory, responder_groups, form_responses):
         super().__init__(session_factory)
@@ -717,7 +715,6 @@ class PostgresFormRepository(RecordRepository):
             if found.updated_at is None
             else FormRow.updated_at == found.updated_at
         )
-        self._touch(FormRow, [found.id])
         async with self._session() as session, session.begin():
             result = await session.execute(
                 update(FormRow)
@@ -1472,7 +1469,14 @@ class PostgresFormTemplateRepository(RecordRepository):
                 return None
             template = decode(FormTemplateDocument, doc)
             template.fields = template_body.fields
-            template.settings = template_body.settings
+            # Only the settings the body names change: one it leaves out
+            # (public, language, retention) stays as stored; an explicit null
+            # clears it.
+            if template_body.settings is not None:
+                merged = template.settings or StandardTemplateSetting()
+                for name in template_body.settings.model_fields_set:
+                    setattr(merged, name, getattr(template_body.settings, name))
+                template.settings = merged
             template.title = template_body.title
             template.description = template_body.description
             template.button_text = template_body.button_text

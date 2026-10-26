@@ -8,8 +8,7 @@ skipped (services/sheets_reconsent.py). Run it before switching
 ``GOOGLE_SHEETS_OAUTH`` to ``backend`` to size the reconnect mail.
 
 Read-only: it changes nothing. Counts only, never ids, titles, addresses or
-tokens. Reads through the routed repositories, so it follows the services'
-read source (``DB_READ_SOURCE``).
+tokens. Reads through the container's repositories (Postgres).
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ import asyncio
 import json
 import sys
 
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 
 # forms (their actions' secrets and parameters); actions are Postgres only
 GROUPS = ("forms",)
@@ -30,7 +29,7 @@ async def main(argv) -> int:
     if argv:
         print("usage: python -m backend.sheets_legacy (no arguments)")
         return 2
-    async with routed_repositories(*GROUPS) as container:
+    async with open_container() as container:
         counts = await count_legacy_sheets_actions(
             container.form_repo(), container.action_repository(), container.crypto()
         )

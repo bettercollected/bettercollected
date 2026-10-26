@@ -19,6 +19,9 @@ dependencies = [
     "pydantic==2.14.1",
     "protobuf==7.36.2",
     "procrastinate>=3.9,<4",
+    # procrastinate's PsycopgConnector needs psycopg 3 with a libpq; the image
+    # (python:3.11-slim) has none, so the binary wheel bundles it.
+    "psycopg[binary]>=3.3,<4",
 ]
 
 [dependency-groups]

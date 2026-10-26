@@ -34,7 +34,7 @@ from backend.app.services.custom_domain_origins import (
     sync_custom_domain_origin,
 )
 from backend.app.services.custom_domain_service import READY, domain_fields
-from backend.cli_store import routed_repositories
+from backend.cli_store import open_container
 from backend.config import settings
 from common.ids import RecordId
 
@@ -49,7 +49,7 @@ def reference_map(rows) -> dict:
 
 
 async def export_reference_map(out: str) -> int:
-    async with routed_repositories(*GROUPS):
+    async with open_container():
         rows = await container.workspace_repo().list_custom_domain_references()
     references = reference_map(rows)
     with open(out, "w") as handle:
@@ -59,7 +59,7 @@ async def export_reference_map(out: str) -> int:
 
 
 async def adopt(dry_run: bool) -> int:
-    async with routed_repositories(*GROUPS):
+    async with open_container():
         return await _adopt(dry_run)
 
 
@@ -118,7 +118,7 @@ async def subscribe(url: str, secret_file: str) -> int:
 
 
 async def sweep(dry_run: bool) -> int:
-    async with routed_repositories(*GROUPS):
+    async with open_container():
         return await _sweep(dry_run)
 
 
@@ -139,7 +139,7 @@ async def _sweep(dry_run: bool) -> int:
 
 
 async def prune_origins(dry_run: bool, orphans: bool, keep: list) -> int:
-    async with routed_repositories(*GROUPS):
+    async with open_container():
         result = await prune_unverified_origins(
             container.allowed_origins_repo(),
             container.workspace_repo(),

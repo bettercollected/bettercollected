@@ -12,6 +12,7 @@ from sqlalchemy import insert
 
 from backend.app.container import container
 from backend.db import mongo_import_guard as guard
+from common.db.migrate import import_guard as core
 from backend.db.groups import COLLECTION_GROUPS, POSTGRES_ONLY_GROUPS
 from backend.db.models import MigrationProgress
 from backend.db.mongo_import_guard import (
@@ -21,7 +22,6 @@ from backend.db.mongo_import_guard import (
     check_unimported_mongo_data,
     guarded_collections,
 )
-from tests.app.db.beanie_originals import PostgresAllowedOriginsRepository
 from tests.conftest import _postgres_configured
 
 pytestmark = pytest.mark.skipif(
@@ -143,7 +143,7 @@ async def test_without_mongo_uri_the_start_never_contacts_mongo(group, monkeypat
     def no_client(*args, **kwargs):
         raise AssertionError("Mongo contacted")
 
-    monkeypatch.setattr(guard, "AsyncMongoClient", no_client)
+    monkeypatch.setattr(core, "AsyncMongoClient", no_client)
     result = await check(client=None, uri="", groups=(group,))
     assert not result.mongo_checked and result.blocking == []
 
@@ -197,9 +197,7 @@ async def test_an_override_naming_an_unknown_group_refuses():
 
 
 async def test_the_postgres_probe_finds_rows_and_finished_backfills():
-    await PostgresAllowedOriginsRepository(container.pg_sessionmaker()).add(
-        "https://a.example"
-    )
+    await container.allowed_origins_repo().add("https://a.example")
     async with container.pg_engine().begin() as conn:
         await conn.execute(
             insert(MigrationProgress.__table__),
@@ -223,5 +221,81 @@ async def test_the_postgres_probe_finds_rows_and_finished_backfills():
     with pytest.raises(UnimportedMongoData) as refused:
         await check(client)
     message = str(refused.value)
-    assert "refdata: user_feedback (1 in Mongo, 0 in Postgres)" in message
+    assert (
+        "refdata: user_feedback (1 in Mongo, import unfinished: backfill paused)"
+        in message
+    )
     assert "allowed_origins" not in message and "coupon_codes" not in message
+
+
+# -- a partial import ---------------------------------------------------------
+@pytest.mark.parametrize("group", POSTGRES_ONLY_GROUPS)
+@pytest.mark.parametrize("backfill", ["running", "paused", "error"])
+async def test_an_unfinished_backfill_refuses_even_with_rows_in_postgres(
+    group, backfill
+):
+    """Part of a collection copied (rows in Postgres) and the import stopped:
+    the rest is missing."""
+    names = collections_of(group)
+    client, _ = fake_client({n: 5 for n in names})
+    state = PostgresState(
+        has_rows=frozenset(names), unfinished={names[0]: backfill}
+    )
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(client, state=state, groups=(group,))
+    message = str(refused.value)
+    assert (
+        f"{group}: {names[0]} (5 in Mongo, import unfinished: backfill {backfill})"
+        in message
+    )
+    assert f"python -m backend.migrate --group {group} backfill" in message
+
+
+async def test_the_postgres_probe_sees_an_unfinished_backfill_next_to_rows():
+    await container.allowed_origins_repo().add("https://a.example")
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            insert(MigrationProgress.__table__),
+            [{"collection": "allowed_origins", "state": "paused", "count": 1}],
+        )
+    tables = guard.collection_tables()
+    state = await guard.postgres_state(
+        container.pg_engine(),
+        {c: tables[c] for c in guarded_collections()},
+        MigrationProgress.__table__,
+    )
+    assert state.has_rows == {"allowed_origins"}
+    assert dict(state.unfinished) == {"allowed_origins": "paused"}
+    client, _ = fake_client({"allowed_origins": 4})
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(client, groups=("refdata",))
+    assert (
+        "refdata: allowed_origins (4 in Mongo, import unfinished: backfill paused)"
+        in str(refused.value)
+    )
+
+
+async def test_a_finished_backfill_with_rows_starts():
+    await container.allowed_origins_repo().add("https://a.example")
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            insert(MigrationProgress.__table__),
+            [{"collection": "allowed_origins", "state": "done", "count": 1}],
+        )
+    client, database = fake_client({"allowed_origins": 4})
+    result = await check(client, groups=("refdata",))
+    assert "allowed_origins" not in database.asked
+    assert all(u.collection != "allowed_origins" for u in result.blocking)
+
+
+# -- one environment file for the whole stack ---------------------------------
+@pytest.mark.parametrize("group", POSTGRES_ONLY_GROUPS)
+async def test_other_services_groups_in_the_override_are_ignored(group):
+    client, _ = fake_client({n: 1 for n in collections_of(group)})
+    with pytest.raises(UnimportedMongoData) as refused:
+        await check(client, env={OVERRIDE_KEY: "auth,google"}, groups=(group,))
+    assert f"{group}:" in str(refused.value)
+    result = await check(
+        client, env={OVERRIDE_KEY: f"auth,{group}"}, groups=(group,)
+    )
+    assert result.blocking == [] and result.discarded

@@ -259,7 +259,11 @@ from the terminal so hook failures are visible.
 - **"Refusing to start: the ... group(s) are served from Postgres only ... never
   imported into Postgres":** an older local Mongo volume still holds data for a
   group that is now served from Postgres only (typically the reference data the
-  old Mongo seed wrote). Run the import command the message prints (from
-  `backend/`, with `uv run`), or, for a throwaway local stack, start with
-  `DB_DISCARD_UNIMPORTED_MONGO_DATA=<group>` (or `all`) and seed Postgres with
-  `seed_refdata` instead. Never set the override on a stack whose data matters.
+  old Mongo seed wrote), or an import stopped halfway. The backend, the auth
+  service and the Google Forms integration all check. Run the import command the
+  message prints (from the service's directory, with `uv run`), or, for a
+  throwaway local stack, start with `DB_DISCARD_UNIMPORTED_MONGO_DATA=<group>`
+  (or `all`; names of other services' groups are ignored, so one environment
+  file serves them all) and seed Postgres with `seed_refdata` instead. Never set
+  the override on a stack whose data matters. A local stack that never had Mongo
+  data: leave `MONGO_URI` empty.

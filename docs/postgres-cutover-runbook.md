@@ -4,6 +4,14 @@ Operator procedure for moving bettercollected's data from MongoDB (and its jobs 
 to the `app-postgres` PostgreSQL database, one repository group at a time, with rollback at every
 step. Code conventions: `backend/AGENTS.md` "Persistence".
 
+**What this page describes.** The dual-run machinery (`DB_READ_SOURCE`, `DB_WRITE_MODE`, shadow reads,
+the mirror and its outbox, `/persistence/status` counters) is 4.0.x behaviour: 4.1 removed it, and its
+services refuse any value of those flags other than `postgres`. The text about them stays because the
+cutover is run on 4.0.x images, and because the file and line references in it are to `v4.0.13`. What
+4.1 keeps of it is the import tooling (`python -m backend.migrate`, `auth.migrate`,
+`googleform.migrate`) and the startup check for data that was never imported. A short, ordered
+version of the whole upgrade is in [upgrade-4.1.md](upgrade-4.1.md).
+
 Everything below is driven by environment variables read at boot — **a flip is a restart**, never
 a code change — and by the migration CLI, which runs out of band as a one-off process.
 
@@ -483,8 +491,9 @@ Mongo up from the dump plus the outbox.
 
 ## Upgrading to 4.1 — the Postgres-only groups
 
-From 4.1 the `refdata`, `analytics`, `ai`, `actions`, `identity` and `forms` groups are served from
-Postgres only, and `responses` follows before the release (`POSTGRES_ONLY_GROUPS` in
+From 4.1 the `refdata`, `analytics`, `ai`, `actions`, `identity`, `forms` and `responses` groups of the
+backend, and the `auth` and `google` groups of the auth service and the Google Forms integration, are
+served from Postgres only (`POSTGRES_ONLY_GROUPS` in
 `backend/backend/db/groups.py` is the list in force): their Mongo collections are read by
 nothing but the import, and a `DB_READ_SOURCE__<g>`/`DB_WRITE_MODE__<g>` other than `postgres` for
 one of them refuses the start. A stack whose data for these groups is still only in Mongo must
@@ -494,12 +503,23 @@ events, AI memories and profiles, actions, workspaces, members, sessions, forms 
 **The start refuses until the import is done.** The backend API, its job worker and
 `python -m backend.scim` check at startup, after the schema check
 (`backend/backend/db/mongo_import_guard.py`), every collection of those groups
-(`COLLECTION_GROUPS`) and refuse to start when one has documents in Mongo, its Postgres table has
-no row, and no finished backfill of it is recorded (`migration_progress`, `state = done`). The
-log names each group and collection with its Mongo count, and the command to run. The check is a
+(`COLLECTION_GROUPS`); the auth service and the Google Forms integration do the same for their own
+collections (`auth/auth/db/import_guard.py`, `integrations/google/googleform/db/import_guard.py`; the
+shared core is `common/common/db/migrate/import_guard.py`). A start is refused when a collection has
+documents in Mongo and its import is not finished, which means either of:
+- a backfill of it is recorded in any state but `done` (interrupted, paused, running or failed),
+  **whatever rows its Postgres table already holds**: a half-imported table does not pass for an
+  imported one, and the log says `import unfinished: backfill <state>`;
+- no backfill of it is recorded and its Postgres table has no row (rows with no recorded backfill are
+  the application's own writes, not an import).
+
+The log names each group and collection with its Mongo count, and the command to run
+(`python -m backend.migrate --group <g> backfill`, `python -m auth.migrate --group auth backfill`,
+`python -m googleform.migrate --group google backfill`). The check is a
 `SELECT EXISTS` per table and one read of the backfill checkpoints; Mongo is asked (one `find_one`
-per collection, plus an estimated count for the message) only about the collections that are empty
-in Postgres and were never imported. After an import an empty table counts as the application's
+per collection, plus an estimated count for the message, with bounded waits) only about the
+collections that are empty in Postgres or whose backfill is not `done`. After a finished import an
+empty table counts as the application's
 doing (rows deleted or expired since), so the check never blocks a stack that imported. Without
 `MONGO_URI` (a new 4.1 install) Mongo is never contacted. With `MONGO_URI` set, a Mongo that cannot
 be read refuses the start too: the check cannot tell whether data would be lost. Remove
@@ -554,9 +574,12 @@ the Google credentials purge refuse (`import_incomplete`) while it is set. The b
 with the 4.0 images (the CLI is the same):
 
 ```bash
-python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms preflight
-python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms backfill   # resumable; re-run until done
+python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms,responses preflight
+python -m backend.migrate --group refdata,analytics,ai,actions,identity,forms,responses backfill   # resumable; re-run until done
 python -m backend.migrate status                                          # backfill=done per collection
+# auth and the Google Forms integration, the same way
+python -m auth.migrate preflight && python -m auth.migrate backfill && python -m auth.migrate status
+python -m googleform.migrate preflight && python -m googleform.migrate backfill && python -m googleform.migrate status
 ```
 
 After an upgrade that refused to start, run the same `backfill` in a one-off container of the 4.1
@@ -565,18 +588,24 @@ commands" and "Quick reference"), then start the services again. A collection wh
 stopped with `error` (or documents whose `_id` is not an ObjectId, which `preflight` counts) keeps
 the start refused until it is fixed and re-run.
 
-`verify` and `reconcile` no longer cover these groups: without `--group` they skip them and say
-so on stderr; `--group refdata` (or `--collections` naming one of their collections) exits with
-code 2 and names the group. The verified marker covers the other groups. `reconcile --direction
+`verify` and `reconcile` of the 4.1 backend no longer cover its groups (all of them are served from
+Postgres only): without `--group` they skip them and say so on stderr; `--group refdata` (or
+`--collections` naming one of their collections) exits with code 2 and names the group. The final
+`verify` of the cutover is the one run on 4.0.x images, before the roll. Auth and the Google Forms
+integration still verify and reconcile their own import. `reconcile --direction
 postgres->mongo` checks each group's effective write mode (the backend's own flags), not the global
 `DB_WRITE_MODE`.
 
 **Override.** To start anyway and leave a group's Mongo data behind, set
-`DB_DISCARD_UNIMPORTED_MONGO_DATA` on the backend and jobs-worker to the groups to give up
-(`refdata,ai`) or `all`; an unknown name refuses the start. Every start with it set logs a warning,
-and one per collection it lets through, with its count. It is never set by default: use it only when
-that data is known to be worthless (a test stack), and remove it after the start. The data stays in
-Mongo, so a later `backfill` can still bring it in.
+`DB_DISCARD_UNIMPORTED_MONGO_DATA` to the groups to give up (`refdata,ai`; `auth`; `google`) or
+`all`. It applies to the backend and jobs-worker (the backend's groups), the auth service (`auth`) and
+the Google Forms integration (`google`). It can sit in one environment file the services share: each
+service ignores the groups of the other services (an info line in the log), so only `all`, or a
+name of its own, discards anything. A name that no service knows refuses the start; `all` stands
+alone. Every start with it set logs a warning, and one per collection it lets through, with its
+count. It is never set by default: use it only when that data is known to be worthless (a test
+stack), and remove it after the start. The data stays in Mongo, so a later `backfill` can still bring
+it in.
 
 ## Running the cutover on an orchestrated (Docker Swarm) stack
 
@@ -758,7 +787,10 @@ old or new, keeps writing both stores:
 | step 4, `postgres_primary_dual` → `postgres` | read Postgres; write Postgres, then copy to Mongo | read Postgres; write Postgres only | no: every task reads the one store they all write |
 | step 5, 4.0.x → 4.1 | read and write Postgres only | read and write Postgres only | no |
 
-What the code does in each, checked against `v4.0.13`:
+What the code does in each, checked against `v4.0.13` (the modules it cites for the mirror and the
+convergence check, `common/db/routing.py`, `convergence.py` and `mongo.py`, were removed in 4.1; they
+and their line numbers are on `release/4.0`, and the text keeps its meaning for the 4.0.x tasks it is
+about):
 
 - **The flag combinations.** Reading Postgres is valid with `postgres_primary_dual` and with
   `postgres`; reading Mongo is valid with `dual` and `postgres_primary_dual`
@@ -772,9 +804,9 @@ What the code does in each, checked against `v4.0.13`:
   Postgres only); from 4.1 its tasks cover Postgres alone and read no write mode.
 - **Writes and their copy.** A routed write goes to the primary store, then to the other one,
   bounded by `DB_MIRROR_TIMEOUT_MS` (2 s), and the copy can never fail the request
-  (`common/db/routing.py:257-276`, `:295-312`, timeout `:172`). Afterwards the copy of every row the
+  (the 4.0 routing layer). Afterwards the copy of every row the
   write touched is compared with the primary's and rewritten where they differ, so two writes that
-  reach the copy in the other order do not leave it with the older version (`routing.py:314-364`).
+  reach the copy in the other order do not leave it with the older version (the 4.0 convergence check).
   A copy that failed is recorded in the *primary's* store (`common/db/runtime.py:148-187`): in a
   Mongo collection while Mongo is primary, in the service's `mirror_write_failures` table while
   Postgres is. In `status --json` these are `mirror_failures.mongo` (a Postgres copy under a Mongo
@@ -788,14 +820,14 @@ What the code does in each, checked against `v4.0.13`:
   check is the same as under `dual` (`common/db/schema_guard.py:435-445`). Nothing at startup looks
   at the verified marker (`migration_verified` is read only by `status`, `common/db/migrate/engine.py:1773`).
   Mongo stays connected while any group uses it and is not connected at all once every group is on
-  `postgres` (`flags.py:180-198`, `common/db/mongo.py:40-50`).
+  `postgres` (the 4.0 flags and Mongo startup).
 - **What to look at.** Each replica logs `persistence flags` once at start
   (`backend/backend/db/startup.py:42`, `auth/auth/app/asgi.py:64`,
   `integrations/google/googleform/app/asgi.py:58`) with `read_source` and `write_mode` per group.
   Health's `write_stores` reads `mongo,postgres` for both `dual` and `postgres_primary_dual` and
   `postgres` after step 4 (`common/settings/write_stores.py:12-17`), so Health tells step 4 apart
-  but not step 3. Logs: `mirror write failed` (`routing.py:371`) is a failed copy; `mirror copy
-  repaired` (`routing.py:358`) is a copy rewritten after two writes arrived out of order, a few of
+  but not step 3. Logs: `mirror write failed` is a failed copy; `mirror copy
+  repaired` is a copy rewritten after two writes arrived out of order, a few of
   which are expected while old and new tasks overlap.
 
 **Before you start**
@@ -817,6 +849,11 @@ What the code does in each, checked against `v4.0.13`:
 - The keyset freeze is in force (Ground rules): no `keyset.reencrypt`, no `keyset.drop_old`, until the
   rollback window below has closed. Start no other admin task that writes (the `responses.*` tasks
   that change data) from step 3 until step 6 is done.
+- **Generate the respondent identity key now** and keep it with the stack's other secrets, never in
+  a ticket, a chat or a database backup: `openssl rand -hex 32` (docs/respondent-identity.md, "The
+  key"). It is used by the backend only, and the 4.1 backend refuses to start without it. Step 5 puts
+  it into the stored definition before the tag; a different value later makes every stored anonymous
+  identity unmatchable, so it is permanent.
 - **Hold the Google settings.** From the first 4.1 service (step 5) until the rollback window has
   closed, change none of `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_AUTH_URI`,
   `GOOGLE_TOKEN_URI` and `GOOGLE_SHEET_REDIRECT_URL` in the admin portal (no set, restore or clear),
@@ -890,12 +927,12 @@ What the code does in each, checked against `v4.0.13`:
      entry, which is why the entries are listed *before* `verify` (below).
    - Two writes to one record at once, one from each generation, run their post-copy convergence in
      opposite directions (an old task treats Mongo as primary, a new one Postgres): each copies its
-     primary over the other store and re-reads, up to three rounds (`common/db/convergence.py:49`).
+     primary over the other store and re-reads, up to three rounds.
      It ends with one value on both stores (the other write is lost, silently) or with `Diverged`,
-     which is recorded in the primary's outbox (`convergence.py:320`, `routing.py:348-354`): the
+     which is recorded in the primary's outbox: the
      Mongo side for an old task, the Postgres side for a new one, so "both above 0" below catches it.
-   - A write that touched more than 500 rows (a bulk delete or update, `MAX_CONVERGED_IDS`,
-     `convergence.py:54`; the log says `mirror convergence skipped`, `routing.py:328-336`) is not
+   - A write that touched more than 500 rows (a bulk delete or update, `MAX_CONVERGED_IDS`;
+     the log says `mirror convergence skipped`) is not
      converged and records no entry. Only the `verify` after the roll covers those rows.
 
    **Check, before anything else changes** (no service rolling, no one-off CLI running):
@@ -1018,8 +1055,18 @@ What the code does in each, checked against `v4.0.13`:
       schema has it): without it `google.purge_unencrypted_credentials` and `keyset.drop_old`
       refuse `import_state_unreadable`. Run it again once the 4.1 services have migrated, as
       `deploy.sh` does.
-   2. **Scale the task runner down.** Set `task-runner` to `replicas: 0` in the stored definition and
-      deploy. It is the only service scaled down, and only until sub-step 5: a 4.1 backend answers
+   2. **Scale the task runner down, and give the backend its key.** Set `task-runner` to
+      `replicas: 0` and add `RESPONDENT_IDENTITY_KEY` (the value generated under "Before you start")
+      to the `backend` service, and set the actions executor's `DATABASE_URL` (the `bc_jobs_exec` URL) or
+      `JOBS_BACKEND=temporal` on it (see "Jobs" in sub-step 3), in the stored definition, and deploy.
+      **Both must be deployed
+      before the tag is pushed in sub-step 4:** the tag updates the images with the environment of the
+      last deploy, a 4.1 backend without the key refuses to start (Swarm then puts the old spec
+      back), and an executor without either setting exits at start. 4.0.x ignores the variable, so
+      this deploy changes nothing else. Only `backend`
+      reads it: not `jobs-worker`, `auth`, `integrations-googleform` or the task runner. Put it in the
+      environment, not the settings store: the portal and `settings-set` handle tiers T1 to T3, and
+      this key is T4. The task runner is the only service scaled down, and only until sub-step 5: a 4.1 backend answers
       the admin-task routes on its internal listener only, while the runner points at port 8000 until
       then. Start no admin task meanwhile. The Temporal worker and the actions executor stay up: until
       sub-step 6 the 4.1 backend takes their key-only routes on port 8000 from private addresses (the
@@ -1045,12 +1092,15 @@ What the code does in each, checked against `v4.0.13`:
         and only their key stops them. The admin-task routes exist on port 8001 only.
       - **Jobs** ("Jobs" in the phases above): `JOBS_BACKEND` is not set on `backend` and
         `jobs-worker`, so 4.1 runs every kind on the queue. Set the actions executor's
-        `DATABASE_URL` (the `bc_jobs_exec` URL) or `JOBS_BACKEND=temporal` on it now, before the
-        tag updates its image (without either it exits at start); `jobs-worker` keeps its replicas.
+        `DATABASE_URL` (the `bc_jobs_exec` URL) or `JOBS_BACKEND=temporal` on it, before the
+        tag updates its image (without either it exits at start): sub-step 2 deploys it, and the
+        definition of this sub-step keeps it; `jobs-worker` keeps its replicas.
       - **The task runner's environment:** remove `MONGO_URI` (step 7 does it for good; until then
         `keyset.drop_old` and the Google credentials purge refuse `import_incomplete`). Its
         `MONGO_DB`, `GOOGLE_MONGO_DB` and `DB_WRITE_MODE*` are no longer read.
-      - Whatever else the upgrade notes name.
+      - **The key:** `RESPONDENT_IDENTITY_KEY` on `backend`, as deployed in sub-step 2 (keep it in this
+        definition: a stored definition without it, deployed later, stops the backend).
+      - Whatever else the upgrade notes ([upgrade-4.1.md](upgrade-4.1.md)) name.
    4. **Push the release tag.** CI updates the images of every service in a rolling update: `backend`,
       `jobs-worker`, `task-runner`, `admin` and `document-sandbox` run the backend image. The 4.1
       `backend`, `jobs-worker`, `auth`, `integrations-googleform` and `admin` start now, still with
@@ -1067,11 +1117,30 @@ What the code does in each, checked against `v4.0.13`:
    Then, as a one-off in a backend task, `python -m backend.migrate jobs-sweep --backend postgres`
    (every scheduled response deletion onto the queue); keep the Temporal server and worker until the
    schedules and workflows already in Temporal have run ("Jobs").
+
+   **Respondent identity, once sub-step 4 has finished and no 4.0.x backend replica is left**
+   (docs/respondent-identity.md, "The one-time conversion"). The 4.1 backend converts the stored
+   anonymous identities itself, in the background after it has started, and again about five minutes
+   later; a 4.0.x replica that was still running during the roll can have stored one more old value
+   in between.
+   - **Compare the fingerprint.** Every backend start and every pass logs `key fingerprint=<8 hex
+     digits>`. Write it down at the first start; every replica must log the same one (a replica with
+     another key does not start).
+   - **Run the pass once by hand**, as a one-off in a backend task (the backend's environment, so
+     with the key): `python -m backend.identity_rekey --expect-fingerprint <the digits>`. It must
+     exit 0 with `remaining` 0 for both tables. Exit codes: 1 values remain or the run failed, 2
+     another process holds the lock (run it again), 3 the key is missing or unusable, 4 the key is
+     not the one that converted the stored identities. For a very large `form_responses` table, run
+     it (`--dry-run` first) before sub-step 4 instead, so the API's own pass has nothing to do.
+   - The anonymous-response check is part of step 6.
 6. **Smoke test and Health.** Run the production smoke test (docs/smoke-test.md): its "standing
    responses export and decrypt" check is the canary for keys and codec. Portal → Health: every
    instance reporting, the `admin`, `app`, `auth` and `google` schemas current, no unresolved outbox
    row. `responses.check_undecryptable` (`stores: postgres`) finds 0. A sign-in, a submission and
-   its read-back by hand.
+   its read-back by hand. **Then submit an anonymous response with your own account and check that
+   you can open it** (and, after asking for the deletion of a test response, that the request is in
+   your list): that proves the key in use is the one the stored identities were converted with. While
+   the backend does not trust its key those paths answer 503 and the log names the cause.
 7. **Mongo off, volume kept.** In the stored definition set `mongodb` (and `mongo-seed`, if present)
    to `deploy.replicas: 0` and remove `MONGO_URI`, `MONGO_DB` and any other `MONGO_*` from
    `backend`, `jobs-worker`, `auth`, `integrations-googleform` and `task-runner` (`GOOGLE_MONGO_DB`
@@ -1123,8 +1192,16 @@ details differ):
   filling.
 - **Mongo** was last written during step 4 of the cutover (the last roll in which a 4.0.x task copied
   writes to it). 4.0.x starts without it
-  (`common/db/mongo.py:3-9`; the CI suites of the backend, auth and the Google integration run this
+  (the 4.0 Mongo startup; the CI suites of the backend, auth and the Google integration run this
   way), so the rollback does not need it at all.
+
+- **Anonymous identities.** 4.1 stores the identity of an anonymous response as a keyed hash
+  (`v2:` + HMAC-SHA256 under `RESPONDENT_IDENTITY_KEY`); 4.0.x compares the unsalted MD5 it stored
+  before. While 4.0.x runs, respondents cannot find, view or ask to delete their own anonymous
+  submissions (staff see every response as usual). Nothing is lost, and nothing is converted
+  back: the next 4.1 start converts whatever 4.0.x stored meanwhile. Keep `RESPONDENT_IDENTITY_KEY`
+  in the definition (4.0.x ignores it) and never change it: a different key makes every stored
+  identity unmatchable (docs/respondent-identity.md).
 
 **Rollback (images back; Postgres stays the only store).** No Mongo, no `reconcile`; nothing is
 lost.
@@ -1462,7 +1539,8 @@ rollback of that section, which needs neither, stays.
 ## Quick reference
 
 ```bash
-# what is in effect, counters, outbox, reachability (admin cookie)
+# what is in effect, reachability (admin cookie); 4.0.x also: flags, counters, outbox.
+# 4.1: the jobs backends in use and whether Postgres answers
 curl -b "$COOKIES" https://<backend>/api/v1/persistence/status
 
 # schema migrations by hand (what deploy.sh runs; DB_AUTO_MIGRATE=true does the same at startup)

@@ -62,7 +62,8 @@ COUNT_ATTEMPTS = 5
 MIN_BATCH, MAX_BATCH = 25, 2000
 SLOW_BATCH_S, FAST_BATCH_S = 20.0, 2.0
 MISSING = object()  # no copy in that store
-# The outbox ``error`` of a copy whose re-check failed (common.db.convergence)
+# The outbox ``error`` a 4.0 mirror recorded for a copy whose re-check failed
+# (its post-write convergence check, gone with the mirror in 4.1)
 UNVERIFIED_ERROR = "CopyUnverified:"
 
 
@@ -88,10 +89,7 @@ class Target:
     # imported (preflight, backfill, status) but never verified or reconciled,
     # and the marker covers the other groups
     postgres_only_groups: tuple[str, ...] = ()
-    # the service's effective flags from an environment (its own loader, e.g.
-    # one that pins the Postgres-only groups); None: common.db.flags.load_flags
-    load_flags: Optional[Callable[[Mapping[str, str]], Any]] = None
-    # routed repository (its class name, what an outbox entry's ``table_name``
+    # repository (its class name, what a 4.0 outbox entry's ``table_name``
     # holds) -> group, read when ``resolve-outbox`` runs; a service with a
     # single group needs none (common.db.migrate.outbox)
     repository_groups: Optional[Callable[[], Mapping[str, str]]] = None
@@ -299,7 +297,7 @@ def id_range(table: Table, after: Optional[str], upto: str):
 
 def expired(document: Mapping[str, Any], ttl: Optional[tuple], now: datetime) -> bool:
     """Whether a copy of a collection Mongo expires by TTL has expired:
-    verify and reconcile treat it as absent, like convergence does. Only a
+    verify and reconcile treat it as absent, as the 4.0 mirror did. Only a
     date counts, as for Mongo's TTL monitor: a string (an ISO timestamp)
     never expires there, so it is a live copy here too."""
     if ttl is None:

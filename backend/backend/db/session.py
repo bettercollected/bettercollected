@@ -9,11 +9,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from common.db import (
-    DatabaseSettings,
-    LazyRepository,
-    postgres_repository,
-)  # noqa: F401
+from common.db import DatabaseSettings, LazyRepository  # noqa: F401
 from common.db import build_engine as _build_engine
 from common.db import build_sessionmaker  # noqa: F401
 

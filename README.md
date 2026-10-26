@@ -50,7 +50,7 @@ bettercollected is a polyglot microservices monorepo:
 | Service | Stack | Role |
 |---|---|---|
 | [`webapp/`](webapp) | Next.js + TypeScript | Frontend (builder, dashboards, responder portal) |
-| [`backend/`](backend) | FastAPI + MongoDB (Beanie) | Core API |
+| [`backend/`](backend) | FastAPI + PostgreSQL | Core API |
 | [`auth/`](auth) | FastAPI + Stripe | Identity (OAuth / OTP / JWT) + billing |
 | [`integrations/`](integrations) | FastAPI + Google APIs | Form-provider integration (Google Forms) |
 | [`temporal/`](temporal) | Temporal workers | Background jobs (imports, deletion, CSV, previews) |

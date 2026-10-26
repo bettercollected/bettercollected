@@ -4,8 +4,10 @@ from the cutover that names another store refuses the start, naming it
 (googleform/db/flags.py).
 
 Each case boots the app factory in a fresh process, as a deployment does, with
-MONGO_URI pointing at a closed port: a start that tried to reach Mongo would
-fail within the URI's short server selection timeout.
+MONGO_URI unset (a fresh install): the start never builds a Mongo client. A
+MONGO_URI that is set but unreachable refuses the start, because Mongo may hold
+4.0 data that was never imported (googleform/db/import_guard.py;
+tests/integration/test_import_guard.py drives that check against a real Mongo).
 """
 
 import os
@@ -17,6 +19,7 @@ import pytest
 
 SERVICE_DIR = Path(__file__).resolve().parents[2]
 UNREACHABLE = "mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=1000"
+NO_MONGO = ""
 DB_KEYS = ("DB_READ_SOURCE", "DB_WRITE_MODE", "DB_SHADOW_READ_SAMPLE")
 
 PROGRAM = """
@@ -40,13 +43,13 @@ with TestClient(get_application()) as client:
 """
 
 
-def boot(flags: dict) -> subprocess.CompletedProcess:
+def boot(flags: dict, mongo_uri: str = NO_MONGO) -> subprocess.CompletedProcess:
     env = {
         k: v
         for k, v in os.environ.items()
         if not any(k == key or k.startswith(key + "__") for key in DB_KEYS)
     }
-    env.update(flags, MONGO_URI=UNREACHABLE)
+    env.update(flags, MONGO_URI=mongo_uri)
     return subprocess.run(
         [sys.executable, "-c", PROGRAM],
         cwd=SERVICE_DIR,
@@ -94,3 +97,14 @@ def test_a_stale_store_flag_refuses_the_start(_postgres_schema, flags, named):
     assert result.returncode != 0
     assert named in result.stderr
     assert "Postgres only since 4.1" in result.stderr
+
+
+def test_a_set_but_unreachable_mongo_uri_refuses_the_start(_postgres_schema):
+    """MONGO_URI set means Mongo may hold 4.0 Google data: the start cannot
+    tell whether it was imported, so it refuses (fails closed)."""
+    result = boot({}, mongo_uri=UNREACHABLE)
+    assert result.returncode != 0
+    assert "UnimportedMongoData" in result.stderr
+    assert "MONGO_URI is set but Mongo could not be read" in result.stderr
+    assert "credentials status" not in result.stdout
+    assert "127.0.0.1:1" not in result.stderr  # the driver's host:port stays out of the traceback

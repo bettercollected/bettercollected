@@ -33,6 +33,23 @@ async def target(clean_postgres):
     await client.close()
 
 
+async def record_mongo(database, collection, ids):
+    """What a 4.0 Mongo delete recorded before deleting (the services no longer
+    write Mongo): one tombstone document per id."""
+    at = tombstones.to_ms(dt.datetime.now(dt.timezone.utc))
+    await database[tombstones.COLLECTION].insert_many(
+        [
+            {
+                "_id": f"{collection}:{i}",
+                "collection": collection,
+                "row_id": str(i),
+                "deleted_at": at,
+            }
+            for i in ids
+        ]
+    )
+
+
 async def delete_in(target, store, collection, table, row_id):
     """Delete ``row_id`` in one store only, with its tombstone (the other
     store's delete failed)."""
@@ -54,7 +71,7 @@ async def delete_in(target, store, collection, table, row_id):
         return
     client = AsyncMongoClient(target.mongo_uri, tz_aware=True)
     database = client[target.mongo_db]
-    await tombstones.record_mongo(database, collection, [row_id])
+    await record_mongo(database, collection, [row_id])
     await database[collection].delete_one({"_id": ObjectId(row_id)})
     await client.close()
 

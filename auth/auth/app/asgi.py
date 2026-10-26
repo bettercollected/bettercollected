@@ -14,7 +14,7 @@ from auth.app.exceptions import (
 from auth.app.exceptions.http import not_found_error_handler
 from auth.app.router import root_api_router
 from auth.db.base import SCHEMA
-from auth.db.flags import GROUP
+from auth.db.import_guard import check_mongo_import
 from common.db import MigrationTarget, check_postgres_at_startup, dispose_engine
 from auth.config import settings
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
@@ -59,15 +59,15 @@ async def on_startup():
     log_if_internal_key_missing()
     log_if_sso_incomplete()
     flags = container.flags()  # refuses a stale DB_* flag (auth/db/flags.py)
-    log.info(
-        "persistence flags: %s", json.dumps(flags.describe([GROUP]), sort_keys=True)
-    )
+    log.info("persistence flags: %s", json.dumps(flags.describe(), sort_keys=True))
     if container.pg_engine() is None:
         raise RuntimeError(
             "DATABASE_URL is not set: the auth service stores its data in "
             "Postgres only since 4.1"
         )
     await check_postgres_at_startup(flags, container.pg_engine(), MIGRATIONS)
+    # the schema is there: refuse while 4.0 data sits in Mongo, never imported
+    await check_mongo_import(container.pg_engine())
 
 
 async def on_shutdown():

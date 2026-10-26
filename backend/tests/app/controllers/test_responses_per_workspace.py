@@ -434,7 +434,6 @@ class TestUnlinkWithUnattributedResponses:
             default_opener,
             run,
         )
-        from tests.conftest import TEST_MONGO_DB
 
         a, b = shared
         # stored before #768 through A's import: no workspace_id, encrypted
@@ -459,16 +458,8 @@ class TestUnlinkWithUnattributedResponses:
         )
         assert _ids(listed.json()["items"]) == {"rb1"}  # still linked, still B's
 
-        flags, stores = container.flags(), []
-        if flags.writes_mongo("responses"):
-            # the backfill covers Postgres alone since 4.1: stamp Mongo's copy
-            # (the store the routed repositories still read in these modes) by hand
-            await container.database_client()[TEST_MONGO_DB]["form_responses"].update_one(
-                {"response_id": "old", "workspace_id": None},
-                {"$set": {"workspace_id": a.id}},
-            )
-        if flags.writes_postgres("responses"):
-            stores.append(PostgresStore(container.pg_engine()))
+        # the backfill covers Postgres alone since 4.1
+        stores = [PostgresStore(container.pg_engine())]
         await run(stores, apply=True, opens=default_opener())
         assert (await _stored("old")).workspace_id == a.id
 
