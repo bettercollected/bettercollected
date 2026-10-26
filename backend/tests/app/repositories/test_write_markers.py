@@ -119,7 +119,14 @@ def test_reads_are_not_marked_write_op():
     )
 
 
-def test_the_classifier_sees_the_whole_repository_layer():
+def test_no_repository_is_routed_any_more():
+    """Every group is served from Postgres only (4.1): the repositories of
+    ``backend/app/repositories`` have no Mongo side and so no write markers."""
     result = classify(REPOSITORIES)
-    # (the groups served from Postgres only have no Mongo repositories left)
-    assert len(result) > 60 and sum(1 for v in result.values() if v[0]) > 25
+    assert result, "the classifier found no repository"
+    marked = sorted(
+        f"{cls}.{method}"
+        for (file, cls, method), (_, _, _, decorators) in result.items()
+        if any("write_op" in d for d in decorators)
+    )
+    assert marked == []

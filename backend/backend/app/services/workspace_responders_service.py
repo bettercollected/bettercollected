@@ -3,8 +3,8 @@ from beanie import PydanticObjectId
 from backend.app.models.dtos.workspace_responder_dto import WorkspaceResponderPatchDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.workspace_responders_repository import (
-    WorkspaceRespondersRepository,
+from backend.app.repositories.postgres.responses import (
+    PostgresWorkspaceRespondersRepository,
 )
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.authorization_service import AuthorizationService
@@ -15,7 +15,7 @@ from common.models.user import User
 class WorkspaceRespondersService:
     def __init__(
         self,
-        workspace_responders_repo: WorkspaceRespondersRepository,
+        workspace_responders_repo: PostgresWorkspaceRespondersRepository,
         authorization_service: AuthorizationService,
         form_response_service: FormResponseService,
     ):

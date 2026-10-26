@@ -6,7 +6,7 @@ from beanie import PydanticObjectId
 
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.workspace import WorkspaceResponseDto
-from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.response_scope import response_scope
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.standard_form_response import (
@@ -24,7 +24,7 @@ class FormImportService:
         self,
         form_service: FormService,
         workspace_repo: PostgresWorkspaceRepository,
-        form_response_repo: FormResponseRepository,
+        form_response_repo: PostgresFormResponseRepository,
         workspace_form_repo=None,
     ):
         self.form_service = form_service

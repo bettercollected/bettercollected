@@ -1,26 +1,21 @@
 from typing import Optional, List, Dict
 
-from beanie import PydanticObjectId
-
-from backend.app.handlers.database import entity
-from common.configs.mongo_document import MongoDocument
+from common.records import Record, RecordId
 
 
-@entity
-class WorkspaceTags(MongoDocument):
-    workspace_id: PydanticObjectId
+class WorkspaceTags(Record):
+    workspace_id: RecordId
     title: str
 
     class Settings:
         name = "workspace_tags"
 
 
-@entity
-class WorkspaceResponderDocument(MongoDocument):
-    workspace_id: PydanticObjectId
+class WorkspaceResponderDocument(Record):
+    workspace_id: RecordId
     user_id: Optional[str] = None
     email: str
-    tags: Optional[List[PydanticObjectId]] = None
+    tags: Optional[List[RecordId]] = None
     metadata: Optional[Dict[str, str]] = None
 
     class Settings:

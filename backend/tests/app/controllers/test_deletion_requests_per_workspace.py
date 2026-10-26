@@ -4,27 +4,23 @@ each. A request filed in workspace A neither blocks nor shows in workspace B;
 filing twice in one workspace is refused as before; a legacy request stored
 without a workspace is still found."""
 
+import asyncio
+
 import pytest
-from beanie import PydanticObjectId
 from common.clock import utcnow
-from common.db import to_bson_dict
-from common.db.beanie_bridge import store_exactly
+from common.records import RecordId
 from httpx import AsyncClient
-from loguru import logger
-from pymongo.errors import DuplicateKeyError
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.container import container
-from backend.app.handlers.database import ensure_deletion_request_indexes, init_db
+from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
-from backend.app.repositories.response_scope import response_scope
+from backend.app.repositories.response_scope import ResponseScope, response_scope
 from backend.app.schemas.standard_form_response import (
-    DELETION_REQUEST_INDEX,
-    LEGACY_DELETION_REQUEST_INDEX,
     FormResponseDeletionRequest,
+    FormResponseDocument,
 )
-from backend.config import settings
 from backend.db.models import ResponseDeletionRequestRow
 from tests.app.controllers.data import testUser, testUser1
 from tests.app.controllers.test_responses_per_workspace import (  # noqa: F401
@@ -235,9 +231,12 @@ class TestPerWorkspace:
         assert again.status_code == 400, again.text
 
 
+DELETION_REQUEST_INDEX = "uq_deletion_requests_form_response_provider_workspace"
+
+
 def _request(workspace_id, provider="google"):
     return FormResponseDeletionRequest(
-        id=PydanticObjectId(),
+        id=RecordId(),
         form_id="f1",
         response_id="r1",
         provider=provider,
@@ -246,25 +245,7 @@ def _request(workspace_id, provider="google"):
 
 
 class TestTheKey:
-    async def test_mongo_one_request_per_response_provider_and_workspace(self):
-        a, b = PydanticObjectId(), PydanticObjectId()
-        await _request(a).insert()
-        await _request(b).insert()  # another workspace: its own request
-        await _request(a, provider=None).insert()  # another provider
-        with pytest.raises(DuplicateKeyError, match=DELETION_REQUEST_INDEX):
-            await _request(a).insert()
-        # no workspace (stored before #768) indexes as null, so two of them
-        # collide, as NULLS NOT DISTINCT in Postgres; a missing field too
-        await _request(None).insert()
-        with pytest.raises(DuplicateKeyError, match=DELETION_REQUEST_INDEX):
-            await _request(None).insert()
-        with pytest.raises(DuplicateKeyError, match=DELETION_REQUEST_INDEX):
-            await FormResponseDeletionRequest.get_pymongo_collection().insert_one(
-                {"form_id": "f1", "response_id": "r1", "provider": "google"}
-            )
-        assert await FormResponseDeletionRequest.find({}).count() == 4
-
-    async def test_postgres_one_request_per_response_provider_and_workspace(
+    async def test_one_request_per_response_provider_and_workspace(
         self, clean_postgres
     ):
         repo = PostgresFormResponseRepository(container.pg_sessionmaker(), None, None)
@@ -272,7 +253,7 @@ class TestTheKey:
         async def save(document):
             return await repo.save_document(document, row=ResponseDeletionRequestRow)
 
-        a, b = PydanticObjectId(), PydanticObjectId()
+        a, b = RecordId(), RecordId()
         await save(_request(a))
         await save(_request(b))
         await save(_request(a, provider=None))
@@ -282,65 +263,31 @@ class TestTheKey:
         with pytest.raises(IntegrityError, match=DELETION_REQUEST_INDEX):
             await save(_request(None))
 
-    async def test_startup_drops_the_superseded_key_and_builds_the_new_one(self):
-        """A Mongo database from before still has the unique (form_id,
-        response_id, provider) index, which Beanie never drops. The startup
-        set-up (Beanie and the indexes after it) drops it and builds the
-        per-workspace key; after that, both a direct write and a mirrored one
-        (stored exactly, as the reverse mirror does) of another workspace's
-        request go through."""
-        client = container.database_client()
-        app_db = settings.mongo_settings.DB
-        name = app_db + "_drstart"
-        collection = client[name]["responses_deletion_requests"]
-        a, b = PydanticObjectId(), PydanticObjectId()
-        await collection.create_index(
-            [("form_id", 1), ("response_id", 1), ("provider", 1)],
-            unique=True,
-            name=LEGACY_DELETION_REQUEST_INDEX,
+    async def test_a_request_filed_twice_at_once_is_stored_once_and_refused(
+        self, clean_postgres
+    ):
+        """The service checks for an existing request before filing one; two
+        filings that both pass that check meet the unique key, and the second
+        is refused as a repeated filing is, never a server error."""
+        repo = PostgresFormResponseRepository(container.pg_sessionmaker(), None, None)
+        workspace_id = RecordId()
+        stored = await repo.save(
+            FormResponseDocument(
+                form_id="f1",
+                response_id="r1",
+                answers={},
+                provider="google",
+                workspace_id=workspace_id,
+            )
         )
-        await collection.insert_one(to_bson_dict(_request(a)))
-        with pytest.raises(DuplicateKeyError, match=LEGACY_DELETION_REQUEST_INDEX):
-            await collection.insert_one(to_bson_dict(_request(b)))
-        logged = []
-        sink = logger.add(lambda m: logged.append(str(m)), level="INFO")
-        try:
-            await init_db(name, client, required=True)
-            assert any("Database connected successfully" in m for m in logged)
-            indexes = await collection.index_information()
-            assert LEGACY_DELETION_REQUEST_INDEX not in indexes
-            assert indexes[DELETION_REQUEST_INDEX]["unique"] is True
-            # Beanie is on the scratch database now: the reverse mirror's write
-            await store_exactly(_request(b))
-            with pytest.raises(DuplicateKeyError, match=DELETION_REQUEST_INDEX):
-                await collection.insert_one(to_bson_dict(_request(b)))
-            assert await collection.count_documents({}) == 2
-            # a second start finds nothing left to drop
-            assert await ensure_deletion_request_indexes(client[name]) is True
-        finally:
-            logger.remove(sink)
-            # Beanie back on the test database
-            await init_db(app_db, client, required=True)
-            await client.drop_database(name)
-
-    async def test_index_failures_are_logged_and_the_start_goes_on(self):
-        """Duplicates under the new key (possible only on a database that
-        never had the old one) leave it unbuilt: an error with their count,
-        no exception."""
-        client = container.database_client()
-        name = settings.mongo_settings.DB + "_drdups"
-        db = client[name]
-        a = PydanticObjectId()
-        await db["responses_deletion_requests"].insert_many(
-            [to_bson_dict(_request(a)), to_bson_dict(_request(a))]
+        outcomes = await asyncio.gather(
+            *(repo.add_deletion_request(stored, "r1") for _ in range(4)),
+            return_exceptions=True,
         )
-        logged = []
-        sink = logger.add(lambda m: logged.append(str(m)), level="ERROR")
-        try:
-            assert await ensure_deletion_request_indexes(db) is False
-            (message,) = [m for m in logged if DELETION_REQUEST_INDEX in m]
-            assert "provider and workspace: 1." in message
-            assert str(a) not in message  # counts only
-        finally:
-            logger.remove(sink)
-            await client.drop_database(name)
+        refused = [o for o in outcomes if isinstance(o, HTTPException)]
+        assert len(refused) == 3 and all(o.status_code == 400 for o in refused)
+        assert all("already exists" in str(o.content) for o in refused)
+        assert len([o for o in outcomes if not isinstance(o, Exception)]) == 1
+        assert len(await repo.list_deletion_requests_for_form_ids(
+            ResponseScope(workspace_id, ("f1",))
+        )) == 1

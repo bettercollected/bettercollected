@@ -50,6 +50,19 @@ from backend.app.schemas.media_library import MediaLibraryDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.schemas.responder_group import (
+    ResponderGroupDocument,
+    ResponderGroupFormDocument,
+    ResponderGroupMemberDocument,
+)
+from backend.app.schemas.standard_form_response import (
+    FormResponseDeletionRequest,
+    FormResponseDocument,
+)
+from backend.app.schemas.workspace_responder import (
+    WorkspaceResponderDocument,
+    WorkspaceTags,
+)
 from backend.db.base import Base
 from common.db import BaseRow, PostgresRepositoryBase, canonical_json, checksum
 from common.db.codec_golden import (
@@ -108,6 +121,13 @@ RECORD_CLASSES = (
     FormImportDocument,
     MediaLibraryDocument,
     WorkspaceConsentDocument,
+    FormResponseDocument,
+    FormResponseDeletionRequest,
+    WorkspaceTags,
+    WorkspaceResponderDocument,
+    ResponderGroupDocument,
+    ResponderGroupMemberDocument,
+    ResponderGroupFormDocument,
 )
 
 # Values the synthesizer cannot guess (a field validator with a checksum).

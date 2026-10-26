@@ -12,7 +12,8 @@
 These collections belong to groups served from Postgres only since 4.1, so
 the CLI no longer verifies them; the engine still compares any collection it
 is given, and a Mongo restored from 4.0 still has the TTL indexes, which the
-fixture creates here. Skipped unless DATABASE_URL points at a *_test database."""
+fixture creates here. The CLI cases at the end run on the test Target of
+routed.py, for which ``responses`` still migrates. Skipped unless DATABASE_URL points at a *_test database."""
 
 import contextlib
 import dataclasses
@@ -27,10 +28,10 @@ from backend.app.container import container
 from pymongo import AsyncMongoClient
 
 from backend.db.models import RateLimitCounterRow, SessionRow, WorkspaceTagRow
-from backend.migrate.__main__ import build_target
 from common.db.base import SOURCE_APP
 from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner
+from tests.app.migrate.routed import build_target
 
 import pytest
 import pytest_asyncio

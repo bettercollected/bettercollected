@@ -31,9 +31,9 @@ async def test_status_reports_flags_counters_and_outbox(
     assert (
         body["flags"]["jobs"]["delete_user"] == flags.jobs_backend("delete_user").value
     )
-    # the workspace_form_response fixture wrote through the routed responses
-    # repositories (forms and identity are served from Postgres only)
-    assert body["metrics"]["responses"]["calls"]
+    # every group is served from Postgres only (4.1): nothing is routed, so
+    # the fixture's writes leave no routing counters
+    assert body["metrics"] == {}
     mongo_used = flags.uses_mongo(GROUPS)
     assert body["mongo"] == {
         "used": mongo_used,

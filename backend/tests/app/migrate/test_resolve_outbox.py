@@ -2,6 +2,9 @@
 outbox entries whose write Mongo holds, after a group was rolled back from
 ``postgres_primary_dual`` to ``dual`` (the runbook's "stuck case").
 
+The backend has no routed group left, so these run on the test Target of
+``tests/app/migrate/routed.py``, for which ``responses`` is still routed.
+
 Skipped unless DATABASE_URL points at a *_test database."""
 
 import asyncio
@@ -22,13 +25,14 @@ from sqlalchemy import select
 from backend.app.container import AppContainer, container
 from backend.db.groups import POSTGRES_ONLY_GROUPS, RETIRED_REPOSITORIES
 from backend.db.models import DeletionTombstone, MirrorWriteFailure, WorkspaceTagRow
-from backend.migrate.__main__ import build_target, repository_groups
+from backend.migrate.__main__ import repository_groups
 from common.db import RoutingRepository
 from common.db.base import SOURCE_APP
 from common.db.canonical import canonical_document, checksum
 from common.db.migrate import Runner
 from common.db.migrate.cli import main
 from common.db.migrate.outbox import OutboxResolver
+from tests.app.migrate.routed import ROUTED_REPOSITORIES, build_target
 
 UTC = dt.timezone.utc
 PAST = dt.datetime.now(UTC).replace(microsecond=0) - dt.timedelta(hours=1)
@@ -139,22 +143,19 @@ async def resolve_group(target, group, *argv):
 
 
 # -- the repository map -----------------------------------------------------------
-def test_every_routed_repository_has_its_group():
-    groups = repository_groups()
-    checked = 0
+def test_the_application_has_no_routed_repository_left():
+    """Every group is served from Postgres only: no provider of the container
+    is routed, so the map ``resolve-outbox`` reads off it is empty and every
+    entry of a group's 4.0 repositories is counted as left over."""
     for provider in AppContainer.providers.values():
-        if not isinstance(provider, providers.Singleton):
-            continue
-        if provider.provides is not RoutingRepository:
-            continue
-        mongo_impl = provider.kwargs.get("mongo")
-        if mongo_impl is not None:
-            name = mongo_impl.provides.__name__
-        else:
-            name = provider.kwargs["postgres"].args[0].__name__
-        assert groups[name] == provider.kwargs["group"]
-        checked += 1
-    assert checked >= 3  # responses, the last routed group (4.1)
+        if isinstance(provider, providers.Singleton):
+            assert provider.provides is not RoutingRepository
+    assert repository_groups() == {}
+
+
+def test_the_routed_fixtures_name_their_repositories_and_group(target):
+    groups = target.repository_groups()
+    assert groups == ROUTED_REPOSITORIES
     assert groups[REPOSITORY] == "responses"
 
 

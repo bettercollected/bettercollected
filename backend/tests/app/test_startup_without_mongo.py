@@ -1,7 +1,7 @@
-"""The backend API and its job worker start and serve without Mongo once every
-repository group is on Postgres (common/db/mongo.py), and still refuse to start
-on an unreachable Mongo while any group uses it, or while MONGO_URI is set at
-all: then the check for unimported data of the Postgres-only groups
+"""The backend API and its job worker start and serve without Mongo (every
+repository group is on Postgres since 4.1, common/db/mongo.py), and refuse to
+start on an unreachable Mongo while MONGO_URI is set at all: then the check
+for unimported data of the Postgres-only groups
 (backend/db/mongo_import_guard.py) must read it.
 
 Each case boots the real entry point in a fresh process, as a deployment does,
@@ -137,27 +137,11 @@ def test_a_set_but_unreachable_mongo_uri_refuses_the_start(program):
 
 
 @pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
-def test_one_group_still_on_mongo_keeps_mongo_required(program):
-    # responses, the last group with a Mongo store
-    result = boot(
-        program,
-        {
-            **ALL_POSTGRES,
-            "DB_READ_SOURCE__responses": "mongo",
-            "DB_WRITE_MODE__responses": "dual",
-        },
-    )
-    assert result.returncode != 0
-    assert "ServerSelectionTimeoutError" in result.stderr
-
-
-@pytest.mark.parametrize("program", [API, WORKER], ids=["api", "worker"])
 def test_a_stale_flag_for_a_postgres_only_group_refuses_the_start(program):
-    """refdata, analytics, ai, actions, identity and forms have no Mongo store since
-    4.1: a flag left from the cutover that sends one of them elsewhere stops
-    the start, naming it."""
-    result = boot(program, {"DB_WRITE_MODE__forms": "dual"})
+    """No group has a Mongo store since 4.1: a flag left from the cutover that
+    sends one of them elsewhere stops the start, naming it."""
+    result = boot(program, {"DB_WRITE_MODE__responses": "dual"})
     assert result.returncode != 0
     assert "FlagError" in result.stderr
-    assert "DB_WRITE_MODE__forms='dual'" in result.stderr
+    assert "DB_WRITE_MODE__responses='dual'" in result.stderr
     assert "served from Postgres only" in result.stderr

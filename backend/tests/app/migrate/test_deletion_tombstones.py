@@ -19,12 +19,6 @@ from backend.config import settings
 from backend.db.base import SCHEMA
 from backend.db.models import DeletionTombstone, FormRow, MigrationProgress
 from backend.migrate.__main__ import _tables
-from backend.app.repositories.postgres.responses import (
-    PostgresResponderGroupsRepository,
-)
-from backend.app.repositories.responder_groups_repository import (
-    ResponderGroupsRepository,
-)
 from common.db import ReadSource, RoutingRepository, load_flags
 from common.db import tombstones
 from common.db.canonical import from_canonical_document
@@ -34,6 +28,8 @@ from tests.app.db.beanie_originals import (
     FormDocument,
     FormRepository,
     PostgresFormRepository,
+    PostgresResponderGroupsRepository,
+    ResponderGroupsRepository,
 )
 
 READ = {

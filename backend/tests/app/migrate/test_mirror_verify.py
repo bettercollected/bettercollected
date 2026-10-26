@@ -18,12 +18,6 @@ from beanie import PydanticObjectId
 
 from backend.app.container import container
 from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
-from backend.app.repositories.postgres.responses import (
-    PostgresResponderGroupsRepository,
-)
-from backend.app.repositories.responder_groups_repository import (
-    ResponderGroupsRepository,
-)
 from backend.app.models.template import StandardFormTemplate
 from backend.config import settings
 from backend.db.base import SCHEMA
@@ -42,6 +36,8 @@ from tests.app.db.beanie_originals import (
     AllowedOriginsRepository,
     PostgresAllowedOriginsRepository,
     RateLimitRepository,
+    PostgresResponderGroupsRepository,
+    ResponderGroupsRepository,
 )
 
 MODES = ["dual", "postgres_primary_dual"]

@@ -1,7 +1,8 @@
-"""The platform-metrics counts agree between each Mongo repository and its
-Postgres twin, and count what the dashboard says they count. (The workspace
-counts, identity group, Postgres only since 4.1: test_identity_repositories.py;
-the forms group's, Postgres only too, are pinned below.)
+"""The platform-metrics counts count what the dashboard says they count. (The
+workspace counts, identity group, Postgres only since 4.1:
+test_identity_repositories.py; the forms group's and the responses group's,
+Postgres only too, are pinned below; they agreed with the 4.0 Mongo
+repositories while both stores existed.)
 
 Workspaces and forms are dated by ObjectId, responses by ``created_at``.
 Skipped unless DATABASE_URL points at a *_test database.
@@ -15,7 +16,6 @@ from beanie import PydanticObjectId
 
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceFormSettings
-from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresWorkspaceFormRepository,
@@ -24,7 +24,6 @@ from backend.app.repositories.postgres.responses import PostgresFormResponseRepo
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
-from tests.app.repositories.parity import parity
 
 NOW = dt.datetime(2026, 3, 18, 12, 0, tzinfo=dt.timezone.utc)  # a Wednesday
 WEEKS = [dt.datetime(2026, 3, d, tzinfo=dt.timezone.utc) for d in (2, 9, 16, 23)]
@@ -101,11 +100,6 @@ async def test_workspace_form_counts(sessions):
 
 
 async def test_response_counts(sessions):
-    mongo = FormResponseRepository(
-        crypto=container.crypto(),
-        form_repo=container.form_repo(),
-        workspace_form_repo=container.workspace_form_repo(),
-    )
     postgres = PostgresFormResponseRepository(
         sessions, container.form_repo(), container.workspace_form_repo()
     )
@@ -120,7 +114,7 @@ async def test_response_counts(sessions):
         )
 
     await seed(
-        (mongo, postgres),
+        (postgres,),
         "save",
         response("r1", days_ago(1), answers={}, dataOwnerIdentifier="a@example.com"),
         response("r2", days_ago(3), answers={}, dataOwnerIdentifier="a@example.com"),
@@ -135,19 +129,7 @@ async def test_response_counts(sessions):
             dataOwnerIdentifier="c@example.com",
         ),
     )
-    await parity(
-        mongo,
-        postgres,
-        [
-            ("count_responses", lambda: ()),
-            ("count_responses", lambda: (days_ago(7),)),
-            ("count_responses", lambda: (days_ago(30),)),
-            ("count_anonymous_responses", lambda: ()),
-            ("count_identified_responders", lambda: ()),
-            ("count_responses_per_period", lambda: (WEEKS,)),
-        ],
-    )
-    for repository in (mongo, postgres):
+    for repository in (postgres,):
         assert await repository.count_responses() == 7
         assert await repository.count_responses(days_ago(7)) == 3  # r1 r2 r8
         assert await repository.count_responses(days_ago(30)) == 6

@@ -1,6 +1,5 @@
 """Writes that used to go straight to a Beanie document now go through the
-routed repositories, so every store the flags write gets them and the store
-the flags read serves them (CI runs this on mongo, dual and postgres).
+repositories (every group is served from Postgres only since 4.1).
 
 Before: a responder's tags and metadata, the prompts of AI-generated forms and
 users' price suggestions were saved to Mongo only.
@@ -17,26 +16,11 @@ from backend.app.models.dtos.price_suggestion import PriceSuggestionRequest
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.schemas.price_suggestion import PriceSuggestion
-from backend.app.schemas.workspace_responder import WorkspaceResponderDocument
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.db.models import WorkspaceResponderRow
-from common.db import ReadSource
 from common.models.user import User
 from common.records import RecordId
 from tests.app.controllers.data import testUser
-
-
-def written_stores(group: str):
-    """The stores the suite's flags write for ``group``."""
-    flags = container.flags()
-    return [
-        source
-        for source, writes in (
-            (ReadSource.MONGO, flags.writes_mongo(group)),
-            (ReadSource.POSTGRES, flags.writes_postgres(group)),
-        )
-        if writes
-    ]
 
 
 async def test_a_patched_responder_is_served_by_the_listing(
@@ -62,19 +46,12 @@ async def test_a_patched_responder_is_served_by_the_listing(
     assert item["metadata"] == {"team": "blue"}
     assert [t["title"] for t in item["tags"]] == ["VIP"]
 
-    repo = container.workspace_responders_repo()
-    for source in written_stores("responses"):
-        if source is ReadSource.MONGO:
-            stored = await WorkspaceResponderDocument.find_one(
-                {"workspace_id": workspace.id, "email": email}
-            )
-        else:
-            stored = await repo.store(source).one(
-                WorkspaceResponderRow.workspace_id == str(workspace.id),
-                WorkspaceResponderRow.email == email,
-            )
-        assert stored.metadata == {"team": "blue"}, source
-        assert stored.tags == [tag.id], source
+    stored = await container.workspace_responders_repo().one(
+        WorkspaceResponderRow.workspace_id == str(workspace.id),
+        WorkspaceResponderRow.email == email,
+    )
+    assert stored.metadata == {"team": "blue"}
+    assert stored.tags == [tag.id]
 
 
 async def test_the_prompt_of_an_ai_form_is_stored(workspace):

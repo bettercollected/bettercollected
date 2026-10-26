@@ -90,37 +90,32 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
 runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch data code:
 
-- **Every repository is routed**, except those of the groups already served from Postgres only. The container hands
-  out `RoutingRepository` proxies over a Mongo implementation and its Postgres *twin* (`app/repositories/postgres/*.py`,
-  one class per Mongo repository, same public methods — `tests/app/repositories/test_postgres_surface.py` enforces
-  it). Repositories are grouped (`refdata`, `identity`, `forms`, `responses`, `actions`, `ai`, `analytics`);
-  `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>` (`mongo|dual|postgres_primary_dual|postgres`) choose the store
-  per group, flips are restarts, and `backend/db/groups.py` declares the cutover order the flags enforce at boot.
-- **Postgres-only groups (4.1):** `refdata`, `analytics`, `ai`, `actions`, `identity` and `forms`
-  (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`) have no Mongo repository and no routing: their documents are
-  `common.records.Record` classes, their repositories the `postgres/refdata.py` / `postgres/analytics.py` /
-  `postgres/ai.py` / `postgres/actions.py` / `postgres/identity.py` / `postgres/forms.py` classes on
-  `RecordRepository`, and a `DB_*__<group>` flag other than `postgres` refuses the start. No Mongo query may join into
-  one of them (its collections are no longer written; `MONGO_JOINS` is empty): the workspace repository reads a
+- **Every group is served from Postgres only (4.1)** (`POSTGRES_ONLY_GROUPS` in `backend/db/groups.py`: `refdata`,
+  `analytics`, `ai`, `actions`, `identity`, `forms` and `responses`): there is no Mongo repository and no routing. The
+  documents are `common.records.Record` classes, the repositories the `app/repositories/postgres/*.py` classes on
+  `RecordRepository` (the container hands them out directly), and a `DB_*__<group>` flag other than `postgres`
+  refuses the start. No Mongo query joins across groups (`MONGO_JOINS` is empty): the workspace repository reads a
   workspace's copy of an action through the actions repository, the template repository reads the title of the
   workspace a template was imported from through the workspace repository (`with_origin_titles` in
-  `postgres/forms.py`), and both responses repositories read a form's title and importer through the forms
+  `postgres/forms.py`), and the responses repository reads a form's title and importer through the forms
   repositories (`form_titles` / `form_importers` in `app/repositories/response_scope.py`). A fresh store gets its
-  reference data from `python -m backend.seed_refdata`.
+  reference data from `python -m backend.seed_refdata`. `RoutingRepository`, `@write_op` and the outbox remain only
+  for the 4.0 import tooling and its tests (`tests/app/migrate/routed.py` keeps a test-only routed group so
+  backfill, verify and reconcile stay covered); they go with the Beanie documents.
   Startup (API, job worker, `backend.scim`) and `seed_refdata` refuse while one of their collections has Mongo documents,
   an empty table and no finished backfill (`backend/db/mongo_import_guard.py`; fix: `python -m backend.migrate --group
   <g> backfill`; override `DB_DISCARD_UNIMPORTED_MONGO_DATA`); a set but unreachable `MONGO_URI` refuses too, so
   Mongo-less tests run with `MONGO_URI=""`. `verify`/`reconcile` skip these groups by default and exit 2 when one is
-  named (`Target.postgres_only_groups`); the verified marker covers the other groups.
-- **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
-  `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
-  that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
-  document instead of re-running the call. Return the *document* from such writes, not a DTO (`WriteResult` when the
-  return value must differ from what was stored). Relation documents get `derived_object_id` so both stores agree.
-  Timestamps in a write come from `common.clock.utcnow()` (one reading per routed write, shared by primary and
-  mirror), never `datetime.now()`; where the Mongo method persists with `doc.save()` (which moves `updated_at`), the
-  twin uses `self.save_document(...)`, and `self.upsert(...)` where Mongo inserts or updates fields.
-  `tests/app/migrate/test_mirror_verify.py` checks that `verify` is clean right after a routed write.
+  named (`Target.postgres_only_groups`).
+- **Adding or changing a repository method:** implement it on the Postgres repository. A read-then-write that depends
+  on what it read (merge into a stored answer set, close a deletion request, replace a group's members) runs in one
+  transaction on the stored row, locked with `SELECT ... FOR UPDATE` (`_locked_doc`, the forms repository's
+  `_locked_draft`) or, where no row exists yet, under a transaction-scoped advisory lock on the natural key
+  (`_advisory_lock`): never write back a copy read earlier. Relation documents get `derived_id` so a repeated write
+  addresses the same row. Timestamps come from `common.clock.utcnow()`; `record.touch()` where Mongo's `save()` moved
+  `updated_at`. Responses stay encrypted at rest: the repository stores and returns the ciphertext (`answers`,
+  `hidden_fields`, `internal_answers`, feedback) and never decrypts, logs or queries it, except `patch_form_response`,
+  which merges into the decrypted answers inside its transaction and encrypts them again.
 - **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
   group's repository (see `postgres/forms.py`, `response_scope.py`). Never query Mongo or Postgres from a service or controller.
 - **No Beanie calls outside the repositories.** `document.save()`, `SomeDocument.find_one(...)` and friends in a
@@ -131,13 +126,12 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
 - **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
   (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
   field). Migrations run as the service role (`bc_app`), never as the superuser.
-- **Mongo only while a group uses it** (`common/db/mongo.py`, `DbFlags.uses_mongo`): once every group of a service
-  reads and writes Postgres only (no shadow reads), the backend, its job worker, auth and the Google service start
-  without Mongo — Beanie is set up with no request to the server on a client that never connects
+- **Mongo is not used** (`common/db/mongo.py`, `DbFlags.uses_mongo`): the backend, its job worker, auth and the Google
+  service start without it — Beanie is set up with no request to the server on a client that never connects
   (`mongo-not-used.invalid`), and `/persistence/status` reports `"mongo": {"used": false, "status": "not used"}`.
-  Any group still on Mongo keeps today's start (fails on an unreachable Mongo). Startup code that touches Mongo
-  outside the repositories (indexes, seeds, outbox counts) must check `mongo_required` first. A test that drives
-  Mongo itself goes on `MONGO_DRIVEN` in `tests/conftest.py` (CI's Postgres shards run without Mongo; docs/ci.md).
+  Startup code that touches Mongo outside the repositories (indexes, seeds, outbox counts) must check
+  `mongo_required` first. A test that drives Mongo itself (the import tooling) goes on `MONGO_DRIVEN` in
+  `tests/conftest.py` (CI's Postgres shards run without Mongo; docs/ci.md).
 - **Schema check at startup** (`common/db/schema_guard.py`, wired in `backend/db/startup.py`; auth and google pass
   their own `MigrationTarget` in their `asgi.py`): when any group reads/writes Postgres the service refuses to start
   unless its schema is at the code's Alembic head (and, for the backend, procrastinate's `jobs` tables exist when a job
@@ -181,10 +175,10 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   `group=`). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
   (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
   machine-readable view.
-- **Tests run three ways in CI** (Mongo · everything mirrored · everything served from Postgres). Parity tests
-  (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
-  `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails. The permission matrix
-  (authorization, not storage) is skipped in the dual mode; it runs in the other two.
+- **Tests:** the Postgres repositories' results are pinned in JSON fixtures written from the 4.0 parity runs
+  (`tests/fixtures/forms_repositories.json`, `responses_repositories.json`; `tests/app/repositories/pinned.py`),
+  never regenerated to make a change pass. Test fixtures go through `container.<repo>()`, never Beanie. The Mongo and
+  dual modes still run on full CI runs but every group is pinned to Postgres, so they exercise the same code.
 - **The `doc` codec is pinned** (`common/db/codec_golden.py`): golden fixtures in each service's
   `tests/fixtures/codec_golden/` hold the exact `doc` JSON and `_bc_checksum` of synthetic instances of every
   mirrored document class (plus raw BSON documents in `common`). A new class shows up as unpinned cases, a new
@@ -192,9 +186,9 @@ runbook in `docs/postgres-cutover-runbook.md`. What that means when you touch da
   the diff. Any other change to an existing case means stored rows would encode differently: that needs a
   migration plan, not a fixture update.
 
-Beanie Documents are registered in [backend/app/handlers/database.py](backend/app/handlers/database.py) `init_db`'s
-`document_models` list — **a new collection must be added there or it won't be initialized** (and needs a row +
-twin as above). Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
+A new collection is a `Record` class (`common.records`) with a row in `backend/db/models.py` and an Alembic revision;
+there is no Beanie registration any more ([backend/app/handlers/database.py](backend/app/handlers/database.py) keeps
+only the outbox document until the Beanie removal). Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
 `common` package, not from here.
 Background jobs go through `services/temporal_service.py`, which dispatches per job kind (`JOBS_BACKEND__<job>`)
 to a procrastinate job on Postgres (default; `backend/jobs/`; worker:
@@ -202,7 +196,7 @@ to a procrastinate job on Postgres (default; `backend/jobs/`; worker:
 `JOBS_BACKEND__<job>=temporal`, a Temporal workflow.
 
 Response `answers` **and** `hidden_fields` (captured URL parameters, see `StandardForm.hidden_fields` for the
-declared names) are encrypted at rest via `crypto_service` in `form_response_repository.save_form_response` and
+declared names) are encrypted at rest via `crypto_service` in `PostgresFormResponseRepository.save_form_response` and
 decrypted in `form_response_service.decrypt_form_response` — any new respondent-data field on
 `StandardFormResponse` must go through the same two choke points. Answer piping itself is resolved entirely
 client-side (webapp `src/utils/answer-piping.ts`); the backend only stores the pipe nodes inside field titles.

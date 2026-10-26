@@ -41,7 +41,7 @@ from backend.app.models.dtos.response_dtos import (
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.repositories.response_scope import (
     ResponseScope,
     find_response_in_workspace,
@@ -122,7 +122,7 @@ def _log_unreadable(response: Any, field: str) -> None:
 class FormResponseService:
     def __init__(
         self,
-        form_response_repo: FormResponseRepository,
+        form_response_repo: PostgresFormResponseRepository,
         form_repo: PostgresFormRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,
@@ -719,13 +719,18 @@ class FormResponseService:
         form_id: PydanticObjectId,
         response_id: str,
         workspace_id: PydanticObjectId,
+        expected_closures: Optional[int] = None,
     ):
+        """``expected_closures``: completing a deletion request, the closes
+        the caller saw on it (see the repository's ``delete_form_response``)."""
         existing = await self.workspace_response(workspace_id, response_id)
         if existing is None or str(existing.form_id) != str(form_id):
             # gone, or collected through another workspace (#768): its copy
             # there is never touched
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-        await self._form_response_repo.delete_form_response(existing)
+        await self._form_response_repo.delete_form_response(
+            existing, expected_closures=expected_closures
+        )
         prefix = f"private/{workspace_id}/{form_id}/{response_id}"
         self._aws_service.delete_folder_from_s3(prefix)
         return response_id
@@ -802,7 +807,12 @@ class FormResponseService:
         if outcome is DeletionRequestOutcome.COMPLETED:
             stored = await self.workspace_response(workspace_id, response_id)
             if stored is not None and str(stored.form_id) == str(form_id):
-                await self.delete_form_response(form_id, response_id, workspace_id)
+                await self.delete_form_response(
+                    form_id,
+                    response_id,
+                    workspace_id,
+                    expected_closures=len(request.closures),
+                )
             elif await self._unresolved_copy(workspace_id, form_id, response_id):
                 # a copy this workspace may own (e.g. stored before #768
                 # without a workspace, on a form linked to several) is still

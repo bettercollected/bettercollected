@@ -93,11 +93,6 @@ ALL = "*"
 #: A test missing here fails there on the unreachable Mongo: add it (the whole
 #: file, or its test functions by name).
 MONGO_DRIVEN = {
-    "tests/app/controllers/test_deletion_requests_per_workspace.py": {
-        "test_mongo_one_request_per_response_provider_and_workspace",
-        "test_startup_drops_the_superseded_key_and_builds_the_new_one",
-        "test_index_failures_are_logged_and_the_start_goes_on",
-    },
     "tests/app/db/test_outbox.py": ALL,
     "tests/app/migrate/test_deletion_tombstones.py": ALL,
     "tests/app/migrate/test_engine.py": ALL,
@@ -106,20 +101,12 @@ MONGO_DRIVEN = {
     "tests/app/migrate/test_mirror_verify.py": ALL,
     "tests/app/migrate/test_verify_agrees_with_reconcile.py": ALL,
     "tests/app/migrate/test_resolve_outbox.py": ALL,
-    "tests/app/repositories/test_beanie_pagination.py": ALL,
-    "tests/app/repositories/test_form_groups.py": ALL,
-    "tests/app/repositories/test_platform_metrics_parity.py": {"test_response_counts"},
-    "tests/app/repositories/test_responses_parity.py": ALL,
     "tests/app/services/test_case_duplicates_forms_import.py": {
         "test_the_plan_and_drops_wait_for_a_complete_forms_import",
         "test_a_link_deleted_after_a_finished_import_does_not_block",
         "test_a_link_written_to_mongo_after_a_finished_backfill_refuses",
         "test_a_backfill_that_skipped_documents_falls_back_to_the_links",
         "test_a_settled_backfill_reads_no_links",
-    },
-    "tests/app/test_operator_tools.py": {
-        "test_expiration_schedules_are_the_same_on_both_stores",
-        "test_jobs_sweep_reads_the_responses_from_the_read_source",
     },
 }
 

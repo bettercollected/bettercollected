@@ -1,5 +1,7 @@
 """The "migration verified" marker, ``--group`` and ``status --json`` against both
-real stores, plus what reconcile does with a row deleted on one side.
+real stores, plus what reconcile does with a row deleted on one side. The
+backend has no routed group left, so these run on the test Target of
+``tests/app/migrate/routed.py``, for which ``responses`` still migrates.
 Skipped unless DATABASE_URL points at a *_test database."""
 
 import json
@@ -11,10 +13,9 @@ from dependency_injector import providers
 from sqlalchemy import select
 
 from backend.app.container import AppContainer, container
-from backend.app.schemas.workspace_responder import WorkspaceTags
-from backend.db.groups import COLLECTION_GROUPS, GROUPS, POSTGRES_ONLY_GROUPS
+from backend.db.groups import COLLECTION_GROUPS, GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
-from backend.migrate.__main__ import _tables, build_target
+from backend.migrate.__main__ import _tables
 from common.db import RoutingRepository, load_flags, write_op
 from common.db.marker import SCOPE_GROUP, SCOPE_SERVICE, migration_verified
 from common.db.migrate import Runner
@@ -28,6 +29,12 @@ from tests.app.db.beanie_originals import (
     AllowedOriginsDocument,
     AllowedOriginsRepository,
     PostgresAllowedOriginsRepository,
+    WorkspaceTags,
+)
+from tests.app.migrate.routed import (
+    MIGRATING,
+    POSTGRES_ONLY as POSTGRES_ONLY_GROUPS,
+    build_target,
 )
 
 
@@ -56,7 +63,7 @@ def collections_of(group):
 
 
 #: the groups verify covers and the marker rests on: all but the Postgres-only
-MIGRATING = [g for g in GROUPS if g not in POSTGRES_ONLY_GROUPS]
+#: (``responses`` stays routed here, see routed.py)
 POSTGRES_ONLY_COLLECTIONS = {
     c for c, g in COLLECTION_GROUPS.items() if g in POSTGRES_ONLY_GROUPS
 }
@@ -81,28 +88,20 @@ def test_every_migrated_collection_has_a_valid_group():
     assert set(COLLECTION_GROUPS.values()) == set(GROUPS)
 
 
-def test_the_group_map_matches_the_routed_repositories():
-    """A collection belongs to the group of the routed repository whose
-    Postgres twin stores it, so ``--group g`` moves what ``DB_*__g`` moves."""
-    checked = 0
+def test_no_routed_repository_is_left_in_the_application():
+    """Every group is served from Postgres only: the container has no routed
+    repository. The test fixture's group map still matches the Postgres
+    repository that stores each collection."""
     for name, provider in AppContainer.providers.items():
-        if not isinstance(provider, providers.Singleton):
-            continue
-        if provider.provides is not RoutingRepository:
-            continue
-        group, twin = provider.kwargs["group"], provider.kwargs.get("postgres")
-        # the groups served from Postgres only are not routed any more
-        assert group not in POSTGRES_ONLY_GROUPS, f"{name} is still routed"
-        if twin is None:
-            continue
-        cls = twin.args[0]
-        rows = [cls.row, *getattr(cls, "document_rows", {}).values()]
-        for row in rows:
-            assert (
-                COLLECTION_GROUPS[row.mongo_collection()] == group
-            ), f"{name}: {row.__tablename__} is in group {group!r}"
-            checked += 1
-    assert checked >= 5
+        if isinstance(provider, providers.Singleton):
+            assert provider.provides is not RoutingRepository, f"{name} is routed"
+    from backend.app.repositories.postgres.responses import (
+        PostgresWorkspaceRespondersRepository,
+    )
+
+    cls = PostgresWorkspaceRespondersRepository
+    for row in [cls.row, *cls.document_rows.values()]:
+        assert COLLECTION_GROUPS[row.mongo_collection()] == "responses"
 
 
 # -- the marker ---------------------------------------------------------------
