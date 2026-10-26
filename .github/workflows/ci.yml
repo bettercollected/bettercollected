@@ -178,9 +178,12 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         # auth is served from Postgres only (auth/db/flags.py): it refuses a
-        # stale Mongo or dual flag. The suite runs with MONGO_URI on a closed
-        # port: the service starts and serves without Mongo
-        # (tests/test_startup_postgres_only.py boots it so).
+        # stale Mongo or dual flag. The suite runs with MONGO_URI empty, as on
+        # a fresh install: the service starts and serves without contacting
+        # Mongo (tests/test_startup_postgres_only.py boots it so). A MONGO_URI
+        # that is set refuses the start while Mongo holds accounts that were
+        # never imported (auth/db/import_guard.py; tests/db/test_import_guard.py
+        # runs against the Mongo server below).
         defaults:
             run:
                 working-directory: auth
@@ -216,7 +219,7 @@ jobs:
 
             - name: Run auth tests
               env:
-                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+                  MONGO_URI: ""
               run: uv run --frozen pytest -m "not mongo"
 
             # The few tests that drive a real Mongo server (the import from 4.0,
@@ -261,10 +264,13 @@ jobs:
               with:
                   persist-credentials: false
 
-            # The suite runs before Mongo exists, with MONGO_URI on a closed
-            # port: the service must start and serve without it. Mongo then
-            # starts for the few tests that drive it themselves (the import
-            # from 4.0; marker "mongo", tests/conftest.py).
+            # The suite runs before Mongo exists, with MONGO_URI empty, as on a
+            # fresh install: the service must start and serve without it (a
+            # MONGO_URI that is set but unreachable refuses the start, the
+            # check for unimported 4.0 data, googleform/db/import_guard.py).
+            # Mongo then starts for the few tests that drive it themselves
+            # (the import from 4.0 and that check; marker "mongo",
+            # tests/conftest.py).
             - name: Start the test databases
               working-directory: .
               run: .github/scripts/test-dbs.sh start postgres
@@ -285,7 +291,7 @@ jobs:
 
             - name: Run google tests
               env:
-                  MONGO_URI: mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000
+                  MONGO_URI: ""
               run: uv run --frozen pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py -m "not mongo"
 
             - name: Start MongoDB for the tests that drive it

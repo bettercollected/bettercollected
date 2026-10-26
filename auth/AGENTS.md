@@ -53,10 +53,13 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   4.0 Mongo database (`MONGO_URI` / `MONGO_DB`, `config/database.py`), with the tables it needs
   (`migration_progress`, `store_migration`, `deletion_tombstones`, `mirror_write_failures`, the expand-only
   `providers`). Keep them until the import path is removed; nothing else in the service may touch Mongo
-  (`common/tests/test_no_beanie_in_runtime.py` keeps Beanie out of the runtime).
+  (`common/tests/test_no_beanie_in_runtime.py` keeps Beanie out of the runtime), except the startup check
+  `auth/db/import_guard.py` (shared core `common/db/migrate/import_guard.py`): the API refuses to start while Mongo
+  holds documents of a collection whose table is empty and never backfilled (a set but unreachable `MONGO_URI` refuses
+  too, so Mongo-less runs use `MONGO_URI=""`); override `DB_DISCARD_UNIMPORTED_MONGO_DATA=auth` or `all`.
 - **Tests** need the Postgres test database (`DATABASE_URL` naming a `*_test` database; migrated once per session).
-  Only `tests/db/test_migrate_tombstones.py` (the import's reconcile) and `tests/db/test_migrate_email_case.py` (its
-  preflight) need a Mongo server (marker `mongo`). The
+  Only `tests/db/test_migrate_tombstones.py` (the import's reconcile), `tests/db/test_migrate_email_case.py` (its
+  preflight) and `tests/db/test_import_guard.py` (the startup check) need a Mongo server (marker `mongo`). The
   golden fixture `tests/fixtures/codec_golden/auth.json` pins the stored bytes; `UserDocument` must keep the wire
   shape of the Beanie class it replaced (`tests/integration/app/beanie_originals.py`).
 

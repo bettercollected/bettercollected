@@ -4,8 +4,10 @@ refuses to start on a stale ``DB_READ_SOURCE`` / ``DB_WRITE_MODE`` (or their
 DATABASE_URL.
 
 The boots run the app factory in a fresh process, as a deployment does, with
-MONGO_URI pointing at a closed port: a start that tried to reach Mongo would
-fail within the URI's short server selection timeout.
+MONGO_URI unset (a fresh install): the start never builds a Mongo client. A
+MONGO_URI that is set but unreachable refuses the start, because Mongo may hold
+4.0 data that was never imported (auth/db/import_guard.py;
+tests/db/test_import_guard.py drives that check against a real Mongo).
 """
 
 import os
@@ -20,6 +22,7 @@ from common.db.flags import FlagError
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 UNREACHABLE = "mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=1000"
+NO_MONGO = ""
 DB_KEYS = ("DB_READ_SOURCE", "DB_WRITE_MODE", "DB_SHADOW_READ_SAMPLE")
 
 PROGRAM = """
@@ -40,13 +43,13 @@ with TestClient(get_application()) as client:
 """
 
 
-def boot(env_changes: dict) -> subprocess.CompletedProcess:
+def boot(env_changes: dict, mongo_uri: str = NO_MONGO) -> subprocess.CompletedProcess:
     env = {
         k: v
         for k, v in os.environ.items()
         if not any(k == key or k.startswith(key + "__") for key in DB_KEYS)
     }
-    env.update(env_changes, MONGO_URI=UNREACHABLE)
+    env.update(env_changes, MONGO_URI=mongo_uri)
     env = {k: v for k, v in env.items() if v is not None}
     return subprocess.run(
         [sys.executable, "-c", PROGRAM],
@@ -130,3 +133,14 @@ def test_refuses_to_start_without_a_database():
     result = boot({"DATABASE_URL": None})
     assert result.returncode != 0
     assert "DATABASE_URL is not set" in result.stderr
+
+
+def test_a_set_but_unreachable_mongo_uri_refuses_the_start(_postgres_schema):
+    """MONGO_URI set means Mongo may hold 4.0 accounts: the start cannot tell
+    whether they were imported, so it refuses (fails closed)."""
+    result = boot({}, mongo_uri=UNREACHABLE)
+    assert result.returncode != 0
+    assert "UnimportedMongoData" in result.stderr
+    assert "MONGO_URI is set but Mongo could not be read" in result.stderr
+    assert "ready" not in result.stdout
+    assert "127.0.0.1:1" not in result.stderr  # the driver's host:port stays out of the traceback

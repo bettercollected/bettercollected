@@ -246,7 +246,7 @@ environment, whatever the tier.
 | `DATABASE_URL` | database | backend, auth, google, jobs, admin, actions_executor | str | yes | R | T5 |  |
 | `DB_AUTO_MIGRATE` | database | backend, auth, google | bool |  | R | T5 | `false` |
 | `DB_AUTO_MIGRATE_LOCK_WAIT_SECONDS` | database | backend, auth, google | float 0..3600 |  | R | T5 |  |
-| `DB_DISCARD_UNIMPORTED_MONGO_DATA` | database | backend, jobs | str |  | R | T5 |  |
+| `DB_DISCARD_UNIMPORTED_MONGO_DATA` | database | backend, auth, google, jobs | str |  | R | T5 |  |
 | `DB_ECHO` | database | backend, auth, google, jobs, admin | bool |  | R | T5 | `false` |
 | `DB_IDLE_IN_TRANSACTION_MS` | database | backend, auth, google, jobs, admin | int 1000..3.6e+06 |  | R | T5 | `60000` |
 | `DB_LOCK_TIMEOUT_MS` | database | backend, auth, google, jobs, admin | int 100..3.6e+06 |  | R | T5 | `5000` |
