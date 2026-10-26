@@ -57,17 +57,26 @@ async def _stored(table: str) -> dict:
 @pytest.fixture
 async def legacy_rows(clean_postgres):
     """Seven responses and seven deletion requests holding an MD5, plus rows that
-    must not change: no identity, a JSON null, and one already v2."""
-    k = secrets.token_bytes(32)
+    must not change: one with a JSON null identity."""
     for n, email in enumerate(EMAILS):
         await _insert("form_responses", _oid("a", n), hash_string(email))
         await _insert("responses_deletion_requests", _oid("b", n), hash_string(email))
     await _insert("form_responses", _oid("c", 1), None)
-    await _insert("form_responses", _oid("c", 2), identity.identity_of("kept@example.org", k))
-    return k
+
+
+async def _write_check(key: bytes) -> None:
+    """The key check row of ``key`` (what the first start or pass writes)."""
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(
+            text("INSERT INTO app.respondent_identity_key_check (id, check_value) VALUES (1, :v)"),
+            {"v": key_check_value(key)},
+        )
 
 
 async def test_every_stored_identity_converts_without_the_address(legacy_rows, key):
+    # one value that is already v2, made with this key and recorded
+    await _insert("form_responses", _oid("c", 2), identity.identity_of("kept@example.org", key))
+    await _write_check(key)
     report = await identity_rekey.rekey_identities(container.pg_engine(), key, batch_size=3)
 
     assert report.converted == {"form_responses": 7, "responses_deletion_requests": 7}
@@ -80,7 +89,7 @@ async def test_every_stored_identity_converts_without_the_address(legacy_rows, k
     # nothing but identities changed: the others are as they were
     responses = await _stored("form_responses")
     assert responses[_oid("c", 1)] is None
-    assert responses[_oid("c", 2)] == identity.identity_of("kept@example.org", legacy_rows)
+    assert responses[_oid("c", 2)] == identity.identity_of("kept@example.org", key)
     # no plain MD5 remains anywhere
     for table in identity_rekey.TABLES:
         assert all(
@@ -367,7 +376,22 @@ async def test_the_report_names_how_the_key_was_checked(clean_postgres, key):
     assert set(first.to_dict()) >= {"key_check", "key_fingerprint"}
 
 
-async def test_v2_values_without_a_check_row_adopt_the_configured_key(clean_postgres, key):
+async def test_v2_values_without_a_check_row_are_not_adopted_by_a_pass(clean_postgres, key):
+    await _insert("form_responses", _oid("a", 1), identity.identity_of(EMAILS[0], key))
+    await _insert("form_responses", _oid("a", 2), hash_string(EMAILS[1]))
+    for dry_run in (False, True):
+        with pytest.raises(identity.IdentityKeyUnconfirmed) as refused:
+            await identity_rekey.rekey_identities(container.pg_engine(), key, dry_run=dry_run)
+        message = str(refused.value)
+        assert key_check_value(key) not in message and key.hex() not in message
+        assert "--expect-fingerprint " + key_check_value(key)[:8] in message
+    assert await _key_check() is None
+    assert (await _stored("form_responses"))[_oid("a", 2)] == hash_string(EMAILS[1])
+
+
+async def test_the_operator_can_adopt_the_key_of_v2_values_stored_without_a_check_row(
+    clean_postgres, key
+):
     from loguru import logger
 
     await _insert("form_responses", _oid("a", 1), identity.identity_of(EMAILS[0], key))
@@ -375,7 +399,7 @@ async def test_v2_values_without_a_check_row_adopt_the_configured_key(clean_post
     lines = []
     sink = logger.add(lines.append, format="{level}|{message}")
     try:
-        report = await identity_rekey.rekey_identities(container.pg_engine(), key)
+        report = await identity_rekey.rekey_identities(container.pg_engine(), key, adopt=True)
     finally:
         logger.remove(sink)
     assert report.key_check == "adopted" and report.done
@@ -404,22 +428,73 @@ async def test_another_keys_check_row_refuses_and_converts_nothing(clean_postgre
     assert (await identity_rekey.rekey_identities(engine, other)).done
 
 
-async def test_the_start_refuses_a_different_key_and_accepts_the_right_one(
+async def test_the_start_records_its_key_and_refuses_a_different_one(
     clean_postgres, key, monkeypatch
 ):
     engine = container.pg_engine()
-    await identity_rekey.check_key_at_startup(engine)  # nothing stored yet: fine
-    await identity_rekey.rekey_identities(engine, key)
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
     monkeypatch.setattr(identity_rekey, "configured_key", lambda: key)
-    await identity_rekey.check_key_at_startup(engine)  # the same key: fine
+    await identity_rekey.check_key_at_startup(engine)  # nothing stored yet: its row is written
+    assert await _key_check() == key_check_value(key)
+    await identity_rekey.check_key_at_startup(engine)  # the same key again: fine
 
     other = secrets.token_bytes(32)
     monkeypatch.setattr(identity_rekey, "configured_key", lambda: other)
     with pytest.raises(identity.IdentityKeyMismatch, match="will not start"):
         await identity_rekey.check_key_at_startup(engine)
-    # the background pass logs the refusal and never raises
+    assert await _key_check() == key_check_value(key)  # untouched
+    # the background pass logs the refusal, never raises, and stops this process
+    # from writing identities with the wrong key
+    assert not identity.key_mismatch_seen()
     assert await identity_rekey.run_at_startup(engine) is None
+    assert identity.key_mismatch_seen()
     assert await identity_rekey.check_key_at_startup(None) is None
+
+
+async def test_a_replica_with_the_wrong_key_cannot_start_before_any_row_exists(clean_postgres):
+    """Two replicas starting together with different keys and no row yet: the
+    unique row decides; exactly one of them serves, whichever is first."""
+    import asyncio
+
+    engine = container.pg_engine()
+    keys = [secrets.token_bytes(32), secrets.token_bytes(32)]
+    results = await asyncio.gather(
+        *(identity_rekey.check_key_at_startup(engine, k) for k in keys),
+        return_exceptions=True,
+    )
+    assert sorted(type(r).__name__ for r in results) == ["IdentityKeyMismatch", "NoneType"]
+    winner = keys[results.index(None)]
+    loser = keys[1 - results.index(None)]
+    assert await _key_check() == key_check_value(winner)
+
+    # later starts: the wrong key never passes once the row exists
+    with pytest.raises(identity.IdentityKeyMismatch):
+        await identity_rekey.check_key_at_startup(engine, loser)
+    await identity_rekey.check_key_at_startup(engine, winner)
+
+
+async def test_the_start_refuses_v2_values_without_a_check_row(clean_postgres, key, monkeypatch):
+    """The API never adopts a key: only the command does, once confirmed."""
+    engine = container.pg_engine()
+    await _insert("form_responses", _oid("a", 1), identity.identity_of(EMAILS[0], key))
+    monkeypatch.setattr(identity_rekey, "configured_key", lambda: key)
+    with pytest.raises(identity.IdentityKeyUnconfirmed, match="will not start"):
+        await identity_rekey.check_key_at_startup(engine)
+    assert await _key_check() is None  # nothing was written
+    # the background pass refuses too, and stops the process writing identities
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
+    assert await identity_rekey.run_at_startup(engine) is None
+    assert identity.key_mismatch_seen()
+
+
+def test_a_known_key_mismatch_stops_new_identities(monkeypatch):
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
+    assert identity.identity_of(EMAILS[0]).startswith("v2:")
+    identity.mark_key_mismatch()
+    with pytest.raises(identity.IdentityKeyMismatch, match="refusing to write or match"):
+        identity.identity_of(EMAILS[0])
+    # an explicit key (the pass converting under its own key) is unaffected
+    assert identity.identity_of(EMAILS[0], secrets.token_bytes(32)).startswith("v2:")
 
 
 def test_the_lifespan_checks_the_key_then_converts_in_the_background():
@@ -430,7 +505,9 @@ def test_the_lifespan_checks_the_key_then_converts_in_the_background():
     source = inspect.getsource(asgi.lifespan)
     assert source.index("check_key_at_startup") < source.index("yield")
     assert source.index("start_background_passes") < source.index("yield")
-    assert "identity_task.cancel()" in source.split("yield", 1)[1]
+    after = source.split("yield", 1)[1]
+    assert "identity_task.cancel()" in after
+    assert "except Exception" in after.split("identity_task.cancel()", 1)[1].split("mcp_stop.set()")[0]
 
 
 async def test_the_background_task_runs_twice_and_stops_when_cancelled(monkeypatch):
@@ -525,3 +602,26 @@ async def test_the_command_checks_the_expected_fingerprint_and_the_stored_key(le
     other = await _cli(env_key=secrets.token_hex(32))  # another key than the one that converted
     assert other.returncode == 4
     assert "will not start" in other.stderr
+
+
+async def test_the_command_adopts_v2_values_only_with_the_confirmed_fingerprint(clean_postgres):
+    cli_key = secrets.token_hex(32)
+    raw = bytes.fromhex(cli_key)
+    fingerprint = key_check_value(raw)[:8]
+    await _insert("form_responses", _oid("a", 1), identity.identity_of(EMAILS[0], raw))
+    await _insert("form_responses", _oid("a", 2), hash_string(EMAILS[1]))
+
+    unconfirmed = await _cli(env_key=cli_key)
+    assert unconfirmed.returncode == 4
+    assert "--expect-fingerprint " + fingerprint in unconfirmed.stderr
+    wrong = await _cli("--expect-fingerprint", "deadbeef", env_key=cli_key)
+    assert wrong.returncode == 4
+    assert await _key_check() is None
+    assert (await _stored("form_responses"))[_oid("a", 2)] == hash_string(EMAILS[1])
+
+    adopted = await _cli("--expect-fingerprint", fingerprint, env_key=cli_key)
+    assert adopted.returncode == 0, adopted.stderr[-1500:]
+    assert json.loads(adopted.stdout)["key_check"] == "adopted"
+    assert await _key_check() == key_check_value(raw)
+    assert all(v.startswith("v2:") for v in (await _stored("form_responses")).values())
+    assert cli_key not in adopted.stdout + adopted.stderr

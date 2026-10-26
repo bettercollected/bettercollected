@@ -315,6 +315,9 @@ async def _initialized_app(request):
         # Alembic drives its own event loop; keep it off the session loop.
         await asyncio.to_thread(_alembic_upgrade_head)
         await _apply_jobs_schema()
+        # A database kept from an earlier run holds that run's respondent identity
+        # key check (its key was a throwaway): the start would refuse this run's key.
+        await _truncate_postgres()
     elif container.flags().requires_postgres():
         raise RuntimeError(
             "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "

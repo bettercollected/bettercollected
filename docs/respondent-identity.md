@@ -53,12 +53,19 @@ bug: matching refuses it (there is no MD5 fallback), and the conversion pass rep
   setting and the command, never a value.
 - **Wrong-key guard.** A mistyped key at the first 4.1 start would turn every stored MD5 into a value nobody can
   match, and later a key that differs between replicas (environment against store) would silently break matching.
-  So before its first conversion the pass writes `app.respondent_identity_key_check` (one row, migration 0022):
-  HMAC-SHA256(key, a fixed label). It is not the key and cannot match anyone. From then on a key whose check
-  differs is refused: the API **does not start**, the command exits 4, and nothing is converted. No row but v2
-  values already stored (an earlier run without the guard): the configured key is adopted and a warning is logged.
+  So `app.respondent_identity_key_check` (one row, migration 0022) holds HMAC-SHA256(key, a fixed label). It is not
+  the key and cannot match anyone. **Every API start inserts its own key's row before serving** (`ON CONFLICT DO
+  NOTHING`) and reads the winner back, so of replicas started together with different keys only one can ever
+  serve; the others refuse to start. A key whose check differs from the stored one is refused the same way, and
+  the command exits 4 and converts nothing. If a pass later finds that this process' key is not the stored one,
+  the process stops creating or matching identities with it (an error is logged; restart with the right key).
+  V2 values stored without a row are **never adopted by the API**: it refuses to start and says so. Only the
+  command adopts, with `--expect-fingerprint` naming the fingerprint the operator recorded for that key.
   The first 4 bytes of the check (8 hex digits) are logged by every pass and start as
   `key fingerprint=...`; write it down at the first start and pass it later as `--expect-fingerprint`.
+- **Migration 0022 builds its two partial indexes with a plain `CREATE INDEX`:** a brief write lock on
+  `form_responses` and `responses_deletion_requests` while the indexes build. Fine at current sizes; for a much
+  larger table, apply the migration in a quiet minute.
 - **Keep it.** The conversion cannot be undone, and a different key makes every stored identity unmatchable (the
   respondent can no longer find their anonymous submission). Back it up with the other keys; it is not part of
   the database backup.

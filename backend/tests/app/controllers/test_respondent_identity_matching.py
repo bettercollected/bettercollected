@@ -121,3 +121,16 @@ async def test_another_respondent_never_matches_a_converted_identity(
         f"{_url(workspace)}/submissions/{response.response_id}", cookies=_cookies(testUser2)
     )
     assert refused.status_code in (403, 404), refused.text
+
+
+async def test_a_known_key_mismatch_refuses_a_new_anonymous_submission(
+    workspace, published_form, monkeypatch
+):
+    """Once a pass has seen that this process' key is not the stored one, it
+    must not create identities with it (mixed keys break matching for good)."""
+    monkeypatch.setattr(identity, "_key_mismatch_seen", [False])
+    identity.mark_key_mismatch()
+    with pytest.raises(identity.IdentityKeyMismatch):
+        await _submit(workspace, published_form, testUser1, anonymize=True)
+    # a submission that does not create an identity is not affected
+    await _submit(workspace, published_form, testUser1, anonymize=False)

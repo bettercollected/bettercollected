@@ -54,6 +54,24 @@ class IdentityKeyMismatch(IdentityKeyError):
     """The configured key is not the one that converted the stored identities."""
 
 
+class IdentityKeyUnconfirmed(IdentityKeyMismatch):
+    """v2 identities are stored but no key check says which key made them."""
+
+
+#: set once a pass has seen that the configured key is not the one that
+#: converted the stored identities: nothing may then be written with it (a
+#: second key in the data breaks matching for good). Cleared by a restart.
+_key_mismatch_seen = [False]
+
+
+def mark_key_mismatch() -> None:
+    _key_mismatch_seen[0] = True
+
+
+def key_mismatch_seen() -> bool:
+    return _key_mismatch_seen[0]
+
+
 def key_check_value(key: bytes) -> str:
     return hmac.new(key, KEY_CHECK_LABEL, hashlib.sha256).hexdigest()
 
@@ -105,7 +123,14 @@ def derive(key: bytes, legacy_md5_hex: str) -> str:
 
 
 def identity_of(email: str, key: Optional[bytes] = None) -> str:
-    """The identity value stored for the signed-in ``email`` (``user.sub``)."""
+    """The identity value stored for the signed-in ``email`` (``user.sub``).
+    Refuses (:class:`IdentityKeyMismatch`) once the configured key is known to
+    differ from the one the stored identities were converted with."""
+    if key is None and _key_mismatch_seen[0]:
+        raise IdentityKeyMismatch(
+            "RESPONDENT_IDENTITY_KEY is not the key that converted the stored respondent "
+            "identities; refusing to write or match identities with it (restart with the right key)"
+        )
     return derive(key if key is not None else configured_key(), hash_string(email))
 
 

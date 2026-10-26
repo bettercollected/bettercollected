@@ -177,6 +177,8 @@ async def lifespan(app: FastAPI):
             await identity_task
         except asyncio.CancelledError:
             pass
+        except Exception as exc:  # noqa: BLE001 — never skips the rest of the shutdown
+            logger.warning("respondent identity task ended with {}", type(exc).__name__)
 
     mcp_stop.set()
     await mcp_task

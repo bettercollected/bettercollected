@@ -27,6 +27,15 @@ Properties:
   is rewritten (``jsonb_set``), never the whole document. Several processes can
   start together: one advisory lock (``pg_try_advisory_lock``, a dedicated
   connection) lets one of them run; the others skip.
+* **Wrong-key guard** (``app.respondent_identity_key_check``, 0022): HMAC-SHA256(key,
+  a fixed label), never the key. Every API start inserts the configured key's
+  row (``ON CONFLICT DO NOTHING``) and reads the winner back, so of replicas
+  with different keys only one can ever serve; the others refuse to start. A
+  pass whose key differs converts nothing, and marks the process so that
+  ``identity_of`` refuses to write or match (the API stops creating identities
+  with it). V2 values without a row are never adopted by the API (it refuses to
+  start); only this command adopts, with ``--expect-fingerprint`` confirming the
+  fingerprint the operator recorded.
 * **Counts only**: nothing logged or printed names an id, a value or a hash,
   and an error is logged by its class (a database error message can carry the
   statement's parameters, which here are identity values).
@@ -55,10 +64,12 @@ from backend.app.utils.respondent_identity import (
     PREFIX,
     IdentityKeyError,
     IdentityKeyMismatch,
+    IdentityKeyUnconfirmed,
     configured_key,
     convert_legacy,
     fingerprint_of,
     key_check_value,
+    mark_key_mismatch,
 )
 from backend.db.models import FormResponseRow, ResponseDeletionRequestRow
 
@@ -177,22 +188,17 @@ def _mismatch(stored: str, expected: str) -> IdentityKeyMismatch:
     )
 
 
-async def verify_key(engine: AsyncEngine, key: bytes) -> Optional[str]:
-    """The key check of the stored identities, without the lock and without
-    writing: ``None`` when no row exists yet, else the stored value when it is
-    this key's; raises :class:`IdentityKeyMismatch` when it is another key's."""
-    expected = key_check_value(key)
-    async with engine.connect() as conn:
-        stored = await read_key_check(conn)
-    if stored is not None and not hmac.compare_digest(stored.encode(), expected.encode()):
-        raise _mismatch(stored, expected)
-    return stored
-
-
-async def _ensure_key_check(engine: AsyncEngine, key: bytes, *, write: bool) -> str:
-    """Under the lock, before any conversion: ``matched``, ``adopted`` (v2 values
-    were already stored without a row: the configured key is taken as theirs) or
-    ``written`` (nothing was converted yet). Raises on another key's row."""
+async def _ensure_key_check(
+    engine: AsyncEngine, key: bytes, *, write: bool, adopt: bool = False
+) -> str:
+    """Before any conversion, and at every API start: ``matched``, ``written``
+    (nothing was converted yet: this key's row is inserted, ``ON CONFLICT DO
+    NOTHING``, and the winner of a race between replicas is read back, so only
+    one key can ever be the stored one) or ``adopted`` (v2 values are stored
+    but no row says which key made them: only with ``adopt``, which only the
+    command grants, after the operator confirmed the key's fingerprint).
+    Raises :class:`IdentityKeyMismatch` on another key's row, and
+    :class:`IdentityKeyUnconfirmed` on v2 values without a row unless ``adopt``."""
     expected = key_check_value(key)
     async with engine.begin() as conn:
         stored = await read_key_check(conn)
@@ -210,6 +216,14 @@ async def _ensure_key_check(engine: AsyncEngine, key: bytes, *, write: bool) -> 
                     )
                 )
             )
+        if has_v2 and not adopt:
+            raise IdentityKeyUnconfirmed(
+                "v2 respondent identities are stored but nothing records which key made them "
+                f"(configured key fingerprint {fingerprint_of(expected)}). The API will not start: "
+                "if that is the key they were made with, confirm it once with "
+                f"python -m backend.identity_rekey --expect-fingerprint {fingerprint_of(expected)} "
+                "(otherwise set the right key). See docs/respondent-identity.md."
+            )
         if write:
             await conn.execute(
                 text(
@@ -218,7 +232,7 @@ async def _ensure_key_check(engine: AsyncEngine, key: bytes, *, write: bool) -> 
                 ),
                 {"v": expected},
             )
-            # a concurrent writer (not under our lock) would have won: it must be this key
+            # a replica with another key may have won the race: read the winner back
             winner = await read_key_check(conn)
             if winner != expected:
                 raise _mismatch(winner, expected)
@@ -231,10 +245,14 @@ async def rekey_identities(
     *,
     batch_size: int = DEFAULT_BATCH,
     dry_run: bool = False,
+    adopt: bool = False,
 ) -> RekeyReport:
     """Convert every stored legacy identity. ``dry_run`` only counts them (and
     checks the key, writing nothing). Raises :class:`IdentityKeyMismatch`, before
-    converting anything, when another key converted the stored identities."""
+    converting anything, when another key converted the stored identities, and
+    :class:`IdentityKeyUnconfirmed` when v2 values exist without a key check
+    (``adopt``, the command's, with a confirmed fingerprint, takes the
+    configured key as theirs)."""
     report = RekeyReport(fingerprint=fingerprint_of(key_check_value(key)))
     async with engine.connect() as lock_conn:
         if not await lock_conn.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}):
@@ -245,11 +263,13 @@ async def rekey_identities(
             await lock_conn.rollback()  # the lock is session level; leave no transaction open
             # the check row is written BEFORE the first conversion, so a crash
             # mid-pass is covered by it too
-            report.key_check = await _ensure_key_check(engine, key, write=not dry_run)
+            report.key_check = await _ensure_key_check(
+                engine, key, write=not dry_run, adopt=adopt
+            )
             if report.key_check == "adopted":
                 logger.warning(
                     "respondent identity pass: v2 identities were stored without a key check; "
-                    "the configured key (fingerprint {}) is taken as the one that converted them",
+                    "the configured key (fingerprint {}) was confirmed by the operator as the one that made them",
                     report.fingerprint,
                 )
             if not dry_run:
@@ -294,24 +314,28 @@ def log_report(report: RekeyReport) -> None:
         )
 
 
-async def check_key_at_startup(engine: Optional[AsyncEngine]) -> None:
-    """The API's start refuses (raises) when the configured key is not the one
-    that converted the stored identities. A cheap read, no lock, no write: the
-    first conversion (and the row) comes from the background pass."""
+async def check_key_at_startup(
+    engine: Optional[AsyncEngine], key: Optional[bytes] = None
+) -> None:
+    """Before the API serves: record this key as the stored one when none is yet
+    (a race between replicas is decided by the unique row; the loser reads the
+    winner back) and refuse to start (raise) when it is not the key that made the
+    stored identities, or when v2 identities exist and nothing says which key
+    that was. No lock; the conversion itself comes from the background pass."""
     if engine is None:
         return
-    key = configured_key()
+    key = key if key is not None else configured_key()
     try:
-        stored = await verify_key(engine, key)
-    except IdentityKeyMismatch:
+        state = await _ensure_key_check(engine, key, write=True)
+    except IdentityKeyMismatch:  # also IdentityKeyUnconfirmed
         raise
     except Exception as exc:  # noqa: BLE001 - class only: the message can carry values
         logger.error("respondent identity key check failed ({})", type(exc).__name__)
         return
     logger.info(
-        "respondent identity key fingerprint={} ({})",
+        "respondent identity key fingerprint={} (key check {})",
         fingerprint_of(key_check_value(key)),
-        "matches the stored check" if stored is not None else "no stored check yet",
+        state,
     )
 
 
@@ -326,6 +350,9 @@ async def run_at_startup(engine: Optional[AsyncEngine]) -> Optional[RekeyReport]
     try:
         report = await rekey_identities(engine, configured_key())
     except IdentityKeyMismatch as exc:
+        # another key than the stored one: stop this process writing identities
+        # with it (submit_response refuses from now on) and say so loudly
+        mark_key_mismatch()
         logger.error("respondent identity pass refused: {}", exc)
         return None
     except Exception as exc:  # noqa: BLE001 - class only: the message can carry values
@@ -365,7 +392,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--expect-fingerprint",
         metavar="HEX",
         help="refuse (exit 4) unless the configured key's fingerprint (8 hex digits, logged by "
-        "every pass) is this one",
+        "every pass) is this one; also the confirmation that lets the command adopt the key for "
+        "v2 identities stored without a key check",
     )
     return parser
 
@@ -393,7 +421,13 @@ async def run(args: argparse.Namespace) -> int:
         return 1
     try:
         report = await rekey_identities(
-            engine, key, batch_size=max(1, args.batch_size), dry_run=args.dry_run
+            engine,
+            key,
+            batch_size=max(1, args.batch_size),
+            dry_run=args.dry_run,
+            # v2 values without a key check are taken as made with this key only
+            # when the operator confirmed its fingerprint above
+            adopt=bool(expected),
         )
     except IdentityKeyMismatch as exc:
         logger.error("{}", exc)
