@@ -38,7 +38,7 @@ dependencies = [
     # the import from 4.0 reads Mongo with its own client (common/db/migrate); the
     # doc codec uses bson. Both stay until the 5.0 removal of the import path.
     "pymongo>=4.18.3",
-    "sqlalchemy[asyncio]>=2.0.54",
+    "sqlalchemy[asyncio]>=2.0.55",
     "tink>=1.16.1",
 ]
 classifiers = [
