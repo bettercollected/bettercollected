@@ -97,6 +97,7 @@
         "PLACEHOLDER_ANSWER": "Answer",
         "PLACEHOLDER_EMAIL": "name@example.com",
         "RATE": "Rate {{value}} of {{total}}",
+        "RATED": "{{value}} of {{total}}",
         "CHOOSE_MANY": "Choose as many as you like."
     },
     "RULE": {

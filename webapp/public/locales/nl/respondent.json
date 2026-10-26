@@ -97,6 +97,7 @@
         "PLACEHOLDER_ANSWER": "Antwoord",
         "PLACEHOLDER_EMAIL": "naam@voorbeeld.nl",
         "RATE": "{{value}} van {{total}} geven",
+        "RATED": "{{value}} van {{total}}",
         "CHOOSE_MANY": "Kies er zoveel als je wilt."
     },
     "RULE": {
