@@ -1,6 +1,6 @@
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, post
 from fastapi import Depends
 
@@ -41,7 +41,7 @@ class WorkspaceConsent(Routable):
         response_model=List[ConsentCamelModel],
     )
     async def get_workspace_consents(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ):
         return await self.workspace_consent_service.get_workspace_consents(
             workspace_id=workspace_id, user=user
@@ -53,7 +53,7 @@ class WorkspaceConsent(Routable):
     )
     async def create_workspace_consent(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         consent: ConsentCamelModel,
         user: User = Depends(get_full_user),
     ):

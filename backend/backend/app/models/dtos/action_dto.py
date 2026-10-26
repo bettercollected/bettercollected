@@ -2,7 +2,7 @@ import enum
 from typing import List
 from typing import Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import Trigger
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, model_serializer
@@ -28,13 +28,13 @@ class ActionResponse(ActionDto, CamelModel):
 
     action_code: Optional[str] = Field(None, exclude=True)
     secrets: Optional[List[ParameterValue]] = Field(None, exclude=True)
-    id: PydanticObjectId
+    id: RecordId
     settings: Optional[ActionSettings] = None
-    workspace_id: Optional[PydanticObjectId] = None
+    workspace_id: Optional[RecordId] = None
 
 
 class AddActionToFormDto(BaseModel):
-    action_id: PydanticObjectId
+    action_id: RecordId
     trigger: Trigger = Trigger.on_submit
     parameters: Optional[List[ParameterValue]] = None
     secrets: Optional[List[ParameterValue]] = None
@@ -46,6 +46,6 @@ class ActionUpdateType(str, enum.Enum):
 
 
 class UpdateActionInFormDto(CamelModel):
-    action_id: PydanticObjectId
+    action_id: RecordId
     update_type: ActionUpdateType
     trigger: Trigger = Trigger.on_submit

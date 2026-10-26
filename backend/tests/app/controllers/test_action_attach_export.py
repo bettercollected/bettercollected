@@ -4,7 +4,7 @@ Today every role with ``form.edit`` holds export too; these tests take
 export away from the Editor role to show the second check."""
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from httpx import AsyncClient
 
 from backend.app.container import container
@@ -61,7 +61,7 @@ async def test_turning_an_action_on_needs_export_but_off_does_not(
     client: AsyncClient, workspace, workspace_form, editor_without_export
 ):
     url = _url(workspace, workspace_form)
-    action_id = str(PydanticObjectId())
+    action_id = str(RecordId())
     enable = await client.patch(
         url,
         json={"actionId": action_id, "updateType": "enable"},

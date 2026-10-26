@@ -2,7 +2,7 @@ import re
 from http import HTTPStatus
 from typing import Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from pydantic import EmailStr
 
 from backend.app.constants.messages import not_found
@@ -31,8 +31,8 @@ def validate_group_regex(regex: Optional[str]) -> None:
         )
 
 
-def _oid(value) -> PydanticObjectId:
-    return PydanticObjectId(str(value))
+def _oid(value) -> RecordId:
+    return RecordId(str(value))
 
 
 def _other_workspaces(workspace_id, form_workspace_ids) -> set:
@@ -52,7 +52,7 @@ class ResponderGroupsService:
         self.form_service = form_service
 
     async def get_users_in_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, group_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
@@ -75,8 +75,8 @@ class ResponderGroupsService:
 
     async def update_responder_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         user: User,
         name: str,
         emails: List[EmailStr],
@@ -99,7 +99,7 @@ class ResponderGroupsService:
 
     async def create_group(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         name: str,
         emails: List[EmailStr],
         user: User,
@@ -130,8 +130,8 @@ class ResponderGroupsService:
 
     async def add_emails_to_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         emails: List[EmailStr],
         user: User,
     ):
@@ -144,8 +144,8 @@ class ResponderGroupsService:
 
     async def remove_emails_from_group(
         self,
-        workspace_id: PydanticObjectId,
-        group_id: PydanticObjectId,
+        workspace_id: RecordId,
+        group_id: RecordId,
         emails: List[EmailStr],
         user: User,
     ):
@@ -157,7 +157,7 @@ class ResponderGroupsService:
         )
 
     async def check_user_can_access_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, group_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
@@ -169,14 +169,14 @@ class ResponderGroupsService:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=not_found)
 
     async def remove_responder_group(
-        self, workspace_id: PydanticObjectId, group_id: PydanticObjectId, user: User
+        self, workspace_id: RecordId, group_id: RecordId, user: User
     ):
         await self.check_user_can_access_group(
             workspace_id=workspace_id, user=user, group_id=group_id
         )
         await self.responder_groups_repo.remove_responder_group(group_id=group_id)
 
-    async def get_groups_in_workspace(self, workspace_id: PydanticObjectId, user: User):
+    async def get_groups_in_workspace(self, workspace_id: RecordId, user: User):
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
@@ -191,7 +191,7 @@ class ResponderGroupsService:
         return groups
 
     async def _forms_in_workspace(
-        self, workspace_id: PydanticObjectId, form_ids: List[str], user: User
+        self, workspace_id: RecordId, form_ids: List[str], user: User
     ) -> list:
         """The group's forms that are in the workspace. A link to a form of
         another workspace (made before links were checked) is skipped rather
@@ -210,7 +210,7 @@ class ResponderGroupsService:
         return forms
 
     async def check_groups_in_workspace(
-        self, workspace_id: PydanticObjectId, group_ids: List[PydanticObjectId]
+        self, workspace_id: RecordId, group_ids: List[RecordId]
     ) -> None:
         """404, as for an unknown group, unless every id is a responder group
         of the workspace."""
@@ -222,7 +222,7 @@ class ResponderGroupsService:
 
     async def _linked_group_owners(
         self, form_id: str
-    ) -> Dict[PydanticObjectId, Optional[PydanticObjectId]]:
+    ) -> Dict[RecordId, Optional[RecordId]]:
         """group id -> the workspace that owns it, for the form's groups."""
         groups = await self.responder_groups_repo.get_groups_by_form_ids([form_id])
         return {
@@ -234,10 +234,10 @@ class ResponderGroupsService:
 
     async def add_groups_to_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
-        group_ids: List[PydanticObjectId],
-        form_workspace_ids: List[PydanticObjectId],
+        group_ids: List[RecordId],
+        form_workspace_ids: List[RecordId],
     ):
         """Set the workspace's groups on one of its forms (the whole set the
         builder sends, which lists every group linked to the form, whatever
@@ -269,10 +269,10 @@ class ResponderGroupsService:
 
     async def remove_group_from_form(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
-        group_id: PydanticObjectId,
-        form_workspace_ids: List[PydanticObjectId],
+        group_id: RecordId,
+        form_workspace_ids: List[RecordId],
     ):
         """Unlink one of the workspace's groups from one of its forms. A link
         to another workspace's group may be removed only when that workspace
@@ -289,7 +289,7 @@ class ResponderGroupsService:
             form_id=form_id, group_id=group_id
         )
 
-    async def delete_groups_of_workspaces(self, workspace_ids: List[PydanticObjectId]):
+    async def delete_groups_of_workspaces(self, workspace_ids: List[RecordId]):
         await self.responder_groups_repo.delete_responder_groups(
             workspace_ids=workspace_ids
         )

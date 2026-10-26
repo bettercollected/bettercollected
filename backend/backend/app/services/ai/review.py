@@ -12,7 +12,7 @@ rewrite.
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Literal, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -191,7 +191,7 @@ class FormAIReviewService:
         self._form_repo = form_repo
 
     async def _load_form(
-        self, workspace_id: PydanticObjectId, form_id: str, user: User
+        self, workspace_id: RecordId, form_id: str, user: User
     ) -> FormDocument:
         # Reviewing and fixing are part of building the form.
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
@@ -212,7 +212,7 @@ class FormAIReviewService:
 
     async def review(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: FormAIReviewRequest,
         user: User,
@@ -247,7 +247,7 @@ class FormAIReviewService:
 
     async def apply_fix(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         form_id: str,
         request: ApplyReviewFixRequest,
         user: User,

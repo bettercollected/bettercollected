@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, post
 from common.models.user import User
 from fastapi import Depends, Response
@@ -32,7 +32,7 @@ class WorkspaceDomainsRouter(Routable):
     @get("/{workspace_id}/domains")
     async def list_domains(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         user: User = Depends(get_full_user),
     ) -> List[WorkspaceDomainDto]:
         return await container.workspace_domain_service().list_domains(
@@ -49,7 +49,7 @@ class WorkspaceDomainsRouter(Routable):
     )
     async def claim_domain(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         request: ClaimDomainDto,
         user: User = Depends(get_full_user),
     ) -> WorkspaceDomainDto:
@@ -63,7 +63,7 @@ class WorkspaceDomainsRouter(Routable):
     )
     async def verify_domain(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         domain_id: str,
         user: User = Depends(get_full_user),
     ) -> WorkspaceDomainDto:
@@ -80,7 +80,7 @@ class WorkspaceDomainsRouter(Routable):
     )
     async def delete_domain(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         domain_id: str,
         user: User = Depends(get_full_user),
     ) -> Response:

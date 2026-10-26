@@ -5,7 +5,7 @@ import json
 from http import HTTPStatus
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse, Response
@@ -145,9 +145,9 @@ def _with_etag(body: Any, etag: str, status: int = 200, **headers) -> JSONRespon
     )
 
 
-def _object_id(value: str) -> PydanticObjectId:
+def _object_id(value: str) -> RecordId:
     try:
-        return PydanticObjectId(value)
+        return RecordId(value)
     except (InvalidId, TypeError, ValueError):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
 

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 from fastapi import File, UploadFile
 
@@ -40,7 +40,7 @@ class MediaLibraryService:
         )
 
     async def delete_media_from_library_of_workspace(
-        self, workspace_id: str, media_id: PydanticObjectId, user: User
+        self, workspace_id: str, media_id: RecordId, user: User
     ):
         await self._check_member(workspace_id, user)
         media = await self._media_library_repo.get_single_media_from_workspace_library(
@@ -78,7 +78,7 @@ class MediaLibraryService:
                     status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     content="File is too large.",
                 )
-            file_id = PydanticObjectId()
+            file_id = RecordId()
             s3_key = str(workspace_id) + str(file_id)
             media_url = await self._aws_service.upload_file_to_s3(
                 file=file.file, key=s3_key, folder_name="media_library"

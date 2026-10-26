@@ -10,7 +10,7 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from httpx import AsyncClient
@@ -25,10 +25,10 @@ from tests.app.controllers.data import testUser
 DRAFT_TITLE = "draft-read secret draft"
 PUBLISHED_TITLE = "draft-read published"
 
-outsider = User(id=str(PydanticObjectId()), sub="draft-read-outsider@example.com")
-disabled_admin = User(id=str(PydanticObjectId()), sub="draft-read-disabled@example.com")
-viewer = User(id=str(PydanticObjectId()), sub="draft-read-viewer@example.com")
-editor = User(id=str(PydanticObjectId()), sub="draft-read-editor@example.com")
+outsider = User(id=str(RecordId()), sub="draft-read-outsider@example.com")
+disabled_admin = User(id=str(RecordId()), sub="draft-read-disabled@example.com")
+viewer = User(id=str(RecordId()), sub="draft-read-viewer@example.com")
+editor = User(id=str(RecordId()), sub="draft-read-editor@example.com")
 
 
 @pytest.fixture(autouse=True)
@@ -108,7 +108,7 @@ async def test_the_refusal_does_not_tell_whether_the_form_exists(
     user = await _refusable(workspace, who)
 
     read = await client.get(
-        _read(workspace, str(PydanticObjectId())), cookies=_cookies(user)
+        _read(workspace, str(RecordId())), cookies=_cookies(user)
     )
 
     assert read.status_code == 403, read.text

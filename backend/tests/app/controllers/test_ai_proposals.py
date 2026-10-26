@@ -6,7 +6,7 @@ import datetime as dt
 import json
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from httpx import AsyncClient
 
@@ -75,7 +75,7 @@ ON_NEW_PAGE = {
 
 async def _session(proposal_id):
     return await container.form_ai_session_repo().get_or_404(
-        PydanticObjectId(proposal_id.split("-")[0])
+        RecordId(proposal_id.split("-")[0])
     )
 
 
@@ -622,7 +622,7 @@ class TestProposals:
         # an id of no proposal, or of another form, reads as none
         for proposal_id in (
             "nonsense",
-            f"{PydanticObjectId()}-0123456789abcdef",
+            f"{RecordId()}-0123456789abcdef",
             proposal["id"][:-1] + ("0" if proposal["id"][-1] != "0" else "1"),
         ):
             response = await _accept(
@@ -630,7 +630,7 @@ class TestProposals:
             )
             assert response.status_code == 404
         response = await _accept(
-            client, workspace, str(PydanticObjectId()), proposal["id"], test_user_cookies
+            client, workspace, str(RecordId()), proposal["id"], test_user_cookies
         )
         assert response.status_code == 404
         assert (await _stored(form_id)).model_dump() == before

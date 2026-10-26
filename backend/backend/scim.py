@@ -15,7 +15,7 @@ import asyncio
 import json
 import sys
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.utils import AiohttpClient
 from backend.cli_store import routed_repositories
@@ -31,7 +31,7 @@ async def _resync(container, workspace_id: str | None, force: bool = False) -> d
     if workspace_id is None:
         return await service.resync_all("cli")
     directory = await container.scim_directory_repo().find_by_workspace(
-        PydanticObjectId(workspace_id)
+        RecordId(workspace_id)
     )
     if directory is None:
         raise SystemExit("This workspace has no directory.")

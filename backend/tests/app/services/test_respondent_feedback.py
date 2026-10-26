@@ -6,7 +6,7 @@ import json
 from unittest.mock import patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from fastapi_pagination import Page, Params
@@ -26,7 +26,7 @@ NAME = "field-name"
 ORGANISATION = "Acme Hiring"
 SECRET = "Please bring your passport on Monday"
 
-workspace_admin = User(id=str(PydanticObjectId()), sub="workspace-admin@example.com")
+workspace_admin = User(id=str(RecordId()), sub="workspace-admin@example.com")
 
 
 def _form_payload():
@@ -267,7 +267,7 @@ async def test_refused_payloads(client, workspace, form):
     too_long = await client.post(url, json={"message": "x" * 5001}, cookies=cookies)
     assert too_long.status_code == 422
     missing = await client.post(
-        _feedback_url(workspace, form.form_id, str(PydanticObjectId())),
+        _feedback_url(workspace, form.form_id, str(RecordId())),
         json={"status": "Selected"},
         cookies=cookies,
     )

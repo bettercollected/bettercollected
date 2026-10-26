@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 from pydantic import (
     AfterValidator,
@@ -1150,7 +1150,7 @@ class ParameterValue(BaseModel):
 
 
 class ActionState(BaseModel):
-    id: PydanticObjectId
+    id: RecordId
     enabled: Optional[bool] = True
 
 
@@ -1354,7 +1354,7 @@ class RespondentFeedback(BaseModel):
 
 class ResponseState(BaseModel):
     global_state: Optional[Dict[str, Any]] = Field({})
-    processor_state: Optional[Dict[PydanticObjectId, Dict[str, Any]]] = Field({})
+    processor_state: Optional[Dict[RecordId, Dict[str, Any]]] = Field({})
     is_locked: Optional[bool] = Field(True)
     choices_total_point: Optional[float] = Field(None)
 

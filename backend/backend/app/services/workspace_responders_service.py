@@ -1,4 +1,4 @@
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.models.dtos.workspace_responder_dto import WorkspaceResponderPatchDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -24,7 +24,7 @@ class WorkspaceRespondersService:
         self.form_response_service = form_response_service
 
     async def create_workspace_tag(
-        self, workspace_id: PydanticObjectId, title: str, user: User
+        self, workspace_id: RecordId, title: str, user: User
     ):
         await self.authorization_service.authorize(
             user, Permission.PRIVACY_MANAGE, workspace_id
@@ -33,7 +33,7 @@ class WorkspaceRespondersService:
             workspace_id=workspace_id, title=title
         )
 
-    async def get_workspace_tags(self, workspace_id: PydanticObjectId, user: User):
+    async def get_workspace_tags(self, workspace_id: RecordId, user: User):
         await self.authorization_service.authorize(
             user, Permission.PRIVACY_MANAGE, workspace_id
         )
@@ -43,7 +43,7 @@ class WorkspaceRespondersService:
 
     async def get_workspace_responders(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         filter_query: FormResponseFilterQuery,
         sort: SortRequest,
         user: User,
@@ -59,7 +59,7 @@ class WorkspaceRespondersService:
 
     async def patch_workspace_responder_with_email(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         email: str,
         patch_request: WorkspaceResponderPatchDto,
         user: User,

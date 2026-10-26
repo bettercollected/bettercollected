@@ -1,23 +1,23 @@
 from typing import Optional, List, Dict
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
 class WorkspaceResponderPatchDto(BaseModel):
-    tags: Optional[List[PydanticObjectId]] = None
+    tags: Optional[List[RecordId]] = None
     metadata: Optional[Dict[str, str]] = None
 
 
 class WorkspaceTagsResponse(BaseModel):
     title: str
-    id: Optional[PydanticObjectId] = None
+    id: Optional[RecordId] = None
 
     def __init__(self, _id=None, *args, **kwargs):
         super().__init__(**kwargs)
         if _id:
-            self.id = PydanticObjectId(_id)
+            self.id = RecordId(_id)
 
 
 class WorkspaceResponderResponse(CamelModel):

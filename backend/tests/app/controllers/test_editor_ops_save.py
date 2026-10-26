@@ -5,7 +5,7 @@ API_EDITOR_OPS_SAVE_ENABLED), and the ETag on the editor's form GET."""
 import json
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from httpx import AsyncClient
@@ -83,7 +83,7 @@ async def _etag(client, workspace, form_id, cookies) -> str:
 
 
 async def _member(workspace, role) -> User:
-    user = User(id=str(PydanticObjectId()), sub=f"{role.value.lower()}@example.org")
+    user = User(id=str(RecordId()), sub=f"{role.value.lower()}@example.org")
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=user.id, roles=[role]

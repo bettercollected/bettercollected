@@ -7,7 +7,7 @@ import json
 import time
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.container import container
@@ -66,7 +66,7 @@ async def _session(user_id: str) -> SessionDocument:
     now = utcnow()
     return await container.session_repo().save(
         SessionDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             user_id=user_id,
             refresh_jti="j",
             expires_at=now.replace(year=now.year + 1),
@@ -174,7 +174,7 @@ async def test_polis_down_on_create(client, workspace, scim_on):
 
 @pytest.fixture()
 async def admin_member(workspace):
-    admin = User(id=str(PydanticObjectId()), sub="admin@" + DOMAIN)
+    admin = User(id=str(RecordId()), sub="admin@" + DOMAIN)
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=admin.id, roles=[WorkspaceRoles.ADMIN]
@@ -355,7 +355,7 @@ async def test_old_signatures_are_refused(client, workspace, directory, scim_on)
 async def test_unknown_directories_are_refused(client, workspace, directory, scim_on):
     polis, _ = scim_on
     body = json.dumps(event(directory, "user.created", user_data("u1", JANE))).encode()
-    for directory_id in (str(PydanticObjectId()), "not-an-id"):
+    for directory_id in (str(RecordId()), "not-an-id"):
         reply = await client.post(
             f"/api/v1/scim/webhook/{directory_id}",
             content=body,
@@ -446,7 +446,7 @@ async def test_deactivated_users_are_disabled_and_signed_out(
     jane = auth.accounts[JANE]
     session = await _session(jane["id"])
     # Jane's own workspace elsewhere is left alone
-    elsewhere = PydanticObjectId()
+    elsewhere = RecordId()
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
             workspace_id=elsewhere, user_id=jane["id"], roles=[WorkspaceRoles.ADMIN]
@@ -828,7 +828,7 @@ async def test_mapping_refuses_unknown_roles_and_the_owner(
         )
         assert reply.status_code == 422 and reply.json()["code"] == "invalid_role"
     reply = await client.put(
-        url(workspace, f"/groups/{PydanticObjectId()}"),
+        url(workspace, f"/groups/{RecordId()}"),
         json={"role": "ADMIN"},
         cookies=OWNER,
     )

@@ -11,7 +11,7 @@ import functools
 import os
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from sqlalchemy import select
 
 from backend.app.container import container
@@ -89,7 +89,7 @@ def forms_repo(mode, *, mirror_down=False):
 
 async def new_form(repo, title="Draft"):
     return await repo.create_form(
-        StandardForm(form_id=str(PydanticObjectId()), title=title, builder_version="v2")
+        StandardForm(form_id=str(RecordId()), title=title, builder_version="v2")
     )
 
 
@@ -267,7 +267,7 @@ async def test_reconcile_prunes_postgres_tombstones_past_their_retention(target)
     async with container.pg_sessionmaker()() as session, session.begin():
         session.add(
             DeletionTombstone(
-                collection="forms", row_id=str(PydanticObjectId()), deleted_at=old
+                collection="forms", row_id=str(RecordId()), deleted_at=old
             )
         )
         session.add(
@@ -308,7 +308,7 @@ async def test_saving_a_groups_emails_again_deletes_nothing_for_good(target, mod
         postgres=PostgresResponderGroupsRepository(container.pg_sessionmaker()),
         on_mirror_failure=container.outbox_recorder(),
     )
-    workspace_id = PydanticObjectId()
+    workspace_id = RecordId()
     group = await repo.create_group(workspace_id, "Group")
     emails = ["a@example.com", "b@example.com"]
     await repo.add_emails_to_group(group.id, emails)
@@ -377,7 +377,7 @@ async def test_reconcile_never_copies_an_expired_ttl_record(target):
     now = dt.datetime.now(dt.timezone.utc)
     await counters.insert_one(
         {
-            "_id": PydanticObjectId(),
+            "_id": RecordId(),
             "hits": 1,
             "expires_at": now - dt.timedelta(minutes=5),
             "created_at": now - dt.timedelta(hours=1),
@@ -401,7 +401,7 @@ async def test_a_record_written_again_in_the_deleting_write_is_not_deleted(targe
 
     at = dt.datetime(2026, 10, 24, 12, 0, 0, 123456, tzinfo=dt.timezone.utc)
     document = {
-        "_id": PydanticObjectId(),
+        "_id": RecordId(),
         "origin": "https://again.example",
         "created_at": at.replace(microsecond=123000),
         "updated_at": at.replace(microsecond=123000),  # Mongo keeps milliseconds

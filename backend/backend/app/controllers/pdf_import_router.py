@@ -8,7 +8,7 @@ the per-page analysis and the import report.
 import datetime as dt
 from typing import Any, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, get, post
 from fastapi import Depends, File, Form, UploadFile
 from fastapi.responses import Response
@@ -98,7 +98,7 @@ class PdfImportRouter(Routable):
     @post("", response_model=PdfImportDto, status_code=202)
     async def start_import(
         self,
-        workspace_id: PydanticObjectId,
+        workspace_id: RecordId,
         file: UploadFile = File(...),
         # off unless the client sends it: consent to use the AI provider
         ai_consent: bool = Form(False),
@@ -114,14 +114,14 @@ class PdfImportRouter(Routable):
 
     @get("", response_model=List[PdfImportDto])
     async def list_imports(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ):
         records = await container.pdf_import_service().list(workspace_id, user)
         return [PdfImportDto.of(r) for r in records]
 
     @get("/ai")
     async def ai_provider(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
     ):
         """Which AI provider an import with consent would use, for the upload
         screen's disclosure. Nothing is sent anywhere by this call."""
@@ -130,8 +130,8 @@ class PdfImportRouter(Routable):
     @get("/{import_id}", response_model=PdfImportDto)
     async def get_import(
         self,
-        workspace_id: PydanticObjectId,
-        import_id: PydanticObjectId,
+        workspace_id: RecordId,
+        import_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         record = await container.pdf_import_service().get(workspace_id, import_id, user)
@@ -140,8 +140,8 @@ class PdfImportRouter(Routable):
     @get("/{import_id}/review")
     async def review(
         self,
-        workspace_id: PydanticObjectId,
-        import_id: PydanticObjectId,
+        workspace_id: RecordId,
+        import_id: RecordId,
         user: User = Depends(get_full_user),
     ):
         return await container.pdf_import_service().review(
@@ -151,8 +151,8 @@ class PdfImportRouter(Routable):
     @get("/{import_id}/pages/{number}")
     async def page_image(
         self,
-        workspace_id: PydanticObjectId,
-        import_id: PydanticObjectId,
+        workspace_id: RecordId,
+        import_id: RecordId,
         number: int,
         user: User = Depends(get_full_user),
     ):

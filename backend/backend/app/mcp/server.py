@@ -16,7 +16,7 @@ from contextvars import ContextVar
 from importlib.metadata import version as package_version
 from typing import Any, Callable, Dict, List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
 from mcp.server.mcpserver import MCPServer
@@ -131,7 +131,7 @@ async def _audit(tool: str, ok: bool, detail: str = "") -> None:
 
 
 async def _workspace_form_ids(
-    workspace_id: PydanticObjectId,
+    workspace_id: RecordId,
 ) -> Dict[str, WorkspaceFormDocument]:
     docs = await _c().workspace_form_repo().list_in_workspace(workspace_id)
     return {d.form_id: d for d in docs}
@@ -530,7 +530,7 @@ async def publish_form(form_id: str) -> str:
     _require_form_in_workspace(form_id, workspace_forms)
     await container.workspace_form_service().publish_form(
         workspace_id=key.workspace_id,
-        form_id=PydanticObjectId(form_id),
+        form_id=RecordId(form_id),
         user=_acting_user(key),
     )
     refreshed = (

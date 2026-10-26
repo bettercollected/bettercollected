@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from fastapi_camelcase import CamelModel
 from pydantic import EmailStr, field_validator
 
@@ -65,5 +65,5 @@ class WorkspaceInvitationDto(CamelModel):
         return known.value if known else str(role)
 
     updated_at: Optional[datetime] = None
-    workspace_id: Optional[PydanticObjectId] = None
-    id: Optional[PydanticObjectId] = None
+    workspace_id: Optional[RecordId] = None
+    id: Optional[RecordId] = None

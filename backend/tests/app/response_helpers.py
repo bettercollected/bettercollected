@@ -1,6 +1,6 @@
 """Reading responses back in tests: responses belong to a workspace (#768)."""
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 
 from backend.app.container import container
 from backend.app.repositories.response_scope import ResponseScope, response_scope
@@ -39,7 +39,7 @@ def unlinked_scope(workspace_id, form_id: str) -> ResponseScope:
     """A form's responses in ``workspace_id``, stamped or not, whether or not the
     form is still linked (for checking that a deletion removed them)."""
     return ResponseScope(
-        workspace_id=PydanticObjectId(workspace_id),
+        workspace_id=RecordId(workspace_id),
         form_ids=(str(form_id),),
         legacy_form_ids=(str(form_id),),
     )

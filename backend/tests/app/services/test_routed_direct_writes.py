@@ -8,7 +8,6 @@ users' price suggestions were saved to Mongo only.
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from beanie import PydanticObjectId
 from dependency_injector import providers
 
 from backend.app.container import container
@@ -80,7 +79,7 @@ async def test_the_prompt_of_an_ai_form_is_stored(workspace):
 
 async def test_a_price_suggestion_is_stored():
     """refdata is served from Postgres only (no routing): stored there."""
-    user = User(id=str(PydanticObjectId()), sub="suggests@example.com")
+    user = User(id=str(RecordId()), sub="suggests@example.com")
     auth_service = SimpleNamespace(upgrade_user_to_pro=AsyncMock())
     workspace_service = SimpleNamespace(upgrade_user_workspace=AsyncMock())
     service = PriceSuggestionService(

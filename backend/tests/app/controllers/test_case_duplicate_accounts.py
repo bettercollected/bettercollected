@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from bson import ObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
@@ -177,7 +177,7 @@ async def _session(user_id: str):
     now = datetime.now(timezone.utc)
     await container.session_repo().save(
         SessionDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             user_id=user_id,
             refresh_jti="jti-" + user_id[-6:],
             last_refreshed_at=now,
@@ -200,7 +200,7 @@ async def world(auth):
     await _form(workspaces[C1], C1)
     await container.workspace_form_repo().save(
         WorkspaceFormDocument(
-            id=PydanticObjectId(),
+            id=RecordId(),
             workspace_id=workspaces[SOLO].id,
             form_id="imported-by-c2",
             user_id=C2,
@@ -300,7 +300,7 @@ async def test_drops_go_through_the_account_deletion_and_take_everything(
     # A2's membership in B2's workspace went with it
     assert (
         await container.workspace_user_repo().find_workspace_user(
-            world[B2].id, PydanticObjectId(A2)
+            world[B2].id, RecordId(A2)
         )
         is None
     )

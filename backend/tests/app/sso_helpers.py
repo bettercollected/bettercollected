@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 import httpx
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.exceptions.http import HTTPException as CommonHTTPException
 
 from backend.app.container import container
@@ -103,7 +103,7 @@ class FakeAuth:
 
     def add_account(self, email, user_id=None) -> dict:
         account = {
-            "id": user_id or str(PydanticObjectId()),
+            "id": user_id or str(RecordId()),
             "sub": email,
             "email": email,
             "roles": ["FORM_RESPONDER", "FORM_CREATOR"],
@@ -301,8 +301,8 @@ async def verify_domain(workspace_id, domain=DOMAIN, lost=False):
     """A verified claim, as if the TXT record had been checked."""
     return await container.workspace_domain_repo().create(
         WorkspaceDomainDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(workspace_id),
+            id=RecordId(),
+            workspace_id=RecordId(workspace_id),
             domain=domain,
             verification_token="0" * 32,
             created_by="test",
@@ -323,14 +323,14 @@ async def add_connection(
     now = dt.datetime.now(dt.timezone.utc)
     return await container.sso_connection_repo().create(
         SsoConnectionDocument(
-            id=PydanticObjectId(),
-            workspace_id=PydanticObjectId(workspace_id),
+            id=RecordId(),
+            workspace_id=RecordId(workspace_id),
             type=kind,
             name="Acme IdP",
             status=(
                 SsoConnectionStatus.ENABLED if enabled else SsoConnectionStatus.DISABLED
             ),
-            polis_client_id=client_id or f"client-{PydanticObjectId()}",
+            polis_client_id=client_id or f"client-{RecordId()}",
             polis_tenant=str(workspace_id),
             polis_product="bettercollected",
             created_by="test",

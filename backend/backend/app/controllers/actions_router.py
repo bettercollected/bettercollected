@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from classy_fastapi import Routable, post, get, delete
 from common.models.user import User
 from fastapi import Depends
@@ -37,7 +37,7 @@ class ActionRouter(Routable):
         self.action_service = actions_service
 
     # @post("/workspaces/{workspace_id}/actions", response_model=ActionResponse)
-    # async def create_action(self, workspace_id: PydanticObjectId,
+    # async def create_action(self, workspace_id: RecordId,
     #                         action: ActionDto, user: User = Depends(get_full_user)):
     #     action = await self.action_service.create_action(workspace_id=workspace_id, action=action, user=user)
     #     return ActionResponse(**action.model_dump(mode='json'))
@@ -61,7 +61,7 @@ class ActionRouter(Routable):
 
     @get("/actions/{action_id}", response_model=ActionResponse)
     async def get_action_by_id(
-        self, action_id: PydanticObjectId, user: User = Depends(get_full_user)
+        self, action_id: RecordId, user: User = Depends(get_full_user)
     ):
         action = await self.action_service.get_action_by_id(action_id=action_id)
         if not action:
@@ -70,7 +70,7 @@ class ActionRouter(Routable):
 
     @delete("/actions/{action_id}")
     async def delete_action(
-        self, action_id: PydanticObjectId, user: User = Depends(get_logged_admin)
+        self, action_id: RecordId, user: User = Depends(get_logged_admin)
     ):
         await self.action_service.delete_action_from_workspace(
             action_id=action_id,

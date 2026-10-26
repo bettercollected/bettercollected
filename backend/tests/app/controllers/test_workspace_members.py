@@ -4,7 +4,7 @@ from typing import Any, Coroutine
 
 import pytest
 from httpx import AsyncClient
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
 from common.enums.workspace_invitation_status import InvitationStatus
@@ -45,7 +45,7 @@ async def invitation_by_token_url(
 
 
 async def create_invitation(
-    workspace_id: PydanticObjectId, invitation: InvitationRequest
+    workspace_id: RecordId, invitation: InvitationRequest
 ):
     return await container.workspace_invitation_repo().create_workspace_invitation(
         workspace_id, invitation
@@ -129,7 +129,7 @@ class TestWorkspaceMember:
 
         assert response.status_code == 403
         assert await container.workspace_user_repo().find_workspace_user(
-            workspace.id, PydanticObjectId(testUser.id)
+            workspace.id, RecordId(testUser.id)
         )
 
     async def test_delete_member_deletes_form_and_user(
@@ -153,7 +153,7 @@ class TestWorkspaceMember:
             workspace.id, members_form.form_id
         )
         expected_user = await container.workspace_user_repo().find_workspace_user(
-            workspace.id, PydanticObjectId(invited_user.id)
+            workspace.id, RecordId(invited_user.id)
         )
         actual_user_and_form = None
         assert actual_user_and_form == expected_user == expected_form

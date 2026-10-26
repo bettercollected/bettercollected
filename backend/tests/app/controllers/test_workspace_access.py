@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from httpx import AsyncClient
 
@@ -313,7 +313,7 @@ class TestIntegrationOAuth:
             )
             action_id = str(other.id)
         elif action == "unknown":
-            action_id = str(PydanticObjectId())
+            action_id = str(RecordId())
         else:
             action_id = "not-an-id"
 
@@ -708,7 +708,7 @@ async def _linked_group_ids(form_id) -> set:
     groups = await container.responder_groups_service().responder_groups_repo.get_groups_by_form_ids(
         [form_id]
     )
-    return {PydanticObjectId(group["_id"]) for group in groups[form_id]}
+    return {RecordId(group["_id"]) for group in groups[form_id]}
 
 
 async def _own_group(workspace, user, name="Own"):
@@ -751,7 +751,7 @@ class TestFormGroupLinksAcrossWorkspaces:
         self, workspace_1, workspace_form_1
     ):
         attaching = container.workspace_form_service().add_groups_to_form(
-            workspace_1.id, workspace_form_1.form_id, [PydanticObjectId()], testUser1
+            workspace_1.id, workspace_form_1.form_id, [RecordId()], testUser1
         )
 
         assert await _refused(attaching) == 404

@@ -2,7 +2,7 @@ import datetime as dt
 import re
 from typing import Any, Optional, Dict, List
 
-from beanie import PydanticObjectId
+from common.ids import RecordId
 from common.models.consent import ResponseRetentionType
 from common.models.standard_form import THEME_PATTERNS
 from fastapi_camelcase import CamelModel
@@ -173,7 +173,7 @@ class ParameterValue(BaseModel):
 
 
 class WorkspaceRequestWithActionDto(WorkspaceRequestDto):
-    id: Optional[PydanticObjectId] = None
+    id: Optional[RecordId] = None
     parameters: Optional[Dict[str, Optional[List[ParameterValue]]]] = None
     secrets: Optional[Dict[str, Optional[List[ParameterValue]]]] = None
 
@@ -265,7 +265,7 @@ class WorkspaceFormSettings(BaseModel):
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     """Model for returning information about a workspace."""
 
-    id: Optional[PydanticObjectId] = None
+    id: Optional[RecordId] = None
     # the billing owner: the account whose plan the workspace runs on (a
     # workspace can have other owners with the same rights)
     owner_id: Optional[str] = None
