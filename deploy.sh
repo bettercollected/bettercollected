@@ -28,7 +28,10 @@ refuse_typeform_preference "$user_preference"
 # without it) and the task runner. The optional ones are added further down.
 # MongoDB is not among them: since 4.1 it starts only under the legacy-mongo
 # profile, for the one-time import of a 4.0 stack's data (legacy_mongo_import).
-services_to_start=("webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker" "umami-postgresql" "umami" "admin" "jobs-worker" "document-sandbox" "task-runner")
+# Temporal is not among them either: since 4.1 background work runs on the Postgres job
+# queue (the jobs worker), and a stack from before 4.1 has its Temporal retired by
+# retire_temporal after the roll.
+services_to_start=("webapp" "nginx" "backend" "auth" "umami-postgresql" "umami" "admin" "jobs-worker" "document-sandbox" "task-runner")
 
 # Determine the appropriate Docker Compose command. An array: "docker compose" (the
 # plugin) is two words, and a quoted string of it would be looked up as one command
@@ -61,10 +64,12 @@ export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 # itself, ADMIN_ALLOWED_IPS. Everything else is generated here, once, and never
 # overwritten:
 #   .env                     SETTINGS_MASTER_KEY, the database passwords, the
-#                            Umami secret, the Temporal worker's two keys
+#                            Umami secret
 #   the settings store       AUTH_JWT_SECRET, AUTH_AES_HEX_KEY,
-#                            AUTH_INTERNAL_NOTIFY_KEY, TEMPORAL_API_KEY and the
-#                            response keyset (`bootstrap-keys`; nothing printed)
+#                            AUTH_INTERNAL_NOTIFY_KEY, TEMPORAL_API_KEY, the
+#                            response keyset and RESPONDENT_IDENTITY_KEY
+#                            (`bootstrap-keys`; nothing printed). An upgrade gets
+#                            the last one in the store and in .env (ensure_identity_key)
 # An upgrade from a release that kept those keys in .env imports them into the
 # store instead (never overwriting), and checks the result against the files.
 # Secrets are never printed: only names and counts.
@@ -127,13 +132,12 @@ esac
 #    (until the admin mail settings are set up in the portal).
 env_driven_keys=(SSO_ENABLED SSO_POLIS_URL SSO_POLIS_API_KEY SSO_REDIRECT_URI SSO_SAML_AUDIENCE MAIL_USER MAIL_PASSWORD MAIL_SMTP_SERVER MAIL_SMTP_PORT MAIL_SENDER MAIL_STARTTLS MAIL_SSL_TLS MAIL_USE_CREDENTIALS MAIL_VALIDATE_CERTS)
 
-# What the services that are NOT settings-store readers read from their environment,
-# beyond the few values docker-compose.deployment.yml sets itself. Each gets an env
-# file of its own (service_env_file) holding only these names, so none of them receives
-# Stripe, Google or mail secrets, the Mongo root URI or any key. A trailing * is a
+# What the webapp (not a settings-store reader) reads from its environment, beyond the
+# few values docker-compose.deployment.yml sets itself. It gets an env file of its own
+# (service_env_file) holding only these names, so it receives no Stripe, Google or mail
+# secrets, no Mongo root URI and no key. A trailing * is a
 # prefix. docs/settings-inventory.md lists the readers; a test compares the two.
 webapp_env_keys=(INTERNAL_DOCKER_API_ENDPOINT_HOST API_ENDPOINT_HOST DASHBOARD_DOMAIN FORM_DOMAIN HTTP_SCHEME FORM_PRIVACY_POLICY_URL BASE_DEPLOY_PATH UNSPLASH_ACCESS_KEY GOOGLE_CLIENT_ID GOOGLE_PICKER_API_KEY UMAMI_WEBSITE_ID UMAMI_SCRIPT_URL CUSTOM_DOMAIN_APPLICATION_ID CUSTOM_DOMAIN_ASSERTION_KEYS CUSTOM_DOMAIN_ASSERTION_MODE CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN 'NEXT_PUBLIC_*' 'ELASTIC_APM_*')
-worker_env_keys=(SERVER_URL NAMESPACE WORKER_QUEUE WORKERS COOKIE_DOMAIN MAX_THREAD_POOL_EXECUTORS 'ELASTIC_APM_*')
 
 # --- helpers ---------------------------------------------------------------------------
 
@@ -161,13 +165,16 @@ env_unset() {
 # Appends VAR=VALUE to the root .env (dropping an earlier assignment of VAR first).
 env_put() {
   env_unset "$1" || return 1
+  # a last line without a newline would swallow the assignment appended below
+  if [ -s .env ] && [ -n "$(tail -c 1 .env)" ]; then
+    echo >> .env || return 1
+  fi
   printf '%s=%s\n' "$1" "$2" >> .env
 }
 
 # Creates the env file of a service that is not one of the settings-store readers
-# (webapp, Temporal worker), once, from the lines of .env.deployment it
-# reads. It never gets anything else, so a bug in the public webapp or in the browser
-# the worker drives cannot expose the backend's secrets. An existing file is never
+# (the webapp), once, from the lines of .env.deployment it reads. It never gets
+# anything else, so a bug in the public webapp cannot expose the backend's secrets. An existing file is never
 # changed (only its mode is made private). An item ending in * is a name prefix.
 service_env_file() {
   local file=$1 line name value item match tmp copied
@@ -274,53 +281,6 @@ operator_mongo_uri_files() {
     if file_has "$file" MONGO_URI; then out="${out:+$out and }$file"; fi
   done
   printf '%s' "$out"
-}
-
-# API_KEY and AES_HEX_KEY: the Temporal worker's copies of TEMPORAL_API_KEY and
-# AUTH_AES_HEX_KEY. The worker is not on the settings store and never gets the
-# master key, so the two values live in the root .env. Copies the legacy values
-# when .env still has them, otherwise exports them from the store.
-copy_legacy_worker_keys() {
-  if ! file_has .env API_KEY && file_has .env TEMPORAL_API_KEY; then
-    env_put API_KEY "$(dotenv_value .env TEMPORAL_API_KEY)"
-    echo "Copied TEMPORAL_API_KEY to API_KEY in .env (the Temporal worker's copy; the value is not shown)."
-  fi
-  if ! file_has .env AES_HEX_KEY && file_has .env AUTH_AES_HEX_KEY; then
-    env_put AES_HEX_KEY "$(dotenv_value .env AUTH_AES_HEX_KEY)"
-    echo "Copied AUTH_AES_HEX_KEY to AES_HEX_KEY in .env (the Temporal worker's copy; the value is not shown)."
-  fi
-}
-
-ensure_worker_keys() {
-  local dir out
-  copy_legacy_worker_keys
-  if file_has .env API_KEY && file_has .env AES_HEX_KEY; then
-    return 0
-  fi
-  dir=$(private_dir) || return 1
-  admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/out")
-  admin_cli bootstrap-keys --export-worker-only --export-worker /out/worker.env >/dev/null
-  out=$?
-  admin_cli_opts=()
-  if [ "$out" -eq 0 ]; then merge_worker_env "$dir/worker.env"; out=$?; fi
-  rm -rf "$dir"
-  return "$out"
-}
-
-# Appends API_KEY / AES_HEX_KEY from FILE to .env when .env has no value for them.
-merge_worker_env() {
-  local var line
-  for var in API_KEY AES_HEX_KEY; do
-    line=$(grep -E "^${var}=." "$1" | tail -n 1)
-    if [ -z "$line" ]; then
-      echo "The worker key ${var} is missing from the bootstrap output." >&2
-      return 1
-    fi
-    if ! file_has .env "$var"; then
-      env_put "$var" "${line#*=}"
-      echo "Stored ${var} in .env (the Temporal worker's key, generated with the stack's keys; the value is not shown)."
-    fi
-  done
 }
 
 # Prints how many settings the store holds against the files. Names only.
@@ -584,6 +544,8 @@ esac
 # found under a different name (the directory's, while COMPOSE_PROJECT_NAME was set
 # later or elsewhere) is refused: compose would create a second, empty stack beside
 # it and every password generated here would not match the first one's volumes.
+# (temporal-postgres-data is Temporal's database of a stack from before 4.1: no longer
+# created, kept when it exists, and still the sign of a stack that ran)
 stack_volume_names=(mongo-data app-postgres-data temporal-postgres-data umami-db-data)
 
 # True when any volume of the compose project $1 exists: the stack's four data
@@ -631,8 +593,6 @@ if file_has .env BC_LEGACY_MONGO_IMPORTED && file_has .env.deployment MONGO_URI;
   echo "      in .env). The backend checks that Mongo at every start and refuses to start when it cannot reach it:"
   echo "      remove the line (blank it) unless you are going back to 4.0."
 fi
-fresh_temporal_db=true
-docker volume inspect "${compose_project}_temporal-postgres-data" &>/dev/null && fresh_temporal_db=false
 fresh_umami_db=true
 docker volume inspect "${compose_project}_umami-db-data" &>/dev/null && fresh_umami_db=false
 
@@ -676,17 +636,19 @@ for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASS
   fi
 done
 
-# The Temporal, Umami and Mongo databases are internal only, but no longer use the
+# The Umami and Mongo databases are internal only, but no longer use the
 # well-known password on a new volume. A volume created by an earlier release
 # keeps the password it was created with, which is what compose uses when the
 # variable is unset (docs/admin-service.md, "Internal credentials and ports").
-# Fail closed: these three passwords are read only when their volume is created, so
+# Temporal's database (BC_TEMPORAL_DB_PASSWORD) is not generated any more: Temporal
+# is not part of the stack since 4.1; an old volume of it is kept as it is.
+# Fail closed: these passwords are read only when their volume is created, so
 # none is generated while ANY volume of the stack exists (under the project name
 # compose uses; a stack under another name was refused above). A missing value then
 # means the default of the volume's own release, never a new password that would not
 # match what is stored.
 if [ "$stack_volumes_present" = true ]; then
-  for var in BC_TEMPORAL_DB_PASSWORD BC_UMAMI_DB_PASSWORD BC_MONGO_ROOT_PASSWORD; do
+  for var in BC_UMAMI_DB_PASSWORD BC_MONGO_ROOT_PASSWORD; do
     # Mongo's only matters to a stack that has its volume (the import from 4.0)
     [ "$var" != BC_MONGO_ROOT_PASSWORD ] || [ "$existing_stack" = true ] || continue
     if ! file_has .env "$var"; then
@@ -694,10 +656,6 @@ if [ "$stack_volumes_present" = true ]; then
     fi
   done
 else
-  if ! file_assigns .env BC_TEMPORAL_DB_PASSWORD; then
-    echo "BC_TEMPORAL_DB_PASSWORD=$(openssl rand -hex 24)" >> .env
-    echo "Generated a new BC_TEMPORAL_DB_PASSWORD in .env (first run)."
-  fi
   # No Mongo root password: a new stack never starts MongoDB (4.1). An upgrade
   # keeps the one its volume was created with.
   if ! file_assigns .env BC_UMAMI_DB_PASSWORD; then
@@ -710,8 +668,8 @@ fi
 # migration URL below, DATABASE_URL of every service, the seeded MONGO_URI): only
 # URL-safe characters are accepted, because "@", "/", "#" or "?" would break the URL
 # or point it elsewhere. Generated values are hex; this guards values set by hand.
-# The Umami and Mongo passwords are checked when set (they may be unset): the others
-# (APP_POSTGRES_PASSWORD, BC_TEMPORAL_DB_PASSWORD) are not part of a URL.
+# The Umami and Mongo passwords are checked when set (they may be unset): the other
+# (APP_POSTGRES_PASSWORD) is not part of a URL.
 for var in BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD BC_ADMIN_PASSWORD BC_ADMIN_MIG_PASSWORD BC_TASKS_PASSWORD BC_TASKS_DATA_APP_PASSWORD BC_TASKS_DATA_GOOGLE_PASSWORD BC_UMAMI_DB_PASSWORD BC_MONGO_ROOT_PASSWORD; do
   case "$var" in
     BC_UMAMI_DB_PASSWORD|BC_MONGO_ROOT_PASSWORD) file_assigns .env "$var" || continue ;;
@@ -813,18 +771,17 @@ fi
 
 chmod 600 .env
 
-# The env files of the services that are not settings-store readers (webapp, Temporal
-# worker): each holds only what that service reads, copied once from .env.deployment,
-# mode 600. An .env.typeform left by an earlier release is no longer used.
+# The env file of the webapp (not a settings-store reader): it holds only what the
+# webapp reads, copied once from .env.deployment, mode 600. An .env.typeform or
+# .env.worker left by an earlier release is no longer used.
 service_env_file .env.webapp "${webapp_env_keys[@]}" || exit 1
-service_env_file .env.worker "${worker_env_keys[@]}" || exit 1
 
 # The stack's keys (AUTH_JWT_SECRET, AUTH_AES_HEX_KEY, AUTH_INTERNAL_NOTIFY_KEY,
-# TEMPORAL_API_KEY, MASTER_ENCRYPTION_KEYSET) live in the settings store. Runs
+# TEMPORAL_API_KEY, MASTER_ENCRYPTION_KEYSET, RESPONDENT_IDENTITY_KEY) live in the settings store. Runs
 # after the database and its migrations are in place and before any service
 # starts, because the services refuse to start without them.
 function stack_keys() {
-  local state rc dir mongo_uri_files count
+  local state rc mongo_uri_files count
   state=$(store_keys_state) || {
     echo "Could not read the settings store (see the message above). Is SETTINGS_MASTER_KEY the key this stack has used?" >&2
     return 1
@@ -841,7 +798,6 @@ function stack_keys() {
         echo "Generated a new ${var} in .env (it is imported into the settings store below)."
       fi
     done
-    copy_legacy_worker_keys
     echo "Importing the settings found in the compose configuration into the settings store (names and counts only):"
     import_out=$( ( set -o pipefail; compose_config_json | admin_cli settings-import --from-compose-config ) 2>&1 )
     rc=$?
@@ -889,15 +845,11 @@ function stack_keys() {
       echo "remove the MONGO_URI line." >&2
       return 1
     fi
-    dir=$(private_dir) || return 1
-    admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/out")
     # its output is counts, names and the refusal reason: never key material
-    boot_out=$(admin_cli bootstrap-keys $([ "$state" = partial ] && echo --fill-missing) --export-worker /out/worker.env 2>&1)
+    boot_out=$(admin_cli bootstrap-keys $([ "$state" = partial ] && echo --fill-missing) 2>&1)
     rc=$?
-    admin_cli_opts=()
     printf '%s\n' "$boot_out"
     if [ "$rc" -ne 0 ] && printf '%s\n' "$boot_out" | grep -qE 'stack_has_data|stack_unknown|existing_stack|keys_in_environment'; then
-      rm -rf "$dir"
       echo "" >&2
       echo "STOPPED before any service started, and no new keys were stored. This database already holds data" >&2
       echo "(or that could not be established), and a new response keyset could not read what the old one" >&2
@@ -906,8 +858,6 @@ function stack_keys() {
       echo "'Upgrading to 4.0' in docs/admin-service.md and ./deploy.sh settings-import --dry-run)." >&2
       return 1
     fi
-    if [ "$rc" -eq 0 ]; then merge_worker_env "$dir/worker.env"; rc=$?; fi
-    rm -rf "$dir"
     if [ "$rc" -ne 0 ]; then
       echo "Generating the stack's keys failed (see above). Fix the cause and run ./deploy.sh again: it continues where it stopped." >&2
       return 1
@@ -920,10 +870,6 @@ function stack_keys() {
     env_put BC_FIRST_RUN_PENDING 1
   fi
 
-  ensure_worker_keys || {
-    echo "Could not set up the Temporal worker's keys (API_KEY, AES_HEX_KEY) in .env." >&2
-    return 1
-  }
   chmod 600 .env
   # Values the services used to get pinned by the compose file, now plain settings
   seed_setting UMAMI_URL "http://umami:3000" || {
@@ -970,6 +916,290 @@ function stack_keys() {
       }
     fi
   fi
+}
+
+# The respondent identity key (docs/respondent-identity.md): the 4.1 backend refuses to
+# start without it. A new stack gets it from `bootstrap-keys`; a stack upgrading from 4.0
+# has its other keys already (in the store, or in the files they are imported from), so
+# `bootstrap-keys` is not run and nothing else would create it. Where the backend reads
+# it from: the shell or the root .env (compose substitutes it into the service's
+# environment, which beats .env.deployment: a value only there never arrives, so it is
+# copied into .env here, unprinted), else the settings store (an environment value wins).
+# When neither has one it is generated here once: into the settings store
+# (`settings-import`, which never overwrites) and into the root .env, the way an upgrade
+# treats its other keys (the files keep them until `settings-prune`, and
+# `SETTINGS_STORE=off` reads only the environment). Never overwritten, never printed
+# (identity_pass prints its fingerprint). Refused when
+#  - this database already has a key check (a 4.1 backend started with some key) and no
+#    key can be found: a new key would not match what that one converted;
+#  - .env and the store both hold a key and nothing says they are the same one: the
+#    script cannot compare them without printing either. A key it generated itself is
+#    recorded as BC_IDENTITY_KEY_SHA256 (a hash of 32 random bytes) and passes;
+#    BC_IDENTITY_KEY_SOURCE=env says the .env key is the intended one;
+#  - SETTINGS_STORE=off and the key is only in the store.
+identity_tmp_dir=""
+identity_cleanup() {
+  [ -z "$identity_tmp_dir" ] || rm -rf "$identity_tmp_dir"
+  identity_tmp_dir=""
+}
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$1" | sha256sum | cut -d' ' -f1
+  else
+    printf '%s' "$1" | shasum -a 256 | cut -d' ' -f1
+  fi
+}
+
+ensure_identity_key() {
+  local count rows key dir out rc store_off=false
+  case "$(printf '%s' "${SETTINGS_STORE-$(dotenv_value .env SETTINGS_STORE)}" | tr '[:upper:]' '[:lower:]')" in
+    off) store_off=true ;;
+  esac
+  if [ -n "${RESPONDENT_IDENTITY_KEY:-}" ]; then
+    echo "RESPONDENT_IDENTITY_KEY is set in the shell: it is used as it is, none is generated."
+    return 0
+  fi
+  if ! file_has .env RESPONDENT_IDENTITY_KEY && file_has .env.deployment RESPONDENT_IDENTITY_KEY; then
+    if ! env_put RESPONDENT_IDENTITY_KEY "$(dotenv_value .env.deployment RESPONDENT_IDENTITY_KEY)"; then
+      echo "Could not copy RESPONDENT_IDENTITY_KEY from .env.deployment into .env. Nothing was started." >&2
+      return 1
+    fi
+    chmod 600 .env
+    echo "RESPONDENT_IDENTITY_KEY was set only in .env.deployment, which does not reach the backend's environment: it is copied into .env (the value is not shown)."
+  fi
+  count=$(store_versions RESPONDENT_IDENTITY_KEY) || count=""
+  if [ -z "$count" ]; then
+    echo "Could not read the settings store for RESPONDENT_IDENTITY_KEY." >&2
+    return 1
+  fi
+  if file_has .env RESPONDENT_IDENTITY_KEY; then
+    if [ "$count" -gt 0 ] && [ "${BC_IDENTITY_KEY_SOURCE:-}" != env ] \
+       && [ "$(dotenv_value .env BC_IDENTITY_KEY_SHA256)" != "$(sha256_of "$(dotenv_value .env RESPONDENT_IDENTITY_KEY)")" ]; then
+      echo "" >&2
+      echo "STOPPED before any service started: RESPONDENT_IDENTITY_KEY is set in .env and the settings store holds one too, and" >&2
+      echo "this script cannot tell whether they are the same key (it never prints either). The backend uses the one in .env." >&2
+      echo "If they differ, stored identities would be matched with the wrong key. If the key in .env is the one this stack has" >&2
+      echo "used, run BC_IDENTITY_KEY_SOURCE=env ./deploy.sh; otherwise remove it from .env (docs/respondent-identity.md)." >&2
+      return 1
+    fi
+    echo "RESPONDENT_IDENTITY_KEY is set in .env: it is used as it is, none is generated."
+    return 0
+  fi
+  if [ "$count" -gt 0 ]; then
+    # a new stack (bootstrap-keys) or an earlier run: the store has it, which is where the backend reads it
+    if [ "$store_off" = true ]; then
+      echo "" >&2
+      echo "STOPPED before any service started: SETTINGS_STORE=off makes the services read environment values only, but" >&2
+      echo "RESPONDENT_IDENTITY_KEY is only in the settings store. Put the key this stack has used in .env as" >&2
+      echo "RESPONDENT_IDENTITY_KEY=... (or remove SETTINGS_STORE=off) and run ./deploy.sh again (docs/respondent-identity.md)." >&2
+      return 1
+    fi
+    return 0
+  fi
+  rows=$("${docker_compose_cmd[@]}" "${compose_files[@]}" exec -T app-postgres psql -U bettercollected -d bettercollected -Atc \
+    "SELECT count(*) FROM app.respondent_identity_key_check" 2>/dev/null | tr -d '\r' | tail -n 1)
+  if [ "$rows" != 0 ]; then
+    echo "" >&2
+    echo "STOPPED before any service started: this database was already used with a respondent identity key (or that" >&2
+    echo "could not be established), but RESPONDENT_IDENTITY_KEY is set nowhere (not in .env or the settings store)." >&2
+    echo "A new key would not match the identities stored with the old one, so none is generated." >&2
+    echo "Put the key this stack has used in .env as RESPONDENT_IDENTITY_KEY=... and run ./deploy.sh again" >&2
+    echo "(docs/respondent-identity.md)." >&2
+    return 1
+  fi
+  key=$(openssl rand -hex 32) || return 1
+  dir=$(private_dir) || return 1
+  # the scratch directory goes on every way out, a signal included
+  identity_tmp_dir=$dir
+  trap identity_cleanup EXIT
+  trap 'identity_cleanup; exit 130' INT
+  trap 'identity_cleanup; exit 143' TERM HUP
+  # a private file in a private directory, removed right after; the value is never an argument
+  printf 'RESPONDENT_IDENTITY_KEY=%s\n' "$key" > "$dir/identity.env"
+  admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/work")
+  out=$(admin_cli settings-import --env-file /work/identity.env 2>&1)
+  rc=$?
+  admin_cli_opts=()
+  identity_cleanup
+  trap - EXIT INT TERM HUP
+  if [ "$rc" -ne 0 ]; then
+    unset key
+    printf '%s\n' "$out" | sed 's/^refused RESPONDENT_IDENTITY_KEY .*/refused RESPONDENT_IDENTITY_KEY (the generated value was not accepted)/' >&2
+    echo "Could not store a new RESPONDENT_IDENTITY_KEY (see above). Nothing was started." >&2
+    return 1
+  fi
+  if ! env_put RESPONDENT_IDENTITY_KEY "$key" || ! env_put BC_IDENTITY_KEY_SHA256 "$(sha256_of "$key")"; then
+    unset key
+    echo "A new RESPONDENT_IDENTITY_KEY is in the settings store, but .env could not be written. Nothing was started." >&2
+    echo "Fix .env (is it writable?) and run ./deploy.sh again: the store's key is kept." >&2
+    return 1
+  fi
+  unset key
+  chmod 600 .env
+  echo "Generated a new RESPONDENT_IDENTITY_KEY in the settings store and in .env (the value is not shown)."
+  echo "  Keep it with the other keys: it cannot be recreated, and a different key makes every stored anonymous"
+  echo "  response unfindable by its respondent (docs/respondent-identity.md). Its fingerprint is printed below."
+}
+
+# Runs the one-time conversion of the stored respondent identities once the new backend
+# is up (`python -m backend.identity_rekey`, docs/respondent-identity.md): the backend
+# also does it by itself in the background after it starts, and a one-off here makes
+# sure it has run by the time deploy.sh ends, whichever finishes first (a Postgres
+# advisory lock lets one process run it at a time; a skipped run, exit 2, is retried).
+# Prints counts and the key's fingerprint only. A key that is missing or is not the one
+# that converted the stored identities (exit 3, 4) is an error: the backend will not
+# serve without it. A pass that is still running elsewhere or leaves values is a warning.
+identity_pass() {
+  local attempt=0 max out rc report fp left
+  max=${BC_DEPLOY_IDENTITY_PASS_TRIES:-12}
+  while [ "$attempt" -lt "$max" ]; do
+    attempt=$((attempt + 1))
+    out=$("${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T backend /api/backend/.venv/bin/python -m backend.identity_rekey 2>&1)
+    rc=$?
+    report=$(printf '%s\n' "$out" | grep -E '^\{.*"key_fingerprint"' | tail -n 1)
+    fp=$(printf '%s' "$report" | sed -n 's/.*"key_fingerprint": *"\([0-9a-f]*\)".*/\1/p')
+    case "$rc" in
+      0)
+        left=$(printf '%s' "$report" | sed -n 's/.*"remaining": *\({[^}]*}\).*/\1/p')
+        echo "Respondent identity key fingerprint: ${fp:-unknown} (write it down with the key backup; a different one later means a different key)."
+        echo "Stored respondent identities are all converted (remaining: ${left:-none})."
+        return 0 ;;
+      3|4)
+        printf '%s\n' "$out" | tail -n 5 >&2
+        echo "" >&2
+        echo "The respondent identity key is missing, unusable or not the one the stored identities were converted with" >&2
+        echo "(exit $rc of backend.identity_rekey). The backend will not serve anonymous submissions with it." >&2
+        echo "Put the right RESPONDENT_IDENTITY_KEY in .env (docs/respondent-identity.md) and run ./deploy.sh again." >&2
+        return 1 ;;
+      2) ;;                                         # the backend's own pass holds the lock: wait for it
+      *) [ "$attempt" -lt 2 ] || break ;;           # 1: values remain or the run failed: once more
+    esac
+    sleep "${BC_DEPLOY_RETRY_SLEEP:-5}"
+  done
+  printf '%s\n' "$out" | tail -n 5 >&2
+  echo "WARNING: the respondent identity pass did not finish in this run (exit $rc): the backend runs it in the background" >&2
+  echo "         and again a few minutes after each start. Check its log, then run it by hand until it exits 0:" >&2
+  echo "         docker compose run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.identity_rekey" >&2
+  echo "         Key fingerprint: ${fp:-unknown}." >&2
+  return 0
+}
+
+# --- Temporal (retired in 4.1) ------------------------------------------------------------
+# Since 4.1 background work (account and response deletion, imports, actions) runs on the
+# Postgres job queue, and the compose file starts neither Temporal, its database nor the
+# Temporal worker. A stack from before 4.1 still has those containers. After the new
+# release is up (so nothing new goes to Temporal any more), retire_temporal
+#   1. puts every scheduled response deletion on the job queue (the schedules that live
+#      in Temporal would otherwise vanish with it): `backend.migrate jobs-sweep`, which
+#      is idempotent;
+#   2. waits, bounded (BC_TEMPORAL_DRAIN_SECONDS, default 300), until Temporal runs no
+#      workflow: an account deletion that is in flight finishes through the new backend's
+#      /temporal/* routes, which the old worker still calls with its own copy of the key;
+#   3. removes the old containers (worker, Temporal, its database) and keeps the
+#      database volume. BC_TEMPORAL_DRAIN=skip removes them without waiting.
+# Any failure stops the deploy with the stack running and the old containers untouched;
+# running ./deploy.sh again repeats it.
+
+# The job kinds that an operator pinned to Temporal in .env.deployment cannot run in a
+# stack without it: refused before anything is changed. (JOBS_BACKEND is an environment-only
+# setting, tier T5: the settings store cannot hold it, so the files are the only place to look;
+# compose passes nothing else to the services.)
+refuse_temporal_job_backend() {
+  local line name value found=""
+  [ -f .env.deployment ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    name=$(printf '%s\n' "$line" | sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}\(JOBS_BACKEND\(__[A-Za-z0-9_]\{1,\}\)\{0,1\}\)[[:space:]]*=.*/\2/p')
+    [ -n "$name" ] || continue
+    value=$(dotenv_unquote "${line#*=}" | tr '[:upper:]' '[:lower:]')
+    [ "$value" = temporal ] && found="${found:+$found, }$name"
+  done < .env.deployment
+  [ -n "$found" ] || return 0
+  echo "refused: .env.deployment routes background jobs to Temporal (${found}). Temporal is not part of the stack since 4.1:" >&2
+  echo "the jobs run on the Postgres queue. Remove those lines (or set them to postgres) and run ./deploy.sh again." >&2
+  echo "Nothing was changed." >&2
+  return 1
+}
+
+# The container ids of this compose project's service $1, in any state.
+project_containers() {
+  docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.service=$1" 2>/dev/null
+}
+
+# How many workflows Temporal (container $1) still runs; -1 when it cannot be asked.
+# Schedules are system workflows and not counted: they were moved to the queue.
+temporal_running() {
+  local out
+  local ns
+  # the namespace the old stack used: the backend's TEMPORAL_NAMESPACE, the worker's NAMESPACE (.env.worker, else .env.deployment)
+  ns=$(dotenv_value .env.deployment TEMPORAL_NAMESPACE)
+  [ -n "$ns" ] || ns=$(dotenv_value .env.worker NAMESPACE)
+  [ -n "$ns" ] || ns=$(dotenv_value .env.deployment NAMESPACE)
+  out=$(docker exec "$1" temporal workflow list --address temporal:7233 --namespace "${ns:-default}" --query 'ExecutionStatus="Running"' --limit 200 2>&1) || { echo -1; return 0; }
+  printf '%s\n' "$out" | grep -E '^[[:space:]]*Running[[:space:]]' | grep -vc 'temporal-sys-' || true
+}
+
+retire_temporal() {
+  local tid name out rc scheduled deadline running id
+  tid=$(project_containers temporal | head -n 1)
+  [ -n "$tid" ] || return 0   # a new stack, or Temporal was retired by an earlier run
+  name=$(docker inspect -f '{{.Name}}' "$tid" 2>/dev/null | tr -d '/')
+  echo ""
+  echo "TEMPORAL: this stack still runs Temporal, which is not part of it since 4.1 (background work runs on the Postgres"
+  echo "job queue). Moving what it holds onto the queue, then removing it; its database volume is kept."
+  # backend.migrate opens a Mongo client for every command, even one that only reads Postgres
+  # (an empty MONGO_URI, which is what an imported stack has, makes the client refuse to be
+  # built). The sweep never reads Mongo, so the one-off gets an address nothing listens on:
+  # the client is built and never used.
+  out=$("${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T -e MONGO_URI='mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000' backend /api/backend/.venv/bin/python -m backend.migrate jobs-sweep --backend postgres 2>&1)
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '%s\n' "$out" | tail -n 8 >&2
+    echo "" >&2
+    echo "STOPPED: the scheduled response deletions could not be put on the job queue (see above). The stack runs 4.1; the" >&2
+    echo "old Temporal containers were left in place. Fix the cause and run ./deploy.sh again." >&2
+    return 1
+  fi
+  scheduled=$(printf '%s\n' "$out" | sed -n 's/^[[:space:]]*"scheduled": *\([0-9][0-9]*\).*/\1/p' | tail -n 1)
+  echo "Scheduled response deletions on the job queue: ${scheduled:-unknown} (already queued ones are not repeated)."
+  if [ "${BC_TEMPORAL_DRAIN:-}" = skip ]; then
+    echo "NOTE: BC_TEMPORAL_DRAIN=skip: not waiting for workflows that are still running in Temporal."
+  elif [ "$(docker inspect -f '{{.State.Running}}' "$tid" 2>/dev/null)" != true ]; then
+    echo "Temporal is not running: nothing to wait for."
+  else
+    deadline=$((SECONDS + ${BC_TEMPORAL_DRAIN_SECONDS:-300}))
+    while :; do
+      running=$(temporal_running "$tid")
+      [ "$running" = 0 ] && break
+      if [ "$SECONDS" -ge "$deadline" ]; then
+        echo "" >&2
+        if [ "$running" = -1 ]; then
+          echo "STOPPED: Temporal could not be asked which workflows it still runs." >&2
+        else
+          echo "STOPPED: Temporal still runs ${running} workflow(s) after ${BC_TEMPORAL_DRAIN_SECONDS:-300} s." >&2
+        fi
+        echo "The stack runs 4.1 and the old Temporal containers were left in place. List them with:" >&2
+        echo "  docker exec ${name} temporal workflow list --address temporal:7233 --query 'ExecutionStatus=\"Running\"'" >&2
+        echo "Run ./deploy.sh again once they have finished; to remove Temporal without waiting (what is still running is" >&2
+        echo "lost), run BC_TEMPORAL_DRAIN=skip ./deploy.sh." >&2
+        return 1
+      fi
+      echo "Waiting for Temporal: ${running} workflow(s) still running ..."
+      sleep "${BC_TEMPORAL_DRAIN_POLL:-5}"
+    done
+    echo "Temporal runs no workflow."
+  fi
+  # the worker first, then Temporal, then its database (the one holding the temporal volume)
+  for id in $(project_containers worker) "$tid"; do
+    docker rm -f "$id" >/dev/null 2>&1 || echo "WARNING: could not remove the container ${id:0:12}; remove it by hand." >&2
+  done
+  for id in $(project_containers postgresql); do
+    if docker inspect -f '{{range .Mounts}}{{.Name}} {{end}}' "$id" 2>/dev/null | grep -q '_temporal-postgres-data'; then
+      docker rm -f "$id" >/dev/null 2>&1 || echo "WARNING: could not remove the container ${id:0:12}; remove it by hand." >&2
+    fi
+  done
+  echo "Removed the Temporal, Temporal worker and Temporal database containers."
+  echo "The volume ${compose_project}_temporal-postgres-data is kept (rolling back to 4.0 uses it); remove it with 'docker volume rm' once 4.1 has run well."
 }
 
 # A value the webapp reads: from its own env file (.env.webapp, what it gets), else
@@ -1196,7 +1426,7 @@ function dockerup() {
   # finds nothing left to do after this step.
   # Pull every first-party image the stack runs, so no service keeps a stale cached
   # one. A failed pull (offline, a local build) is a warning: the cached images are used.
-  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" pull -q backend auth webapp worker \
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" pull -q backend auth webapp \
     $([ "$googleform_flag" = true ] && echo integrations-googleform) \
     || echo "WARNING: could not pull all images; the images already on this host are used." >&2
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" up -d --wait app-postgres || exit 1
@@ -1225,6 +1455,8 @@ function dockerup() {
   # The settings store exists now: the stack's keys go into it (new stack) or
   # are imported from the old files (upgrade), before the services need them.
   stack_keys || exit 1
+  # the respondent identity key: a stack upgrading from 4.0 has none yet
+  ensure_identity_key || exit 1
 
   # A stack from before 4.1: its Mongo data goes into Postgres first, verified,
   # before any service of this release starts. Stops the deploy on any failure.
@@ -1248,6 +1480,10 @@ function dockerup() {
   if [ -n "$(docker ps -aq --filter label=com.docker.compose.project="$COMPOSE_PROJECT_NAME" --filter label=com.docker.compose.service=integrations-typeform 2>/dev/null)" ]; then
     echo "WARNING: an integrations-typeform container from an earlier release still exists. Typeform was removed in 4.1; remove that container when you no longer need it." >&2
   fi
+  if [ -f .env.worker ]; then
+    echo "NOTE: .env.worker from an earlier release still exists. The Temporal worker is not part of the stack any more, so nothing reads it" >&2
+    echo "      (nor the worker's API_KEY and AES_HEX_KEY copies in .env); keep them only if you may roll back to 4.0." >&2
+  fi
   if [ -f .env.typeform ]; then
     echo "WARNING: .env.typeform from an earlier release still exists. It holds the Typeform client secret and a database URI and is no longer used: delete it (rm .env.typeform)." >&2
   fi
@@ -1265,6 +1501,13 @@ function dockerup() {
       exit 1
     fi
   fi
+
+  # the stored respondent identities, converted once the 4.1 backend is up (and the key's
+  # fingerprint, to write down); fatal only for a key that is wrong, never for a slow pass
+  identity_pass || exit 1
+
+  # a stack from before 4.1 still runs Temporal: its work goes to the queue, then it is removed
+  retire_temporal || exit 1
 
   # an interrupted first run (the keys exist, the notice below was never shown)
   if file_has .env BC_FIRST_RUN_PENDING; then
@@ -1323,5 +1566,6 @@ else
   while IFS= read -r service; do
     start_list+=("$service")
   done < <(services_for "$user_preference")
+  refuse_temporal_job_backend || exit 1
   dockerup "${start_list[@]}"
 fi

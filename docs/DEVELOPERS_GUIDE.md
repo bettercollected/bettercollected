@@ -92,10 +92,12 @@ working, but they are public too: never deploy with them.
 
 **Self-hosted stacks** get their own values from `deploy.sh`: on a new stack
 `python -m backend.admin bootstrap-keys` generates `AUTH_JWT_SECRET`,
-`AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY` and
-`MASTER_ENCRYPTION_KEYSET` straight into the settings store (docs/admin-service.md);
-the root `.env` (gitignored, mode 600) keeps `SETTINGS_MASTER_KEY`, the database
-passwords and the Temporal worker's two copies (`API_KEY`, `AES_HEX_KEY`). An
+`AUTH_AES_HEX_KEY`, `AUTH_INTERNAL_NOTIFY_KEY`, `TEMPORAL_API_KEY`,
+`MASTER_ENCRYPTION_KEYSET` and `RESPONDENT_IDENTITY_KEY` straight into the settings
+store (docs/admin-service.md; an upgrade has `deploy.sh` generate the identity key
+once, into the store and `.env`);
+the root `.env` (gitignored, mode 600) keeps `SETTINGS_MASTER_KEY` and the database
+passwords. An
 upgrade imports the values an older release kept in `.env` or `.env.deployment`
 (`deploy/generate-secrets.sh` copies and checks them first) and never overwrites
 the store. Keep the master key backed up. Local development sets

@@ -30,7 +30,7 @@
 #
 # Images (override mechanism, like ADMIN_CHECK_IMAGE in admin-compose-check.sh):
 #   built from the checkout:  bc-v4check-backend:local (backend, admin, task runner, jobs worker,
-#   document sandbox), bc-v4check-auth:local, bc-v4check-worker:local; the Google integration
+#   document sandbox), bc-v4check-auth:local; the Google integration
 #   (bc-v4check-google:local) with V4_CHECK_GOOGLE=1, and always for the upgrade part (its import runs it).
 #   V4_CHECK_REUSE_IMAGES=1   use images with those tags that already exist instead of building
 #   V4_CHECK_WEBAPP=nightly   (default) the published bettercollected/webapp:nightly; =build builds
@@ -255,7 +255,7 @@ sdeploy() { (cd "$S_DIR" && hermetic ./deploy.sh "$@"); }
 # prefixed with the time. Returns deploy.sh's exit status.
 run_deploy() { # run_deploy <out> [deploy.sh args...]
   local out="$1"; shift
-  ( cd "$S_DIR" && timeout 2400 "${HERM[@]}" script -qefc "./deploy.sh $*" /dev/null < /dev/null ) 2>&1 \
+  ( cd "$S_DIR" && timeout 2400 "${HERM[@]}" script -qefc "${DEPLOY_ENV:-} ./deploy.sh $*" /dev/null < /dev/null ) 2>&1 \
     | while IFS= read -r line; do printf '%s %s\n' "$(date +%s.%N)" "${line%$'\r'}"; done > "$out"
   return "${PIPESTATUS[0]}"
 }
@@ -292,7 +292,6 @@ rewrite_compose() { # rewrite_compose <dir> new|old
     sed -i -E \
       -e "s#bettercollected/backend:nightly#$img_backend#" \
       -e "s#bettercollected/auth:nightly#$img_auth#" \
-      -e "s#bettercollected/temporal-worker:nightly#$img_worker#" \
       -e "s#bettercollected/webapp:nightly#$img_webapp#" \
       -e "s#bettercollected/integrations-google:nightly#$img_google#" \
       -e "s#ghcr.io/umami-software/umami:postgresql-latest#$img_umami#" "$file"
@@ -401,7 +400,6 @@ show_secret_hits() { # show_secret_hits <secrets file> <file...>
 # --- images ---------------------------------------------------------------------------------------------
 img_backend="bc-v4check-backend:local"
 img_auth="bc-v4check-auth:local"
-img_worker="bc-v4check-worker:local"
 img_google="bc-v4check-google:local"
 img_webapp="bettercollected/webapp:nightly"
 img_umami="ghcr.io/umami-software/umami:postgresql-latest"
@@ -421,7 +419,6 @@ prepare_images() {
   section "images"
   build_image "$img_backend" backend/Dockerfile || exit 2
   build_image "$img_auth" auth/Dockerfile || exit 2
-  build_image "$img_worker" temporal/worker/Dockerfile || exit 2
   # The Google image is substituted into every copy of the compose file, so it must exist whenever a part
   # runs it: the 4.1 import of an upgrade migrates the Google integration's schema (and imports its Mongo
   # data) with it even on a stack that does not run Google Forms, so parts 2 and 3 need it too.
@@ -540,7 +537,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   unhealthy="$(printf '%s\n' "$states" | grep -vE '^(mongo-seed)=' | grep -vE '=(healthy|running)$' || true)"
   expect "every service is healthy or running" "" "$unhealthy"
   local svc
-  for svc in admin task-runner jobs-worker document-sandbox backend auth webapp worker nginx umami temporal app-postgres $google_service; do
+  for svc in admin task-runner jobs-worker document-sandbox backend auth webapp nginx umami app-postgres $google_service; do
     case "$(printf '%s\n' "$states" | grep "^$svc=" | head -n 1)" in
       "$svc=healthy"|"$svc=running") ok "$svc is up" ;;
       *) bad "$svc is up ($(printf '%s\n' "$states" | grep "^$svc=" | head -n 1))" ;;
@@ -572,10 +569,10 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   expect "the backend and the jobs worker run on Postgres" "postgres postgres postgres postgres" \
     "$(for c in backend jobs-worker; do docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q "$c" | head -n 1)" | sed -n 's/^DB_READ_SOURCE=//p; s/^DB_WRITE_MODE=//p'; done | tr '\n' ' ' | sed 's/ $//')"
   # bootstrap-keys ran, before any service started
-  check "bootstrap-keys ran (five keys generated, values not shown)" grep -q '^generated=5 (values are not shown)' "$plain"
+  check "bootstrap-keys ran (six keys generated, values not shown)" grep -q '^generated=6 (values are not shown)' "$plain"
   local boot_at first_start
-  boot_at="$(grep -m1 ' generated=5 (values' "$out" | cut -d' ' -f1)"
-  first_start="$(grep -E ' start (admin|backend|auth|webapp|worker|jobs-worker|task-runner|mongo-seed|nginx|umami|mongodb|temporal) ' "$events" | grep -v -- '-run-' | head -n 1 | cut -d' ' -f1)"
+  boot_at="$(grep -m1 ' generated=6 (values' "$out" | cut -d' ' -f1)"
+  first_start="$(grep -E ' start (admin|backend|auth|webapp|jobs-worker|task-runner|mongo-seed|nginx|umami|mongodb) ' "$events" | grep -v -- '-run-' | head -n 1 | cut -d' ' -f1)"
   if [ -n "$boot_at" ] && [ -n "$first_start" ]; then
     # the output line is stamped when it was read, the events when they happened
     if awk -v b="$boot_at" -v s="$first_start" 'BEGIN { exit !(b * 1000000000 < s) }'; then
@@ -587,9 +584,9 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
     bad "bootstrap-keys ordering could not be established (boot '$boot_at', first start '$first_start')"
   fi
   local first_service_after_keys
-  first_service_after_keys="$(grep -n -m1 -E 'Container .*-(backend|auth|webapp|worker|admin)-1 +(Creating|Created|Starting|Started)' "$plain" | cut -d: -f1)"
+  first_service_after_keys="$(grep -n -m1 -E 'Container .*-(backend|auth|webapp|admin)-1 +(Creating|Created|Starting|Started)' "$plain" | cut -d: -f1)"
   local boot_line
-  boot_line="$(grep -n -m1 '^generated=5' "$plain" | cut -d: -f1)"
+  boot_line="$(grep -n -m1 '^generated=6' "$plain" | cut -d: -f1)"
   if [ -n "$boot_line" ] && [ -n "$first_service_after_keys" ]; then
     if [ "$boot_line" -lt "$first_service_after_keys" ]; then ok "in the deploy output, bootstrap-keys comes before the services' creation"; else bad "in the deploy output, bootstrap-keys comes before the services' creation"; fi
   else
@@ -606,6 +603,17 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   FRESH_FP="$fp"
   FRESH_TOKEN="$(grep -E '^[A-Z2-7]{4}(-[A-Z2-7]{4}){7}$' "$plain" | head -n 1)"
   expect "the printed fingerprint is the master key's" "master_key_fingerprint $fp" "$(sdeploy master-key-fingerprint 2>/dev/null | tr -d '\r' | tail -n 1)"
+  # the respondent identity key: generated by bootstrap-keys into the store only, never in a file, and
+  # only its fingerprint shown (docs/respondent-identity.md)
+  expect "the respondent identity key is in the store (one version)" "versions=1" "$(sdeploy settings-history RESPONDENT_IDENTITY_KEY 2>/dev/null | tail -n 1 | tr -d '\r')"
+  expect "no env file holds RESPONDENT_IDENTITY_KEY" "0" "$(cat "$S_DIR/.env" "$S_DIR/.env.deployment" "$S_DIR/.env.webapp" 2>/dev/null | grep -cE '^[[:space:]]*(export[[:space:]]+)?RESPONDENT_IDENTITY_KEY=.')"
+  FRESH_IDENTITY_FP="$(grep -oE 'Respondent identity key fingerprint: [0-9a-f]{8}' "$plain" | grep -oE '[0-9a-f]{8}$' | head -n 1)"
+  expect "the deploy printed the identity key's 8-hex fingerprint once" "1" "$(grep -cE 'Respondent identity key fingerprint: [0-9a-f]{8} ' "$plain")"
+  check "the fingerprint has the shape of 8 hex digits" test -n "$FRESH_IDENTITY_FP"
+  expect "the running backend reports that fingerprint at its start" "yes" \
+    "$([ "$(dc logs --no-log-prefix backend 2>&1 | grep -c "respondent identity key fingerprint=$FRESH_IDENTITY_FP")" -ge 1 ] && echo yes)"
+  expect "the deploy generated nothing for it beyond bootstrap-keys (no separate generation notice)" "0" "$(grep -c 'Generated a new RESPONDENT_IDENTITY_KEY' "$plain")"
+  expect "the identity pass ran once and found nothing left" "1" "$(grep -c '^Stored respondent identities are all converted' "$plain")"
   # secrets
   collect_secrets "$work/fresh.secrets"
   local count
@@ -613,7 +621,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   check "the root .env holds generated secrets (checked below: $count values)" test "$count" -ge 10
   # the keys of the store: exported once (break-glass) only to widen the value list, then deleted
   rm -f "$S_DIR/keys-export.env"
-  if sdeploy settings-env-export --keys AUTH_JWT_SECRET,AUTH_AES_HEX_KEY,AUTH_INTERNAL_NOTIFY_KEY,TEMPORAL_API_KEY,MASTER_ENCRYPTION_KEYSET --out "$S_DIR/keys-export.env" >/dev/null 2>&1; then
+  if sdeploy settings-env-export --keys AUTH_JWT_SECRET,AUTH_AES_HEX_KEY,AUTH_INTERNAL_NOTIFY_KEY,TEMPORAL_API_KEY,MASTER_ENCRYPTION_KEYSET,RESPONDENT_IDENTITY_KEY --out "$S_DIR/keys-export.env" >/dev/null 2>&1; then
     sed -E 's/^[^=]*=//; s/^"(.*)"$/\1/' "$S_DIR/keys-export.env" | awk 'length($0) >= 12' >> "$work/fresh.secrets"
     rm -f "$S_DIR/keys-export.env"
   else
@@ -637,23 +645,18 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   expect "no secret value in docker inspect (command, labels, mounts) or docker top of any container" "0" "$leaks"
   expect "no secret value is in the setup token's logs (every container's log)" "0" "$(for id in $(dc ps -aq); do docker logs "$id" 2>&1; done > "$work/fresh.logs"; secret_hits "$work/fresh.secrets" "$work/fresh.logs")"
   expect "the setup token is in no container log" "0" "$(grep -c -F "$FRESH_TOKEN" "$work/fresh.logs")"
-  # per-service env scoping: webapp and worker without secrets
-  local name
-  for name in webapp worker; do
-    id="$(dc ps -q "$name" | head -n 1)"
-    docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$id" > "$work/fresh.env.$name"
-    local allowed_re='^(API_KEY|AES_HEX_KEY)='
-    local hits
-    hits="$(grep -c -F -f "$work/fresh.secrets" "$work/fresh.env.$name" || true)"
-    if [ "$name" = worker ]; then
-      hits="$(grep -vE "$allowed_re" "$work/fresh.env.$name" | grep -c -F -f "$work/fresh.secrets" || true)"
-    fi
-    expect "$name holds no secret value in its environment (the worker keeps only its two keys)" "0" "$hits"
-    expect "$name has no master key and no database URL" "0" "$(grep -cE '^(SETTINGS_MASTER_KEY|DATABASE_URL|MONGO_URI|STRIPE_[A-Z_]*|GOOGLE_CLIENT_SECRET|MAIL_PASSWORD)=' "$work/fresh.env.$name")"
-  done
-  expect "the worker's two keys are the only secrets in its env" "AES_HEX_KEY API_KEY" "$(grep -E '^(API_KEY|AES_HEX_KEY)=.' "$work/fresh.env.worker" | cut -d= -f1 | sort | tr '\n' ' ' | sed 's/ $//')"
+  # per-service env scoping: the webapp without secrets
+  local name=webapp hits
+  id="$(dc ps -q "$name" | head -n 1)"
+  docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$id" > "$work/fresh.env.$name"
+  hits="$(grep -c -F -f "$work/fresh.secrets" "$work/fresh.env.$name" || true)"
+  expect "$name holds no secret value in its environment" "0" "$hits"
+  expect "$name has no master key and no database URL" "0" "$(grep -cE '^(SETTINGS_MASTER_KEY|DATABASE_URL|MONGO_URI|STRIPE_[A-Z_]*|GOOGLE_CLIENT_SECRET|MAIL_PASSWORD)=' "$work/fresh.env.$name")"
+  # Temporal, its database and its worker are not part of a 4.1 stack: never started, no volume, no worker key copies
+  expect "Temporal, its database and its worker were never started (no container, no volume, no env file, no key copies)" "none no-volume absent 0" \
+    "$(service_state | grep -qE '^(temporal|worker|postgresql)=' && echo present || echo none) $(docker volume inspect "${S_PROJECT}_temporal-postgres-data" >/dev/null 2>&1 && echo volume || echo no-volume) $([ -e "$S_DIR/.env.worker" ] && echo present || echo absent) $(grep -cE '^(API_KEY|AES_HEX_KEY|BC_TEMPORAL_DB_PASSWORD)=' "$S_DIR/.env")"
   expect "no Typeform service in the rendered stack (removed in 4.1)" "0" "$(dc config --services 2>/dev/null | grep -c '^integrations-typeform$')"
-  check "the env files deploy.sh wrote are owner-only (mode 600)" test "$(stat -c %a "$S_DIR/.env" "$S_DIR/.env.webapp" "$S_DIR/.env.worker" | sort -u | tr -d '\n')" = 600
+  check "the env files deploy.sh wrote are owner-only (mode 600)" test "$(stat -c %a "$S_DIR/.env" "$S_DIR/.env.webapp" | sort -u | tr -d '\n')" = 600
   # umami: the built-in login is gone
   local umami_code
   umami_code="$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"umami"}' "http://127.0.0.1:$S_UMAMI/api/auth/login")"
@@ -679,6 +682,9 @@ fresh_second_run() {
   expect "it prints no fingerprint notice" "0" "$(grep -c '^Master key fingerprint' "$plain")"
   expect "it generates nothing new" "0" "$(grep -c '^Generated a new' "$plain")"
   expect "it runs no bootstrap" "0" "$(grep -c '^generated=' "$plain")"
+  expect "it keeps the respondent identity key: the same fingerprint as the first run" "$FRESH_IDENTITY_FP" \
+    "$(grep -oE 'Respondent identity key fingerprint: [0-9a-f]{8}' "$plain" | grep -oE '[0-9a-f]{8}$' | head -n 1)"
+  expect "the respondent identity key still has one stored version" "versions=1" "$(sdeploy settings-history RESPONDENT_IDENTITY_KEY 2>/dev/null | tail -n 1 | tr -d '\r')"
   local versions
   versions="$(for k in AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET; do sdeploy settings-history "$k" 2>/dev/null | tail -n 1; done | tr '\n' ' ')"
   expect "the stored keys are unchanged (still one version each)" "$FRESH_STORE_VERSIONS" "$versions"
@@ -699,7 +705,7 @@ fresh_published_ports() {
   section "(1) published ports"
   local listing="$work/fresh.ports"
   docker ps --filter "label=com.docker.compose.project=$S_PROJECT" --format '{{.Label "com.docker.compose.service"}} {{.Ports}}' > "$listing"
-  expect "nothing is published on 7234 (Temporal), 27017 (Mongo) or 5432 (Postgres)" "0" "$(grep -cE ':(7234|27017|5432)->' "$listing")"
+  expect "nothing is published on 7233/7234 (Temporal), 27017 (Mongo) or 5432 (Postgres)" "0" "$(grep -cE ':(7233|7234|27017|5432)->' "$listing")"
   expect "the admin portal is published on 127.0.0.1 only" "127.0.0.1:$S_ADMIN_PORT->8000/tcp" "$(grep '^admin ' "$listing" | grep -oE '[0-9.:]+:'"$S_ADMIN_PORT"'->8000/tcp' | head -n 1)"
   expect "the Umami dashboard is published on 127.0.0.1 only" "127.0.0.1:$S_UMAMI->3000/tcp" "$(grep '^umami ' "$listing" | grep -oE '[0-9.:]+:'"$S_UMAMI"'->3000/tcp' | head -n 1)"
   expect "no port of the stack is bound to 0.0.0.0 or ::" "0" "$(grep -cE '(0\.0\.0\.0|\[::\]):[0-9]+->' "$listing")"
@@ -790,7 +796,7 @@ negatives_runtime() {
   expect "docker inspect: the master key is in the four store readers' environment (those running), the admin service and the task runner only" \
     "$(printf '%s\n' admin auth backend $google_service jobs-worker task-runner | sort | tr '\n' ' ' | sed 's/ $//')" "$holders"
   local fileholders=""
-  for f in .env.webapp .env.worker .env.deployment; do
+  for f in .env.webapp .env.deployment; do
     grep -qF "$key" "$S_DIR/$f" 2>/dev/null && fileholders="$fileholders $f"
   done
   expect "no env file except the root .env holds the master key" "" "$fileholders"
@@ -824,7 +830,7 @@ s = json.load(sys.stdin)["services"]
 env = lambda n: s[n].get("environment") or {}
 print("published=" + ",".join(sorted("%s=%s:%s" % (n, p.get("host_ip") or "*", p["published"]) for n, b in s.items() for p in b.get("ports") or [])))
 print("holders=" + ",".join(sorted(n for n in s if "SETTINGS_MASTER_KEY" in env(n))))
-print("worker=" + ",".join(sorted(env("worker"))))
+print("temporal_services=" + ",".join(sorted(n for n in s if n in ("temporal", "worker", "postgresql"))))
 print("webapp_secret_names=" + ",".join(sorted(k for k in env("webapp") if k.endswith(("SECRET", "PASSWORD", "KEY")) or k in ("DATABASE_URL", "MONGO_URI"))))
 print("typeform_service=%s" % ("integrations-typeform" in s))
 print("store_required=" + ",".join(sorted(n for n in s if env(n).get("SETTINGS_STORE") == "required")))' 2>/dev/null)"
@@ -833,12 +839,11 @@ print("store_required=" + ",".join(sorted(n for n in s if env(n).get("SETTINGS_S
     "published=admin=127.0.0.1:8100,backend=*:8000,nginx=*:3001,nginx=*:3002,nginx=*:3003,umami=127.0.0.1:3004,webapp=*:3000" "$(gotp published)"
   expect "rendered: the master key is held by the four store readers, the admin service and the task runner only" \
     "holders=admin,auth,backend,integrations-googleform,jobs-worker,task-runner" "$(gotp holders)"
-  expect "rendered: the worker's environment has no master key and no database URL" "worker=AES_HEX_KEY,API_KEY,TEMPORAL_SERVER_URL" "$(gotp worker)"
+  expect "rendered: no Temporal, Temporal database or Temporal worker service (not part of the stack since 4.1)" "temporal_services=" "$(gotp temporal_services)"
   expect "rendered: the webapp's environment names no secret" "webapp_secret_names=" "$(gotp webapp_secret_names)"
   # a secret in .env.deployment reaches the four store readers and nothing else (compose inlines env_file)
   printf 'STRIPE_SECRET=DUMMY-env-deployment-secret\nMONGO_URI=mongodb://root:DUMMY-env-deployment-secret@mongodb:27017\n' > "$tmp/.env.deployment"
   printf 'UNSPLASH_ACCESS_KEY=DUMMY-webapp\n' > "$tmp/.env.webapp"
-  printf 'COOKIE_DOMAIN=example.test\n' > "$tmp/.env.worker"
   expect "rendered: a secret in .env.deployment reaches the four store readers only" "auth,backend,integrations-googleform,jobs-worker" \
     "$(hermetic docker compose --env-file "$env_file" -f "$tmp/docker-compose.deployment.yml" config --format json 2>/dev/null \
       | uv run --no-project --quiet python -I -c '
@@ -932,7 +937,7 @@ mongo_counts() { # workspaces,forms,responses,users
 }
 
 store_snapshot() { # a digest of the settings store (versions of every key, never values) and the keys' history
-  local keys="AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY" k
+  local keys="AUTH_JWT_SECRET AUTH_AES_HEX_KEY MASTER_ENCRYPTION_KEYSET AUTH_INTERNAL_NOTIFY_KEY TEMPORAL_API_KEY RESPONDENT_IDENTITY_KEY" k
   for k in $keys; do printf '%s %s\n' "$k" "$(admin_cli settings-history "$k" 2>/dev/null | tail -n 1 | tr -d '\r')"; done
   dc exec -T app-postgres psql -U bettercollected -d bettercollected -Atc \
     "select count(*) || ' rows, last change ' || coalesce(max(updated_at)::text, '-') from settings.${SETTINGS_TABLE:-entries}" 2>/dev/null | tr -d '\r'
@@ -1048,6 +1053,13 @@ SQL
     case "$(service_state | grep "^$svc=")" in "$svc=healthy"|"$svc=running") ok "$svc runs (new in the start list)" ;; *) bad "$svc runs" ;; esac
   done
   expect "Temporal's port is not published any more" "0" "$(docker ps --filter "label=com.docker.compose.project=$S_PROJECT" --format '{{.Ports}}' | grep -c ':[0-9]*->7233/tcp')"
+  # Temporal is not part of 4.1: deploy.sh put the scheduled deletions on the job queue, waited for
+  # running workflows and removed the old containers, keeping the database volume
+  expect "Temporal, its worker and its database containers are gone and the database volume is kept" "none volume" \
+    "$(old_temporal_stack) $(docker volume inspect "${S_PROJECT}_temporal-postgres-data" >/dev/null 2>&1 && echo volume || echo no-volume)"
+  check "deploy.sh said it moved the scheduled response deletion onto the job queue" grep -q 'Scheduled response deletions on the job queue: 1 ' "$plain"
+  expect "the job queue holds that deletion (one job, scheduled for its date)" "1" "$(psql_app "select count(*) from jobs.procrastinate_jobs where queueing_lock like 'delete_response:%' and scheduled_at > now()")"
+  check "it reported the removal of Temporal, its worker and its database" grep -q 'Removed the Temporal, Temporal worker and Temporal database containers' "$plain"
   expect "Umami's dashboard moved to 127.0.0.1 (3004) and nginx serves the tracker only" "404" "$(http_code "http://127.0.0.1:$S_N3/login")"
   expect "Umami rejects its built-in login after the upgrade" "401" "$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"umami"}' "http://127.0.0.1:$S_UMAMI/api/auth/login")"
   expect "the settings differ from the files nowhere (settings-drift exits 0)" "0" "$(sdeploy settings-drift >"$work/drift.out" 2>&1; echo $?)"
@@ -1055,6 +1067,7 @@ SQL
   # data intact and decryptable, now in Postgres
   after="$(pg_counts)"
   expect "the documents are all in Postgres" "$before" "$after"
+  upgrade_identity "$plain" "$work/upgrade-stop.plain"
   # the keys: imported, not generated
   local k exported="$S_DIR/keys-export.env" stored
   rm -f "$exported"
@@ -1103,6 +1116,54 @@ SQL
   UPGRADE_SNAPSHOT="$(store_snapshot)"
   part_rollback_stack
 }
+
+# "present" when any container of Temporal, its worker or its database (the service named postgresql) exists
+old_temporal_stack() {
+  local svc
+  for svc in temporal worker postgresql; do
+    if docker ps -aq --filter "label=com.docker.compose.project=$S_PROJECT" --filter "label=com.docker.compose.service=$svc" | grep -q .; then
+      echo present; return
+    fi
+  done
+  echo none
+}
+
+# The respondent identity key and the identity pass on an upgraded stack (docs/respondent-identity.md): 3.x has
+# no key and stored the MD5 of the address; the stack's other keys were imported, so bootstrap-keys did not
+# run, and deploy.sh generates this one into the store once, converts the stored values after the roll
+# and prints only the key's fingerprint.
+upgrade_identity() { # upgrade_identity <deploy output> <output of the earlier deploy that stopped on the import difference>
+  local plain="$1" first="$2" exported="$S_DIR/identity-export.env" key expected stored fp
+  # the first deploy generated it (before the import stopped it); the second found it and generated nothing
+  expect "the identity key was generated once, with a notice and no value" "1 0" \
+    "$(grep -c 'Generated a new RESPONDENT_IDENTITY_KEY in the settings store and in .env' "$first") $(grep -c 'Generated a new RESPONDENT_IDENTITY_KEY' "$plain")"
+  # like the other keys of an upgrade: in the store and in .env (SETTINGS_STORE=off, the rollback below, still has it)
+  expect "it is in the store (one version) and in .env once, and in no other env file" "versions=1 1 0" \
+    "$(sdeploy settings-history RESPONDENT_IDENTITY_KEY 2>/dev/null | tail -n 1 | tr -d '\r') $(grep -cE '^RESPONDENT_IDENTITY_KEY=[0-9a-f]{64}$' "$S_DIR/.env") $(cat "$S_DIR/.env.deployment" 2>/dev/null | grep -cE '^[[:space:]]*(export[[:space:]]+)?RESPONDENT_IDENTITY_KEY=.')"
+  fp="$(grep -oE 'Respondent identity key fingerprint: [0-9a-f]{8}' "$plain" | grep -oE '[0-9a-f]{8}$' | head -n 1)"
+  expect "the deploy printed the key's fingerprint once" "1" "$(grep -cE 'Respondent identity key fingerprint: [0-9a-f]{8} ' "$plain")"
+  expect "the backend reports that fingerprint at its start" "yes" \
+    "$([ "$(dc logs --no-log-prefix backend 2>&1 | grep -c "respondent identity key fingerprint=$fp")" -ge 1 ] && echo yes)"
+  expect "the identity pass ran and nothing is left to convert" "1" "$(grep -c '^Stored respondent identities are all converted' "$plain")"
+  expect "no stored identity is left in the 3.x form (the three anonymous responses are v2)" "3 0" \
+    "$(psql_app "select count(*) from app.form_responses where doc->>'anonymous_identity' like 'v2:%'") $(psql_app "select count(*) from app.form_responses where doc->>'anonymous_identity' is not null and doc->>'anonymous_identity' not like 'v2:%'")"
+  # the stored value is HMAC-SHA256(key, md5(address)): what the backend computes for the respondent signing in
+  rm -f "$exported"
+  if sdeploy settings-env-export --keys RESPONDENT_IDENTITY_KEY --out "$exported" >/dev/null 2>&1; then
+    key="$(sed -E 's/^[^=]*=//; s/^"(.*)"$/\1/' "$exported")"
+    rm -f "$exported"
+    expected="v2:$(printf '%s' "$(printf '%s' "dummy-respondent-0-0@example.test" | md5sum | cut -d' ' -f1)" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$key" | sed 's/^.*= //')"
+    stored="$(psql_app "select doc->>'anonymous_identity' from app.form_responses where doc->>'anonymous_identity' like 'v2:%' order by id limit 100" | grep -cxF "$expected")"
+    expect "one stored identity is exactly HMAC(key, md5(address)) of the seeded respondent" "1" "$stored"
+    printf '%s\n' "$key" >> "$work/upgrade.secrets"
+    expect "the key is not in the deploy output" "0" "$(grep -c -F "$key" "$plain")"
+  else
+    rm -f "$exported"
+    bad "the identity key could be exported to compute the expected value"
+  fi
+}
+
+psql_app() { dc exec -T app-postgres psql -U bettercollected -d bettercollected -Atc "$1" 2>/dev/null | tr -d '\r'; }
 
 upgrade_portal() {
   section "(2) the upgraded stack through the portal"
@@ -1165,10 +1226,27 @@ part_rollback_stack() {
   expect "the previous release's backend serves (its API answers, and its docs page, which it pinned on, too)" "401 200" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/auth/status") $(http_code "http://127.0.0.1:$S_BACKEND/api/v1/docs")"
   expect "the data is intact (in Mongo, which it reads)" "$UPGRADE_COUNTS" "$(mongo_counts)"
   expect "the previous release's images are the ones running" "bettercollected/backend:$old_tag" "$(docker inspect -f '{{.Config.Image}}' "$(dc ps -q backend | head -n 1)")"
+  # the previous release brought Temporal back (its containers and the database volume deploy.sh kept)
+  expect "the previous release started Temporal again from the kept database volume" "yes" \
+    "$(docker ps -q --filter "label=com.docker.compose.project=$S_PROJECT" --filter label=com.docker.compose.service=temporal | grep -q . && echo yes)"
   # and forward again: the import is recorded, so it is not repeated (nothing was written
   # while the previous release ran); the operator blanks MONGO_URI again
   overlay_layout new || { bad "the new files again"; return; }
   cat "$work/env-deployment.imported" > "$S_DIR/.env.deployment"
+  # a workflow that never finishes (no worker polls its task queue) is running in the old Temporal: the
+  # deploy rolls the stack, then stops at the wait with the old containers in place and a clear message
+  local tcid
+  tcid="$(docker ps -q --filter "label=com.docker.compose.project=$S_PROJECT" --filter label=com.docker.compose.service=temporal | head -n 1)"
+  docker exec "$tcid" temporal workflow start --address temporal:7233 --task-queue bc-check-stuck --type Stuck --workflow-id bc-check-stuck >/dev/null 2>&1
+  rc=0
+  DEPLOY_ENV="BC_TEMPORAL_DRAIN_SECONDS=20 BC_TEMPORAL_DRAIN_POLL=3" run_deploy "$work/rollback-stuck.out" || rc=$?
+  untimed "$work/rollback-stuck.out" | tr -d '\r' > "$work/rollback-stuck.plain"
+  expect "a running Temporal workflow stops the deploy at the wait (exit 1)" "1" "$rc"
+  check "it says how many workflows Temporal still runs, and how to go on" grep -q 'STOPPED: Temporal still runs 1 workflow(s) after 20 s' "$work/rollback-stuck.plain"
+  expect "the old Temporal container was left in place" "yes" \
+    "$(docker ps -q --filter "label=com.docker.compose.project=$S_PROJECT" --filter label=com.docker.compose.service=temporal | grep -q . && echo yes)"
+  wait_stack 300 || bad "the stack was healthy while Temporal was kept"
+  docker exec "$tcid" temporal workflow terminate --address temporal:7233 --workflow-id bc-check-stuck --reason acceptance-check >/dev/null 2>&1
   rc=0
   run_deploy "$work/rollback-forward.out" || rc=$?
   expect "the new deploy.sh runs again over it (exit 0)" "0" "$rc"
@@ -1180,7 +1258,7 @@ part_rollback_stack() {
 }
 
 # prepare images, run the parts ------------------------------------------------------------------------
-FRESH_FP=""; FRESH_TOKEN=""; FRESH_STORE_VERSIONS=""
+FRESH_FP=""; FRESH_TOKEN=""; FRESH_STORE_VERSIONS=""; FRESH_IDENTITY_FP=""
 if want 1 || want 2 || want 3 || want 4; then prepare_images; fi
 want 1 && part_fresh
 want 4 && part_negatives

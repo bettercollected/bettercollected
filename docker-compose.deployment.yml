@@ -8,7 +8,6 @@ volumes:
   mongo-data:
   app-postgres-data:
   umami-db-data:
-  temporal-postgres-data:
 networks:
   # Carries the admin service's published port, and nothing else, so the peer
   # address it sees for host traffic is this network's gateway.
@@ -99,60 +98,14 @@ services:
       auth:
         condition: service_healthy
 
-  postgresql:
-    environment:
-      # Internal only (no published port). deploy.sh generates the password into
-      # the root .env for a new volume; a volume created by an earlier release keeps
-      # its original password, which is the default here (docs/admin-service.md).
-      POSTGRES_PASSWORD: ${BC_TEMPORAL_DB_PASSWORD:-temporal}
-      POSTGRES_USER: temporal
-    # Pinned (not `postgres:latest`): an unpinned tag silently moves to new
-    # major versions, which refuse to start against an old major version's
-    # on-disk format (hit this directly while testing — `latest` had already
-    # drifted to Postgres 18, which won't read older data at all). Matches
-    # umami-postgresql's major version below for consistency.
-    image: postgres:15-alpine
-    volumes:
-      - temporal-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U temporal']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-  temporal:
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    environment:
-      # NOT "postgresql" — temporalio/auto-setup only recognizes mysql8,
-      # postgres12, postgres12_pgx, cassandra as DB drivers. The old value
-      # silently failed at startup ("Unsupported driver specified") with no
-      # healthcheck to surface it; caught this via the healthcheck added below.
-      - DB=postgres12
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=${BC_TEMPORAL_DB_PASSWORD:-temporal}
-      - POSTGRES_SEEDS=postgresql
-      # Without this, auto-setup binds to the container's dynamic bridge IP
-      # (logged as "TEMPORAL_ADDRESS is not set, setting it to <ip>:7233"),
-      # which isn't reachable via localhost from inside the same container —
-      # breaks any localhost-based healthcheck/CLI use. Pin it to the compose
-      # service name, which is also what worker/backend already use to reach it.
-      - TEMPORAL_ADDRESS=temporal:7233
-    image: temporalio/auto-setup
-    # No published port: Temporal's frontend has no authentication, so anything
-    # that reaches 7233 can start, signal or terminate workflows. Only the
-    # compose network (backend, worker) talks to it. To inspect it from the
-    # host: `docker compose exec temporal temporal ...`.
-    healthcheck:
-      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', 'temporal:7233']
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
+  # Temporal is not part of the stack any more (4.1): background work (account and
+  # response deletion, imports, actions) runs on the Postgres job queue and the
+  # `jobs-worker` below. On a stack from before 4.1, deploy.sh moves what is
+  # still scheduled in Temporal onto the queue, waits for running workflows to
+  # finish, then removes the old Temporal containers and keeps their database
+  # volume (temporal-postgres-data); a new stack never starts them.
 
-  # Application database — the consolidation target for MongoDB and Temporal
+  # Application database — where MongoDB's and Temporal's data went
   # (plans/postgres-consolidation.md). One schema per service (app / auth /
   # google / jobs), one least-privilege role each, created on the volume's first
   # start by postgres/init/01-roles-schemas.sh from the passwords below.
@@ -160,8 +113,9 @@ services:
   # the root `.env` on first run (compose's var-substitution file, exactly like
   # UMAMI_APP_SECRET). Running the compose file directly? Set them yourself —
   # the `:?` markers make compose refuse to start with them missing rather than
-  # bring up a database with empty passwords. Major version pinned for the same
-  # reason as the Temporal postgres above.
+  # bring up a database with empty passwords. Major version pinned: an unpinned
+  # tag silently moves to a new major version, which refuses to start against an
+  # old major version's on-disk format.
   app-postgres:
     image: postgres:16-alpine
     restart: always
@@ -201,33 +155,6 @@ services:
       retries: 10
       start_period: 30s
 
-  worker:
-    image: bettercollected/temporal-worker:nightly
-    environment:
-      TEMPORAL_SERVER_URL: temporal:7233
-      # The worker stays off the settings store and never gets the master key: it
-      # runs a browser on user-supplied URLs. It keeps two copies of keys the
-      # store holds, written to the root .env by deploy.sh (bootstrap-keys
-      # --export-worker): API_KEY is the backend's TEMPORAL_API_KEY (its internal
-      # job routes require it), AES_HEX_KEY the stack's AUTH_AES_HEX_KEY (a Fernet
-      # key: preview tokens). settings-drift compares both with the store.
-      # (`:-`, not `:?`: compose reads this file before the keys exist on a new
-      # stack, and deploy.sh writes both before it starts the worker)
-      API_KEY: ${API_KEY:-}
-      AES_HEX_KEY: ${AES_HEX_KEY:-}
-    # Its own env file, not .env.deployment: this service drives a browser on
-    # user-supplied URLs and gets only what it reads (SERVER_URL, NAMESPACE,
-    # COOKIE_DOMAIN, WORKER_QUEUE, WORKERS, MAX_THREAD_POOL_EXECUTORS,
-    # ELASTIC_APM_*), written by deploy.sh once into .env.worker.
-    env_file:
-      - path: .env.worker
-        required: false
-    security_opt:
-      - no-new-privileges:true
-    cap_drop: [ALL]
-    depends_on:
-      temporal:
-        condition: service_healthy
   # You need to run nginx only if your webapp is running locally without using docker-compose
   # You may need to setup nginx locally with same configs provided inside `./nginx.conf`
   nginx:
@@ -341,8 +268,6 @@ services:
     ports:
       - '8000:8000'
     depends_on:
-      temporal:
-        condition: service_healthy
       app-postgres:
         condition: service_healthy
       umami:
@@ -466,7 +391,6 @@ services:
       # accepted. The Google credentials are in Postgres only since 4.1 (no
       # write mode). And the Google integration's Mongo database
       DB_WRITE_MODE: ${DB_WRITE_MODE:-postgres}
-      DB_WRITE_MODE__RESPONSES: ${DB_WRITE_MODE__RESPONSES:-}
       GOOGLE_MONGO_DB: ${TASK_RUNNER_GOOGLE_MONGO_DB:-}
       # auth.resolve_case_duplicate_accounts holds no access to the accounts: it
       # calls the API's internal admin-task routes, which decide and start the

@@ -1,11 +1,12 @@
 """deploy.sh against a stand-in for docker compose: the order of the steps and
 what ends up in the root .env, for a new install and for an upgrade. No Docker
 needed. The stand-in records every call, answers `settings-history` from a small
-state directory, and writes what `bootstrap-keys --export-worker` would write."""
+state directory, and writes the keys `bootstrap-keys` would store."""
 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -58,18 +59,9 @@ STUB = textwrap.dedent(
             if "--fill-missing" not in cmd and has("AUTH_JWT_SECRET"):
                 print("refused: keys_exist", file=sys.stderr); sys.exit(1)
             for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY",
-                        "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET"):
+                        "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET", "RESPONDENT_IDENTITY_KEY"):
                 (store / key).write_text("x")
-            print("generated=5 (values are not shown)")
-            if "--export-worker" in cmd:
-                target = cmd[cmd.index("--export-worker") + 1]
-                mounts = [a for a in argv if a.endswith(":/out")]
-                host = mounts[0].rsplit(":", 1)[0]
-                out = pathlib.Path(host) / pathlib.Path(target).name
-                fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-                with os.fdopen(fd, "w") as f:
-                    f.write("API_KEY=%s\\nAES_HEX_KEY=%s\\n" % (secrets.token_hex(24), secrets.token_hex(24)))
-                print("worker_keys_written file=%s mode=600" % out.name)
+            print("generated=6 (values are not shown)")
             print("master_key_fingerprint abcd-ef01-2345")
         elif verb == "settings-set":
             (store / cmd[1]).write_text(stdin)
@@ -78,6 +70,20 @@ STUB = textwrap.dedent(
             # the store keeps the versions: the value stays, marked cleared
             (store / (cmd[1] + ".cleared")).write_text("")
             print("cleared %s version=2" % cmd[1])
+        elif verb == "settings-import" and "--env-file" in cmd:
+            # the import of one generated value from a private file the host mounted at /work
+            if os.environ.get("STUB_IMPORT_ENV_HANGS"):
+                import time
+                time.sleep(60)
+            if os.environ.get("STUB_IMPORT_ENV_FAILS"):
+                print("refused RESPONDENT_IDENTITY_KEY weak_secret SECRETVALUE-must-not-be-echoed")
+                sys.exit(1)
+            mounts = [a for a in argv if a.endswith(":/work")]
+            path = pathlib.Path(mounts[0].rsplit(":", 1)[0]) / pathlib.Path(cmd[cmd.index("--env-file") + 1]).name
+            for line in path.read_text().splitlines():
+                name, _, value = line.partition("=")
+                (store / name).write_text(value)
+            print("imported=1 existing=0 empty=0 unknown=0 refused=0")
         elif verb == "settings-import":
             for key in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "AUTH_INTERNAL_NOTIFY_KEY",
                         "TEMPORAL_API_KEY", "MASTER_ENCRYPTION_KEYSET"):
@@ -102,6 +108,23 @@ STUB = textwrap.dedent(
         sys.exit(0)
     if "backend.seed_refdata" in argv and os.environ.get("STUB_SEED_FAILS"):
         sys.exit(1)
+    if "backend.identity_rekey" in argv:
+        # the one-time conversion: its exit status and report come from STUB_IDENTITY_RC
+        # (0 done, 1 values remain, 2 another process holds the lock, 3/4 wrong key)
+        rc = int(os.environ.get("STUB_IDENTITY_RC", "0"))
+        print("2026-10-26 12:00:00 | INFO | respondent identity pass: key fingerprint=0a1b2c3d", file=sys.stderr)
+        if rc not in (3,):
+            left = 0 if rc == 0 else 4
+            print(json.dumps({"converted": {"app.form_responses": 2}, "changed_meanwhile": {}, "key_check": "written",
+                              "key_fingerprint": "0a1b2c3d", "locked": rc == 2,
+                              "remaining": {"app.form_responses": left}}, sort_keys=True))
+        sys.exit(rc)
+    if "backend.migrate" in argv and "jobs-sweep" in argv:
+        if os.environ.get("STUB_SWEEP_FAILS"):
+            print("Traceback: boom", file=sys.stderr)
+            sys.exit(1)
+        print(json.dumps({"backend": "postgres", "read_from": "postgres", "scheduled": 7}, indent=2))
+        sys.exit(0)
     # the migration CLIs of the import from before 4.1: STUB_MIGRATE_FAILS="<service> <step>"
     for module, name in (("auth.migrate", "auth"), ("googleform.migrate", "google"),
                          ("backend.migrate", "backend")):
@@ -143,14 +166,20 @@ STUB = textwrap.dedent(
         sys.exit(0)
     if "exec" in argv:
         sys.stdin.read()
+        if "psql" in argv:
+            # the key check rows of the respondent identity (0 on a database never started on 4.1)
+            print(os.environ.get("STUB_IDENTITY_CHECK_ROWS", "0"))
     sys.exit(0)
     '''
 )
 DOCKER_STUB = textwrap.dedent(
     '''\
     #!/usr/bin/env python3
-    import os, sys
+    import os, sys, pathlib
     argv = sys.argv[1:]
+    state = pathlib.Path(os.environ["STUB_STATE"])
+    with (state / "docker.log").open("a") as log:
+        log.write(" ".join(argv) + "\\n")
     # STUB_VOLUMES: comma separated; "vol" lives in the project named "stack" (the
     # fixture's directory and COMPOSE_PROJECT_NAME), "project:vol" in that project
     items = []
@@ -167,7 +196,44 @@ DOCKER_STUB = textwrap.dedent(
         print("\\n".join(i for i in items if i.startswith(prefix)))
         sys.exit(0)
     if argv[:1] == ["inspect"]:
+        # the old Temporal stack (STUB_TEMPORAL=1): its containers' name, state and mounts
+        template = argv[2] if len(argv) > 2 else ""
+        if argv[-1].startswith("old-"):
+            if ".Mounts" in template:
+                print("stack_temporal-postgres-data " if argv[-1] == "old-postgresql" else "")
+            elif ".State.Running" in template:
+                print(os.environ.get("STUB_TEMPORAL_RUNNING_STATE", "true"))
+            elif ".Name" in template:
+                print("/stack-" + argv[-1][4:] + "-1")
+            sys.exit(0)
         print(os.environ.get("STUB_ADMIN_HEALTH", "healthy"))
+        sys.exit(0)
+    if argv[:1] == ["exec"] and "temporal" in argv and "workflow" in argv:
+        # `temporal workflow list`: STUB_TEMPORAL_RUNNING is how many workflows run; the count
+        # drops to 0 after STUB_TEMPORAL_POLLS asks. A header, a schedule (not counted) and the rows.
+        polls = state / "temporal.polls"
+        asked = int(polls.read_text()) if polls.exists() else 0
+        polls.write_text(str(asked + 1))
+        if os.environ.get("STUB_TEMPORAL_CLI_FAILS"):
+            print("Error: unknown flag", file=sys.stderr)
+            sys.exit(1)
+        running = int(os.environ.get("STUB_TEMPORAL_RUNNING", "0"))
+        if asked >= int(os.environ.get("STUB_TEMPORAL_POLLS", "999999")):
+            running = 0
+        print("  Status   WorkflowId   Type   StartTime")
+        print("  Running  temporal-sys-scheduler:delete_response_x   temporal-sys-scheduler-workflow   1 hour ago")
+        for n in range(running):
+            print("  Running  delete_user_%d   delete_user_workflow   1 minute ago" % n)
+        sys.exit(0)
+    if argv[:1] == ["ps"] and os.environ.get("STUB_TEMPORAL") and any(
+        a == "label=com.docker.compose.project=stack" for a in argv
+    ):
+        # the containers of the old stack: Temporal, its worker, and the database named "postgresql"
+        for a in argv:
+            if a.startswith("label=com.docker.compose.service="):
+                service = a.split("=", 2)[2]
+                if service in ("temporal", "worker", "postgresql"):
+                    print("old-" + service)
         sys.exit(0)
     if argv[:1] == ["ps"]:
         # STUB_TYPEFORM_PROJECT: the project an old integrations-typeform container belongs to
@@ -253,20 +319,29 @@ def test_new_install_bootstraps_keys_before_any_service_starts(site):
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     boot = _index(calls, "bootstrap-keys")
     assert _index(calls, "alembic") < boot < _index(calls, "up --build")
-    assert "--export-worker /out/worker.env" in calls[boot]
+    # the Temporal worker is not part of the stack any more: no copies of its two keys are exported
+    assert "--export-worker" not in calls[boot]
+    # the respondent identity key came from bootstrap-keys: nothing is generated or imported for it
+    assert not any("settings-import" in c for c in calls)
+    assert "Generated a new RESPONDENT_IDENTITY_KEY" not in done.stdout
+    # the identity pass runs once the new backend is up, and prints the key's fingerprint only
+    assert _index(calls, "up --build") < _index(calls, "backend.identity_rekey")
+    assert "Respondent identity key fingerprint: 0a1b2c3d" in done.stdout
     # no import on a new stack, and Umami's login is checked after the start
     assert not any("settings-import" in c for c in calls)
     assert _index(calls, "up --build") < _index(calls, "exec -T umami")
 
     values = _dotenv(work)
-    for name in (
-        "SETTINGS_MASTER_KEY", "APP_POSTGRES_PASSWORD", "BC_ADMIN_PASSWORD", "UMAMI_APP_SECRET",
-        "BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD", "API_KEY", "AES_HEX_KEY",
-    ):
+    for name in ("SETTINGS_MASTER_KEY", "APP_POSTGRES_PASSWORD", "BC_ADMIN_PASSWORD", "UMAMI_APP_SECRET",
+                 "BC_UMAMI_DB_PASSWORD"):
         assert values.get(name), name
+    # Temporal's database password and the worker's two key copies are not generated any more
+    for name in ("BC_TEMPORAL_DB_PASSWORD", "API_KEY", "AES_HEX_KEY"):
+        assert name not in values, name
+    assert not (work / ".env.worker").exists()
     # the stack's keys are in the store, not in the file
     for name in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY", "MASTER_ENCRYPTION_KEYSET",
-                 "TEMPORAL_API_KEY", "AUTH_INTERNAL_NOTIFY_KEY"):
+                 "TEMPORAL_API_KEY", "AUTH_INTERNAL_NOTIFY_KEY", "RESPONDENT_IDENTITY_KEY"):
         assert name not in values, name
     assert stat.S_IMODE((work / ".env").stat().st_mode) == 0o600
     # UMAMI_URL seeded into the store. A new 4.1 stack has no MongoDB: no root
@@ -328,9 +403,19 @@ def test_an_upgrade_imports_and_checks_before_the_services_start(site):
     drift = _index(calls, "settings-drift --from-compose-config")
     assert _index(calls, "alembic") < imp < drift < _index(calls, "up --build")
     values = _dotenv(work)
-    # the worker's two copies come from the keys the stack already has
-    assert values["API_KEY"] == "t" * 48
-    assert values["AES_HEX_KEY"] == "A" * 43 + "="
+    # the respondent identity key is new in 4.1: generated once into the store, after the import
+    # (bootstrap-keys is refused on a stack that holds data) and before any service starts
+    single = _index(calls, "settings-import --env-file")
+    assert imp < single < _index(calls, "up --build")
+    assert "Generated a new RESPONDENT_IDENTITY_KEY in the settings store and in .env" in done.stdout
+    # in the store and, like the other keys of an upgrade, in .env (SETTINGS_STORE=off still has it)
+    assert values["RESPONDENT_IDENTITY_KEY"] == (state / "store" / "RESPONDENT_IDENTITY_KEY").read_text()
+    assert re.fullmatch(r"[0-9a-f]{64}", values["RESPONDENT_IDENTITY_KEY"])
+    assert values["RESPONDENT_IDENTITY_KEY"] not in done.stdout + done.stderr
+    assert _index(calls, "up --build") < _index(calls, "backend.identity_rekey")
+    # no copies of the key for a Temporal worker: it is not part of the stack any more
+    assert "API_KEY" not in values and "AES_HEX_KEY" not in values
+    assert "Copied TEMPORAL_API_KEY" not in done.stdout
     # the old values stay in the file until the operator prunes
     assert values["AUTH_JWT_SECRET"] == "j" * 64
     shown = done.stdout + done.stderr
@@ -483,7 +568,7 @@ def test_every_always_on_service_is_started_for_every_preference(site):
     the document sandbox and the task runner have to be on the list, whatever the
     preference (a docker-compose `up --dry-run` version of this runs in
     test_deployment_config.py)."""
-    required = {"admin", "jobs-worker", "document-sandbox", "task-runner", "backend", "auth", "worker", "webapp"}
+    required = {"admin", "jobs-worker", "document-sandbox", "task-runner", "backend", "auth", "webapp"}
     for preference, extra in (("", set()), ("googleform", {"integrations-googleform"})):
         done, calls = _run(site, "print-services", preference)
         assert done.returncode == 0, done.stderr
@@ -491,6 +576,8 @@ def test_every_always_on_service_is_started_for_every_preference(site):
         assert required <= listed, (preference, required - listed)
         assert extra <= listed
         assert "integrations-typeform" not in listed
+        # Temporal, its database and its worker are not part of a 4.1 stack
+        assert not {"temporal", "worker", "postgresql"} & listed
         # MongoDB is not part of a 4.1 stack (only the legacy-mongo profile starts it)
         assert not {"mongodb", "mongo-seed"} & listed
         assert ("integrations-googleform" in listed) == ("integrations-googleform" in extra)
@@ -597,14 +684,16 @@ def test_no_database_password_is_generated_while_any_volume_of_the_stack_exists(
     done, calls = _run(site, volumes="app-postgres-data")
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     values = _dotenv(work)
-    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD"):
+    for name in ("BC_UMAMI_DB_PASSWORD",):
         assert name not in values, name
         assert f"NOTE: {name} is not set" in done.stdout
+    # Temporal's database is not part of the stack: its password is neither generated nor mentioned
+    assert "BC_TEMPORAL_DB_PASSWORD" not in values and "BC_TEMPORAL_DB_PASSWORD" not in done.stdout
     # a stack without a Mongo volume has no MongoDB at all (4.1): no password, no
     # MONGO_URI, no note about either
     assert "BC_MONGO_ROOT_PASSWORD" not in values and "BC_MONGO_ROOT_PASSWORD" not in done.stdout
     assert not (state / "store" / "MONGO_URI").exists()
-    # a stack with no volume at all gets all three
+    # a stack with no volume at all gets its Umami password
     other = site[0].parent / "stack2"
     other.mkdir()
     for item in ("deploy.sh", "docker-compose.deployment.yml", ".env.deployment"):
@@ -615,8 +704,8 @@ def test_no_database_password_is_generated_while_any_volume_of_the_stack_exists(
     state2.mkdir()
     done, _ = _run((other, state2, {**site[2], "STUB_STATE": str(state2)}), drop=("COMPOSE_PROJECT_NAME",))
     assert done.returncode == 0
-    for name in ("BC_TEMPORAL_DB_PASSWORD", "BC_UMAMI_DB_PASSWORD"):
-        assert _dotenv(other).get(name), name
+    assert _dotenv(other).get("BC_UMAMI_DB_PASSWORD")
+    assert "BC_TEMPORAL_DB_PASSWORD" not in _dotenv(other)
     assert "BC_MONGO_ROOT_PASSWORD" not in _dotenv(other)
 
 
@@ -656,13 +745,12 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
     done, _ = _run(site)
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
     webapp = _tail(work, ".env.webapp")
-    worker = _tail(work, ".env.worker")
     assert not (work / ".env.typeform").exists()  # Typeform was removed in 4.1
-    for text, name in ((webapp, "webapp"), (worker, "worker")):
-        for secret in ("sk_live_dummy", "gsecret", "mailpw", "whsec"):
-            assert secret not in text, (name, secret)
-        assert "MASTER_ENCRYPTION_KEYSET" not in text and "AUTH_JWT_SECRET" not in text
-        assert stat.S_IMODE((work / f".env.{name}").stat().st_mode) == 0o600
+    assert not (work / ".env.worker").exists()  # so was the Temporal worker's file
+    for secret in ("sk_live_dummy", "gsecret", "mailpw", "whsec"):
+        assert secret not in webapp, secret
+    assert "MASTER_ENCRYPTION_KEYSET" not in webapp and "AUTH_JWT_SECRET" not in webapp
+    assert stat.S_IMODE((work / ".env.webapp").stat().st_mode) == 0o600
     # what the webapp reads, empty values left out, `export` dropped, quotes kept
     assert "UNSPLASH_ACCESS_KEY=unsplash" in webapp and "GOOGLE_CLIENT_ID=gid" in webapp
     assert "UMAMI_SCRIPT_URL=http://host:3003/script.js" in webapp and "GOOGLE_PICKER_API_KEY" not in webapp
@@ -670,14 +758,12 @@ def test_the_service_env_files_hold_only_what_each_service_reads(site):
     assert "CUSTOM_DOMAIN_ASSERTION_KEYS='k1,k2'" in webapp
     assert "TYPEFORM_CLIENT" not in webapp
     assert not any(line.startswith(("SERVER_URL=", "COOKIE_DOMAIN=")) for line in webapp.splitlines())
-    assert "COOKIE_DOMAIN=example.test" in worker and "SERVER_URL=http://backend:8000/api/v1" in worker
-    assert "NAMESPACE=default" in worker and "UNSPLASH" not in worker and "TYPEFORM" not in worker
     # never overwritten by a later run
     (work / ".env.webapp").write_text("MINE=1\n")
-    (work / ".env.worker").chmod(0o644)
+    (work / ".env.webapp").chmod(0o644)
     _run(site, volumes="mongo-data,app-postgres-data")
     assert (work / ".env.webapp").read_text() == "MINE=1\n"
-    assert stat.S_IMODE((work / ".env.worker").stat().st_mode) == 0o600
+    assert stat.S_IMODE((work / ".env.webapp").stat().st_mode) == 0o600
 
 
 def test_a_fresh_checkout_gets_env_deployment_from_the_template(site):
@@ -695,7 +781,7 @@ def test_a_fresh_checkout_gets_env_deployment_from_the_template(site):
     assert created.read_text() == (ROOT / ".env.deployment.example").read_text()
     assert stat.S_IMODE(created.stat().st_mode) == 0o600
     assert stat.S_IMODE((work / ".env.deployment.example").stat().st_mode) == 0o644  # left alone
-    assert "SERVER_URL=http://backend:8001/api/v1" in _tail(work, ".env.worker")
+    assert not (work / ".env.worker").exists()
     assert "UMAMI_PASSWORD" not in _tail(work, ".env.webapp")  # empty values are left out
     assert any("up --build" in c for c in calls)
     # never overwritten afterwards, and not announced again
@@ -1208,7 +1294,7 @@ def test_the_names_of_the_settings_copied_into_each_service_file_are_printed_nev
     out = done.stdout
     # names in file order, once each, empty values left out (they are not copied either)
     assert "Created .env.webapp from .env.deployment with: UNSPLASH_ACCESS_KEY, GOOGLE_CLIENT_ID, UMAMI_SCRIPT_URL\n" in out
-    assert "Created .env.worker from .env.deployment with: COOKIE_DOMAIN, NAMESPACE\n" in out
+    assert ".env.worker" not in out  # the Temporal worker is not part of the stack any more
     shown = out + done.stderr
     for value in ("sk_live_dummy", "unsplash-secret-value", "gid-value", "cookie.example.test",
                   "again.example.test", "ns-value", "script.js"):
@@ -1216,7 +1302,7 @@ def test_the_names_of_the_settings_copied_into_each_service_file_are_printed_nev
     # a file that already exists is left alone, and nothing is reported as copied
     (state / "calls.log").unlink()
     done, _ = _run(site, volumes="mongo-data,app-postgres-data")
-    assert "Created .env.webapp" not in done.stdout and "Created .env.worker" not in done.stdout
+    assert "Created .env.webapp" not in done.stdout
 
 
 def test_a_service_file_with_nothing_to_copy_says_so(site):
@@ -1228,31 +1314,354 @@ def test_a_service_file_with_nothing_to_copy_says_so(site):
     assert "sk_live_dummy" not in done.stdout + done.stderr
 
 
-def test_the_worker_key_copies_are_reported_by_name_never_value(site):
+def test_no_copies_of_the_keys_are_made_for_a_temporal_worker(site):
+    """Temporal and its worker are not part of the stack any more: an upgrade keeps the old
+    API_KEY / AES_HEX_KEY lines it may have, copies nothing and exports nothing."""
     work, _, _ = site
     (work / ".env").write_text(
         "AUTH_JWT_SECRET=" + "j" * 64 + "\nAUTH_AES_HEX_KEY=" + "A" * 43 + "=\n"
         "MASTER_ENCRYPTION_KEYSET=" + "k" * 40 + "\nTEMPORAL_API_KEY=" + "t" * 48 + "\n"
         "SETTINGS_MASTER_KEY=" + "m" * 64 + "\n"
     )
-    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
-    assert "Copied TEMPORAL_API_KEY to API_KEY in .env" in done.stdout
-    assert "Copied AUTH_AES_HEX_KEY to AES_HEX_KEY in .env" in done.stdout
+    assert "API_KEY in .env" not in done.stdout and "AES_HEX_KEY in .env" not in done.stdout
+    assert not any("--export-worker" in c for c in calls)
+    assert not (work / ".env.worker").exists()
     shown = done.stdout + done.stderr
     for secret in ("t" * 48, "A" * 43, "j" * 64, "m" * 64):
         assert secret not in shown
-    # a second run copies nothing, so says nothing
-    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
-    assert "Copied TEMPORAL_API_KEY" not in done.stdout and "Stored API_KEY" not in done.stdout
-
-
-def test_the_generated_worker_keys_are_reported_by_name_never_value(site):
-    work, _, _ = site
-    done, _ = _run(site)
-    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
-    assert "Stored API_KEY in .env" in done.stdout and "Stored AES_HEX_KEY in .env" in done.stdout
     values = _dotenv(work)
-    shown = done.stdout + done.stderr
-    for key in ("API_KEY", "AES_HEX_KEY", "SETTINGS_MASTER_KEY", "APP_POSTGRES_PASSWORD", "UMAMI_APP_SECRET"):
-        assert values[key] not in shown, key
+    assert "API_KEY" not in values and "AES_HEX_KEY" not in values
+
+
+# --------------------------------------------------------------------------------
+# the respondent identity key and the identity pass (docs/respondent-identity.md)
+
+
+def _docker_calls(state):
+    path = state / "docker.log"
+    return path.read_text().splitlines() if path.exists() else []
+
+
+def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    # generated before the start, into the store and .env, never printed: only the fingerprint is
+    assert _index(calls, "settings-import --env-file") < _index(calls, "up --build")
+    assert done.stdout.count("Generated a new RESPONDENT_IDENTITY_KEY in the settings store and in .env") == 1
+    assert done.stdout.count("Respondent identity key fingerprint: 0a1b2c3d") == 1
+    # the pass runs after the roll, in a one-off container of the new backend, with no extra argument
+    assert calls[_index(calls, "backend.identity_rekey")].endswith("backend.identity_rekey")
+    assert "Stored respondent identities are all converted" in done.stdout
+    key = _dotenv(work)["RESPONDENT_IDENTITY_KEY"]
+    assert (state / "store" / "RESPONDENT_IDENTITY_KEY").read_text() == key
+    # recorded as a hash, so a later run can tell that .env and the store hold the same key
+    import hashlib
+    assert _dotenv(work)["BC_IDENTITY_KEY_SHA256"] == hashlib.sha256(key.encode()).hexdigest()
+    assert key not in done.stdout + done.stderr
+    assert not any(key in c for c in calls)  # not an argument of any command
+    assert oct((work / ".env").stat().st_mode & 0o777) == "0o600"
+    # a second deploy finds .env's key: nothing generated or imported, the same key and fingerprint
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "Generated a new RESPONDENT_IDENTITY_KEY" not in done.stdout
+    assert not any("settings-import --env-file" in c for c in calls)
+    assert done.stdout.count("Respondent identity key fingerprint: 0a1b2c3d") == 1
+    assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == key
+    assert (state / "store" / "RESPONDENT_IDENTITY_KEY").read_text() == key
+    # the scratch directory that held the value for the import is gone
+    assert not _temp_leftovers(work) and not list(Path(os.environ.get("TMPDIR", "/tmp")).glob("tmp.*/identity.env"))
+
+
+@pytest.mark.parametrize("where", ["env", "env_deployment", "shell"])
+def test_an_identity_key_the_operator_set_is_used_as_it_is(site, where):
+    """In the shell or the root .env: as it is. Only in .env.deployment: copied into .env, because compose
+    passes the backend only the root .env's (its `environment:` entry overrides the env file)."""
+    work, state, _ = site
+    _upgrade_env(work)
+    extra = {}
+    line = "RESPONDENT_IDENTITY_KEY=" + "ab" * 32
+    if where == "env":
+        with (work / ".env").open("a") as env:
+            env.write(line + "\n")
+    elif where == "env_deployment":
+        (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n" + line + "\n")
+    else:
+        extra = {"RESPONDENT_IDENTITY_KEY": "ab" * 32}
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra=extra)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert not any("settings-import --env-file" in c for c in calls)
+    assert not (state / "store" / "RESPONDENT_IDENTITY_KEY").exists()
+    assert "RESPONDENT_IDENTITY_KEY is set in" in done.stdout
+    assert "ab" * 32 not in done.stdout + done.stderr
+    if where == "env":
+        assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "ab" * 32  # untouched
+    elif where == "env_deployment":
+        assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "ab" * 32
+        assert "copied into .env" in done.stdout
+        assert (work / ".env.deployment").read_text().count("RESPONDENT_IDENTITY_KEY") == 1  # the operator's file is left alone
+    else:
+        assert "RESPONDENT_IDENTITY_KEY" not in _dotenv(work)
+
+
+def test_no_identity_key_is_generated_for_a_database_that_was_already_used_with_one(site):
+    """A key check row says a 4.1 backend started with some key: a new key would not match what
+    that one converted, so with no key found anywhere the deploy stops before anything starts."""
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={"STUB_IDENTITY_CHECK_ROWS": "1"})
+    assert done.returncode == 1
+    assert "STOPPED before any service started" in done.stderr and "RESPONDENT_IDENTITY_KEY" in done.stderr
+    assert not any("settings-import --env-file" in c or "up --build" in c for c in calls)
+    assert not (state / "store" / "RESPONDENT_IDENTITY_KEY").exists()
+    assert "RESPONDENT_IDENTITY_KEY" not in _dotenv(work)
+    # with the key stored the same database passes
+    (state / "store").mkdir(exist_ok=True)
+    (state / "store" / "RESPONDENT_IDENTITY_KEY").write_text("x")
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={"STUB_IDENTITY_CHECK_ROWS": "1"})
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert "Generated a new RESPONDENT_IDENTITY_KEY" not in done.stdout
+
+
+def test_a_refused_identity_key_stops_the_deploy_before_any_service_starts_and_leaves_no_trace(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={"STUB_IMPORT_ENV_FAILS": "1"})
+    assert done.returncode == 1
+    assert "Could not store a new RESPONDENT_IDENTITY_KEY" in done.stderr
+    assert "SECRETVALUE" not in done.stdout + done.stderr  # the command's own wording after the name is dropped
+    assert not any("up --build" in c for c in calls)
+    assert "RESPONDENT_IDENTITY_KEY" not in _dotenv(work)  # not in .env without the store holding it
+    assert not (state / "store" / "RESPONDENT_IDENTITY_KEY").exists()
+
+
+@pytest.mark.parametrize("rc", ["3", "4"])
+def test_a_wrong_or_missing_identity_key_fails_the_deploy_after_the_pass(site, rc):
+    work, state, _ = site
+    done, calls = _run(site, extra={"STUB_IDENTITY_RC": rc})
+    assert done.returncode == 1
+    assert f"exit {rc} of backend.identity_rekey" in done.stderr
+    assert sum("backend.identity_rekey" in c for c in calls) == 1  # not retried
+
+
+@pytest.mark.parametrize("rc,tries", [("2", 3), ("1", 2)])
+def test_a_pass_that_does_not_finish_is_retried_a_bounded_number_of_times_and_only_warns(site, rc, tries):
+    work, state, _ = site
+    done, calls = _run(site, extra={"STUB_IDENTITY_RC": rc, "BC_DEPLOY_IDENTITY_PASS_TRIES": "3"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert sum("backend.identity_rekey" in c for c in calls) == tries
+    assert f"WARNING: the respondent identity pass did not finish in this run (exit {rc})" in done.stderr
+    assert "Key fingerprint: 0a1b2c3d" in done.stderr
+    assert "Stored respondent identities are all converted" not in done.stdout
+
+
+# --------------------------------------------------------------------------------
+# Temporal is not part of the stack since 4.1 (retire_temporal)
+
+
+TEMPORAL_ENV = {"STUB_TEMPORAL": "1", "BC_TEMPORAL_DRAIN_POLL": "0"}
+
+
+def _removed(state):
+    return [c for c in _docker_calls(state) if c.startswith("rm ")]
+
+
+def test_a_new_stack_has_no_temporal_to_retire(site):
+    work, state, _ = site
+    done, calls = _run(site)
+    assert done.returncode == 0
+    assert not any("jobs-sweep" in c for c in calls)
+    assert "TEMPORAL" not in done.stdout and not _removed(state)
+    up = calls[_index(calls, "up --build")]
+    assert not {" temporal", " worker", " postgresql"} & {f" {w}" for w in up.split() if w in ("temporal", "worker", "postgresql")}
+
+
+def test_an_upgrade_moves_the_schedules_onto_the_queue_then_removes_temporal_and_keeps_its_volume(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    # after the roll (nothing new goes to Temporal), the sweep, the wait, the removal
+    sweep = _index(calls, "backend.migrate jobs-sweep --backend postgres")
+    assert _index(calls, "up --build") < sweep
+    # backend.migrate builds a Mongo client for every command: it gets an address nothing listens on
+    assert "-e MONGO_URI=mongodb://127.0.0.1:1/" in calls[sweep]
+    assert "Scheduled response deletions on the job queue: 7" in done.stdout
+    assert "Temporal runs no workflow." in done.stdout
+    removed = _removed(state)
+    # the worker, then Temporal, then its database (the one holding the temporal volume), never anything else
+    assert removed == ["rm -f old-worker", "rm -f old-temporal", "rm -f old-postgresql"]
+    assert not any(c.startswith("volume rm") for c in _docker_calls(state))
+    assert "stack_temporal-postgres-data is kept" in done.stdout
+    # the old worker still calls the new backend until it is removed, so the services run first
+    assert done.stdout.index("TEMPORAL:") > done.stdout.index("Respondent identity key fingerprint")
+
+
+def test_the_deploy_waits_for_running_workflows_but_not_for_schedules(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={**TEMPORAL_ENV, "STUB_TEMPORAL_RUNNING": "2", "STUB_TEMPORAL_POLLS": "3"})
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert done.stdout.count("Waiting for Temporal: 2 workflow(s) still running") == 3  # the schedule is not counted
+    assert len(_removed(state)) == 3
+
+
+def test_workflows_that_do_not_finish_stop_the_deploy_with_the_old_containers_in_place(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    extra = {**TEMPORAL_ENV, "STUB_TEMPORAL_RUNNING": "1", "BC_TEMPORAL_DRAIN_SECONDS": "0"}
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra=extra)
+    assert done.returncode == 1
+    assert "STOPPED: Temporal still runs 1 workflow(s) after 0 s." in done.stderr
+    assert "BC_TEMPORAL_DRAIN=skip" in done.stderr and "stack-temporal-1 temporal workflow list" in done.stderr
+    assert not _removed(state)
+    # skipping the wait removes it anyway
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={**extra, "BC_TEMPORAL_DRAIN": "skip"})
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert len(_removed(state)) == 3 and "NOTE: BC_TEMPORAL_DRAIN=skip" in done.stdout
+
+
+def test_a_temporal_that_cannot_be_asked_is_not_removed(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra={**TEMPORAL_ENV, "STUB_TEMPORAL_CLI_FAILS": "1", "BC_TEMPORAL_DRAIN_SECONDS": "0"})
+    assert done.returncode == 1
+    assert "STOPPED: Temporal could not be asked" in done.stderr
+    assert not _removed(state)
+
+
+def test_a_failed_sweep_stops_before_anything_of_temporal_is_touched(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={**TEMPORAL_ENV, "STUB_SWEEP_FAILS": "1"})
+    assert done.returncode == 1
+    assert "could not be put on the job queue" in done.stderr
+    assert not _removed(state) and not any("temporal workflow" in c for c in _docker_calls(state))
+
+
+@pytest.mark.parametrize("line", ["JOBS_BACKEND=temporal", "export JOBS_BACKEND__delete_user='Temporal'", "JOBS_BACKEND__run_action=temporal # keep"])
+def test_a_job_kind_pinned_to_temporal_is_refused_before_anything_changes(site, line):
+    work, state, _ = site
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n" + line + "\n")
+    done, calls = _run(site)
+    assert done.returncode == 1
+    assert "routes background jobs to Temporal" in done.stderr and "Nothing was changed." in done.stderr
+    assert calls == []
+    # the queue (or no line) is fine
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nJOBS_BACKEND=postgres\nJOBS_BACKEND__run_action=\n")
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+
+
+def test_a_leftover_worker_env_file_is_reported_and_kept(site):
+    work, state, _ = site
+    (work / ".env.worker").write_text("COOKIE_DOMAIN=example.test\n")
+    done, _ = _run(site)
+    assert done.returncode == 0
+    assert ".env.worker from an earlier release still exists" in done.stderr
+    assert (work / ".env.worker").read_text() == "COOKIE_DOMAIN=example.test\n"
+
+
+def _store_key(state, value="x"):
+    (state / "store").mkdir(exist_ok=True)
+    (state / "store" / "RESPONDENT_IDENTITY_KEY").write_text(value)
+
+
+def test_an_env_key_and_a_stored_key_that_cannot_be_shown_equal_stop_the_deploy(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("RESPONDENT_IDENTITY_KEY=" + "cd" * 32 + "\n")
+    _store_key(state)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "holds one too" in done.stderr and "BC_IDENTITY_KEY_SOURCE=env" in done.stderr
+    assert "cd" * 32 not in done.stdout + done.stderr
+    assert not any("up --build" in c for c in calls)
+    # a hash that does not belong to the key in .env is no better
+    with (work / ".env").open("a") as env:
+        env.write("BC_IDENTITY_KEY_SHA256=" + "0" * 64 + "\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    # the operator says .env's key is the intended one
+    (state / "calls.log").unlink()
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra={"BC_IDENTITY_KEY_SOURCE": "env"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert any("up --build" in c for c in calls)
+    assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == "cd" * 32
+
+
+def test_with_the_store_off_a_key_only_in_the_store_is_refused_and_a_new_one_goes_to_both(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    with (work / ".env").open("a") as env:
+        env.write("SETTINGS_STORE=off\n")
+    _store_key(state)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 1
+    assert "SETTINGS_STORE=off" in done.stderr and "only in the settings store" in done.stderr
+    assert not any("up --build" in c for c in calls)
+    # the shell's value counts the way compose reads it
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra={"SETTINGS_STORE": "required"})
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    # no key anywhere: the generated one is in .env too, which is what the store-off services read
+    shutil.rmtree(state / "store")
+    (state / "calls.log").unlink()
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    assert re.fullmatch(r"[0-9a-f]{64}", _dotenv(work)["RESPONDENT_IDENTITY_KEY"])
+
+
+def test_the_scratch_directory_of_the_key_is_removed_on_success_failure_and_a_signal(site, tmp_path):
+    import signal
+    work, state, env = site
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    base = {"TMPDIR": str(scratch)}
+    _upgrade_env(work)
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=base)
+    assert done.returncode == 0 and not [p for p in scratch.rglob("identity.env")]
+    shutil.rmtree(state / "store")
+    (work / ".env").write_text((work / ".env").read_text().replace("RESPONDENT_IDENTITY_KEY=", "X_UNUSED=", 1))
+    with open(work / ".env") as f:
+        kept = [l for l in f.read().splitlines() if not l.startswith(("RESPONDENT_IDENTITY_KEY", "X_UNUSED", "BC_IDENTITY_KEY_SHA256"))]
+    (work / ".env").write_text("\n".join(kept) + "\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra={**base, "STUB_IMPORT_ENV_FAILS": "1"})
+    assert done.returncode == 1 and not [p for p in scratch.rglob("identity.env")]
+    # a signal while the import runs: the stand-in hangs, the whole process group is terminated
+    (state / "calls.log").unlink(missing_ok=True)
+    full = {**env, "STUB_VOLUMES": UPGRADE_VOLUMES, "BC_DEPLOY_RETRY_SLEEP": "0", "STUB_IMPORT_ENV_HANGS": "1", **base}
+    proc = subprocess.Popen(["bash", "deploy.sh"], cwd=work, env=full, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
+    import time
+    for _ in range(100):
+        if list(scratch.rglob("identity.env")):
+            break
+        time.sleep(0.1)
+    assert list(scratch.rglob("identity.env")), "the import never started"
+    os.killpg(proc.pid, signal.SIGTERM)
+    proc.communicate(timeout=30)
+    assert not list(scratch.rglob("identity.env"))
+    assert not [d for d in scratch.iterdir()]
+
+
+def test_the_temporal_namespace_of_the_old_stack_is_asked(site):
+    work, state, _ = site
+    _upgrade_env(work)
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nTEMPORAL_NAMESPACE=custom-ns\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+    asked = [c for c in _docker_calls(state) if "temporal workflow list" in c]
+    assert asked and all("--namespace custom-ns" in c for c in asked)
+    shutil.rmtree(state / "store", ignore_errors=True)
+    (state / "docker.log").unlink()
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n")
+    (work / ".env.worker").write_text("NAMESPACE=worker-ns\n")
+    done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
+    assert done.returncode == 0
+    assert all("--namespace worker-ns" in c for c in _docker_calls(state) if "temporal workflow list" in c)

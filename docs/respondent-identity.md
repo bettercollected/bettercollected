@@ -44,10 +44,23 @@ bug: matching refuses it (there is no MD5 fallback), and the conversion pass rep
      upper case, digits and symbols (a lower-case passphrase that happens to decode is refused).
   Anything else (a short, repeating, patterned or placeholder value) is refused.
 - **Where it is read:** the environment, else the settings store, like the other keys. In the compose stack
-  `docker-compose.deployment.yml` passes it to the backend (empty means "read the store"); `bootstrap-keys`
-  generates it into the store of a **new** stack. A stack that upgrades sets it once (root `.env` for compose, the
-  stack definition for an orchestrated stack). Only the backend needs it: not the jobs worker, auth, the Google
-  integration or the task runner.
+  `docker-compose.deployment.yml` passes `RESPONDENT_IDENTITY_KEY` from the shell or the **root `.env`** to the backend
+  (empty means "read the store"); a value only in `.env.deployment` does not reach the backend, because that entry of
+  the service's `environment` overrides the env file. `bootstrap-keys` generates the key into the store of a **new**
+  stack. A compose stack that upgrades gets it from `deploy.sh`, before any service starts: it generates the key once
+  (`openssl rand -hex 32`), imports it into the store (`settings-import`, which never overwrites) and adds it to the root
+  `.env` like the other keys of an upgrade (`SETTINGS_STORE=off` reads only the environment), and never prints it.
+  `deploy.sh` leaves a key set in the shell or in `.env` as it is (a key only in `.env.deployment` is copied into `.env`,
+  unprinted), and does nothing when the store already has one. It stops, before any service starts, when
+  - the database already has a key check (a 4.1 backend started with some key) and no key can be found: a new key would
+    not match;
+  - `.env` and the store both hold a key and nothing says they are the same (it cannot compare them without printing
+    them; a key `deploy.sh` generated is recorded as `BC_IDENTITY_KEY_SHA256`, a hash of 32 random bytes, and passes;
+    `BC_IDENTITY_KEY_SOURCE=env ./deploy.sh` says the key in `.env` is the intended one);
+  - `SETTINGS_STORE=off` and the key is only in the store (put it in `.env`).
+
+  An orchestrated stack sets it once in its stack definition. Only the backend needs it: not the jobs worker, auth, the
+  Google integration or the task runner.
 - **Startup check:** the API refuses to start when it is missing, shorter than 32 bytes or low in variety
   (`require_identity_key`, first thing in the lifespan of `backend/backend/app/asgi.py`). The message names the
   setting and the command, never a value.
@@ -114,10 +127,15 @@ with Mongo. The pass belongs to the service that computes the identity.
 
 ## Upgrading to 4.1
 
-1. Before the 4.1 roll: generate the key (`openssl rand -hex 32`) and keep it with the other secrets. Never put
-   it in a ticket, a chat or the repository.
-2. Add `RESPONDENT_IDENTITY_KEY` to the **backend** service of the 4.1 stack (compose: the root `.env`;
-   orchestrated stack: its environment). 4.0.x ignores it.
+0. **Compose stack with `deploy.sh`:** nothing to do. `deploy.sh` generates the key into the store on the first 4.1
+   deploy, runs the conversion below once the new backend is up (retrying while the backend's own pass holds the
+   lock), and prints `Respondent identity key fingerprint: <8 hex digits>`: write it down with the key backup. A second
+   deploy keeps the key and prints the same fingerprint. Exit 3 or 4 of the conversion (key missing, or not the one
+   the stored identities were converted with) fails the deploy; a pass that is merely slow only warns.
+1. Before the 4.1 roll (other stacks): generate the key (`openssl rand -hex 32`) and keep it with the other secrets.
+   Never put it in a ticket, a chat or the repository.
+2. Add `RESPONDENT_IDENTITY_KEY` to the **backend** service of the 4.1 stack (compose without `deploy.sh`: the root
+   `.env`; orchestrated stack: its environment). 4.0.x ignores it.
    For a large table, run `python -m backend.identity_rekey --dry-run` and then the command itself in a one-off
    container of the 4.1 image before the roll, and note the `key fingerprint`.
 3. Roll the backend to 4.1. The first replica converts in the background under the lock (the log line is
