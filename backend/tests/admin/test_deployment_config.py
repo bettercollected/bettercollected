@@ -613,6 +613,15 @@ def test_the_deploy_workflow_is_pinned_and_takes_no_untrusted_context_in_its_scr
     assert tags and all(t.startswith("v[0-9]+") for t in tags)
 
 
+def test_a_develop_push_deploys_only_when_the_develop_deploy_switch_is_on():
+    deploy = yaml.safe_load((ROOT / ".github" / "workflows" / "deploy.yml").read_text())
+    assert deploy["jobs"]["deploy"]["if"] == (
+        "github.ref != 'refs/heads/develop' || vars.DEVELOP_DEPLOY_ENABLED == 'true'"
+    )
+    # the images keep building on develop
+    assert "if" not in deploy["jobs"]["build-and-push"]
+
+
 # --------------------------------------------- rendered with a populated .env.deployment
 
 DUMMY = {
