@@ -278,6 +278,8 @@ describe('the upload dialog', () => {
         archive_too_large: { status: 400, body: {}, en: en.ERROR.archive_too_large, nl: nl.ERROR.archive_too_large },
         archive_incomplete: { status: 400, body: { missing: ['forms.json', '_meta.json'] }, en: 'It is missing: forms.json, _meta.json.', nl: 'Er ontbreekt: forms.json, _meta.json.' },
         archive_json_invalid: { status: 400, body: { file: 'formSteps.json' }, en: 'the file “formSteps.json”', nl: 'het bestand “formSteps.json”' },
+        import_busy: { status: 503, body: {}, en: en.ERROR.import_busy, nl: nl.ERROR.import_busy },
+        import_limit: { status: 429, body: {}, en: en.ERROR.import_limit, nl: nl.ERROR.import_limit },
         archive_not_a_single_form: { status: 400, body: {}, en: en.ERROR.archive_not_a_single_form, nl: nl.ERROR.archive_not_a_single_form },
         open_formulieren_version_unknown: { status: 400, body: {}, en: en.ERROR.open_formulieren_version_unknown, nl: nl.ERROR.open_formulieren_version_unknown },
         open_formulieren_version_unsupported: {
@@ -320,6 +322,17 @@ describe('the upload dialog', () => {
             fireEvent.click(screen.getByRole('button', { name: nl.DIALOG.IMPORT }));
         });
         expect(await screen.findByText((_, node) => node?.tagName === 'P' && node.textContent?.includes(refusal.nl) === true)).toBeInTheDocument();
+    });
+
+    it('says something could not be read for an archive-wide read error', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => json(422, { code: 'archive_json_invalid', message: 'x', file: 'archive' }))
+        );
+        open();
+        await chooseAndImport(zip());
+        expect(await screen.findByText(en.ERROR.archive_unreadable)).toBeInTheDocument();
+        expect(screen.queryByText(/“archive”/)).toBeNull();
     });
 
     it('lists why nothing could be imported', async () => {

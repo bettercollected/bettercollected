@@ -273,10 +273,13 @@
       "open_formulieren_version_unknown": "We konden niet zien met welke versie van Open Formulieren dit bestand is gemaakt. Exporteer het formulier opnieuw uit een bijgewerkte installatie.",
       "open_formulieren_version_unsupported": "Dit bestand komt uit Open Formulieren {{version}}. We kunnen alleen exports lezen uit versie {{supported}}.",
       "no_importable_fields": "Niets in dit formulier kan als vraag worden geïmporteerd. Er is daarom geen formulier gemaakt.",
-      "archive_too_complex": "Dit formulier heeft meer pagina’s of vragen dan één formulier kan bevatten. Splits het in Open Formulieren en importeer de delen.",
+      "archive_too_complex": "Dit formulier is te groot of te ingewikkeld om te importeren. Splits het in Open Formulieren en importeer de delen.",
       "import_not_found": "We konden deze import niet vinden.",
       "forbidden": "U mag in deze werkruimte geen formulieren maken.",
-      "upload_failed": "Het importeren is mislukt. Probeer het opnieuw."
+      "upload_failed": "Het importeren is mislukt. Probeer het opnieuw.",
+      "import_busy": "Er lopen nu andere imports. Probeer het over een paar seconden opnieuw.",
+      "import_limit": "Uw werkruimte heeft de grens voor imports uit Open Formulieren van vandaag bereikt. Probeer het morgen opnieuw.",
+      "archive_unreadable": "We konden iets in dit zipbestand niet lezen. Exporteer het formulier opnieuw."
     },
     "REPORT": {
       "TITLE": "Uw conceptformulier staat klaar",

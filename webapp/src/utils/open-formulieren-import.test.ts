@@ -38,7 +38,7 @@ describe('the providers entry', () => {
 describe('the upload refusals', () => {
     it('has an English and a Dutch message for every code of the contract', () => {
         for (const code of UPLOAD_ERROR_CODES) {
-            const { key } = uploadProblemOf({ status: 400, data: { code } });
+            const { key } = uploadProblemOf({ status: 400, data: { code, file: 'forms.json' } });
             expect(key).toBe(`ERROR.${code}`);
             expect(valueOf(en, key), `en ${code}`).toBeTruthy();
             expect(valueOf(nl, key), `nl ${code}`).toBeTruthy();
@@ -59,6 +59,24 @@ describe('the upload refusals', () => {
         expect(uploadProblemOf({ status: 413, data: { code: 'file_too_large' } }).values).toEqual({ mb: 5 });
         expect(uploadProblemOf({ status: 400, data: { code: 'archive_incomplete', missing: ['forms.json', '_meta.json'] } }).values).toEqual({ files: 'forms.json, _meta.json' });
         expect(uploadProblemOf({ status: 400, data: { code: 'archive_json_invalid', file: 'formSteps.json' } }).values).toEqual({ file: 'formSteps.json' });
+    });
+
+    it('says "something could not be read" when the broken file is the whole archive', () => {
+        for (const data of [{ code: 'archive_json_invalid', file: 'archive' }, { code: 'archive_json_invalid' }]) {
+            const problem = uploadProblemOf({ status: 422, data });
+            expect(problem.key).toBe('ERROR.archive_unreadable');
+            expect(problem.values).toEqual({});
+            expect(valueOf(en, problem.key)).toBeTruthy();
+            expect(valueOf(nl, problem.key)).toBeTruthy();
+            expect(valueOf(en, problem.key)).not.toContain('{{');
+        }
+    });
+
+    it('maps the busy and daily-limit refusals', () => {
+        expect(uploadProblemOf({ status: 503, data: { code: 'import_busy' } }).key).toBe('ERROR.import_busy');
+        expect(uploadProblemOf({ status: 429, data: { code: 'import_limit' } }).key).toBe('ERROR.import_limit');
+        expect(valueOf(en, 'ERROR.import_busy')).toContain('few seconds');
+        expect(valueOf(en, 'ERROR.import_limit')).toContain('tomorrow');
     });
 
     it('keeps the items that say why nothing could be imported', () => {

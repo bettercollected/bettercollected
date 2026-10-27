@@ -273,10 +273,13 @@
       "open_formulieren_version_unknown": "We could not tell which Open Formulieren version made this file. Export the form again from an up-to-date installation.",
       "open_formulieren_version_unsupported": "This file comes from Open Formulieren {{version}}. We can only read exports from version {{supported}}.",
       "no_importable_fields": "Nothing in this form can be imported as a question, so no form was made.",
-      "archive_too_complex": "This form has more pages or questions than one form can hold. Split it in Open Formulieren and import the parts.",
+      "archive_too_complex": "This form is too big or too complex to import. Split it in Open Formulieren and import the parts.",
       "import_not_found": "We could not find this import.",
       "forbidden": "You are not allowed to create forms in this workspace.",
-      "upload_failed": "The import failed. Please try again."
+      "upload_failed": "The import failed. Please try again.",
+      "import_busy": "Other imports are running right now. Try again in a few seconds.",
+      "import_limit": "Your workspace has reached today’s limit for Open Formulieren imports. Try again tomorrow.",
+      "archive_unreadable": "We could not read something in this zip file. Export the form again."
     },
     "REPORT": {
       "TITLE": "Your draft form is ready",

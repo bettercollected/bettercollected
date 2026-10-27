@@ -26,6 +26,8 @@ export const UPLOAD_ERROR_CODES = [
     'open_formulieren_version_unsupported',
     'no_importable_fields',
     'archive_too_complex',
+    'import_busy',
+    'import_limit',
     'import_not_found'
 ] as const;
 
@@ -142,7 +144,11 @@ export function uploadProblemOf(error: unknown): UploadProblem {
             .filter(Boolean)
             .join(', ');
     }
-    if (code === 'archive_json_invalid') values.file = plainText(body.file, 60);
+    if (code === 'archive_json_invalid') {
+        values.file = plainText(body.file, 60);
+        // `file: "archive"` is not a file name: something in the zip could not be read
+        if (values.file === 'archive' || !values.file) return { key: 'ERROR.archive_unreadable', values: {}, items };
+    }
     if (code === 'open_formulieren_version_unsupported') {
         values.version = plainText(body.version, 40);
         // "4.0" is a series: name it as the exports it reads ("4.0.x")
