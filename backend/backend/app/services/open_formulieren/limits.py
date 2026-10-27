@@ -38,8 +38,17 @@ MAX_PATTERN = 500
 
 MAX_REPORT_ITEMS = 500
 
-# the series of Open Formulieren releases we read (MAJOR.MINOR)
-ACCEPTED_SERIES = ((4, 0),)
+# the series of Open Formulieren releases we read (MAJOR.MINOR). 4.0 and 3.5
+# are checked against real exports of 4.0.6 and 3.5.14; 3.2 to 3.4 are read
+# on the strength of the source (the export's shape is the one of 3.5 minus
+# a few keys we do not use), see docs/open-formulieren.md. Older series
+# differ in what we read (3.0 and 3.1 name the sign-in options differently)
+# and are refused.
+ACCEPTED_SERIES = ((3, 2), (3, 3), (3, 4), (3, 5), (4, 0))
+# the series whose export has no form ``type`` (an appointment form says
+# ``appointment_options.is_appointment``) and may hold rules that only start
+# from a given step: every accepted 3.x
+LEGACY_MAJOR = 3
 
 # one import may process this many characters of text and run this long
 # (seconds, wall clock) before it is refused as too complex

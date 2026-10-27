@@ -203,6 +203,16 @@ class Planner:
         for index, rule in enumerate(rules):
             name = f"rule-{index + 1}"
             label = rule.get("description")
+            # 3.x only: a rule of a form still on the old logic evaluation may
+            # only start once a given step is reached. Ours is checked
+            # wherever the answers are, so the rule would act earlier than
+            # the original: dropped, not guessed.
+            if self.archive.is_3x and rule.get("trigger_from_step"):
+                self.note(
+                    R.DROPPED, Reason.TRIGGER, kind=R.LOGIC, key=name, label=label,
+                    step=None, detail={"cause": "trigger_from_step"},
+                )
+                continue
             try:
                 trigger = parse_trigger(rule.get("json_logic_trigger"))
             except Unsupported as why:
@@ -879,7 +889,11 @@ def _form_features(archive: Archive, report: Report) -> None:
     if form.get("payment_backend"):
         plugin = label_text(form.get("payment_backend"), 60)
         feature(Reason.PAYMENT, key=plugin, detail={"plugin": plugin})
-    if form.get("type") == "appointment":
+    # 4.0 writes the kind of form as ``type``; 3.x wrote a flag in the
+    # appointment options
+    if form.get("type") == "appointment" or (
+        archive.is_3x and _dict(form.get("appointment_options")).get("is_appointment") is True
+    ):
         feature(Reason.APPOINTMENT, key="appointment")
     for plugin in _plugin_names(form.get("registration_backends"), "backend"):
         feature(Reason.REGISTRATION, key=plugin, detail={"plugin": plugin})

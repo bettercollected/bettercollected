@@ -1,0 +1,161 @@
+{
+  "title": "Sample: shapes before 3.5",
+  "retention": [
+    null,
+    ""
+  ],
+  "pages": [
+    {
+      "title": "Legacy shapes",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "Legacy text",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "date",
+          "title": "Legacy date",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Legacy time",
+          "placeholder": "HH:MM",
+          "validations": {
+            "required": false,
+            "regex": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          }
+        },
+        {
+          "type": "multiple_choice",
+          "title": "Kind",
+          "validations": {
+            "required": false
+          },
+          "choices": [
+            "A",
+            "B"
+          ]
+        },
+        {
+          "type": "dropdown",
+          "title": "Legacy select",
+          "validations": {
+            "required": false
+          },
+          "choices": [
+            "X",
+            "Y"
+          ],
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Kind",
+                "comparison": "IS_EQUAL",
+                "value": "A"
+              }
+            ]
+          }
+        },
+        {
+          "type": "number",
+          "title": "Gate",
+          "validations": {
+            "required": false,
+            "min_value": 0.0
+          }
+        },
+        {
+          "type": "number",
+          "title": "Legacy number",
+          "validations": {
+            "required": false,
+            "min_value": 1.0,
+            "max_value": 9.0
+          },
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Gate",
+                "comparison": "IS_EQUAL",
+                "value": 5
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 1,
+    "fields": 7,
+    "logicRules": 2,
+    "repeatingGroups": 0,
+    "dropped": 3,
+    "flagged": 0
+  },
+  "report": [
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "error_messages_not_carried",
+      "severity": "info"
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_text",
+      "severity": "info",
+      "key": "legacyTime",
+      "step": 0,
+      "detail": {
+        "componentType": "time"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "info",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "retention_global_setting",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}

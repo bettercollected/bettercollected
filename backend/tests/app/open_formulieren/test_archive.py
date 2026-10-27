@@ -31,16 +31,30 @@ def refused(data: bytes) -> ImportRefused:
     return caught.value
 
 
+# Every test of this module that builds its archive with ``good`` runs once
+# on the export of each release we have fixtures of: the limits of the zip and
+# JSON layers do not depend on the release.
+SOURCES = {"4.0.6": "all-components.en.zip", "3.5.14": "3.5.14/all-components.en.zip"}
+_source = {"name": SOURCES["4.0.6"]}
+
+
+@pytest.fixture(autouse=True, params=list(SOURCES), ids=lambda release: f"from-{release}")
+def source_release(request):
+    _source["name"] = SOURCES[request.param]
+    yield request.param
+    _source["name"] = SOURCES["4.0.6"]
+
+
 def good(**changes):
     """The decoded fixture with some entries replaced."""
-    entries = load("all-components.en.zip")
+    entries = load(_source["name"])
     entries.update(changes)
     return entries
 
 
-def test_a_real_export_is_read():
-    archive = read_archive(fixture_bytes("all-components.en.zip"))
-    assert archive.version == "4.0.6"
+def test_a_real_export_is_read(source_release):
+    archive = read_archive(fixture_bytes(_source["name"]))
+    assert archive.version == source_release
     assert archive.form["slug"] == "sample-all-components"
     assert len(archive.steps) == 3 and len(archive.definitions) == 3
     assert archive.ignored == []
@@ -381,22 +395,22 @@ def meta(release, **extra):
     return {"of_release": release, "of_git_sha": "x", "created": "2026-01-01", **extra}
 
 
-@pytest.mark.parametrize("release", ["4.0.0", "4.0.6", "4.0.99"])
+@pytest.mark.parametrize("release", ["4.0.0", "4.0.6", "4.0.99", "3.2.0", "3.5.14"])
 def test_the_accepted_series_is_read(release):
     assert read_archive(make_zip(good(**{"_meta.json": meta(release)}))).version == release
 
 
-@pytest.mark.parametrize("release", ["4.1.0", "4.3.0", "5.0.0", "3.2.1", "2.0.0", "0.0.1"])
+@pytest.mark.parametrize("release", ["4.1.0", "4.3.0", "5.0.0", "3.1.9", "3.6.0", "2.0.0", "0.0.1"])
 def test_another_release_is_refused_naming_it(release):
     error = refused(make_zip(good(**{"_meta.json": meta(release)})))
     assert (error.status, error.code) == (400, "open_formulieren_version_unsupported")
-    assert error.extra == {"version": release, "supported": ["4.0"]}
+    assert error.extra == {"version": release, "supported": ["3.2", "3.3", "3.4", "3.5", "4.0"]}
     assert release in error.message
 
 
 @pytest.mark.parametrize(
     "value",
-    [None, "", "latest", "4.0", "4", "4.0.6-alpha.1", "4.0.6+local", "v4.0.6", 4.06, ["4.0.6"], "4.0.6\n", "<b>4.0.6</b>"],
+    [None, "", "latest", "4.0", "4", "4.0.6-alpha.1", "4.0.6+local", "v4.0.6", "04.0.6", "\u0664.\u0660.\u0666", "\uff14.\uff10.\uff16", 4.06, ["4.0.6"], "4.0.6\n", "<b>4.0.6</b>"],
 )
 def test_an_unreadable_release_is_unknown_and_never_echoed(value):
     error = refused(make_zip(good(**{"_meta.json": meta(value)})))

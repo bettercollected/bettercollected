@@ -3,8 +3,9 @@
 Kept in one module of plain data so that the importer reads them forwards and
 an export can read them backwards. Format facts (entry names, keys, component
 type names, JSON logic operators, action types) are cited in
-docs/open-formulieren.md against release 4.0.6; the names here are the
-format's own, the structure and code are ours.
+docs/open-formulieren.md against release 4.0.6 (and the 3.x differences, in
+the same document); the names here are the format's own, the structure and
+code are ours.
 """
 
 from __future__ import annotations

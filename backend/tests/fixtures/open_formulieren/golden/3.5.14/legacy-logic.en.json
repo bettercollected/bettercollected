@@ -1,0 +1,131 @@
+{
+  "title": "Sample: legacy logic",
+  "retention": [
+    null,
+    ""
+  ],
+  "pages": [
+    {
+      "title": "Start",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "title": "Plan",
+          "validations": {
+            "required": true
+          },
+          "choices": [
+            "Basic",
+            "Premium"
+          ]
+        },
+        {
+          "type": "short_text",
+          "title": "Early note",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "logic": {
+            "action": "HIDE",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Plan",
+                "comparison": "IS_EQUAL",
+                "value": "Premium"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Finish",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "Other note",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 2,
+    "fields": 3,
+    "logicRules": 1,
+    "repeatingGroups": 0,
+    "dropped": 5,
+    "flagged": 0
+  },
+  "report": [
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "trigger_not_supported",
+      "severity": "warning",
+      "key": "rule-1",
+      "detail": {
+        "cause": "trigger_from_step"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "plan",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "always_hidden",
+      "severity": "info",
+      "key": "lateNote",
+      "step": 1,
+      "detail": {
+        "componentType": "textfield"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "info",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "retention_global_setting",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}
