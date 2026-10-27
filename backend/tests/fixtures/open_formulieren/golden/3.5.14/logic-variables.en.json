@@ -37,25 +37,6 @@
           }
         },
         {
-          "type": "calculated",
-          "title": "Total",
-          "expression": {
-            "*": [
-              {
-                "var": "Quantity"
-              },
-              {
-                "var": "Unit price"
-              }
-            ]
-          },
-          "format": {
-            "style": "number"
-          },
-          "hiddenFromRespondents": true,
-          "unansweredAsZero": false
-        },
-        {
           "type": "short_text",
           "title": "Why premium?",
           "validations": {
@@ -162,9 +143,8 @@
     "fields": 10,
     "logicRules": 3,
     "repeatingGroups": 0,
-    "dropped": 21,
-    "flagged": 0,
-    "calculations": 1
+    "dropped": 23,
+    "flagged": 0
   },
   "report": [
     {
@@ -323,6 +303,13 @@
     },
     {
       "code": "dropped",
+      "kind": "logic",
+      "reason": "trigger_not_supported",
+      "severity": "warning",
+      "key": "rule-5"
+    },
+    {
+      "code": "dropped",
       "kind": "feature",
       "reason": "translations_not_carried",
       "severity": "info",
@@ -350,13 +337,15 @@
       "key": "purpose"
     },
     {
-      "code": "changed",
+      "code": "dropped",
       "kind": "variable",
-      "reason": "user_variable_calculated",
+      "reason": "user_variable_not_carried",
       "severity": "info",
       "key": "total",
       "detail": {
-        "dataType": "float"
+        "dataType": "float",
+        "cause": "source_default",
+        "source": "quantity"
       }
     },
     {

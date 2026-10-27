@@ -114,6 +114,11 @@ class Question:
     unit: Optional[int] = None
     # the component holds a list of values (``multiple``)
     multiple: bool = False
+    # its value starts from a default, or is filled by a prefill or a script
+    # of the file: none of which we carry (a calculation reading it would
+    # differ from the original's)
+    default_value: bool = False
+    rewritten: bool = False
     # the id the form gave the question once it was created
     field_id: Optional[str] = None
 
@@ -275,6 +280,7 @@ class Planner:
         self.rules: List[Dict[str, Any]] = []
         self.variables: Dict[str, V.Info] = {}
         self.deferred: List[int] = []
+        self.written: set = set()
         self.page_ids: Dict[str, str] = {}
 
     # --------------------------------------------------------- reporting
@@ -317,6 +323,7 @@ class Planner:
             key=lambda r: r.get("order") if isinstance(r.get("order"), int) else 0,
         )
         self.variables = V.analyse(self.archive.variables, self.rules, self.archive.is_3x)
+        self.written = V.written_keys(self.archive.variables, self.rules)
         consumed = V.consumed_rules(self.rules, self.variables)
         for index, rule in enumerate(self.rules):
             if index in consumed:
@@ -776,6 +783,12 @@ class Planner:
         question.chain = list(chain)
         question.choices = choices
         question.multiple = comp.get("multiple") is True
+        question.default_value = comp.get("defaultValue") not in (None, "")
+        question.rewritten = (
+            bool(_dict(comp.get("prefill")).get("plugin"))
+            or any(comp.get(name) for name in SCRIPT_KEYS)
+            or bool(_list(comp.get("logic")))
+        )
 
         if rule.converted and of_type != "checkbox":
             self.note(
@@ -1478,13 +1491,17 @@ def _add_calculations(planner: Planner, form: StandardForm) -> StandardForm:
             unusable[key] = V.Cause.SOURCE_IN_GROUP
         elif question.multiple:
             unusable[key] = V.Cause.SOURCE_MULTIPLE
+        elif question.rewritten:
+            unusable[key] = V.Cause.SOURCE_REWRITTEN
+        elif question.default_value:
+            unusable[key] = V.Cause.SOURCE_DEFAULT
         elif question.field_id is None:
             unusable[key] = V.Cause.SOURCE_MISSING
         else:
             sources[key] = V.Source(
                 question.field_id, (position.get(id(question), 0), question.order)
             )
-    ordered = V.resolve(planner.variables, sources, unusable, planner.seen_keys)
+    ordered = V.resolve(planner.variables, sources, unusable, planner.seen_keys, planner.written)
 
     questions = _all_questions(planner)
     room = _field_cap() - (len(questions) + sum(1 for q in questions if q.is_group))

@@ -66,11 +66,15 @@ class Cause:
     OPERATOR = "operator"  # detail.operator
     OPERAND = "operand"
     TOO_COMPLEX = "too_complex"
-    INITIAL_VALUE = "initial_value"  # a division leaves a non-empty start
+    INITIAL_VALUE = "initial_value"  # it could leave a non-empty start as it is
     SOURCE_MISSING = "source_missing"  # detail.source
     SOURCE_NOT_NUMBER = "source_not_number"
     SOURCE_IN_GROUP = "source_in_group"
     SOURCE_MULTIPLE = "source_multiple"
+    # the value it reads is written by a rule, a prefill or a script of the
+    # file, or starts from a default: we do not carry those, so it differs
+    SOURCE_REWRITTEN = "source_rewritten"
+    SOURCE_DEFAULT = "source_default"
     DEPENDS = "depends_on_variable"  # a variable that is not carried
     CYCLE = "cycle"  # in a circle of variables, or reads one
     ORDER = "order"  # reads a variable a later rule sets
@@ -290,6 +294,32 @@ def _other_writers(action: Dict[str, Any]) -> Set[str]:
     return names
 
 
+def written_keys(variables: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Set[str]:
+    """Every key something in the file writes: the target of any action that
+    sets a variable (a component's key as well), a synchronisation's
+    destination, a decision's outputs, a variable filled by prefill or a
+    service. A calculation must not read one of these unless it is itself
+    the variable a calculation sets (``resolve``)."""
+    keys: Set[str] = set()
+    for rule in rules:
+        for raw in _list(rule.get("actions")):
+            action = _dict(raw)
+            target = action.get("variable")
+            if _dict(action.get("action")).get("type") == "variable" and isinstance(target, str):
+                keys.add(target)
+            else:
+                keys |= _other_writers(action)
+    for variable in variables:
+        key = variable.get("key")
+        if isinstance(key, str) and (
+            variable.get("prefill_plugin")
+            or variable.get("prefill_attribute")
+            or variable.get("service_fetch_configuration")
+        ):
+            keys.add(key)
+    return keys
+
+
 def analyse(
     variables: List[Dict[str, Any]], rules: List[Dict[str, Any]], is_3x: bool
 ) -> Dict[str, Info]:
@@ -354,10 +384,15 @@ def analyse(
                 except NotCarried as why:
                     info.fail(why.cause, **why.detail)
                 else:
-                    # a division by zero is an error in the original that
-                    # leaves the variable as it was; here it has no value,
-                    # which is the same only when it started with none
-                    if divides and record.get("initial_value") is not None:
+                    # Where the original leaves the variable as it was, here it
+                    # has no value: the same only when it started with none.
+                    # That is a division by zero (an error, caught and
+                    # logged) and a bare ``var`` of a hidden question (their
+                    # data no longer holds the key, which is "undefined" and
+                    # assigns nothing; anything computed from it assigns an
+                    # empty value, as for an unanswered one).
+                    bare = tree[0] == "var"
+                    if (divides or bare) and record.get("initial_value") is not None:
                         info.fail(Cause.INITIAL_VALUE)
                     else:
                         info.tree, info.refs = tree, tuple(references(tree))
@@ -400,13 +435,15 @@ def resolve(
     sources: Mapping[str, Source],
     unusable: Mapping[str, str],
     component_keys: Set[str],
+    rewritten: Optional[Set[str]] = None,
 ) -> List[Info]:
     """The variables that become calculated questions, in an order where each
     comes after the ones it reads; every other candidate gets its cause.
 
     ``sources``: the questions a variable may read (key -> question);
     ``unusable``: keys of components that were imported but cannot be read
-    (key -> cause); ``component_keys``: every component key of the file."""
+    (key -> cause); ``component_keys``: every component key of the file;
+    ``rewritten``: keys something in the file writes (``written_keys``)."""
     pending: Dict[str, Info] = {}
     for key, info in infos.items():
         if not info.carried:
@@ -418,6 +455,9 @@ def resolve(
         for ref in info.refs:
             if ref in infos:
                 continue  # another variable: followed below
+            if ref in (rewritten or ()):
+                info.fail(Cause.SOURCE_REWRITTEN, source=ref)
+                break
             if ref in sources:
                 continue
             info.fail(unusable.get(ref, Cause.SOURCE_MISSING), source=ref)
@@ -484,6 +524,7 @@ __all__ = [
     "Source",
     "analyse",
     "consumed_rules",
+    "written_keys",
     "parse_expression",
     "references",
     "resolve",

@@ -789,6 +789,92 @@ def test_a_source_that_was_not_imported_as_a_question_is_named_in_the_cause():
     assert infos["t"].cause == "source_missing" and infos["t"].detail == {"source": "a"}
 
 
+def test_a_source_that_a_rule_writes_stays_out():
+    """Rule 1 sets the component ``a`` from ``b``; rule 2 reads ``a``: the
+    original reads the rule's value, we would read the answer."""
+    rules = [
+        always(setter("a", {"*": [var("b"), 2]}, "1"), order=0),
+        always(setter("t", {"+": [var("a"), 1]}, "2"), order=1),
+    ]
+    built = run(TWO_NUMBERS, rules, [uvar("t")])
+    assert calcs(built) == []
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_rewritten", "source": "a"}
+
+
+@pytest.mark.parametrize(
+    "writer",
+    [
+        {"uuid": "o", "variable": "a", "action": {"type": "fetch-from-service", "value": "1"}},
+        {
+            "uuid": "o",
+            "action": {
+                "type": "synchronize-variables",
+                "config": {"destination_variable": "a", "source_variable": "x", "identifier_variable": "i", "data_mappings": []},
+            },
+        },
+        {
+            "uuid": "o",
+            "action": {"type": "evaluate-dmn", "config": {"output_mapping": [{"form_variable": "a", "dmn_variable": "x"}]}},
+        },
+    ],
+)
+def test_a_source_another_action_writes_stays_out(writer):
+    built = run(TWO_NUMBERS, [always(setter("t", {"+": [var("a"), 1]})), rule(eq_a(), writer, order=1)], [uvar("t")])
+    assert not_carried(built, "t")["cause"] == "source_rewritten"
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"prefill": {"plugin": "demo", "attribute": "x"}},
+        {"calculateValue": "value = 1"},
+        {"customDefaultValue": "value = 1"},
+        {"logic": [{"name": "x", "trigger": {"type": "simple"}, "actions": []}]},
+    ],
+)
+def test_a_source_with_a_prefill_or_a_script_stays_out(extra):
+    steps = [[num("a", label="A", **extra), num("b", label="B")]]
+    built = run(steps, [always(setter("t", {"+": [var("a"), var("b")]}))], [uvar("t")])
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_rewritten", "source": "a"}
+    # reading only the other one is fine
+    built = run(steps, [always(setter("t", {"+": [var("b"), 1]}))], [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+@pytest.mark.parametrize("default", [5, 0, 2.5, "7", "0"])
+def test_a_source_that_starts_from_a_default_stays_out(default):
+    steps = [[num("a", label="A", defaultValue=default), num("b", label="B")]]
+    built = run(steps, [always(setter("t", {"+": [var("a"), var("b")]}))], [uvar("t")])
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_default", "source": "a"}
+
+
+@pytest.mark.parametrize("default", [None, ""])
+def test_a_source_with_no_default_is_fine(default):
+    steps = [[num("a", label="A", defaultValue=default), num("b", label="B")]]
+    built = run(steps, [always(setter("t", {"+": [var("a"), var("b")]}))], [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+def test_a_bare_copy_of_an_answer_needs_an_empty_start_the_rest_assign_empty():
+    # a hidden question is gone from the original's data: a bare ``var`` of it
+    # assigns nothing (the variable keeps what it held), arithmetic assigns empty
+    built = one({"var": "a"}, variables_extra={"initial_value": 0.0})
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "initial_value"}
+    built = one({"var": ["a"]}, variables_extra={"initial_value": 5})
+    assert not_carried(built, "t")["cause"] == "initial_value"
+    for expression in ({"+": [var("a"), 1]}, {"-": [var("a")]}, {"min": [var("a"), 3]}, {"*": [var("a"), var("b")]}):
+        assert len(calcs(one(expression, variables_extra={"initial_value": 0.0}))) == 1, expression
+
+
+def test_an_integer_variable_keeps_a_fraction_as_the_original_stores_it():
+    # their int variable is not truncated on assignment: the value is stored as
+    # computed (submission_value_variable.py:597-605, 694-702)
+    built = one({"/": [var("a"), var("b")]}, variables_extra={"data_type": "int"})
+    assert len(calcs(built)) == 1
+    assert value_of(built, "T", A=1, B=4) == 0.25
+    assert len(calcs(one({"*": [var("a"), 0.5]}, variables_extra={"data_type": "int"}))) == 1
+
+
 # ----------------------------------------------- chains, cycles and order
 
 
