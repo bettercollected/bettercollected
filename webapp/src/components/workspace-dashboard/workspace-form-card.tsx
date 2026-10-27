@@ -15,6 +15,7 @@ import moment from 'moment/moment';
 import FormOptionsDropdownMenu from '@Components/datatable/form-options-dropdown';
 import FormProviderIcon from '@Components/icons/form-provider-icon';
 import { GroupIcon } from '@app/components/icons/group-icon';
+import { NeedsReviewBadge } from '@app/components/open-formulieren-import/needs-review';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { localesCommon } from '@app/constants/locales/common';
@@ -107,6 +108,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
                             {!isResponderPortal && form.settings?.provider === 'self' && form?.builderVersion !== 'v2' && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V1</div>}
+                            {!isResponderPortal && <NeedsReviewBadge settings={form?.settings} />}
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">

@@ -188,6 +188,12 @@ export interface StandardFormDto {
          * ("en-GB").
          */
         language?: string | null;
+        /** An imported form that still needs a look (set by the import, cleared once its report is marked reviewed). */
+        needsReview?: boolean | null;
+        /** Where an imported form came from: "open_formulieren". */
+        importSource?: string | null;
+        /** The import record holding the report of an imported form. */
+        importId?: string | null;
         /** Trust-layer content: why the data is collected (shown to responders). */
         purpose?: string;
         /** Legacy free-text note on retention. Not shown to respondents: the period they read comes from responseExpiration* only (utils/retention.ts). */

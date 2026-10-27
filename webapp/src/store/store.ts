@@ -11,6 +11,7 @@ import { integrationApi } from '@app/store/integration-apis';
 import { plansApi } from '@app/store/plans/api';
 import { formsApi } from '@app/store/redux/form-api';
 import { importApi } from '@app/store/redux/import-api';
+import { openFormulierenImportApi } from '@app/store/redux/open-formulieren-import-api';
 import { pdfImportApi } from '@app/store/redux/pdf-import-api';
 import { templatesApi } from '@app/store/redux/template-api';
 import { templateApi } from '@app/store/template/api';
@@ -39,6 +40,7 @@ const middlewares = [
     templatesApi.middleware,
     importApi.middleware,
     pdfImportApi.middleware,
+    openFormulierenImportApi.middleware,
     mediaLibraryApi.middleware,
     analyticsApi.middleware,
     integrationApi.middleware
@@ -64,6 +66,7 @@ const reducers = {
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer,
     [pdfImportApi.reducerPath]: pdfImportApi.reducer,
+    [openFormulierenImportApi.reducerPath]: openFormulierenImportApi.reducer,
     [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
     [integrationApi.reducerPath]: integrationApi.reducer
