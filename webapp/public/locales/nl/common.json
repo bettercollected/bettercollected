@@ -296,6 +296,10 @@
   "FORM_LINK_WITH_PREVIOUS_DOMAIN_WONT_WORK": "Formulierlinks met vorig domein werken niet meer na updaten.",
   "FORM_LINK_WITH_PREVIOUS_WORKSPACE_HANDLE_WONT_WORK": "Formulierkoppelingen met vorige werkruimtehandvat werken niet na updaten.",
   "FORM_MENU": {
+    "OPEN_FORMULIEREN_EXPORT": "Downloaden voor Open Formulieren",
+    "OPEN_FORMULIEREN_EXPORT_CLEAN": "Gedownload. Alles is meegenomen.",
+    "OPEN_FORMULIEREN_EXPORT_UNMAPPED": "Gedownload. {{n}} onderde(e)l(en) zijn weggelaten of aangepast: zie README.txt in het archief.",
+    "OPEN_FORMULIEREN_EXPORT_ERROR": "Het formulier kon niet worden gedownload.",
     "DELETE_FORM": "Verwijder formulier",
     "PIN_FORM": "Vastzetten formulier",
     "SHARE": "Delen",
