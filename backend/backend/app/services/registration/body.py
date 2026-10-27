@@ -22,6 +22,9 @@ SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 MAX_FILES = 20
 MAX_FILE_BYTES = 10 * 1024 * 1024
+# all files of one body together, as base64: the job never holds much more
+# than this (the client refuses a whole body over 20 MB)
+MAX_FILES_BASE64 = 15 * 1024 * 1024
 
 SLIDE = "slide"
 GROUP = "group"
@@ -373,18 +376,30 @@ def _file_schema(title: str, present: bool) -> dict:
     }
 
 
-FileReader = Callable[[str], bytes]
+FileReader = Callable[..., bytes]
 
 
-def file_value(field: Any, answer: Optional[dict], read: FileReader):
+def base64_size(raw: int) -> int:
+    return 4 * ((raw + 2) // 3)
+
+
+def file_value(
+    field: Any,
+    answer: Optional[dict],
+    read: FileReader,
+    limit: int = MAX_FILE_BYTES,
+):
     """The ``{file_name, content}`` object of an uploaded file (base64), or
-    ``None``. ``read(file_id)`` returns the stored bytes."""
+    ``None``. ``read(file_id, limit)`` returns the stored bytes (at most
+    ``limit``; the reader refuses a larger object before loading it)."""
     meta = (answer or {}).get("file_metadata") or (answer or {}).get("fileMetadata")
     title = label_of(field)
     if not isinstance(meta, dict) or not meta.get("id"):
         return None, _file_schema(title, False)
-    data = read(str(meta["id"]))
-    if len(data) > MAX_FILE_BYTES:
+    if limit <= 0:
+        raise FileTooLarge()
+    data = read(str(meta["id"]), limit)
+    if len(data) > min(limit, MAX_FILE_BYTES):
         raise FileTooLarge()
     return (
         {
@@ -469,6 +484,7 @@ def build_values(
     values: Dict[str, Any] = {}
     schemas: Dict[str, Any] = {}
     files = 0
+    used = 0
     for source, key in mapping:
         variable = index.get(source)
         if variable is None or not variable.supported:
@@ -482,9 +498,17 @@ def build_values(
                 variable, _answer(answers, source), index, as_list_here
             )
         elif variable.type == "file_upload":
+            # a running budget: later files get what is left, so no body is
+            # ever built from more than MAX_FILES_BASE64 of file content
+            left = (MAX_FILES_BASE64 - used) * 3 // 4
             value, schema = file_value(
-                variable.field, _answer(answers, source), read_file
+                variable.field,
+                _answer(answers, source),
+                read_file,
+                min(MAX_FILE_BYTES, left),
             )
+            if value is not None:
+                used += len(value["content"])
             files += 1 if value is not None else 0
             if files > MAX_FILES:
                 raise FileTooLarge()

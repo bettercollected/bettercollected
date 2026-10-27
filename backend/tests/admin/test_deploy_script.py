@@ -1488,8 +1488,8 @@ def test_an_upgrade_moves_the_schedules_onto_the_queue_then_removes_temporal_and
     # after the roll (nothing new goes to Temporal), the sweep, the wait, the removal
     sweep = _index(calls, "backend.migrate jobs-sweep --backend postgres")
     assert _index(calls, "up --build") < sweep
-    # backend.migrate builds a Mongo client for every command: it gets an address nothing listens on
-    assert "-e MONGO_URI=mongodb://127.0.0.1:1/" in calls[sweep]
+    # the sweep reads Postgres only: no MONGO_URI is handed to it, placeholder or otherwise
+    assert "MONGO_URI" not in calls[sweep]
     assert "Scheduled response deletions on the job queue: 7" in done.stdout
     assert "Temporal runs no workflow." in done.stdout
     removed = _removed(state)
@@ -1554,6 +1554,38 @@ def test_a_job_kind_pinned_to_temporal_is_refused_before_anything_changes(site, 
     assert calls == []
     # the queue (or no line) is fine
     (work / ".env.deployment").write_text("UMAMI_PASSWORD=\nJOBS_BACKEND=postgres\nJOBS_BACKEND__run_action=\n")
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
+
+
+@pytest.mark.parametrize(
+    "line, named",
+    [
+        ("DB_WRITE_MODE=dual", "DB_WRITE_MODE"),
+        ("export DB_READ_SOURCE='Mongo'", "DB_READ_SOURCE"),
+        ("DB_WRITE_MODE__forms=postgres_primary_dual # from the cutover", "DB_WRITE_MODE__forms"),
+        ("  DB_READ_SOURCE__responses = mongo", "DB_READ_SOURCE__responses"),
+    ],
+)
+def test_a_retired_store_switch_is_refused_before_anything_changes(site, line, named):
+    work, state, _ = site
+    (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n" + line + "\n")
+    done, calls = _run(site)
+    assert done.returncode == 1
+    assert f"refused: .env.deployment still sets {named}." in done.stderr and "Nothing was changed." in done.stderr
+    assert calls == []
+    # names only: the value is not echoed
+    assert f"{named}=" not in done.stderr
+    refusal = done.stderr[done.stderr.index("refused: .env.deployment") :]
+    value = line.split("=", 1)[1].split("#")[0].strip().strip("'\"")
+    assert value.lower() not in refusal.lower()
+
+
+def test_a_store_switch_that_says_postgres_or_nothing_is_fine(site):
+    work, state, _ = site
+    (work / ".env.deployment").write_text(
+        "UMAMI_PASSWORD=\nDB_READ_SOURCE=postgres\nDB_WRITE_MODE=\nDB_WRITE_MODE__forms=\"Postgres\"\n# DB_WRITE_MODE=dual\n"
+    )
     done, _ = _run(site)
     assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
 

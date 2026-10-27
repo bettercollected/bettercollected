@@ -1121,6 +1121,29 @@ refuse_temporal_job_backend() {
   return 1
 }
 
+# The store switches of 4.0 (DB_READ_SOURCE, DB_WRITE_MODE and their __<group> overrides) choose
+# between MongoDB and Postgres. The 4.1 compose file does not set them any more, so a value left in
+# .env.deployment (which every service reads) reaches the services, and a 4.1 service refuses to
+# start on any value but postgres: refused here instead, before anything is changed, with the names
+# (never the values). Unset, empty and postgres are fine. A value only in the root .env or the shell
+# reaches nothing and is ignored.
+refuse_stale_db_flags() {
+  local line name value found=""
+  [ -f .env.deployment ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    name=$(printf '%s\n' "$line" | sed -nE 's/^[[:space:]]*(export[[:space:]]+)?(DB_(READ_SOURCE|WRITE_MODE)(__[A-Za-z0-9_]+)?)[[:space:]]*=.*/\2/p')
+    [ -n "$name" ] || continue
+    value=$(dotenv_unquote "${line#*=}" | tr '[:upper:]' '[:lower:]')
+    case "$value" in ""|postgres) continue ;; esac
+    found="${found:+$found, }$name"
+  done < .env.deployment
+  [ -n "$found" ] || return 0
+  echo "refused: .env.deployment still sets ${found}. Since 4.1 every service is served from Postgres and these settings" >&2
+  echo "are retired: a service refuses to start with any value but postgres. Remove those lines (or set them to postgres)" >&2
+  echo "and run ./deploy.sh again. Nothing was changed." >&2
+  return 1
+}
+
 # The container ids of this compose project's service $1, in any state.
 project_containers() {
   docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.service=$1" 2>/dev/null
@@ -1147,11 +1170,8 @@ retire_temporal() {
   echo ""
   echo "TEMPORAL: this stack still runs Temporal, which is not part of it since 4.1 (background work runs on the Postgres"
   echo "job queue). Moving what it holds onto the queue, then removing it; its database volume is kept."
-  # backend.migrate opens a Mongo client for every command, even one that only reads Postgres
-  # (an empty MONGO_URI, which is what an imported stack has, makes the client refuse to be
-  # built). The sweep never reads Mongo, so the one-off gets an address nothing listens on:
-  # the client is built and never used.
-  out=$("${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T -e MONGO_URI='mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=2000' backend /api/backend/.venv/bin/python -m backend.migrate jobs-sweep --backend postgres 2>&1)
+  # The sweep reads Postgres only: it needs no MONGO_URI (an imported stack has none).
+  out=$("${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T backend /api/backend/.venv/bin/python -m backend.migrate jobs-sweep --backend postgres 2>&1)
   rc=$?
   if [ "$rc" -ne 0 ]; then
     printf '%s\n' "$out" | tail -n 8 >&2
@@ -1567,5 +1587,6 @@ else
     start_list+=("$service")
   done < <(services_for "$user_preference")
   refuse_temporal_job_backend || exit 1
+  refuse_stale_db_flags || exit 1
   dockerup "${start_list[@]}"
 fi

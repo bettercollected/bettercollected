@@ -229,8 +229,11 @@ async def _defer_job(delivery_id: str) -> None:
 
     try:
         await tasks.register_submission.configure(
+            # no ``lock``: procrastinate keeps a unique index on a lock while a
+            # job is ``doing``, which a hard-killed worker would leave behind
+            # and block the re-queued job. One send at a time is the atomic
+            # claim in ``run_delivery``; ``queueing_lock`` stops duplicates.
             queueing_lock=f"register_submission:{delivery_id}",
-            lock=f"register_submission:{delivery_id}",
         ).defer_async(delivery_id=delivery_id)
     except AlreadyEnqueued:
         pass
@@ -304,7 +307,9 @@ class RegistrationService:
                 "The secret is empty or contains characters that are not allowed.",
             )
         if auth is ServiceAuth.HEADER and not (
-            auth_name and _HEADER_NAME.match(auth_name)
+            auth_name
+            and _HEADER_NAME.match(auth_name)
+            and not client.reserved_header(auth_name)
         ):
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -859,6 +864,14 @@ class RegistrationService:
         retrying."""
         final = job_attempt + 1 >= MAX_ATTEMPTS
         if not registration_enabled():
+            # nothing leaves while the switch is off; a delivery that was
+            # waiting for a retry goes back to pending (attempts kept), so the
+            # sweep queues it once the switch is on again
+            parked = await self._deliveries.get(delivery_id)
+            if parked is not None and parked.status is DeliveryStatus.RETRYING:
+                parked.status = DeliveryStatus.PENDING
+                parked.next_attempt_at = None
+                await self._deliveries.save(parked)
             return Outcome("skipped")
         delivery = await self._deliveries.claim(
             delivery_id, _OPEN_STATES, now=self._clock()
@@ -1067,21 +1080,22 @@ class RegistrationService:
     def _file_reader(self, workspace_id, form_id, response_id):
         from backend.app.services.form_response_service import is_plain_file_id
 
-        def read(file_id: str) -> bytes:
+        def read(file_id: str, limit: int = body_builder.MAX_FILE_BYTES) -> bytes:
             if not is_plain_file_id(file_id):
                 raise body_builder.FileMissing()
-            for key in (
-                f"private/{workspace_id}/{form_id}/{response_id}/{file_id}",
-                f"private/{file_id}",
-                str(file_id),
-            ):
-                try:
-                    data = self._aws.read_object(key, body_builder.MAX_FILE_BYTES)
-                except ValueError:
-                    raise body_builder.FileTooLarge()
-                if data is not None:
-                    return data
-            raise body_builder.FileMissing()
+            # only this response's own folder: registration covers new
+            # submissions, and an id the respondent chose never reaches
+            # another object (no fallback to shared or bare keys)
+            key = f"private/{workspace_id}/{form_id}/{response_id}/{file_id}"
+            try:
+                data = self._aws.read_object(
+                    key, min(limit, body_builder.MAX_FILE_BYTES)
+                )
+            except ValueError:
+                raise body_builder.FileTooLarge()
+            if data is None:
+                raise body_builder.FileMissing()
+            return data
 
         return read
 
@@ -1100,6 +1114,13 @@ class RegistrationService:
         ):
             queued += 1 if await self._queue(delivery) else 0
         rescued = 0
+        # a retry whose job vanished: well past its time and never picked up
+        for delivery in await self._deliveries.list_retrying_before(
+            now - STUCK_AFTER - dt.timedelta(seconds=max(RETRY_WAITS)), SWEEP_BATCH
+        ):
+            delivery.status = DeliveryStatus.PENDING
+            await self._deliveries.save(delivery)
+            rescued += 1 if await self._queue(delivery) else 0
         for delivery in await self._deliveries.list_stuck_in_progress(
             now - STUCK_AFTER, SWEEP_BATCH
         ):
@@ -1155,6 +1176,17 @@ class RegistrationService:
         """A response was deleted: its delivery records go with it. Runs
         whatever the switch says (deleting data is always allowed)."""
         return await self._deliveries.delete_by_response_id(response_id)
+
+    async def delete_for_form(self, workspace_id: RecordId, form_id: str) -> None:
+        """A form was removed from a workspace: its registration and delivery
+        records go (whatever the switch says)."""
+        await self._deliveries.delete_for_form(workspace_id, form_id)
+        await self._registrations.delete_for_form(workspace_id, form_id)
+
+    async def delete_for_forms(self, form_ids: List[str]) -> None:
+        """Forms were deleted entirely (account deletion)."""
+        await self._deliveries.delete_by_form_ids(form_ids)
+        await self._registrations.delete_by_form_ids(form_ids)
 
     async def delete_for_workspaces(self, workspace_ids: List[RecordId]) -> None:
         """Workspaces were deleted: their services (and sealed secrets), form

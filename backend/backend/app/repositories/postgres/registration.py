@@ -116,6 +116,19 @@ class PostgresFormRegistrationRepository(RecordRepository):
     async def delete(self, registration_id) -> int:
         return await self.delete_where(FormRegistrationRow.id == _id(registration_id))
 
+    async def delete_for_form(self, workspace_id, form_id) -> int:
+        return await self.delete_where(
+            FormRegistrationRow.workspace_id == _id(workspace_id),
+            FormRegistrationRow.form_id == _id(form_id),
+        )
+
+    async def delete_by_form_ids(self, form_ids: Sequence) -> int:
+        if not form_ids:
+            return 0
+        return await self.delete_where(
+            FormRegistrationRow.form_id.in_([_id(f) for f in form_ids])
+        )
+
     async def delete_by_workspace_ids(self, workspace_ids: Sequence) -> int:
         return await self.delete_where(
             FormRegistrationRow.workspace_id.in_([_id(w) for w in workspace_ids])
@@ -273,6 +286,30 @@ class PostgresRegistrationDeliveryRepository(RecordRepository):
             return 0
         return await self.delete_where(
             RegistrationDeliveryRow.id.in_([_id(i) for i in ids])
+        )
+
+    async def delete_for_form(self, workspace_id, form_id) -> int:
+        return await self.delete_where(
+            RegistrationDeliveryRow.workspace_id == _id(workspace_id),
+            RegistrationDeliveryRow.form_id == _id(form_id),
+        )
+
+    async def delete_by_form_ids(self, form_ids: Sequence) -> int:
+        if not form_ids:
+            return 0
+        return await self.delete_where(
+            RegistrationDeliveryRow.form_id.in_([_id(f) for f in form_ids])
+        )
+
+    async def list_retrying_before(
+        self, due_before: dt.datetime, limit: int
+    ) -> List[RegistrationDeliveryDocument]:
+        """``retrying`` rows whose next attempt is long past: their job is gone."""
+        return await self.many(
+            RegistrationDeliveryRow.status == DeliveryStatus.RETRYING.value,
+            RegistrationDeliveryRow.updated_at < due_before,
+            order_by=(RegistrationDeliveryRow.updated_at, RegistrationDeliveryRow.id),
+            limit=limit,
         )
 
     async def delete_by_registration(self, registration_id) -> int:

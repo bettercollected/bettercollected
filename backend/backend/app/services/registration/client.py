@@ -78,6 +78,32 @@ class Target:
     secret: Optional[str] = None
 
 
+_RESERVED_HEADERS = {
+    "host",
+    "transfer-encoding",
+    "connection",
+    "keep-alive",
+    "upgrade",
+    "te",
+    "trailer",
+    "idempotency-key",
+    "user-agent",
+    "cookie",
+    "set-cookie",
+}
+
+
+def reserved_header(name: str) -> bool:
+    """Headers the client sets itself or that change how a request is routed or
+    framed: never carriers of a secret."""
+    low = name.strip().lower()
+    return (
+        low in _RESERVED_HEADERS
+        or low.startswith(("content-", "proxy-", "accept", ":"))
+        or low.startswith("x-forwarded-")
+    )
+
+
 def path_problem(path: str) -> Optional[str]:
     """Why ``path`` may not be appended to a service address, or None. No
     ``..`` (also encoded), no scheme, host, query or fragment."""
@@ -116,8 +142,10 @@ def _auth_headers(target: Target):
         if target.auth == "header" and target.auth_name and target.secret is not None:
             name = target.auth_name.encode("ascii")
             value = target.secret.encode("latin-1")
-            if not _HEADER_NAME.match(target.auth_name) or re.search(
-                rb"[\r\n\x00]", value
+            if (
+                not _HEADER_NAME.match(target.auth_name)
+                or reserved_header(target.auth_name)
+                or re.search(rb"[\r\n\x00]", value)
             ):
                 raise ValueError
             return [(name, value)]
