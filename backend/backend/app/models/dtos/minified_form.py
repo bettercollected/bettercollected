@@ -67,6 +67,10 @@ class FormDtoCamelModel(CamelModel):
     # the published form while the form allows AI insights. The form page
     # sends it back with the submission.
     ai_notice_token: Optional[str] = None
+    # Where a submission is also sent (registration): ``{"organisation": name}``,
+    # only on the published form while the switch is on and its registration
+    # is enabled. The privacy panel names it. Derived, never stored here.
+    registration_destination: Optional[Dict[str, str]] = None
     # The draft's version (its ETag, services/form_spec/editor_ops.py): only
     # on the editor's read, for If-Match on its op-batch saves.
     etag: Optional[str] = None

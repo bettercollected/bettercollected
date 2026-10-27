@@ -414,6 +414,15 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+            # the privacy panel names where answers are also sent
+            destination = await container.registration_service().destination_for(
+                workspace_id, str(form_id)
+            )
+            if destination:
+                if isinstance(form, dict):
+                    form["registrationDestination"] = destination
+                else:
+                    form.registration_destination = destination
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag

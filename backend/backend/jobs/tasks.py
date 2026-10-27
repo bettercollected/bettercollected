@@ -10,12 +10,18 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from procrastinate import RetryStrategy
+from procrastinate import BaseRetryStrategy, RetryStrategy
+from procrastinate.retry import RetryDecision
 
 from backend.app.services.credential_purge import PURGE_ATTEMPTS, PURGE_RETRY_SECONDS
 from backend.app.services.sheets_grant_revocation import (
     REVOKE_ATTEMPTS,
     REVOKE_RETRY_SECONDS,
+)
+from backend.app.services.registration.retry import (
+    MAX_ATTEMPTS as REGISTRATION_MAX_ATTEMPTS,
+    RETRY_WAITS as REGISTRATION_RETRY_WAITS,
+    RegistrationRetry,
 )
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
@@ -213,3 +219,61 @@ def run_action_deferrer(queueing_lock: str):
     return app.configure_task(
         name=RUN_ACTION, queue=ACTIONS_QUEUE, queueing_lock=queueing_lock
     )
+
+
+class RegistrationRetryStrategy(BaseRetryStrategy):
+    """Waits of ``REGISTRATION_RETRY_WAITS`` between attempts (a longer
+    ``Retry-After`` of the destination wins), then gives up."""
+
+    def get_retry_decision(self, *, exception, job):
+        if job.attempts + 1 >= REGISTRATION_MAX_ATTEMPTS:
+            return None
+        wait = REGISTRATION_RETRY_WAITS[min(job.attempts, len(REGISTRATION_RETRY_WAITS) - 1)]
+        after = getattr(exception, "retry_after", None) or 0
+        return RetryDecision(retry_in={"seconds": max(wait, after)})
+
+
+@app.task(
+    name="register_submission",
+    queue=DEFAULT_QUEUE,
+    retry=RegistrationRetryStrategy(),
+    pass_context=True,
+)
+async def register_submission(context, delivery_id: str) -> str:
+    """One attempt to send a stored submission to the form's registration
+    service (docs/open-formulieren-registration.md). The only argument is the
+    delivery id: the answers are decrypted inside the attempt and never queued.
+    A transient failure raises so the job is retried on the schedule; a
+    permanent one, or the last attempt, ends with the delivery ``failed``."""
+    outcome = await _container().registration_service().run_delivery(
+        delivery_id, job_attempt=context.job.attempts
+    )
+    if outcome.retry:
+        raise RegistrationRetry(outcome.retry_after)
+    return outcome.status
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="registration_redefer")
+@app.task(
+    name="registration_redefer",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="registration_redefer",
+)
+async def registration_redefer(timestamp: int) -> str:
+    """Queue again deliveries whose job was never queued or whose worker died
+    (no-op while OPEN_FORMULIEREN_REGISTRATION is off). Counts only."""
+    counts = await _container().registration_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+
+
+@app.periodic(cron="17 3 * * *", periodic_id="registration_sweep")
+@app.task(
+    name="registration_sweep",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="registration_sweep",
+)
+async def registration_sweep(timestamp: int) -> str:
+    """Nightly: delete delivery records of responses that no longer exist and
+    registrations of removed forms (no-op while the switch is off)."""
+    counts = await _container().registration_service().sweep_orphans()
+    return f"{counts['deliveries']} deliveries, {counts['registrations']} registrations"

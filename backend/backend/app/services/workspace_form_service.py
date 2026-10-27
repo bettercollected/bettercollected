@@ -309,6 +309,7 @@ class WorkspaceFormService:
         crypto: Crypto,
         form_template_repo: PostgresFormTemplateRepository,
         pdf_import_repo=None,
+        registration_service=None,
     ):
         self.form_provider_service = form_provider_service
         # import records of PDF imports go with their forms
@@ -327,6 +328,8 @@ class WorkspaceFormService:
         self._aws_service = aws_service
         self.action_service = action_service
         self.crypto = crypto
+        # queues the delivery of a stored submission (services/registration)
+        self._registration_service = registration_service
 
     async def check_form_exists_in_workspace(
         self, workspace_id: RecordId, form_id: str
@@ -1267,6 +1270,14 @@ class WorkspaceFormService:
             response=form_response,
             workspace_id=workspace_id,
         )
+        if self._registration_service is not None:
+            # a delivery row and a job by id: nothing external, never fails
+            # the submission (services/registration/service.py)
+            await self._registration_service.queue_for_submission(
+                workspace_id=workspace_id,
+                form_id=str(form_id),
+                response_id=str(form_response.response_id),
+            )
         return form_response
 
     async def delete_form_response(

@@ -128,6 +128,7 @@ class FormResponseService:
         authorization_service: AuthorizationService,
         aws_service: AWSS3Service,
         workspace_repo: PostgresWorkspaceRepository,
+        registration_delivery_repo=None,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
@@ -135,6 +136,8 @@ class FormResponseService:
         self._authorization = authorization_service
         self._aws_service = aws_service
         self._workspace_repo = workspace_repo
+        # delivery records of a deleted response go with it (registration)
+        self._registration_deliveries = registration_delivery_repo
 
     async def get_all_workspace_responses(
         self,
@@ -730,6 +733,8 @@ class FormResponseService:
         )
         prefix = f"private/{workspace_id}/{form_id}/{response_id}"
         self._aws_service.delete_folder_from_s3(prefix)
+        if self._registration_deliveries is not None:
+            await self._registration_deliveries.delete_by_response_id(response_id)
         return response_id
 
     async def has_pending_deletion_request(
@@ -842,7 +847,10 @@ class FormResponseService:
         return closed
 
     async def delete_response(self, response_id: str):
-        return await self._form_response_repo.delete_response(response_id=response_id)
+        deleted = await self._form_response_repo.delete_response(response_id=response_id)
+        if self._registration_deliveries is not None:
+            await self._registration_deliveries.delete_by_response_id(response_id)
+        return deleted
 
     async def get_by_uuid(self, workspace_id: RecordId, submission_uuid: str):
         # only a receipt of this workspace, with this workspace's form

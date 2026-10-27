@@ -834,6 +834,30 @@ one of ours; `services/image_urls.py` is the single allow-list:
   `test_images.py`, `test_form_images.py` (no network: fetch, DNS and the
   sandbox are faked).
 
+## Registration of submissions (case systems)
+
+Behind `OPEN_FORMULIEREN_REGISTRATION=on|off` (default off; `config/registration_settings.py`, read at call time
+through `services/registration/mode.py`). A workspace's admins register **services** (https address, encrypted
+write-only secret) and per form choose the **variables** sent as a Generic JSON body; each submission writes a
+**delivery** row (ids, status, counters, our error code: never answers) and queues the procrastinate job
+`register_submission(delivery_id)`. Docs: `docs/open-formulieren-registration.md`. Rules to keep:
+
+- Code in `services/registration/` (`client.py` the one outgoing call, `body.py` the body, `service.py` the logic),
+  tables `registration_services`, `form_registrations`, `registration_deliveries` (revision 0023), router
+  `controllers/registration_router.py`. It is Postgres-only and runs on the backend jobs worker, never the actions
+  executor.
+- The request path (`WorkspaceFormService.submit_response`) only inserts the row and defers the job by id; it never
+  calls out and never fails the submission. Answers are decrypted only inside `RegistrationService._attempt`.
+- Outbound calls go through `services/safe_http.py` rules (shared with `image_fetch.py`): https, port 443, every
+  resolved address public, the connection pinned to the checked address, no redirects, size and time caps. Never add an
+  http/private-address allowance or a second HTTP path; tests swap `client.resolve`, `client.network_backend` and
+  `client.ssl_context` (`tests/app/registration/tls_server.py`).
+- The secret is write-only (`services/registration/secrets.py`: Fernet, bound to workspace and service); no response,
+  log, job argument or delivery record may carry it, an answer, a body, an address or the destination's text.
+- Switch off: endpoints answer 410 `registration_off` (except `/registration/status`), nothing is queued, the jobs and
+  sweeps do nothing; saved settings and rows stay. A new registration endpoint calls `refuse_when_off()` first and
+  gets a row in `tests/app/registration/test_permissions.py`.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; sessions in
