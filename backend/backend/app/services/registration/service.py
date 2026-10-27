@@ -73,6 +73,7 @@ MAX_VARIABLES = 200
 CHECK_SCOPE = "registration_check"
 CHECK_PER_WINDOW = 10
 CHECK_WINDOW_SECONDS = 60
+CHECK_TOTAL_SECONDS = 60.0
 MAX_SECRET_LENGTH = 4000
 _HEADER_NAME = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,100}$")
 _OPEN_STATES = (DeliveryStatus.PENDING, DeliveryStatus.RETRYING)
@@ -357,9 +358,12 @@ class RegistrationService:
                 "Give the user name.",
             )
 
-    async def _checked_base_url(self, base_url: str) -> str:
-        """https only, the default port, and a host that resolves to public
-        addresses only (checked again at every connection)."""
+    async def _checked_base_url(self, base_url: str, *, resolves: bool = True) -> str:
+        """https only, the default port, no credentials, query, fragment or dot
+        segments, and (``resolves``) a host that resolves to public addresses
+        only (checked again at every connection). An address we never connect
+        to (the object types address) is only checked for its syntax: it may
+        well be internal."""
         try:
             url, host = safe_http.checked_https_url(base_url, allow_query=False)
             if client.base_path_problem(url):
@@ -370,6 +374,8 @@ class RegistrationService:
                 "invalid_url",
                 "Use a https:// address without a port, user name, query or fragment.",
             )
+        if not resolves:
+            return url
         try:
             await asyncio.wait_for(
                 safe_http.public_address(host, lambda h, p: client.resolve(h, p)),
@@ -446,7 +452,7 @@ class RegistrationService:
                     "Give the address of the object types API.",
                 )
             objecttypes_base_url = await self._checked_base_url(
-                request.objecttypes_base_url
+                request.objecttypes_base_url, resolves=False
             )
         elif request.objecttypes_base_url is not None:
             raise self._objecttypes_base_not_applicable()
@@ -521,7 +527,7 @@ class RegistrationService:
             # never fetched by us, so no new secret is needed; forms whose
             # object type now sits outside it fail at their next send
             document.objecttypes_base_url = await self._checked_base_url(
-                request.objecttypes_base_url
+                request.objecttypes_base_url, resolves=False
             )
         moved = (
             new_url != document.base_url
@@ -1014,21 +1020,20 @@ class RegistrationService:
         self, workspace_id: RecordId, form_id: str, delivery_id: str, user: User
     ) -> DeliveryDto:
         await self._form_scope(user, Permission.FORM_EDIT, workspace_id, form_id)
-        delivery = await self._deliveries.get_in_form(
-            workspace_id, form_id, delivery_id
-        )
+        # one locked step: only a failed or cancelled delivery of this form
+        # moves, so a second (stale) click cannot reset a claimed row
+        delivery = await self._deliveries.retry(workspace_id, form_id, delivery_id)
         if delivery is None:
-            raise _not_found()
-        if delivery.status not in (DeliveryStatus.FAILED, DeliveryStatus.CANCELLED):
+            if (
+                await self._deliveries.get_in_form(workspace_id, form_id, delivery_id)
+                is None
+            ):
+                raise _not_found()
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "not_retryable",
                 "Only a delivery that failed can be tried again.",
             )
-        delivery.status = DeliveryStatus.PENDING
-        delivery.manual_attempts += 1
-        delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
         await self._queue(delivery)
         logger.info(
             "registration retry requested: workspace={} form={} delivery={} by={}",
@@ -1117,7 +1122,7 @@ class RegistrationService:
             if parked is not None and parked.status is DeliveryStatus.RETRYING:
                 parked.status = DeliveryStatus.PENDING
                 parked.next_attempt_at = None
-                await self._deliveries.save(parked)
+                await self._deliveries.save_existing(parked)
             return Outcome("skipped")
         delivery = await self._deliveries.claim(
             delivery_id, _OPEN_STATES, now=self._clock()
@@ -1166,7 +1171,7 @@ class RegistrationService:
         if permanent or final:
             delivery.status = DeliveryStatus.FAILED
             delivery.next_attempt_at = None
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             logger.warning(
                 "registration failed: delivery={} response={} code={} http={} attempts={}",
                 delivery.id,
@@ -1181,7 +1186,7 @@ class RegistrationService:
         )
         delivery.status = DeliveryStatus.RETRYING
         delivery.next_attempt_at = self._clock() + dt.timedelta(seconds=wait)
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info(
             "registration will retry: delivery={} code={} http={} attempt={} in={}s",
             delivery.id,
@@ -1196,7 +1201,7 @@ class RegistrationService:
         delivery.status = DeliveryStatus.CANCELLED
         delivery.last_error_code = code
         delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info("registration cancelled: delivery={} code={}", delivery.id, code)
         return Outcome("cancelled")
 
@@ -1217,7 +1222,9 @@ class RegistrationService:
             if registration.service_id
             else None
         )
-        if service is None:
+        # a delivery that has been sent (or looked up) as an Objects API one
+        # stays one, whatever the form points at now: the snapshot decides
+        if service is None and delivery.objects_snapshot is None:
             return await self._cancel(delivery, "disabled")
         response = await self._responses.workspace_response(
             workspace_id, delivery.response_id
@@ -1227,7 +1234,9 @@ class RegistrationService:
             await self._deliveries.delete_by_ids([delivery.id])
             logger.info("registration dropped, response gone: delivery={}", delivery.id)
             return Outcome("gone")
-        if service.kind is ServiceKind.OBJECTS_API:
+        if delivery.objects_snapshot is not None or (
+            service.kind is ServiceKind.OBJECTS_API
+        ):
             return await self._attempt_objects(
                 delivery, registration, service, response
             )
@@ -1266,6 +1275,8 @@ class RegistrationService:
             values, values_schema, metadata, metadata_schema
         )
         del answers, hidden_fields, values
+        if not await self._still_wanted(delivery):
+            return Outcome("gone")
         status = await client.post_json(
             target, payload, idempotency_key=str(delivery.id)
         )
@@ -1285,7 +1296,7 @@ class RegistrationService:
         delivery.last_http_status = status
         delivery.remote_id = remote_id
         delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info(
             "registration delivered: delivery={} response={} http={} attempts={}{}",
             delivery.id,
@@ -1354,6 +1365,33 @@ class RegistrationService:
             raise invalid
         return mapping
 
+    @staticmethod
+    def _normal_base(base_url: str) -> str:
+        """The address as compared (scheme, host, port and path, trailing
+        slash ignored); "" for one that is not a plain https address."""
+        try:
+            return safe_http.checked_https_url(base_url, allow_query=False)[0].rstrip(
+                "/"
+            )
+        except safe_http.UrlRefused:
+            return ""
+
+    async def _still_wanted(self, delivery) -> bool:
+        """Right before a send: the delivery row and its submission still
+        exist (a deletion during the attempt, which may have waited on a
+        lookup, stops the send). The row of a deleted submission is removed
+        here; nothing is stored again."""
+        if await self._deliveries.get(delivery.id) is None:
+            return False
+        response = await self._responses.workspace_response(
+            delivery.workspace_id, delivery.response_id
+        )
+        if response is None or str(response.form_id) != str(delivery.form_id):
+            await self._deliveries.delete_by_ids([delivery.id])
+            logger.info("registration dropped, response gone: delivery={}", delivery.id)
+            return False
+        return True
+
     async def _snapshot_settings(self, delivery, service):
         """The settings a delivery's first send used, with the service they
         belong to (it may no longer be the form's choice). ``config_invalid``
@@ -1362,14 +1400,14 @@ class RegistrationService:
         never sent somewhere its first send did not go."""
         snapshot = delivery.objects_snapshot
         invalid = client.SendFailed("config_invalid", permanent=True)
-        if str(service.id) != snapshot.service_id:
+        if service is None or str(service.id) != snapshot.service_id:
             service = await self._services.get(
                 delivery.workspace_id, snapshot.service_id
             )
         if (
             service is None
             or service.kind is not ServiceKind.OBJECTS_API
-            or urlsplit(service.base_url).hostname != snapshot.service_host
+            or self._normal_base(service.base_url) != snapshot.service_base_url
         ):
             raise invalid
         try:
@@ -1433,7 +1471,7 @@ class RegistrationService:
             )
             snapshot = ObjectsSnapshot(
                 service_id=str(service.id),
-                service_host=urlsplit(service.base_url).hostname or "",
+                service_base_url=self._normal_base(service.base_url),
                 object_type_url=url,
                 object_type_version=version,
                 reference_path=reference_path,
@@ -1445,7 +1483,9 @@ class RegistrationService:
             service, url, version, reference_path = await self._snapshot_settings(
                 delivery, service
             )
-            mapping = self._objects_mapping(registration, reference_path)
+            # the form's mapping is read after the lookup: a delivery that
+            # was created is found even if the form no longer maps anything
+            mapping = None
             fresh = False
         try:
             target = self._objects_target(service)
@@ -1459,7 +1499,8 @@ class RegistrationService:
         start_at = objects_api.amsterdam_date(response.created_at)
         if fresh:
             delivery.objects_snapshot = snapshot
-            await self._deliveries.save(delivery)
+            if not await self._deliveries.save_existing(delivery):
+                return Outcome("gone")
         # An earlier attempt (automatic, or a retry the creator asked for) may
         # have created the object and lost the reply: look before sending
         # again. Found: delivered, nothing is sent.
@@ -1471,6 +1512,8 @@ class RegistrationService:
                 return await self._delivered(
                     delivery, 200, existing or None, found=True
                 )
+        if mapping is None:
+            mapping = self._objects_mapping(registration, reference_path)
         form = await self._form_of_response(response)
         index = body_builder.variables_of(form)
         for source, _path in mapping:
@@ -1524,6 +1567,8 @@ class RegistrationService:
         except ValueError:
             raise client.SendFailed("config_invalid", permanent=True)
         del answers, hidden_fields, values, by_path
+        if not await self._still_wanted(delivery):
+            return Outcome("gone")
         reply = await client.request(
             target,
             "POST",
@@ -1562,6 +1607,15 @@ class RegistrationService:
                     },
                     headers={"Retry-After": str(verdict.retry_after)},
                 )
+        try:
+            # both requests together, not one budget each
+            return await asyncio.wait_for(
+                self._check_calls(workspace_id, form_id), CHECK_TOTAL_SECONDS
+            )
+        except asyncio.TimeoutError:
+            return ServiceTestDto(ok=False, code="timeout")
+
+    async def _check_calls(self, workspace_id, form_id) -> ServiceTestDto:
         registration = await self._registrations.get_for_form(workspace_id, form_id)
         service = (
             await self._services.get(workspace_id, registration.service_id)
@@ -1719,13 +1773,13 @@ class RegistrationService:
             now - STUCK_AFTER - dt.timedelta(seconds=max(RETRY_WAITS)), SWEEP_BATCH
         ):
             delivery.status = DeliveryStatus.PENDING
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             rescued += 1 if await self._queue(delivery) else 0
         for delivery in await self._deliveries.list_stuck_in_progress(
             now - STUCK_AFTER, SWEEP_BATCH
         ):
             delivery.status = DeliveryStatus.PENDING
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             rescued += 1 if await self._queue(delivery) else 0
         return {"queued": queued, "rescued": rescued}
 

@@ -188,14 +188,37 @@ async def test_an_objects_service_takes_a_token_only_and_two_addresses(
     assert await refused(make_objects_service(workspace, name="e")) == "not_allowed"
 
 
-async def test_the_object_types_address_is_checked_like_the_objects_address(
+async def test_the_object_types_address_needs_no_public_dns_but_the_objects_address_does(
     workspace, registration_on, tls, monkeypatch
 ):
-    async def private(host, port=443):
-        return ["169.254.169.254"] if host.startswith("types") else ["93.184.216.34"]
+    """We never connect to the object types address, and it is often an
+    internal one: syntax only. The Objects API address is connected to."""
 
-    monkeypatch.setattr(client, "resolve", private)
-    assert await refused(make_objects_service(workspace)) == "not_allowed"
+    async def types_internal(host, port=443):
+        return ["10.0.0.9"] if host.startswith("types") else ["93.184.216.34"]
+
+    monkeypatch.setattr(client, "resolve", types_internal)
+    created = await make_objects_service(workspace)
+    assert created.objecttypes_base_url == TYPES_BASE
+    for bad in (
+        "http://types.example.org/",
+        "https://types.example.org:8443/",
+        "https://u:p@types.example.org/",
+        "https://types.example.org/?q=1",
+        "https://types.example.org/a/../b/",
+    ):
+        assert (
+            await refused(
+                make_objects_service(workspace, name="x", objecttypes_base_url=bad)
+            )
+            == "invalid_url"
+        ), bad
+
+    async def objects_internal(host, port=443):
+        return ["10.0.0.9"] if host.startswith("case") else ["93.184.216.34"]
+
+    monkeypatch.setattr(client, "resolve", objects_internal)
+    assert await refused(make_objects_service(workspace, name="y")) == "not_allowed"
 
 
 async def test_kinds_do_not_mix(workspace, registration_on, tls):
@@ -646,7 +669,7 @@ async def test_the_object_is_created_with_the_mapped_answers_only(setup, logs):
     # the settings of the first send are kept (configuration, no answers)
     assert done.objects_snapshot.object_type_url == TYPE_URL
     assert done.objects_snapshot.reference_path == ["bettercollected_reference"]
-    assert done.objects_snapshot.service_host == "case.example.org"
+    assert done.objects_snapshot.service_base_url == OBJECTS_BASE.rstrip("/")
     for text in PERSONAL + [TOKEN, TYPE_URL]:
         assert not any(text in line for line in logs), text
     assert (await run(delivery)).status == "skipped" and len(setup.fake.objects) == 1
@@ -1322,3 +1345,209 @@ async def test_the_connection_check_is_rate_limited_per_workspace(setup):
     assert raised.value.content["code"] == "rate_limited"
     assert "Retry-After" in raised.value.headers
     assert len(setup.tls.requests) == 20  # nothing more was sent
+
+
+# ------------------------------------------- owner review: destination, deletion, retry
+
+
+async def _generic_service(setup):
+    return await svc().create_service(
+        setup.workspace.id,
+        ServiceCreateDto(
+            name="Plain", base_url="https://case.example.org/generic/", auth="none"
+        ),
+        testUser,
+    )
+
+
+async def _point_form_at_generic(setup, generic):
+    await svc().put_form_registration(
+        setup.workspace.id,
+        setup.form.form_id,
+        FormRegistrationUpdateDto(
+            enabled=True,
+            service_id=generic.id,
+            path="x",
+            variables=[VariableMappingDto(source="name")],
+        ),
+        testUser,
+    )
+
+
+async def test_a_delivery_never_switches_destination_after_its_first_send(setup):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    setup.fake.drop_reply_next = 1
+    await run(delivery, 0)  # the object is created, the reply is lost
+    await _point_form_at_generic(setup, await _generic_service(setup))
+    out = await run(delivery, 1)
+    row = await row_of(delivery)
+    # the lookup ran on the snapshot's Objects API and found the object
+    assert out.status == "delivered" and setup.fake.created == 1
+    assert row.remote_id == setup.fake.objects[0]["uuid"]
+    assert methods(setup) == ["POST", "GET"]
+    assert all(r.target.startswith("/api/v2/objects") for r in setup.tls.requests)
+
+
+async def test_a_delivery_not_yet_created_is_not_sent_to_the_new_destination_either(
+    setup,
+):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    await _point_form_at_generic(setup, await _generic_service(setup))
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "config_invalid"
+    assert all(r.target.startswith("/api/v2/objects") for r in setup.tls.requests)
+    assert methods(setup) == ["POST", "GET"]  # nothing went to the Generic JSON service
+
+
+async def test_a_delivery_whose_service_is_gone_and_form_has_none_is_still_decided_by_the_snapshot(
+    setup,
+):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    other = await make_objects_service(setup.workspace, name="Another")
+    await configure_objects(setup.workspace, setup.form, other)
+    await svc().delete_service(setup.workspace.id, setup.service.id, testUser)
+    registration = await container.form_registration_repo().get_for_form(
+        setup.workspace.id, setup.form.form_id
+    )
+    registration.service_id = None
+    await container.form_registration_repo().save(registration)
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "config_invalid"
+    assert methods(setup) == ["POST"]
+
+
+async def test_the_same_host_with_another_path_is_another_service(setup):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    await svc().update_service(
+        setup.workspace.id,
+        setup.service.id,
+        ServiceUpdateDto(
+            base_url="https://case.example.org/tenant-b/api/v2/", secret=TOKEN
+        ),
+        testUser,
+    )
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "config_invalid"
+    assert methods(setup) == ["POST"]
+
+
+async def test_a_response_deleted_during_the_lookup_is_not_sent_and_its_row_stays_deleted(
+    setup, monkeypatch
+):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    real = svc()._lookup
+
+    async def lookup_then_delete(*args, **kwargs):
+        found = await real(*args, **kwargs)
+        await svc().delete_for_response(response.response_id)
+        return found
+
+    monkeypatch.setattr(svc(), "_lookup", lookup_then_delete)
+    out = await run(delivery, 1)
+    assert out.status == "gone"
+    assert methods(setup) == ["POST", "GET"] and setup.fake.created == 0
+    assert await container.registration_delivery_repo().many() == []
+
+
+async def test_a_response_gone_but_its_row_left_behind_is_not_sent(setup, monkeypatch):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    real = container.form_response_service().workspace_response
+    calls = []
+
+    async def vanishing(workspace_id, response_id):
+        calls.append(1)
+        return await real(workspace_id, response_id) if len(calls) == 1 else None
+
+    monkeypatch.setattr(
+        container.form_response_service(), "workspace_response", vanishing
+    )
+    out = await run(delivery, 1)
+    assert out.status == "gone" and methods(setup) == ["POST", "GET"]
+    assert await container.registration_delivery_repo().many() == []
+
+
+async def test_a_row_deleted_while_the_send_is_in_flight_is_not_brought_back(
+    setup, monkeypatch
+):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    real = client.request
+
+    async def send_then_delete(target, method, **kwargs):
+        reply = await real(target, method, **kwargs)
+        if method == "POST":
+            await svc().delete_for_response(response.response_id)
+        return reply
+
+    monkeypatch.setattr(client, "request", send_then_delete)
+    await run(delivery)
+    assert await container.registration_delivery_repo().many() == []
+
+
+async def test_retry_is_one_atomic_step_and_a_stale_second_click_changes_nothing(setup):
+    from common.clock import utcnow
+
+    setup.fake.required = ["nothing_we_send"]
+    delivery = await delivery_of(setup, await submit(setup.workspace, setup.form))
+    assert (await run(delivery)).status == "failed"
+    args = (setup.workspace.id, setup.form.form_id, str(delivery.id), testUser)
+    first, second = await __import__("asyncio").gather(
+        svc().retry_delivery(*args), svc().retry_delivery(*args), return_exceptions=True
+    )
+    results = [first, second]
+    assert sum(isinstance(r, HTTPException) for r in results) == 1
+    assert [r.content["code"] for r in results if isinstance(r, HTTPException)] == [
+        "not_retryable"
+    ]
+    assert (await row_of(delivery)).manual_attempts == 1
+    # the retry is picked up by the job; a stale click now must not reset it
+    claimed = await container.registration_delivery_repo().claim(
+        delivery.id, [DeliveryStatus.PENDING], now=utcnow()
+    )
+    assert claimed.status is DeliveryStatus.IN_PROGRESS
+    assert await refused(svc().retry_delivery(*args)) == "not_retryable"
+    row = await row_of(delivery)
+    assert row.status is DeliveryStatus.IN_PROGRESS and row.manual_attempts == 1
+    # a delivery of another form or a missing one is simply not found
+    with pytest.raises(HTTPException) as raised:
+        await svc().retry_delivery(
+            setup.workspace.id, setup.form.form_id, "0" * 24, testUser
+        )
+    assert raised.value.status_code == 404
+
+
+DEEP = b'{"a":' * 50_000 + b"1" + b"}" * 50_000
+
+
+async def test_json_nested_deeper_than_the_parser_allows_is_an_unreadable_reply(setup):
+    assert len(DEEP) < client.MAX_LOOKUP_REPLY_BYTES
+    assert objects_api.read_created(DEEP) is None
+    response, delivery = await first_attempt_fails_with_503(setup)
+    setup.fake.canned["GET"] = (200, {}, DEEP)
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "lookup_failed"
+    result = await svc().check_connection(
+        setup.workspace.id, setup.form.form_id, testUser
+    )
+    assert result.ok is False and result.code in (
+        "filter_not_supported",
+        "lookup_failed",
+    )
+
+
+async def test_the_connection_check_has_one_budget_for_both_requests(
+    setup, monkeypatch
+):
+    import backend.app.services.registration.service as service_module
+
+    monkeypatch.setattr(service_module, "CHECK_TOTAL_SECONDS", 0.3)
+    setup.tls.script.delay = 0.5
+    result = await svc().check_connection(
+        setup.workspace.id, setup.form.form_id, testUser
+    )
+    assert (result.ok, result.code) == (False, "timeout")

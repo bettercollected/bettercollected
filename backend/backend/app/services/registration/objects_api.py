@@ -261,7 +261,9 @@ def malformed_filter_query(object_type_url: str) -> List[Tuple[str, str]]:
 def _loads(body: bytes) -> Any:
     try:
         return json.loads(body.decode("utf-8"))
-    except (UnicodeError, ValueError):
+    except (UnicodeError, ValueError, RecursionError):
+        # RecursionError: JSON nested deeper than the parser allows, within
+        # the reply cap: an unreadable answer like any other
         raise LookupUnreadable()
 
 

@@ -388,3 +388,11 @@ async def test_a_reply_can_be_kept_up_to_a_larger_cap_of_the_callers_choosing(tl
     assert small.truncated and small.body == b""
     big = await request(target(), "GET", keep_reply=True, max_reply=200_000)
     assert not big.truncated and len(big.body) == 100_000
+
+
+async def test_a_stored_base_with_a_query_is_refused_before_ours_is_appended(tls):
+    with pytest.raises(SendFailed) as raised:
+        await request(
+            Target(base_url=f"https://{HOST}/api/?x=1"), "GET", query=[("a", "b")]
+        )
+    assert raised.value.code == "invalid_url" and tls.requests == []

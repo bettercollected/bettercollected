@@ -285,6 +285,8 @@ async def request(
     try:
         if base_path_problem(target.base_url):
             raise SendFailed("invalid_url", permanent=True)
+        # the stored base itself carries no query, whatever we append below
+        safe_http.checked_https_url(target.base_url, allow_query=False)
         url = full_url(target.base_url, target.path)
         if query:
             url += "?" + urlencode(list(query), quote_via=quote)

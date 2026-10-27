@@ -152,8 +152,8 @@ apply. What differs:
    - **Address**: the Objects API's base address, for example `https://objects.example.org/api/v2/`. https, port 443,
      no credentials, public addresses only, checked when saved and at every connection. We append `objects`.
    - **Object types address**: the base all of this service's object type URLs must sit under, for example
-     `https://objecttypes.example.org/api/v2/`. https, port 443, no credentials, public on resolve (checked when
-     saved). We never connect to it: the Objects API does.
+     `https://objecttypes.example.org/api/v2/`. https, port 443, no credentials, query or `..` segments (syntax only: it is not
+     resolved, so an internal address is fine). We never connect to it: the Objects API does.
    - **Token**: sent as `Authorization: Token <token>`. Write-only, sealed like every service secret. `none` and
      `basic` authentication are refused for this kind.
    - **Organisation name**: shown to respondents, as for Generic JSON.
@@ -234,19 +234,29 @@ create a second object. The first retry comes a minute after the failed attempt 
 long enough.
 
 **The settings of the first send are kept.** The first time a delivery is about to be sent, the delivery row records
-the service, its host, the object type URL, the version and the reference path (configuration only). Every later
+the service, its full address (scheme, host, port and path), the object type URL, the version and the reference path
+(configuration only). Every later
 lookup and send of that delivery uses those, so an admin editing the form between two attempts cannot move the lookup
-key and cause a second object. If that service no longer exists, its address moved to another host, or its object
+key and cause a second object. If that service no longer exists, its address changed (another host, or another path on the same host), or its object
 types address no longer holds the object type, the delivery fails with `config_invalid` instead of being sent anywhere
 else (a retry then fails the same way; the creator re-submits through the destination's own process, or the admin
 puts the old settings back). The lookup date is the submission's own creation time: a submission without one fails
-(`internal_error`) rather than being looked up by the clock.
+(`internal_error`) rather than being looked up by the clock. Once a delivery has a snapshot it stays an Objects API
+delivery: pointing the form at a Generic JSON service (or another Objects API service) afterwards does not send its
+answers there; its lookup still goes to the original service, and it is delivered if the object is found there, and
+fails `config_invalid` otherwise.
+
+A delivery is checked again right before the POST: if it or its submission was deleted meanwhile (the lookup can take a
+while), nothing is sent and the row is not brought back. All status writes of a delivery update an existing row only.
+"Retry" moves a failed or cancelled delivery to pending in one locked step, so a second click cannot reset a delivery
+that a worker has already claimed.
 
 A lookup reply is read up to 2 MiB (a hit returns the whole stored record; every other reply is capped at 64 KB),
 parsed for the little we need and dropped. Over that cap the lookup fails (`lookup_failed`).
 
 Service addresses (both) with a `..` or `.` segment, also percent-encoded, are refused, when saved and again at every
-connection. "Check connection" is limited to 10 per minute per workspace (`429`, `rate_limited`).
+connection. "Check connection" is limited to 10 per minute per workspace (`429`, `rate_limited`) and both of its requests share one
+60 second budget (`timeout`). A reply nested too deeply to parse counts as unreadable.
 
 What we keep after a delivery: the delivery row only (ids, status, counters, timestamps, the HTTP status, the
 object's UUID and the settings snapshot above), never answers, the body or the reply. It is deleted with the submission. Deleting a submission here

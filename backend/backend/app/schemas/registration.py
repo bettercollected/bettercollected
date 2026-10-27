@@ -104,7 +104,8 @@ class ObjectsSnapshot(BaseModel):
     second object). Configuration only, no answers."""
 
     service_id: str
-    service_host: str
+    # the normalised address of the Objects API (scheme, host, port, path)
+    service_base_url: str
     object_type_url: str
     object_type_version: int
     reference_path: List[str]
