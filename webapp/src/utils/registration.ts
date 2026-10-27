@@ -197,12 +197,9 @@ export function needsSecretAgain(original: RegistrationService, next: { baseUrl:
  */
 export function isPlainPath(path: string): boolean {
     if (path.length > 255 || !/^[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$/.test(path) || path.startsWith('//') || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path)) return false;
-    try {
-        const decoded = decodeURIComponent(decodeURIComponent(path));
-        return !/\.\.|\\|\?|#/.test(decoded);
-    } catch {
-        return false;
-    }
+    // Like the server's unquote: valid %XX escapes are decoded, a lone % stays as it is.
+    const unquote = (text: string) => text.replace(/%([0-9A-Fa-f]{2})/g, (_match, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    return !/\.\.|\\|\?|#/.test(unquote(unquote(path)));
 }
 
 /** A variable that can be chosen. */
@@ -234,6 +231,8 @@ export function formatDay(value: string | null | undefined, language: string): s
 /** Where our delivery reference goes in the object's data unless set otherwise. */
 export const DEFAULT_REFERENCE_PATH = 'bettercollected_reference';
 export const MAX_TARGET_DEPTH = 8;
+/** The most variables a form's registration holds (the server refuses more). */
+export const MAX_VARIABLES = 200;
 export const OBJECT_TYPE_URL_MAX = 1000;
 /** The token has no whitespace and is plain ASCII; the server is authoritative. */
 export const isPlainToken = (token: string) => token.length > 0 && /^[\x21-\x7E]+$/.test(token);

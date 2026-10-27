@@ -28,6 +28,7 @@ import {
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import {
     DEFAULT_REFERENCE_PATH,
+    MAX_VARIABLES,
     canBeList,
     checkKey,
     defaultKeyOf,
@@ -159,7 +160,8 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
      * server still refuses is shown.
      */
     const offBody = (): FormRegistrationInput => {
-        const rows = (variables ?? []).filter((v) => chosen[v.source] && !blockedFor(v, objects));
+        // The server takes at most MAX_VARIABLES variables; a form with more questions than that keeps the first ones here.
+        const rows = (variables ?? []).filter((v) => chosen[v.source] && !blockedFor(v, objects)).slice(0, MAX_VARIABLES);
         if (objects) {
             const parsedReference = referencePath.trim() ? parseTargetPath(referencePath) : [DEFAULT_REFERENCE_PATH];
             return {

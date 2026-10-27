@@ -1387,8 +1387,9 @@ class RegistrationService:
             values, values_schema, metadata, metadata_schema
         )
         del answers, hidden_fields, values
-        if not await self._still_wanted(delivery):
-            return Outcome("gone")
+        stopped = await self._still_wanted(delivery)
+        if stopped is not None:
+            return stopped
         status = await client.post_json(
             target, payload, idempotency_key=str(delivery.id)
         )
@@ -1488,21 +1489,34 @@ class RegistrationService:
         except safe_http.UrlRefused:
             return ""
 
-    async def _still_wanted(self, delivery) -> bool:
-        """Right before a send: the delivery row and its submission still
-        exist (a deletion during the attempt, which may have waited on a
-        lookup, stops the send). The row of a deleted submission is removed
-        here; nothing is stored again."""
+    async def _still_wanted(self, delivery) -> Optional[Outcome]:
+        """Right before a send: ``None`` when the send may go on, else the
+        outcome that stops it. The delivery row and its submission still exist
+        (a deletion during the attempt, which may have waited on a lookup,
+        stops the send; the row of a deleted submission is removed here) and
+        the form's registration is still switched on and is the one the
+        delivery was made for (an off save that lands after the first check
+        of the attempt stops it: the delivery is cancelled, ``disabled``).
+        Nothing is stored again except that cancellation."""
         if await self._deliveries.get(delivery.id) is None:
-            return False
+            return Outcome("gone")
         response = await self._responses.workspace_response(
             delivery.workspace_id, delivery.response_id
         )
         if response is None or str(response.form_id) != str(delivery.form_id):
             await self._deliveries.delete_by_ids([delivery.id])
             logger.info("registration dropped, response gone: delivery={}", delivery.id)
-            return False
-        return True
+            return Outcome("gone")
+        registration = await self._registrations.get(delivery.registration_id)
+        if (
+            registration is None
+            or not registration.enabled
+            or str(registration.id) != str(delivery.registration_id)
+            or str(registration.workspace_id) != str(delivery.workspace_id)
+            or str(registration.form_id) != str(delivery.form_id)
+        ):
+            return await self._cancel(delivery, "disabled")
+        return None
 
     async def _snapshot_settings(self, delivery, service):
         """The settings a delivery's first send used, with the service they
@@ -1679,8 +1693,9 @@ class RegistrationService:
         except ValueError:
             raise client.SendFailed("config_invalid", permanent=True)
         del answers, hidden_fields, values, by_path
-        if not await self._still_wanted(delivery):
-            return Outcome("gone")
+        stopped = await self._still_wanted(delivery)
+        if stopped is not None:
+            return stopped
         reply = await client.request(
             target,
             "POST",
@@ -1736,6 +1751,8 @@ class RegistrationService:
         )
         if (
             registration is None
+            # settings that are switched off are kept, not used: no request
+            or not registration.enabled
             or service is None
             or service.kind is not ServiceKind.OBJECTS_API
             or not registration.object_type_url

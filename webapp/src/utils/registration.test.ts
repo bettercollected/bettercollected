@@ -281,6 +281,10 @@ describe('a path for a switch-off', () => {
         expect(isPlainPath('')).toBe(true);
         expect(isPlainPath('/cases/new')).toBe(true);
         expect(isPlainPath('cases')).toBe(true);
-        ['../x', '/a/%2e%2e/b', '/a/%252e%252e/b', '/x?y=1', '/x#f', '//host/x', 'https://evil.example/x', 'a\\b', '/a b', '/%zz', `/${'a'.repeat(255)}`].forEach((path) => expect(isPlainPath(path), path).toBe(false));
+        // a lone % is accepted, as the server's decoding leaves it alone
+        expect(isPlainPath('/100%')).toBe(true);
+        expect(isPlainPath('/%/a%2')).toBe(true);
+        expect(isPlainPath('/%zz/%2e%2e/x')).toBe(false);
+        ['../x', '/a/%2e%2e/b', '/a/%252e%252e/b', '/x?y=1', '/x#f', '//host/x', 'https://evil.example/x', 'a\\b', '/a b', `/${'a'.repeat(255)}`].forEach((path) => expect(isPlainPath(path), path).toBe(false));
     });
 });

@@ -1805,3 +1805,73 @@ async def test_a_switched_off_form_sends_nothing_even_with_a_stale_object_type(s
     await submit(setup.workspace, setup.form)
     assert len(await container.registration_delivery_repo().many()) == 1
     assert setup.tls.requests == []
+
+
+async def test_an_off_save_that_lands_after_the_first_check_stops_the_send(
+    setup, monkeypatch
+):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    responses = svc()._responses
+    real = responses.workspace_response
+    state = {"off": False}
+
+    async def switch_off_once_read(*args, **kwargs):
+        # the attempt has passed its first look at the registration
+        if not state["off"]:
+            state["off"] = True
+            await configure_objects(
+                setup.workspace, setup.form, setup.service, enabled=False
+            )
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr(responses, "workspace_response", switch_off_once_read)
+    assert (await run(delivery)).status == "cancelled"
+    assert (await row_of(delivery)).last_error_code == "disabled"
+    assert setup.tls.requests == []
+
+
+async def test_the_connection_check_sends_nothing_while_switched_off(setup):
+    await configure_objects(setup.workspace, setup.form, setup.service, enabled=False)
+    result = await svc().check_connection(
+        setup.workspace.id, setup.form.form_id, testUser
+    )
+    assert (result.ok, result.code) == (False, "not_configured")
+    assert setup.tls.requests == []
+
+
+async def test_a_retry_of_a_cancelled_delivery_while_off_is_cancelled_again(setup):
+    delivery = await delivery_of(setup, await submit(setup.workspace, setup.form))
+    await configure_objects(setup.workspace, setup.form, setup.service, enabled=False)
+    assert (await run(delivery)).status == "cancelled"
+    retried = await svc().retry_delivery(
+        setup.workspace.id, setup.form.form_id, str(delivery.id), testUser
+    )
+    assert retried.status == "pending"
+    assert (await run(delivery)).status == "cancelled"
+    assert (await row_of(delivery)).last_error_code == "disabled"
+    assert setup.tls.requests == []
+
+
+async def test_a_key_only_mapping_on_an_objects_service_is_stored_off_and_refused_on(
+    setup,
+):
+    keyed = dict(
+        service_id=setup.service.id,
+        variables=[VariableMappingDto(source="name", key="k")],
+        object_type_url=TYPE_URL,
+        object_type_version=3,
+    )
+
+    async def put(enabled):
+        return await svc().put_form_registration(
+            setup.workspace.id,
+            setup.form.form_id,
+            FormRegistrationUpdateDto(enabled=enabled, **keyed),
+            testUser,
+        )
+
+    saved = await put(False)
+    assert not saved.enabled and [v.source for v in saved.variables] == ["name"]
+    assert await refused(put(True)) == "invalid_target_path"
+    assert not (await stored(setup)).enabled

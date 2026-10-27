@@ -276,6 +276,27 @@ describe('Settings', () => {
         expect(saveMock.mock.calls[0][0].body.path).toBe('');
     });
 
+    it('sends at most the 200 variables the server takes', async () => {
+        const many: RegistrationVariable[] = Array.from({ length: 205 }, (_, i) => ({ source: `v${i}`, label: `V${i}`, type: 'short_text', supported: true }));
+        variablesState.data = many;
+        registrationState.data = registration({ enabled: true, serviceId: 's1', variables: many.map((v) => ({ source: v.source, key: v.source })) });
+        saveMock.mockResolvedValue({ data: registration() });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body.variables).toHaveLength(200);
+    });
+
+    it('shows the refusal of an off save, in the alert', async () => {
+        registrationState.data = registration({ enabled: true, serviceId: 's1', variables: [{ source: 'q1', key: 'postcode' }] });
+        saveMock.mockResolvedValue({ error: { status: 422, data: { code: 'invalid_path', message: 'RAW' } } });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(await screen.findByRole('alert')).toHaveTextContent(en.ERROR.invalid_path);
+    });
+
     it('turning it on again checks the draft as before and sends nothing when it is wrong', async () => {
         registrationState.data = registration({ enabled: false, serviceId: 's1', variables: [{ source: 'q1', key: '1bad' }] });
         renderSettings();
