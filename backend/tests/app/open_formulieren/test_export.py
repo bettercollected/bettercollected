@@ -20,7 +20,7 @@ from backend.app.services.open_formulieren.exporter import (
     export_filename,
 )
 from backend.app.services.open_formulieren.importer import build_draft
-from tests.app.open_formulieren.conftest import FIXTURE_NAMES, describe, fixture_bytes
+from tests.app.open_formulieren.conftest import FIXTURE_NAMES, FIXTURE_NAMES_3X, describe, fixture_bytes
 from tests.app.open_formulieren.export_helpers import (
     INTERNAL_TITLE,
     built,
@@ -575,7 +575,7 @@ def test_the_reimport_flags_nothing_that_the_export_did_not_say():
     assert not [i for i in again.report.items if i.get("flag")]
 
 
-@pytest.mark.parametrize("name", FIXTURE_NAMES)
+@pytest.mark.parametrize("name", FIXTURE_NAMES + FIXTURE_NAMES_3X)
 def test_every_fixture_survives_import_export_import(name):
     first = build_draft(read_archive(fixture_bytes(name)))
     result = export(first.form)

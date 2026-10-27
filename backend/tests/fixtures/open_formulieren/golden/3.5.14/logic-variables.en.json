@@ -1,0 +1,397 @@
+{
+  "title": "Sample: logic and variables",
+  "retention": [
+    null,
+    ""
+  ],
+  "pages": [
+    {
+      "title": "Order",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "title": "Plan",
+          "validations": {
+            "required": true
+          },
+          "choices": [
+            "Basic",
+            "Premium"
+          ]
+        },
+        {
+          "type": "number",
+          "title": "Quantity",
+          "validations": {
+            "required": true,
+            "min_value": 1.0,
+            "max_value": 100.0
+          }
+        },
+        {
+          "type": "number",
+          "title": "Unit price",
+          "validations": {
+            "required": false,
+            "min_value": 0.0
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Why premium?",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Plan",
+                "comparison": "IS_EQUAL",
+                "value": "Premium"
+              }
+            ]
+          }
+        },
+        {
+          "type": "yes_no",
+          "title": "Ordering for a company",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Company name",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Ordering for a company",
+                "comparison": "IS_EQUAL",
+                "value": "Yes"
+              }
+            ]
+          }
+        },
+        {
+          "type": "number",
+          "title": "Age",
+          "validations": {
+            "required": false,
+            "min_value": 0.0
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Guardian name",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "Age",
+                "comparison": "LESS_THAN",
+                "value": 18
+              },
+              {
+                "source": "Ordering for a company",
+                "comparison": "IS_EQUAL",
+                "value": "Yes"
+              }
+            ]
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Scripted field",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        }
+      ]
+    },
+    {
+      "title": "Details",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "Notes",
+          "description": "Shown only for the premium plan",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 2,
+    "fields": 10,
+    "logicRules": 3,
+    "repeatingGroups": 0,
+    "dropped": 23,
+    "flagged": 0
+  },
+  "report": [
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "action_not_supported",
+      "severity": "warning",
+      "key": "rule-3",
+      "detail": {
+        "actionType": "disable-next"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "action_not_supported",
+      "severity": "warning",
+      "key": "rule-4",
+      "detail": {
+        "actionType": "variable"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "trigger_not_supported",
+      "severity": "warning",
+      "key": "rule-5"
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "action_not_supported",
+      "severity": "warning",
+      "key": "rule-6",
+      "detail": {
+        "actionType": "property",
+        "property": "validate"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "action_not_supported",
+      "severity": "warning",
+      "key": "rule-6",
+      "detail": {
+        "actionType": "property",
+        "property": "disabled"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "action_not_supported",
+      "severity": "warning",
+      "key": "rule-7",
+      "detail": {
+        "actionType": "step-not-applicable"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "trigger_not_supported",
+      "severity": "warning",
+      "key": "rule-9"
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "plan",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "quantity",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "unitPrice",
+      "step": 0
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_yes_no",
+      "severity": "info",
+      "key": "hasCompany",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "conflicting_rules",
+      "severity": "warning",
+      "key": "companyName",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "custom_script_dropped",
+      "severity": "warning",
+      "key": "legacyScripted",
+      "step": 0,
+      "detail": {
+        "property": "customConditional"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "custom_script_dropped",
+      "severity": "warning",
+      "key": "legacyScripted",
+      "step": 0,
+      "detail": {
+        "property": "calculateValue"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "custom_script_dropped",
+      "severity": "warning",
+      "key": "legacyScripted",
+      "step": 0,
+      "detail": {
+        "property": "customDefaultValue"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "custom_script_dropped",
+      "severity": "warning",
+      "key": "legacyScripted",
+      "step": 0,
+      "detail": {
+        "property": "validate.custom"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "custom_script_dropped",
+      "severity": "warning",
+      "key": "legacyScripted",
+      "step": 0,
+      "detail": {
+        "property": "logic"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "info",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "dropped",
+      "kind": "variable",
+      "reason": "user_variable_not_carried",
+      "severity": "info",
+      "key": "total",
+      "detail": {
+        "dataType": "float"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "variable",
+      "reason": "user_variable_not_carried",
+      "severity": "info",
+      "key": "isPremium",
+      "detail": {
+        "dataType": "boolean"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "variable",
+      "reason": "user_variable_not_carried",
+      "severity": "info",
+      "key": "greeting",
+      "detail": {
+        "dataType": "string"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "variable",
+      "reason": "user_variable_not_carried",
+      "severity": "info",
+      "key": "reviewDate",
+      "detail": {
+        "dataType": "date"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "variable",
+      "reason": "user_variable_not_carried",
+      "severity": "info",
+      "key": "tags",
+      "detail": {
+        "dataType": "array"
+      }
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "retention_global_setting",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}

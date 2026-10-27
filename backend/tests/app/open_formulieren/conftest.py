@@ -62,6 +62,19 @@ FIXTURE_NAMES = (
 )
 
 
+# exports of Open Formulieren 3.5.14 (tests/fixtures/open_formulieren/3.5.14/README.md)
+FIXTURE_NAMES_3X = (
+    "3.5.14/all-components.en.zip",
+    "3.5.14/all-components.nl.zip",
+    "3.5.14/logic-variables.en.zip",
+    "3.5.14/signin-prefill-payment.en.zip",
+    "3.5.14/special-components.en.zip",
+    "3.5.14/appointment.en.zip",
+    "3.5.14/legacy-logic.en.zip",
+    "3.5.14/pre35-shapes.en.zip",
+)
+
+
 def _value(value):
     return getattr(value, "value", value)
 

@@ -130,11 +130,42 @@ need to be set before publishing.
 
 ### Versions
 
-The archive has no format version; `_meta.json` records the release that wrote it (`of_release`). Releases of the
-**4.0** series are read (tested with 4.0.6). A missing or unreadable release is refused
-(`open_formulieren_version_unknown`), and so is any other series, older or newer, with the version named
-(`open_formulieren_version_unsupported`): a newer export may have changed shape, and guessing could silently drop or
-misread data. Widening this is one constant (`ACCEPTED_SERIES`) once a fixture of that series exists.
+The archive has no format version; `_meta.json` records the release that wrote it (`of_release`). These series are
+read (`ACCEPTED_SERIES` in `services/open_formulieren/limits.py`):
+
+| Series | Evidence |
+|---|---|
+| 4.0 | real exports of 4.0.6 (fixtures) |
+| 3.5 | real exports of 3.5.14 (fixtures in `tests/fixtures/open_formulieren/3.5.14/`) |
+| 3.2, 3.3, 3.4 | the source: from 3.2 on the export has the shape of 3.5 minus a few keys the import does not read (see below); no instance of these releases was available, so there is no fixture, and synthetic archives cover the shapes they hold |
+
+A missing or unreadable release is refused (`open_formulieren_version_unknown`), and so is any other series (3.0 and
+3.1, which name the sign-in options differently, 2.x, 3.6 and later, 4.1 and later) with the version named
+(`open_formulieren_version_unsupported`, the response lists the supported series): a different export may have changed
+shape, and guessing could silently drop or misread data. Widening this is one constant.
+
+#### What differs in a 3.x export
+
+Everything else is read exactly as for 4.0 (same entries, same components, same report codes, same limits). The
+differences, and what the import does about them (the evidence, with `path:line` at both tags, is in the pull request
+that added 3.x):
+
+* **Appointment forms.** 3.x has no form `type`: an appointment form says `appointment_options.is_appointment`. For a
+  3.x export that flag is read like 4.0's `type: appointment` (`appointment_not_carried`).
+* **Rules that only start from a step.** A form still on 3.x's old logic evaluation may have rules with
+  `trigger_from_step` (4.0 removed the old evaluation and the key). Such a rule would act from the first step here,
+  earlier than the original, so it is dropped and reported (`trigger_not_supported`, `detail.cause =
+  trigger_from_step`); the other rules are imported as usual. How the old evaluation treats hidden values (it cleared
+  them; 4.0 removes them) and values of later steps is not mapped: a rule becomes a static condition on the answers,
+  as for 4.0.
+* **Older shapes.** Releases before 3.5 wrote empty strings where later ones have `null` or no key (`conditional`,
+  `datePicker` limits, `errors`, `minTime`/`maxTime`, a `defaultValue` among the translations). The reader treats empty
+  and missing alike; tests inject each shape.
+* **Keys that exist only in 3.x** (`new_logic_evaluation_enabled`, `new_renderer_enabled`, `internal_remarks`,
+  `form_steps` on rules, file-component registration overrides) and **only in 4.0** (`type`, `help_dialog`,
+  `help_callout_page`) are not read.
+
+The report's `source version` is the release as written in `_meta.json` (for example `3.5.14`).
 
 ### Safety
 
@@ -164,8 +195,12 @@ The archive is untrusted. `services/open_formulieren/archive.py`:
 ### Format reference
 
 Facts about the archive come from Open Formulieren **4.0.6** (`open-formulieren/open-forms`, tag `4.0.6`, commit
-`2d28cf5276b04298e342c8914f3b0b31cddda8de`; paths below are under `src/openforms/`). Their code is EUPL-1.2: it was read
-to match formats, and this implementation is our own; no code is copied.
+`2d28cf5276b04298e342c8914f3b0b31cddda8de`; paths below are under `src/openforms/`) and, for the 3.x differences,
+tag `3.5.14` (commit `92a999b1e2527d034a3cf84401e15f8113c585be`): form kind `appointments/api/serializers.py:22-30`,
+`forms/api/serializers/form.py:206`, `forms/models/form.py:136`; `trigger_from_step`
+`forms/api/serializers/logic/form_logic.py:138-148`, `forms/models/logic.py:44`, `submissions/logic/rules.py:25-58`;
+the two feature flags `forms/models/form.py:400-410`; the converters 3.5 added `formio/migration_converters.py:278, 358, 377, 389,
+406`. Their code is EUPL-1.2: it was read to match formats, and this implementation is our own; no code is copied.
 
 * Export: `forms/utils.py:81-140` (`form_to_json`), `143-150` (a zip of `<name>.json` entries); the metadata file name is
   `forms/constants.py:4`, its content `forms/utils.py:131-137`.
@@ -194,10 +229,11 @@ to match formats, and this implementation is our own; no code is copied.
 ### Tests and fixtures
 
 `backend/tests/app/open_formulieren/` (archive reader and hostile archives, the importer with golden mappings, the
-endpoints, authorisation). The archives in `backend/tests/fixtures/open_formulieren/` are our own exports of
-synthetic forms made in a throwaway local Open Formulieren 4.0.6 (see its README); the golden files beside them are the
-expected result of each import. Regenerate a golden file with
-`OF_UPDATE_GOLDEN=1 uv run pytest tests/app/open_formulieren/test_importer.py` and read the diff.
+endpoints, authorisation; `test_importer_3x.py` for 3.x). The archives in `backend/tests/fixtures/open_formulieren/` are
+our own exports of synthetic forms made in a throwaway local Open Formulieren 4.0.6, and in `3.5.14/` of 3.5.14 (see their
+READMEs); the golden files beside them are the expected result of each import. Regenerate a golden file with
+`OF_UPDATE_GOLDEN=1 uv run pytest tests/app/open_formulieren/test_importer.py` (`test_importer_3x.py` for the 3.x ones)
+and read the diff.
 
 ## Export
 

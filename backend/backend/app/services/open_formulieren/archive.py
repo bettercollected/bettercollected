@@ -61,6 +61,7 @@ class Archive:
     """The decoded export: plain JSON values."""
 
     version: str
+    series: Tuple[int, int]
     meta: Dict[str, Any]
     form: Dict[str, Any]
     steps: List[Dict[str, Any]]
@@ -69,6 +70,12 @@ class Archive:
     variables: List[Dict[str, Any]]
     # names of safe entries that were not read (never an unsafe name)
     ignored: List[str] = field(default_factory=list)
+
+    @property
+    def is_3x(self) -> bool:
+        """Whether the export comes from the 3.x series, whose format differs
+        from 4.0's in a few places (docs/open-formulieren.md)."""
+        return self.series[0] == limits.LEGACY_MAJOR
 
 
 # ---------------------------------------------------------------- zip layer
@@ -270,7 +277,9 @@ def parse_version(meta: Dict[str, Any]) -> Tuple[str, Tuple[int, int, int]]:
     return release, (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 
-def check_version(meta: Dict[str, Any]) -> str:
+def check_version(meta: Dict[str, Any]) -> Tuple[str, Tuple[int, int]]:
+    """``(release text, (major, minor))`` of an accepted export, or a
+    refusal that names the release."""
     text, (major, minor, _) = parse_version(meta)
     if (major, minor) not in limits.ACCEPTED_SERIES:
         raise refuse(
@@ -282,7 +291,7 @@ def check_version(meta: Dict[str, Any]) -> str:
             version=text,
             supported=[f"{a}.{b}" for a, b in limits.ACCEPTED_SERIES],
         )
-    return text
+    return text, (major, minor)
 
 
 # -------------------------------------------------------------------- read
@@ -370,7 +379,7 @@ def read_archive(data: bytes) -> Archive:
             f"{ENTRY_META} is not usable: it must be an object.",
             file=ENTRY_META,
         )
-    version = check_version(meta)
+    version, series = check_version(meta)
 
     forms = _as_list_of_dicts(
         parse_json(raw[ENTRY_FORM], ENTRY_FORM), ENTRY_FORM, exactly=1
@@ -401,6 +410,7 @@ def read_archive(data: bytes) -> Archive:
         )
     return Archive(
         version=version,
+        series=series,
         meta=meta,
         form=forms[0],
         steps=steps,

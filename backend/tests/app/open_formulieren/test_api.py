@@ -383,7 +383,7 @@ async def test_a_refused_archive_creates_nothing(
 async def test_an_unsupported_version_names_itself(client, workspace, test_user_cookies, import_on):
     response = await upload(client, workspace, test_user_cookies, archive_with([[comp("textfield", "a")]], version="4.3.0"))
     body = response.json()
-    assert body["version"] == "4.3.0" and body["supported"] == ["4.0"]
+    assert body["version"] == "4.3.0" and body["supported"] == ["3.2", "3.3", "3.4", "3.5", "4.0"]
     assert "4.3.0" in body["message"]
 
 
