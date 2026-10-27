@@ -264,7 +264,8 @@ class WorkspaceFormSettings(BaseModel):
     # services/open_formulieren): not yet looked over by its creator, with
     # the report of what was dropped on the import record ``import_id``
     # (``/open-formulieren-imports/{id}``). Cleared when the creator marks
-    # the import reviewed; never blocks publishing.
+    # the import reviewed; publishing is refused while it is set
+    # (services/publish_checks.py ``review_problem``).
     needs_review: Optional[bool] = None
     import_source: Optional[str] = None
     import_id: Optional[str] = None

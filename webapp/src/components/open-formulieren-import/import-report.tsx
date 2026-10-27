@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { useGetOpenFormulierenImportQuery, useReviewOpenFormulierenImportMutation } from '@app/store/redux/open-formulieren-import-api';
 import type { OpenFormulierenImport } from '@app/store/redux/open-formulieren-import-api';
-import { nationalIdentityItems, plainText, reportLabelOf } from '@app/utils/open-formulieren-import';
+import { REPORT_REMOVED, nationalIdentityItems, plainText, reportLabelOf } from '@app/utils/open-formulieren-import';
 
 import { ReportItemGroups, useImportText } from './report-items';
 
@@ -128,6 +128,14 @@ export default function ImportReport({ workspaceId, workspaceName, importId }: {
     const { data, isError, isLoading, error } = useGetOpenFormulierenImportQuery({ workspaceId, importId }, { skip: !workspaceId });
     // reading a report needs the form-edit permission; a 403 says so, a 404 says it is gone
     const loadFailureText = (status?: number) => (status === 404 ? text('ERROR.import_not_found') : status === 403 ? text('REPORT.FORBIDDEN') : text('REPORT.LOAD_FAILED'));
+    // the stand-in left by clearing the mark of an import whose report is gone: nothing to show
+    if (data?.status === REPORT_REMOVED) {
+        return (
+            <p role="alert" className="mx-auto max-w-3xl p-10 text-sm text-red-700">
+                {text('ERROR.import_not_found')}
+            </p>
+        );
+    }
     if (data) return <ImportReportView data={data} workspaceId={workspaceId} workspaceName={workspaceName} />;
     if (isError) {
         return (

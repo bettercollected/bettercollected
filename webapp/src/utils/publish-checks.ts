@@ -13,13 +13,15 @@ import { ContrastIssueKey, themeContrastGuard } from '@app/utils/theme-contrast'
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast' | 'needs_review';
 
 export interface PublishProblem {
     code: PublishProblemCode;
     /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID. */
     fieldId: string;
     message: string;
+    /** `needs_review` only: the id of the import report to look through (nothing of its content). */
+    importId?: string | null;
 }
 
 /** Most characters a "why we ask this" line may have (backend WHY_WE_ASK_MAX_LENGTH). */
@@ -184,6 +186,11 @@ export function problemsFromPublishError(error: any): PublishProblem[] {
     const body = error?.data ?? error;
     if (body?.code !== 'form_not_publishable' || !Array.isArray(body?.problems)) return [];
     return body.problems.filter((problem: any) => typeof problem?.message === 'string');
+}
+
+/** The "this import still needs review" problem among a refusal's problems, if any. */
+export function needsReviewProblem(problems: PublishProblem[]): PublishProblem | undefined {
+    return problems.find((problem) => problem.code === 'needs_review');
 }
 
 /**

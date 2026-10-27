@@ -66,7 +66,8 @@ async def test_it_is_off_by_default(client, workspace, test_user_cookies):
     for method, path, kwargs in (
         ("POST", url(workspace), {"files": {"file": ("a.zip", b"x", "application/zip")}}),
         ("GET", url(workspace, ids), {}),
-        ("POST", url(workspace, ids, "review"), {"json": {"reviewed": True}}),
+        # (the review is not behind the switch: it clears the mark that holds
+        # publishing; test_publish_blocked.py)
     ):
         # signed in or not, member or not: the switch answers first
         for cookies in (test_user_cookies, cookies_of(testUser1), None):

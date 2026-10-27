@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
+import { useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
+import { PublishBlockedByReviewDialog } from '@app/components/open-formulieren-import/publish-blocked-dialog';
+import { useImportText } from '@app/components/open-formulieren-import/report-items';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -14,7 +17,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { PublishProblem, THEME_PROBLEM_ID, getPublishProblems, problemsFromPublishError, splitPublishProblems, themeContrastProblems } from '@app/utils/publish-checks';
+import { PublishProblem, THEME_PROBLEM_ID, getPublishProblems, needsReviewProblem, problemsFromPublishError, splitPublishProblems, themeContrastProblems } from '@app/utils/publish-checks';
 import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
 
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
@@ -36,7 +39,15 @@ function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string
  * first stores them (flushAutosave), so what is checked is what the server
  * checks and publishes.
  */
-const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { refresh?: boolean; fields?: Array<StandardFormFieldDto>; /** The live pages, read when the checks run (instead of `fields`). */ getFields?: () => Array<StandardFormFieldDto> }) => {
+const PublishButton = ({
+    refresh = false,
+    fields: givenFields,
+    getFields
+}: {
+    refresh?: boolean;
+    fields?: Array<StandardFormFieldDto>;
+    /** The live pages, read when the checks run (instead of `fields`). */ getFields?: () => Array<StandardFormFieldDto>;
+}) => {
     const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -51,6 +62,11 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
     const { formState } = useFormState();
     const [waiting, setWaiting] = useState(false);
     const checksVersion = standardForm?.settings?.publishChecksVersion;
+    // An import that still needs review is not published: the form's own mark (as the builder banner reads it)
+    // tells before the click, and the server's `needs_review` problem when a stale mark let the click through.
+    const importText = useImportText();
+    const heldForReview = useShowNeedsReviewBanner(standardForm?.settings, workspace?.id);
+    const [reviewDialog, setReviewDialog] = useState<{ importId: string; othersFollow: boolean } | null>(null);
     const { blocking, recommended } = splitPublishProblems(problems, checksVersion);
 
     const publish = async () => {
@@ -84,11 +100,18 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
         }
         // The server checks the same rules on the saved draft.
         const refused = problemsFromPublishError(response.error);
-        if (refused.length) setProblems(refused);
+        const unreviewed = needsReviewProblem(refused);
+        // never silent: without an import id the dialog still explains (it just has no report to link to)
+        if (unreviewed) setReviewDialog({ importId: unreviewed.importId || standardForm?.settings?.importId || '', othersFollow: refused.length > 1 });
+        else if (refused.length) setProblems(refused);
         else toast({ description: "Couldn't publish the form. Please try again.", variant: 'destructive' });
     };
 
     const publishForm = async () => {
+        if (heldForReview && standardForm?.settings?.importId) {
+            setReviewDialog({ importId: standardForm.settings.importId, othersFollow: false });
+            return;
+        }
         const fields = getFields?.() ?? givenFields;
         // Honest defaults first: the creator sees what to fix, and where.
         // The builder's live endings with its live pages; the saved ones otherwise.
@@ -132,9 +155,18 @@ const PublishButton = ({ refresh = false, fields: givenFields, getFields }: { re
 
     return (
         <>
-            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'}>
+            <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'} title={heldForReview ? importText('PUBLISH_BLOCKED.BUTTON_HINT') : undefined}>
                 Publish
             </Button>
+            <PublishBlockedByReviewDialog
+                open={!!reviewDialog}
+                importId={reviewDialog?.importId ?? ''}
+                workspaceId={workspace?.id}
+                workspaceName={workspace?.workspaceName}
+                othersFollow={reviewDialog?.othersFollow ?? false}
+                onClose={() => setReviewDialog(null)}
+                onPublish={publishForm}
+            />
             <PublishProblemsDialog
                 blocking={blocking}
                 recommended={recommended}
@@ -187,7 +219,7 @@ export function PublishProblemsDialog({
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DialogContent className="max-w-lg" title="Before you publish">
                 <DialogHeader>
-                    <div aria-hidden="true" className="text-lg font-semibold leading-none tracking-tight">
+                    <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
                         Before you publish
                     </div>
                     <DialogDescription>
@@ -200,7 +232,7 @@ export function PublishProblemsDialog({
                     {blocking.length > 0 && list(blocking, 'publish-problems')}
                     {recommended.length > 0 && (
                         <>
-                            {blocking.length > 0 && <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Also recommended</div>}
+                            {blocking.length > 0 && <div className="text-xs font-semibold tracking-wide text-black-600 uppercase">Also recommended</div>}
                             {list(recommended, 'publish-recommendations')}
                         </>
                     )}

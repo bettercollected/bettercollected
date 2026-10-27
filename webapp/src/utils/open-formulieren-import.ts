@@ -174,6 +174,8 @@ export function reportSentenceOf(item: Pick<ImportReportItem, 'code' | 'reason' 
         if (value !== undefined && value !== null && typeof value !== 'object') values[name] = plainText(value);
     }
     if (item.key) values.key = plainText(item.key, 120);
+    // an address question (addressNL) becomes five text questions: its own sentence, not the generic one
+    if (item.reason === 'converted_to_text' && item.detail?.componentType === 'addressNL') return { key: 'REASON.converted_to_text_address', values };
     if (REASONS.has(item.reason)) return { key: `REASON.${item.reason}`, values };
     const code = (REPORT_CODES as ReadonlyArray<string>).includes(item.code) ? item.code : 'other';
     return { key: `REASON_FALLBACK.${code}`, values };
@@ -217,3 +219,6 @@ export function groupReport(items: ReadonlyArray<ImportReportItem>): ReportGroup
 export function nationalIdentityItems(items: ReadonlyArray<ImportReportItem>): ImportReportItem[] {
     return (items ?? []).filter((item) => item && (item.flag === NATIONAL_IDENTITY_FLAG || item.reason === NATIONAL_IDENTITY_FLAG));
 }
+
+/** The `status` of the stand-in the server answers for a review of an import whose report is gone (nothing is stored). */
+export const REPORT_REMOVED = 'removed';

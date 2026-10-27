@@ -1035,6 +1035,62 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
 
+    async def set_review_mark(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        needs_review: bool,
+        import_source: str,
+        import_id: str,
+    ) -> bool:
+        """Set the "needs review" mark of an import on a form's link, under
+        its row lock, and nothing else of the settings (a settings change
+        made meanwhile is kept). False when the form has no link here."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+            )
+            if stored is None:
+                return False
+            stored.settings.needs_review = needs_review
+            stored.settings.import_source = import_source
+            stored.settings.import_id = import_id
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
+    async def set_review_mark_by_import(
+        self, workspace_id: RecordId, import_id: str, needs_review: bool
+    ) -> int:
+        """Set the mark on every form of this workspace that names the import
+        (the draft and its copies), each under its row lock and writing only
+        the mark; a form already in that state is not written. Returns how
+        many forms name the import."""
+        named = 0
+        async with self._session() as session, session.begin():
+            docs = (
+                await session.execute(
+                    select(WorkspaceFormRow.doc)
+                    .where(
+                        WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                        self._settings()["import_id"].astext == import_id,
+                    )
+                    .order_by(WorkspaceFormRow.created_at, WorkspaceFormRow.id)
+                    .with_for_update()
+                )
+            ).scalars()
+            for doc in docs.all():
+                stored = decode(WorkspaceFormDocument, doc)
+                named += 1
+                if bool(stored.settings.needs_review) == needs_review:
+                    continue
+                stored.settings.needs_review = needs_review
+                stored.touch()
+                await session.execute(self._upsert_statement(row_values(stored)))
+        return named
+
     async def save_workspace_form(
         self,
         workspace_id: RecordId,

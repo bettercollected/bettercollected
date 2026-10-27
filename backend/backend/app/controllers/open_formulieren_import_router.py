@@ -3,8 +3,9 @@
 POST uploads the exported archive (multipart, one ``file`` part) and answers
 with the finished import: the draft's id and the report of what was dropped,
 changed or flagged. GET reads an import again; POST ``.../review`` marks it
-reviewed (or not). Everything is off (410 ``open_formulieren_off``) unless
-``OPEN_FORMULIEREN_IMPORT=on``; see docs/open-formulieren.md.
+reviewed (or not). The upload and the read are off (410 ``open_formulieren_off``)
+unless ``OPEN_FORMULIEREN_IMPORT=on``; the review is not (see
+docs/open-formulieren.md).
 """
 
 import datetime as dt
@@ -194,7 +195,8 @@ class OpenFormulierenImportRouter(Routable):
         workspace_id: RecordId,
         import_id: RecordId,
         body: ReviewBody,
-        _on: None = Depends(refuse_open_formulieren_import),
+        # not behind the switch: the mark can always be cleared (it holds
+        # publishing, and the report may be gone)
         user: User = Depends(get_full_user),
     ):
         record = await container.open_formulieren_import_service().review(
