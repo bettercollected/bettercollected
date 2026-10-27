@@ -255,3 +255,36 @@ def no_deadline(monkeypatch):
     from backend.app.services.open_formulieren import limits
 
     monkeypatch.setattr(limits, "BUILD_SECONDS", 1e9)
+
+
+@pytest.fixture()
+def exec_guard(monkeypatch):
+    """A list of the ``eval`` / ``exec`` / ``compile`` calls made from the
+    Open Formulieren import code while the test runs. Only calls whose caller
+    is one of our modules are recorded: unrelated code in the same process
+    (other fixtures, libraries, background tasks) may use them and is passed
+    straight through with its own globals."""
+    import builtins
+    import sys
+
+    ours = (
+        "backend.app.services.open_formulieren",
+        "backend.app.controllers.open_formulieren",
+    )
+    real = {name: getattr(builtins, name) for name in ("eval", "exec", "compile")}
+    calls = []
+
+    def guarded(name):
+        def call(*args, **kwargs):
+            frame = sys._getframe(1)
+            if frame.f_globals.get("__name__", "").startswith(ours):
+                calls.append(name)
+            if name in ("eval", "exec") and len(args) < 2 and "globals" not in kwargs:
+                args = (*args, frame.f_globals, frame.f_locals)
+            return real[name](*args, **kwargs)
+
+        return call
+
+    for name in real:
+        monkeypatch.setattr(builtins, name, guarded(name))
+    return calls
