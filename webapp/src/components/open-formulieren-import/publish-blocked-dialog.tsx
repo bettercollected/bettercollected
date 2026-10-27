@@ -22,14 +22,32 @@ export function importReportPath(workspaceName: string, importId: string) {
  * form already carries). Links to the import report and clears the mark in
  * place; once it is clear, offers to publish.
  */
-export function PublishBlockedByReviewDialog({ open, importId, workspaceId, workspaceName, onClose, onPublish }: { open: boolean; importId: string; workspaceId: string; workspaceName: string; onClose: () => void; onPublish: () => void }) {
+export function PublishBlockedByReviewDialog({
+    open,
+    importId,
+    workspaceId,
+    workspaceName,
+    othersFollow = false,
+    onClose,
+    onPublish
+}: {
+    open: boolean;
+    /** The import report's id; empty when the server named none (then only the explanation is shown). */
+    importId: string;
+    workspaceId: string;
+    workspaceName: string;
+    /** The refusal listed other problems too: after clearing, say that publishing shows them. */
+    othersFollow?: boolean;
+    onClose: () => void;
+    onPublish: () => void;
+}) {
     const text = useImportText();
     const [review, { isLoading, isSuccess, isError, reset }] = useReviewOpenFormulierenImportMutation();
     // the report may be out of reach (the import is switched off, or it was deleted with the form it was made for):
     // the mark can be cleared all the same, only the link to the report goes
     const report = useGetOpenFormulierenImportQuery({ workspaceId, importId }, { skip: !open || !importId || !workspaceId });
     const reportAvailable = !!report.data && report.data.status !== REPORT_REMOVED;
-    const reportOutOfReach = report.isError || report.data?.status === REPORT_REMOVED;
+    const reportOutOfReach = !importId || report.isError || report.data?.status === REPORT_REMOVED;
     const close = () => {
         reset();
         onClose();
@@ -44,7 +62,7 @@ export function PublishBlockedByReviewDialog({ open, importId, workspaceId, work
                     <DialogDescription>{text(reportOutOfReach ? 'PUBLISH_BLOCKED.TEXT_NO_REPORT' : 'PUBLISH_BLOCKED.TEXT')}</DialogDescription>
                 </DialogHeader>
                 <p role="status" aria-live="polite" className={`text-sm ${isError ? 'text-red-700' : 'text-black-700'}`}>
-                    {isError ? text('PUBLISH_BLOCKED.FAILED') : isSuccess ? text('PUBLISH_BLOCKED.CLEARED') : ''}
+                    {isError ? text('PUBLISH_BLOCKED.FAILED') : isSuccess ? text(othersFollow ? 'PUBLISH_BLOCKED.CLEARED_OTHER' : 'PUBLISH_BLOCKED.CLEARED') : ''}
                 </p>
                 <div className="flex flex-wrap justify-end gap-2">
                     <Button variant="secondary" onClick={close}>
@@ -67,9 +85,11 @@ export function PublishBlockedByReviewDialog({ open, importId, workspaceId, work
                                     {text('PUBLISH_BLOCKED.OPEN_REPORT')}
                                 </Link>
                             )}
-                            <Button onClick={() => review({ workspaceId, importId, reviewed: true })} isLoading={isLoading} className="text-white">
-                                {text('PUBLISH_BLOCKED.MARK_REVIEWED')}
-                            </Button>
+                            {importId && (
+                                <Button onClick={() => review({ workspaceId, importId, reviewed: true })} isLoading={isLoading} className="text-white">
+                                    {text('PUBLISH_BLOCKED.MARK_REVIEWED')}
+                                </Button>
+                            )}
                         </>
                     )}
                 </div>

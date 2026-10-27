@@ -66,7 +66,7 @@ const PublishButton = ({
     // tells before the click, and the server's `needs_review` problem when a stale mark let the click through.
     const importText = useImportText();
     const heldForReview = useShowNeedsReviewBanner(standardForm?.settings, workspace?.id);
-    const [reviewImportId, setReviewImportId] = useState<string | null>(null);
+    const [reviewDialog, setReviewDialog] = useState<{ importId: string; othersFollow: boolean } | null>(null);
     const { blocking, recommended } = splitPublishProblems(problems, checksVersion);
 
     const publish = async () => {
@@ -101,14 +101,15 @@ const PublishButton = ({
         // The server checks the same rules on the saved draft.
         const refused = problemsFromPublishError(response.error);
         const unreviewed = needsReviewProblem(refused);
-        if (unreviewed) setReviewImportId(unreviewed.importId || standardForm?.settings?.importId || null);
+        // never silent: without an import id the dialog still explains (it just has no report to link to)
+        if (unreviewed) setReviewDialog({ importId: unreviewed.importId || standardForm?.settings?.importId || '', othersFollow: refused.length > 1 });
         else if (refused.length) setProblems(refused);
         else toast({ description: "Couldn't publish the form. Please try again.", variant: 'destructive' });
     };
 
     const publishForm = async () => {
         if (heldForReview && standardForm?.settings?.importId) {
-            setReviewImportId(standardForm.settings.importId);
+            setReviewDialog({ importId: standardForm.settings.importId, othersFollow: false });
             return;
         }
         const fields = getFields?.() ?? givenFields;
@@ -157,7 +158,15 @@ const PublishButton = ({
             <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'} title={heldForReview ? importText('PUBLISH_BLOCKED.BUTTON_HINT') : undefined}>
                 Publish
             </Button>
-            <PublishBlockedByReviewDialog open={!!reviewImportId} importId={reviewImportId ?? ''} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} onClose={() => setReviewImportId(null)} onPublish={publishForm} />
+            <PublishBlockedByReviewDialog
+                open={!!reviewDialog}
+                importId={reviewDialog?.importId ?? ''}
+                workspaceId={workspace?.id}
+                workspaceName={workspace?.workspaceName}
+                othersFollow={reviewDialog?.othersFollow ?? false}
+                onClose={() => setReviewDialog(null)}
+                onPublish={publishForm}
+            />
             <PublishProblemsDialog
                 blocking={blocking}
                 recommended={recommended}

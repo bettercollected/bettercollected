@@ -3,6 +3,8 @@ still "needs review" (services/publish_checks.py ``review_problem``): every
 way of publishing refuses with the existing ``form_not_publishable`` error,
 which names the import report, and works again once a person clears the mark."""
 
+import json
+
 import pytest
 from httpx import AsyncClient
 
@@ -15,6 +17,7 @@ from common.models.standard_form import (
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.services.publish_checks import FORM_NOT_PUBLISHABLE, NEEDS_REVIEW
@@ -157,6 +160,48 @@ async def test_marking_it_again_blocks_again(client, workspace, test_user_cookie
         )
 
 
+async def test_outside_the_switch_the_review_call_only_clears(
+    client, workspace, test_user_cookies, monkeypatch
+):
+    form_id = await _draft(workspace)
+    monkeypatch.setattr(settings.open_formulieren, "IMPORT", "on")
+    record = await _mark(workspace, form_id)
+    monkeypatch.setattr(settings.open_formulieren, "IMPORT", "off")
+    # re-marking answers 410 like the rest of the import, and changes nothing
+    again = await _review(client, workspace, record.id, test_user_cookies, reviewed=False)
+    assert again.status_code == 410 and again.json()["code"] == "open_formulieren_off"
+    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form_id)
+    assert link.settings.needs_review is True
+    assert (await _review(client, workspace, record.id, test_user_cookies)).status_code == 200
+    # on again: marking again works, as before
+    monkeypatch.setattr(settings.open_formulieren, "IMPORT", "on")
+    back = await _review(client, workspace, record.id, test_user_cookies, reviewed=False)
+    assert back.status_code == 200 and back.json()["needsReview"] is True
+    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form_id)
+    assert link.settings.needs_review is True
+
+
+async def test_clearing_the_mark_keeps_a_settings_change_made_meanwhile(workspace):
+    """The mark is written alone: a stale copy of the link read before a
+    settings change does not bring the old settings back."""
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    repo = container.workspace_form_repo()
+    stale = await repo.find_workspace_form(workspace.id, form_id)
+    assert stale.settings.pinned is not True
+    await container.form_service().patch_settings_in_workspace_form(
+        workspace.id, form_id, SettingsPatchDto(pinned=True), testUser
+    )
+    named = await repo.set_review_mark_by_import(workspace.id, str(record.id), False)
+    assert named == 1
+    link = await repo.find_workspace_form(workspace.id, form_id)
+    assert (link.settings.needs_review, link.settings.pinned) == (False, True)
+    # a form already clear is not written again
+    assert await repo.set_review_mark_by_import(workspace.id, str(record.id), False) == 1
+    # another workspace's forms are never named
+    assert await repo.set_review_mark_by_import(workspace.id, "6720a0c1e4b0c8a5f1d2e3f4", False) == 0
+
+
 async def test_an_unmarked_form_publishes_as_before(workspace, import_on):
     form_id = await _draft(workspace)
     published = await container.workspace_form_service().publish_form(
@@ -245,7 +290,12 @@ async def test_no_settings_update_clears_or_bypasses_the_mark(
         mode="json", by_alias=True
     )
     body["settings"] = {"needsReview": False, "importSource": None, "importId": None}
-    await client.put(base, json=body, cookies=test_user_cookies)
+    saved = await client.patch(
+        base, data={"form_body": json.dumps(body)}, cookies=test_user_cookies
+    )
+    # the save itself goes through (so the check below is about the mark, not
+    # a refused request) and ignores the mark in what was sent
+    assert saved.status_code == 200, saved.text
     link = await container.workspace_form_repo().find_workspace_form(
         workspace.id, form_id
     )

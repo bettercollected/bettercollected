@@ -177,6 +177,52 @@ describe('publishing a form that still needs review', () => {
         expect(screen.queryByText('Before you publish')).not.toBeInTheDocument();
     });
 
+    it('is never silent when the server names no import: the explanation shows, without a report to link to or clear', async () => {
+        stubApi({ needsReview: true });
+        publishFormMock.mockResolvedValue({ error: { status: 422, data: { code: 'form_not_publishable', message: 'x', problems: [{ code: 'needs_review', fieldId: null, importId: null, message: 'It was imported and still needs review.' }] } } });
+        setUp({});
+        await act(async () => {
+            renderButton();
+        });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+        });
+        const dialog = await screen.findByRole('dialog', { name: 'This form still needs review' });
+        expect(dialog).toHaveTextContent('Its import report is not available.');
+        expect(screen.queryByRole('link', { name: 'Open the import report' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Mark as reviewed' })).not.toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0);
+    });
+
+    it('says that other checks follow when the refusal listed more than the review', async () => {
+        stubApi({ needsReview: true });
+        publishFormMock.mockResolvedValue({
+            error: {
+                status: 422,
+                data: {
+                    code: 'form_not_publishable',
+                    message: 'x',
+                    problems: [
+                        { code: 'needs_review', fieldId: null, importId: 'imp1', message: 'It was imported and still needs review.' },
+                        { code: 'missing_why_we_ask', fieldId: 'q-1', message: '"Email" asks for personal details.' }
+                    ]
+                }
+            }
+        });
+        setUp({});
+        await act(async () => {
+            renderButton();
+        });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+        });
+        await act(async () => {
+            fireEvent.click(await screen.findByRole('button', { name: 'Mark as reviewed' }));
+        });
+        expect(await screen.findByText('Marked as reviewed. Publishing now shows what else needs fixing first.')).toBeInTheDocument();
+        expect(screen.queryByText('Marked as reviewed. You can publish now.')).not.toBeInTheDocument();
+    });
+
     it('a form that is not an import publishes as before', async () => {
         stubApi({ needsReview: false });
         setUp({});

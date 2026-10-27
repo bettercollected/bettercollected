@@ -511,6 +511,7 @@
       "MARK_REVIEWED": "Mark as reviewed",
       "CLOSE": "Close",
       "CLEARED": "Marked as reviewed. You can publish now.",
+      "CLEARED_OTHER": "Marked as reviewed. Publishing now shows what else needs fixing first.",
       "PUBLISH": "Publish now",
       "FAILED": "We could not save this. Please try again.",
       "BUTTON_HINT": "Publishing waits until the import is marked as reviewed."

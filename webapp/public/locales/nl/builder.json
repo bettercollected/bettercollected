@@ -511,6 +511,7 @@
       "MARK_REVIEWED": "Markeer als nagekeken",
       "CLOSE": "Sluiten",
       "CLEARED": "Gemarkeerd als nagekeken. U kunt nu publiceren.",
+      "CLEARED_OTHER": "Gemarkeerd als nagekeken. Bij het publiceren ziet u wat er nog eerst moet worden aangepast.",
       "PUBLISH": "Nu publiceren",
       "FAILED": "Dit kon niet worden opgeslagen. Probeer het opnieuw.",
       "BUTTON_HINT": "Publiceren kan pas nadat de import als nagekeken is gemarkeerd."
