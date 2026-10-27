@@ -207,6 +207,8 @@ class Case:
     ai_replies: Optional[Tuple] = None
     # API settings switched on for the case (an endpoint behind a flag)
     api_settings: Optional[Dict[str, object]] = None
+    # OPEN_FORMULIEREN_IMPORT for the case (the import is off by default)
+    open_formulieren: Optional[str] = None
 
 
 def _png() -> bytes:
@@ -965,6 +967,34 @@ CASES = [
         lambda c: {"files": {"file": ("notes.txt", b"not a document", "text/plain")}},
         ok=400,
     ),
+    # --- Open Formulieren imports (behind OPEN_FORMULIEREN_IMPORT)
+    Case(
+        "open_formulieren_imports.create",
+        "POST",
+        W + "/open-formulieren-imports",
+        P.FORM_CREATE,
+        # refused by the archive check (not a zip) after authorization
+        lambda c: {"files": {"file": ("a.zip", b"not a zip", "application/zip")}},
+        ok=400,
+        open_formulieren="on",
+    ),
+    Case(
+        "open_formulieren_imports.get",
+        "GET",
+        W + "/open-formulieren-imports/{of_import}",
+        P.FORM_EDIT,
+        ok=200,
+        open_formulieren="on",
+    ),
+    Case(
+        "open_formulieren_imports.review",
+        "POST",
+        W + "/open-formulieren-imports/{of_import}/review",
+        P.FORM_EDIT,
+        lambda c: {"json": {"reviewed": True}},
+        ok=200,
+        open_formulieren="on",
+    ),
 ]
 
 
@@ -1069,6 +1099,21 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
             source_key="private/x/form.pdf",
         )
     )
+    of_import = await container.form_import_repo().save(
+        FormImportDocument(
+            id=RecordId(),
+            workspace_id=workspace.id,
+            form_id=published_form.form_id,
+            created_by=testUser.id,
+            source_kind="open_formulieren",
+            file_name="export.zip",
+            content_type="application/zip",
+            size_bytes=1,
+            sha256="0" * 64,
+            source_key="",
+            report={"needsReview": True, "items": []},
+        )
+    )
     action = await container.action_repository().create_global_action(
         ActionDto(name="matrix_action", action_code="", type="external"), testUser
     )
@@ -1127,6 +1172,7 @@ async def matrix(workspace, published_form, outside_services, fake_dns, scim_on)
         "media": str(media.media_id),
         "template": str(template.id),
         "import": str(form_import.id),
+        "of_import": str(of_import.id),
         "action": str(action.id),
         "invitation": invitation.invitation_token,
         "random": _oid(),
@@ -1170,6 +1216,8 @@ async def test_permission_matrix(
 
     for name, value in (case.api_settings or {}).items():
         monkeypatch.setattr(settings.api_settings, name, value)
+    if case.open_formulieren:
+        monkeypatch.setattr(settings.open_formulieren, "IMPORT", case.open_formulieren)
     request = case.request(matrix)
     response = await client.request(
         case.method,

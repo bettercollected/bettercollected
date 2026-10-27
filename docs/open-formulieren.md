@@ -1,0 +1,200 @@
+# Open Formulieren
+
+[Open Formulieren](https://open-forms.readthedocs.io/) is an open-source form builder (a form.io based
+product from Maykin). This page describes how bettercollected works with it. Today that is **importing a form
+exported from Open Formulieren as a draft form**; the other directions (export, sending submissions to a
+registration system) add their own sections here when they ship.
+
+Everything is behind a switch that is **off by default**.
+
+## Import
+
+### Switch
+
+| Setting | Values | Default |
+|---|---|---|
+| `OPEN_FORMULIEREN_IMPORT` | `off`, `on` | `off` |
+| `OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY` | 0 to 100000 | `50` |
+| `OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY` | 0 to 100000 | `100` |
+
+* `off`: the three import endpoints answer **410** `open_formulieren_off` (before anything is read) and
+  `GET /providers` does not list the import.
+* `on`: a workspace member who may create forms can import; `GET /providers` lists
+  `{"providerName": "open_formulieren", "importMode": "on"}` so the webapp can offer it.
+
+The value is read at call time and an unknown value refuses to start. See `docs/settings-inventory.md`.
+
+### What it does
+
+Open Formulieren can export one form as a zip archive (its "Export" action). Uploading that archive creates a **draft**
+form in the workspace, built in memory through the same edit operations the builder, the AI and the PDF import use
+(`apply_form_ops`) and saved once. It is **never published** and has no custom address.
+
+The draft is marked **needs review** and comes with a report that lists everything that was dropped, converted or
+flagged. Open Formulieren features that have no equivalent here are imported as far as possible, flagged, and
+reported; none of them is silently lost.
+
+The upload is untrusted data (see Safety below). Nothing in the archive is ever executed, evaluated, rendered or
+fetched.
+
+### Endpoints
+
+All paths are under `/api/v1`; bodies are camelCase JSON.
+
+| Endpoint | Permission | Purpose |
+|---|---|---|
+| `POST /workspaces/{id}/open-formulieren-imports` (multipart, one `file` part) | form create | import; answers 201 with the finished result |
+| `GET /workspaces/{id}/open-formulieren-imports/{import_id}` | form edit | read an import and its report again |
+| `POST /workspaces/{id}/open-formulieren-imports/{import_id}/review` `{"reviewed": true}` | form edit | mark the import reviewed (or `false`: needs review again) |
+
+Limits: the upload is at most **5 MiB** (413 `file_too_large`); one form per archive.
+
+Imports per workspace per day, and attempts (a refused archive leaves a small record with no content and counts), have limits of their own (429 `import_limit`; the note of a refused attempt holds only its reason, size and hash, never the file name, and is deleted after two days by the hourly `expire_open_formulieren_attempts` job; not shared with the PDF import's), and only a
+few imports build at once in a process (503 `import_busy`, with `Retry-After`). Refusals have a stable `code` (400 unless stated): `file_missing`, `file_too_large` (413), `not_a_zip`,
+`archive_unsafe`, `archive_too_large`, `archive_incomplete` (`missing`), `archive_json_invalid` (`file`),
+`archive_not_a_single_form`, `open_formulieren_version_unknown`, `open_formulieren_version_unsupported` (`version`,
+`supported`), `no_importable_fields` (422), `archive_too_complex` (422; also when a build runs past its work budget), `archive_json_invalid` (422 for
+something in the file that could not be read), `import_limit` (429), `import_busy` (503), and 410 `open_formulieren_off`.
+
+### Where the result is stored
+
+* The **report** is stored on a `FormImportDocument` (the record the PDF import also uses) with
+  `source_kind = "open_formulieren"`. It holds only the report, the source release, the file name, size and sha256.
+  **The uploaded archive is not kept.** The record is deleted with its form.
+* The **mark** is on the form's workspace settings: `needs_review`, `import_source`, `import_id`
+  (`needsReview`, `importSource`, `importId` in the API). It never blocks publishing.
+
+### The report
+
+`report.items[]`: `code` (`dropped`, `changed`, `flagged`, `ignored`, `noted`), `kind` (`component`, `logic`,
+`variable`, `feature`, `setting`, `archive`), `key`, `label`, `reason` (a stable code; the webapp holds the English and
+Dutch sentences keyed by it), `severity` (`warning` or `info`), `flag`, `step` (0-based page), `detail`. At most 500
+items; a longer report sets `truncated`. A question that asks for a national identity number (a `bsn` component, or
+a text question titled like one, or one prefilled from one) is imported as plain text and carries
+`flag: "national_identity_number"`: *check you need it*.
+
+### What is mapped
+
+Steps become pages in `index` order, the page's section title is the step name. A step with nothing importable is dropped
+(reported `empty_step`).
+
+| Open Formulieren component | Becomes | Notes |
+|---|---|---|
+| `textfield` | short text | label, help, placeholder, required, max length, pattern |
+| `textarea` | long text | pattern is dropped (reported) |
+| `email`, `phoneNumber` | email, phone number | |
+| `number` | number | min/max; "no negative numbers" becomes a minimum of 0 |
+| `currency` | number | `converted_to_number` |
+| `date` | date | min/max dates become date rules where they have an equivalent (a fixed day, today) |
+| `datetime` | a date plus a "(time)" short text | `datetime_split` |
+| `time`, `postcode`, `iban`, `licenseplate` | short text with a pattern | `converted_to_text` |
+| `bsn` | short text, 9 digits | flagged as a national identity number |
+| `select`, `radio` | dropdown, multiple choice | needs two options; choices from a variable or list are dropped |
+| `selectboxes`, `select` with `multiple` | multiple choice (several answers) | min/max selected |
+| `checkbox` | yes/no | `converted_to_yes_no`; a *required* checkbox means "must be ticked", a required yes/no only "must answer" (`checkbox_required_not_enforced`) |
+| `file` | file upload | types, size and count are not carried (reported) |
+| `content` | statement | html reduced to plain text |
+| `fieldset` | heading statement, children flattened | its condition applies to everything inside |
+| `columns` | children flattened | column size becomes the question's width |
+| `editgrid` | repeating group | children limited to the types a repeating group allows |
+| `signature`, `map`, `addressNL`, `partners`, `children`, `npFamilyMembers`, `cosign`/`coSign`, `customerProfile`, anything unknown | dropped | reported |
+
+Common to all: label becomes the title, description (or, failing that, tooltip) the help text. Every text is reduced
+to plain text (tags, attributes and scripts removed, control and direction characters removed, length capped), template
+syntax is kept as literal text and never rendered.
+
+**Visibility.** A simple `conditional` (`show`, `when`, `eq`) becomes a show/hide rule on the question. JSON logic
+rules are read as data, never run: a trigger that is one comparison of a component with a literal (`==`, `!=`, `>`,
+`>=`, `<`, `<=`, `!`, `!!`), or an `and`/`or` of up to ten of them, with actions that show or hide components
+(`property` `hidden`), becomes a show/hide rule. Our questions hold one rule each: rules meeting on one question are
+reduced to one when that is exact (a rule and its opposite, several "hide when" rules), otherwise the question is
+imported without a rule and `conflicting_rules` is reported. A component hidden for good (`hidden` with nothing that
+shows it) is dropped (`always_hidden`). Everything else is dropped and reported with its reason (`trigger_not_supported`,
+`action_not_supported` with the action type: `disable-next`, `step-applicable`, `step-not-applicable`, `variable`,
+`fetch-from-service`, `evaluate-dmn`, `synchronize-variables`, `set-registration-backend`, `property` other than
+`hidden`).
+
+**Custom code.** `customConditional`, `calculateValue`, `customDefaultValue`, `validate.custom` and component-level
+`logic` are never run and never kept; each is reported `custom_script_dropped`.
+
+**Variables.** User-defined variables have no equivalent and are reported (`user_variable_not_carried`); component
+variables are simply the questions (every question is addressable by logic and answer piping).
+
+**Form-level settings.** Not carried, each reported: sign-in plugins (`digid`, `eherkenning`, ...), prefill,
+payment, appointment forms, registration backends, translations, confirmation email and presentation settings,
+schedule and submission limits, the statement of truth. Carried: the title; the retention in days for completed
+submissions (`submissions_removal_options.successful_submissions_removal_limit`, 1 to 3650) as the form's own
+retention. The privacy policy text and link are global settings of an Open Formulieren instance and are not in an
+export, and Open Formulieren has no purpose field: both are noted (`privacy_policy_missing`, `purpose_missing`) and
+need to be set before publishing.
+
+### Versions
+
+The archive has no format version; `_meta.json` records the release that wrote it (`of_release`). Releases of the
+**4.0** series are read (tested with 4.0.6). A missing or unreadable release is refused
+(`open_formulieren_version_unknown`), and so is any other series, older or newer, with the version named
+(`open_formulieren_version_unsupported`): a newer export may have changed shape, and guessing could silently drop or
+misread data. Widening this is one constant (`ACCEPTED_SERIES`) once a fixture of that series exists.
+
+### Safety
+
+The archive is untrusted. `services/open_formulieren/archive.py`:
+
+* read in memory, never extracted; no entry name is ever used as a path;
+* only the six known entry names are read (`forms.json`, `formSteps.json`, `formDefinitions.json`, `formLogic.json`,
+  `formVariables.json`, `_meta.json`); other safe names are ignored and listed; an unsafe name (absolute, `..`, a
+  drive letter, a backslash, a link or special file, a duplicate, an encrypted entry, an unusual compression) refuses
+  the archive;
+* limits are enforced while reading, with streaming caps, never from header sizes: upload 5 MiB, 16 entries, 8 MiB per
+  entry and 16 MiB in all once unpacked, and a bound on the central directory so a many-entry archive is refused before
+  the zip reader builds a record for each;
+* the zip reader builds one record per entry before it can be counted, so the central directory is bounded first, and an archive
+  with a zip64 locator (which would hide the real count) is refused;
+* text: markup is removed by a single linear scan (never an HTML parser, whose cost on hostile input is not bounded), each text
+  is cut to twice its limit first, and one import has a work budget (characters of text and 5 seconds, checked between the form edit operations too), and one import creates at most 1000 questions (statements and groups
+  included; more is `archive_too_complex`): beyond it the
+  import is refused as too complex. Only a few imports build at once;
+* JSON: nesting depth is checked by an iterative scan before parsing (the stdlib parser recurses), non-finite
+  numbers are refused, and values are counted;
+* nothing is evaluated: there is no JavaScript engine, template engine, JSON logic library, `eval` or `exec` in the
+  import (a test of the source keeps it so), and links in the archive (they point at the source instance) are only
+  ever read for the identifier at their end, never fetched;
+* the upload is read with a cap before it is parsed, and the switch and the permission are checked before the body is.
+
+### Format reference
+
+Facts about the archive come from Open Formulieren **4.0.6** (`open-formulieren/open-forms`, tag `4.0.6`, commit
+`2d28cf5276b04298e342c8914f3b0b31cddda8de`; paths below are under `src/openforms/`). Their code is EUPL-1.2: it was read
+to match formats, and this implementation is our own; no code is copied.
+
+* Export: `forms/utils.py:81-140` (`form_to_json`), `143-150` (a zip of `<name>.json` entries); the metadata file name is
+  `forms/constants.py:4`, its content `forms/utils.py:131-137`.
+* Import: reads only the five known resources, `forms/utils.py:49-55, 154-161`; no version check (their converters
+  adapt older components: `forms/utils.py:397-416`, `formio/migration_converters.py:459-`).
+* Only user-defined variables are exported; component variables are regenerated, static ones created per form:
+  `forms/utils.py:100-105`.
+* Step, definition and form serializers: `forms/api/serializers/form_step.py:67-113`,
+  `form_definition.py:64-90`, `form.py:328-` (fields), `740-748` (export serializer).
+* Component JSON: `formio/typing/base.py:19-128` (common keys), `formio/typing/vanilla.py`, `custom.py`, `dates.py`;
+  component types and their behaviour: `formio/components/vanilla.py` (textfield `103`, email `170`, time `257`, phoneNumber
+  `313`, file `454`, textarea `547`, number `590`, checkbox `647`, selectboxes `720`, select `813`, currency `885`, radio
+  `925`, signature `978`, content `997`, editgrid `1128`, columns `1232`, fieldset `1267`) and `custom.py` (date `108`, datetime
+  `201`, map `262`, postcode `348`, npFamilyMembers `429`, bsn `518`, addressNL `685`, partners `861`, children `1036`, cosign
+  `1096`, iban `1116`, licenseplate `1153`, customerProfile `1333`, softRequiredErrors `1403`, coSign `1415`).
+* Conditions: `formio/visibility.py:23-88`, `formio/registry.py:250-280`, `formio/components/vanilla.py:783-795`
+  (selectboxes), `formio/migration_converters.py:247-289`.
+* Logic: `forms/models/logic.py:24-`, `forms/api/serializers/logic/form_logic.py`, `logic/action_serializers.py:30-312`,
+  action types `forms/constants.py:8-27`, trigger rule `forms/api/validators.py:22-60`.
+* Variables: `forms/api/serializers/form_variable.py:148-193`.
+* Privacy and retention keys: `forms/models/form.py:230-248` (consent and statement of truth switches),
+  `335-395` (removal limits and methods); the policy texts are global: `config/models/config.py:433-480`.
+* Builder defaults used to shape the fixtures: `open-formulieren/formio-builder` tag `1.5.0`, `src/registry/*/edit.tsx`
+  (`EditForm.defaultValues`).
+
+### Tests and fixtures
+
+`backend/tests/app/open_formulieren/` (archive reader and hostile archives, the importer with golden mappings, the
+endpoints, authorisation). The archives in `backend/tests/fixtures/open_formulieren/` are our own exports of
+synthetic forms made in a throwaway local Open Formulieren 4.0.6 (see its README); the golden files beside them are the
+expected result of each import. Regenerate a golden file with
+`OF_UPDATE_GOLDEN=1 uv run pytest tests/app/open_formulieren/test_importer.py` and read the diff.

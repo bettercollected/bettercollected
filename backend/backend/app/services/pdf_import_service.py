@@ -270,7 +270,7 @@ class PdfImportService:
     ) -> FormImportDocument:
         await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         record = await self._repo.get(import_id)
-        if record is None or record.workspace_id != workspace_id:
+        if record is None or record.workspace_id != workspace_id or not record.is_pdf():
             raise HTTPException(HTTPStatus.NOT_FOUND, "Import not found.")
         if record.is_stale(self._stale_before()):
             # the progress screen polls this: an interrupted import says so
@@ -294,6 +294,8 @@ class PdfImportService:
 
     async def list(self, workspace_id: RecordId, user: User):
         await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
+        # imports of other products' forms (Open Formulieren) have their own
+        # screens: the repository lists PDF imports only
         return await self._repo.list_by_workspace(workspace_id)
 
     async def delete_for_forms(self, form_ids) -> None:

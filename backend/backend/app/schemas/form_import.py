@@ -84,10 +84,19 @@ class FormImportDocument(Record):
     ai_consent: bool = False
     ai_consent_at: Optional[dt.datetime] = None
     ai_consent_by: Optional[str] = None
+    # What was imported: None (every record before this field) means a PDF or
+    # photo; "open_formulieren" is a form exported from Open Formulieren
+    # (services/open_formulieren). Such a record is written finished, holds
+    # only the report (never the uploaded archive: ``source_key`` is empty)
+    # and is deleted with its form.
+    source_kind: Optional[str] = None
     # bumped while the import's job is alive (every save of the pipeline and a
     # heartbeat during long stages and retry waits): an active import whose
     # last progress is older than PDF_IMPORT_STALE_AFTER_S was interrupted
     heartbeat_at: Optional[dt.datetime] = None
+
+    def is_pdf(self) -> bool:
+        return self.source_kind in (None, "pdf")
 
     def last_progress(self) -> Optional[dt.datetime]:
         """The latest sign of life: the heartbeat, or for records written

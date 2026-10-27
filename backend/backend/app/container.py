@@ -123,6 +123,9 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from backend.app.services.custom_domain_service import CustomDomainService
 from backend.app.services.pdf_import.pipeline import ImportPipeline
 from backend.app.services.pdf_import.storage import S3ObjectStore
+from backend.app.services.open_formulieren_import_service import (
+    OpenFormulierenImportService,
+)
 from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
@@ -521,6 +524,16 @@ class AppContainer(containers.DeclarativeContainer):
                 workspace_id, user
             )
         ),
+    )
+
+    open_formulieren_import_service: OpenFormulierenImportService = (
+        providers.Singleton(
+            OpenFormulierenImportService,
+            repo=form_import_repo,
+            workspace_form_service=workspace_form_service,
+            workspace_form_repo=workspace_form_repo,
+            authorization_service=authorization_service,
+        )
     )
 
     custom_domain_service: CustomDomainService = providers.Singleton(

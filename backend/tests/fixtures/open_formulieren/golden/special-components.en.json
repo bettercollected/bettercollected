@@ -1,0 +1,171 @@
+{
+  "title": "Sample: special components",
+  "retention": [
+    null,
+    ""
+  ],
+  "pages": [
+    {
+      "title": "Special components",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "Vehicle licence plate",
+          "validations": {
+            "required": false
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 1,
+    "fields": 1,
+    "logicRules": 0,
+    "repeatingGroups": 0,
+    "dropped": 11,
+    "flagged": 0
+  },
+  "report": [
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "address",
+      "step": 0,
+      "detail": {
+        "componentType": "addressNL"
+      }
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_text",
+      "severity": "info",
+      "key": "plate",
+      "step": 0,
+      "detail": {
+        "componentType": "licenseplate"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "location",
+      "step": 0,
+      "detail": {
+        "componentType": "map"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "partners",
+      "step": 0,
+      "detail": {
+        "componentType": "partners"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "kids",
+      "step": 0,
+      "detail": {
+        "componentType": "children"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "cosign",
+      "step": 0,
+      "detail": {
+        "componentType": "cosign"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "profile",
+      "step": 0,
+      "detail": {
+        "componentType": "customerProfile"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "family",
+      "step": 0,
+      "detail": {
+        "componentType": "npFamilyMembers"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "registration_not_carried",
+      "severity": "warning",
+      "key": "email",
+      "detail": {
+        "plugin": "email"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "presentation_not_carried",
+      "severity": "info",
+      "key": "presentation"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "info",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "retention_global_setting",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}

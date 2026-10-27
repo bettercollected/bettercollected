@@ -11,6 +11,10 @@ from backend.app.repositories.postgres.refdata import (
     PostgresFormPluginProviderRepository,
 )
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
+from backend.app.services.open_formulieren_mode import (
+    PROVIDER_NAME as OPEN_FORMULIEREN,
+    open_formulieren_import_enabled,
+)
 from backend.app.services.google_forms_mode import (
     google_forms_import_mode,
     google_service_enabled,
@@ -41,16 +45,21 @@ class FormPluginProviderService:
             # a platform admin also sees disabled providers, each with its
             # import mode like everyone else (the stored config is not sent:
             # the response model has only these fields)
-            return [
+            views = [
                 self._public_view(provider)
                 for provider in providers
                 if _listed(provider)
             ]
-        return [
-            self._public_view(provider)
-            for provider in providers
-            if provider.enabled and _listed(provider)
-        ]
+        else:
+            views = [
+                self._public_view(provider)
+                for provider in providers
+                if provider.enabled and _listed(provider)
+            ]
+        if open_formulieren_import_enabled():
+            # no stored config: the switch alone says it is offered
+            views.append({"provider_name": OPEN_FORMULIEREN, "import_mode": "on"})
+        return views
 
     @staticmethod
     def _public_view(provider) -> dict:

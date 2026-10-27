@@ -1006,6 +1006,7 @@ class FormImportDocument(MongoDocument):
     ai_consent: bool = False
     ai_consent_at: Optional[datetime] = None
     ai_consent_by: Optional[str] = None
+    source_kind: Optional[str] = None
     heartbeat_at: Optional[datetime] = None
 
     class Settings:
