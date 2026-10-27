@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import { contrast } from '@app/utils/color-contrast';
-import { workspaceDisplayName } from '@app/utils/workspace-display-name';
+import { ownerProps } from '@app/utils/workspace-display-name';
 
 import TrustLayer, { TrustLayerProps } from './trust-layer';
 
@@ -119,10 +119,10 @@ describe('Privacy panel on respondent forms', () => {
 
     it('says whose form it is in words when the workspace has no name, never its id', () => {
         const id = '65f1c0a2b3d4e5f607182930';
-        // What the form pages pass: the display name, undefined for an id-like handle.
-        const unnamed = { title: '', workspaceName: id, ownerId: id };
+        // What the form pages pass for a loaded workspace without a usable name.
+        const unnamed = { id: 'ws1', title: '', workspaceName: id, ownerId: id };
         setBrowserLanguages(['en-GB']);
-        const { unmount } = renderPanel({ ownerName: workspaceDisplayName(unnamed) });
+        const { unmount } = renderPanel({ ...ownerProps(unnamed) });
         expect(screen.getByText(/Collected by/)).toHaveTextContent('Collected by the owner of this form');
         fireEvent.click(screen.getByRole('button', { name: /your privacy/i }));
         expect(row('receiver')).toHaveTextContent('Who receives your answersThe owner of this form');
@@ -130,16 +130,26 @@ describe('Privacy panel on respondent forms', () => {
         unmount();
 
         setBrowserLanguages(['nl-NL']);
-        renderPanel({ ownerName: workspaceDisplayName(unnamed) });
+        renderPanel({ ...ownerProps(unnamed) });
         expect(screen.getByText(/Verzameld door/)).toHaveTextContent('Verzameld door de eigenaar van dit formulier');
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(row('receiver')).toHaveTextContent('Wie je antwoorden ontvangtDe eigenaar van dit formulier');
         expect(document.body).not.toHaveTextContent(id);
     });
 
+    it('claims no owner while the workspace is still loading', () => {
+        setBrowserLanguages(['en-GB']);
+        // The store's initial workspace: no id, no title, no handle yet.
+        renderPanel({ ...ownerProps({ id: '', title: '', workspaceName: '' }) });
+        expect(screen.queryByText(/Collected by/)).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: /your privacy/i }));
+        expect(screen.queryByTestId('privacy-receiver')).toBeNull();
+        expect(document.body).not.toHaveTextContent(/owner of this form/i);
+    });
+
     it('still names the workspace when it has a title or a readable handle', () => {
         setBrowserLanguages(['en-GB']);
-        renderPanel({ ownerName: workspaceDisplayName({ title: '', workspaceName: 'acme-health' }) });
+        renderPanel({ ...ownerProps({ id: 'ws1', title: '', workspaceName: 'acme-health' }) });
         expect(screen.getByText(/Collected by/)).toHaveTextContent('Collected by acme-health');
     });
 

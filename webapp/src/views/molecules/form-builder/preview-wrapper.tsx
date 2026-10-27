@@ -11,7 +11,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { workspaceDisplayName } from '@app/utils/workspace-display-name';
+import { ownerProps } from '@app/utils/workspace-display-name';
 import getFormShareURL from '@app/utils/form-utils';
 import { DesktopIcon } from '@Components/icons/desktop-icon';
 import { MobileIcon } from '@Components/icons/mobile-icon';
@@ -102,7 +102,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                             on the live page. Hiding it here would make the
                             drawer's "responders will see" promise a lie. */}
                         <div className="relative z-40 shrink-0">
-                            <TrustLayer ownerName={workspaceDisplayName(workspace)} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layoutOfPage(standardForm, currentSlide, endingId)} />
+                            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layoutOfPage(standardForm, currentSlide, endingId)} />
                         </div>
                     </div>
                 ) : (

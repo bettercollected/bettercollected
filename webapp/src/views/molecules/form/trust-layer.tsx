@@ -20,6 +20,12 @@ import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organ
 export interface TrustLayerProps {
     /** Who receives the answers: the workspace/organisation name. */
     ownerName?: string;
+    /**
+     * The workspace is loaded but has no usable name (never pass its id): say
+     * "the owner of this form". Without a name and without this, no owner is
+     * shown, so the strip does not claim anything while the workspace loads.
+     */
+    ownerUnnamed?: boolean;
     /** Optional owner logo/avatar. */
     ownerImage?: string;
     /**
@@ -60,8 +66,6 @@ export interface TrustLayerProps {
     layout?: FormSlideLayout | null;
 }
 
-const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
 /**
  * The privacy panel on every respondent form: a quiet footer strip (who is
  * collecting, a disclosure button) that opens a short, standard panel: who
@@ -71,7 +75,7 @@ const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(
  */
 const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
 
-export default function TrustLayer({ ownerName, ownerImage, settings, registrationDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
@@ -137,13 +141,12 @@ export default function TrustLayer({ ownerName, ownerImage, settings, registrati
     const aiUsed = !!settings?.aiInsightsEnabled;
     const aiProvider = settings?.aiInsightsProviderName?.trim();
     const showPoweredBy = poweredBy ?? !settings?.disableBranding;
-    // A workspace with no name of its own (callers pass nothing, never its id):
-    // say whose it is in words.
-    const owner = ownerName?.trim() || t('PRIVACY.OWNER_FALLBACK');
+    const owner = ownerName?.trim() || (ownerUnnamed ? t('PRIVACY.OWNER_FALLBACK') : '');
     const newTab = <span className="sr-only"> {t('PRIVACY.OPENS_IN_NEW_TAB')}</span>;
 
     const rows: Array<{ key: string; term: string; detail: React.ReactNode }> = [];
-    if (owner) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: ownerName?.trim() ? owner : capitalised(owner) });
+    const receiver = ownerName?.trim() || (ownerUnnamed ? t('PRIVACY.OWNER_FALLBACK_SENTENCE') : '');
+    if (receiver) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: receiver });
     if (purpose) rows.push({ key: 'purpose', term: t('PRIVACY.PURPOSE'), detail: purpose });
     rows.push({
         key: 'retention',

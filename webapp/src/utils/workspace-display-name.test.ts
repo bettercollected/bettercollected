@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { looksLikeId, workspaceDisplayName } from './workspace-display-name';
+import { looksLikeId, ownerProps, workspaceDisplayName } from './workspace-display-name';
 
 const OBJECT_ID = '65f1c0a2b3d4e5f607182930';
 const UUID = '3f2b8c1e-9a4d-4c7e-8b21-5d6f7a8b9c0d';
@@ -38,5 +38,20 @@ describe('looksLikeId', () => {
         expect(looksLikeId(UUID.toUpperCase())).toBe(true);
         expect(looksLikeId('acme')).toBe(false);
         expect(looksLikeId('deadbeef')).toBe(false);
+    });
+});
+
+describe('ownerProps', () => {
+    it('names a titled workspace and claims nothing else', () => {
+        expect(ownerProps({ id: 'ws1', title: 'Acme', workspaceName: 'acme' })).toEqual({ ownerName: 'Acme', ownerUnnamed: false });
+    });
+
+    it('marks a loaded workspace without a usable name as unnamed', () => {
+        expect(ownerProps({ id: 'ws1', title: '', workspaceName: OBJECT_ID })).toEqual({ ownerName: undefined, ownerUnnamed: true });
+    });
+
+    it('is silent while the workspace is loading or missing', () => {
+        expect(ownerProps({ id: '', title: '', workspaceName: '' })).toEqual({ ownerName: undefined, ownerUnnamed: false });
+        expect(ownerProps(undefined)).toEqual({ ownerName: undefined, ownerUnnamed: false });
     });
 });

@@ -6,7 +6,7 @@
   },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
-    "POINT_1": "Al uw werkruimte wordt verwijderd.",
+    "POINT_1": "Al uw werkruimtes worden verwijderd.",
     "POINT_2": "Alle geïmporteerde formulieren worden verwijderd.",
     "POINT_3": "Alle gemaakte groepen worden verwijderd.",
     "POINT_4": "Uw werkruimtelink of uw aangepaste formulierlink zal niet meer werken.",
@@ -406,7 +406,7 @@
       "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Forms voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
     },
     "FORM_BRAND": {
-      "TITLE": "Hebt u ooit gewenst dat u uw formulieren beter kon brandmerken?",
+      "TITLE": "Wilt u uw formulieren beter in uw eigen huisstijl laten zien?",
       "DESCRIPTION": "Ik wou dat u klantvriendelijke formulier-URL's en uw eigen aangepaste domeinlinks had die uw merk weerspiegelen in plaats van standaard gegenereerde URL's."
     },
     "DATA_RIGHTS": {

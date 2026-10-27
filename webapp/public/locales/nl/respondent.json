@@ -2,6 +2,7 @@
     "PRIVACY": {
         "COLLECTED_BY": "Verzameld door <1>{{owner}}</1>",
         "OWNER_FALLBACK": "de eigenaar van dit formulier",
+        "OWNER_FALLBACK_SENTENCE": "De eigenaar van dit formulier",
         "TOGGLE": "Je privacy",
         "PANEL_LABEL": "Wat er met je antwoorden gebeurt",
         "RECEIVER": "Wie je antwoorden ontvangt",

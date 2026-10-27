@@ -2,6 +2,7 @@
     "PRIVACY": {
         "COLLECTED_BY": "Collected by <1>{{owner}}</1>",
         "OWNER_FALLBACK": "the owner of this form",
+        "OWNER_FALLBACK_SENTENCE": "The owner of this form",
         "TOGGLE": "Your privacy",
         "PANEL_LABEL": "How your answers are handled",
         "RECEIVER": "Who receives your answers",

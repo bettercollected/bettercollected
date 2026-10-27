@@ -19,6 +19,17 @@ export function looksLikeId(value: string, ...knownIds: Array<string | null | un
 }
 
 /**
+ * The privacy strip's owner props for a workspace. While the workspace is
+ * still loading (no id yet) nothing is claimed: the strip stays hidden. A
+ * loaded workspace with no usable title or handle is `ownerUnnamed`, so the
+ * strip says so in words instead of showing nothing or an id.
+ */
+export function ownerProps(workspace?: NamedWorkspace | null): { ownerName?: string; ownerUnnamed: boolean } {
+    const ownerName = workspaceDisplayName(workspace);
+    return { ownerName, ownerUnnamed: !ownerName && !!workspace?.id };
+}
+
+/**
  * The workspace's title, else its handle when that is a readable one, else
  * `undefined` so the caller shows its own translated fallback. Never an id.
  */

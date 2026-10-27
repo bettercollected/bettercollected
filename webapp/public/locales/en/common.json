@@ -6,7 +6,7 @@
   },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Are you sure you want to delete Account?",
-    "POINT_1": "All your workspace will be deleted.",
+    "POINT_1": "All your workspaces will be deleted.",
     "POINT_2": "All imported forms will be deleted.",
     "POINT_3": "All created groups will be deleted.",
     "POINT_4": "Your workspace link or your custom form link will not work anymore.",

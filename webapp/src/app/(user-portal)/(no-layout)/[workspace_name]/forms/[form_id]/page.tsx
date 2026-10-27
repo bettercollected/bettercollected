@@ -11,7 +11,7 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { workspaceDisplayName } from '@app/utils/workspace-display-name';
+import { ownerProps } from '@app/utils/workspace-display-name';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
@@ -164,7 +164,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         <RespondentPageShell
             footer={
                 <TrustLayer
-                    ownerName={workspaceDisplayName(workspace)}
+                    {...ownerProps(workspace)}
                     ownerImage={workspace?.profileImage}
                     settings={data?.settings}
                     registrationDestination={data?.registrationDestination}
