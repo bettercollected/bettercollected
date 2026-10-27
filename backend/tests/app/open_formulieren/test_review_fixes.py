@@ -330,3 +330,164 @@ async def test_the_public_read_of_an_imported_form_hides_the_mark(client, worksp
     form = StandardFormCamelModel(title="t", settings=FormSettingsCamelModel(**link.settings.model_dump()))
     dumped = respondent_view(form).model_dump(by_alias=True)
     assert all(dumped["settings"][k] is None for k in ("needsReview", "importSource", "importId"))
+
+
+# ======================================================= review fixes, round 2
+# The engine's cost per operation grows with the form: the deadline is checked
+# between operations, and the per-operation size count is opt-out.
+
+
+def _chain(n, validate=True, kind="textfield"):
+    out = []
+    for i in range(n):
+        c = comp(kind, f"f{i}", f"Field {i}")
+        if validate and kind == "textfield":
+            c["validate"] = {"maxLength": 50, "minLength": 2, "required": True}
+        if i:
+            c["conditional"] = {"show": True, "when": f"f{i - 1}", "eq": "x"}
+        out.append(c)
+    return out
+
+
+def test_a_form_that_would_run_past_the_deadline_is_stopped_between_operations(monkeypatch):
+    """Without a check between operations the build only noticed the deadline
+    when it was over (17 s for 19 KB). The deadline is shortened here so the
+    same shape stops quickly on any machine."""
+    monkeypatch.setattr(limits, "BUILD_SECONDS", 0.2)
+    started = time.monotonic()
+    with pytest.raises(ImportRefused) as caught:
+        _build(archive_with([_chain(1999)]))
+    assert caught.value.code == "archive_too_complex"
+    assert time.monotonic() - started < 1.5
+
+
+def test_the_reported_shape_now_finishes_within_the_budget():
+    """1999 questions, each with answer rules and a condition on the one
+    before: the per-operation size walk made this 14 s, now it is linear."""
+    started = time.monotonic()
+    _, built = _build(archive_with([_chain(1999)]))
+    elapsed = time.monotonic() - started
+    assert built.summary["fields"] == 1999 and built.summary["logicRules"] == 1998
+    assert elapsed < 4.5
+    started = time.monotonic()
+    _, built = _build(archive_with([_chain(1999, kind="date")]))
+    assert time.monotonic() - started < 4.5
+
+
+def test_a_legitimately_large_form_is_quick():
+    steps = []
+    for step in range(20):
+        cs = []
+        for k in range(50):
+            n = step * 50 + k
+            c = comp("textfield", f"f{n}", f"Field {n}", validate={"maxLength": 100, "required": k % 2 == 0})
+            if k % 10 == 5 and n:
+                c["conditional"] = {"show": True, "when": f"f{n - 1}", "eq": "x"}
+            cs.append(c)
+        steps.append(cs)
+    started = time.monotonic()
+    _, built = _build(archive_with(steps))
+    assert built.summary["fields"] == 1000 and built.summary["logicRules"] == 100
+    assert time.monotonic() - started < 2.5
+
+
+def test_a_form_over_the_size_limits_is_refused_before_any_operation(monkeypatch):
+    from backend.app.services.open_formulieren import importer
+
+    monkeypatch.setattr(importer, "MAX_FIELDS", 10)
+    with pytest.raises(ImportRefused) as caught:
+        _build(archive_with([[comp("textfield", f"f{n}") for n in range(11)]]))
+    assert caught.value.code == "archive_too_complex"
+    monkeypatch.setattr(importer, "MAX_PAGES", 1)
+    with pytest.raises(ImportRefused):
+        _build(archive_with([[comp("textfield", "a")], [comp("textfield", "b")]]))
+
+
+def test_apply_form_ops_keeps_its_size_checks_unless_asked_not_to(monkeypatch):
+    from common.models.standard_form import StandardForm
+
+    from backend.app.services.ai import ops as ops_module
+
+    monkeypatch.setattr(ops_module, "MAX_FIELDS", 3)
+    page = [{"op": "add_page", "ref": "p"}] + [
+        {"op": "add_field", "pageId": "$ref:p", "field": {"title": f"Q{n}", "type": "short_text"}} for n in range(5)
+    ]
+    blank = StandardForm(title="t", fields=[])
+    _, results = ops_module.apply_form_ops(blank, ops_module.parse_ops(page))
+    assert not all(r.ok for r in results)  # the default: refused at the limit
+    form, results = ops_module.apply_form_ops(blank, ops_module.parse_ops(page), check_size=False)
+    assert all(r.ok for r in results) and len(form.fields[0].properties.fields) == 5
+
+
+def test_a_run_of_combining_marks_is_cut_before_normalising():
+    text = "a" + "́" * 5000 + "̖" * 5000 + "b"
+    started = time.monotonic()
+    for _ in range(20):
+        out, _ = plain_text(text, 20_000)
+    assert time.monotonic() - started < 0.5
+    import unicodedata
+
+    assert out.endswith("b") and len(unicodedata.normalize("NFD", out)) == 1 + 4 + 1
+    # ordinary accents are untouched
+    assert plain_text("école noël", 50)[0] == "école noë" + "l"
+
+
+def test_a_huge_character_reference_does_not_cost_the_text():
+    text = "before &#" + "9" * 6000 + "; after &#x" + "f" * 6000 + "; end &amp; ok"
+    out, _ = plain_text(text, 20_000)
+    assert out.startswith("before ") and "after" in out and out.endswith("end & ok")
+
+
+def test_text_after_a_script_survives_a_character_that_changes_length_in_lower_case():
+    # U+0130 lower-cases to two characters: positions found in a lower-cased
+    # copy would be off for everything after it
+    text = "İ" * 3 + "<script>x</script>tail <SCRIPT>y</SCRIPT>end"
+    out, markup = strip_tags(text)
+    assert out == "İ" * 3 + "tail end" and markup
+
+
+def test_a_document_with_more_values_than_the_cap_is_refused_before_parsing(monkeypatch):
+    from backend.app.services.open_formulieren.archive import parse_json
+
+    monkeypatch.setattr(limits, "MAX_JSON_NODES", 1000)
+    started = time.monotonic()
+    with pytest.raises(ImportRefused) as caught:
+        parse_json(b"[" + b"1," * 5000 + b"1]", "formSteps.json")
+    assert caught.value.code == "archive_json_invalid"
+    assert time.monotonic() - started < 0.1
+    assert parse_json(b"[1, 2, 3]", "x") == [1, 2, 3]
+
+
+@pytest.mark.asyncio
+async def test_refused_archives_count_as_attempts(client, workspace, test_user_cookies, import_on, monkeypatch):
+    monkeypatch.setattr(settings.open_formulieren, "ATTEMPTS_PER_WORKSPACE_PER_DAY", 3)
+    for _ in range(3):
+        refused_ = await upload(client, workspace, test_user_cookies, b"not a zip")
+        assert refused_.status_code == 400 and refused_.json()["code"] == "not_a_zip"
+    records = await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren")
+    assert [(r.status, r.error_code, r.form_id, r.source_key) for r in records] == [("failed", "not_a_zip", None, "")] * 3
+    # the fourth attempt, even a good archive, is held back until the day passes
+    fourth = await upload(client, workspace, test_user_cookies)
+    assert fourth.status_code == 429 and fourth.json()["code"] == "import_limit"
+    assert await container.workspace_form_repo().list_in_workspace(workspace.id) == []
+
+
+@pytest.mark.asyncio
+async def test_refused_attempts_do_not_use_up_the_import_limit_and_are_per_workspace(
+    client, workspace, workspace_1, test_user_cookies, test_user_cookies_1, import_on, monkeypatch
+):
+    monkeypatch.setattr(settings.open_formulieren, "ATTEMPTS_PER_WORKSPACE_PER_DAY", 5)
+    monkeypatch.setattr(settings.open_formulieren, "IMPORTS_PER_WORKSPACE_PER_DAY", 1)
+    await upload(client, workspace, test_user_cookies, b"x")
+    await upload(client, workspace, test_user_cookies, b"x")
+    assert (await upload(client, workspace, test_user_cookies)).status_code == 201  # failures are not imports
+    assert (await upload(client, workspace, test_user_cookies)).status_code == 429  # one import a day
+    assert (await upload(client, workspace_1, test_user_cookies_1)).status_code == 201
+    # the PDF import's counts do not see any of it
+    assert await container.form_import_repo().count_created_since(workspace.id, dt_year_ago()) == 0
+
+
+def dt_year_ago():
+    import datetime as dt
+
+    return dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=365)

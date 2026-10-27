@@ -116,6 +116,7 @@ class OpenFormulierenImportService:
             async with slots:
                 version, built = await run_in_threadpool(_build, data)
         except ImportRefused as refused:
+            await self._record_refusal(workspace_id, data, file_name, user, refused.code)
             raise _refusal(refused) from None
 
         form = await self._workspace_forms.create_form(
@@ -150,22 +151,63 @@ class OpenFormulierenImportService:
         return await self._repo.get(record.id) or record
 
     async def _check_daily_limit(self, workspace_id: RecordId) -> None:
-        """Open Formulieren imports have their own per-workspace daily limit
-        (not shared with the PDF import's). A cheap look before any work: a
-        burst of parallel uploads may pass it together by a few."""
-        limit = settings.open_formulieren.IMPORTS_PER_WORKSPACE_PER_DAY
+        """Open Formulieren imports have limits of their own, not shared with
+        the PDF import's: imports made per day, and attempts per day (refused
+        archives count, so looping hostile ones does not hold the permits).
+        A cheap look before any work: a burst of parallel uploads may pass it
+        together by a few."""
         since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
-        done = await self._repo.count_created_since(
-            workspace_id, since, kind=SOURCE_KIND
-        )
-        if done >= limit:
-            raise HTTPException(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                content={
-                    "code": "import_limit",
-                    "message": f"This workspace has reached {limit} imports in the last 24 hours. Please try again later.",
-                },
+        for limit, status in (
+            (settings.open_formulieren.ATTEMPTS_PER_WORKSPACE_PER_DAY, None),
+            (
+                settings.open_formulieren.IMPORTS_PER_WORKSPACE_PER_DAY,
+                ImportStatus.COMPLETED,
+            ),
+        ):
+            done = await self._repo.count_created_since(
+                workspace_id, since, kind=SOURCE_KIND, status=status
             )
+            if done >= limit:
+                raise HTTPException(
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    content={
+                        "code": "import_limit",
+                        "message": "This workspace has reached its limit of imports for the last 24 hours. Please try again later.",
+                    },
+                )
+
+    async def _record_refusal(
+        self,
+        workspace_id: RecordId,
+        data: bytes,
+        file_name: Optional[str],
+        user: User,
+        code: str,
+    ) -> None:
+        """A refused archive still counts as an attempt: a small record with
+        no content (its name cleaned, its size and hash, the reason)."""
+        now = dt.datetime.now(dt.timezone.utc)
+        try:
+            await self._repo.save(
+                FormImportDocument(
+                    id=RecordId(),
+                    workspace_id=workspace_id,
+                    form_id=None,
+                    created_by=str(user.id),
+                    status=ImportStatus.FAILED,
+                    error_code=code,
+                    source_kind=SOURCE_KIND,
+                    file_name=(label_text(file_name, 255) or "export.zip"),
+                    content_type="application/zip",
+                    size_bytes=len(data),
+                    sha256=hashlib.sha256(data).hexdigest(),
+                    source_key="",
+                    started_at=now,
+                    finished_at=now,
+                )
+            )
+        except Exception:  # noqa: BLE001 — the refusal itself is what is reported
+            logger.error("could not record a refused Open Formulieren import")
 
     async def get(
         self, workspace_id: RecordId, import_id: RecordId, user: User

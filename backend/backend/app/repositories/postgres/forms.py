@@ -1709,12 +1709,17 @@ class PostgresFormImportRepository(RecordRepository):
         )
 
     async def count_created_since(
-        self, workspace_id: RecordId, since: datetime, kind: Optional[str] = "pdf"
+        self,
+        workspace_id: RecordId,
+        since: datetime,
+        kind: Optional[str] = "pdf",
+        status: Optional[str] = None,
     ) -> int:
         return await self.count(
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.created_at >= since,
             _import_kind(kind),
+            FormImportRow.status == status if status else true(),
         )
 
     async def count_active(self, workspace_id: RecordId) -> int:
