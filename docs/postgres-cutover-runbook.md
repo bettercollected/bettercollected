@@ -252,9 +252,10 @@ auth and google. For each group `g`:
 
 Jobs: `JOBS_BACKEND__delete_response=postgres` first (scheduled deletions; run
 `python -m backend.migrate jobs-sweep --backend postgres` afterwards so every pending
-expiration has a job regardless of which engine scheduled it; it reads the responses through the
-routed repository, so from `DB_READ_SOURCE__responses`, and opens Mongo only while the `responses`
-group still uses it), then `__delete_user`, then
+expiration has a job regardless of which engine scheduled it; on 4.0.x it reads the responses through
+the routed repository, so from `DB_READ_SOURCE__responses`, and opens Mongo only while the `responses`
+group still uses it; the 4.1 sweep reads Postgres only and says so, `"read_from": "postgres"`), then
+`__delete_user`, then
 `__run_action` with the actions-executor started with `JOBS_BACKEND=postgres`. Roll back a job
 kind with `JOBS_BACKEND__<job>=temporal` and `jobs-sweep --backend temporal`.
 
@@ -271,6 +272,18 @@ worker until the schedules and workflows already in Temporal (`delete_response`,
 `/temporal/*` routes. A response whose deletion cannot be queued is logged (id and error class) and
 left to the next `jobs-sweep`; it no longer fails the submission. Roll a kind back with
 `JOBS_BACKEND__<job>=temporal` and `jobs-sweep --backend temporal`, as above.
+
+**On a compose stack, 4.1's `./deploy.sh` does all of this after the new release is up**
+(`retire_temporal`), when the stack still runs Temporal: the sweep, then a bounded wait until
+Temporal runs no workflow (`BC_TEMPORAL_DRAIN_SECONDS`, default 300; its schedules are not counted,
+the sweep copied them onto the queue; they keep firing until the containers go), then the removal of the Temporal worker, Temporal and Temporal's database
+containers, **keeping the volume** `<project>_temporal-postgres-data`. A failure, or workflows still
+running after the wait, stops the deploy with the stack on 4.1 and the old containers untouched; run
+`./deploy.sh` again later, or `BC_TEMPORAL_DRAIN=skip ./deploy.sh` to remove Temporal without waiting
+(what is still running in it is lost). The 4.1 compose file has no Temporal, Temporal database or
+worker service, and `./deploy.sh` refuses a `JOBS_BACKEND` or `JOBS_BACKEND__<job>` of `temporal` in
+`.env.deployment`, before it starts or changes any container or data. The text of this section about keeping Temporal
+running is for 4.0.x and for an orchestrated stack, which does these steps by hand.
 
 ## Verified marker
 
@@ -559,6 +572,31 @@ Mongo), and the root `.env` has no `BC_LEGACY_MONGO_IMPORTED`. Then it:
    root `.env`, and stops and removes the `mongodb` container. **The `mongo-data` volume is kept**:
    keep it, and an encrypted `mongodump` of it, until 4.1 has run well for a while (the
    decommission step below); deleting it is the point of no return and never part of a deploy.
+
+Before that import, and after the new services are up, the same `./deploy.sh` also does the 4.1
+steps that are not about Mongo (each is one function in the script):
+- **The respondent identity key** (`ensure_identity_key`, before the import or any service start). It
+  uses a `RESPONDENT_IDENTITY_KEY` set in the root `.env` as it is (one only in
+  `.env.deployment` is copied into `.env`, since compose does not pass that file's value to the
+  backend). A key set only in the shell is used for that run and saved nowhere: put it in `.env`.
+  With none anywhere, and a database that never had a key, it generates one into the
+  settings store and into the root `.env`, printing that it did and never the value. It stops before
+  any 4.1 service starts, writing no key (the stack stays on 4.0; the image pull, migrations,
+  `ensure-admin-roles` and the key import have already run), when the database already has a key check and no key is
+  configured, when `.env` and the store both hold a key and nothing says they are the same one
+  (`BC_IDENTITY_KEY_SOURCE=env` says the `.env` one is intended), or when `SETTINGS_STORE=off` and the
+  key is only in the store. Keep the key forever, with the other secrets: `.env` has a copy when
+  `deploy.sh` generated the key; when it exists only in the store (a new stack's `bootstrap-keys`, or an
+  unwritable `.env`), back up the settings store together with the master key.
+- **The identity pass** (`identity_pass`), once the backend is up: `python -m backend.identity_rekey`
+  in a one-off container, printing the key's fingerprint (write it down) and the remaining count; it
+  retries while another process holds the lock, fails the deploy for a missing or wrong key (exit 3
+  or 4) and only warns when values remain.
+- **Temporal's retirement** (`retire_temporal`), described under "Jobs" above.
+
+The check the operator does by hand after that is the same as on any route: submit an
+anonymous response with your own account and confirm you can open it ([upgrade-4.1.md](upgrade-4.1.md),
+section 4).
 
 The next deploys find `BC_LEGACY_MONGO_IMPORTED` and never start MongoDB again. A stack that already
 serves everything from Postgres (stages C and D below done on 4.0) sets
@@ -1116,7 +1154,8 @@ about):
    `update_config` of Ground rules.
    Then, as a one-off in a backend task, `python -m backend.migrate jobs-sweep --backend postgres`
    (every scheduled response deletion onto the queue); keep the Temporal server and worker until the
-   schedules and workflows already in Temporal have run ("Jobs").
+   schedules and workflows already in Temporal have run ("Jobs"). (This stack has no `deploy.sh`; a
+   compose stack's `./deploy.sh` does the sweep and the Temporal removal itself.)
 
    **Respondent identity, once sub-step 4 has finished and no 4.0.x backend replica is left**
    (docs/respondent-identity.md, "The one-time conversion"). The 4.1 backend converts the stored
@@ -1282,6 +1321,25 @@ lost.
    `mongodb` stays at 0 replicas and `MONGO_*` stay out. `integrations-typeform`, which 4.1 removed,
    stays at 0 replicas: it reads its own Mongo database, so bring it back only together with
    Mongo (below); imported Typeform forms stay readable without it.
+
+   **A compose stack** has no stored definition: check out the 4.0.14 (or later 4.0.x) tag and run its
+   `./deploy.sh`, keeping the upgrade's settings where they differ (read from the 4.0.14 compose file,
+   not from a rollback run of a real stack):
+   - the 4.0.x compose file sets no `DB_READ_SOURCE` or `DB_WRITE_MODE` itself. Its backend, job
+     worker, auth and Google Forms service read `.env.deployment`, so `DB_READ_SOURCE=postgres` and
+     `DB_WRITE_MODE=postgres` go there; its task runner takes `DB_WRITE_MODE` from the root `.env` and
+     refuses with `write_mode_unknown` without it, so set `DB_WRITE_MODE=postgres` there too;
+   - 4.0.x defaults `JOBS_BACKEND` to `temporal`: set `JOBS_BACKEND=postgres` in `.env.deployment`, and
+     keep the `jobs-worker`, as above;
+   - 4.0.x's `./deploy.sh` starts MongoDB, Temporal, the Temporal worker and Temporal's database
+     again (they are in its service list). Temporal comes back on the volume 4.1 kept
+     (`temporal-postgres-data`); with the flags above no service reads or writes data in Mongo, but
+     `mongod` and `mongo-seed` (which drops its seed account and creates missing collections) still
+     open its volume. What Temporal's old schedules do when its worker returns, with the queue
+     already holding the same work, has not been tried;
+   - the root `.env` keeps `RESPONDENT_IDENTITY_KEY` and `BC_LEGACY_MONGO_IMPORTED` (4.0.x ignores
+     both), and the `MONGO_URI` that 4.1 blanked stays blank (`.env.deployment.pre-4.1.<time>` holds the
+     old value; do not restore it while the flags say `postgres`).
 3. **Deploy it.** Both releases write Postgres only, so a rolling update is safe. Services log
    `schema 'auth' is ahead` and `schema 'google' is ahead` (expected, `schema_guard.py:215-222`).
 4. **Check:** `persistence flags` shows `postgres` on every replica; Health shows every instance
@@ -1425,7 +1483,9 @@ at the 4.1 deploy.
 
 `jobs-worker` must run (at least one replica, the backend's flags). `DB_AUTO_MIGRATE` on the
 backend creates procrastinate's `jobs` tables, or run `python -m backend.jobs.schema` once as a
-one-off. Temporal and its worker stay in the stack: this cutover removes neither.
+one-off. Temporal and its worker stay in the stack: this cutover removes neither. (Staged route, on
+4.0.x. A compose stack's 4.1 `./deploy.sh` removes them after the roll, once what they hold has run;
+see "Jobs" above.)
 
 1. `JOBS_BACKEND__delete_response=postgres` on `backend` + `jobs-worker`. Deploy, then run
    `migrate jobs-sweep --backend postgres` as a one-off in a backend task.
