@@ -21,6 +21,10 @@ export function importReportPath(workspaceName: string, importId: string) {
  * needs review (the server's `needs_review` publish problem, or the mark the
  * form already carries). Links to the import report and clears the mark in
  * place; once it is clear, offers to publish.
+ *
+ * `purpose="template"`: the same explanation for making a template from the
+ * form (the server refuses that while the mark is on too). Clearing the mark
+ * then retries the template at once (`onPublish`), so no further step is shown.
  */
 export function PublishBlockedByReviewDialog({
     open,
@@ -28,6 +32,7 @@ export function PublishBlockedByReviewDialog({
     workspaceId,
     workspaceName,
     othersFollow = false,
+    purpose = 'publish',
     onClose,
     onPublish
 }: {
@@ -38,7 +43,10 @@ export function PublishBlockedByReviewDialog({
     workspaceName: string;
     /** The refusal listed other problems too: after clearing, say that publishing shows them. */
     othersFollow?: boolean;
+    /** What was refused: publishing (default) or making a template. */
+    purpose?: 'publish' | 'template';
     onClose: () => void;
+    /** Publishing again once the mark is clear (for a template: making the template again). */
     onPublish: () => void;
 }) {
     const text = useImportText();
@@ -48,9 +56,17 @@ export function PublishBlockedByReviewDialog({
     const report = useGetOpenFormulierenImportQuery({ workspaceId, importId }, { skip: !open || !importId || !workspaceId });
     const reportAvailable = !!report.data && report.data.status !== REPORT_REMOVED;
     const reportOutOfReach = !importId || report.isError || report.data?.status === REPORT_REMOVED;
+    const forTemplate = purpose === 'template';
     const close = () => {
         reset();
         onClose();
+    };
+    const markReviewed = async () => {
+        const result = await review({ workspaceId, importId, reviewed: true });
+        if (forTemplate && 'data' in result) {
+            close();
+            onPublish();
+        }
     };
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && close()}>
@@ -59,7 +75,7 @@ export function PublishBlockedByReviewDialog({
                     <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
                         {text('PUBLISH_BLOCKED.TITLE')}
                     </div>
-                    <DialogDescription>{text(reportOutOfReach ? 'PUBLISH_BLOCKED.TEXT_NO_REPORT' : 'PUBLISH_BLOCKED.TEXT')}</DialogDescription>
+                    <DialogDescription>{text(forTemplate ? 'TEMPLATE_BLOCKED' : reportOutOfReach ? 'PUBLISH_BLOCKED.TEXT_NO_REPORT' : 'PUBLISH_BLOCKED.TEXT')}</DialogDescription>
                 </DialogHeader>
                 <p role="status" aria-live="polite" className={`text-sm ${isError ? 'text-red-700' : 'text-black-700'}`}>
                     {isError ? text('PUBLISH_BLOCKED.FAILED') : isSuccess ? text(othersFollow ? 'PUBLISH_BLOCKED.CLEARED_OTHER' : 'PUBLISH_BLOCKED.CLEARED') : ''}
@@ -86,7 +102,7 @@ export function PublishBlockedByReviewDialog({
                                 </Link>
                             )}
                             {importId && (
-                                <Button onClick={() => review({ workspaceId, importId, reviewed: true })} isLoading={isLoading} className="text-white">
+                                <Button onClick={markReviewed} isLoading={isLoading} className="text-white">
                                     {text('PUBLISH_BLOCKED.MARK_REVIEWED')}
                                 </Button>
                             )}

@@ -341,6 +341,27 @@ def review_problem(import_id: Optional[str]) -> Dict[str, Optional[str]]:
     }
 
 
+def ensure_templatable(review: Optional[Dict[str, Optional[str]]]) -> None:
+    """422 ``needs_review`` (the problem shape of a refused publish, with the
+    same ``importId``) while the source form's import still needs review: no
+    template is made from it until a person clears the mark. ``review``: the
+    form's ``review_problem``, or None."""
+    if not review:
+        return
+    message = (
+        "It was imported and still needs review. Look through the import "
+        "report and mark it as reviewed; then a template can be made from it."
+    )
+    raise HTTPException(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content={
+            "code": NEEDS_REVIEW,
+            "message": "This form can't be made into a template yet. " + message,
+            "problems": [{**review, "message": message}],
+        },
+    )
+
+
 def requires_why_we_ask(checks_version: Optional[int]) -> bool:
     """Is a form created under ``checks_version`` held to the reason rule?"""
     return bool(checks_version) and checks_version >= 1

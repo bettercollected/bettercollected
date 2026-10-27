@@ -503,6 +503,9 @@
       "TEXT": "This form was imported from Open Formulieren and needs review.",
       "LINK": "See the import report"
     },
+    "TEMPLATE_BLOCKED": "It was imported from Open Formulieren. A template can be made once you have marked it as reviewed, after looking through the import report.",
+    "TEMPLATE_CREATED": "Template created",
+    "TEMPLATE_FAILED": "Couldn't create the template. Please try again.",
     "PUBLISH_BLOCKED": {
       "TITLE": "This form still needs review",
       "TEXT": "It was imported from Open Formulieren. Publishing waits until you have looked through the import report and marked it as reviewed.",

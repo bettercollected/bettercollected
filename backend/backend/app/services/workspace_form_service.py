@@ -90,6 +90,7 @@ from backend.app.services.event_service import event_logger_service
 from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
+    ensure_templatable,
     review_problem,
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
@@ -1421,6 +1422,13 @@ class WorkspaceFormService:
         workspace_form = source_link
         if not workspace_form:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        if is_template:
+            # A form whose import still needs review is not a template: a
+            # copy of it is a normal draft (which keeps the mark), not
+            # something others start from (services/publish_checks.py).
+            ensure_templatable(
+                await self._pending_import_review(workspace_id, workspace_form)
+            )
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields

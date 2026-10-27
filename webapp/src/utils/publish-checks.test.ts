@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, themeContrastProblems } from './publish-checks';
+import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -150,5 +150,21 @@ describe('themeContrastProblems', () => {
     it('leaves a form without its own colours alone', () => {
         expect(themeContrastProblems(undefined)).toEqual([]);
         expect(themeContrastProblems({ title: 'Default' })).toEqual([]);
+    });
+});
+
+describe('templateReviewProblem', () => {
+    const refusal = { status: 422, data: { code: 'needs_review', message: 'x', problems: [{ code: 'needs_review', fieldId: null, importId: 'imp1', message: 'It was imported and still needs review.' }] } };
+
+    it('reads the review problem, with the import it names, from the server refusal', () => {
+        expect(templateReviewProblem(refusal)?.importId).toBe('imp1');
+        expect(templateReviewProblem(refusal.data)?.code).toBe('needs_review');
+    });
+
+    it('is nothing for any other error', () => {
+        expect(templateReviewProblem(undefined)).toBeUndefined();
+        expect(templateReviewProblem({ status: 403, data: { code: 'forbidden' } })).toBeUndefined();
+        expect(templateReviewProblem({ status: 422, data: { code: 'form_not_publishable', problems: refusal.data.problems } })).toBeUndefined();
+        expect(templateReviewProblem({ status: 422, data: { code: 'needs_review', problems: [] } })).toBeUndefined();
     });
 });
