@@ -36,7 +36,6 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
         "ADMIN_TASKS_API_KEY",
         "ADMIN_TASKS_BACKEND_URL",
         "DATABASE_URL",
-        "DB_WRITE_MODE",
         "GOOGLE_DATABASE_URL",
         "GOOGLE_MONGO_DB",
         "MASTER_ENCRYPTION_KEYSET",
@@ -45,11 +44,9 @@ def test_task_runner_environment_is_limited_to_what_it_needs():
         "SETTINGS_MASTER_KEY",
         "TASKS_DATABASE_URL",
     ]
-    # the services' write mode: Postgres unless the root .env says otherwise (4.1)
-    assert env["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}"
-    # the per-group overrides of the cutover (DB_WRITE_MODE__<group>, DB_READ_SOURCE__<group>) and the
-    # shadow-read sample are retired: no service of the stack is handed one
-    assert not re.search(r"DB_(WRITE_MODE|READ_SOURCE)__|DB_SHADOW", json.dumps(COMPOSE))
+    # the store switches of the cutover (DB_WRITE_MODE, DB_READ_SOURCE, their __<group> overrides) and
+    # the shadow-read sample are retired: no service of the stack is handed one, and the runner reads none
+    assert not re.search(r"DB_(WRITE_MODE|READ_SOURCE)|DB_SHADOW", json.dumps(COMPOSE))
     for name in (
         "ADMIN_TASKS_API_KEY",
         "GOOGLE_MONGO_DB",

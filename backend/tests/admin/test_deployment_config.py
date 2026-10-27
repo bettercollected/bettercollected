@@ -182,7 +182,7 @@ def test_mongo_runs_only_under_the_legacy_mongo_profile():
     """4.1 serves everything from Postgres: MongoDB (and the job that cleans its old
     seed account) start only under the legacy-mongo profile, which deploy.sh uses for
     the one-time import of a 4.0 stack. Nothing depends on it, so `up` never starts
-    it, and the backend and its job worker default to Postgres for every group."""
+    it. The compose file hands no service a store switch: Postgres is the only store."""
     for name in ("mongodb", "mongo-seed"):
         assert SERVICES[name].get("profiles") == ["legacy-mongo"], name
     profiled = sorted(name for name, body in SERVICES.items() if body.get("profiles"))
@@ -192,10 +192,11 @@ def test_mongo_runs_only_under_the_legacy_mongo_profile():
             assert "mongodb" not in (body.get("depends_on") or {}), name
     # the volume stays declared: an upgraded stack keeps its data
     assert "mongo-data" in COMPOSE["volumes"]
-    for name in ("backend", "jobs-worker"):
-        assert _env(name)["DB_READ_SOURCE"] == "${DB_READ_SOURCE:-postgres}", name
-        assert _env(name)["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}", name
-    assert _env("task-runner")["DB_WRITE_MODE"] == "${DB_WRITE_MODE:-postgres}"
+    # the 4.0 store switches are retired: none is set for any service (a value left in
+    # .env.deployment reaches the services, and a 4.1 service refuses anything but postgres)
+    for name in SERVICES:
+        assert not {"DB_READ_SOURCE", "DB_WRITE_MODE"} & set(_env(name)), name
+    assert not re.search(r"DB_(READ_SOURCE|WRITE_MODE)", COMPOSE_TEXT)
     # deploy.sh starts MongoDB through the profile only, never by name in the start list
     assert '--profile legacy-mongo "$@"' in DEPLOY
     start_list = DEPLOY.split("services_to_start=(", 1)[1].split(")", 1)[0]
@@ -756,17 +757,15 @@ def test_up_starts_every_required_service_for_every_preference(tmp_path, prefere
 
 
 @pytest.mark.skipif(not _compose_works(), reason="needs docker compose v2")
-def test_a_new_stack_runs_the_backend_its_worker_and_the_task_runner_on_postgres(tmp_path):
-    """No DB_* value anywhere (a new stack): the backend, the jobs worker and the task
-    runner get Postgres, so nothing needs a MongoDB (the runner's `stores: auto` included).
-    An upgraded stack starts its services only after the import has run."""
+def test_a_new_stack_runs_the_backend_its_worker_and_the_task_runner_without_a_mongo(tmp_path):
+    """No store switch anywhere (a new stack): the backend, the jobs worker and the task
+    runner are handed none and no MONGO_URI, so nothing needs a MongoDB. An upgraded stack
+    starts its services only after the import has run."""
     shutil.copy(ROOT / "docker-compose.deployment.yml", tmp_path / "docker-compose.deployment.yml")
     shutil.copy(ROOT / ".env.deployment.example", tmp_path / ".env.deployment")
     rendered = _render(tmp_path)
-    for name in ("backend", "jobs-worker"):
+    for name in ("backend", "jobs-worker", "task-runner"):
         env = rendered[name]["environment"]
-        assert (env["DB_READ_SOURCE"], env["DB_WRITE_MODE"]) == ("postgres", "postgres"), name
+        assert not {"DB_READ_SOURCE", "DB_WRITE_MODE"} & set(env), name
         assert not env.get("MONGO_URI"), name
-    assert rendered["task-runner"]["environment"]["DB_WRITE_MODE"] == "postgres"
-    assert not rendered["task-runner"]["environment"].get("MONGO_URI")
     assert "mongodb" not in rendered
