@@ -490,6 +490,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         crypto=crypto,
         aws_service=aws_service,
+        rate_limiter=rate_limiter,
     )
 
     pdf_import_store = providers.Singleton(

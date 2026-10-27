@@ -110,6 +110,7 @@ CASES = [
         P.WORKSPACE_MANAGE,
         ok=200,
     ),
+    Case("form.check", "POST", F + "/registration/test", P.WORKSPACE_MANAGE, ok=200),
     Case(
         "deliveries.list",
         "GET",

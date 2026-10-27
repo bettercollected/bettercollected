@@ -4,12 +4,18 @@ smuggled. A local https server with a test CA stands in for the destination;
 no setting allows http or private addresses."""
 
 import asyncio
+from urllib.parse import parse_qsl, urlsplit
 
 import httpcore
 import pytest
 
 from backend.app.services.registration import client
-from backend.app.services.registration.client import SendFailed, Target, post_json
+from backend.app.services.registration.client import (
+    SendFailed,
+    Target,
+    post_json,
+    request,
+)
 from backend.app.services.safe_http import PinnedBackend
 from tests.app.registration.tls_server import HOST, PUBLIC_ADDRESS
 
@@ -282,3 +288,111 @@ async def test_connect_error_is_transient(monkeypatch):
     )
     failed = await failure()
     assert failed.code == "unreachable" and not failed.permanent
+
+
+# ----------------------------------------------- GET, token auth, kept replies
+
+
+async def test_a_token_goes_after_the_word_token(tls):
+    await request(target(auth="token", secret="abc123"), "GET", idempotency_key=None)
+    assert tls.requests[0].headers["authorization"] == "Token abc123"
+
+
+@pytest.mark.parametrize(
+    "secret", [None, "", "two words", "tab\there", "tökén", "a\nb"]
+)
+async def test_a_token_that_cannot_be_a_header_value_is_refused_unsent(tls, secret):
+    with pytest.raises(SendFailed) as raised:
+        await request(target(auth="token", secret=secret), "GET")
+    assert raised.value.code == "config_invalid" and raised.value.permanent
+    assert tls.requests == []
+
+
+async def test_a_get_carries_an_encoded_query_and_no_body(tls):
+    reply = await request(
+        target(path="objects"),
+        "GET",
+        query=[("type", "https://t.example.org/a b"), ("data_attr", "a__exact__1&x=2")],
+        keep_reply=True,
+    )
+    assert reply.status == 200
+    (seen,) = tls.requests
+    assert seen.method == "GET" and seen.body == b""
+    assert "content-length" not in seen.headers and "content-type" not in seen.headers
+    assert seen.target.startswith("/api/objects?")
+    assert dict(parse_qsl(urlsplit(seen.target).query)) == {
+        "type": "https://t.example.org/a b",
+        "data_attr": "a__exact__1&x=2",  # one value, not two parameters
+    }
+
+
+async def test_a_kept_reply_is_returned_up_to_the_cap_and_flagged_beyond_it(
+    tls, monkeypatch
+):
+    tls.script.answers = [(200, {}, b'{"results":[]}')]
+    reply = await request(target(), "GET", keep_reply=True)
+    assert reply.body == b'{"results":[]}' and not reply.truncated
+    # a reply is dropped unless the caller asks for it
+    assert (await request(target(), "GET")).body == b""
+    monkeypatch.setattr(client, "MAX_REPLY_BYTES", 10)
+    tls.script.answers = [(200, {}, b"x" * 100)]
+    big = await request(target(), "GET", keep_reply=True)
+    assert big.truncated and big.body == b""
+
+
+async def test_only_get_and_post_exist(tls):
+    with pytest.raises(SendFailed):
+        await request(target(), "DELETE")
+    assert tls.requests == []
+
+
+async def test_a_get_follows_the_same_address_rules(tls, monkeypatch):
+    with pytest.raises(SendFailed) as raised:
+        await request(
+            Target(base_url="https://case.example.org:8443/"), "GET", query=[("a", "b")]
+        )
+    assert raised.value.code == "invalid_url"
+    tls.script.answers = [(302, {"Location": "https://x.example.org/"}, b"")]
+    with pytest.raises(SendFailed) as raised:
+        await request(target(), "GET", query=[("a", "b")])
+    assert raised.value.code == "redirect_refused"
+
+    async def resolve(host, port=443):
+        return ["10.1.1.1"]
+
+    monkeypatch.setattr(client, "resolve", resolve)
+    with pytest.raises(SendFailed) as raised:
+        await request(target(), "GET", query=[("a", "b")])
+    assert raised.value.code == "not_allowed" and len(tls.requests) == 1
+
+
+async def test_the_secret_is_not_in_the_repr_of_a_target():
+    assert "hunter2" not in repr(
+        Target(base_url="https://x.example.org/", secret="hunter2")
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/api/../x/", "/api/%2e%2e/x/", "/api/%252e%252e/", "/api/..%2fx/", "/a/./b/"],
+)
+async def test_a_base_address_with_dot_segments_is_refused_unsent(tls, path):
+    with pytest.raises(SendFailed) as raised:
+        await request(Target(base_url=f"https://{HOST}{path}"), "GET")
+    assert raised.value.code == "invalid_url" and tls.requests == []
+
+
+async def test_a_reply_can_be_kept_up_to_a_larger_cap_of_the_callers_choosing(tls):
+    tls.script.answers = [(200, {}, b"y" * 100_000)]
+    small = await request(target(), "GET", keep_reply=True)
+    assert small.truncated and small.body == b""
+    big = await request(target(), "GET", keep_reply=True, max_reply=200_000)
+    assert not big.truncated and len(big.body) == 100_000
+
+
+async def test_a_stored_base_with_a_query_is_refused_before_ours_is_appended(tls):
+    with pytest.raises(SendFailed) as raised:
+        await request(
+            Target(base_url=f"https://{HOST}/api/?x=1"), "GET", query=[("a", "b")]
+        )
+    assert raised.value.code == "invalid_url" and tls.requests == []
