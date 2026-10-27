@@ -105,6 +105,8 @@ Steps become pages in `index` order, the page's section title is the step name. 
 | `editgrid` | repeating group | children limited to the types a repeating group allows |
 | `addressNL` | five short text questions in its place: street, house number, addition, postcode, place | `converted_to_text`; see "Addresses" below |
 | `signature`, `map`, `partners`, `children`, `npFamilyMembers`, `cosign`/`coSign`, `customerProfile`, anything unknown | dropped | reported |
+| a user-defined variable (`formVariables.json`) set by one unconditional calculation | a calculated question, hidden from respondents, after the last question it reads | `changed`, `user_variable_calculated`; see "Variables" below |
+| any other user-defined variable | not carried | `dropped`, `user_variable_not_carried`, with `detail.cause` |
 
 Common to all: label becomes the title, description (or, failing that, tooltip) the help text. Every text is reduced
 to plain text (tags, attributes and scripts removed, control and direction characters removed, length capped), template
@@ -159,8 +161,68 @@ shows it) is dropped (`always_hidden`). Everything else is dropped and reported 
 **Custom code.** `customConditional`, `calculateValue`, `customDefaultValue`, `validate.custom` and component-level
 `logic` are never run and never kept; each is reported `custom_script_dropped`.
 
-**Variables.** User-defined variables have no equivalent and are reported (`user_variable_not_carried`); component
-variables are simply the questions (every question is addressable by logic and answer piping).
+**Variables.** Component variables are simply the questions (every question is addressable by logic and answer
+piping). A **user-defined variable** becomes a *calculated question* (`docs/spec/expressions-v1.md`) only when all of
+this holds; otherwise it is reported as before (`user_variable_not_carried`) with a `detail.cause` that says why.
+
+1. Exactly one action in the whole file sets it (an action of type `variable`), and nothing else writes to it: no
+   prefill, no service fetch, no other action naming it (`other_source`; `several_rules`; `no_rule`; `duplicate_key`).
+2. The rule of that action always fires: its trigger is the literal `true` (`condition` otherwise; a 3.x rule that only
+   starts from a step is `trigger_from_step`). We have no "set only when" for a calculation, so a conditional rule is
+   never guessed at.
+3. The variable is a number: `data_type` `int` or `float` (`not_numeric`).
+4. Its value is an expression of the subset below. Anything else is `operator` (with `detail.operator`, cut to 40
+   characters) or `operand`; an expression over 60 nodes, 12 levels or 20 arguments is `too_complex`. A division
+   needs a variable that starts empty (`initial_value`: see below).
+5. Everything it reads is a number question we imported (`number`, `currency`; not in a repeating group, not
+   `multiple`) or another variable that qualifies. A key that is not imported (a dropped component, a static variable
+   such as `now`) is `source_missing` (`detail.source`); `source_not_number`, `source_in_group`, `source_multiple`;
+   another variable that did not qualify is `depends_on_variable`; a circle of variables, or one that reads a circle,
+   `cycle`; one that reads a variable a *later* rule sets, `order` (their evaluation is a single pass in rule order);
+   a variable with the key of a component, `key_collision`.
+6. At most 50 per form and within the 1000-question cap (`too_many`, in the file's order), and the form's own rules
+   accept it (`rejected`).
+
+The result is a **calculated question** titled with the variable's name (plain text; the key when it has none),
+placed on the page of, and after, the last question it reads (after a calculation it reads for a chain; at the end of
+the last page when it reads nothing), **hidden from respondents** (computed and stored with each submission, never
+shown, as their user-defined variables are not shown), with format "number", and with "unanswered as 0" **off**. One
+`changed` item (`user_variable_calculated`, info) is reported; the rule that set it is not reported (it was not
+dropped). The variable's **initial value** is not carried: in the original it is only what the variable holds before
+the rule has run.
+
+| JSON logic | expressions v1 | Notes |
+|---|---|---|
+| `{"+": [a, b, ...]}` (2 to 20 arguments) | `+` | the original sums (`json_logic/__init__.py:112-117`) |
+| `{"-": [a, b]}`, `{"-": [a]}` | `-` (subtract; negate) | `:119-126`; a third argument is ignored by the original, so it is refused |
+| `{"*": [a, b, ...]}` | `*` | `:314` |
+| `{"/": [a, b]}` | `/` | `:316`; exactly two arguments (one returns it untouched there) |
+| `{"min": [..]}`, `{"max": [..]}` of numbers and answers | `if(x == null or y == null, null, min(x, y))` | `:317-318`; see the guard below |
+| `{"var": "key"}`, `{"var": ["key"]}` | `{"var": <question id>}` | a default value or an empty key is refused |
+| a number | the number | at most 15 significant digits, 15 decimals, below 10^15; whole numbers are written whole |
+| `%`, `if`, `?:`, comparisons, `and`, `or`, `!`, `!!`, `cat`, `in`, `substr`, `merge`, `count`, `today`, `date`, `datetime`, `rdelta`, `duration`, `reduce`, `map`, `missing`, `log`, texts, booleans, `null`, lists | not translated | `operator` or `operand`; `%` keeps the sign of the *divisor* there and of the dividend in v1, so it is not the same operator |
+
+Where the two meet, the translation is exact except where noted:
+
+* **A missing answer.** The original gives no result when any operand has no value (`:339-351`, `:425-433`; used
+  by `submissions/logic/actions.py:424-441` at 4.0.6, `:428-438` at 3.5.14). v1 gives no result for arithmetic on a
+  missing value too, which is why "unanswered as 0" is switched off. v1's `min` and `max` instead skip missing values,
+  so the translation guards them: `min(a, b)` is `if(a == null or b == null, null, min(a, b))` (the guard is only
+  exact for plain answers and numbers, which is why `min` and `max` take nothing else).
+* **Division by zero.** An error in the original, caught and logged (`submissions/logic/log_utils.py:12-18`): the
+  variable keeps what it held before. In v1 the result has no value. The two agree only when the variable started
+  empty, so a division is carried only then (`initial_value`).
+* **Numbers.** The original uses binary floating point, v1 decimals kept to 15 significant digits (`0.1 + 0.2` is
+  `0.3` here and `0.30000000000000004` there). The difference never exceeds the float's own rounding error. A result
+  of 10^15 or more has no value in v1.
+* **A hidden or unanswered question** has no value there (a hidden component is cleared, `formio/visibility.py:118-132`)
+  and none here.
+* **Rule order.** Their rules are saved in dependency order (`forms/api/serializers/logic/form_logic.py:35-92`); a
+  chain is only carried when the file's order already has each variable set before it is read.
+
+The translation walks the expression as plain data against the table above: it is never run, nothing from the file is
+passed to an evaluator, and it has an allow-list of six operator names. Depth, node and argument counts are capped
+as listed and every node is charged to the import's work budget.
 
 **Form-level settings.** Not carried, each reported: sign-in plugins (`digid`, `eherkenning`, ...), prefill,
 payment, appointment forms, registration backends, translations, confirmation email and presentation settings,
@@ -269,7 +331,12 @@ the two feature flags `forms/models/form.py:400-410`; the converters 3.5 added `
   (selectboxes), `formio/migration_converters.py:247-289`.
 * Logic: `forms/models/logic.py:24-`, `forms/api/serializers/logic/form_logic.py`, `logic/action_serializers.py:30-312`,
   action types `forms/constants.py:8-27`, trigger rule `forms/api/validators.py:22-60`.
-* Variables: `forms/api/serializers/form_variable.py:148-193`.
+* Variables: `forms/api/serializers/form_variable.py:148-193`; the action that sets one, `forms/api/serializers/logic/action_serializers.py:62-71`
+  (shape) and `submissions/logic/actions.py:379-441` (evaluation: `jsonLogic(value, data, use_var_undefined=True)`,
+  an error is logged and the variable left alone, a result of "undefined" changes nothing), a trigger `submissions/logic/rules.py:137-146`.
+  At 3.5.14 the same, without the "undefined" case: `submissions/logic/actions.py:383-438`, `rules.py:243`. The
+  operators are those of `maykin-json-logic-py` 0.16.1 (their dependency, MIT licence), `json_logic/__init__.py`, as
+  cited in the table above.
 * Privacy and retention keys: `forms/models/form.py:230-248` (consent and statement of truth switches),
   `335-395` (removal limits and methods); the policy texts are global: `config/models/config.py:433-480`.
 * Builder defaults used to shape the fixtures: `open-formulieren/formio-builder` tag `1.5.0`, `src/registry/*/edit.tsx`
@@ -278,7 +345,8 @@ the two feature flags `forms/models/form.py:400-410`; the converters 3.5 added `
 ### Tests and fixtures
 
 `backend/tests/app/open_formulieren/` (archive reader and hostile archives, the importer with golden mappings, the
-endpoints, authorisation; `test_importer_3x.py` for 3.x). The archives in `backend/tests/fixtures/open_formulieren/` are
+endpoints, authorisation; `test_importer_3x.py` for 3.x; `test_calculated_variables.py` for the variables, with a model
+of the original's arithmetic that the translation is held to). The archives in `backend/tests/fixtures/open_formulieren/` are
 our own exports of synthetic forms made in a throwaway local Open Formulieren 4.0.6, and in `3.5.14/` of 3.5.14 (see their
 READMEs); the golden files beside them are the expected result of each import. Regenerate a golden file with
 `OF_UPDATE_GOLDEN=1 uv run pytest tests/app/open_formulieren/test_importer.py` (`test_importer_3x.py` for the 3.x ones)

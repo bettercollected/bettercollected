@@ -37,6 +37,25 @@
           }
         },
         {
+          "type": "calculated",
+          "title": "Total",
+          "expression": {
+            "*": [
+              {
+                "var": "Quantity"
+              },
+              {
+                "var": "Unit price"
+              }
+            ]
+          },
+          "format": {
+            "style": "number"
+          },
+          "hiddenFromRespondents": true,
+          "unansweredAsZero": false
+        },
+        {
           "type": "short_text",
           "title": "Why premium?",
           "validations": {
@@ -143,8 +162,9 @@
     "fields": 10,
     "logicRules": 3,
     "repeatingGroups": 0,
-    "dropped": 23,
-    "flagged": 0
+    "dropped": 21,
+    "flagged": 0,
+    "calculations": 1
   },
   "report": [
     {
@@ -166,13 +186,6 @@
       "detail": {
         "actionType": "variable"
       }
-    },
-    {
-      "code": "dropped",
-      "kind": "logic",
-      "reason": "trigger_not_supported",
-      "severity": "warning",
-      "key": "rule-5"
     },
     {
       "code": "dropped",
@@ -337,9 +350,9 @@
       "key": "purpose"
     },
     {
-      "code": "dropped",
+      "code": "changed",
       "kind": "variable",
-      "reason": "user_variable_not_carried",
+      "reason": "user_variable_calculated",
       "severity": "info",
       "key": "total",
       "detail": {
@@ -353,7 +366,8 @@
       "severity": "info",
       "key": "isPremium",
       "detail": {
-        "dataType": "boolean"
+        "dataType": "boolean",
+        "cause": "not_numeric"
       }
     },
     {
@@ -363,7 +377,8 @@
       "severity": "info",
       "key": "greeting",
       "detail": {
-        "dataType": "string"
+        "dataType": "string",
+        "cause": "not_numeric"
       }
     },
     {
@@ -373,7 +388,8 @@
       "severity": "info",
       "key": "reviewDate",
       "detail": {
-        "dataType": "date"
+        "dataType": "date",
+        "cause": "no_rule"
       }
     },
     {
@@ -383,7 +399,8 @@
       "severity": "info",
       "key": "tags",
       "detail": {
-        "dataType": "array"
+        "dataType": "array",
+        "cause": "no_rule"
       }
     },
     {

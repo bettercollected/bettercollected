@@ -36,6 +36,7 @@ from backend.app.services.open_formulieren import limits
 from backend.app.services.open_formulieren import report as R
 from backend.app.services.open_formulieren.archive import Archive
 from backend.app.services.open_formulieren import budget
+from backend.app.services.open_formulieren import variables as V
 from backend.app.services.open_formulieren.numbers import as_plain, to_int, to_number
 from backend.app.services.open_formulieren.errors import ImportRefused, refuse, unexpected
 from backend.app.services.open_formulieren.logic import (
@@ -111,6 +112,10 @@ class Question:
     origin_key: Optional[str] = None
     origin_label: Optional[str] = None
     unit: Optional[int] = None
+    # the component holds a list of values (``multiple``)
+    multiple: bool = False
+    # the id the form gave the question once it was created
+    field_id: Optional[str] = None
 
 
 @dataclass
@@ -263,6 +268,14 @@ class Planner:
         # questions planned so far, counted as the form's size check counts
         # them (a repeating group twice: as an item and as a group)
         self._planned = 0
+        # logic rules in the order they apply, the user-defined variables of
+        # the file and what is known of them (``variables.analyse``), the
+        # rules only a variable's calculation needs (reported if it is not
+        # carried after all), and the ids the form gave the pages
+        self.rules: List[Dict[str, Any]] = []
+        self.variables: Dict[str, V.Info] = {}
+        self.deferred: List[int] = []
+        self.page_ids: Dict[str, str] = {}
 
     # --------------------------------------------------------- reporting
 
@@ -297,33 +310,44 @@ class Planner:
 
     def read_logic(self) -> None:
         """The rules that show or hide a component, by target. Everything
-        else a rule does is reported and ignored."""
-        rules = sorted(
+        else a rule does is reported and ignored, except the rule that only
+        sets a variable that becomes a calculated question (``variables``)."""
+        self.rules = sorted(
             self.archive.logic,
             key=lambda r: r.get("order") if isinstance(r.get("order"), int) else 0,
         )
-        for index, rule in enumerate(rules):
-            name = f"rule-{index + 1}"
-            label = rule.get("description")
-            # 3.x only: a rule of a form still on the old logic evaluation may
-            # only start once a given step is reached. Ours is checked
-            # wherever the answers are, so the rule would act earlier than
-            # the original: dropped, not guessed.
-            if self.archive.is_3x and rule.get("trigger_from_step"):
-                self.note(
-                    R.DROPPED, Reason.TRIGGER, kind=R.LOGIC, key=name, label=label,
-                    step=None, detail={"cause": "trigger_from_step"},
-                )
+        self.variables = V.analyse(self.archive.variables, self.rules, self.archive.is_3x)
+        consumed = V.consumed_rules(self.rules, self.variables)
+        for index, rule in enumerate(self.rules):
+            if index in consumed:
+                # reported later when its variable is not carried after all
+                self.deferred.append(index)
                 continue
-            try:
-                trigger = parse_trigger(rule.get("json_logic_trigger"))
-            except Unsupported as why:
-                self.note(
-                    R.DROPPED, why.reason, kind=R.LOGIC, key=name, label=label, step=None
-                )
-                continue
-            for action in _list(rule.get("actions")):
-                self._read_action(name, label, trigger, _dict(action))
+            self.read_rule(index)
+
+    def read_rule(self, index: int) -> None:
+        rule = self.rules[index]
+        name = f"rule-{index + 1}"
+        label = rule.get("description")
+        # 3.x only: a rule of a form still on the old logic evaluation may
+        # only start once a given step is reached. Ours is checked
+        # wherever the answers are, so the rule would act earlier than
+        # the original: dropped, not guessed.
+        if self.archive.is_3x and rule.get("trigger_from_step"):
+            self.note(
+                R.DROPPED, Reason.TRIGGER, kind=R.LOGIC, key=name, label=label,
+                step=None, detail={"cause": "trigger_from_step"},
+            )
+            return
+        try:
+            trigger = parse_trigger(rule.get("json_logic_trigger"))
+        except Unsupported as why:
+            self.note(
+                R.DROPPED, why.reason, kind=R.LOGIC, key=name, label=label, step=None
+            )
+            return
+        for action in _list(rule.get("actions")):
+            self._read_action(name, label, trigger, _dict(action))
 
     def _read_action(
         self, name: str, label: Any, trigger: Trigger, action: Dict[str, Any]
@@ -751,6 +775,7 @@ class Planner:
         question = self._make(key, of_type, rule, label or title, page, group, spec)
         question.chain = list(chain)
         question.choices = choices
+        question.multiple = comp.get("multiple") is True
 
         if rule.converted and of_type != "checkbox":
             self.note(
@@ -1111,7 +1136,9 @@ def _plugin_names(items: Any, key: str) -> List[str]:
     return names
 
 
-def _form_features(archive: Archive, report: Report) -> None:
+def _form_features(
+    archive: Archive, report: Report, variables: Optional[Dict[str, V.Info]] = None
+) -> None:
     """Everything form-wide that is not carried over."""
     form = archive.form
 
@@ -1167,10 +1194,22 @@ def _form_features(archive: Archive, report: Report) -> None:
             continue
         name = variable.get("key")
         if isinstance(name, str) and name:
+            data_type = variable.get("data_type") if isinstance(variable.get("data_type"), str) else ""
+            info = (variables or {}).get(name)
+            if info is not None and info.converted:
+                report.add(
+                    R.CHANGED, R.VARIABLE, Reason.USER_VARIABLE_CALCULATED, R.INFO,
+                    key=name, label=variable.get("name"),
+                    detail={"dataType": data_type},
+                )
+                continue
+            detail: Dict[str, Any] = {"dataType": data_type}
+            if info is not None and info.cause:
+                detail["cause"] = info.cause
+                detail.update(info.detail)
             report.add(
                 R.DROPPED, R.VARIABLE, Reason.USER_VARIABLE, R.INFO,
-                key=name, label=variable.get("name"),
-                detail={"dataType": variable.get("data_type") if isinstance(variable.get("data_type"), str) else ""},
+                key=name, label=variable.get("name"), detail=detail,
             )
     for name in archive.ignored[:20]:
         report.add(
@@ -1313,7 +1352,7 @@ def _build_ops(planner: Planner) -> _Ops:
     ops = _Ops()
     for number, page in enumerate(planner.pages):
         pref = f"p{number + 1}"
-        ops.add({"op": "add_page", "ref": pref}, "page")
+        ops.add({"op": "add_page", "ref": pref}, "page", None, pref)
         if page.title:
             ops.add(
                 {"op": "set_section_title", "pageId": _ref(pref), "title": page.title},
@@ -1387,15 +1426,133 @@ def _apply(planner: Planner, ops: _Ops, form: StandardForm) -> StandardForm:
         check_calculations=False,
     )
     for result, index in zip(results, positions):
+        kind, question, extra = ops.meta[index]
         if result.ok:
+            if kind == "field" and question is not None:
+                question.field_id = result.created_id
+            elif kind == "page":
+                planner.page_ids[extra] = result.created_id or ""
             continue
-        kind, question, _ = ops.meta[index]
         if kind in ("field", "group", "page"):
             if question is not None:
                 _mark_failed(question)
             if kind == "page":
                 continue
         _refused(planner, ops, index, result.message)
+    return form
+
+
+def _calculations(planner: Planner, form: StandardForm) -> StandardForm:
+    """The variables that qualify (``variables``) become calculated
+    questions, placed after the last question each reads. They are added in
+    a batch of their own, with the engine's check that calculations stay
+    valid on: the first batch makes none, and that check costs a walk of the
+    form per operation."""
+    infos = planner.variables
+    if any(info.carried for info in infos.values()):
+        form = _add_calculations(planner, form)
+    # a rule that only set a variable we did not carry after all is reported
+    # like any other rule
+    for index in planner.deferred:
+        actions = [_dict(a) for a in _list(planner.rules[index].get("actions"))]
+        if not all(
+            infos[_dict(a).get("variable")].converted for a in actions
+        ):
+            planner.read_rule(index)
+    return form
+
+
+def _add_calculations(planner: Planner, form: StandardForm) -> StandardForm:
+    position: Dict[int, int] = {}
+    for number, page in enumerate(planner.pages):
+        for item in page.items:
+            position[id(item)] = number
+    sources: Dict[str, V.Source] = {}
+    unusable: Dict[str, str] = {}
+    for key, question in planner.by_key.items():
+        if question.failed:
+            unusable[key] = V.Cause.SOURCE_MISSING
+        elif question.is_group or question.of_type not in ("number", "currency"):
+            unusable[key] = V.Cause.SOURCE_NOT_NUMBER
+        elif question.group is not None:
+            unusable[key] = V.Cause.SOURCE_IN_GROUP
+        elif question.multiple:
+            unusable[key] = V.Cause.SOURCE_MULTIPLE
+        elif question.field_id is None:
+            unusable[key] = V.Cause.SOURCE_MISSING
+        else:
+            sources[key] = V.Source(
+                question.field_id, (position.get(id(question), 0), question.order)
+            )
+    ordered = V.resolve(planner.variables, sources, unusable, planner.seen_keys)
+
+    questions = _all_questions(planner)
+    room = _field_cap() - (len(questions) + sum(1 for q in questions if q.is_group))
+    keep = ordered[: max(0, min(room, V.MAX_CALCULATIONS))]
+    for info in ordered[len(keep):]:
+        info.fail(V.Cause.TOO_MANY)
+    if not keep:
+        return form
+
+    last_page = len(planner.pages) - 1
+    ids: Dict[str, str] = {key: source.id for key, source in sources.items()}
+    where: Dict[str, Tuple[int, int, int]] = {
+        key: (*source.pos, 0) for key, source in sources.items()
+    }
+    after_last: Dict[str, str] = {}
+    ops: List[Dict[str, Any]] = []
+    made: List[V.Info] = []
+    for number, info in enumerate(keep, start=1):
+        budget.check()
+        ref = f"c{number}"
+        best: Optional[Tuple[int, int, int]] = None
+        target: Optional[str] = None
+        for name in info.refs:
+            if best is None or where[name] > best:
+                best, target = where[name], ids[name]
+        if best is None:
+            best = (last_page, 10**9, 0)
+        page_ref = f"p{best[0] + 1}"
+        after = after_last.get(target or "", target)
+        if target is not None:
+            after_last[target] = _ref(ref)
+        ids[info.key] = _ref(ref)
+        where[info.key] = (best[0], best[1], number)
+        title = label_text(info.name, limits.MAX_TITLE) or label_text(info.key, limits.MAX_TITLE)
+        op: Dict[str, Any] = {
+            "op": "add_field",
+            "pageId": planner.page_ids.get(page_ref, ""),
+            "field": {
+                "title": title or "Calculation",
+                "type": "calculated",
+                "expression": V.to_ast(info.tree, ids),
+                "format": {"style": "number"},
+                "hiddenFromRespondents": True,
+                "unansweredAsZero": False,
+                "ref": ref,
+            },
+        }
+        if after is not None:
+            op["afterFieldId"] = after
+        ops.append(op)
+        made.append(info)
+    parsed: List[Any] = []
+    owners: List[V.Info] = []
+    for op, info in zip(ops, made):
+        try:
+            parsed.append(FormOps.model_validate({"ops": [op]}).ops[0])
+            owners.append(info)
+        except ValidationError:
+            info.fail(V.Cause.REJECTED)
+    form, results = apply_form_ops(
+        form, parsed, on_step=lambda *_: budget.check(), check_size=False,
+        check_calculations=True,
+    )
+    for result, info in zip(results, owners):
+        if result.ok:
+            info.converted = True
+        else:
+            info.fail(V.Cause.REJECTED)
     return form
 
 
@@ -1478,8 +1635,9 @@ def _build_draft(archive: Archive) -> Built:
     form = _blank_form(title)
     ops = _build_ops(planner)
     form = _apply(planner, ops, form)
+    form = _calculations(planner, form)
 
-    _form_features(archive, report)
+    _form_features(archive, report, planner.variables)
     retention_type, retention_value = _retention(archive, report)
     form.settings = StandardFormSettings(
         privacy_policy_url="",
@@ -1501,4 +1659,7 @@ def _build_draft(archive: Archive) -> Built:
         "dropped": report.dropped,
         "flagged": report.flagged,
     }
+    calculations = sum(1 for info in planner.variables.values() if info.converted)
+    if calculations:
+        summary["calculations"] = calculations
     return Built(form=form, report=report, summary=summary, title=title)

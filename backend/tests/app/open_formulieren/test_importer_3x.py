@@ -107,7 +107,8 @@ def test_structure_of_the_logic_form():
     assert sorted(i["detail"]["property"] for i in items(built, reason="custom_script_dropped")) == [
         "calculateValue", "customConditional", "customDefaultValue", "logic", "validate.custom",
     ]
-    assert len(items(built, reason="user_variable_not_carried")) == 5
+    assert len(items(built, reason="user_variable_not_carried")) == 4
+    assert [i["key"] for i in items(built, reason="user_variable_calculated")] == ["total"]
     assert {i["detail"]["actionType"] for i in items(built, reason="action_not_supported")} >= {"disable-next", "step-not-applicable", "variable"}
 
 
