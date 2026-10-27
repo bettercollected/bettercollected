@@ -120,7 +120,7 @@ describe('Deliveries on the responses tab', () => {
         const row = screen.getByTestId('registration-delivery-d1');
         expect(row).toHaveTextContent('resp-0001');
         expect(row).toHaveTextContent(en.DELIVERY.STATUS.failed);
-        expect(row).toHaveTextContent('The case system had an error (HTTP 503).');
+        expect(row).toHaveTextContent('The case system had an error (HTTP 503) on every attempt.');
         expect(row).toHaveTextContent(/Last attempt: .*2026/);
         expect(row).toHaveTextContent('6 attempts');
     });
@@ -136,6 +136,74 @@ describe('Deliveries on the responses tab', () => {
         setLists([delivery({ lastErrorCode: code, lastHttpStatus: 502 })]);
         render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
         expect(screen.getByTestId('registration-delivery-d1')).toHaveTextContent((en.DELIVERY.ERROR[code] as string).replace('{{status}}', '502'));
+    });
+
+    it('says what the creator can do for every code, in both languages', async () => {
+        const nlText = nl.DELIVERY.ERROR as Record<string, string>;
+        for (const code of DELIVERY_ERROR_CODES) {
+            expect(en.DELIVERY.ERROR[code].length, code).toBeGreaterThan(30);
+            expect(nlText[code].length, code).toBeGreaterThan(30);
+        }
+        // the dashboard speaks "u", never "je"
+        expect(Object.values(nlText).join(' ')).not.toMatch(/\b(je|jouw|jij)\b/i);
+    });
+
+    it('words a lookup failure and says nothing was sent again', () => {
+        registrationState.data = { ...registrationState.data!, kind: 'objects_api' };
+        setLists([delivery({ lastErrorCode: 'lookup_failed', lastHttpStatus: 403 })]);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        const row = screen.getByTestId('registration-delivery-d1');
+        expect(row).toHaveTextContent("We couldn't confirm whether the record already exists in the Objects API, so nothing was sent again.");
+        expect(within(row).getByRole('button', { name: /Retry/ })).toBeInTheDocument();
+    });
+
+    it('words a config_invalid and an internal_error failure', () => {
+        setLists([delivery({ id: 'd1', lastErrorCode: 'config_invalid' }), delivery({ id: 'd2', lastErrorCode: 'internal_error' })]);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.getByTestId('registration-delivery-d1')).toHaveTextContent('cannot be sent safely');
+        expect(screen.getByTestId('registration-delivery-d2')).toHaveTextContent('Something went wrong on our side.');
+    });
+
+    it('reads an Objects API refusal with status 400 as a schema mismatch, and only for that kind', () => {
+        setLists([delivery({ lastErrorCode: 'http_4xx', lastHttpStatus: 400 })]);
+        const first = render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.getByTestId('registration-delivery-d1')).toHaveTextContent('The case system refused the submission (HTTP 400).');
+        first.unmount();
+        registrationState.data = { ...registrationState.data!, kind: 'objects_api' };
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.getByTestId('registration-delivery-d1')).toHaveTextContent('The object type did not accept the data (HTTP 400).');
+    });
+
+    it('reads an Objects API 401 or 403 as a refused token', () => {
+        registrationState.data = { ...registrationState.data!, kind: 'objects_api' };
+        setLists([delivery({ lastErrorCode: 'http_4xx', lastHttpStatus: 403 })]);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.getByTestId('registration-delivery-d1')).toHaveTextContent('The Objects API refused the token (HTTP 403).');
+    });
+
+    it('shows the created object id as text on a sent submission, once asked for', () => {
+        registrationState.data = { ...registrationState.data!, kind: 'objects_api' };
+        setLists([delivery()]);
+        lists['delivered'] = {
+            data: { items: [delivery({ id: 'd9', status: 'delivered', lastErrorCode: null, deliveredAt: '2026-10-26T10:20:00Z', remoteId: '5b3f6c1e-0000-4000-8000-000000000001' })], total: 1 },
+            isLoading: false,
+            isError: false,
+            refetch: refetchMock
+        };
+        const { container } = render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.queryByTestId('registration-sent-d9')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: en.DELIVERY.SHOW_DELIVERED }));
+        const row = screen.getByTestId('registration-sent-d9');
+        expect(row).toHaveTextContent('Object id: 5b3f6c1e-0000-4000-8000-000000000001');
+        // plain text: never a link or an image the browser could fetch
+        expect(container.querySelector('a, img')).toBeNull();
+        expect(queries).toContainEqual({ workspaceId: 'ws1', formId: 'f1', status: ['delivered'], limit: 20 });
+    });
+
+    it('shows no object id for a Generic JSON delivery', () => {
+        setLists([delivery()]);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.queryByTestId('registration-object-id')).toBeNull();
     });
 
     it("never shows an unknown code or the destination's text, only a plain sentence", () => {
@@ -217,7 +285,7 @@ describe('Deliveries on the responses tab', () => {
         render(<DeliveriesPanel />, { wrapper });
         const row = screen.getByTestId('registration-delivery-d1');
         expect(row).toHaveTextContent(nl.DELIVERY.STATUS.failed);
-        expect(row).toHaveTextContent('Het zaaksysteem had een fout (HTTP 503).');
+        expect(row).toHaveTextContent('Het zaaksysteem had bij elke poging een fout (HTTP 503).');
         expect(screen.getByRole('alert')).toHaveTextContent('1 inzending is niet verstuurd.');
         within(row).getByRole('button', { name: /opnieuw proberen/i });
     });

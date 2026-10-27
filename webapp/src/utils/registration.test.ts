@@ -1,18 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    CHECK_CODES,
+    DEFAULT_REFERENCE_PATH,
     DELIVERY_ERROR_CODES,
     ERROR_CODES,
     TEST_CODES,
     VARIABLE_REASONS,
     canBeList,
+    checkKey,
     defaultKeyOf,
     deliveryErrorKey,
     errorCodeOf,
     errorKey,
+    findTargetConflict,
     formErrorField,
+    formatTargetPath,
+    isPlainToken,
     isValidKey,
+    isValidObjectTypeVersion,
+    isValidSegment,
     needsSecretAgain,
+    objectTypeUrlProblem,
+    parseTargetPath,
+    referenceConflicts,
     serviceErrorField,
     testKey,
     variableReasonKey
@@ -125,5 +136,141 @@ describe('keys and secrets', () => {
     it('offers "send as list" for multiple choice only', () => {
         expect(canBeList({ source: 'a', label: 'A', type: 'multiple_choice', supported: true })).toBe(true);
         expect(canBeList({ source: 'a', label: 'A', type: 'short_text', supported: true })).toBe(false);
+    });
+});
+
+describe('Objects API: check outcomes and delivery codes', () => {
+    it.each(CHECK_CODES)('maps the connection check outcome "%s" in English and Dutch', (code) => {
+        expect(checkKey(false, code)).toBe(`REGISTRATION.CHECK.${code}`);
+        expect(resolve(enBuilder, checkKey(false, code))).toEqual(expect.any(String));
+        expect(resolve(nlBuilder, checkKey(false, code))).toEqual(expect.any(String));
+    });
+
+    it('has a sentence for ok and for a code it does not know', () => {
+        expect(checkKey(true)).toBe('REGISTRATION.CHECK.ok');
+        expect(checkKey(false, 'something_new')).toBe('REGISTRATION.CHECK.unknown');
+        expect(checkKey(false, null)).toBe('REGISTRATION.CHECK.unknown');
+    });
+
+    it('reads a 429 as rate_limited, with or without a body', () => {
+        expect(errorCodeOf({ status: 429, data: { code: 'rate_limited' } })).toBe('rate_limited');
+        expect(errorCodeOf({ status: 429 })).toBe('rate_limited');
+    });
+
+    it('words lookup_failed, and an Objects API 400 as a schema mismatch only for that kind', () => {
+        expect(DELIVERY_ERROR_CODES).toContain('lookup_failed');
+        expect(deliveryErrorKey('lookup_failed')).toBe('REGISTRATION.DELIVERY.ERROR.lookup_failed');
+        expect(deliveryErrorKey('http_4xx', { objectsApi: true, httpStatus: 400 })).toBe('REGISTRATION.DELIVERY.ERROR.http_4xx_schema');
+        expect(deliveryErrorKey('http_4xx', { objectsApi: true, httpStatus: 403 })).toBe('REGISTRATION.DELIVERY.ERROR.http_4xx_token');
+        expect(deliveryErrorKey('http_4xx', { objectsApi: true, httpStatus: 404 })).toBe('REGISTRATION.DELIVERY.ERROR.http_4xx');
+        expect(resolve(nlBuilder, 'REGISTRATION.DELIVERY.ERROR.http_4xx_token')).toEqual(expect.any(String));
+        expect(deliveryErrorKey('http_4xx', { objectsApi: false, httpStatus: 400 })).toBe('REGISTRATION.DELIVERY.ERROR.http_4xx');
+        expect(resolve(enBuilder, 'REGISTRATION.DELIVERY.ERROR.http_4xx_schema')).toEqual(expect.any(String));
+    });
+
+    it('puts the Objects API refusals next to their field, and the unclear addresses nowhere', () => {
+        expect(serviceErrorField('objecttypes_base_required')).toBe('objecttypesBaseUrl');
+        expect(serviceErrorField('invalid_url', 'objects_api')).toBeNull();
+        expect(serviceErrorField('invalid_url', 'generic_json')).toBe('baseUrl');
+        expect(formErrorField('invalid_object_type_url')).toBe('objectType');
+        expect(formErrorField('object_type_outside_base')).toBe('objectType');
+        expect(formErrorField('invalid_object_type_version')).toBe('version');
+        expect(formErrorField('invalid_reference_path')).toBe('reference');
+        expect(formErrorField('reference_path_conflict')).toBe('reference');
+        expect(formErrorField('target_path_conflict')).toBe('variables');
+        expect(formErrorField('not_an_objects_api')).toBe('service');
+    });
+});
+
+describe('Objects API: object type address', () => {
+    const base = 'https://objecttypes.example.org/api/v2/';
+    const id = '0f9a3b1c-5d2e-4f6a-8b7c-1d2e3f4a5b6c';
+    const ok = `https://objecttypes.example.org/api/v2/objecttypes/${id}`;
+
+    it('accepts an address under the base', () => {
+        expect(objectTypeUrlProblem(ok, base)).toBeNull();
+        expect(objectTypeUrlProblem(ok.replace('objecttypes.example.org', 'ObjectTypes.Example.ORG'), base)).toBeNull();
+        expect(objectTypeUrlProblem(ok)).toBeNull();
+    });
+
+    it.each([
+        ['http instead of https', ok.replace('https', 'http')],
+        ['a user name', ok.replace('https://', 'https://user@')],
+        ['a port', ok.replace('.org', '.org:8443')],
+        ['a query', `${ok}?x=1`],
+        ['a fragment', `${ok}#x`],
+        ['a trailing slash', `${ok}/`],
+        ['no uuid', 'https://objecttypes.example.org/api/v2/objecttypes/abc'],
+        ['another last segment', `https://objecttypes.example.org/api/v2/objects/${id}`],
+        ['a dot segment', `https://objecttypes.example.org/api/v2/../v2/objecttypes/${id}`],
+        ['a percent sign', `https://objecttypes.example.org/api/%2e%2e/objecttypes/${id}`],
+        ['a semicolon', `https://objecttypes.example.org/api;x/objecttypes/${id}`],
+        ['an empty segment', `https://objecttypes.example.org/api//objecttypes/${id}`],
+        ['a space', `${ok} x`],
+        ['more than 1000 characters', `https://objecttypes.example.org/${'a/'.repeat(500)}objecttypes/${id}`],
+        ['nothing', '']
+    ])('refuses %s', (_label, value) => {
+        expect(objectTypeUrlProblem(value, base)).toBe('invalid_object_type_url');
+    });
+
+    it('refuses an address outside the service base: other host, look-alike host, other path, user-info trick', () => {
+        expect(objectTypeUrlProblem(`https://other.example.org/api/v2/objecttypes/${id}`, base)).toBe('object_type_outside_base');
+        expect(objectTypeUrlProblem(`https://objecttypes.example.org.evil.test/api/v2/objecttypes/${id}`, base)).toBe('object_type_outside_base');
+        expect(objectTypeUrlProblem(`https://objecttypes.example.org/api/v3/objecttypes/${id}`, base)).toBe('object_type_outside_base');
+        expect(objectTypeUrlProblem(`https://objecttypes.example.org/api/v2x/objecttypes/${id}`, base)).toBe('object_type_outside_base');
+        expect(objectTypeUrlProblem(`https://objecttypes.example.org@evil.test/api/v2/objecttypes/${id}`, base)).toBe('invalid_object_type_url');
+    });
+
+    it('takes a version from 1 to 10000', () => {
+        expect(['1', '10', '10000', ' 7 '].every(isValidObjectTypeVersion)).toBe(true);
+        expect(['', '0', '10001', '-1', '1.5', 'abc', '1e3', '000001'.padEnd(6, '1')].some(isValidObjectTypeVersion)).toBe(false);
+    });
+});
+
+describe('Objects API: target paths and the reference path', () => {
+    it('parses a.b.c into segments and back', () => {
+        expect(parseTargetPath('a.b.c')).toEqual(['a', 'b', 'c']);
+        expect(parseTargetPath(' applicant . postcode ')).toEqual(['applicant', 'postcode']);
+        expect(formatTargetPath(['a', 'b'])).toBe('a.b');
+        expect(formatTargetPath(null)).toBe('');
+        expect(DEFAULT_REFERENCE_PATH).toBe('bettercollected_reference');
+        expect(parseTargetPath(DEFAULT_REFERENCE_PATH)).toEqual([DEFAULT_REFERENCE_PATH]);
+    });
+
+    it.each(['', '.', 'a..b', 'a.', '.a', '1a', 'a-b', 'a__b', 'a_', 'a.b_', '_a', 'a b', 'a'.repeat(65), 'a.b.c.d.e.f.g.h.i'])('refuses "%s"', (text) => {
+        expect(parseTargetPath(text)).toBeNull();
+    });
+
+    it('allows 8 levels and 64 characters', () => {
+        expect(parseTargetPath('a.b.c.d.e.f.g.h')).toHaveLength(8);
+        expect(isValidSegment('a'.repeat(64))).toBe(true);
+        expect(isValidSegment('a'.repeat(65))).toBe(false);
+    });
+
+    it('finds two paths that are the same or one inside the other', () => {
+        const paths = (...list: string[]) => list.map((text, index) => ({ source: `q${index}`, path: parseTargetPath(text)! }));
+        expect(findTargetConflict(paths('a.b', 'a.c', 'd'))).toBeNull();
+        expect(findTargetConflict(paths('a.b', 'a.b'))).toEqual({ first: 'q0', second: 'q1' });
+        expect(findTargetConflict(paths('a', 'x', 'a.b'))).toEqual({ first: 'q0', second: 'q2' });
+        expect(findTargetConflict(paths('a.b.c', 'a.b'))).toEqual({ first: 'q0', second: 'q1' });
+    });
+
+    it('keeps the reference path apart from the mapped ones', () => {
+        const mapped = [['applicant', 'postcode'], ['city']];
+        expect(referenceConflicts(['bettercollected_reference'], mapped)).toBe(false);
+        expect(referenceConflicts(['applicant'], mapped)).toBe(true);
+        expect(referenceConflicts(['applicant', 'postcode', 'x'], mapped)).toBe(true);
+        expect(referenceConflicts(['city'], mapped)).toBe(true);
+    });
+
+    it('takes a token without whitespace or non-ASCII', () => {
+        expect(isPlainToken('abc123DEF')).toBe(true);
+        expect(['', 'a b', 'a\tb', 'tökén', ' abc'].some(isPlainToken)).toBe(false);
+    });
+
+    it('asks for the token again when the Objects API address changes, but not the object types address', () => {
+        const objects: any = { kind: 'objects_api', baseUrl: 'https://objects.example.org/api/v2/', objecttypesBaseUrl: 'https://types.example.org/api/v2/', auth: 'token' };
+        expect(needsSecretAgain(objects, { baseUrl: 'https://objects.example.org/api/v2/', auth: 'token', authName: '' })).toBe(false);
+        expect(needsSecretAgain(objects, { baseUrl: 'https://other.example.org/api/v2/', auth: 'token', authName: '' })).toBe(true);
     });
 });

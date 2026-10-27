@@ -14,14 +14,46 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormRegistrationQuery, useGetRegistrationServicesQuery, useGetRegistrationVariablesQuery, useSaveFormRegistrationMutation } from '@app/store/workspaces/registration-api';
+import {
+    RegistrationTestResult,
+    RegistrationVariable,
+    useCheckFormRegistrationMutation,
+    useGetFormRegistrationQuery,
+    useGetRegistrationServicesQuery,
+    useGetRegistrationVariablesQuery,
+    useSaveFormRegistrationMutation
+} from '@app/store/workspaces/registration-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { canBeList, defaultKeyOf, errorCodeOf, errorKey, formErrorField, isValidKey, variableReasonKey } from '@app/utils/registration';
+import {
+    DEFAULT_REFERENCE_PATH,
+    canBeList,
+    checkKey,
+    defaultKeyOf,
+    errorCodeOf,
+    errorKey,
+    findTargetConflict,
+    formErrorField,
+    formatTargetPath,
+    isValidKey,
+    isValidObjectTypeVersion,
+    objectTypeUrlProblem,
+    parseTargetPath,
+    referenceConflicts,
+    variableReasonKey
+} from '@app/utils/registration';
 
 interface Chosen {
+    /** Generic JSON: the name in the sent body. */
     key: string;
     asList: boolean;
+    /** Objects API: `a.b.c`, where the answer goes in the object's data. */
+    target: string;
 }
+
+type CheckState = 'checking' | { ok: boolean; code?: string | null; httpStatus?: number | null } | { error: string };
+
+/** A file cannot be sent to an Objects API (it has no files in its records). */
+const blockedFor = (variable: RegistrationVariable, objects: boolean) => objects && variable.type === 'file_upload';
 
 /**
  * The Settings tab's "Send submissions to a case system": shown to owners and
@@ -44,13 +76,19 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
     const servicesQuery = useGetRegistrationServicesQuery(workspaceId);
     const variablesQuery = useGetRegistrationVariablesQuery({ workspaceId, formId });
     const [save, { isLoading: saving }] = useSaveFormRegistrationMutation();
+    const [runCheck] = useCheckFormRegistrationMutation();
 
     const [on, setOn] = useState(false);
     const [serviceId, setServiceId] = useState('');
     const [path, setPath] = useState('');
+    const [objectTypeUrl, setObjectTypeUrl] = useState('');
+    const [objectTypeVersion, setObjectTypeVersion] = useState('');
+    const [referencePath, setReferencePath] = useState(DEFAULT_REFERENCE_PATH);
+    const [check, setCheck] = useState<CheckState | null>(null);
+    const [dirty, setDirty] = useState(false);
     const [chosen, setChosen] = useState<Record<string, Chosen>>({});
     const [dropped, setDropped] = useState(0);
-    const [errors, setErrors] = useState<{ service?: string; path?: string; variables?: string }>({});
+    const [errors, setErrors] = useState<{ service?: string; path?: string; variables?: string; objectType?: string; version?: string; reference?: string }>({});
     const [keyErrors, setKeyErrors] = useState<Record<string, string>>({});
     const [general, setGeneral] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
@@ -73,11 +111,14 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                 missing += 1;
                 return;
             }
-            next[mapping.source] = { key: mapping.key ?? '', asList: list.has(mapping.source) };
+            next[mapping.source] = { key: mapping.key ?? '', asList: list.has(mapping.source), target: formatTargetPath(mapping.targetPath) };
         });
         setOn(registration.enabled);
         setServiceId(registration.serviceId ?? '');
         setPath(registration.path ?? '');
+        setObjectTypeUrl(registration.objectTypeUrl ?? '');
+        setObjectTypeVersion(registration.objectTypeVersion ? String(registration.objectTypeVersion) : '');
+        setReferencePath(registration.referencePath?.length ? formatTargetPath(registration.referencePath) : DEFAULT_REFERENCE_PATH);
         setChosen(next);
         setDropped(missing);
     }, [registration, variables, formId]);
@@ -87,13 +128,19 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
     const loadFailed = registrationQuery.isError || variablesQuery.isError;
     const selectedService = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
 
-    const touch = () => setSaved(false);
+    const objects = (selectedService?.kind ?? (serviceId === registration?.serviceId ? registration?.kind : null)) === 'objects_api';
+
+    const touch = () => {
+        setSaved(false);
+        setDirty(true);
+        setCheck(null);
+    };
 
     const toggleVariable = (source: string, checked: boolean) => {
         touch();
         setChosen((current) => {
             const next = { ...current };
-            if (checked) next[source] = { key: '', asList: false };
+            if (checked) next[source] = { key: '', asList: false, target: '' };
             else delete next[source];
             return next;
         });
@@ -103,12 +150,42 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         event.preventDefault();
         setSaved(false);
         setGeneral(null);
-        const sources = (variables ?? []).filter((v) => chosen[v.source]).map((v) => v.source);
+        const sources = (variables ?? []).filter((v) => chosen[v.source] && !blockedFor(v, objects)).map((v) => v.source);
         const found: typeof errors = {};
         const keyProblems: Record<string, string> = {};
+        const targets: Record<string, string[]> = {};
+        let reference: string[] = [];
         if (on) {
             if (!serviceId) found.service = t('REGISTRATION.ERROR.service_required');
             if (sources.length === 0) found.variables = t('REGISTRATION.ERROR.variables_required');
+        }
+        if (objects) {
+            // Checked here for a quick answer; the server decides.
+            if (!objectTypeUrl.trim()) {
+                if (on) found.objectType = t('REGISTRATION.ERROR.object_type_required');
+            } else {
+                const problem = objectTypeUrlProblem(objectTypeUrl, selectedService?.objecttypesBaseUrl);
+                if (problem) found.objectType = t(errorKey(problem));
+            }
+            if (!objectTypeVersion.trim()) {
+                if (on && !found.objectType) found.objectType = t('REGISTRATION.ERROR.object_type_required');
+            } else if (!isValidObjectTypeVersion(objectTypeVersion)) {
+                found.version = t('REGISTRATION.ERROR.invalid_object_type_version');
+            }
+            const parsedReference = referencePath.trim() ? parseTargetPath(referencePath) : [DEFAULT_REFERENCE_PATH];
+            if (!parsedReference) found.reference = t('REGISTRATION.ERROR.invalid_reference_path');
+            else reference = parsedReference;
+            sources.forEach((source) => {
+                const parsed = parseTargetPath(chosen[source].target);
+                if (!parsed) keyProblems[source] = t('REGISTRATION.ERROR.invalid_target_path');
+                else targets[source] = parsed;
+            });
+            if (!Object.keys(keyProblems).length) {
+                const conflict = findTargetConflict(sources.map((source) => ({ source, path: targets[source] })));
+                if (conflict) keyProblems[conflict.second] = t('REGISTRATION.FORM.TARGET_TAKEN');
+                else if (!found.reference && referenceConflicts(reference, Object.values(targets))) found.reference = t('REGISTRATION.ERROR.reference_path_conflict');
+            }
+        } else if (on) {
             const seen = new Set<string>();
             sources.forEach((source) => {
                 const key = chosen[source].key.trim() || defaultKeyOf(source);
@@ -124,25 +201,53 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         const response: any = await save({
             workspaceId,
             formId,
-            body: {
-                enabled: on,
-                serviceId: serviceId || null,
-                path: path.trim(),
-                variables: sources.map((source) => ({ source, key: chosen[source].key.trim() || undefined })),
-                transformToList: sources.filter((source) => chosen[source].asList && canBeList(variables!.find((v) => v.source === source)!))
-            }
+            body: objects
+                ? {
+                      enabled: on,
+                      serviceId: serviceId || null,
+                      path: '',
+                      variables: sources.map((source) => ({ source, targetPath: targets[source] })),
+                      transformToList: [],
+                      objectTypeUrl: objectTypeUrl.trim() || null,
+                      objectTypeVersion: objectTypeVersion.trim() ? Number(objectTypeVersion) : null,
+                      referencePath: reference
+                  }
+                : {
+                      enabled: on,
+                      serviceId: serviceId || null,
+                      path: path.trim(),
+                      variables: sources.map((source) => ({ source, key: chosen[source].key.trim() || undefined })),
+                      transformToList: sources.filter((source) => chosen[source].asList && canBeList(variables!.find((v) => v.source === source)!))
+                  }
         });
         if (response.data) {
             setSaved(true);
+            setDirty(false);
             setDropped(0);
             return;
         }
         const code = errorCodeOf(response.error);
         const sentence = t(errorKey(code));
         const field = formErrorField(code);
-        if (field) setErrors({ [field]: sentence });
+        // Fields of the Objects API settings are on screen only for that kind.
+        if (field && (objects || !['objectType', 'version', 'reference'].includes(field))) setErrors({ [field]: sentence });
         else setGeneral(sentence);
     };
+
+    const runConnectionCheck = async () => {
+        setCheck('checking');
+        const response: any = await runCheck({ workspaceId, formId });
+        // 429 (rate_limited) and the rest arrive as an error with our code.
+        setCheck(response.data ? (response.data as RegistrationTestResult) : { error: errorCodeOf(response.error) });
+    };
+
+    const checkText = (state: CheckState | null) => {
+        if (!state) return '';
+        if (state === 'checking') return t('REGISTRATION.FORM.CHECKING');
+        if ('error' in state) return t(state.error === 'rate_limited' ? 'REGISTRATION.CHECK.rate_limited' : errorKey(state.error));
+        return t(checkKey(state.ok, state.code), { status: state.httpStatus ?? '' });
+    };
+    const checkFailed = !!check && check !== 'checking' && ('error' in check || !check.ok);
 
     return (
         <section className="flex flex-col gap-3" aria-labelledby="registration-form-title" data-testid="registration-form-settings">
@@ -212,30 +317,90 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                     </select>
                                 )}
                             </Field>
-                            {selectedService && <p className="-mt-3 text-xs text-black-600">{t('REGISTRATION.FORM.SENDS_TO', { address: selectedService.baseUrl })}</p>}
+                            {selectedService && <p className="-mt-3 text-xs text-black-600">{t(objects ? 'REGISTRATION.FORM.SENDS_TO_OBJECTS' : 'REGISTRATION.FORM.SENDS_TO', { address: selectedService.baseUrl })}</p>}
 
-                            <Field id="registration-form-path" label={t('REGISTRATION.FORM.PATH')} hint={t('REGISTRATION.FORM.PATH_HINT')} error={errors.path}>
-                                {(props) => (
-                                    <input
-                                        {...props}
-                                        className={inputClass}
-                                        value={path}
-                                        maxLength={255}
-                                        placeholder="/cases"
-                                        autoComplete="off"
-                                        spellCheck={false}
-                                        onChange={(e) => {
-                                            touch();
-                                            setPath(e.target.value);
-                                        }}
-                                    />
-                                )}
-                            </Field>
+                            {objects && (
+                                <>
+                                    <div className="flex max-w-[62ch] flex-col gap-1 text-xs leading-relaxed text-black-600">
+                                        <p>{t('REGISTRATION.FORM.OBJECTS_HELP')}</p>
+                                        <p>{t('REGISTRATION.FORM.OBJECTS_EDGE')}</p>
+                                    </div>
+                                    <Field id="registration-form-object-type" label={t('REGISTRATION.FORM.OBJECT_TYPE_URL')} hint={t('REGISTRATION.FORM.OBJECT_TYPE_URL_HINT', { base: selectedService?.objecttypesBaseUrl ?? '' })} error={errors.objectType}>
+                                        {(props) => (
+                                            <input
+                                                {...props}
+                                                className={inputClass}
+                                                value={objectTypeUrl}
+                                                maxLength={1000}
+                                                placeholder="https://"
+                                                autoComplete="off"
+                                                spellCheck={false}
+                                                onChange={(e) => {
+                                                    touch();
+                                                    setObjectTypeUrl(e.target.value);
+                                                }}
+                                            />
+                                        )}
+                                    </Field>
+                                    <Field id="registration-form-object-type-version" label={t('REGISTRATION.FORM.OBJECT_TYPE_VERSION')} hint={t('REGISTRATION.FORM.OBJECT_TYPE_VERSION_HINT')} error={errors.version}>
+                                        {(props) => (
+                                            <input
+                                                {...props}
+                                                className={inputClass + ' sm:max-w-40'}
+                                                inputMode="numeric"
+                                                value={objectTypeVersion}
+                                                maxLength={5}
+                                                autoComplete="off"
+                                                onChange={(e) => {
+                                                    touch();
+                                                    setObjectTypeVersion(e.target.value);
+                                                }}
+                                            />
+                                        )}
+                                    </Field>
+                                    <Field id="registration-form-reference-path" label={t('REGISTRATION.FORM.REFERENCE_PATH')} hint={t('REGISTRATION.FORM.REFERENCE_PATH_HINT')} error={errors.reference}>
+                                        {(props) => (
+                                            <input
+                                                {...props}
+                                                className={inputClass}
+                                                value={referencePath}
+                                                placeholder={DEFAULT_REFERENCE_PATH}
+                                                autoComplete="off"
+                                                spellCheck={false}
+                                                onChange={(e) => {
+                                                    touch();
+                                                    setReferencePath(e.target.value);
+                                                }}
+                                            />
+                                        )}
+                                    </Field>
+                                </>
+                            )}
+
+                            {!objects && (
+                                <Field id="registration-form-path" label={t('REGISTRATION.FORM.PATH')} hint={t('REGISTRATION.FORM.PATH_HINT')} error={errors.path}>
+                                    {(props) => (
+                                        <input
+                                            {...props}
+                                            className={inputClass}
+                                            value={path}
+                                            maxLength={255}
+                                            placeholder="/cases"
+                                            autoComplete="off"
+                                            spellCheck={false}
+                                            onChange={(e) => {
+                                                touch();
+                                                setPath(e.target.value);
+                                            }}
+                                        />
+                                    )}
+                                </Field>
+                            )}
 
                             <fieldset className="flex flex-col gap-2" aria-describedby={errors.variables ? 'registration-variables-error' : 'registration-variables-hint'}>
                                 <legend className="text-sm font-medium text-black-900">{t('REGISTRATION.FORM.VARIABLES')}</legend>
                                 <p id="registration-variables-hint" className="text-xs leading-relaxed text-black-600">
-                                    {t('REGISTRATION.FORM.VARIABLES_HINT')}
+                                    {objects ? t('REGISTRATION.FORM.VARIABLES_HINT_OBJECTS') : t('REGISTRATION.FORM.VARIABLES_HINT')}
                                 </p>
                                 {dropped > 0 && (
                                     <p role="status" className="text-xs text-black-700">
@@ -245,11 +410,13 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                 {variables.length === 0 && <p className="text-sm text-black-700">{t('REGISTRATION.FORM.NO_VARIABLES')}</p>}
                                 <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
                                     {variables.map((variable, index) => {
-                                        const row = chosen[variable.source];
+                                        const row = blockedFor(variable, objects) ? undefined : chosen[variable.source];
                                         // by position: a source can hold characters an id cannot
                                         const checkboxId = `registration-var-${index}`;
                                         const keyId = `${checkboxId}-key`;
                                         const keyError = keyErrors[variable.source];
+                                        const blocked = blockedFor(variable, objects);
+                                        const choosable = variable.supported && !blocked;
                                         return (
                                             <li key={variable.source} className="flex flex-col gap-2 px-3 py-2.5" data-testid={`registration-variable-${variable.source}`}>
                                                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
@@ -259,20 +426,20 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                                             type="checkbox"
                                                             className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
                                                             checked={!!row}
-                                                            disabled={!variable.supported}
-                                                            aria-describedby={!variable.supported ? `${checkboxId}-reason` : undefined}
+                                                            disabled={!choosable}
+                                                            aria-describedby={!choosable ? `${checkboxId}-reason` : undefined}
                                                             onChange={(e) => toggleVariable(variable.source, e.target.checked)}
                                                         />
-                                                        <label htmlFor={checkboxId} className={variable.supported ? 'text-sm break-words text-black-900' : 'text-sm break-words text-black-600'}>
+                                                        <label htmlFor={checkboxId} className={choosable ? 'text-sm break-words text-black-900' : 'text-sm break-words text-black-600'}>
                                                             {variable.label}
                                                         </label>
                                                     </div>
                                                     <span className="text-xs text-black-600">
                                                         {variable.type.replace(/_/g, ' ')}
-                                                        {!variable.supported && (
+                                                        {!choosable && (
                                                             <>
                                                                 {' · '}
-                                                                <span id={`${checkboxId}-reason`}>{t(variableReasonKey(variable.reason))}</span>
+                                                                <span id={`${checkboxId}-reason`}>{blocked ? t('REGISTRATION.FORM.REASON.file_upload') : t(variableReasonKey(variable.reason))}</span>
                                                             </>
                                                         )}
                                                     </span>
@@ -281,21 +448,21 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                                     <div className="ml-6 flex flex-col gap-2 sm:flex-row sm:items-start">
                                                         <div className="flex flex-1 flex-col gap-1">
                                                             <label htmlFor={keyId} className="text-xs font-medium text-black-700">
-                                                                {t('REGISTRATION.FORM.KEY')}
+                                                                {objects ? t('REGISTRATION.FORM.TARGET_PATH') : t('REGISTRATION.FORM.KEY')}
                                                             </label>
                                                             <input
                                                                 id={keyId}
                                                                 className={inputClass}
-                                                                value={row.key}
-                                                                maxLength={64}
+                                                                value={objects ? row.target : row.key}
+                                                                maxLength={objects ? 600 : 64}
                                                                 autoComplete="off"
                                                                 spellCheck={false}
-                                                                placeholder={defaultKeyOf(variable.source)}
+                                                                placeholder={objects ? 'a.b.c' : defaultKeyOf(variable.source)}
                                                                 aria-invalid={!!keyError}
                                                                 aria-describedby={keyError ? `${keyId}-error` : undefined}
                                                                 onChange={(e) => {
                                                                     touch();
-                                                                    setChosen((current) => ({ ...current, [variable.source]: { ...current[variable.source], key: e.target.value } }));
+                                                                    setChosen((current) => ({ ...current, [variable.source]: { ...current[variable.source], ...(objects ? { target: e.target.value } : { key: e.target.value }) } }));
                                                                 }}
                                                             />
                                                             {keyError && (
@@ -304,7 +471,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                                                 </p>
                                                             )}
                                                         </div>
-                                                        {canBeList(variable) && (
+                                                        {!objects && canBeList(variable) && (
                                                             <label className="flex items-center gap-2 pt-1 text-sm text-black-800 sm:mt-6">
                                                                 <input
                                                                     type="checkbox"
@@ -329,7 +496,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                         {errors.variables}
                                     </p>
                                 )}
-                                <p className="text-xs leading-relaxed text-black-600">{t('REGISTRATION.FORM.ALWAYS_SENT')}</p>
+                                {!objects && <p className="text-xs leading-relaxed text-black-600">{t('REGISTRATION.FORM.ALWAYS_SENT')}</p>}
                             </fieldset>
                         </>
                     )}
@@ -341,6 +508,22 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                             {general}
                         </p>
                     )}
+                    {on && objects && (
+                        <div className="flex flex-col gap-2 rounded-md border border-black-300 p-3" data-testid="registration-check">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button type="button" variant="v2Button" isLoading={check === 'checking'} disabled={check === 'checking' || dirty || !registration.serviceId} onClick={runConnectionCheck}>
+                                    {check === 'checking' ? t('REGISTRATION.FORM.CHECKING') : t('REGISTRATION.FORM.CHECK')}
+                                </Button>
+                                <p id="registration-check-hint" className="text-xs text-black-600">
+                                    {dirty ? t('REGISTRATION.FORM.CHECK_SAVE_FIRST') : t('REGISTRATION.FORM.CHECK_HINT')}
+                                </p>
+                            </div>
+                            <p role="status" data-testid="registration-check-result" className={checkFailed ? 'text-sm font-medium text-[#A83434]' : 'text-sm text-black-800'}>
+                                {check === 'checking' ? '' : checkText(check)}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex flex-wrap items-center gap-3">
                         <Button type="submit" isLoading={saving} disabled={saving}>
                             {saving ? t('REGISTRATION.DIALOG.SAVING') : t('REGISTRATION.FORM.SAVE')}

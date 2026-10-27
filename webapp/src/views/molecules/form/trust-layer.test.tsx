@@ -350,6 +350,7 @@ describe('Privacy panel: answers also sent to a case system', () => {
         openPanel();
         expect(screen.queryByTestId('privacy-registration')).not.toBeInTheDocument();
         expect(screen.queryByText(/case system/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/does not delete the copy/i)).not.toBeInTheDocument();
         unmount();
         // an empty destination is no destination
         renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: '   ' } });
@@ -363,6 +364,8 @@ describe('Privacy panel: answers also sent to a case system', () => {
         renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: 'Example Organisation' } });
         openPanel();
         expect(row('registration')).toHaveTextContent("Your answers are also sent to Example Organisation's case system.");
+        // and what deleting here does not do, and who to ask
+        expect(row('registration')).toHaveTextContent('Deleting your answers here does not delete the copy at Example Organisation. Contact Example Organisation to have it deleted.');
         // before the rights: what leaves, then what the respondent can do
         const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
         expect(keys.indexOf('privacy-registration')).toBeLessThan(keys.indexOf('privacy-rights'));
@@ -373,6 +376,7 @@ describe('Privacy panel: answers also sent to a case system', () => {
         renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: 'Voorbeeld Organisatie' } });
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(row('registration')).toHaveTextContent('Je antwoorden worden ook verstuurd naar het zaaksysteem van Voorbeeld Organisatie.');
+        expect(row('registration')).toHaveTextContent('Als je je antwoorden hier verwijdert, wordt de kopie bij Voorbeeld Organisatie niet verwijderd. Neem daarvoor contact op met Voorbeeld Organisatie.');
     });
 
     it('renders an organisation name with markup as literal text', () => {
@@ -384,7 +388,7 @@ describe('Privacy panel: answers also sent to a case system', () => {
         expect(line.querySelector('img')).toBeNull();
         expect(line.querySelector('b')).toBeNull();
         expect(line).toHaveTextContent(`Your answers are also sent to ${name}'s case system.`);
+        expect(line).toHaveTextContent(`Contact ${name} to have it deleted.`);
         expect((window as any).__pwned).toBeUndefined();
     });
 });
-

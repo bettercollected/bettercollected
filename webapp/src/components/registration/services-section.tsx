@@ -12,8 +12,8 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { RegistrationService, RegistrationTestResult, useDeleteRegistrationServiceMutation, useGetRegistrationServicesQuery, useTestRegistrationServiceMutation } from '@app/store/workspaces/registration-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { errorCodeOf, errorKey, formatDay, testKey } from '@app/utils/registration';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 
 /**
  * Workspace settings, "Case system": the services submissions can be sent
@@ -58,6 +58,7 @@ export default function ServicesSection() {
     };
 
     const authLabel = (service: RegistrationService) => {
+        if (service.kind === 'objects_api') return t('REGISTRATION.SERVICES.AUTH_TOKEN');
         if (service.auth === 'header') return t('REGISTRATION.SERVICES.AUTH_HEADER', { name: service.authName });
         if (service.auth === 'basic') return t('REGISTRATION.SERVICES.AUTH_BASIC', { name: service.authName });
         return t('REGISTRATION.SERVICES.AUTH_NONE');
@@ -115,24 +116,34 @@ export default function ServicesSection() {
                                                 <h3 className="text-sm font-semibold break-words text-black-900">{service.name}</h3>
                                             </div>
                                             <dl className="grid gap-x-6 gap-y-0.5 text-xs text-black-700 sm:grid-cols-[max-content_1fr]">
+                                                <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.KIND')}</dt>
+                                                <dd>{service.kind === 'objects_api' ? t('REGISTRATION.SERVICES.KIND_OBJECTS_API') : t('REGISTRATION.SERVICES.KIND_GENERIC_JSON')}</dd>
                                                 <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.ADDRESS')}</dt>
                                                 <dd className="break-all">{service.baseUrl}</dd>
+                                                {service.kind === 'objects_api' && (
+                                                    <>
+                                                        <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.OBJECTTYPES_ADDRESS')}</dt>
+                                                        <dd className="break-all">{service.objecttypesBaseUrl}</dd>
+                                                    </>
+                                                )}
                                                 <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.ORGANISATION')}</dt>
                                                 <dd className="break-words">{service.organisationName}</dd>
                                                 <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.SIGN_IN')}</dt>
                                                 <dd className="break-words">{authLabel(service)}</dd>
                                                 {service.auth !== 'none' && (
                                                     <>
-                                                        <dt className="font-medium text-black-600">{t('REGISTRATION.SERVICES.SECRET')}</dt>
+                                                        <dt className="font-medium text-black-600">{service.kind === 'objects_api' ? t('REGISTRATION.SERVICES.TOKEN') : t('REGISTRATION.SERVICES.SECRET')}</dt>
                                                         <dd>{service.hasSecret ? t('REGISTRATION.SERVICES.SECRET_SET', { date: formatDay(service.secretSetAt, i18n.language) }) : t('REGISTRATION.SERVICES.SECRET_NOT_SET')}</dd>
                                                     </>
                                                 )}
                                             </dl>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            <Button type="button" variant="v2Button" size="sm" disabled={result === 'testing'} aria-label={t('REGISTRATION.SERVICES.TEST_NAMED', { name: service.name })} onClick={() => runTest(service)}>
-                                                {t('REGISTRATION.SERVICES.TEST')}
-                                            </Button>
+                                            {service.kind !== 'objects_api' && (
+                                                <Button type="button" variant="v2Button" size="sm" disabled={result === 'testing'} aria-label={t('REGISTRATION.SERVICES.TEST_NAMED', { name: service.name })} onClick={() => runTest(service)}>
+                                                    {t('REGISTRATION.SERVICES.TEST')}
+                                                </Button>
+                                            )}
                                             <Button type="button" variant="v2Button" size="sm" aria-label={t('REGISTRATION.SERVICES.EDIT_NAMED', { name: service.name })} onClick={() => openDialog(service)}>
                                                 {t('REGISTRATION.SERVICES.EDIT')}
                                             </Button>
@@ -150,15 +161,23 @@ export default function ServicesSection() {
                                             </Button>
                                         </div>
                                     </div>
-                                    <p role="status" className={result && result !== 'testing' && (result === 'failed' || !result.ok) ? 'text-sm font-medium text-[#A83434]' : 'text-sm text-black-800'} data-testid={`registration-test-${service.id}`}>
-                                        {resultText(result)}
-                                    </p>
+                                    {service.kind === 'objects_api' && (
+                                        // The check needs a form's object type, so it lives on the form (the API answers `use_form_check`).
+                                        <p className="text-sm text-black-700" data-testid={`registration-test-note-${service.id}`}>
+                                            {t('REGISTRATION.TEST.use_form_check')}
+                                        </p>
+                                    )}
+                                    {service.kind !== 'objects_api' && (
+                                        <p role="status" className={result && result !== 'testing' && (result === 'failed' || !result.ok) ? 'text-sm font-medium text-[#A83434]' : 'text-sm text-black-800'} data-testid={`registration-test-${service.id}`}>
+                                            {resultText(result)}
+                                        </p>
+                                    )}
                                 </li>
                             );
                         })}
                     </ul>
                 )}
-                {data && data.length > 0 && <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('REGISTRATION.SERVICES.TEST_WARNING')}</p>}
+                {data && data.some((service) => service.kind !== 'objects_api') && <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('REGISTRATION.SERVICES.TEST_WARNING')}</p>}
             </section>
 
             <ServiceDialog open={dialogOpen} onOpenChange={setDialogOpen} workspaceId={workspaceId as string} workspaceTitle={workspaceDisplayName(workspace)} service={editing} />

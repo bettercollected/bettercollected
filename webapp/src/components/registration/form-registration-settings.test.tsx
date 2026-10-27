@@ -34,6 +34,7 @@ const registrationState: { data: FormRegistration | undefined; isLoading: boolea
 const servicesState: { data: RegistrationService[] | undefined; isLoading: boolean } = { data: [], isLoading: false };
 const variablesState: { data: RegistrationVariable[] | undefined; isLoading: boolean; isError: boolean } = { data: [], isLoading: false, isError: false };
 const saveMock = vi.fn();
+const checkMock = vi.fn();
 vi.mock('@app/store/workspaces/registration-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -42,7 +43,8 @@ vi.mock('@app/store/workspaces/registration-api', async (importOriginal) => {
         useGetFormRegistrationQuery: () => registrationState,
         useGetRegistrationServicesQuery: () => servicesState,
         useGetRegistrationVariablesQuery: () => variablesState,
-        useSaveFormRegistrationMutation: () => [saveMock, { isLoading: false }]
+        useSaveFormRegistrationMutation: () => [saveMock, { isLoading: false }],
+        useCheckFormRegistrationMutation: () => [checkMock, { isLoading: false }]
     };
 });
 
@@ -84,6 +86,7 @@ beforeEach(() => {
     permissions = new Set([WorkspacePermission.WORKSPACE_MANAGE]);
     formState = { formId: 'f1', settings: { provider: 'self' } };
     saveMock.mockReset();
+    checkMock.mockReset();
 });
 afterEach(async () => {
     await i18n.changeLanguage('en');
@@ -260,5 +263,278 @@ describe('Accessibility', () => {
         fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
         expect(await screen.findByText(en.ERROR.invalid_key)).toBeInTheDocument();
         expect(await axeViolations(document.body)).toEqual([]);
+    });
+});
+
+const OT_ID = '0f9a3b1c-5d2e-4f6a-8b7c-1d2e3f4a5b6c';
+const OT_URL = `https://types.example.org/api/v2/objecttypes/${OT_ID}`;
+const objectsServices: RegistrationService[] = [
+    ...services,
+    {
+        id: 's9',
+        name: 'Objects',
+        kind: 'objects_api',
+        baseUrl: 'https://objects.example.org/api/v2/',
+        objecttypesBaseUrl: 'https://types.example.org/api/v2/',
+        auth: 'token',
+        hasSecret: true,
+        organisationName: 'Example Organisation'
+    }
+];
+const objectsRegistration = (over: Partial<FormRegistration> = {}) =>
+    registration({
+        enabled: true,
+        serviceId: 's9',
+        serviceName: 'Objects',
+        kind: 'objects_api',
+        objectTypeUrl: OT_URL,
+        objectTypeVersion: 3,
+        referencePath: ['bettercollected_reference'],
+        variables: [{ source: 'q1', key: null, targetPath: ['applicant', 'postcode'] }],
+        ...over
+    });
+const within_ = (id: string) => within(screen.getByTestId(`registration-variable-${id}`));
+
+describe('Objects API form settings', () => {
+    beforeEach(() => {
+        servicesState.data = objectsServices;
+    });
+
+    it('shows the object type fields instead of the path once an Objects API service is chosen', () => {
+        renderSettings();
+        fireEvent.click(toggle());
+        expect(screen.getByLabelText(en.FORM.PATH)).toBeInTheDocument();
+        expect(screen.queryByLabelText(en.FORM.OBJECT_TYPE_URL)).toBeNull();
+        fireEvent.change(screen.getByLabelText(en.FORM.SERVICE), { target: { value: 's9' } });
+        expect(screen.queryByLabelText(en.FORM.PATH)).toBeNull();
+        expect(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL)).toHaveAccessibleDescription(expect.stringContaining('https://types.example.org/api/v2/'));
+        expect(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION)).toBeInTheDocument();
+        // the default reference path is filled in
+        expect(screen.getByLabelText(en.FORM.REFERENCE_PATH)).toHaveValue('bettercollected_reference');
+        expect(screen.getByText(en.FORM.OBJECTS_HELP)).toBeInTheDocument();
+        expect(screen.getByText(en.FORM.OBJECTS_EDGE)).toBeInTheDocument();
+        expect(screen.getByText(en.NOTICE)).toBeInTheDocument();
+    });
+
+    it('shows target paths instead of names, has no list option, and shows files as not supported', () => {
+        registrationState.data = objectsRegistration();
+        renderSettings();
+        const row = within_('q1');
+        expect(row.getByLabelText(en.FORM.TARGET_PATH)).toHaveValue('applicant.postcode');
+        expect(row.queryByLabelText(en.FORM.KEY)).toBeNull();
+        fireEvent.click(within_('q2').getByRole('checkbox'));
+        expect(within_('q2').queryByLabelText(en.FORM.AS_LIST)).toBeNull();
+        const file = screen.getByTestId('registration-variable-q3');
+        expect(within(file).getByRole('checkbox')).toBeDisabled();
+        expect(within(file).getByRole('checkbox')).not.toBeChecked();
+        expect(file).toHaveTextContent(en.FORM.REASON.file_upload);
+        // the generic "always sent" line does not apply: only the mapped answers and the reference go out
+        expect(screen.queryByText(en.FORM.ALWAYS_SENT)).toBeNull();
+    });
+
+    it('saves the object type, version, reference path and the target paths as segments', async () => {
+        saveMock.mockResolvedValue({ data: objectsRegistration() });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.change(screen.getByLabelText(en.FORM.SERVICE), { target: { value: 's9' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL), { target: { value: ` ${OT_URL} ` } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '3' } });
+        fireEvent.click(within_('q1').getByRole('checkbox'));
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'applicant.postcode' } });
+        fireEvent.click(within_('q2').getByRole('checkbox'));
+        fireEvent.change(within_('q2').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'interests' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock).toHaveBeenCalledWith({
+            workspaceId: 'ws1',
+            formId: 'f1',
+            body: {
+                enabled: true,
+                serviceId: 's9',
+                path: '',
+                variables: [
+                    { source: 'q1', targetPath: ['applicant', 'postcode'] },
+                    { source: 'q2', targetPath: ['interests'] }
+                ],
+                transformToList: [],
+                objectTypeUrl: OT_URL,
+                objectTypeVersion: 3,
+                referencePath: ['bettercollected_reference']
+            }
+        });
+    });
+
+    it('never sends a mapped file question, even one left over from another service', async () => {
+        saveMock.mockResolvedValue({ data: objectsRegistration() });
+        registrationState.data = registration({
+            enabled: true,
+            serviceId: 's1',
+            variables: [
+                { source: 'q3', key: 'photo' },
+                { source: 'q1', key: 'postcode' }
+            ]
+        });
+        renderSettings();
+        fireEvent.change(screen.getByLabelText(en.FORM.SERVICE), { target: { value: 's9' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL), { target: { value: OT_URL } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '1' } });
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'pc' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalled());
+        expect(saveMock.mock.calls[0][0].body.variables).toEqual([{ source: 'q1', targetPath: ['pc'] }]);
+    });
+
+    it('checks the object type address against the service base before sending', () => {
+        registrationState.data = objectsRegistration();
+        renderSettings();
+        const field = screen.getByLabelText(en.FORM.OBJECT_TYPE_URL);
+        fireEvent.change(field, { target: { value: `https://evil.example.org/api/v2/objecttypes/${OT_ID}` } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(saveMock).not.toHaveBeenCalled();
+        expect(field).toHaveAttribute('aria-invalid', 'true');
+        expect(field).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.object_type_outside_base));
+        fireEvent.change(field, { target: { value: 'not a url' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(field).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.invalid_object_type_url));
+        expect(saveMock).not.toHaveBeenCalled();
+    });
+
+    it('refuses a bad version, bad or clashing target paths and a clashing reference path', () => {
+        registrationState.data = objectsRegistration({
+            variables: [
+                { source: 'q1', targetPath: ['a'] },
+                { source: 'q2', targetPath: ['b'] }
+            ]
+        });
+        renderSettings();
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '0' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.invalid_object_type_version));
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '2' } });
+
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'a__b' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(within_('q1').getByLabelText(en.FORM.TARGET_PATH)).toHaveAccessibleDescription(en.ERROR.invalid_target_path);
+
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'a' } });
+        fireEvent.change(within_('q2').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'a.b' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(within_('q2').getByLabelText(en.FORM.TARGET_PATH)).toHaveAccessibleDescription(en.FORM.TARGET_TAKEN);
+
+        fireEvent.change(within_('q2').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'b' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.REFERENCE_PATH), { target: { value: 'a.ref' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(screen.getByLabelText(en.FORM.REFERENCE_PATH)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.reference_path_conflict));
+
+        fireEvent.change(screen.getByLabelText(en.FORM.REFERENCE_PATH), { target: { value: 'bad-name' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(screen.getByLabelText(en.FORM.REFERENCE_PATH)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.invalid_reference_path));
+        expect(saveMock).not.toHaveBeenCalled();
+    });
+
+    it('uses the default reference path when the field is emptied', async () => {
+        saveMock.mockResolvedValue({ data: objectsRegistration() });
+        registrationState.data = objectsRegistration();
+        renderSettings();
+        fireEvent.change(screen.getByLabelText(en.FORM.REFERENCE_PATH), { target: { value: '' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalled());
+        expect(saveMock.mock.calls[0][0].body.referencePath).toEqual(['bettercollected_reference']);
+    });
+
+    it('shows a server refusal of the object type next to the field', async () => {
+        saveMock.mockResolvedValue({ error: { status: 422, data: { code: 'object_type_outside_base', message: 'RAW SERVER TEXT' } } });
+        registrationState.data = objectsRegistration();
+        renderSettings();
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.object_type_outside_base)));
+        expect(document.body).not.toHaveTextContent('RAW SERVER TEXT');
+    });
+});
+
+describe('Check connection', () => {
+    beforeEach(() => {
+        servicesState.data = objectsServices;
+        registrationState.data = objectsRegistration();
+    });
+    const button = () => screen.getByRole('button', { name: en.FORM.CHECK });
+    const result = () => screen.getByTestId('registration-check-result');
+
+    it('is shown only for an Objects API service', () => {
+        registrationState.data = registration({ enabled: true, serviceId: 's1', kind: 'generic_json', variables: [{ source: 'q1', key: 'x' }] });
+        renderSettings();
+        expect(screen.queryByRole('button', { name: en.FORM.CHECK })).toBeNull();
+    });
+
+    it('is off until the changes are saved, then says it uses the saved settings', () => {
+        renderSettings();
+        expect(button()).toBeEnabled();
+        expect(screen.getByText(en.FORM.CHECK_HINT)).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '4' } });
+        expect(button()).toBeDisabled();
+        expect(screen.getByText(en.FORM.CHECK_SAVE_FIRST)).toBeInTheDocument();
+    });
+
+    it('reports success', async () => {
+        checkMock.mockResolvedValue({ data: { ok: true } });
+        renderSettings();
+        fireEvent.click(button());
+        expect(checkMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1' });
+        await waitFor(() => expect(result()).toHaveTextContent(en.CHECK.ok));
+        expect(result()).not.toHaveClass('text-[#A83434]');
+    });
+
+    it.each([
+        ['lookup_failed', undefined],
+        ['filter_not_supported', undefined],
+        ['not_configured', undefined],
+        ['secret_unreadable', undefined],
+        ['http_5xx', 502]
+    ])('reports "%s" in plain words', async (code, httpStatus) => {
+        checkMock.mockResolvedValue({ data: { ok: false, code, httpStatus } });
+        renderSettings();
+        fireEvent.click(button());
+        await waitFor(() => expect(result()).toHaveTextContent((en.CHECK[code] as string).replace('{{status}}', String(httpStatus))));
+        expect(result()).toHaveClass('text-[#A83434]');
+    });
+
+    it('says "too many checks" on a 429, and never shows the server text', async () => {
+        checkMock.mockResolvedValue({ error: { status: 429, data: { code: 'rate_limited', message: 'RAW SERVER TEXT' } } });
+        renderSettings();
+        fireEvent.click(button());
+        await waitFor(() => expect(result()).toHaveTextContent(en.CHECK.rate_limited));
+        expect(document.body).not.toHaveTextContent('RAW SERVER TEXT');
+        // and can be run again
+        expect(button()).toBeEnabled();
+    });
+
+    it('answers a forbidden or failed call with a sentence too', async () => {
+        checkMock.mockResolvedValue({ error: { status: 403 } });
+        renderSettings();
+        fireEvent.click(button());
+        await waitFor(() => expect(result()).toHaveTextContent(en.ERROR.forbidden));
+    });
+
+    it('clears an old result when something is edited', async () => {
+        checkMock.mockResolvedValue({ data: { ok: true } });
+        renderSettings();
+        fireEvent.click(button());
+        await waitFor(() => expect(result()).toHaveTextContent(en.CHECK.ok));
+        fireEvent.change(screen.getByLabelText(en.FORM.REFERENCE_PATH), { target: { value: 'x' } });
+        expect(result()).toBeEmptyDOMElement();
+    });
+
+    it('speaks Dutch in the "u" register', async () => {
+        await i18n.changeLanguage('nl');
+        checkMock.mockResolvedValue({ data: { ok: false, code: 'lookup_failed' } });
+        renderSettings();
+        fireEvent.click(screen.getByRole('button', { name: nl.FORM.CHECK }));
+        await waitFor(() => expect(result()).toHaveTextContent(nl.CHECK.lookup_failed));
+        expect(screen.getByText(nl.FORM.OBJECTS_HELP)).toBeInTheDocument();
+    });
+
+    it('has no accessibility violations', async () => {
+        const { container } = renderSettings();
+        expect(await axeViolations(container)).toEqual([]);
     });
 });
