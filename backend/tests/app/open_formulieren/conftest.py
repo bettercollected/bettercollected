@@ -31,6 +31,12 @@ def load(name: str) -> Dict[str, Any]:
         return {entry: json.loads(archive.read(entry)) for entry in archive.namelist()}
 
 
+# every entry gets this timestamp, so the same entries always make the same
+# bytes (``writestr`` with a name stamps the current time, and test ids built
+# from archive bytes would then differ between xdist workers)
+ZIP_DATE_TIME = (2025, 1, 1, 0, 0, 0)
+
+
 def make_zip(
     entries: Dict[str, Any], *, deflate: bool = True, extra: Optional[dict] = None
 ) -> bytes:
@@ -41,7 +47,10 @@ def make_zip(
     with zipfile.ZipFile(buffer, "w", kind) as archive:
         for name, value in {**entries, **(extra or {})}.items():
             data = value if isinstance(value, bytes) else json.dumps(value).encode()
-            archive.writestr(name, data)
+            info = zipfile.ZipInfo(name, date_time=ZIP_DATE_TIME)
+            info.compress_type = kind
+            info.external_attr = 0o600 << 16  # what ``writestr`` gives a name
+            archive.writestr(info, data)
     return buffer.getvalue()
 
 
