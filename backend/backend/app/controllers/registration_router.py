@@ -136,6 +136,19 @@ class RegistrationRouter(Routable):
             workspace_id, form_id, request, user
         )
 
+    @post("/{workspace_id}/forms/{form_id}/registration/test")
+    async def check_connection(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        user: User = Depends(get_full_user),
+    ) -> ServiceTestDto:
+        """Objects API forms: look up a reference that cannot exist, with the
+        saved settings. Reads no records; answers our code only."""
+        return await container.registration_service().check_connection(
+            workspace_id, form_id, user
+        )
+
     @get("/{workspace_id}/forms/{form_id}/registration/variables")
     async def list_variables(
         self,
