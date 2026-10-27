@@ -29,6 +29,7 @@ from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.google_forms_settings import GoogleFormsSettings
 from backend.config.google_sheets_settings import GoogleSheetsSettings
 from backend.config.OpenAISettings import OpenAISettings
+from backend.config.registration_settings import RegistrationSettings
 from backend.config.respondent_identity_settings import RespondentIdentitySettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -103,6 +104,7 @@ class Application(StoreBackedSettings):
     verified_domains: VerifiedDomainSettings = VerifiedDomainSettings()
     sso: SSOSettings = SSOSettings()
     scim: SCIMSettings = SCIMSettings()
+    registration: RegistrationSettings = RegistrationSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

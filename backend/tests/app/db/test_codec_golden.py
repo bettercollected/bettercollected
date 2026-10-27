@@ -76,8 +76,15 @@ from common.db.codec_golden import (
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "codec_golden" / "backend.json"
 
 # Tables written only by the migration (raw documents, no Beanie class); their
-# codec path is covered by common/tests/test_codec_golden.py.
-NO_DOCUMENT_CLASS = {"scheduler_form_configs"}
+# codec path is covered by common/tests/test_codec_golden.py. Also the tables
+# that exist only in Postgres (new in 4.2, registration): they were never in
+# Mongo, so there are no 4.0 bytes to pin and no Beanie original to compare.
+NO_DOCUMENT_CLASS = {
+    "scheduler_form_configs",
+    "registration_services",
+    "form_registrations",
+    "registration_deliveries",
+}
 
 # The document classes, all on ``Record`` (every group is served from Postgres
 # only). The 4.0 Beanie classes they replaced are frozen in

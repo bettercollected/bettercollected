@@ -1,0 +1,175 @@
+{
+ "values": {
+  "firstName": "Bea",
+  "remarks": "",
+  "email": "",
+  "age": null,
+  "birthDate": null,
+  "contactPreference": "",
+  "topics": {
+   "news": false,
+   "events": false,
+   "offers": false
+  },
+  "consent": false,
+  "attachment": null,
+  "documents": [],
+  "children": []
+ },
+ "values_schema": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+   "firstName": {
+    "title": "First name",
+    "type": "string",
+    "maxLength": 50
+   },
+   "remarks": {
+    "title": "Remarks",
+    "type": "string"
+   },
+   "email": {
+    "title": "Email address",
+    "type": "string",
+    "format": "email"
+   },
+   "age": {
+    "title": "Age",
+    "type": "number"
+   },
+   "birthDate": {
+    "title": "Date of birth",
+    "format": "date",
+    "type": "string"
+   },
+   "contactPreference": {
+    "title": "How should we contact you?",
+    "type": "string",
+    "enum": [
+     "email",
+     "phone",
+     ""
+    ]
+   },
+   "topics": {
+    "title": "Topics",
+    "type": "object",
+    "properties": {
+     "news": {
+      "type": "boolean"
+     },
+     "events": {
+      "type": "boolean"
+     },
+     "offers": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "news",
+     "events",
+     "offers"
+    ],
+    "additionalProperties": false
+   },
+   "consent": {
+    "title": "I agree",
+    "type": "boolean"
+   },
+   "attachment": {
+    "title": "Attachment",
+    "type": "null"
+   },
+   "documents": {
+    "title": "Documents",
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "file_name": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string",
+       "format": "base64"
+      }
+     },
+     "required": [
+      "file_name",
+      "content"
+     ],
+     "additionalProperties": false
+    }
+   },
+   "children": {
+    "title": "Children",
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "childName": {
+       "title": "Child name",
+       "type": "string",
+       "maxLength": 1000
+      },
+      "childAge": {
+       "title": "Child age",
+       "type": "number"
+      }
+     },
+     "required": [
+      "childName",
+      "childAge"
+     ],
+     "additionalProperties": false
+    },
+    "maxItems": 5
+   }
+  },
+  "required": [
+   "firstName",
+   "remarks",
+   "email",
+   "age",
+   "birthDate",
+   "contactPreference",
+   "topics",
+   "consent",
+   "attachment",
+   "documents",
+   "children"
+  ],
+  "additionalProperties": false
+ },
+ "metadata": {
+  "public_reference": "OF-C3X7Q6",
+  "form_version": "",
+  "registration_timestamp": "2026-10-27T00:01:00Z"
+ },
+ "metadata_schema": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+   "public_reference": {
+    "title": "Public reference",
+    "type": "string"
+   },
+   "form_version": {
+    "title": "Form version",
+    "type": "string"
+   },
+   "registration_timestamp": {
+    "title": "Registration timestamp",
+    "type": "string",
+    "format": "date-time"
+   }
+  },
+  "required": [
+   "public_reference",
+   "form_version",
+   "registration_timestamp"
+  ],
+  "additionalProperties": false
+ }
+}

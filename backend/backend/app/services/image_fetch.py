@@ -23,15 +23,19 @@ This module never decodes an image: the document sandbox does
 """
 
 import asyncio
-import ipaddress
-import socket
 import ssl
 from dataclasses import dataclass
-from typing import Collection, List, Optional, Tuple
-from urllib.parse import urljoin, urlsplit
+from typing import Collection, Optional, Tuple
+from urllib.parse import urljoin
 
-import certifi
 import httpcore
+
+from backend.app.services import safe_http
+from backend.app.services.safe_http import (  # noqa: F401 - re-exported
+    PinnedBackend,
+    is_public_address,
+    resolve,
+)
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_REDIRECTS = 3
@@ -47,7 +51,6 @@ IMAGE_CONTENT_TYPES = {
 TIMEOUTS = {"connect": 5.0, "read": 10.0, "write": 10.0, "pool": 5.0}
 TOTAL_TIMEOUT_S = 30.0
 _REDIRECTS = {301, 302, 303, 307, 308}
-_NAT64 = ipaddress.ip_network("64:ff9b::/96")
 _USER_AGENT = b"bettercollected-image-fetch/1.0"
 
 
@@ -68,122 +71,29 @@ class FetchedImage:
     content_type: str
 
 
-def is_public_address(address) -> bool:
-    """Whether a connection to ``address`` stays on the public internet."""
-    try:
-        ip = ipaddress.ip_address(address)
-    except ValueError:
-        return False
-    if isinstance(ip, ipaddress.IPv6Address):
-        if ip.ipv4_mapped is not None:
-            return is_public_address(ip.ipv4_mapped)
-        if ip.sixtofour is not None:
-            return is_public_address(ip.sixtofour)
-        if ip.teredo is not None:
-            return False
-        if ip in _NAT64:
-            return is_public_address(ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF))
-        if ip.is_site_local:
-            return False
-    return bool(
-        ip.is_global
-        and not (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        )
-    )
-
-
 def _checked_url(url: str, allowed_hosts: Optional[Collection[str]]) -> Tuple[str, str]:
     """``(url, host)`` for a fetchable address, or raises ``invalid_url``."""
-    invalid = FetchRefused("invalid_url", "That is not an image address we can use.")
-    if not isinstance(url, str):
-        raise invalid
-    url = url.strip()
-    if not url or len(url) > MAX_URL_LENGTH or not url.isascii():
-        raise invalid
-    if any(ch.isspace() or ord(ch) < 0x20 or ch == "\\" for ch in url):
-        raise invalid
     try:
-        parts = urlsplit(url)
-        port = parts.port
-    except ValueError:
-        raise invalid
-    if parts.scheme.lower() != "https":
-        raise FetchRefused("invalid_url", "Only https:// image addresses can be used.")
-    if parts.username is not None or parts.password is not None or "@" in parts.netloc:
-        raise invalid
-    if port not in (None, 443):
-        raise invalid
-    host = (parts.hostname or "").rstrip(".")
-    if not host:
-        raise invalid
+        url, host = safe_http.checked_https_url(url, max_length=MAX_URL_LENGTH)
+    except safe_http.UrlRefused as refused:
+        if refused.code == "not_https":
+            raise FetchRefused(
+                "invalid_url", "Only https:// image addresses can be used."
+            )
+        raise FetchRefused("invalid_url", "That is not an image address we can use.")
     if allowed_hosts is not None and host not in allowed_hosts:
         raise FetchRefused("not_allowed", "That image address is not allowed.")
-    # without the fragment, and with the host as we checked it
-    path = parts.path or "/"
-    netloc = f"[{host}]" if ":" in host else host
-    url = f"https://{netloc}{path}" + (f"?{parts.query}" if parts.query else "")
     return url, host
-
-
-async def resolve(host: str, port: int = 443) -> List[str]:
-    """Every address ``host`` resolves to. Tests replace this."""
-    loop = asyncio.get_running_loop()
-    infos = await loop.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-    addresses: List[str] = []
-    for _family, _type, _proto, _name, sockaddr in infos:
-        address = sockaddr[0]
-        if address not in addresses:
-            addresses.append(address)
-    return addresses
 
 
 async def _public_address(host: str) -> str:
     try:
-        addresses = await resolve(host, 443)
-    except (OSError, UnicodeError):
+        # ``resolve`` is looked up here, in this module, on every call
+        return await safe_http.public_address(host, lambda h, p: resolve(h, p))
+    except safe_http.AddressRefused as refused:
+        if refused.code == "not_allowed":
+            raise FetchRefused("not_allowed", "That image address is not allowed.")
         raise FetchRefused("unreachable", "We couldn't reach that address.")
-    if not addresses:
-        raise FetchRefused("unreachable", "We couldn't reach that address.")
-    # every answer must be public, not just the first: a name that also
-    # points inward is refused outright
-    if not all(is_public_address(a) for a in addresses):
-        raise FetchRefused("not_allowed", "That image address is not allowed.")
-    return addresses[0]
-
-
-class PinnedBackend(httpcore.AsyncNetworkBackend):
-    """Connects to the address we checked, whatever the host name resolves
-    to by now. TLS (SNI and certificate checks) still uses the host name."""
-
-    def __init__(self, host: str, address: str, inner=None):
-        self._host = host
-        self._address = address
-        self._inner = inner if inner is not None else httpcore.AnyIOBackend()
-
-    async def connect_tcp(
-        self, host, port, timeout=None, local_address=None, socket_options=None
-    ):
-        if host != self._host:
-            raise httpcore.ConnectError("unexpected host")
-        return await self._inner.connect_tcp(
-            self._address,
-            port,
-            timeout=timeout,
-            local_address=local_address,
-            socket_options=socket_options,
-        )
-
-    async def connect_unix_socket(self, *args, **kwargs):
-        raise httpcore.ConnectError("not supported")
-
-    async def sleep(self, seconds: float) -> None:
-        await self._inner.sleep(seconds)
 
 
 def network_backend(host: str, address: str) -> httpcore.AsyncNetworkBackend:
@@ -191,15 +101,8 @@ def network_backend(host: str, address: str) -> httpcore.AsyncNetworkBackend:
     return PinnedBackend(host, address)
 
 
-def _ssl_context() -> ssl.SSLContext:
-    return ssl.create_default_context(cafile=certifi.where())
-
-
-def _header(headers, name: bytes) -> Optional[str]:
-    for key, value in headers:
-        if key.lower() == name:
-            return value.decode("latin-1").strip()
-    return None
+_ssl_context = safe_http.ssl_context
+_header = safe_http.header_value
 
 
 async def _get_once(url: str, host: str, address: str, max_bytes: int):

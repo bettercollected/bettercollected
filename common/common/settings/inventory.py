@@ -523,6 +523,10 @@ SERVICES: Tuple[SettingSpec, ...] = (
          "Domains a workspace may verify."),
     _text("VERIFIED_DOMAINS_RESERVED", "domains", (BACKEND,),
           "Comma separated domains no workspace may claim.", tier=T2, max_length=4000),
+    _spec("OPEN_FORMULIEREN_REGISTRATION", "registration", (BACKEND,),
+          "Registration of submissions in a case system: on, or off (410, nothing is queued or "
+          "sent; saved settings and delivery records stay).",
+          ENUM, tier=T2, default="off", choices=("on", "off")),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))
