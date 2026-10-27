@@ -10,6 +10,45 @@
       "questions": [
         {
           "type": "short_text",
+          "title": "Address – Street",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Address – House number",
+          "validations": {
+            "required": false,
+            "regex": "^[0-9]{1,5}$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Address – Addition",
+          "validations": {
+            "required": false,
+            "max_length": 10,
+            "regex": "^[A-Za-z0-9]{1,4}([ -][A-Za-z0-9]{1,4})?$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Address – Postcode",
+          "validations": {
+            "required": false,
+            "regex": "^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Address – Place",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "short_text",
           "title": "Vehicle licence plate",
           "validations": {
             "required": false
@@ -20,22 +59,24 @@
   ],
   "summary": {
     "pages": 1,
-    "fields": 1,
+    "fields": 6,
     "logicRules": 0,
     "repeatingGroups": 0,
-    "dropped": 10,
+    "dropped": 9,
     "flagged": 0
   },
   "report": [
     {
-      "code": "dropped",
+      "code": "changed",
       "kind": "component",
-      "reason": "unsupported_component_type",
+      "reason": "converted_to_text",
       "severity": "warning",
       "key": "address",
       "step": 0,
       "detail": {
-        "componentType": "addressNL"
+        "componentType": "addressNL",
+        "questions": 5,
+        "lookup": "not_carried"
       }
     },
     {
