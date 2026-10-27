@@ -29,6 +29,7 @@ export const workspaceSectionLabels = {
     themes: 'WORKSPACE_SECTIONS.THEMES',
     sso: 'WORKSPACE_SECTIONS.SSO',
     domains: 'WORKSPACE_SECTIONS.DOMAINS',
+    caseSystem: 'WORKSPACE_SECTIONS.CASE_SYSTEM',
     ai: 'WORKSPACE_SECTIONS.AI',
     aiProfile: 'WORKSPACE_SECTIONS.AI_PROFILE',
     aiMemory: 'WORKSPACE_SECTIONS.AI_MEMORY',
@@ -48,6 +49,7 @@ export const workspaceSectionUrls = (workspaceName?: string) => {
     return {
         sso: `${base}/sso`,
         domains: `${base}/sso/domains`,
+        caseSystem: `${base}/case-system`,
         ai: `${base}/ai`,
         aiProfile: `${base}/ai/profile`,
         aiMemory: `${base}/ai/memory`,

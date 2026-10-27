@@ -150,6 +150,11 @@ export interface StandardFormDto {
     groups?: Array<ResponderGroupDto>;
     builderVersion?: string;
     isMultiPage?: boolean;
+    /**
+     * Only on the published form read, while this form also sends its answers
+     * to a case system: the organisation that runs it. The privacy panel names it.
+     */
+    registrationDestination?: { organisation: string } | null;
     welcomePage?: {
         title?: string;
         description?: string;

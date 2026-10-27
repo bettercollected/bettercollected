@@ -32,10 +32,12 @@ import DashboardDrawer from '@Components/sidebar/dashboard-drawer';
 import { workspaceNavItems } from '@Components/sidebar/workspace-nav-items';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { navItemForPath } from '@app/lib/nav-items';
+import { useRegistrationEnabled } from '@app/components/registration/use-registration-enabled';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ssoEnabled = useSsoEnabled();
     const { can } = useWorkspacePermissions();
+    const { enabled: registrationEnabled } = useRegistrationEnabled();
     const drawerWidth = 289;
 
     const auth = useAppSelector(selectAuth);
@@ -153,7 +155,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         },
         {
             label: 'Workspace',
-            items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled })
+            items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled, registrationEnabled })
         }
     ];
 
