@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from common.form_spec.models import checked_pattern
 from common.models.consent import ResponseRetentionType
 from common.models.standard_form import (
     StandardFieldProperty,
@@ -75,7 +76,6 @@ EXPORT_ENTRIES = (
 # the archive is refused above this many bytes (uncompressed JSON + README):
 # far above any real form, well under what our own reader accepts
 MAX_EXPORT_BYTES = 4 * 1024 * 1024
-MAX_TOTAL_COMPONENT_KEYS = limits.MAX_COMPONENTS
 
 # links in the archive follow their mock-host convention: identifiers only,
 # never addresses (forms/utils.py:66-74 at tag 4.0.6)
@@ -216,20 +216,34 @@ class ExportResult:
 
 # -------------------------------------------------------------------- text
 
-_TEMPLATE = re.compile(r"\{([{%#])")
+_TEMPLATE = re.compile(r"\{(?=[{%#])")
 _PIPE = re.compile(r"\{\{\s*(?:field|hidden|group):[^{}]*\}\}")
 _BLOCKS = {"paragraph", "heading", "blockquote", "codeBlock", "listItem"}
 _FORMATTED_NODES = {"heading", "blockquote", "codeBlock", "bulletList", "orderedList", "horizontalRule"}
 
 
 def _neutral(text: str) -> str:
-    """Template delimiters read literally: their forms render ``{{ }}`` and
-    ``{% %}`` in texts, and what we write is plain text."""
-    return _TEMPLATE.sub(r"{ \1", text)
+    """Template delimiters read literally: their forms render ``{{ }}``,
+    ``{% %}`` and ``{# #}`` in texts, and what we write is plain text. Every
+    opening brace that begins a delimiter gets a space after it (a lookahead,
+    so overlapping runs such as ``{{{`` or ``{{%`` cannot leave one behind)."""
+    return _TEMPLATE.sub("{ ", text)
+
+
+def _escaped(raw: str, limit: int = MAX_LABEL) -> str:
+    """Plain text as it is written into a field their forms render as HTML:
+    ``<``, ``>`` and ``&`` escaped (the plain-text helpers decode entities, so
+    a ``&lt;script&gt;`` would otherwise come back as a tag) and template
+    delimiters neutralised, within ``limit`` characters once written."""
+    out = _neutral(html.escape(raw, quote=False))
+    while len(out) > limit and raw:
+        raw = raw[: len(raw) - max(1, (len(out) - limit) // 5)]
+        out = _neutral(html.escape(raw, quote=False))
+    return out
 
 
 def _label(value: Any, limit: int = MAX_LABEL) -> str:
-    return _neutral(label_text(value, limit))
+    return _escaped(label_text(value, limit), limit)
 
 
 def _tv(value: Any) -> Any:
@@ -285,6 +299,46 @@ def rich_paragraphs(value: Any) -> Tuple[List[str], bool, bool]:
         if cleaned:
             paragraphs.append(_neutral(cleaned))
     return paragraphs, flags["formatted"], flags["piped"]
+
+
+_LOOKAROUND = re.compile(r"\(\?(?:=|!|<=|<!|P=|P<|<[A-Za-z]|\()")
+_BACKREFERENCE = re.compile(r"\\(?:[1-9]|k<)")
+
+
+def risky_pattern(pattern: str) -> bool:
+    """Whether ``pattern`` could backtrack for a very long time in an engine
+    that is not linear (theirs is not): lookarounds, backreferences and any
+    group that is repeated while it holds a repetition or an alternation
+    (``(a+)+``, ``(a|a)*``). Conservative: a pattern that is merely unusual
+    is left out and listed, never exported on a guess."""
+    if _LOOKAROUND.search(pattern) or _BACKREFERENCE.search(pattern):
+        return True
+    stack: List[bool] = []  # per open group: does it hold a repetition?
+    in_class = False
+    index, size = 0, len(pattern)
+    while index < size:
+        char = pattern[index]
+        if char == "\\":
+            index += 2
+            continue
+        if in_class:
+            in_class = char != "]"
+        elif char == "[":
+            in_class = True
+        elif char == "(":
+            stack.append(False)
+        elif char in "*+{" or char == "|":
+            if stack:
+                stack[-1] = True
+        elif char == ")" and stack:
+            repeated = stack.pop()
+            after = pattern[index + 1 : index + 2]
+            if repeated and after in ("*", "+", "{"):
+                return True
+            if stack and (repeated or after in ("*", "+", "{")):
+                stack[-1] = True
+        index += 1
+    return False
 
 
 def _slug(text: str, limit: int, fallback: str) -> str:
@@ -354,13 +408,17 @@ class Exporter:
     def __init__(self, form: StandardForm, now: dt.datetime) -> None:
         self.form = form
         self.now = now
-        self.title = label_text(form.title, MAX_FORM_NAME) or "Form"
+        # the plain title (file name, README, slug) and the title as written
+        # into the archive's fields (escaped)
+        self.title_raw = label_text(form.title, MAX_FORM_NAME) or "Form"
+        self.title = _escaped(self.title_raw, MAX_FORM_NAME)
         self.dutch = (form.settings.language if form.settings else None) == "nl"
         self.seed = str(form.form_id or form.title or "form")
         self.items: List[Item] = []
         self._seen: set = set()
         self.by_id: Dict[str, Planned] = {}
         self.keys: set = set()
+        self._key_counts: Dict[str, int] = {}
         self._order = 0
         self._counter = 0
         self.rules: List[Dict[str, Any]] = []
@@ -401,10 +459,14 @@ class Exporter:
             base = f"q{base}"
         if base.lower() in _RESERVED_KEYS or base.lower().startswith("auth_"):
             base = f"{base}Question"
-        key, number = base, 2
+        # one counter per base: the n-th "Same" is found in one step, not by
+        # trying every earlier suffix
+        number = self._key_counts.get(base, 1)
+        key = base
         while key in self.keys:
-            key = f"{base}{number}"
             number += 1
+            key = f"{base}{number}"
+        self._key_counts[base] = number
         self.keys.add(key)
         return key
 
@@ -414,7 +476,32 @@ class Exporter:
 
     # ----------------------------------------------------------- the plan
 
+    def _refuse_if_too_big(self) -> None:
+        """Before anything is planned: a form the importer would refuse is
+        refused here, so every export can be read back by us and a huge form
+        costs no work."""
+        pending = list(self.form.fields or [])
+        pages = questions = 0
+        while pending:
+            item = pending.pop()
+            if item.internal:
+                continue
+            if _tv(item.type) == "slide":
+                pages += 1
+            else:
+                questions += 1
+            pending.extend((item.properties.fields if item.properties else None) or [])
+            if questions > limits.MAX_IMPORT_FIELDS or pages > limits.MAX_STEPS:
+                raise refuse(
+                    "form_too_large_for_export",
+                    "This form has more pages or questions than can be exported.",
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    maxQuestions=limits.MAX_IMPORT_FIELDS,
+                    maxPages=limits.MAX_STEPS,
+                )
+
     def run(self) -> ExportResult:
+        self._refuse_if_too_big()
         pages = [p for p in self.form.fields or [] if _tv(p.type) == "slide"]
         if not pages and self.form.fields:
             # a form of the first builder holds its questions directly: one page
@@ -461,10 +548,10 @@ class Exporter:
         if item.internal:
             self.internal_count += 1
             return None
-        title = _label(question_text(item))
-        subject = title or str(ftype)
+        raw = label_text(question_text(item), MAX_LABEL)
+        subject = raw or str(ftype)
         if ftype == "group":
-            return self._plan_group(item, page, group, title, subject)
+            return self._plan_group(item, page, group, raw, subject)
         if ftype == "calculated":
             self.note(LEFT_OUT, R.CALCULATED, subject, page)
             return None
@@ -472,8 +559,8 @@ class Exporter:
             self.note(LEFT_OUT, R.TYPE, subject, page, detail=str(ftype))
             return None
         if ftype == "text":
-            return self._plan_statement(item, page, group, title)
-        return self._plan_question(item, page, group, title, subject, ftype)
+            return self._plan_statement(item, page, group, raw)
+        return self._plan_question(item, page, group, raw, subject, ftype)
 
     def _register(self, planned: Planned) -> Planned:
         self._order += 1
@@ -482,7 +569,7 @@ class Exporter:
             self.by_id[planned.field.id] = planned
         return planned
 
-    def _plan_statement(self, item, page, group, title) -> Optional[Planned]:
+    def _plan_statement(self, item, page, group, raw) -> Optional[Planned]:
         source = item.title
         paragraphs, formatted, piped = rich_paragraphs(source)
         if not paragraphs:
@@ -518,12 +605,12 @@ class Exporter:
                     col_span=item.properties.col_span if item.properties else None)
         )
 
-    def _plan_group(self, item, page, group, title, subject) -> Optional[Planned]:
+    def _plan_group(self, item, page, group, raw, subject) -> Optional[Planned]:
         props = item.properties
         repeat = props.repeat if props else None
         children_in = (props.fields if props else None) or []
-        key = self._key(title, "group")
-        label = title or "Group"
+        key = self._key(raw, "group")
+        label = _escaped(raw) or "Group"
         if repeat is not None:
             comp: Dict[str, Any] = {
                 "id": self._component_id(key),
@@ -560,13 +647,13 @@ class Exporter:
                 "key": key,
                 "label": label,
                 "hidden": False,
-                "hideHeader": not title,
+                "hideHeader": not raw,
                 "clearOnHide": True,
                 "tooltip": "",
                 "conditional": {"eq": "", "show": None, "when": ""},
                 "components": [],
             }
-        planned = Planned(item, key, comp, "group", 0, page, group, title=title,
+        planned = Planned(item, key, comp, "group", 0, page, group, title=raw,
                           col_span=props.col_span if props else None)
         self._register(planned)
         for child in children_in:
@@ -580,11 +667,12 @@ class Exporter:
             return None
         return planned
 
-    def _plan_question(self, item, page, group, title, subject, ftype) -> Optional[Planned]:
+    def _plan_question(self, item, page, group, raw, subject, ftype) -> Optional[Planned]:
         props = item.properties
         rules = item.validations
         required = bool(rules and rules.required)
-        key = self._key(title, f"question{self._order + 1}")
+        title = _escaped(raw)
+        key = self._key(raw, f"question{self._order + 1}")
         of_type = "textfield" if ftype == "url" else REVERSE_TYPES[ftype]
         kind = {
             "short_text": "text", "long_text": "text", "email": "text", "url": "text",
@@ -610,7 +698,7 @@ class Exporter:
             "isSensitiveData": False,
             "translatedErrors": {},
         }
-        planned = Planned(item, key, comp, kind, 0, page, group, title=title or key,
+        planned = Planned(item, key, comp, kind, 0, page, group, title=raw or key,
                           col_span=props.col_span if props else None)
         _, formatted, piped = rich_paragraphs(item.title)
         if formatted:
@@ -633,8 +721,15 @@ class Exporter:
                 used.add("max_length")
             pattern = URL_PATTERN if ftype == "url" else None
             if rules and rules.regex and ftype == "short_text":
-                pattern = rules.regex
                 used.add("regex")
+                try:
+                    pattern = checked_pattern(rules.regex)
+                except ValueError:
+                    pattern = None
+                if pattern is None or risky_pattern(pattern):
+                    # one that could backtrack on their side is not carried
+                    pattern = None
+                    self.note(CHANGED, R.VALIDATION, subject, page, detail="regex")
             if pattern:
                 comp["validate"]["pattern"] = pattern
             if ftype == "url":
@@ -698,17 +793,18 @@ class Exporter:
         taken: set = set()
         options: Dict[str, str] = {}
         for choice in (props.choices if props else None) or []:
-            text = _label(choice.value or choice.label, 300)
-            if not text:
+            plain = label_text(choice.value or choice.label, 300)
+            if not plain:
                 continue
-            value = _slug(text, 40, "") or f"option{len(values) + 1}"
+            text = _escaped(plain, 300)
+            value = _slug(plain, 40, "") or f"option{len(values) + 1}"
             base, number = value, 2
             while value in taken:
                 value = f"{base}-{number}"
                 number += 1
             taken.add(value)
             values.append({"label": text, "value": value})
-            for token in (choice.id, choice.value, choice.label, text):
+            for token in (choice.id, choice.value, choice.label, plain):
                 if isinstance(token, str) and token:
                     options.setdefault(token, value)
             if choice.attachment:
@@ -1053,7 +1149,7 @@ class Exporter:
                 if p.kind not in ("content", "group")
             )
         logic = self._logic_entries(form_url, step_url_of)
-        slug = _slug(self.title, 90, "form")
+        slug = _slug(self.title_raw, 90, "form")
         removal: Dict[str, Any] = {}
         days = self._retention_days()
         if days is not None:
@@ -1125,7 +1221,7 @@ class Exporter:
             logic_rules=len(logic) + sum(
                 1 for p in self.by_id.values() if p.comp["conditional"].get("when")
             ),
-            filename=export_filename(self.title),
+            filename=export_filename(self.title_raw),
         )
 
     def _logic_entries(self, form_url: str, step_url_of: Dict[int, str]) -> List[Dict[str, Any]]:
@@ -1166,7 +1262,7 @@ class Exporter:
         left = [i for i in self.items if i.kind == LEFT_OUT]
         changed = [i for i in self.items if i.kind == CHANGED]
         lines = [
-            f"Open Formulieren export of: {self.title}",
+            f"Open Formulieren export of: {self.title_raw}",
             f"Made by bettercollected on {self.now.date().isoformat()} "
             f"for Open Formulieren release {EXPORT_RELEASE} (series 4.0).",
             "",

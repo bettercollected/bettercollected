@@ -228,7 +228,9 @@ The import and export switches are independent.
   made from the title: `[a-z0-9-]`), `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and
   `X-Open-Formulieren-Unmapped: <n>`, the number of things listed in the archive's `README.txt` (see below). The two
   headers are exposed to cross-origin callers (CORS `expose-headers`).
-* 422 `nothing_to_export` when no question could be exported, 422 `export_too_large` above 4 MiB.
+* 422 `nothing_to_export` when no question could be exported, 422 `form_too_large_for_export` (with `maxQuestions`, `maxPages`)
+  when the form has more questions or pages than our own import accepts (checked before any work, so every export can be read back),
+  422 `export_too_large` above 4 MiB.
 
 ### The archive
 
@@ -253,7 +255,7 @@ the five resources, never `_meta.json` or the README.
 
 | Ours | Open Formulieren | Notes |
 |---|---|---|
-| short text | `textfield` | required, max length, pattern (from the regex), placeholder, help text |
+| short text | `textfield` | required, max length, pattern (from the regex: one with a lookaround, a backreference or a repeated group that holds a repetition could backtrack on their side and is left out and listed), placeholder, help text |
 | long text | `textarea` | required, max length |
 | email | `email` | required |
 | number | `number` | required, min, max |
@@ -287,8 +289,9 @@ the form definition only and has no access to responses.
 
 Nothing executable is written: no `customConditional`, `calculateValue`, `customDefaultValue` or script of any kind.
 Rules are data: `conditional` objects and JSON logic over a fixed set of operators (`==`, `!=`, `>`, `>=`, `<`, `<=`,
-`and`, `or`, `var`). Every string is plain text: markup is removed, `{{ }}`, `{% %}` and `{# #}` (which their forms render)
-are neutralised, statements are written as escaped paragraphs, component keys are ASCII and never shadow their static
+`and`, `or`, `var`). Every string is plain text: markup is removed, then `<`, `>` and `&` are escaped again (decoded entities never
+become tags; their forms render labels as HTML), every opening brace of `{{`, `{%` and `{#` (which their forms render, overlapping
+runs such as `{{{` included) is followed by a space, the form's title included, statements are written as escaped paragraphs, component keys are ASCII and never shadow their static
 variables.
 
 ### The README

@@ -357,7 +357,8 @@ def test_hostile_text_stays_plain_text():
         ], "<b>Page</b> {{ page }}")
     )
     result = export(form)
-    blob = json.dumps(entries(result.data))
+    # the README is a plain file nobody renders: only the archive's fields count
+    blob = json.dumps({k: v for k, v in entries(result.data).items() if k != exporter.README_ENTRY})
     for text in ("<script", "onerror", "{{", "{%", "{#", "<img", "<b>", "<i>"):
         assert text not in blob, text
     comps = by_key(entries(result.data))
@@ -645,9 +646,158 @@ def test_a_form_the_importer_would_refuse_is_still_a_valid_export():
 def test_the_limits_of_our_reader_hold_for_the_biggest_form_we_allow():
     pages = [
         slide(f"p{n}", [q(f"q{n}_{i}", "short_text", f"Question {n} {i}") for i in range(20)], f"Page {n}")
-        for n in range(1, 60)
+        for n in range(1, 50)
     ]
     result = export(form_of(*pages))
     assert len(result.data) < limits.MAX_UPLOAD_BYTES
     archive = read_archive(result.data)
-    assert len(archive.steps) == 59
+    assert len(archive.steps) == 49
+
+
+# ------------------------------------------------------------ review fixes
+
+
+def _every_string(node):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for key, value in node.items():
+            yield key
+            yield from _every_string(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _every_string(item)
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    ["{{{ request.user }}}", "{{% debug %}", "{{# x #}}", "{%% if x %}", "{{{{ a }}}}", "{{ a }}", "{% a %}", "{# a #}"],
+)
+def test_overlapping_template_delimiters_cannot_survive(hostile):
+    assert not re.search(r"\{[{%#]", exporter._neutral(hostile))
+    form = form_of(
+        slide("p", [
+            q("a", "short_text", f"Name {hostile}", props={"description": hostile, "placeholder": hostile}),
+            q("b", "multiple_choice", hostile, props={"choices": [choice("1", hostile), choice("2", "Two")]}),
+            q("c", "text", f"Read {hostile}"),
+        ], hostile),
+        title=hostile,
+    )
+    archive = entries(export(form).data)
+    # the README is a plain file nobody renders: only the archive's fields count
+    for name in ("forms.json", "formSteps.json", "formDefinitions.json"):
+        for text in _every_string(archive[name]):
+            assert not re.search(r"\{[{%#]", text), (name, text)
+
+
+def test_the_form_title_is_neutral_and_escaped_everywhere_it_is_written():
+    form = form_of(slide("p", [q("a", "short_text", "A")]), title="Survey {{{ x }}} <b>& co</b> &lt;script&gt;")
+    result = export(form)
+    archive = entries(result.data)
+    name = archive["forms.json"][0]["name"]
+    assert name == "Survey { { { x }}} &amp; co &lt;script&gt;"
+    assert "{{" not in name and "<" not in name
+    top = archive["forms.json"][0]
+    assert top["translations"]["nl"]["name"] == top["translations"]["en"]["name"] == name
+    assert result.filename == "survey-x-co-open-formulieren.zip"
+    assert re.fullmatch(r"[a-z0-9-]+\.zip", result.filename)
+
+
+@pytest.mark.parametrize("raw", ["<script>alert(1)</script>", "&lt;script&gt;alert(1)&lt;/script&gt;", "&lt;img src=x onerror=alert(1)&gt;", "a < b > c & d"])
+def test_decoded_entities_never_come_back_as_tags(raw):
+    form = form_of(
+        slide("p", [
+            q("a", "short_text", raw, props={"description": raw, "placeholder": raw, "why_we_ask": raw}),
+            q("b", "dropdown", "Pick", props={"choices": [choice("1", raw), choice("2", "Two")]}),
+            q("c", "text", raw),
+        ], raw),
+        title=raw,
+    )
+    archive = entries(export(form).data)
+    for name in ("forms.json", "formSteps.json", "formDefinitions.json"):
+        for text in _every_string(archive[name]):
+            # (a statement is written as escaped paragraphs: <p> and <br> only)
+            assert not re.search(r"<[A-Za-z/!]", re.sub(r"</?p>|<br>", "", text)), (name, text)
+    # and the importer reads the same text back
+    again = build_draft(read_archive(export(form).data))
+    assert again.summary["fields"] >= 1  # (a choice that is only a script has no text left)
+
+
+def test_what_a_label_says_survives_the_escaping():
+    form = form_of(slide("p", [q("a", "short_text", "Tom & Jerry's <3")], "P"))
+    comp = next(c for c in components(entries(export(form).data)) if c["type"] == "textfield")
+    assert comp["label"] == "Tom &amp; Jerry's &lt;3"
+    again = build_draft(read_archive(export(form).data))
+    assert again.form.fields[0].properties.fields[0].title == "Tom & Jerry's <3"
+
+
+def test_escaped_names_still_fit_their_limits():
+    name = "&" * 80
+    form = form_of(slide("p", [q("a", "short_text", "A")], name), title="<" * 300)
+    archive = entries(export(form).data)
+    assert len(archive["formDefinitions.json"][0]["name"]) <= exporter.MAX_NAME
+    assert len(archive["forms.json"][0]["name"]) <= exporter.MAX_FORM_NAME
+    assert "&am" not in archive["formDefinitions.json"][0]["name"].replace("&amp;", "")
+
+
+def test_a_form_the_importer_would_refuse_is_refused_before_any_work(monkeypatch):
+    big = form_of(slide("p", [q(f"q{i}", "short_text", "Same") for i in range(limits.MAX_IMPORT_FIELDS + 1)], "P"))
+    started = []
+    monkeypatch.setattr(exporter.Exporter, "_plan", lambda *a, **k: started.append(1))
+    with pytest.raises(ImportRefused) as refused:
+        export(big)
+    assert (refused.value.status, refused.value.code) == (422, "form_too_large_for_export")
+    assert refused.value.extra["maxQuestions"] == limits.MAX_IMPORT_FIELDS
+    assert started == []  # nothing was planned
+    monkeypatch.undo()
+    # staff-only questions are not counted: they are never exported
+    padded = form_of(slide("p", [q("k", "short_text", "Keep")] + [q(f"i{i}", "short_text", "x", internal=True) for i in range(1500)], "P"))
+    assert export(padded).questions == 1
+    pages = [slide(f"p{n}", [q(f"q{n}", "short_text", "Q")], f"P{n}") for n in range(limits.MAX_STEPS + 1)]
+    with pytest.raises(ImportRefused) as refused:
+        export(form_of(*pages))
+    assert refused.value.code == "form_too_large_for_export"
+
+
+def test_the_biggest_form_we_export_is_exported_quickly_and_read_back():
+    import time
+
+    form = form_of(slide("p", [q(f"q{i}", "short_text", "Same") for i in range(limits.MAX_IMPORT_FIELDS)], "P"))
+    started = time.monotonic()
+    result = export(form)
+    assert time.monotonic() - started < 3
+    keys = [c["key"] for c in components(entries(result.data))]
+    assert len(set(keys)) == len(keys) == limits.MAX_IMPORT_FIELDS
+    assert keys[:3] == ["same", "same2", "same3"]
+    assert build_draft(read_archive(result.data)).summary["fields"] == limits.MAX_IMPORT_FIELDS
+
+
+@pytest.mark.parametrize(
+    "pattern, risky",
+    [
+        (r"^[A-Za-z ]+$", False), (r"^[0-9]{9}$", False), (r"^(\d{3}-)?\d{4}$", False), (r"^(ab)+$", False),
+        (r"^[(]+x", False), (r"\(+", False),
+        (r"(a+)+$", True), (r"(a|a)*", True), (r"([a-z]+\s?)+$", True), (r"^((ab)|c)+$", True),
+        (r"^(?=.*\d)\w+$", True), (r"(?<!x)a", True), (r"(a)\1", True), (r"(?P<n>a)(?P=n)", True),
+    ],
+)
+def test_risky_patterns_are_recognised(pattern, risky):
+    assert exporter.risky_pattern(pattern) is risky
+
+
+def test_a_pattern_that_could_backtrack_is_left_out_and_listed_as_changed():
+    form = form_of(
+        slide("p", [
+            q("a", "short_text", "Fine", rules={"regex": r"^[a-z]+$"}),
+            q("b", "short_text", "Nested", rules={"regex": r"^(a+)+$"}),
+            q("c", "short_text", "Look", rules={"regex": r"^(?=.*\d).+$"}),
+            q("d", "short_text", "Bad", rules={"regex": "(unclosed"}),
+        ], "P")
+    )
+    result = export(form)
+    comps = by_key(entries(result.data))
+    assert comps["fine"]["validate"]["pattern"] == r"^[a-z]+$"
+    for key in ("nested", "look", "bad"):
+        assert "pattern" not in comps[key]["validate"]
+    listed = [i for i in result.items if i.reason == R.VALIDATION]
+    assert [(i.kind, i.subject, i.detail) for i in listed] == [(CHANGED, s, "regex") for s in ("Nested", "Look", "Bad")]
