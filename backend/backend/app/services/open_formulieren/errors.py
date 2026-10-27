@@ -24,3 +24,18 @@ class ImportRefused(Exception):
 
 def refuse(code: str, message: str, status: int = HTTPStatus.BAD_REQUEST, **extra):
     return ImportRefused(int(status), code, message, extra)
+
+
+def unexpected(error: BaseException) -> ImportRefused:
+    """What a failure nobody planned for while reading or building from the
+    file's content becomes: a refusal of the archive (never a 500). Only the
+    exception's class is logged, never anything from the file."""
+    from loguru import logger
+
+    logger.error("open formulieren import: unexpected {}", type(error).__name__)
+    return ImportRefused(
+        int(HTTPStatus.UNPROCESSABLE_ENTITY),
+        "archive_json_invalid",
+        "The archive holds something that could not be read.",
+        {"file": "archive"},
+    )

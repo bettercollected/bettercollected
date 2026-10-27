@@ -295,10 +295,8 @@ class PdfImportService:
     async def list(self, workspace_id: RecordId, user: User):
         await self._authorization.authorize(user, Permission.FORM_CREATE, workspace_id)
         # imports of other products' forms (Open Formulieren) have their own
-        # screens; the PDF list shows PDF imports only
-        return [
-            r for r in await self._repo.list_by_workspace(workspace_id) if r.is_pdf()
-        ]
+        # screens: the repository lists PDF imports only
+        return await self._repo.list_by_workspace(workspace_id)
 
     async def delete_for_forms(self, form_ids) -> None:
         """Import records go with their forms (the stored originals are removed

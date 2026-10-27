@@ -79,7 +79,7 @@ async def test_off_creates_nothing_even_for_a_good_archive(client, workspace, te
     response = await upload(client, workspace, test_user_cookies)
     assert response.status_code == 410
     assert await container.workspace_form_repo().list_in_workspace(workspace.id) == []
-    imports = await container.form_import_repo().list_by_workspace(workspace.id)
+    imports = await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren")
     assert imports == []
 
 
@@ -216,7 +216,7 @@ async def test_another_workspaces_member_is_refused(
     assert (await client.get(url(workspace, body["id"]), cookies=other)).status_code == 403
     assert (await client.post(url(workspace, body["id"], "review"), json={"reviewed": True}, cookies=other)).status_code == 403
     # nothing was created for the refused upload: only the first import exists
-    assert len(await container.form_import_repo().list_by_workspace(workspace.id)) == 1
+    assert len(await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren")) == 1
 
 
 async def test_an_import_is_only_readable_through_its_own_workspace(
@@ -238,7 +238,7 @@ async def test_a_member_without_form_create_is_refused(
     viewer = await make_viewer(workspace)
     response = await upload(client, workspace, viewer)
     assert response.status_code == 403
-    assert await container.form_import_repo().list_by_workspace(workspace.id) == []
+    assert await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren") == []
     body = (await upload(client, workspace, test_user_cookies)).json()
     assert (await client.get(url(workspace, body["id"]), cookies=viewer)).status_code == 403
     assert (await client.post(url(workspace, body["id"], "review"), json={"reviewed": True}, cookies=viewer)).status_code == 403
@@ -371,7 +371,7 @@ async def test_a_refused_archive_creates_nothing(
 ):
     response = await upload(client, workspace, test_user_cookies, data)
     assert (response.status_code, response.json()["code"]) == (status, code)
-    assert await container.form_import_repo().list_by_workspace(workspace.id) == []
+    assert await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren") == []
     assert await container.workspace_form_repo().list_in_workspace(workspace.id) == []
 
 
@@ -402,7 +402,7 @@ async def test_a_failure_after_the_form_exists_takes_the_draft_away(
         )
     assert response.status_code >= 500
     assert await container.workspace_form_repo().list_in_workspace(workspace.id) == []
-    assert await container.form_import_repo().list_by_workspace(workspace.id) == []
+    assert await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren") == []
 
 
 async def test_form_creation_switched_off_is_honoured(

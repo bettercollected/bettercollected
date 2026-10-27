@@ -12,7 +12,9 @@ The upload is untrusted. This module turns its bytes into plain JSON values
 * sizes are enforced while reading, with streaming caps: what the archive
   declares is used only to refuse early, never to allow;
 * the central directory is bounded before the zip reader parses it (it builds
-  one record per entry before we could count them);
+  one record per entry before we could count them), and an archive with a
+  zip64 locator is refused (the reader would take its counts from a zip64
+  record the bound does not see; an export of one form is never that large);
 * a JSON entry is checked for nesting depth by an iterative scan before it is
   parsed (the stdlib parser recurses), non-finite numbers are refused, and the
   parsed value is counted;
@@ -46,6 +48,8 @@ from backend.app.services.open_formulieren.mapping import (
 )
 
 _EOCD = b"PK\x05\x06"
+_ZIP64_LOCATOR = b"PK\x06\x07"
+_ZIP64_LOCATOR_SIZE = 20
 _EOCD_STRUCT = struct.Struct("<4s4H2LH")
 _ALLOWED_COMPRESSION = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
 _DRIVE = re.compile(r"^[A-Za-z]:")
@@ -75,15 +79,22 @@ def _central_directory_check(data: bytes) -> None:
     entries can need, before the zip reader builds a record for each of
     them. Mirrors where the reader looks for the end-of-directory record."""
     record: Optional[bytes] = None
+    start = -1
     tail = data[-_EOCD_STRUCT.size :]
     if len(tail) == _EOCD_STRUCT.size and tail[:4] == _EOCD and tail[-2:] == b"\0\0":
         record = tail
+        start = len(data) - _EOCD_STRUCT.size
     else:
         start = data.rfind(_EOCD, max(0, len(data) - (1 << 16) - _EOCD_STRUCT.size))
         if start >= 0 and len(data) - start >= _EOCD_STRUCT.size:
             record = data[start : start + _EOCD_STRUCT.size]
     if record is None:
         raise refuse("not_a_zip", "The file is not a zip archive.")
+    # a zip64 locator just before the record makes the reader take its counts
+    # from a zip64 record instead, which this check does not see: an export of
+    # one form is never that large, so zip64 is never legitimate here
+    if data[max(0, start - _ZIP64_LOCATOR_SIZE) : start].startswith(_ZIP64_LOCATOR):
+        raise refuse("archive_unsafe", "The archive uses a format an export never does.")
     _, _, _, _, entries, size, _, _ = _EOCD_STRUCT.unpack(record)
     # 0xFFFF / 0xFFFFFFFF: the real numbers are in a zip64 record, which an
     # export of one form never needs

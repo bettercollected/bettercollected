@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Tuple
 
+from backend.app.services.open_formulieren.numbers import as_plain, to_number
 from backend.app.services.open_formulieren.mapping import (
     COMPARISONS,
     KIND_COMPARISONS,
@@ -101,7 +102,12 @@ def _split(name: str) -> Tuple[str, Optional[str]]:
 
 
 def _literal(node: Any) -> Tuple[bool, Any]:
-    if node is None or isinstance(node, (str, bool, int, float)):
+    if isinstance(node, (int, float)) and not isinstance(node, bool):
+        # a number we cannot use (huge) is not a literal of the subset
+        return (to_number(node) is not None), node
+    if isinstance(node, str):
+        return len(node) <= 500, node
+    if node is None or isinstance(node, bool):
         return True, node
     return False, None
 
@@ -167,17 +173,7 @@ def simple_conditional(conditional: Any) -> Optional[Tuple[bool, Cond]]:
 # ---------------------------------------------------- reading an answer kind
 
 
-def _number(value: Any) -> Optional[float]:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value.strip())
-        except ValueError:
-            return None
-    return None
+_number = to_number
 
 
 def translate(cond: Cond, source: Any) -> Tuple[str, Any]:
@@ -230,7 +226,7 @@ def translate(cond: Cond, source: Any) -> Tuple[str, Any]:
         number = _number(value)
         if number is None:
             raise Unsupported(Reason.VALUE)
-        return comparison, int(number) if number == int(number) else number
+        return comparison, as_plain(number)
     if value is None or isinstance(value, bool):
         raise Unsupported(Reason.VALUE)
     return comparison, str(value)
@@ -276,6 +272,9 @@ def decide(
     (when complete, it decides the starting state, as in the source) and the
     rules that show or hide it (``logic``: trigger, hidden-state)."""
     if conditional is not None:
+        # a complete ``conditional`` decides alone: the ``hidden`` flag is only
+        # read when there is none (open-forms 4.0.6 formio/visibility.py:59-62,
+        # ``is_hidden``; what counts as complete: ``get_conditional``, 23-41)
         show, cond = conditional
         decision = Decision(Rule("SHOW" if show else "HIDE", "AND", (cond,)))
         if logic:

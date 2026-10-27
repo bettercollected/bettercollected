@@ -1,6 +1,6 @@
 # Open Formulieren fixtures
 
-Archives (`*.zip`) used by `tests/app/services/open_formulieren/`. They are **our own exports** of **synthetic**
+Archives (`*.zip`) used by `tests/app/open_formulieren/`. They are **our own exports** of **synthetic**
 forms made on 2026-10-27 in a throwaway local instance of Open Formulieren 4.0.6 (image
 `openformulieren/open-forms:4.0.6`, own database, ports bound to 127.0.0.1, no real data). None of them comes from
 Open Formulieren's test data or from any production system, and none contains a secret, token or service credential.

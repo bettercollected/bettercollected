@@ -30,7 +30,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, exists, func, not_, or_, select, text, update
+from sqlalchemy import and_, exists, func, not_, or_, select, text, true, update
 from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
@@ -1551,6 +1551,17 @@ class PostgresMediaLibraryRepository(RecordRepository):
         return media_id
 
 
+def _import_kind(kind: Optional[str]):
+    """Rows of one kind of import: ``"pdf"`` (a record written before
+    ``source_kind`` existed has none) or another kind by name; None for all."""
+    if kind is None:
+        return true()
+    value = _text(FormImportRow.doc["source_kind"])
+    if kind == "pdf":
+        return or_(value.is_(None), value == "pdf")
+    return value == kind
+
+
 class PostgresFormImportRepository(RecordRepository):
     row = FormImportRow
     document = FormImportDocument
@@ -1657,6 +1668,7 @@ class PostgresFormImportRepository(RecordRepository):
         return workspaces_with_stale_imports(active, stale_before)
 
     async def _limit_counts(self, session, workspace_id: str, since: datetime):
+        # the PDF import's limits count PDF imports only
         """(running imports, imports created since ``since``), read in the
         transaction that holds the workspace's advisory lock."""
         active = (
@@ -1666,6 +1678,7 @@ class PostgresFormImportRepository(RecordRepository):
                 .where(
                     FormImportRow.workspace_id == workspace_id,
                     FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                    _import_kind("pdf"),
                 )
             )
         ).scalar_one()
@@ -1676,6 +1689,7 @@ class PostgresFormImportRepository(RecordRepository):
                 .where(
                     FormImportRow.workspace_id == workspace_id,
                     FormImportRow.created_at >= since,
+                    _import_kind("pdf"),
                 )
             )
         ).scalar_one()
@@ -1685,26 +1699,29 @@ class PostgresFormImportRepository(RecordRepository):
         return await self.one(FormImportRow.id == _oid(import_id))
 
     async def list_by_workspace(
-        self, workspace_id: RecordId, limit: int = 20
+        self, workspace_id: RecordId, limit: int = 20, kind: Optional[str] = "pdf"
     ) -> List[FormImportDocument]:
         return await self.many(
             FormImportRow.workspace_id == _oid(workspace_id),
+            _import_kind(kind),
             order_by=(FormImportRow.created_at.desc(), FormImportRow.id.desc()),
             limit=limit,
         )
 
     async def count_created_since(
-        self, workspace_id: RecordId, since: datetime
+        self, workspace_id: RecordId, since: datetime, kind: Optional[str] = "pdf"
     ) -> int:
         return await self.count(
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.created_at >= since,
+            _import_kind(kind),
         )
 
     async def count_active(self, workspace_id: RecordId) -> int:
         return await self.count(
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+            _import_kind("pdf"),
         )
 
     async def delete_by_form_ids(self, form_ids: List[str]) -> int:
