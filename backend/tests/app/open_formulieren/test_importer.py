@@ -631,7 +631,7 @@ def test_an_always_hidden_layout_drops_what_is_inside_quietly():
 # ---------------------------------------------------------- not carried
 
 
-def test_custom_code_is_reported_never_carried_and_never_run(monkeypatch, tmp_path):
+def test_custom_code_is_reported_never_carried_and_never_run(monkeypatch, tmp_path, exec_guard):
     marker = tmp_path / "ran"
     script = f"open({str(marker)!r}, 'w').write('x'); raise SystemExit(1)"
     scripted = comp(
@@ -644,12 +644,7 @@ def test_custom_code_is_reported_never_carried_and_never_run(monkeypatch, tmp_pa
         validate={"custom": script, "customMessage": "<b>m</b>"},
         logic=[{"trigger": {"type": "javascript", "javascript": script}, "actions": []}],
     )
-    calls = []
-    import builtins
-
-    real_eval, real_exec = builtins.eval, builtins.exec
-    monkeypatch.setattr(builtins, "eval", lambda *a, **k: calls.append("eval") or real_eval(*a, **k))
-    monkeypatch.setattr(builtins, "exec", lambda *a, **k: calls.append("exec") or real_exec(*a, **k))
+    calls = exec_guard
     built = run([[scripted]], logic=[rule({"var": "t"}, hide("t"))])
     assert not marker.exists()
     assert calls == []
@@ -795,3 +790,16 @@ def test_a_huge_report_is_cut_but_counted(monkeypatch):
     built = run([[comp("signature", f"s{n}") for n in range(20)] + [comp("textfield", "keep")]])
     assert len(built.report.items) == 5 and built.report.truncated
     assert built.summary["dropped"] >= 20
+
+
+def test_the_exec_guard_sees_our_modules_and_ignores_others(exec_guard):
+    """The guard of the test above is not vacuous: a call to eval/exec/compile
+    made from a module of the import code is counted, one made from anywhere
+    else is not (and still works)."""
+    ours = {"__name__": "backend.app.services.open_formulieren.fake"}
+    other = {"__name__": "somebody.else"}
+    exec("value = eval('1 + 1')", other)
+    assert other["value"] == 2 and exec_guard == []
+    exec("value = eval('1 + 1'); code = compile('2', 'x', 'eval')", ours)
+    assert ours["value"] == 2
+    assert exec_guard == ["eval", "compile"]
