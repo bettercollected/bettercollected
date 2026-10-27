@@ -5,6 +5,7 @@ refuses with the existing ``form_not_publishable`` error and one problem,
 ``workspace_title_missing``, which carries nothing of the workspace."""
 
 import json
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -23,6 +24,7 @@ from backend.app.services.publish_checks import (
     MISSING_WHY_WE_ASK,
     WORKSPACE_TITLE_MISSING,
     ensure_publishable,
+    has_workspace_title,
     workspace_title_problem,
 )
 from tests.app.controllers.data import testUser
@@ -75,7 +77,27 @@ def _only_problem(content) -> dict:
 # ---------------------------------------------------------------- the rule
 
 
-@pytest.mark.parametrize("title", [None, "", " ", "   ", "\t", "\n", "   "])
+INVISIBLE_ONLY = [
+    "\u200b",  # zero-width space
+    "\u2060",  # word joiner
+    "\ufeff",  # byte order mark
+    "\u3164",  # Hangul filler
+    "\u115f\u1160",
+    "\uffa0",
+    "\u2800",  # Braille blank
+    "\u00ad",  # soft hyphen
+    "\u180e",
+    "\u2028\u2029",
+    "\u0000\u0007",
+    " \u200b \u3164\n\t\ufeff\u00a0 ",  # mixed invisible and whitespace
+]
+PLACEHOLDERS = ["untitled", "Untitled", "UNTITLED", "  Untitled \n", "un\u200btitled"]
+
+
+@pytest.mark.parametrize(
+    "title",
+    [None, "", " ", "   ", "\t", "\n", "\u00a0", *INVISIBLE_ONLY, *PLACEHOLDERS],
+)
 def test_a_missing_or_blank_title_is_a_problem(title):
     problem = workspace_title_problem(title)
     assert problem is not None
@@ -83,9 +105,41 @@ def test_a_missing_or_blank_title_is_a_problem(title):
     assert problem["fieldId"] is None
 
 
-@pytest.mark.parametrize("title", ["Acme Foundation", "A", "  Acme  ", "Café de Vries"])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Acme Foundation",
+        "A",
+        "  Acme  ",
+        "Café de Vries",
+        "\u200bA\u3164",  # one visible character among invisible ones
+        " \u200b \u3164\n\ufeffx\u2060 ",
+        "Untitled workspace",  # only the bare placeholder is no title
+        "untitled-2",
+        "Ünïcode 名前",
+    ],
+)
 def test_a_real_title_is_no_problem(title):
     assert workspace_title_problem(title) is None
+
+
+_CASES = json.loads(
+    (
+        Path(__file__).resolve().parents[4] / "docs/spec/workspace-title.cases.json"
+    ).read_text(encoding="utf-8")
+)
+
+
+@pytest.mark.parametrize("title", _CASES["refused"])
+def test_the_shared_cases_that_are_no_title(title):
+    """The cases the webapp's publish-checks.test.ts runs too: the builder's
+    check and the server's agree."""
+    assert has_workspace_title(title) is False
+
+
+@pytest.mark.parametrize("title", _CASES["accepted"])
+def test_the_shared_cases_that_are_a_title(title):
+    assert has_workspace_title(title) is True
 
 
 def test_the_problem_names_nothing_of_the_workspace():
@@ -128,7 +182,10 @@ async def test_publish_is_refused_in_an_untitled_workspace(untitled_workspace):
     assert await _latest(form_id) is None
 
 
-@pytest.mark.parametrize("title", ["", " ", "   ", "\t\n"])
+@pytest.mark.parametrize(
+    "title",
+    ["", " ", "   ", "\t\n", "\u200b", "\u3164", "\ufeff\u2060", "Untitled"],
+)
 async def test_a_blank_title_is_refused_like_none(untitled_workspace, title):
     await _set_title(untitled_workspace, title)
     form_id = await _draft(untitled_workspace)

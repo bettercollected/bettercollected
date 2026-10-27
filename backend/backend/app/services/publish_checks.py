@@ -40,9 +40,11 @@ the two in step).
 - **The workspace has a title:** respondents see the workspace's title as
   who receives their answers (the privacy strip), so a form is not published
   while its workspace has none (``workspace_title_problem``; the problem
-  carries nothing of the workspace, ``fieldId`` is empty). Blank after
-  trimming is no title; the handle never stands in for one (the default
-  workspace's handle is its owner's id). Only a new publish or republish is
+  carries nothing of the workspace, ``fieldId`` is empty). A title needs a
+  visible character (spaces, zero-width and filler characters show nothing)
+  and is not "untitled", which onboarding also treats as no title; the
+  handle never stands in for one (the default workspace's handle is its
+  owner's id). Only a new publish or republish is
   held up: a form that is already live stays live.
 
 Internal ("for office use") fields are not respondent-facing and are skipped.
@@ -56,6 +58,7 @@ for every form.
 
 import copy
 import re
+import unicodedata
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
@@ -350,12 +353,44 @@ def review_problem(import_id: Optional[str]) -> Dict[str, Optional[str]]:
     }
 
 
+# Characters that show nothing: format, space, line/paragraph separator and
+# control characters (zero-width space, word joiner, BOM, NBSP, ...), plus
+# the fillers and blanks Unicode files elsewhere (Hangul and Braille blanks,
+# soft hyphen, Mongolian vowel separator).
+_INVISIBLE_CATEGORIES = {"Cf", "Zs", "Zl", "Zp", "Cc"}
+_INVISIBLE_EXTRA = {
+    "\u115f", "\u1160", "\u3164", "\uffa0", "\u2800", "\u00ad", "\u180e",
+}  # fmt: skip
+# What onboarding also treats as "no title" (webapp onboarding page, login).
+_PLACEHOLDER_TITLE = "untitled"
+
+
+def visible_title(title: Optional[str]) -> str:
+    """The characters of ``title`` that can be seen; "" when there are none.
+    Mirrored by the webapp's ``visibleTitle`` (utils/publish-checks.ts)."""
+    if not isinstance(title, str):
+        return ""
+    return "".join(
+        char
+        for char in title
+        if char not in _INVISIBLE_EXTRA
+        and unicodedata.category(char) not in _INVISIBLE_CATEGORIES
+    )
+
+
+def has_workspace_title(title: Optional[str]) -> bool:
+    """A title needs at least one visible character, and "untitled" (any
+    case, as onboarding treats it) is the placeholder, not a title."""
+    visible = visible_title(title)
+    return bool(visible) and visible.casefold() != _PLACEHOLDER_TITLE
+
+
 def workspace_title_problem(title: Optional[str]) -> Optional[Dict[str, Optional[str]]]:
     """The problem of a workspace without a title, or None when it has one.
     ``title``: the workspace's ``title`` (None when the workspace could not be
     read: that is no title either, so it never fails open). The problem names
     nothing of the workspace; the webapp links to the workspace settings."""
-    if isinstance(title, str) and title.strip():
+    if has_workspace_title(title):
         return None
     return {
         "code": WORKSPACE_TITLE_MISSING,

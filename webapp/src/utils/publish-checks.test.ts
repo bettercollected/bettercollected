@@ -1,9 +1,12 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { describe, expect, it } from 'vitest';
 
 import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems, workspaceTitleProblems } from './publish-checks';
+import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, hasWorkspaceTitle, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems, visibleTitle, workspaceTitleProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -198,5 +201,26 @@ describe('workspaceTitleProblems', () => {
         const [problem] = workspaceTitleProblems({ id: 'w', title: '' });
         expect(splitPublishProblems([problem], undefined)).toEqual({ blocking: [problem], recommended: [] });
         expect(splitPublishProblems([problem], 1)).toEqual({ blocking: [problem], recommended: [] });
+    });
+});
+
+// The cases shared with the server (backend/tests/app/services/test_workspace_title_check.py): the builder's check and
+// the server's agree on what is a title.
+const titleCases = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/workspace-title.cases.json'), 'utf-8')) as { refused: Array<string | null>; accepted: string[] };
+
+describe('hasWorkspaceTitle', () => {
+    it.each(titleCases.refused)('is no title: %j', (title) => {
+        expect(hasWorkspaceTitle(title)).toBe(false);
+        expect(workspaceTitleProblems({ id: 'w', title }).map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+    });
+
+    it.each(titleCases.accepted)('is a title: %j', (title) => {
+        expect(hasWorkspaceTitle(title)).toBe(true);
+        expect(workspaceTitleProblems({ id: 'w', title })).toEqual([]);
+    });
+
+    it('shows only what can be seen', () => {
+        expect(visibleTitle(' \u200bAc\u3164me\ufeff ')).toBe('Acme');
+        expect(visibleTitle(undefined)).toBe('');
     });
 });

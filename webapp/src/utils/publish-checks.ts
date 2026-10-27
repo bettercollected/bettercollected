@@ -181,15 +181,34 @@ export function themeContrastProblems(theme: Partial<FormTheme> | null | undefin
     return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message: `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.` }];
 }
 
+// Characters that show nothing: format, space, line/paragraph separator and control characters (zero-width space,
+// word joiner, BOM, NBSP, ...), plus the fillers and blanks Unicode files elsewhere (Hangul and Braille blanks, soft
+// hyphen, Mongolian vowel separator). Same set as the backend's `visible_title` (services/publish_checks.py).
+const INVISIBLE = new RegExp('[\\p{Cf}\\p{Zs}\\p{Zl}\\p{Zp}\\p{Cc}\\u115f\\u1160\\u3164\\uffa0\\u2800\\u00ad\\u180e]', 'gu');
+
+/** The characters of a title that can be seen; '' when there are none. */
+export function visibleTitle(title: string | null | undefined): string {
+    return typeof title === 'string' ? title.replace(INVISIBLE, '') : '';
+}
+
+/**
+ * Does the workspace have a title respondents can read? It needs a visible character, and "untitled" (any case) is
+ * the placeholder, not a title: the onboarding page and the login redirect treat it as no title too.
+ */
+export function hasWorkspaceTitle(title: string | null | undefined): boolean {
+    const visible = visibleTitle(title);
+    return visible !== '' && visible.toLowerCase() !== 'untitled';
+}
+
 /**
  * The workspace's title is who respondents see receiving their answers, so a
  * form is not published while the workspace has none (backend
- * `workspace_title_problem`). Blank after trimming is no title; the handle
- * never stands in for one. While the workspace is still loading (no id)
+ * `workspace_title_problem`, the same rule: `hasWorkspaceTitle`). The handle
+ * never stands in for a title. While the workspace is still loading (no id)
  * nothing is claimed here: the server decides.
  */
 export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined): PublishProblem[] {
-    if (!workspace?.id || workspace.title?.trim()) return [];
+    if (!workspace?.id || hasWorkspaceTitle(workspace.title)) return [];
     return [{ code: 'workspace_title_missing', fieldId: '', message: 'Your workspace has no title yet. Respondents see it as who receives their answers, so give it a title in the workspace settings.' }];
 }
 
