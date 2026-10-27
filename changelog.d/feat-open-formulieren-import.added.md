@@ -4,7 +4,8 @@
   with hard limits (it is untrusted: nothing in it is run, rendered or fetched), builds the draft through
   the form edit operations, never publishes it, marks it "needs review" and reports everything that was
   dropped, converted or flagged (sign-in, prefill, payment, appointments, custom scripts, translations
-  and variables are not carried; a national identity number question is flagged). Imports have a
+  and variables are not carried; an address question becomes five text questions, its address lookup is not
+  carried; a national identity number question is flagged). Imports have a
   per-workspace daily limit of their own (`OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY`, default 50, and
   `OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY`, default 100, refused archives included). See
   `docs/open-formulieren.md`.

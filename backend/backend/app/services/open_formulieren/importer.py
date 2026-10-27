@@ -50,9 +50,17 @@ from backend.app.services.open_formulieren.logic import (
     translate,
 )
 from backend.app.services.open_formulieren.mapping import (
+    ADDITION_MAX_LENGTH,
+    ADDITION_PATTERN,
+    ADDRESS_DERIVED_PARTS,
+    ADDRESS_FALLBACK_LABEL,
+    ADDRESS_PARTS,
+    ADDRESS_TYPE,
     CHOICE_TYPES,
     GROUP_TYPES,
+    HOUSE_NUMBER_PATTERN,
     LAYOUT_TYPES,
+    POSTCODE_PATTERN,
     SCRIPT_KEYS,
     SILENT_TYPES,
     TIME_PATTERN,
@@ -163,6 +171,52 @@ def _last_segment(url: Any) -> str:
     return urlsplit(url).path.rstrip("/").rsplit("/", 1)[-1]
 
 
+def _language_of(top: Any, translations: Any, name: str) -> Optional[str]:
+    """``nl`` or ``en`` when the text an export wrote at the top level is the
+    text of that language's translation and not of the other one. An export
+    writes the text of the language it was made in at the top level and keeps
+    both languages under ``translations`` (nothing else says which one is
+    which), so this is how the language of the texts shows."""
+    text = label_text(top, 200)
+    if not text:
+        return None
+    found = _dict(translations)
+    dutch = label_text(_dict(found.get("nl")).get(name), 200)
+    english = label_text(_dict(found.get("en")).get(name), 200)
+    if text == dutch and text != english:
+        return "nl"
+    if text == english and text != dutch:
+        return "en"
+    return None
+
+
+def archive_language(archive: Archive) -> str:
+    """The language the archive's texts are written in, ``en`` or ``nl``: the
+    one most of its names (the form's and its definitions') are in. English
+    when they do not say (one language only, or the two texts alike)."""
+    votes = [
+        _language_of(
+            archive.form.get("name"), archive.form.get("translations"), "name"
+        )
+    ]
+    for definition in archive.definitions[: limits.MAX_STEPS]:
+        votes.append(
+            _language_of(
+                _dict(definition).get("name"),
+                _dict(definition).get("translations"),
+                "name",
+            )
+        )
+    return "nl" if votes.count("nl") > votes.count("en") else "en"
+
+
+def _component_language(comp: Dict[str, Any]) -> Optional[str]:
+    """The language of one component's label, when its own translations say."""
+    return _language_of(
+        comp.get("label"), _dict(comp.get("openForms")).get("translations"), "label"
+    )
+
+
 class Planner:
     """Walks the steps and components and plans the questions."""
 
@@ -177,6 +231,8 @@ class Planner:
         self._components = 0
         self._refs = 0
         self.page_index = 0
+        self.language = archive_language(archive)
+        self._address_keys: set = set()
 
     # --------------------------------------------------------- reporting
 
@@ -415,7 +471,11 @@ class Planner:
                 detail={"componentType": of_type},
             )
             return
-        if of_type not in TYPE_RULES and of_type not in LAYOUT_TYPES | GROUP_TYPES:
+        if (
+            of_type != ADDRESS_TYPE
+            and of_type not in TYPE_RULES
+            and of_type not in LAYOUT_TYPES | GROUP_TYPES
+        ):
             self.note(
                 R.DROPPED,
                 Reason.UNKNOWN_TYPE,
@@ -469,6 +529,9 @@ class Planner:
                 return
             self._editgrid(comp, page, own, depth, key, label, col_span)
             return
+        if of_type == ADDRESS_TYPE:
+            self._address(comp, page, own, group, key, label, col_span)
+            return
         self._question(comp, of_type, page, own, group, key, label, col_span)
 
     # -- layout and groups
@@ -516,7 +579,9 @@ class Planner:
 
     # -- one question
 
-    def _make(self, key, of_type, rule, label, page, group, spec) -> Question:
+    def _make(
+        self, key, of_type, rule, label, page, group, spec, register: bool = True
+    ) -> Question:
         self._order += 1
         question = Question(
             key=key,
@@ -529,7 +594,7 @@ class Planner:
             spec=spec,
             group=group,
         )
-        if key and key not in self.by_key:
+        if register and key and key not in self.by_key:
             self.by_key[key] = question
         spec["ref"] = question.ref
         return question
@@ -680,6 +745,113 @@ class Planner:
                 half.spec["colSpan"] = col_span
             self._place(half, page, group)
             self.note(R.CHANGED, Reason.DATETIME_SPLIT, R.INFO, key=key, label=label)
+
+    # -- an address
+
+    def _address_key(self, key: Optional[str], part: str) -> str:
+        """The key of one of an address's questions: the component's key and
+        the format's name for the part, made unique (two components may share
+        a key in a careless export). It is only ever a name for reports: a
+        condition names the component or a path inside it, never one of
+        these, so it is not looked up."""
+        base = f"{key or 'address'}.{part}"
+        found, number = base, 1
+        while found in self._address_keys or found in self.seen_keys:
+            number += 1
+            found = f"{base}~{number}"
+        self._address_keys.add(found)
+        return found
+
+    def _address_pattern(
+        self, comp: Dict[str, Any], part: str, default: Optional[str], key, label
+    ) -> Optional[str]:
+        """The answer pattern of the postcode or the place: the one the
+        component sets for it when it is one we can run, else the default."""
+        config = _dict(_dict(_dict(comp.get("openForms")).get("components")).get(part))
+        pattern = _dict(config.get("validate")).get("pattern")
+        if not isinstance(pattern, str) or not pattern.strip():
+            return default
+        try:
+            cleaned = checked_pattern(pattern)
+        except ValueError:
+            cleaned = None
+        if cleaned and compile_pattern(cleaned) is not None:
+            return cleaned
+        self.note(
+            R.DROPPED, Reason.VALIDATION, R.WARNING, key=key, label=label,
+            detail={"property": "pattern"},
+        )
+        return default
+
+    def _address(self, comp, page, chain, group, key, label, col_span) -> None:
+        """An address component becomes five text questions in its place:
+        street, house number, addition, postcode and place. The lookup that
+        fills street and place from postcode and house number needs the
+        Dutch address register and is not carried, so all five are typed."""
+        language = _component_language(comp) or self.language
+        column = 2 if language == "nl" else 1
+        base = (label or ADDRESS_FALLBACK_LABEL[language])[: limits.MAX_TITLE - 40]
+        validate = _dict(comp.get("validate"))
+        required = validate.get("required") is True
+        derived = comp.get("deriveAddress") is True
+        description = label_text(comp.get("description"), limits.MAX_HELP)
+        tooltip = label_text(comp.get("tooltip"), limits.MAX_HELP)
+        if description:
+            if tooltip and tooltip != description:
+                self.note(R.DROPPED, Reason.SECOND_TEXT, R.INFO, key=key, label=label)
+        else:
+            description = tooltip
+        patterns = {
+            "houseNumber": HOUSE_NUMBER_PATTERN,
+            "houseNumberAddition": ADDITION_PATTERN,
+            "postcode": self._address_pattern(
+                comp, "postcode", POSTCODE_PATTERN, key, label
+            ),
+            "city": self._address_pattern(comp, "city", None, key, label),
+        }
+        for number, part in enumerate(ADDRESS_PARTS):
+            budget.check()
+            name = part[0]
+            title = f"{base} \u2013 {part[column]}"
+            # the source asks for street and place only when it looks them up
+            # (then they are shown, read-only, and as required as the rest)
+            needed = required and (name not in ADDRESS_DERIVED_PARTS or derived)
+            spec: Dict[str, Any] = {
+                "title": title,
+                "type": "short_text",
+                "required": needed and name != "houseNumberAddition",
+            }
+            if number == 0 and description:
+                spec["description"] = description
+            if col_span:
+                spec["colSpan"] = col_span
+            question = self._make(
+                self._address_key(key, name), ADDRESS_TYPE, TYPE_RULES["textfield"],
+                title, page, group, spec, register=False,
+            )
+            question.chain = list(chain)
+            if patterns.get(name):
+                question.validation["pattern"] = patterns[name]
+            if name == "houseNumberAddition":
+                question.validation["maxLength"] = ADDITION_MAX_LENGTH
+            self._place(question, page, group)
+        self.note(
+            R.CHANGED, Reason.CONVERTED_TO_TEXT,
+            R.WARNING if derived else R.INFO, key=key, label=label,
+            detail={
+                "componentType": ADDRESS_TYPE,
+                "questions": len(ADDRESS_PARTS),
+                "lookup": "not_carried",
+            },
+        )
+        if _list(validate.get("plugins")):
+            self.note(
+                R.DROPPED, Reason.VALIDATION, R.WARNING, key=key, label=label,
+                detail={"property": "plugins"},
+            )
+        if _has_default(comp.get("defaultValue")):
+            self.note(R.DROPPED, Reason.DEFAULT_VALUE, R.INFO, key=key, label=label)
+        self._noted_extras(comp, ADDRESS_TYPE, key, label)
 
     def _place(self, question: Question, page: Page, group: Optional[Question]) -> None:
         if group is not None:
