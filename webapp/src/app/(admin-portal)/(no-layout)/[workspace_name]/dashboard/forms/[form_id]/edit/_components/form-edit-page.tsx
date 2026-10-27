@@ -1,13 +1,15 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import React, { use, useEffect, useRef, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { NEEDS_REVIEW_BANNER_HEIGHT_PX, NeedsReviewBanner, useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useSetAtom } from 'jotai';
 
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -61,6 +63,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const { openDialogModal } = useDialogModal();
 
     const standardForm: any = useAppSelector(selectForm);
+    const workspace = useAppSelector(selectWorkspace);
+    // An imported form that still needs review links to its import report.
+    const showReviewBanner = useShowNeedsReviewBanner(standardForm?.settings, workspace?.id);
 
     const formId = params.form_id;
 
@@ -168,7 +173,13 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
             <Navbar />
             <AutoSaveForm formId={formId} />
-            <div className="max-h-body-content  flex w-full flex-row items-center">
+            {showReviewBanner && <NeedsReviewBanner importId={standardForm.settings.importId} workspaceName={workspace?.workspaceName} />}
+            {/* With the banner, everything under it (outline, canvas, inspector) is the body height minus the banner:
+                the height tokens are narrowed here, so no panel needs to know about the banner. */}
+            <div
+                className="max-h-body-content  flex w-full flex-row items-center"
+                style={showReviewBanner ? ({ '--height-body-content': `calc(100vh - 64px - ${NEEDS_REVIEW_BANNER_HEIGHT_PX}px)`, '--max-height-body-content': `calc(100vh - 64px - ${NEEDS_REVIEW_BANNER_HEIGHT_PX}px)` } as React.CSSProperties) : undefined}
+            >
                 <LeftDrawer activeSlideComponent={activeSlideComponent} />
                 {/* Neutral workspace mat behind the canvas, so the slide being edited
                     reads as the artefact and separates from the tool's chrome. */}

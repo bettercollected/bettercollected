@@ -9,15 +9,18 @@ import { GoogleFormIcon } from '@Components/icons/google-form';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 import cn from 'classnames';
 import { useSetAtom } from 'jotai';
-import { FileText } from 'lucide-react';
+import { FileText, FileArchive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/components/modal-views/context';
+import ImportOpenFormulierenDialog from '@app/components/open-formulieren-import/import-dialog';
+import { useImportText } from '@app/components/open-formulieren-import/report-items';
 import ImportPdfDialog from '@app/components/pdf-import/import-pdf-dialog';
 import { defaultForm } from '@app/constants/form';
 import { googleFormsImport } from '@app/constants/locales/google-forms-import';
 import { useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { useOpenFormulierenImportOn } from '@app/lib/hooks/use-open-formulieren-import-mode';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
@@ -58,6 +61,10 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     // (GOOGLE_FORMS_IMPORT=on); unknown (the provider list failed): as before.
     const { mode: googleImportMode, isLoading: googleImportModeLoading } = useGoogleFormsImportMode();
     const showGoogleImport = !googleImportModeLoading && (googleImportMode === undefined || googleImportMode === 'on');
+    // The Open Formulieren import is offered only when /providers lists it
+    // (OPEN_FORMULIEREN_IMPORT=on): no entry, or no answer, means off.
+    const { on: showOpenFormulierenImport } = useOpenFormulierenImportOn();
+    const importText = useImportText();
 
     // Reviewers, Viewers and Privacy officers don't create forms.
     useEffect(() => {
@@ -68,6 +75,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
 
     const showModal = searchParams.modal;
     const [pdfImportOpen, setPdfImportOpen] = React.useState(false);
+    const [openFormulierenImportOpen, setOpenFormulierenImportOpen] = React.useState(false);
 
     // `?modal=true` is where the Google connection used to return to; it opens
     // the import only while imports are offered (readonly and off: the page
@@ -144,6 +152,9 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             />
                         )}
                         <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
+                        {showOpenFormulierenImport && (
+                            <Card variant={'blue'} icon={<FileArchive aria-hidden className="mb-2 h-[30px] w-full text-brand-500" />} content={importText('CARD.TITLE')} onClick={() => setOpenFormulierenImportOpen(true)} />
+                        )}
                         <Card
                             variant={'pink'}
                             icon={<AIIcon className="text-brand-500" />}
@@ -156,6 +167,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                     {googleImportMode === 'readonly' && <p className="mt-4 text-sm text-black-700">{t(googleFormsImport.readonly.createPage)}</p>}
 
                     <ImportPdfDialog open={pdfImportOpen} onOpenChange={setPdfImportOpen} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} />
+                    {showOpenFormulierenImport && <ImportOpenFormulierenDialog open={openFormulierenImportOpen} onOpenChange={setOpenFormulierenImportOpen} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} />}
                     {!isMobile && (
                         <>
                             <div className="h3-new mb-4 mt-12 text-black-800">Templates</div>
@@ -210,6 +222,15 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly }
            
             className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
+            // A card is a button: reachable and usable from the keyboard.
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onClick(event);
+                }
+            }}
         >
             {icon}
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
