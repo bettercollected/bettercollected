@@ -119,8 +119,9 @@ def test_structure_of_the_sign_in_payment_and_special_forms():
     assert [i["flag"] for i in built.report.items if i.get("flag")] == ["national_identity_number"]
     built = build("3.5.14/special-components.en.zip")
     assert sorted(i["detail"]["componentType"] for i in items(built, reason="unsupported_component_type")) == sorted(
-        ["addressNL", "map", "partners", "children", "cosign", "customerProfile", "npFamilyMembers"]
+        ["map", "partners", "children", "cosign", "customerProfile", "npFamilyMembers"]
     )
+    assert [i["key"] for i in items(built, reason="converted_to_text") if i["detail"]["componentType"] == "addressNL"] == ["address"]
     assert [i["detail"]["plugin"] for i in items(built, reason="registration_not_carried")] == ["email"]
 
 

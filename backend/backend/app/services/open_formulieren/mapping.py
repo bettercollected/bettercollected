@@ -106,6 +106,12 @@ TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
 IBAN_PATTERN = r"^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9 ]{11,30}$"
 NATIONAL_ID_PATTERN = r"^[0-9]{9}$"
 POSTCODE_PATTERN = r"^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+# the house number of an address (their format: one to five digits)
+HOUSE_NUMBER_PATTERN = r"^[0-9]{1,5}$"
+# the addition of an address: their house letter (one letter) and house number
+# addition (one to four letters or digits) in one answer, as people write it:
+# "a", "bis", "2", "a 2", "a-2"
+ADDITION_PATTERN = r"^[A-Za-z0-9]{1,4}([ -][A-Za-z0-9]{1,4})?$"
 
 
 @dataclass(frozen=True)
@@ -167,7 +173,6 @@ UNSUPPORTED_TYPES: FrozenSet[str] = frozenset(
     {
         "signature",
         "map",
-        "addressNL",
         "partners",
         "children",
         "npFamilyMembers",
@@ -176,6 +181,28 @@ UNSUPPORTED_TYPES: FrozenSet[str] = frozenset(
         "customerProfile",
     }
 )
+
+# ``addressNL`` is one component that holds five answers; it becomes five text
+# questions (see the importer). The part names are the format's own sub-field
+# names (``streetName``, ``houseNumber``, ``postcode``, ``city``; the house
+# letter and the house number addition are one question here); the labels are
+# written after the component's label, in the language of the form.
+ADDRESS_TYPE = "addressNL"
+# (part, English label, Dutch label); the order of the five questions
+ADDRESS_PARTS = (
+    ("streetName", "Street", "Straat"),
+    ("houseNumber", "House number", "Huisnummer"),
+    ("houseNumberAddition", "Addition", "Toevoeging"),
+    ("postcode", "Postcode", "Postcode"),
+    ("city", "Place", "Plaats"),
+)
+# a label for an address component that has none
+ADDRESS_FALLBACK_LABEL = {"en": "Address", "nl": "Adres"}
+# the parts the source only asks for when it looks the address up
+ADDRESS_DERIVED_PARTS = frozenset({"streetName", "city"})
+# the longest answer of the addition (letter, separator, addition)
+ADDITION_MAX_LENGTH = 10
+
 # internal helper components: no meaning here, not worth a report line
 SILENT_TYPES: FrozenSet[str] = frozenset({"softRequiredErrors"})
 

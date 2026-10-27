@@ -97,11 +97,47 @@ Steps become pages in `index` order, the page's section title is the step name. 
 | `fieldset` | heading statement, children flattened | its condition applies to everything inside |
 | `columns` | children flattened | column size becomes the question's width |
 | `editgrid` | repeating group | children limited to the types a repeating group allows |
-| `signature`, `map`, `addressNL`, `partners`, `children`, `npFamilyMembers`, `cosign`/`coSign`, `customerProfile`, anything unknown | dropped | reported |
+| `addressNL` | five short text questions in its place: street, house number, addition, postcode, place | `converted_to_text`; see "Addresses" below |
+| `signature`, `map`, `partners`, `children`, `npFamilyMembers`, `cosign`/`coSign`, `customerProfile`, anything unknown | dropped | reported |
 
 Common to all: label becomes the title, description (or, failing that, tooltip) the help text. Every text is reduced
 to plain text (tags, attributes and scripts removed, control and direction characters removed, length capped), template
 syntax is kept as literal text and never rendered.
+
+**Addresses.** An `addressNL` component holds five answers and offers a lookup of street and place from postcode and
+house number (`deriveAddress`; it needs an address lookup service). It becomes five short text questions in the same
+place, in this order, titled "<label> – <part>": Street, House number, Addition, Postcode, Place (Straat,
+Huisnummer, Toevoeging, Postcode, Plaats when the form's texts are Dutch; a component without a label is called
+Address or Adres). The language is read from the archive: the text at the top level of an export is that of the
+language it was made in, so it is Dutch when the form's and its definitions' names equal the `nl` translation and not
+the `en` one (a component's own label decides for that component); English when the names do not say.
+
+* *Required* (`validate.required`) applies to house number and postcode always, and to street and place when
+  `deriveAddress` is on (then they are part of what the source asks for; without it the source never shows them, so
+  here they stay optional). The addition is always optional.
+* Their format keeps the house letter (one letter) and the house number addition (one to four letters or digits)
+  apart; here they are one question, as the Dutch "toevoeging" is written ("a", "bis", "2", "a 2", "a-2"): up to ten
+  characters, one or two parts of at most four letters or digits, separated by a space or a hyphen.
+* House number: one to five digits (their rule). Postcode: the pattern of a postcode question here, or the
+  component's own pattern for the postcode (`openForms.components.postcode.validate.pattern`) when it is accepted;
+  the component's pattern for the place (`openForms.components.city.validate.pattern`) is carried the same way.
+  A pattern is accepted when RE2 compiles it within the pattern limits; one that is not is reported
+  (`validation_not_carried`). Patterns are anchored, see "Patterns" below.
+* The help text goes with the first question; a column width with all five.
+* One item is reported (`changed`, `converted_to_text`, `detail.componentType` = `addressNL`, `detail.questions` = 5,
+  `detail.lookup` = `not_carried`; a warning when `deriveAddress` was on, else info): the lookup is not carried.
+* The five questions count against the question limits like any others. A condition or rule that names the component
+  or a path in it (`address`, `address.postcode`) is reported as a missing source (`condition_source_missing`), never
+  guessed; a rule that hides or shows the component applies to all five. The exporter does not write the address
+  component back: our questions leave as text questions.
+
+**Patterns.** Open Formulieren matches `validate.pattern` against the whole answer: its validation adds a leading `^`
+and a trailing `$` when the pattern lacks one (`formio/components/utils.py:6-14`, used for the text components at
+`formio/components/vanilla.py:130-136, 336-342` and `custom.py:389, 1173`). Ours search the answer, so a pattern that
+does not both start with `^` and end with `$` is carried as `^(?:pattern)$` (the same meaning, and the alternation
+`a|b` keeps its intended reading). This holds for the short text path and for an address's postcode and place. A
+pattern is accepted when RE2 compiles it within the pattern limits; how the browser evaluates patterns is a separate
+matter that this import does not change.
 
 **Visibility.** A simple `conditional` (`show`, `when`, `eq`) becomes a show/hide rule on the question. JSON logic
 rules are read as data, never run: a trigger that is one comparison of a component with a literal (`==`, `!=`, `>`,
@@ -216,6 +252,13 @@ the two feature flags `forms/models/form.py:400-410`; the converters 3.5 added `
   `925`, signature `978`, content `997`, editgrid `1128`, columns `1232`, fieldset `1267`) and `custom.py` (date `108`, datetime
   `201`, map `262`, postcode `348`, npFamilyMembers `429`, bsn `518`, addressNL `685`, partners `861`, children `1036`, cosign
   `1096`, iban `1116`, licenseplate `1153`, customerProfile `1333`, softRequiredErrors `1403`, coSign `1415`).
+* Address: `formio/typing/custom.py:13-14` (`deriveAddress`), `formio/components/custom.py:91-94` (patterns),
+  `564-611` (the five answers: postcode and house number required only when the component is, letter and addition
+  optional, street and city derived), `685-766` (the component, its empty value and JSON schema, custom patterns at
+  `openForms.components.{postcode,city}.validate.pattern`), `formio/formatters/custom.py:93-` (how the answer is
+  written), `formio/migration_converters.py:314-321` (`deriveAddress` defaults to false). The same at 3.5.14
+  (`formio/components/custom.py:89-92, 547-594, 668-`, `migration_converters.py:300-`). The builder shows street and city only when
+  `deriveAddress` is on: `formio-builder` 1.5.0 `src/registry/addressNL/preview.tsx:36-100`.
 * Conditions: `formio/visibility.py:23-88`, `formio/registry.py:250-280`, `formio/components/vanilla.py:783-795`
   (selectboxes), `formio/migration_converters.py:247-289`.
 * Logic: `forms/models/logic.py:24-`, `forms/api/serializers/logic/form_logic.py`, `logic/action_serializers.py:30-312`,

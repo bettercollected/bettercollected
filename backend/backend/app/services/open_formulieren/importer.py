@@ -50,9 +50,17 @@ from backend.app.services.open_formulieren.logic import (
     translate,
 )
 from backend.app.services.open_formulieren.mapping import (
+    ADDITION_MAX_LENGTH,
+    ADDITION_PATTERN,
+    ADDRESS_DERIVED_PARTS,
+    ADDRESS_FALLBACK_LABEL,
+    ADDRESS_PARTS,
+    ADDRESS_TYPE,
     CHOICE_TYPES,
     GROUP_TYPES,
+    HOUSE_NUMBER_PATTERN,
     LAYOUT_TYPES,
+    POSTCODE_PATTERN,
     SCRIPT_KEYS,
     SILENT_TYPES,
     TIME_PATTERN,
@@ -97,6 +105,12 @@ class Question:
     group_spec: Dict[str, Any] = field(default_factory=dict)
     # set when the question failed to be created
     failed: bool = False
+    # one of several questions made from one component (an address): the
+    # component's own key and label, which a report names, and what the
+    # questions share, so that a report about them is written once
+    origin_key: Optional[str] = None
+    origin_label: Optional[str] = None
+    unit: Optional[int] = None
 
 
 @dataclass
@@ -128,6 +142,24 @@ def _has_default(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     return value not in (None, "", 0)
+
+
+def _field_cap() -> int:
+    """How many questions one import may create."""
+    return min(MAX_FIELDS, limits.MAX_IMPORT_FIELDS)
+
+
+def anchored(pattern: str) -> str:
+    """The pattern as Open Formulieren applies it: to the whole answer. Their
+    validation adds a leading ``^`` and a trailing ``$`` when the pattern lacks
+    one (``formio/components/utils.py:6-14`` at 4.0.6, used by the text
+    components at ``vanilla.py:130-136``, ``336-342`` and ``custom.py:389``,
+    ``1173``), so a pattern is a full match there. Ours search the answer, so
+    a pattern that is not anchored at both ends is wrapped to mean the same."""
+    pattern = pattern.strip()
+    if pattern.startswith("^") and pattern.endswith("$"):
+        return pattern
+    return f"^(?:{pattern})$"
 
 
 def _dict(value: Any) -> Dict[str, Any]:
@@ -163,6 +195,52 @@ def _last_segment(url: Any) -> str:
     return urlsplit(url).path.rstrip("/").rsplit("/", 1)[-1]
 
 
+def _language_of(top: Any, translations: Any, name: str) -> Optional[str]:
+    """``nl`` or ``en`` when the text an export wrote at the top level is the
+    text of that language's translation and not of the other one. An export
+    writes the text of the language it was made in at the top level and keeps
+    both languages under ``translations`` (nothing else says which one is
+    which), so this is how the language of the texts shows."""
+    text = label_text(top, 200)
+    if not text:
+        return None
+    found = _dict(translations)
+    dutch = label_text(_dict(found.get("nl")).get(name), 200)
+    english = label_text(_dict(found.get("en")).get(name), 200)
+    if text == dutch and text != english:
+        return "nl"
+    if text == english and text != dutch:
+        return "en"
+    return None
+
+
+def archive_language(archive: Archive) -> str:
+    """The language the archive's texts are written in, ``en`` or ``nl``: the
+    one most of its names (the form's and its definitions') are in. English
+    when they do not say (one language only, or the two texts alike)."""
+    votes = [
+        _language_of(
+            archive.form.get("name"), archive.form.get("translations"), "name"
+        )
+    ]
+    for definition in archive.definitions[: limits.MAX_STEPS]:
+        votes.append(
+            _language_of(
+                _dict(definition).get("name"),
+                _dict(definition).get("translations"),
+                "name",
+            )
+        )
+    return "nl" if votes.count("nl") > votes.count("en") else "en"
+
+
+def _component_language(comp: Dict[str, Any]) -> Optional[str]:
+    """The language of one component's label, when its own translations say."""
+    return _language_of(
+        comp.get("label"), _dict(comp.get("openForms")).get("translations"), "label"
+    )
+
+
 class Planner:
     """Walks the steps and components and plans the questions."""
 
@@ -177,6 +255,14 @@ class Planner:
         self._components = 0
         self._refs = 0
         self.page_index = 0
+        self.language = archive_language(archive)
+        self._address_keys: set = set()
+        self._address_counts: Dict[str, int] = {}
+        self._units = 0
+        self._reported: set = set()
+        # questions planned so far, counted as the form's size check counts
+        # them (a repeating group twice: as an item and as a group)
+        self._planned = 0
 
     # --------------------------------------------------------- reporting
 
@@ -415,7 +501,11 @@ class Planner:
                 detail={"componentType": of_type},
             )
             return
-        if of_type not in TYPE_RULES and of_type not in LAYOUT_TYPES | GROUP_TYPES:
+        if (
+            of_type != ADDRESS_TYPE
+            and of_type not in TYPE_RULES
+            and of_type not in LAYOUT_TYPES | GROUP_TYPES
+        ):
             self.note(
                 R.DROPPED,
                 Reason.UNKNOWN_TYPE,
@@ -469,6 +559,9 @@ class Planner:
                 return
             self._editgrid(comp, page, own, depth, key, label, col_span)
             return
+        if of_type == ADDRESS_TYPE:
+            self._address(comp, page, own, group, key, label, col_span)
+            return
         self._question(comp, of_type, page, own, group, key, label, col_span)
 
     # -- layout and groups
@@ -484,6 +577,7 @@ class Planner:
                 group.children.append(heading)
             else:
                 page.items.append(heading)
+            self._planned += 1
         self.walk(_list(comp.get("components")), page, chain, group, depth + 1, col_span)
 
     def _editgrid(self, comp, page, chain, depth, key, label, col_span) -> None:
@@ -513,10 +607,13 @@ class Planner:
             self.by_key.pop(key or "", None)
             return
         page.items.append(group)
+        self._planned += 2
 
     # -- one question
 
-    def _make(self, key, of_type, rule, label, page, group, spec) -> Question:
+    def _make(
+        self, key, of_type, rule, label, page, group, spec, register: bool = True
+    ) -> Question:
         self._order += 1
         question = Question(
             key=key,
@@ -529,7 +626,7 @@ class Planner:
             spec=spec,
             group=group,
         )
-        if key and key not in self.by_key:
+        if register and key and key not in self.by_key:
             self.by_key[key] = question
         spec["ref"] = question.ref
         return question
@@ -681,11 +778,134 @@ class Planner:
             self._place(half, page, group)
             self.note(R.CHANGED, Reason.DATETIME_SPLIT, R.INFO, key=key, label=label)
 
+    # -- an address
+
+    def _address_key(self, key: Optional[str], part: str) -> str:
+        """The key of one of an address's questions: the component's key and
+        the format's name for the part, made unique (two components may share
+        a key in a careless export). It is only ever a name for reports: a
+        condition names the component or a path inside it, never one of
+        these, so it is not looked up."""
+        base = f"{key or 'address'}.{part}"
+        number = self._address_counts.get(base, 0)
+        while True:
+            number += 1
+            found = base if number == 1 else f"{base}~{number}"
+            if found not in self._address_keys and found not in self.seen_keys:
+                break
+        self._address_counts[base] = number
+        self._address_keys.add(found)
+        return found
+
+    def _address_pattern(
+        self, comp: Dict[str, Any], part: str, default: Optional[str], key, label
+    ) -> Optional[str]:
+        """The answer pattern of the postcode or the place: the one the
+        component sets for it when it is one we can run, else the default."""
+        config = _dict(_dict(_dict(comp.get("openForms")).get("components")).get(part))
+        pattern = _dict(config.get("validate")).get("pattern")
+        if not isinstance(pattern, str) or not pattern.strip():
+            return default
+        try:
+            cleaned = checked_pattern(anchored(pattern))
+        except ValueError:
+            cleaned = None
+        if cleaned and compile_pattern(cleaned) is not None:
+            return cleaned
+        self.note(
+            R.DROPPED, Reason.VALIDATION, R.WARNING, key=key, label=label,
+            detail={"property": "pattern"},
+        )
+        return default
+
+    def _address(self, comp, page, chain, group, key, label, col_span) -> None:
+        """An address component becomes five text questions in its place:
+        street, house number, addition, postcode and place. The lookup that
+        fills street and place from postcode and house number needs an
+        address lookup service and is not carried, so all five are typed."""
+        # refuse before planning what the form's size limit would refuse
+        # after: an archive of nothing but addresses must not be planned in
+        # full first (the same refusal as the check in ``_build_draft``)
+        if self._planned + len(ADDRESS_PARTS) > _field_cap():
+            raise refuse(
+                "archive_too_complex",
+                "The form has more pages or questions than a form can hold.",
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        self._units += 1
+        language = _component_language(comp) or self.language
+        column = 2 if language == "nl" else 1
+        base = (label or ADDRESS_FALLBACK_LABEL[language])[: limits.MAX_TITLE - 40]
+        validate = _dict(comp.get("validate"))
+        required = validate.get("required") is True
+        derived = comp.get("deriveAddress") is True
+        description = label_text(comp.get("description"), limits.MAX_HELP)
+        tooltip = label_text(comp.get("tooltip"), limits.MAX_HELP)
+        if description:
+            if tooltip and tooltip != description:
+                self.note(R.DROPPED, Reason.SECOND_TEXT, R.INFO, key=key, label=label)
+        else:
+            description = tooltip
+        patterns = {
+            "houseNumber": HOUSE_NUMBER_PATTERN,
+            "houseNumberAddition": ADDITION_PATTERN,
+            "postcode": self._address_pattern(
+                comp, "postcode", POSTCODE_PATTERN, key, label
+            ),
+            "city": self._address_pattern(comp, "city", None, key, label),
+        }
+        for number, part in enumerate(ADDRESS_PARTS):
+            budget.check()
+            name = part[0]
+            title = f"{base} \u2013 {part[column]}"
+            # the source asks for street and place only when it looks them up
+            # (then they are shown, read-only, and as required as the rest)
+            needed = required and (name not in ADDRESS_DERIVED_PARTS or derived)
+            spec: Dict[str, Any] = {
+                "title": title,
+                "type": "short_text",
+                "required": needed and name != "houseNumberAddition",
+            }
+            if number == 0 and description:
+                spec["description"] = description
+            if col_span:
+                spec["colSpan"] = col_span
+            question = self._make(
+                self._address_key(key, name), ADDRESS_TYPE, TYPE_RULES["textfield"],
+                title, page, group, spec, register=False,
+            )
+            question.chain = list(chain)
+            question.origin_key, question.origin_label = key, label
+            question.unit = self._units
+            if patterns.get(name):
+                question.validation["pattern"] = patterns[name]
+            if name == "houseNumberAddition":
+                question.validation["maxLength"] = ADDITION_MAX_LENGTH
+            self._place(question, page, group)
+        self.note(
+            R.CHANGED, Reason.CONVERTED_TO_TEXT,
+            R.WARNING if derived else R.INFO, key=key, label=label,
+            detail={
+                "componentType": ADDRESS_TYPE,
+                "questions": len(ADDRESS_PARTS),
+                "lookup": "not_carried",
+            },
+        )
+        if _list(validate.get("plugins")):
+            self.note(
+                R.DROPPED, Reason.VALIDATION, R.WARNING, key=key, label=label,
+                detail={"property": "plugins"},
+            )
+        if _has_default(comp.get("defaultValue")):
+            self.note(R.DROPPED, Reason.DEFAULT_VALUE, R.INFO, key=key, label=label)
+        self._noted_extras(comp, ADDRESS_TYPE, key, label)
+
     def _place(self, question: Question, page: Page, group: Optional[Question]) -> None:
         if group is not None:
             group.children.append(question)
         else:
             page.items.append(question)
+        self._planned += 1
 
     def _flag_national_id(self, comp, question: Question, key, label) -> None:
         rule = question.rule
@@ -719,7 +939,7 @@ class Planner:
         if isinstance(pattern, str) and pattern.strip() and of_type not in ("bsn", "iban", "time", "postcode"):
             if ours == "short_text":
                 try:
-                    cleaned = checked_pattern(pattern)
+                    cleaned = checked_pattern(anchored(pattern))
                 except ValueError:
                     cleaned = None
                 if cleaned and compile_pattern(cleaned) is not None:
@@ -997,10 +1217,11 @@ def _logic_ops(planner: Planner, ops: _Ops, report: Report) -> None:
             continue
         own = question.chain
         rule, conflict = combine(own)
-        if conflict:
+        name, title = _named(question)
+        if conflict and _first(planner, question, "conflict"):
             planner.note(
-                R.DROPPED, Reason.CONFLICT, kind=R.LOGIC, key=question.key,
-                label=question.label, step=question.page,
+                R.DROPPED, Reason.CONFLICT, kind=R.LOGIC, key=name,
+                label=title, step=question.page,
             )
         if rule is None:
             continue
@@ -1030,11 +1251,12 @@ def _logic_ops(planner: Planner, ops: _Ops, report: Report) -> None:
                 entry["value"] = value
             conditions.append(entry)
         if broken:
-            planner.note(
-                R.DROPPED, broken, kind=R.LOGIC, key=question.key or cond.source,
-                label=question.label, step=question.page,
-                detail={"source": cond.source},
-            )
+            if _first(planner, question, ("broken", broken)):
+                planner.note(
+                    R.DROPPED, broken, kind=R.LOGIC, key=name or cond.source,
+                    label=title, step=question.page,
+                    detail={"source": cond.source},
+                )
             continue
         ops.add(
             {
@@ -1049,6 +1271,28 @@ def _logic_ops(planner: Planner, ops: _Ops, report: Report) -> None:
             "logic",
             question,
         )
+
+
+def _named(question: Question) -> Tuple[Optional[str], str]:
+    """What a report calls a question: its own key and label, or, for one of
+    several made from a component, that component's (they are not in the
+    source file)."""
+    if question.unit is not None:
+        return question.origin_key, question.origin_label or ""
+    return question.key, question.label
+
+
+def _first(planner: Planner, question: Question, what: str) -> bool:
+    """Whether this is the first report of ``what`` about the component the
+    question was made from (always true for a question of its own): its
+    questions share one outcome, so it is written once."""
+    if question.unit is None:
+        return True
+    marker = (question.unit, what)
+    if marker in planner._reported:
+        return False
+    planner._reported.add(marker)
+    return True
 
 
 def _all_questions(planner: Planner) -> List[Question]:
@@ -1167,27 +1411,31 @@ def _refused(planner: Planner, ops: _Ops, index: int, why: str) -> None:
         return
     if question.failed and kind not in ("field", "group"):
         return  # it hangs on a question that was refused; that one is reported
+    name, title = _named(question)
     if kind in ("field", "group"):
         _mark_failed(question)
-        planner.note(
-            R.DROPPED, Reason.REJECTED, key=question.key, label=question.label,
-            step=question.page,
-        )
+        if _first(planner, question, "rejected"):
+            planner.note(
+                R.DROPPED, Reason.REJECTED, key=name, label=title,
+                step=question.page,
+            )
     elif kind == "validation":
-        planner.note(
-            R.DROPPED, Reason.VALIDATION, R.INFO, key=question.key,
-            label=question.label, step=question.page, detail={"property": "rule"},
-        )
+        if _first(planner, question, "validation"):
+            planner.note(
+                R.DROPPED, Reason.VALIDATION, R.INFO, key=name,
+                label=title, step=question.page, detail={"property": "rule"},
+            )
     elif kind == "date_rules":
         planner.note(
-            R.DROPPED, Reason.DATE_RULE, R.INFO, key=question.key,
-            label=question.label, step=question.page,
+            R.DROPPED, Reason.DATE_RULE, R.INFO, key=name,
+            label=title, step=question.page,
         )
     elif kind == "logic":
-        planner.note(
-            R.DROPPED, Reason.REJECTED, kind=R.LOGIC, key=question.key,
-            label=question.label, step=question.page,
-        )
+        if _first(planner, question, "logic_rejected"):
+            planner.note(
+                R.DROPPED, Reason.REJECTED, kind=R.LOGIC, key=name,
+                label=title, step=question.page,
+            )
 
 
 def build_draft(archive: Archive) -> Built:
@@ -1218,7 +1466,7 @@ def _build_draft(archive: Archive) -> Built:
         )
     if len(planner.pages) > MAX_PAGES or (
         len(questions) + sum(1 for q in questions if q.is_group)
-        > min(MAX_FIELDS, limits.MAX_IMPORT_FIELDS)
+        > _field_cap()
     ):
         raise refuse(
             "archive_too_complex",

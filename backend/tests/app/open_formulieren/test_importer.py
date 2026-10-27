@@ -288,7 +288,7 @@ def test_types_that_change_shape_are_reported():
 
 
 def test_unsupported_and_unknown_types_are_dropped_and_reported():
-    types = ["signature", "map", "addressNL", "partners", "children", "npFamilyMembers", "cosign", "coSign", "customerProfile"]
+    types = ["signature", "map", "partners", "children", "npFamilyMembers", "cosign", "coSign", "customerProfile"]
     built = run([[comp(t, t) for t in types] + [comp("somethingNew", "x"), comp("textfield", "keep")]])
     assert [q["title"] for q in questions(built)] == ["keep"]
     assert {i["detail"]["componentType"] for i in items(built, reason="unsupported_component_type")} == set(types)
