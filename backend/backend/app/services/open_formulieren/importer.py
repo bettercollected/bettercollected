@@ -1109,7 +1109,8 @@ def _apply(planner: Planner, ops: _Ops, form: StandardForm) -> StandardForm:
     # the deadline is checked after every operation: the engine's cost grows
     # with the form, so a big hostile one must not run it to the end
     form, results = apply_form_ops(
-        form, parsed, on_step=lambda *_: budget.check(), check_size=False
+        form, parsed, on_step=lambda *_: budget.check(), check_size=False,
+        check_calculations=False,
     )
     for result, index in zip(results, positions):
         if result.ok:
@@ -1186,7 +1187,8 @@ def _build_draft(archive: Archive) -> Built:
             reportItems=report.items[:50],
         )
     if len(planner.pages) > MAX_PAGES or (
-        len(questions) + sum(1 for q in questions if q.is_group) > MAX_FIELDS
+        len(questions) + sum(1 for q in questions if q.is_group)
+        > min(MAX_FIELDS, limits.MAX_IMPORT_FIELDS)
     ):
         raise refuse(
             "archive_too_complex",

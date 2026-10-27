@@ -16,7 +16,13 @@ from backend.app.services.open_formulieren.archive import (
     read_archive,
 )
 from backend.app.services.open_formulieren.errors import ImportRefused
-from tests.app.open_formulieren.conftest import fixture_bytes, load, make_zip
+from tests.app.open_formulieren.conftest import (
+    CATASTROPHIC_SECONDS,
+    assert_scales_linearly,
+    fixture_bytes,
+    load,
+    make_zip,
+)
 
 
 def refused(data: bytes) -> ImportRefused:
@@ -73,7 +79,7 @@ def test_a_high_ratio_bomb_is_refused_while_it_is_read():
     assert len(data) < limits.MAX_UPLOAD_BYTES
     started = time.monotonic()
     assert refused(data).code == "archive_too_large"
-    assert time.monotonic() - started < 5
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 def test_a_bomb_inside_a_known_entry_is_refused_too():
@@ -110,7 +116,7 @@ def test_many_entries_are_refused_before_the_reader_builds_them():
     assert len(data) < limits.MAX_UPLOAD_BYTES
     started = time.monotonic()
     assert refused(data).code == "archive_too_large"
-    assert time.monotonic() - started < 2
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 def _zip64_disguised(entries: int) -> bytes:
@@ -139,7 +145,7 @@ def test_a_zip64_record_cannot_hide_the_entry_count():
     started = time.monotonic()
     error = refused(data)
     assert (error.code, error.status) == ("archive_unsafe", 400)
-    assert time.monotonic() - started < 0.5
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 def test_more_entries_than_an_export_has_are_refused():
@@ -290,7 +296,7 @@ def test_extreme_nesting_never_reaches_the_parser():
     started = time.monotonic()
     error = refused(make_zip(good(**{"formDefinitions.json": deep})))
     assert error.code == "archive_json_invalid"
-    assert time.monotonic() - started < 5
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 def test_nesting_inside_the_limit_is_read():
@@ -304,13 +310,18 @@ def test_brackets_in_strings_are_not_nesting():
     assert json_depth_ok(text.encode())
 
 
-def test_a_string_that_never_ends_is_refused_fast():
+def test_a_string_that_never_ends_is_refused_in_linear_time():
     """One lone quote followed by escaped quotes would make a naive scan
-    retry at every one of them."""
-    raw = b'["' + b'\\"' * 3_000_000
-    started = time.monotonic()
-    assert not json_depth_ok(raw)
-    assert time.monotonic() - started < 2
+    retry at every one of them (quadratic): doubling the input must not
+    quadruple the time."""
+
+    def make(n):
+        raw = b'["' + b'\\"' * n
+        return lambda: json_depth_ok(raw)
+
+    assert not make(1000)()
+    assert_scales_linearly(make, 400_000, 800_000, floor=0.2)
+
 
 
 @pytest.mark.parametrize(

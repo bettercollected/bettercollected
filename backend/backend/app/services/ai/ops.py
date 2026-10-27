@@ -3150,6 +3150,7 @@ def apply_form_ops(
     atomic: bool = False,
     on_step: Optional[Callable[[int, StandardForm, "OpResult"], None]] = None,
     check_size: bool = True,
+    check_calculations: bool = True,
 ) -> Tuple[StandardForm, List[OpResult]]:
     """Apply operations to a deep copy of ``form``; the original is untouched.
 
@@ -3169,7 +3170,8 @@ def apply_form_ops(
     for every op, so a batch of N ops on a large form costs N times the
     form): for a caller that has already bounded what the batch can add and
     wants the cost linear (the Open Formulieren import). Everyone else keeps
-    the default.
+    the default. ``check_calculations=False`` likewise skips the per-op walk
+    that keeps calculated fields valid, for a batch that creates none.
     """
     working = form.model_copy(deep=True)
     results: List[OpResult] = []
@@ -3205,7 +3207,7 @@ def apply_form_ops(
             # Calculations must stay valid after every op: an op that leaves
             # one with an unknown field, an internal field or a circle is
             # refused and undone (the builder save would refuse the form).
-            calc_before = _calculation_problems(working)
+            calc_before = _calculation_problems(working) if check_calculations else None
             snapshot = (
                 working.model_copy(deep=True)
                 if calc_before is not None or _carries_calculation(op)

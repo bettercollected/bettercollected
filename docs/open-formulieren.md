@@ -151,7 +151,8 @@ The archive is untrusted. `services/open_formulieren/archive.py`:
 * the zip reader builds one record per entry before it can be counted, so the central directory is bounded first, and an archive
   with a zip64 locator (which would hide the real count) is refused;
 * text: markup is removed by a single linear scan (never an HTML parser, whose cost on hostile input is not bounded), each text
-  is cut to twice its limit first, and one import has a work budget (characters of text and 5 seconds, checked between the form edit operations too): beyond it the
+  is cut to twice its limit first, and one import has a work budget (characters of text and 5 seconds, checked between the form edit operations too), and one import creates at most 1000 questions (statements and groups
+  included; more is `archive_too_complex`): beyond it the
   import is refused as too complex. Only a few imports build at once;
 * JSON: nesting depth is checked by an iterative scan before parsing (the stdlib parser recurses), non-finite
   numbers are refused, and values are counted;

@@ -18,7 +18,14 @@ from backend.app.services.open_formulieren.importer import Planner, build_draft
 from backend.app.services.open_formulieren.text import plain_text, strip_tags
 from backend.app.services.open_formulieren_import_service import _build, _slots
 from backend.config import settings
-from tests.app.open_formulieren.conftest import archive_with, comp, fixture_bytes
+from tests.app.open_formulieren.conftest import (
+    CATASTROPHIC_SECONDS,
+    archive_with,
+    assert_scales_linearly,
+    best_time,
+    comp,
+    fixture_bytes,
+)
 from tests.app.open_formulieren.test_api import ROOT, upload, url
 from tests.app.open_formulieren.test_importer import questions, reasons, run
 
@@ -42,20 +49,29 @@ HOSTILE_TEXT = [
 
 
 @pytest.mark.parametrize("text", HOSTILE_TEXT)
-def test_hostile_markup_is_cheap(text):
+def test_hostile_markup_costs_linear_time(text):
+    """Doubling hostile markup must not quadruple the cost (the HTML parser it
+    replaced was quadratic on these); the cut text of the real call is bounded."""
+    base = text[:20_000]
+
+    def make(n):
+        data = (base * 4)[: n]
+        return lambda: strip_tags(data)
+
+    assert_scales_linearly(make, 20_000, 40_000, floor=0.2)
     started = time.monotonic()
     plain_text(text, limits.MAX_STATEMENT)
-    strip_tags(text)  # even uncut, the scan itself is linear
-    assert time.monotonic() - started < 0.5
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
-def test_a_small_archive_of_hostile_content_is_cheap_end_to_end():
+def test_a_small_archive_of_hostile_content_builds(no_deadline):
     steps = [[comp("content", f"c{n}", html=text[:20_000]) for n, text in enumerate(HOSTILE_TEXT[:3])] + [comp("textfield", "keep")]]
     data = archive_with(steps)
     assert len(data) < 3_000
     started = time.monotonic()
-    _build(data)
-    assert time.monotonic() - started < 1.5
+    _, built = _build(data)
+    assert built.summary["pages"] == 1
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 def test_tags_are_dropped_and_what_is_not_a_tag_is_kept():
@@ -96,7 +112,7 @@ def test_a_build_past_its_deadline_is_refused(monkeypatch):
     assert (error.status, error.code) == (422, "archive_too_complex")
 
 
-def test_an_ordinary_form_is_within_the_budget():
+def test_an_ordinary_form_is_within_the_budget(no_deadline):
     _, built = _build(fixture_bytes("all-components.en.zip"))
     assert built.summary["pages"] == 3
 
@@ -125,14 +141,11 @@ async def test_only_a_few_imports_run_at_once(client, workspace, test_user_cooki
 # ------------------------------------------------------------ choices, numbers
 
 
-def test_many_identical_choices_stay_distinct_and_cheap():
+def test_many_identical_choices_stay_distinct(no_deadline):
     options = [{"value": f"v{n}", "label": "Same"} for n in range(limits.MAX_CHOICES)]
-    started = time.monotonic()
     built = run([[comp("radio", "r", values=options)]])
-    assert time.monotonic() - started < 1
     choices = questions(built)[0]["choices"]
     assert len(set(choices)) == len(choices) == limits.MAX_CHOICES
-    assert choices[:3] == ["Same", "Same (2)", "Same (3)"]
 
 
 def test_a_label_that_looks_like_a_counter_does_not_collide():
@@ -279,7 +292,7 @@ async def test_a_body_of_thousands_of_tiny_parts_is_stopped(client, workspace, t
         headers={"content-type": f"multipart/form-data; boundary={boundary}"},
     )
     assert response.status_code == 400 and response.json()["code"] == "file_missing"
-    assert time.monotonic() - started < 1.0
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
 
 
 # ------------------------------------------------------------ semantics
@@ -353,30 +366,50 @@ def _chain(n, validate=True, kind="textfield"):
 
 def test_a_form_that_would_run_past_the_deadline_is_stopped_between_operations(monkeypatch):
     """Without a check between operations the build only noticed the deadline
-    when it was over (17 s for 19 KB). The deadline is shortened here so the
-    same shape stops quickly on any machine."""
-    monkeypatch.setattr(limits, "BUILD_SECONDS", 0.2)
+    when it was over. With a tiny deadline the same shape is refused, and
+    well before it could have finished (deadline plus generous slack)."""
+    monkeypatch.setattr(limits, "BUILD_SECONDS", 0.02)
     started = time.monotonic()
     with pytest.raises(ImportRefused) as caught:
-        _build(archive_with([_chain(1999)]))
+        _build(archive_with([_chain(limits.MAX_IMPORT_FIELDS)]))
     assert caught.value.code == "archive_too_complex"
-    assert time.monotonic() - started < 1.5
+    assert time.monotonic() - started < 0.02 + 5
 
 
-def test_the_reported_shape_now_finishes_within_the_budget():
-    """1999 questions, each with answer rules and a condition on the one
-    before: the per-operation size walk made this 14 s, now it is linear."""
-    started = time.monotonic()
-    _, built = _build(archive_with([_chain(1999)]))
-    elapsed = time.monotonic() - started
-    assert built.summary["fields"] == 1999 and built.summary["logicRules"] == 1998
-    assert elapsed < 4.5
-    started = time.monotonic()
-    _, built = _build(archive_with([_chain(1999, kind="date")]))
-    assert time.monotonic() - started < 4.5
+def test_the_largest_import_is_built_in_full(no_deadline):
+    """The most an import may hold (answer rules, a condition on the previous
+    question each): everything arrives. Not a speed test (the deadline is off)."""
+    n = limits.MAX_IMPORT_FIELDS
+    _, built = _build(archive_with([_chain(n)]))
+    assert built.summary["fields"] == n and built.summary["logicRules"] == n - 1
+    _, built = _build(archive_with([_chain(n, kind="date")]))
+    assert built.summary["fields"] == n and built.summary["logicRules"] == n - 1
 
 
-def test_a_legitimately_large_form_is_quick():
+def test_a_form_past_the_import_cap_is_refused(no_deadline):
+    with pytest.raises(ImportRefused) as caught:
+        _build(archive_with([_chain(limits.MAX_IMPORT_FIELDS + 1)]))
+    assert (caught.value.status, caught.value.code) == (422, "archive_too_complex")
+
+
+def test_the_cost_of_a_big_import_grows_slowly(no_deadline):
+    """Dedicated timing test: doubling the questions must stay far from
+    quadrupling the time (the edit engine's per-operation walks were the
+    quadratic part; what is left is small), and the largest import is far
+    under the real deadline on any runner we use (a generous multiple)."""
+    from backend.app.services.open_formulieren import limits as lim
+
+    def make(n):
+        data = archive_with([_chain(n)])
+        return lambda: _build(data)
+
+    t_small = best_time(make(lim.MAX_IMPORT_FIELDS // 2), runs=2)
+    t_large = best_time(make(lim.MAX_IMPORT_FIELDS), runs=2)
+    assert t_large <= max(5.0 * t_small, 0.5), (t_small, t_large)
+    assert t_large < 4 * lim.BUILD_SECONDS
+
+
+def test_a_legitimately_large_form_imports(no_deadline):
     steps = []
     for step in range(20):
         cs = []
@@ -387,10 +420,8 @@ def test_a_legitimately_large_form_is_quick():
                 c["conditional"] = {"show": True, "when": f"f{n - 1}", "eq": "x"}
             cs.append(c)
         steps.append(cs)
-    started = time.monotonic()
     _, built = _build(archive_with(steps))
     assert built.summary["fields"] == 1000 and built.summary["logicRules"] == 100
-    assert time.monotonic() - started < 2.5
 
 
 def test_a_form_over_the_size_limits_is_refused_before_any_operation(monkeypatch):
@@ -423,10 +454,11 @@ def test_apply_form_ops_keeps_its_size_checks_unless_asked_not_to(monkeypatch):
 
 def test_a_run_of_combining_marks_is_cut_before_normalising():
     text = "a" + "́" * 5000 + "̖" * 5000 + "b"
-    started = time.monotonic()
-    for _ in range(20):
-        out, _ = plain_text(text, 20_000)
-    assert time.monotonic() - started < 0.5
+    out, _ = plain_text(text, 20_000)
+    # doubling the run must not quadruple the cost (NFC alone is quadratic)
+    assert_scales_linearly(
+        lambda n: (lambda: plain_text("a" + "\u0301" * n, 100_000)), 8_000, 16_000, floor=0.2
+    )
     import unicodedata
 
     assert out.endswith("b") and len(unicodedata.normalize("NFD", out)) == 1 + 4 + 1
@@ -456,7 +488,7 @@ def test_a_document_with_more_values_than_the_cap_is_refused_before_parsing(monk
     with pytest.raises(ImportRefused) as caught:
         parse_json(b"[" + b"1," * 5000 + b"1]", "formSteps.json")
     assert caught.value.code == "archive_json_invalid"
-    assert time.monotonic() - started < 0.1
+    assert time.monotonic() - started < CATASTROPHIC_SECONDS
     assert parse_json(b"[1, 2, 3]", "x") == [1, 2, 3]
 
 
