@@ -338,6 +338,10 @@ def adapt_batch(size: int, seconds: float) -> int:
     return size
 
 
+class MongoNotConfigured(RuntimeError):
+    """A command that reads MongoDB ran without a ``MONGO_URI``."""
+
+
 class Runner:
     def __init__(self, target: Target):
         self.target = target
@@ -359,9 +363,8 @@ class Runner:
         self._engine = make_engine(
             settings, application_name=self.target.application_name
         )
-        self._mongo = AsyncMongoClient(
-            self.target.mongo_uri, tz_aware=True, readPreference="secondaryPreferred"
-        )
+        # MongoDB is opened by the first command that reads it (the import commands):
+        # one that does not (jobs-sweep) runs without a MONGO_URI.
         return self
 
     async def __aexit__(self, *exc) -> None:
@@ -375,9 +378,23 @@ class Runner:
         assert self._engine is not None
         return self._engine
 
+    @property
+    def mongo_client(self) -> AsyncMongoClient:
+        if self._mongo is None:
+            if not (self.target.mongo_uri or "").strip():
+                raise MongoNotConfigured(
+                    "this command reads MongoDB (the data of a stack from before 4.1): "
+                    "set MONGO_URI for it"
+                )
+            self._mongo = AsyncMongoClient(
+                self.target.mongo_uri,
+                tz_aware=True,
+                readPreference="secondaryPreferred",
+            )
+        return self._mongo
+
     def collection(self, name: str):
-        assert self._mongo is not None
-        return self._mongo[self.target.mongo_db][name]
+        return self.mongo_client[self.target.mongo_db][name]
 
     def tables_for(self, collections: Optional[Iterable[str]]) -> dict[str, Table]:
         if not collections:

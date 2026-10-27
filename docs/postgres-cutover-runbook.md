@@ -604,9 +604,11 @@ serves everything from Postgres (stages C and D below done on 4.0) sets
 not compare Mongo with a Postgres that has moved on. A new 4.1 stack never starts MongoDB and stores
 no `MONGO_URI`. `TASK_RUNNER_MONGO_URI` in the root `.env` is not touched: remove it once Mongo is
 stopped (deploy.sh reminds you); on 4.1 the task runner never uses it, but `keyset.drop_old` and
-the Google credentials purge refuse (`import_incomplete`) while it is set. The backend and the jobs worker default to
-`DB_READ_SOURCE=postgres` and `DB_WRITE_MODE=postgres` in the compose file, the task runner to
-`DB_WRITE_MODE=postgres`.
+the Google credentials purge refuse (`import_incomplete`) while it is set. The compose file hands no service
+`DB_READ_SOURCE` or `DB_WRITE_MODE` (Postgres is the only store), so a value left in `.env.deployment`,
+which every service reads, reaches the services, and a 4.1 service refuses anything but `postgres`:
+`./deploy.sh` refuses such a line before it starts or changes any container or data, naming the setting
+and never its value. Unset, empty or `postgres` is fine. The task runner reads neither.
 
 **What to run by hand** (an orchestrated stack, or ahead of the upgrade). Best before the upgrade,
 with the 4.0 images (the CLI is the same):
