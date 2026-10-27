@@ -309,6 +309,7 @@ class WorkspaceFormService:
         crypto: Crypto,
         form_template_repo: PostgresFormTemplateRepository,
         pdf_import_repo=None,
+        registration_service=None,
     ):
         self.form_provider_service = form_provider_service
         # import records of PDF imports go with their forms
@@ -327,6 +328,8 @@ class WorkspaceFormService:
         self._aws_service = aws_service
         self.action_service = action_service
         self.crypto = crypto
+        # queues the delivery of a stored submission (services/registration)
+        self._registration_service = registration_service
 
     async def check_form_exists_in_workspace(
         self, workspace_id: RecordId, form_id: str
@@ -492,6 +495,9 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
+        if self._registration_service is not None:
+            # the form's registration and delivery records, whatever the switch says
+            await self._registration_service.delete_for_form(workspace_id, form_id)
 
         if len(workspace_ids) > 1:
             # the form stays in the other workspaces; the responses collected
@@ -601,6 +607,8 @@ class WorkspaceFormService:
             form_ids=form_ids
         )
         await self.form_service.delete_forms(form_ids=form_ids)
+        if self._registration_service is not None and form_ids:
+            await self._registration_service.delete_for_forms(list(form_ids))
         if self._pdf_import_repo is not None and form_ids:
             await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
@@ -1267,6 +1275,14 @@ class WorkspaceFormService:
             response=form_response,
             workspace_id=workspace_id,
         )
+        if self._registration_service is not None:
+            # a delivery row and a job by id: nothing external, never fails
+            # the submission (services/registration/service.py)
+            await self._registration_service.queue_for_submission(
+                workspace_id=workspace_id,
+                form_id=str(form_id),
+                response_id=str(form_response.response_id),
+            )
         return form_response
 
     async def delete_form_response(

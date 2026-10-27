@@ -125,7 +125,9 @@ environment, whatever the tier.
 | `API_CLOUDFLARE_IPS` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUSTED_PROXIES` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUST_CLOUDFLARE` | network | backend | bool |  | R | T3 | `true` |
+| `OPEN_FORMULIEREN_EXPORT` | open_formulieren | backend | enum on/off |  | R | T2 | `off` |
 | `OPEN_FORMULIEREN_IMPORT` | open_formulieren | backend | enum on/off |  | R | T2 | `off` |
+| `OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY` | open_formulieren | backend | int 0..100000 |  | R | T1 | `50` |
 | `PDF_IMPORT_CONCURRENT_IMPORTS_PER_WORKSPACE` | pdf_import | backend | int 1..100 |  | R | T1 | `1` |
 | `PDF_IMPORT_HEARTBEAT_S` | pdf_import | backend | int 1..3600 |  | R | T1 | `30` |
 | `PDF_IMPORT_IMPORTS_PER_WORKSPACE_PER_DAY` | pdf_import | backend | int 0..100000 |  | R | T1 | `10` |
@@ -159,6 +161,7 @@ environment, whatever the tier.
 | `API_PUBLIC_API_REQUESTS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `120` |
 | `API_PUBLIC_API_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
 | `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `600` |
+| `OPEN_FORMULIEREN_REGISTRATION` | registration | backend | enum on/off |  | R | T2 | `off` |
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |

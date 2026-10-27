@@ -14,6 +14,7 @@ Everything is behind a switch that is **off by default**.
 | Setting | Values | Default |
 |---|---|---|
 | `OPEN_FORMULIEREN_IMPORT` | `off`, `on` | `off` |
+| `OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY` | 0 to 100000 | `50` |
 
 * `off`: the three import endpoints answer **410** `open_formulieren_off` (before anything is read) and
   `GET /providers` does not list the import.
@@ -47,10 +48,12 @@ All paths are under `/api/v1`; bodies are camelCase JSON.
 
 Limits: the upload is at most **5 MiB** (413 `file_too_large`); one form per archive.
 
-Refusals have a stable `code` (400 unless stated): `file_missing`, `file_too_large` (413), `not_a_zip`,
+Imports per workspace per day have a limit of their own (429 `import_limit`; not shared with the PDF import's), and only a
+few imports build at once in a process (503 `import_busy`, with `Retry-After`). Refusals have a stable `code` (400 unless stated): `file_missing`, `file_too_large` (413), `not_a_zip`,
 `archive_unsafe`, `archive_too_large`, `archive_incomplete` (`missing`), `archive_json_invalid` (`file`),
 `archive_not_a_single_form`, `open_formulieren_version_unknown`, `open_formulieren_version_unsupported` (`version`,
-`supported`), `no_importable_fields` (422), `archive_too_complex` (422), and 410 `open_formulieren_off`.
+`supported`), `no_importable_fields` (422), `archive_too_complex` (422; also when a build runs past its work budget), `archive_json_invalid` (422 for
+something in the file that could not be read), `import_limit` (429), `import_busy` (503), and 410 `open_formulieren_off`.
 
 ### Where the result is stored
 
@@ -144,6 +147,11 @@ The archive is untrusted. `services/open_formulieren/archive.py`:
 * limits are enforced while reading, with streaming caps, never from header sizes: upload 5 MiB, 16 entries, 8 MiB per
   entry and 16 MiB in all once unpacked, and a bound on the central directory so a many-entry archive is refused before
   the zip reader builds a record for each;
+* the zip reader builds one record per entry before it can be counted, so the central directory is bounded first, and an archive
+  with a zip64 locator (which would hide the real count) is refused;
+* text: markup is removed by a single linear scan (never an HTML parser, whose cost on hostile input is not bounded), each text
+  is cut to twice its limit first, and one import has a work budget (characters of text and 5 seconds): beyond it the import is
+  refused as too complex. Only a few imports build at once;
 * JSON: nesting depth is checked by an iterative scan before parsing (the stdlib parser recurses), non-finite
   numbers are refused, and values are counted;
 * nothing is evaluated: there is no JavaScript engine, template engine, JSON logic library, `eval` or `exec` in the

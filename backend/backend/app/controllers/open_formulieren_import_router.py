@@ -113,11 +113,24 @@ async def read_upload(request: Request) -> Tuple[bytes, Optional[str]]:
         if len(body) > cap:
             raise _too_large()
     files: list = []
+    parts = [0]
+
+    def counted(handler):
+        # one file part is all we need: a body of thousands of tiny parts is
+        # stopped here instead of being parsed to the end
+        def call(part):
+            parts[0] += 1
+            if parts[0] > limits.MAX_UPLOAD_PARTS:
+                raise ValueError("too many parts")
+            return handler(part)
+
+        return call
+
     try:
         parser = create_form_parser(
             {"Content-Type": content_type.encode("latin-1", "replace")},
-            lambda field: None,
-            files.append,
+            counted(lambda field: None),
+            counted(files.append),
             config={"MAX_MEMORY_FILE_SIZE": cap},
         )
         parser.write(bytes(body))

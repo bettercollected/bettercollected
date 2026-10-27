@@ -20,6 +20,8 @@ from common.settings.loader.pydantic_source import StoreBackedSettings
 class OpenFormulierenSettings(StoreBackedSettings):
     IMPORT: Literal["on", "off"] = "off"
     EXPORT: Literal["on", "off"] = "off"
+    # imports of Open Formulieren forms per workspace per day (0: none)
+    IMPORTS_PER_WORKSPACE_PER_DAY: int = 50
 
     @field_validator("IMPORT", "EXPORT", mode="before")
     @classmethod

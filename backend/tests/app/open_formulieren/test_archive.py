@@ -113,6 +113,35 @@ def test_many_entries_are_refused_before_the_reader_builds_them():
     assert time.monotonic() - started < 2
 
 
+def _zip64_disguised(entries: int) -> bytes:
+    """An archive of ``entries`` empty files whose plain end record claims one
+    small entry while a zip64 record (reached through a locator) holds the
+    real counts: the zip reader believes the zip64 record."""
+    import struct
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for number in range(entries):
+            archive.writestr(f"e{number}", b"")
+    data = buffer.getvalue()
+    start = data.rfind(b"PK\x05\x06")
+    _, _, _, _, count, size, offset, _ = struct.unpack("<4s4H2LH", data[start : start + 22])
+    record = struct.pack("<4sQ2H2L4Q", b"PK\x06\x06", 44, 45, 45, 0, 0, count, count, size, offset)
+    locator = struct.pack("<4sLQL", b"PK\x06\x07", 0, start, 1)
+    plain = struct.pack("<4s4H2LH", b"PK\x05\x06", 0, 0, 1, 1, 46 + 2, offset, 0)
+    return data[:start] + record + locator + plain
+
+
+def test_a_zip64_record_cannot_hide_the_entry_count():
+    data = _zip64_disguised(3000)
+    # what the reader would do with it: build a record for every entry
+    assert len(zipfile.ZipFile(io.BytesIO(data)).namelist()) == 3000
+    started = time.monotonic()
+    error = refused(data)
+    assert (error.code, error.status) == ("archive_unsafe", 400)
+    assert time.monotonic() - started < 0.5
+
+
 def test_more_entries_than_an_export_has_are_refused():
     extra = {f"note{n}.txt": b"x" for n in range(limits.MAX_ENTRIES)}
     assert refused(make_zip(good(), extra=extra)).code == "archive_too_large"
