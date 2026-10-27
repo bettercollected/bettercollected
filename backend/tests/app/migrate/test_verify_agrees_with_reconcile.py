@@ -778,7 +778,11 @@ async def test_a_live_difference_still_refuses_beside_mid_run_deletions(
 
 class TtlDeletesWhileCounting:
     """``coll`` whose raw count is followed by the TTL monitor dropping one
-    expired copy (``times`` times at most)."""
+    expired copy (``times`` times at most).
+
+    Mongo's own monitor runs every 60 s and may already have taken the
+    expired copies, so an expired count also includes the drops still to
+    come: it falls by one at each raw count, whatever is left to delete."""
 
     def __init__(self, coll, times):
         self._coll, self._times = coll, times
@@ -788,6 +792,8 @@ class TtlDeletesWhileCounting:
 
     async def count_documents(self, query, *args, **kwargs):
         found = await self._coll.count_documents(query, *args, **kwargs)
+        if "expires_at" in query:
+            return found + self._times
         if not query and self._times:
             self._times -= 1
             doomed = await self._coll.find_one({"expires_at": {"$lte": NOW}})
