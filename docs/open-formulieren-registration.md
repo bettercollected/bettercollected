@@ -38,6 +38,13 @@ Only forms collected here can send submissions on (not forms imported from Googl
 registration is on and enabled for the form are sent: earlier ones never are, and edits to a submission are not sent
 again.
 
+Switching a form's registration off keeps its settings (service, path, object type URL and version, reference path and
+mapping), checked for shape only (a malformed path, key or object type URL is still refused, so nothing malformed or
+oversized is stored). Nothing that depends on the service's current configuration is checked while it is off, for
+example an object type URL that is outside the service's object types address now; switching it on again runs every
+check and refuses what no longer holds (`object_type_outside_base` and the other codes), and enables nothing. While it
+is off no delivery is created or sent, and an attempt that was already running when it was switched off stops before its request and is cancelled (`disabled`).
+
 ## Services
 
 | Field | |
@@ -175,7 +182,7 @@ apply. What differs:
    - the **reference path** (default `bettercollected_reference`), the key in `record.data` that holds the delivery's
      reference. It follows the same rules and may not clash with a mapped path. The object type's schema has to allow
      it.
-4. Press **Check connection** (`POST .../forms/{form}/registration/test`, admins only): it uses the saved settings, asks the Objects API for a
+4. Press **Check connection** (`POST .../forms/{form}/registration/test`, admins only): it uses the saved settings (answers `not_configured`, and sends nothing, while the form's registration is switched off), asks the Objects API for a
    reference that cannot exist and expects `200` with no results, then asks once with a deliberately malformed filter
    and expects `400`. Together they show that the address, token, read permission and the filter work, and that the
    server really looks at the filter (an empty object type would otherwise hide an ignored filter). It reads no

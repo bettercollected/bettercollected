@@ -103,6 +103,22 @@ CASES = [
         },
         ok=200,
     ),
+    # a save that switches it off needs the same permission as one that switches it on
+    Case(
+        "form.put.off",
+        "PUT",
+        F + "/registration",
+        P.WORKSPACE_MANAGE,
+        lambda c: {
+            "json": {
+                "enabled": False,
+                "serviceId": c["service"],
+                "path": "x",
+                "variables": [{"source": "name"}],
+            }
+        },
+        ok=200,
+    ),
     Case(
         "form.variables",
         "GET",

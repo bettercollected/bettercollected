@@ -101,16 +101,13 @@ class ObjectTypeRefused(Exception):
         self.code = code
 
 
-def checked_object_type(url: Any, base: Optional[str]) -> str:
-    """The normalised ``url``, an object type URL under ``base`` (the service's
-    object types address), or raises :class:`ObjectTypeRefused`.
-
-    Both are compared after normalisation: https, the default port, no
-    credentials, query or fragment, an ASCII host, and a path of plain
-    segments (no ``.``/``..``, no empty segment, no percent-encoding, no
-    ``;``), so ``..`` and encoded tricks cannot move the URL out from under
-    the base. ``base`` must be a prefix up to a path boundary. The URL is
-    never fetched by us."""
+def normalised_object_type(url: Any) -> str:
+    """The normalised ``url`` when it is an object type URL in shape (https,
+    the default port, no credentials, query or fragment, an ASCII host, and a
+    path of plain segments: no ``.``/``..``, no empty segment, no
+    percent-encoding, no ``;``, ending ``/objecttypes/<uuid>``), else raises
+    :class:`ObjectTypeRefused` (``invalid_object_type_url``). Depends on no
+    service's configuration; the URL is never fetched by us."""
     invalid = ObjectTypeRefused("invalid_object_type_url")
     if not isinstance(url, str) or len(url.strip()) > MAX_OBJECT_TYPE_URL:
         raise invalid
@@ -130,6 +127,17 @@ def checked_object_type(url: Any, base: Optional[str]) -> str:
         or not _OBJECT_TYPE_TAIL.fullmatch(path)
     ):
         raise invalid
+    return normal
+
+
+def checked_object_type(url: Any, base: Optional[str]) -> str:
+    """The normalised ``url``, an object type URL under ``base`` (the service's
+    object types address), or raises :class:`ObjectTypeRefused`.
+
+    Both are compared after normalisation (see :func:`normalised_object_type`),
+    so ``..`` and encoded tricks cannot move the URL out from under the base.
+    ``base`` must be a prefix up to a path boundary."""
+    normal = normalised_object_type(url)
     if not base:
         raise ObjectTypeRefused("object_type_outside_base")
     prefix = base if base.endswith("/") else base + "/"
