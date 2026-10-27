@@ -29,6 +29,7 @@ from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.google_forms_settings import GoogleFormsSettings
 from backend.config.google_sheets_settings import GoogleSheetsSettings
 from backend.config.OpenAISettings import OpenAISettings
+from backend.config.open_formulieren_settings import OpenFormulierenSettings
 from backend.config.respondent_identity_settings import RespondentIdentitySettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -96,6 +97,7 @@ class Application(StoreBackedSettings):
     open_ai: OpenAISettings = OpenAISettings()
     google_ai: GoogleAISettings = GoogleAISettings()
     google_forms: GoogleFormsSettings = GoogleFormsSettings()
+    open_formulieren: OpenFormulierenSettings = OpenFormulierenSettings()
     google_sheets: GoogleSheetsSettings = GoogleSheetsSettings()
     unsplash: UnsplashSettings = UnsplashSettings()
     umami_settings: UmamiSettings = UmamiSettings()

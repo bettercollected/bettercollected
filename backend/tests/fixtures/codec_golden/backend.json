@@ -1666,7 +1666,7 @@
   "document": "FlowEventDocument"
  },
  "form_imports/full": {
-  "checksum": "sha256:764d21b41fd06c1ca824386554e167860fe5284df50eadfaea4a7bd20585c018",
+  "checksum": "sha256:ee7272bc6b08e7e814d362040be33c63a16439d96ce788a8b3c1ae736988e995",
   "doc": {
    "_id": {
     "$oid": "4b578698a2d9710cc6d15b25"
@@ -1783,6 +1783,7 @@
    "sha256": "FormImportDocument.sha256 tëxt ✓ \"quoted\" \\ line\nbreak",
    "size_bytes": 9007199254740993,
    "source_key": "FormImportDocument.source_key tëxt ✓ \"quoted\" \\ line\nbreak",
+   "source_kind": "FormImportDocument.source_kind tëxt ✓ \"quoted\" \\ line\nbreak",
    "stage": "FormImportDocument.stage tëxt ✓ \"quoted\" \\ line\nbreak",
    "stages": {
     "bool": true,
@@ -1838,7 +1839,7 @@
   "document": "FormImportDocument"
  },
  "form_imports/minimal": {
-  "checksum": "sha256:1226692bce510052e416b1b0d8ae7d00caa5306c9e9f21ad70e61fed4bf5121b",
+  "checksum": "sha256:0613d8eb56d5e61b3f0b51df6a6efe904af5fde20baf873ef64481f75a461fc5",
   "doc": {
    "_id": {
     "$oid": "1cb061d6a4288192049c6ea2"
@@ -1863,6 +1864,7 @@
    "sha256": "FormImportDocument.sha256 tëxt ✓ \"quoted\" \\ line\nbreak",
    "size_bytes": 9007199254740993,
    "source_key": "FormImportDocument.source_key tëxt ✓ \"quoted\" \\ line\nbreak",
+   "source_kind": null,
    "stage": null,
    "stages": {},
    "started_at": null,
@@ -1877,7 +1879,7 @@
   "document": "FormImportDocument"
  },
  "form_imports/naive": {
-  "checksum": "sha256:b96bb96d0ff40947d5a7cd3e6ba78a5d36c590e541bed55d3e77ffa30614f5b3",
+  "checksum": "sha256:d58370001933f488acf7895f3ab691799e38a68febad41f119ccae034dd144f1",
   "doc": {
    "_id": {
     "$oid": "c28088104483fc6b4214869b"
@@ -1994,6 +1996,7 @@
    "sha256": "FormImportDocument.sha256 tëxt ✓ \"quoted\" \\ line\nbreak",
    "size_bytes": 9007199254740993,
    "source_key": "FormImportDocument.source_key tëxt ✓ \"quoted\" \\ line\nbreak",
+   "source_kind": "FormImportDocument.source_kind tëxt ✓ \"quoted\" \\ line\nbreak",
    "stage": "FormImportDocument.stage tëxt ✓ \"quoted\" \\ line\nbreak",
    "stages": {
     "bool": true,
@@ -2049,7 +2052,7 @@
   "document": "FormImportDocument"
  },
  "form_imports/nulls": {
-  "checksum": "sha256:96973c630ae04fd1f7481f87ab6b4b278184359a2a977c574917d356afa8d02f",
+  "checksum": "sha256:90bdfbdd27f65fbc34d5e5425a266be445a4f1ca9d4149814bdca38d93355b3e",
   "doc": {
    "_id": {
     "$oid": "2f143ed3c7385c57bdcf6f98"
@@ -2160,6 +2163,7 @@
    "sha256": "FormImportDocument.sha256 tëxt ✓ \"quoted\" \\ line\nbreak",
    "size_bytes": 9007199254740993,
    "source_key": "FormImportDocument.source_key tëxt ✓ \"quoted\" \\ line\nbreak",
+   "source_kind": null,
    "stage": null,
    "stages": {
     "bool": true,
@@ -8267,7 +8271,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:aa181e314b951b9d706a0db8008f24921991cd14dca3b0dab32e365cce8b747c",
+  "checksum": "sha256:a53e3a79806250ba2e87ef65fa4dce0de3cfde91943d1076798b605bfa734509",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8291,6 +8295,9 @@
     ],
     "form_close_date": "2026-03-04T05:06:07.891234+02:00",
     "hidden": true,
+    "import_id": "WorkspaceFormDocument.settings.import_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "import_source": "WorkspaceFormDocument.settings.import_source tëxt ✓ \"quoted\" \\ line\nbreak",
+    "needs_review": true,
     "pinned": true,
     "privacy_policy_url": "WorkspaceFormDocument.settings.privacy_policy_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "private": true,
@@ -8333,7 +8340,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:0b70f14b8cb4de5896c3b3f87bec7775c9ce3ee07dbbad8aae973e110ea9b7bc",
+  "checksum": "sha256:f2429dcef39bf7c7e68975134c3202b7f64d8a6665e9a2355d45e7a15f2c0756",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8357,6 +8364,9 @@
     ],
     "form_close_date": "2026-03-04T05:06:07.891234",
     "hidden": true,
+    "import_id": "WorkspaceFormDocument.settings.import_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "import_source": "WorkspaceFormDocument.settings.import_source tëxt ✓ \"quoted\" \\ line\nbreak",
+    "needs_review": true,
     "pinned": true,
     "privacy_policy_url": "WorkspaceFormDocument.settings.privacy_policy_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "private": true,

@@ -483,6 +483,9 @@ class TestWorkspaceForm:
                 "embedUrl": None,
                 "provider": "self",
                 "publishChecksVersion": 1,
+                "needsReview": None,
+                "importSource": None,
+                "importId": None,
             }
         }
         actual_response = patch_settings.json()

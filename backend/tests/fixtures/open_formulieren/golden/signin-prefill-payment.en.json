@@ -1,0 +1,149 @@
+{
+  "title": "Sample: sign-in, prefill, payment",
+  "retention": [
+    null,
+    ""
+  ],
+  "pages": [
+    {
+      "title": "Identity",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "National identity number",
+          "validations": {
+            "required": true,
+            "regex": "^[0-9]{9}$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Full name",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "number",
+          "title": "Price (EUR)",
+          "validations": {
+            "required": false,
+            "min_value": 0.0
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 1,
+    "fields": 3,
+    "logicRules": 0,
+    "repeatingGroups": 0,
+    "dropped": 8,
+    "flagged": 1
+  },
+  "report": [
+    {
+      "code": "flagged",
+      "kind": "component",
+      "reason": "national_identity_number",
+      "severity": "warning",
+      "key": "bsn",
+      "step": 0,
+      "flag": "national_identity_number"
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "prefill_not_carried",
+      "severity": "warning",
+      "key": "bsn",
+      "step": 0,
+      "detail": {
+        "plugin": "demo"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "prefill_not_carried",
+      "severity": "warning",
+      "key": "fullName",
+      "step": 0,
+      "detail": {
+        "plugin": "demo"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "price",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "sign_in_not_carried",
+      "severity": "warning",
+      "key": "digid",
+      "detail": {
+        "plugin": "digid"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "payment_not_carried",
+      "severity": "warning",
+      "key": "worldline",
+      "detail": {
+        "plugin": "worldline"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "presentation_not_carried",
+      "severity": "info",
+      "key": "presentation"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "info",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "retention_global_setting",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}

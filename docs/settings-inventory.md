@@ -125,6 +125,7 @@ environment, whatever the tier.
 | `API_CLOUDFLARE_IPS` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUSTED_PROXIES` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUST_CLOUDFLARE` | network | backend | bool |  | R | T3 | `true` |
+| `OPEN_FORMULIEREN_IMPORT` | open_formulieren | backend | enum on/off |  | R | T2 | `off` |
 | `PDF_IMPORT_CONCURRENT_IMPORTS_PER_WORKSPACE` | pdf_import | backend | int 1..100 |  | R | T1 | `1` |
 | `PDF_IMPORT_HEARTBEAT_S` | pdf_import | backend | int 1..3600 |  | R | T1 | `30` |
 | `PDF_IMPORT_IMPORTS_PER_WORKSPACE_PER_DAY` | pdf_import | backend | int 0..100000 |  | R | T1 | `10` |

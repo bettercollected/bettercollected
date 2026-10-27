@@ -1,0 +1,526 @@
+{
+  "title": "Sample: all components",
+  "retention": [
+    "days",
+    "30"
+  ],
+  "pages": [
+    {
+      "title": "Contact details",
+      "questions": [
+        {
+          "type": "short_text",
+          "title": "First name",
+          "description": "As on your passport",
+          "placeholder": "Jane",
+          "validations": {
+            "required": true,
+            "max_length": 50,
+            "regex": "^[A-Za-z ]+$"
+          }
+        },
+        {
+          "type": "long_text",
+          "title": "Remarks",
+          "description": "Anything else we should know",
+          "validations": {
+            "required": false,
+            "max_length": 500
+          }
+        },
+        {
+          "type": "email",
+          "title": "Email address",
+          "validations": {
+            "required": true
+          }
+        },
+        {
+          "type": "number",
+          "title": "Age",
+          "description": "In whole years",
+          "validations": {
+            "required": false,
+            "min_value": 0.0,
+            "max_value": 120.0
+          }
+        },
+        {
+          "type": "phone_number",
+          "title": "Phone number",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Postcode",
+          "validations": {
+            "required": false,
+            "regex": "^[1-9][0-9]{3} ?[A-Za-z]{2}$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Bank account (IBAN)",
+          "validations": {
+            "required": false,
+            "regex": "^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9 ]{11,30}$"
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "National identity number",
+          "description": "Used to look up your record",
+          "validations": {
+            "required": true,
+            "regex": "^[0-9]{9}$"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Choices and dates",
+      "questions": [
+        {
+          "type": "date",
+          "title": "Date of birth",
+          "validations": {
+            "required": false
+          },
+          "dateRules": [
+            {
+              "comparison": "on_or_after",
+              "target": "date",
+              "date": "1900-01-01"
+            },
+            {
+              "comparison": "on_or_before",
+              "target": "today"
+            }
+          ]
+        },
+        {
+          "type": "short_text",
+          "title": "Preferred time",
+          "placeholder": "HH:MM",
+          "validations": {
+            "required": false,
+            "regex": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          }
+        },
+        {
+          "type": "date",
+          "title": "Callback moment",
+          "validations": {
+            "required": false
+          },
+          "dateRules": [
+            {
+              "comparison": "after",
+              "target": "today"
+            }
+          ]
+        },
+        {
+          "type": "short_text",
+          "title": "Callback moment (time)",
+          "placeholder": "HH:MM",
+          "validations": {
+            "required": false,
+            "regex": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          }
+        },
+        {
+          "type": "dropdown",
+          "title": "Country",
+          "validations": {
+            "required": true
+          },
+          "choices": [
+            "Netherlands",
+            "Belgium",
+            "Germany"
+          ]
+        },
+        {
+          "type": "multiple_choice",
+          "title": "How should we contact you?",
+          "validations": {
+            "required": true
+          },
+          "choices": [
+            "By email",
+            "By phone",
+            "By post"
+          ]
+        },
+        {
+          "type": "multiple_choice",
+          "title": "Topics of interest",
+          "validations": {
+            "required": false,
+            "min_choices": 1,
+            "max_choices": 2
+          },
+          "choices": [
+            "News",
+            "Events",
+            "Offers"
+          ],
+          "allowMultiple": true
+        },
+        {
+          "type": "short_text",
+          "title": "Best time to call",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+              {
+                "source": "How should we contact you?",
+                "comparison": "IS_EQUAL",
+                "value": "By phone"
+              }
+            ]
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Why no newsletter?",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "yes_no",
+          "title": "I agree to receive the newsletter",
+          "validations": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "Extras",
+      "questions": [
+        {
+          "type": "text",
+          "title": "Please upload one document."
+        },
+        {
+          "type": "text",
+          "title": "Address"
+        },
+        {
+          "type": "short_text",
+          "title": "Street",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "House number",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "City",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          }
+        },
+        {
+          "type": "group",
+          "title": "Children",
+          "description": "Add each child",
+          "repeat": {
+            "minItems": 0,
+            "maxItems": 5,
+            "itemLabel": "Child"
+          },
+          "children": [
+            {
+              "type": "short_text",
+              "title": "Child name",
+              "validations": {
+                "required": true,
+                "max_length": 1000
+              }
+            },
+            {
+              "type": "date",
+              "title": "Child date of birth",
+              "validations": {
+                "required": false
+              }
+            }
+          ]
+        },
+        {
+          "type": "file_upload",
+          "title": "Attachment",
+          "validations": {
+            "required": false
+          }
+        },
+        {
+          "type": "number",
+          "title": "Budget",
+          "validations": {
+            "required": false,
+            "min_value": 0.0,
+            "max_value": 5000.0
+          }
+        },
+        {
+          "type": "short_text",
+          "title": "Left value",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "colSpan": 6
+        },
+        {
+          "type": "short_text",
+          "title": "Right value",
+          "validations": {
+            "required": false,
+            "max_length": 1000
+          },
+          "colSpan": 6
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pages": 3,
+    "fields": 27,
+    "logicRules": 1,
+    "repeatingGroups": 1,
+    "dropped": 13,
+    "flagged": 1
+  },
+  "report": [
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "second_text_not_carried",
+      "severity": "info",
+      "key": "firstName",
+      "step": 0
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "error_messages_not_carried",
+      "severity": "info"
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_text",
+      "severity": "info",
+      "key": "postcode",
+      "step": 0,
+      "detail": {
+        "componentType": "postcode"
+      }
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_text",
+      "severity": "info",
+      "key": "iban",
+      "step": 0,
+      "detail": {
+        "componentType": "iban"
+      }
+    },
+    {
+      "code": "flagged",
+      "kind": "component",
+      "reason": "national_identity_number",
+      "severity": "warning",
+      "key": "bsn",
+      "step": 0,
+      "flag": "national_identity_number"
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_text",
+      "severity": "info",
+      "key": "visitTime",
+      "step": 1,
+      "detail": {
+        "componentType": "time"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "validation_not_carried",
+      "severity": "info",
+      "key": "visitTime",
+      "step": 1,
+      "detail": {
+        "property": "minTime"
+      }
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "datetime_split",
+      "severity": "info",
+      "key": "callbackAt",
+      "step": 1
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "country",
+      "step": 1
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "default_value_not_carried",
+      "severity": "info",
+      "key": "contactPreference",
+      "step": 1
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "checkbox_required_not_enforced",
+      "severity": "warning",
+      "key": "newsletterConsent",
+      "step": 1
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_yes_no",
+      "severity": "info",
+      "key": "newsletterConsent",
+      "step": 1
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "html_simplified",
+      "severity": "info",
+      "key": "introContent",
+      "step": 2
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "file_restrictions_not_carried",
+      "severity": "info",
+      "key": "attachment",
+      "step": 2
+    },
+    {
+      "code": "changed",
+      "kind": "component",
+      "reason": "converted_to_number",
+      "severity": "info",
+      "key": "budget",
+      "step": 2,
+      "detail": {
+        "componentType": "currency"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "component",
+      "reason": "unsupported_component_type",
+      "severity": "warning",
+      "key": "signature",
+      "step": 2,
+      "detail": {
+        "componentType": "signature"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "logic",
+      "reason": "condition_value_not_supported",
+      "severity": "warning",
+      "key": "hideWhenNews",
+      "step": 1,
+      "detail": {
+        "source": "topics"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "registration_not_carried",
+      "severity": "warning",
+      "key": "json_dump",
+      "detail": {
+        "plugin": "json_dump"
+      }
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "translations_not_carried",
+      "severity": "info",
+      "key": "translations"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "presentation_not_carried",
+      "severity": "info",
+      "key": "presentation"
+    },
+    {
+      "code": "dropped",
+      "kind": "feature",
+      "reason": "statement_of_truth_not_carried",
+      "severity": "warning",
+      "key": "ask_statement_of_truth"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "privacy_policy_missing",
+      "severity": "info",
+      "key": "privacy_policy_url"
+    },
+    {
+      "code": "noted",
+      "kind": "setting",
+      "reason": "purpose_missing",
+      "severity": "info",
+      "key": "purpose"
+    },
+    {
+      "code": "dropped",
+      "kind": "setting",
+      "reason": "retention_other_limits_not_carried",
+      "severity": "info",
+      "key": "submissions_removal_options"
+    }
+  ]
+}

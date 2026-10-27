@@ -555,9 +555,15 @@ PDF_IMPORT: Tuple[SettingSpec, ...] = (
           "*/10 * * * *", tier=T2, max_length=64),
 )
 
+OPEN_FORMULIEREN: Tuple[SettingSpec, ...] = (
+    _spec("OPEN_FORMULIEREN_IMPORT", "open_formulieren", (BACKEND,),
+          "Import of forms exported from Open Formulieren as drafts: off (410, not offered) or on.",
+          ENUM, tier=T2, default="off", choices=("on", "off")),
+)
+
 INVENTORY: Tuple[SettingSpec, ...] = (
     SERVER + RATE_LIMITS + NETWORK + SESSION + KEY_MATERIAL + AI + STORAGE + SSO_SPECS
-    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT
+    + MAIL_BILLING + GOOGLE_OAUTH + SERVICES + PDF_IMPORT + OPEN_FORMULIEREN
 )
 
 # Keys read at import time (or captured when the container is built): they stay

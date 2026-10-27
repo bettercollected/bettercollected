@@ -260,6 +260,14 @@ class WorkspaceFormSettings(BaseModel):
     feedback_statuses: Optional[List[str]] = Field(
         default_factory=lambda: list(DEFAULT_FEEDBACK_STATUSES)
     )
+    # A draft made by an import from another product (Open Formulieren, see
+    # services/open_formulieren): not yet looked over by its creator, with
+    # the report of what was dropped on the import record ``import_id``
+    # (``/open-formulieren-imports/{id}``). Cleared when the creator marks
+    # the import reviewed; never blocks publishing.
+    needs_review: Optional[bool] = None
+    import_source: Optional[str] = None
+    import_id: Optional[str] = None
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
