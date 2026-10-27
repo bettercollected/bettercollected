@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,9 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ATTENTION_STATUSES, WAITING_STATUSES, deliveryErrorKey, errorCodeOf, errorKey, formatDateTime } from '@app/utils/registration';
 
 const PAGE = 50;
+// How often the waiting count is asked again: a retried delivery is sent by a
+// background job and ends as delivered or failed a little later.
+const POLL_MS = 10_000;
 
 /**
  * The Responses tab's "Sending to a case system": how many submissions
@@ -38,10 +41,20 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const registration = useGetFormRegistrationQuery({ workspaceId, formId });
     const attention = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...ATTENTION_STATUSES], limit });
     const delivered = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: ['delivered'], limit: 1 });
-    const waiting = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...WAITING_STATUSES], limit: 1 });
+    const waiting = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...WAITING_STATUSES], limit: 1 }, { pollingInterval: POLL_MS });
+    // When the waiting count moves, something was sent or failed: read the rest again.
+    const lastWaiting = useRef<number | undefined>(undefined);
+    const waitingNow = waiting.data?.total;
+    useEffect(() => {
+        if (waitingNow !== undefined && lastWaiting.current !== undefined && lastWaiting.current !== waitingNow) {
+            attention.refetch();
+            delivered.refetch();
+        }
+        lastWaiting.current = waitingNow;
+    }, [waitingNow]);
     const [retry] = useRetryRegistrationDeliveryMutation();
     const [retrying, setRetrying] = useState<string | null>(null);
-    const [message, setMessage] = useState<{ id: string; text: string; failed: boolean } | null>(null);
+    const [message, setMessage] = useState<{ text: string; failed: boolean } | null>(null);
 
     const failed = attention.data?.items ?? [];
     const failedTotal = attention.data?.total ?? 0;
@@ -56,8 +69,8 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
         setMessage(null);
         const response: any = await retry({ workspaceId, formId, deliveryId: delivery.id });
         setRetrying(null);
-        if (response.error) setMessage({ id: delivery.id, text: t(errorKey(errorCodeOf(response.error))), failed: true });
-        else setMessage({ id: delivery.id, text: t('REGISTRATION.DELIVERY.RETRY_STARTED'), failed: false });
+        if (response.error) setMessage({ text: t(errorKey(errorCodeOf(response.error))), failed: true });
+        else setMessage({ text: t('REGISTRATION.DELIVERY.RETRY_STARTED'), failed: false });
     };
 
     const reason = (delivery: RegistrationDelivery) => t(deliveryErrorKey(delivery.lastErrorCode), { status: delivery.lastHttpStatus ?? '' });
@@ -76,6 +89,11 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                 <Count label={t('REGISTRATION.DELIVERY.WAITING')} value={waitingTotal} testId="registration-count-waiting" />
                 <Count label={t('REGISTRATION.DELIVERY.NOT_SENT')} value={failedTotal} testId="registration-count-failed" warn={failedTotal > 0} />
             </dl>
+
+            {/* The row of a retried delivery leaves this list while it is sent again, so the answer is the panel's. */}
+            <p role="status" className={message?.failed ? 'text-sm font-medium text-[#A83434]' : 'text-sm text-black-800'}>
+                {message?.text ?? ''}
+            </p>
 
             {attention.isError && (
                 <p role="alert" className="text-sm text-[#A83434]">
@@ -106,11 +124,6 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                                         {' · '}
                                         {t('REGISTRATION.DELIVERY.ATTEMPTS', { count: delivery.attempts })}
                                     </p>
-                                    {message?.id === delivery.id && (
-                                        <p role="status" className={message.failed ? 'text-xs font-medium text-[#A83434]' : 'text-xs text-black-800'}>
-                                            {message.text}
-                                        </p>
-                                    )}
                                 </div>
                                 {canRetry && (
                                     <Button

@@ -23,16 +23,19 @@ const status = { data: { enabled: true } as { enabled: boolean } | undefined, is
 const registrationState: { data: FormRegistration | undefined; isLoading: boolean } = { data: undefined, isLoading: false };
 const lists: Record<string, { data: { items: RegistrationDelivery[]; total: number } | undefined; isLoading: boolean; isError: boolean }> = {};
 const queries: any[] = [];
+const pollOptions: any[] = [];
 const retryMock = vi.fn();
+const refetchMock = vi.fn();
 vi.mock('@app/store/workspaces/registration-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
         useGetRegistrationStatusQuery: () => status,
         useGetFormRegistrationQuery: () => registrationState,
-        useGetRegistrationDeliveriesQuery: (arg: any) => {
+        useGetRegistrationDeliveriesQuery: (arg: any, options?: any) => {
             queries.push(arg);
-            return lists[(arg.status ?? []).join(',')] ?? { data: { items: [], total: 0 }, isLoading: false, isError: false };
+            if (options) pollOptions.push(options);
+            return lists[(arg.status ?? []).join(',')] ?? { data: { items: [], total: 0 }, isLoading: false, isError: false, refetch: refetchMock };
         },
         useRetryRegistrationDeliveryMutation: () => [retryMock, { isLoading: false }]
     };
@@ -68,9 +71,9 @@ const delivery = (over: Partial<RegistrationDelivery> = {}): RegistrationDeliver
 });
 
 const setLists = (failed: RegistrationDelivery[], failedTotal = failed.length, delivered = 12, waiting = 2) => {
-    lists['failed,cancelled'] = { data: { items: failed, total: failedTotal }, isLoading: false, isError: false };
-    lists['delivered'] = { data: { items: [], total: delivered }, isLoading: false, isError: false };
-    lists['pending,in_progress,retrying'] = { data: { items: [], total: waiting }, isLoading: false, isError: false };
+    lists['failed,cancelled'] = { data: { items: failed, total: failedTotal }, isLoading: false, isError: false, refetch: refetchMock };
+    lists['delivered'] = { data: { items: [], total: delivered }, isLoading: false, isError: false, refetch: refetchMock };
+    lists['pending,in_progress,retrying'] = { data: { items: [], total: waiting }, isLoading: false, isError: false, refetch: refetchMock };
 };
 
 beforeEach(() => {
@@ -79,6 +82,7 @@ beforeEach(() => {
     permissions = new Set([WorkspacePermission.RESPONSE_READ, WorkspacePermission.FORM_EDIT]);
     Object.keys(lists).forEach((k) => delete lists[k]);
     queries.length = 0;
+    pollOptions.length = 0;
     retryMock.mockReset();
     setLists([delivery()]);
 });
@@ -156,6 +160,28 @@ describe('Deliveries on the responses tab', () => {
         await waitFor(() => expect(retryMock).toHaveBeenCalledTimes(1));
         expect(retryMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', deliveryId: 'd1' });
         expect(await screen.findByText(en.DELIVERY.RETRY_STARTED)).toBeInTheDocument();
+    });
+
+    it('keeps the answer after the retried row has left the list', async () => {
+        retryMock.mockImplementation(async () => {
+            // the delivery is pending now: it is no longer in the failed list
+            setLists([], 0, 12, 3);
+            return { data: delivery({ status: 'pending' }) };
+        });
+        const { rerender } = render(<DeliveriesPanel />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: /Retry sending submission/ }));
+        await waitFor(() => expect(retryMock).toHaveBeenCalled());
+        rerender(<DeliveriesPanel />);
+        expect(screen.queryByTestId('registration-delivery-d1')).toBeNull();
+        expect(await screen.findByText(en.DELIVERY.RETRY_STARTED)).toBeInTheDocument();
+        expect(screen.getByText(en.DELIVERY.RETRY_STARTED)).toHaveAttribute('role', 'status');
+        // the waiting count moved (2 -> 3): the other lists are read again
+        expect(refetchMock).toHaveBeenCalled();
+    });
+
+    it('asks for the waiting count again every few seconds', () => {
+        render(<DeliveriesPanel />, { wrapper });
+        expect(pollOptions).toContainEqual({ pollingInterval: 10000 });
     });
 
     it('explains a delivery that can no longer be retried', async () => {
