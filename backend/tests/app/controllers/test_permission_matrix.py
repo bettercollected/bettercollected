@@ -209,6 +209,8 @@ class Case:
     api_settings: Optional[Dict[str, object]] = None
     # OPEN_FORMULIEREN_IMPORT for the case (the import is off by default)
     open_formulieren: Optional[str] = None
+    # OPEN_FORMULIEREN_EXPORT for the case (the export is off by default)
+    open_formulieren_export: Optional[str] = None
 
 
 def _png() -> bytes:
@@ -967,6 +969,15 @@ CASES = [
         lambda c: {"files": {"file": ("notes.txt", b"not a document", "text/plain")}},
         ok=400,
     ),
+    # --- Open Formulieren export of a form (behind OPEN_FORMULIEREN_EXPORT)
+    Case(
+        "forms.open_formulieren_export",
+        "GET",
+        F + "/open-formulieren-export",
+        P.FORM_READ,
+        ok=200,
+        open_formulieren_export="on",
+    ),
     # --- Open Formulieren imports (behind OPEN_FORMULIEREN_IMPORT)
     Case(
         "open_formulieren_imports.create",
@@ -1218,6 +1229,10 @@ async def test_permission_matrix(
         monkeypatch.setattr(settings.api_settings, name, value)
     if case.open_formulieren:
         monkeypatch.setattr(settings.open_formulieren, "IMPORT", case.open_formulieren)
+    if case.open_formulieren_export:
+        monkeypatch.setattr(
+            settings.open_formulieren, "EXPORT", case.open_formulieren_export
+        )
     request = case.request(matrix)
     response = await client.request(
         case.method,
