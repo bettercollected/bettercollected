@@ -370,3 +370,57 @@ def test_mongo_primary_groups_leave_out_the_postgres_only_groups():
 
     target = dataclasses.replace(_target(), postgres_only_groups=("identity",))
     assert "identity" not in mongo_primary_groups(target, {"DB_WRITE_MODE": "dual"})
+
+
+# ---- commands that do not read MongoDB run without a MONGO_URI ----------------
+
+
+def _target_without_mongo(**extras) -> Target:
+    target = _target()
+    return Target(
+        schema=target.schema,
+        tables=target.tables,
+        progress=target.progress,
+        mongo_uri="",
+        mongo_db="unused",
+        database_url="postgresql+asyncpg://unused:unused@127.0.0.1:1/unused",
+        service=target.service,
+        groups=target.groups,
+        extras=extras,
+    )
+
+
+async def test_jobs_sweep_runs_without_a_mongo_uri(capsys):
+    from common.db.migrate.cli import run
+
+    async def sweep(backend):
+        return {"backend": backend, "scheduled": 3}
+
+    target = _target_without_mongo(jobs_sweep=sweep)
+    assert await run(_args("jobs-sweep", "--backend", "postgres"), target) == 0
+    assert '"scheduled": 3' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("command", ["preflight", "backfill", "verify", "status"])
+async def test_a_command_that_reads_mongo_says_so_without_a_mongo_uri(command, capsys):
+    from common.db.migrate.cli import run
+
+    target = _target_without_mongo()
+    assert await run(_args(command), target) == 2
+    err = capsys.readouterr().err
+    assert command in err and "MONGO_URI is not set" in err
+
+
+async def test_the_runner_opens_mongo_only_when_something_reads_it():
+    from common.db.migrate.engine import MongoNotConfigured, Runner
+
+    async with Runner(_target_without_mongo()) as runner:
+        assert runner._mongo is None  # entering the runner never builds a client
+        with pytest.raises(MongoNotConfigured):
+            runner.collection("forms")
+    async with Runner(
+        Target(**{**_target_without_mongo().__dict__, "mongo_uri": "mongodb://127.0.0.1:1"})
+    ) as runner:
+        assert runner._mongo is None
+        runner.collection("forms")  # builds the client; nothing connects until it is used
+        assert runner._mongo is not None
