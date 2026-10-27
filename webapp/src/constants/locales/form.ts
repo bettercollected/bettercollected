@@ -36,7 +36,14 @@ export const formConstant = {
         openFormulierenExportError: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT_ERROR',
         share: 'FORM_MENU.SHARE',
         makeFormPrivate: 'FORM_MENU.MAKE_FORM_PRIVATE',
-        makeFormPublic: 'FORM_MENU.MAKE_FORM_PUBLIC'
+        makeFormPublic: 'FORM_MENU.MAKE_FORM_PUBLIC',
+        duplicateForm: 'FORM_MENU.DUPLICATE_FORM',
+        duplicateError: 'FORM_MENU.DUPLICATE_ERROR',
+        generateQr: 'FORM_MENU.GENERATE_QR'
+    },
+    toolbar: {
+        searchPlaceholder: 'FORMS_TOOLBAR.SEARCH_PLACEHOLDER',
+        count: 'FORMS_TOOLBAR.COUNT'
     },
     link: 'FORMS_LINK',
     default: 'FORM.DEFAULT',

@@ -12,6 +12,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { RegistrationService, RegistrationTestResult, useDeleteRegistrationServiceMutation, useGetRegistrationServicesQuery, useTestRegistrationServiceMutation } from '@app/store/workspaces/registration-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { errorCodeOf, errorKey, formatDay, testKey } from '@app/utils/registration';
 
 /**
@@ -160,7 +161,7 @@ export default function ServicesSection() {
                 {data && data.length > 0 && <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('REGISTRATION.SERVICES.TEST_WARNING')}</p>}
             </section>
 
-            <ServiceDialog open={dialogOpen} onOpenChange={setDialogOpen} workspaceId={workspaceId as string} workspaceTitle={workspace?.title || workspace?.workspaceName} service={editing} />
+            <ServiceDialog open={dialogOpen} onOpenChange={setDialogOpen} workspaceId={workspaceId as string} workspaceTitle={workspaceDisplayName(workspace)} service={editing} />
 
             <Dialog
                 open={!!toDelete}

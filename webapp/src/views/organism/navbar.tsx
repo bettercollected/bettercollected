@@ -18,6 +18,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { canRedoAtom, canUndoAtom } from '@app/store/jotai/form-document';
 import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/template-api';
@@ -142,7 +143,7 @@ const Navbar = () => {
                     same rule as the top navbar). Still the "back to forms" target. */}
                 <button
                     type="button"
-                    aria-label={`Back to ${workspace?.title || workspace?.workspaceName || 'workspace'} forms`}
+                    aria-label={`Back to ${workspaceDisplayName(workspace) || 'workspace'} forms`}
                     className="mr-1 cursor-pointer"
                     onClick={() => {
                         router.push('/' + workspace.workspaceName + '/dashboard/forms');
@@ -152,7 +153,7 @@ const Navbar = () => {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-black-300 object-cover" />
                     ) : (
-                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{((workspace?.title || workspace?.workspaceName)?.[0] || 'W').toUpperCase()}</span>
+                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(workspaceDisplayName(workspace)?.[0] || 'W').toUpperCase()}</span>
                     )}
                 </button>
                 <AppInput

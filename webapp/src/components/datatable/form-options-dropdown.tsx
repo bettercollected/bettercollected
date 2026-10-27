@@ -101,7 +101,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         duplicateForm({ workspaceId: workspace.id, formId: form.formId })
             .then()
             .catch((e: any) => {
-                toast({ description: 'Could not duplicate form', variant: 'destructive' });
+                toast({ description: t(formConstant.menu.duplicateError).toString(), variant: 'destructive' });
             });
     };
     const menuItemPinSettings = (
@@ -210,7 +210,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <div className="flex items-center justify-center">
                 <QrCode size={20} className={'text-black-600'} />
             </div>
-            Generate QR
+            {t(formConstant.menu.generateQr)}
         </li>
     );
 
@@ -222,7 +222,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <div className="flex items-center justify-center">
                 <Copy width={20} height={20} className={'text-black-600'} />
             </div>
-            <span>Duplicate form</span>
+            <span>{t(formConstant.menu.duplicateForm)}</span>
         </li>
     );
 
@@ -233,7 +233,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             .unwrap()
             .then((result) => {
                 saveExport(result);
-                toast({ description: result.unmapped ? t(formConstant.menu.openFormulierenExportUnmapped, { n: result.unmapped }).toString() : t(formConstant.menu.openFormulierenExportClean).toString() });
+                toast({ description: result.unmapped ? t(formConstant.menu.openFormulierenExportUnmapped, { count: result.unmapped }).toString() : t(formConstant.menu.openFormulierenExportClean).toString() });
             })
             .catch((error) => toast({ description: t(exportRefusalIsTooLarge(error) ? formConstant.menu.openFormulierenExportTooLarge : formConstant.menu.openFormulierenExportError).toString(), variant: 'destructive' }));
     };

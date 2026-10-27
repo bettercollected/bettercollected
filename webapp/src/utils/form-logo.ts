@@ -5,6 +5,7 @@
  * rules for showing it.
  */
 import { FormSlideLayout } from '@app/models/enums/form';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 
 /** Where the logo sits: on the column's left edge or centred on it. */
 export type LogoPosition = 'left' | 'center';
@@ -63,7 +64,7 @@ export function resolveFormLogo(form: FormLogoSettings | null | undefined, works
     const fallback = form?.useWorkspaceLogo ? workspace?.profileImage?.trim() : '';
     const src = own || fallback;
     if (!src) return null;
-    const alt = form?.logoAlt?.trim() || workspace?.title?.trim() || workspace?.workspaceName?.trim() || '';
+    const alt = form?.logoAlt?.trim() || workspaceDisplayName(workspace) || '';
     return {
         src,
         alt,

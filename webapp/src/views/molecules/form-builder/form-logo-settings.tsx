@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useRemoveFormLogoMutation, useUploadFormLogoMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { LOGO_ACCEPT, LOGO_ALT_MAX_LENGTH, LogoPositionSetting, logoFileProblem, logoPositionFor, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
 
 const POSITIONS: Array<{ key: LogoPositionSetting; label: string }> = [
@@ -41,7 +42,7 @@ export default function FormLogoSettings() {
     const position: LogoPositionSetting = formState.logoPosition ?? form?.logoPosition ?? 'auto';
     const alt = formState.logoAlt ?? form?.logoAlt ?? '';
     const useWorkspaceLogo = formState.useWorkspaceLogo ?? form?.useWorkspaceLogo ?? false;
-    const organisation = workspace?.title || workspace?.workspaceName || '';
+    const organisation = workspaceDisplayName(workspace) ?? '';
     const settings = { logoPosition: position, logoAlt: alt, useWorkspaceLogo };
     const followed = logoPositionFor({ welcomePage: formState.welcomePage, theme: formState.theme });
     const shown = resolveFormLogo({ logo: form?.logo, ...settings, welcomePage: formState.welcomePage, theme: formState.theme }, workspace);
