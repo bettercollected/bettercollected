@@ -22,7 +22,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useDuplicateFormMutation, useExportFormForOpenFormulierenMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
-import { saveExport } from '@app/utils/open-formulieren-export';
+import { exportRefusalIsTooLarge, saveExport } from '@app/utils/open-formulieren-export';
 import { useOpenFormulierenExportOn } from '@app/lib/hooks/use-open-formulieren-export-mode';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
@@ -235,7 +235,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 saveExport(result);
                 toast({ description: result.unmapped ? t(formConstant.menu.openFormulierenExportUnmapped, { n: result.unmapped }).toString() : t(formConstant.menu.openFormulierenExportClean).toString() });
             })
-            .catch(() => toast({ description: t(formConstant.menu.openFormulierenExportError).toString(), variant: 'destructive' }));
+            .catch((error) => toast({ description: t(exportRefusalIsTooLarge(error) ? formConstant.menu.openFormulierenExportTooLarge : formConstant.menu.openFormulierenExportError).toString(), variant: 'destructive' }));
     };
 
     const menuItemOpenFormulierenExport = (

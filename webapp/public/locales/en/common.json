@@ -300,6 +300,7 @@
     "OPEN_FORMULIEREN_EXPORT": "Download for Open Formulieren",
     "OPEN_FORMULIEREN_EXPORT_CLEAN": "Downloaded. Everything was carried over.",
     "OPEN_FORMULIEREN_EXPORT_UNMAPPED": "Downloaded. {{n}} item(s) were left out or changed: see README.txt in the archive.",
+    "OPEN_FORMULIEREN_EXPORT_TOO_LARGE": "This form has more pages or questions than can be exported.",
     "OPEN_FORMULIEREN_EXPORT_ERROR": "The form could not be downloaded.",
     "DELETE_FORM": "Delete form",
     "PIN_FORM": "Pin form",

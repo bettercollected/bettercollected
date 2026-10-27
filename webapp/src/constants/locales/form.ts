@@ -32,6 +32,7 @@ export const formConstant = {
         openFormulierenExport: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT',
         openFormulierenExportClean: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT_CLEAN',
         openFormulierenExportUnmapped: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT_UNMAPPED',
+        openFormulierenExportTooLarge: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT_TOO_LARGE',
         openFormulierenExportError: 'FORM_MENU.OPEN_FORMULIEREN_EXPORT_ERROR',
         share: 'FORM_MENU.SHARE',
         makeFormPrivate: 'FORM_MENU.MAKE_FORM_PRIVATE',

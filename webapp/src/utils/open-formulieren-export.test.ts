@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FALLBACK_EXPORT_FILE_NAME, exportFileName, openFormulierenExportOf, unmappedCount } from './open-formulieren-export';
+import { FALLBACK_EXPORT_FILE_NAME, exportFileName, exportRefusalIsTooLarge, openFormulierenExportOf, unmappedCount } from './open-formulieren-export';
 
 describe('the Open Formulieren export download', () => {
     it('takes the file name from Content-Disposition, only if it is the shape the backend writes', () => {
@@ -21,5 +21,10 @@ describe('the Open Formulieren export download', () => {
         const blob = new Blob(['x']);
         expect(openFormulierenExportOf(blob, response)).toEqual({ blob, fileName: 'a-open-formulieren.zip', unmapped: 3 });
         expect(openFormulierenExportOf(blob)).toEqual({ blob, fileName: FALLBACK_EXPORT_FILE_NAME, unmapped: 0 });
+    });
+
+    it('recognises the too-big refusal only', () => {
+        expect(exportRefusalIsTooLarge({ status: 422, data: { code: 'form_too_large_for_export' } })).toBe(true);
+        for (const other of [{ status: 422, data: { code: 'nothing_to_export' } }, { status: 500 }, undefined, null]) expect(exportRefusalIsTooLarge(other)).toBe(false);
     });
 });

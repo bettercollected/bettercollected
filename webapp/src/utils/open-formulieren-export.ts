@@ -44,3 +44,9 @@ export function saveExport({ blob, fileName }: OpenFormulierenExport): void {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/** Whether a failed export was refused as too big (422 `form_too_large_for_export`). */
+export function exportRefusalIsTooLarge(error: unknown): boolean {
+    const { status, data } = (error ?? {}) as { status?: number; data?: { code?: string } };
+    return status === 422 && data?.code === 'form_too_large_for_export';
+}
