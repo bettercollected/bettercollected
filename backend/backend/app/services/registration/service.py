@@ -22,9 +22,11 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import re
+import uuid
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Awaitable, Callable, Dict, List, Optional
+from urllib.parse import urlsplit
 
 from common.constants import MESSAGE_NOT_FOUND
 from common.clock import utcnow
@@ -40,6 +42,7 @@ from backend.app.repositories.postgres.registration import ServiceNameTaken
 from backend.app.schemas.registration import (
     DeliveryStatus,
     FormRegistrationDocument,
+    ObjectsSnapshot,
     RegistrationDeliveryDocument,
     RegistrationServiceDocument,
     ServiceAuth,
@@ -48,7 +51,7 @@ from backend.app.schemas.registration import (
 )
 from backend.app.services import safe_http
 from backend.app.services.registration import body as body_builder
-from backend.app.services.registration import client
+from backend.app.services.registration import client, objects_api
 from backend.app.services.registration.retry import (  # noqa: F401
     MAX_ATTEMPTS,
     RETRY_WAITS,
@@ -67,6 +70,10 @@ REDEFER_AFTER = dt.timedelta(minutes=2)
 STUCK_AFTER = dt.timedelta(minutes=30)
 SWEEP_BATCH = 200
 MAX_VARIABLES = 200
+CHECK_SCOPE = "registration_check"
+CHECK_PER_WINDOW = 10
+CHECK_WINDOW_SECONDS = 60
+CHECK_TOTAL_SECONDS = 60.0
 MAX_SECRET_LENGTH = 4000
 _HEADER_NAME = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,100}$")
 _OPEN_STATES = (DeliveryStatus.PENDING, DeliveryStatus.RETRYING)
@@ -94,6 +101,8 @@ class ServiceDto(_CamelModel):
     has_secret: bool
     secret_set_at: Optional[dt.datetime] = None
     organisation_name: str
+    # Objects API services only
+    objecttypes_base_url: Optional[str] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
 
@@ -102,10 +111,12 @@ class ServiceCreateDto(_CamelModel):
     name: str = Field(..., min_length=1, max_length=80)
     kind: ServiceKind = ServiceKind.GENERIC_JSON
     base_url: str = Field(..., min_length=1, max_length=2048)
-    auth: ServiceAuth = ServiceAuth.NONE
+    # left out: ``none`` for Generic JSON, ``token`` for an Objects API
+    auth: Optional[ServiceAuth] = None
     auth_name: Optional[str] = Field(None, max_length=200)
     secret: Optional[str] = Field(None, max_length=MAX_SECRET_LENGTH, repr=False)
     organisation_name: Optional[str] = Field(None, max_length=80)
+    objecttypes_base_url: Optional[str] = Field(None, min_length=1, max_length=2048)
 
 
 class ServiceUpdateDto(_CamelModel):
@@ -115,6 +126,7 @@ class ServiceUpdateDto(_CamelModel):
     auth_name: Optional[str] = Field(None, max_length=200)
     secret: Optional[str] = Field(None, max_length=MAX_SECRET_LENGTH, repr=False)
     organisation_name: Optional[str] = Field(None, max_length=80)
+    objecttypes_base_url: Optional[str] = Field(None, min_length=1, max_length=2048)
 
 
 class ServiceTestDto(_CamelModel):
@@ -125,7 +137,10 @@ class ServiceTestDto(_CamelModel):
 
 class VariableMappingDto(_CamelModel):
     source: str = Field(..., min_length=1, max_length=200)
+    # Generic JSON: the name in the body
     key: Optional[str] = Field(None, max_length=64)
+    # Objects API: the path in ``record.data`` (1-8 segments)
+    target_path: Optional[List[str]] = Field(None, max_length=16)
 
 
 class FormRegistrationUpdateDto(_CamelModel):
@@ -134,16 +149,24 @@ class FormRegistrationUpdateDto(_CamelModel):
     path: str = Field("", max_length=client.MAX_PATH_LENGTH)
     variables: List[VariableMappingDto] = Field(default_factory=list)
     transform_to_list: List[str] = Field(default_factory=list)
+    # Objects API only
+    object_type_url: Optional[str] = Field(None, max_length=2048)
+    object_type_version: Optional[int] = None
+    reference_path: Optional[List[str]] = Field(None, max_length=16)
 
 
 class FormRegistrationDto(_CamelModel):
     enabled: bool
+    kind: Optional[str] = None
     service_id: Optional[str] = None
     service_name: Optional[str] = None
     organisation_name: Optional[str] = None
     path: str = ""
     variables: List[VariableMappingDto] = Field(default_factory=list)
     transform_to_list: List[str] = Field(default_factory=list)
+    object_type_url: Optional[str] = None
+    object_type_version: Optional[int] = None
+    reference_path: Optional[List[str]] = None
     updated_at: Optional[dt.datetime] = None
 
 
@@ -164,6 +187,7 @@ class DeliveryDto(_CamelModel):
     manual_attempts: int
     last_error_code: Optional[str] = None
     last_http_status: Optional[int] = None
+    remote_id: Optional[str] = None
     last_attempt_at: Optional[dt.datetime] = None
     next_attempt_at: Optional[dt.datetime] = None
     delivered_at: Optional[dt.datetime] = None
@@ -198,6 +222,7 @@ def _service_dto(document: RegistrationServiceDocument) -> ServiceDto:
         has_secret=bool(document.secret_sealed),
         secret_set_at=document.secret_set_at,
         organisation_name=document.organisation_name,
+        objecttypes_base_url=document.objecttypes_base_url,
         created_at=document.created_at,
         updated_at=document.updated_at,
     )
@@ -213,6 +238,7 @@ def _delivery_dto(document: RegistrationDeliveryDocument) -> DeliveryDto:
         manual_attempts=document.manual_attempts,
         last_error_code=document.last_error_code,
         last_http_status=document.last_http_status,
+        remote_id=document.remote_id,
         last_attempt_at=document.last_attempt_at,
         next_attempt_at=document.next_attempt_at,
         delivered_at=document.delivered_at,
@@ -253,6 +279,7 @@ class RegistrationService:
         workspace_repo,
         crypto,
         aws_service,
+        rate_limiter=None,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
     ):
@@ -266,6 +293,7 @@ class RegistrationService:
         self._workspaces = workspace_repo
         self._crypto = crypto
         self._aws = aws_service
+        self._limiter = rate_limiter
         self._defer = defer or _defer_job
         self._clock = clock
 
@@ -300,12 +328,19 @@ class RegistrationService:
             not secret
             or re.search(r"[\r\n\x00]", secret)
             or len(secret) > MAX_SECRET_LENGTH
+            # a token goes after "Token " in one header: plain, no spaces
+            or (
+                auth is ServiceAuth.TOKEN
+                and (not secret.isascii() or re.search(r"[\s\x00-\x1f\x7f]", secret))
+            )
         ):
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "invalid_secret",
                 "The secret is empty or contains characters that are not allowed.",
             )
+        if auth is ServiceAuth.TOKEN:
+            return
         if auth is ServiceAuth.HEADER and not (
             auth_name
             and _HEADER_NAME.match(auth_name)
@@ -323,17 +358,24 @@ class RegistrationService:
                 "Give the user name.",
             )
 
-    async def _checked_base_url(self, base_url: str) -> str:
-        """https only, the default port, and a host that resolves to public
-        addresses only (checked again at every connection)."""
+    async def _checked_base_url(self, base_url: str, *, resolves: bool = True) -> str:
+        """https only, the default port, no credentials, query, fragment or dot
+        segments, and (``resolves``) a host that resolves to public addresses
+        only (checked again at every connection). An address we never connect
+        to (the object types address) is only checked for its syntax: it may
+        well be internal."""
         try:
             url, host = safe_http.checked_https_url(base_url, allow_query=False)
+            if client.base_path_problem(url):
+                raise safe_http.UrlRefused("invalid_url")
         except safe_http.UrlRefused:
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "invalid_url",
                 "Use a https:// address without a port, user name, query or fragment.",
             )
+        if not resolves:
+            return url
         try:
             await asyncio.wait_for(
                 safe_http.public_address(host, lambda h, p: client.resolve(h, p)),
@@ -359,36 +401,78 @@ class RegistrationService:
             )
         return url
 
+    @staticmethod
+    def _auth_for_kind(kind: ServiceKind, auth: Optional[ServiceAuth]) -> ServiceAuth:
+        """An Objects API service authenticates with a token and nothing else
+        (``none`` and ``basic`` are refused); Generic JSON never uses one."""
+        if kind is ServiceKind.OBJECTS_API:
+            if auth not in (None, ServiceAuth.TOKEN):
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "invalid_auth",
+                    "An Objects API is reached with a token.",
+                )
+            return ServiceAuth.TOKEN
+        if auth is ServiceAuth.TOKEN:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_auth",
+                "A token is only used for an Objects API.",
+            )
+        return auth or ServiceAuth.NONE
+
+    @staticmethod
+    def _objecttypes_base_not_applicable() -> HTTPException:
+        return _refused(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            "objecttypes_base_not_applicable",
+            "An object types address belongs to an Objects API service.",
+        )
+
     async def create_service(
         self, workspace_id: RecordId, request: ServiceCreateDto, user: User
     ) -> ServiceDto:
         await self._manage(user, workspace_id)
-        self._check_auth(request.auth, request.auth_name, request.secret)
-        if request.auth is not ServiceAuth.NONE and not request.secret:
+        auth = self._auth_for_kind(request.kind, request.auth)
+        auth_name = request.auth_name if auth is not ServiceAuth.TOKEN else None
+        self._check_auth(auth, auth_name, request.secret)
+        if auth is not ServiceAuth.NONE and not request.secret:
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "secret_required",
                 "Give the secret this service needs.",
             )
         base_url = await self._checked_base_url(request.base_url)
+        objecttypes_base_url = None
+        if request.kind is ServiceKind.OBJECTS_API:
+            if not request.objecttypes_base_url:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "objecttypes_base_required",
+                    "Give the address of the object types API.",
+                )
+            objecttypes_base_url = await self._checked_base_url(
+                request.objecttypes_base_url, resolves=False
+            )
+        elif request.objecttypes_base_url is not None:
+            raise self._objecttypes_base_not_applicable()
         workspace = await self._workspaces.find_by_id(workspace_id)
         document = RegistrationServiceDocument(
             workspace_id=workspace_id,
             name=request.name.strip(),
             kind=request.kind,
             base_url=base_url,
-            auth=request.auth,
-            auth_name=(
-                request.auth_name if request.auth is not ServiceAuth.NONE else None
-            ),
+            auth=auth,
+            auth_name=auth_name if auth is not ServiceAuth.NONE else None,
             organisation_name=(request.organisation_name or "").strip()
             or (getattr(workspace, "title", None) or "").strip()
             or "the organisation",
+            objecttypes_base_url=objecttypes_base_url,
             created_by=str(user.id),
             updated_by=str(user.id),
         )
         document.ensure_id()
-        if request.auth is not ServiceAuth.NONE:
+        if auth is not ServiceAuth.NONE:
             document.secret_sealed = seal(
                 self._crypto, workspace_id, document.id, request.secret
             )
@@ -424,14 +508,27 @@ class RegistrationService:
     ) -> ServiceDto:
         await self._manage(user, workspace_id)
         document = await self._service_of(workspace_id, service_id)
-        auth = request.auth if request.auth is not None else document.auth
+        objects = document.kind is ServiceKind.OBJECTS_API
+        auth = self._auth_for_kind(
+            document.kind, request.auth if request.auth is not None else document.auth
+        )
         auth_name = (
             request.auth_name if request.auth_name is not None else document.auth_name
         )
+        if auth is ServiceAuth.TOKEN:
+            auth_name = None
         self._check_auth(auth, auth_name, request.secret)
         new_url = document.base_url
         if request.base_url is not None:
             new_url = await self._checked_base_url(request.base_url)
+        if request.objecttypes_base_url is not None:
+            if not objects:
+                raise self._objecttypes_base_not_applicable()
+            # never fetched by us, so no new secret is needed; forms whose
+            # object type now sits outside it fail at their next send
+            document.objecttypes_base_url = await self._checked_base_url(
+                request.objecttypes_base_url, resolves=False
+            )
         moved = (
             new_url != document.base_url
             or auth is not document.auth
@@ -521,6 +618,10 @@ class RegistrationService:
         """Send a body marked as a test; reports our outcome code only."""
         await self._manage(user, workspace_id)
         service = await self._service_of(workspace_id, service_id)
+        if service.kind is ServiceKind.OBJECTS_API:
+            # a test record would create an object (or fail its schema): an
+            # Objects API is checked on a form, with a lookup that reads nothing
+            return ServiceTestDto(ok=False, code="use_form_check")
         try:
             target = self._target(service, "")
             empty_values, empty_schema = body_builder.build_values(
@@ -564,17 +665,30 @@ class RegistrationService:
             if document.service_id
             else None
         )
+        objects = service is not None and service.kind is ServiceKind.OBJECTS_API
         return FormRegistrationDto(
             enabled=document.enabled,
+            kind=service.kind.value if service else None,
             service_id=document.service_id,
             service_name=service.name if service else None,
             organisation_name=service.organisation_name if service else None,
             path=document.path,
             variables=[
-                VariableMappingDto(source=v.source, key=v.key)
+                VariableMappingDto(
+                    source=v.source,
+                    key=None if objects else v.key,
+                    target_path=v.target_path if objects else None,
+                )
                 for v in document.variables
             ],
             transform_to_list=document.transform_to_list,
+            object_type_url=document.object_type_url,
+            object_type_version=document.object_type_version,
+            reference_path=(
+                list(document.reference_path or objects_api.DEFAULT_REFERENCE_PATH)
+                if objects
+                else None
+            ),
             updated_at=document.updated_at,
         )
 
@@ -613,13 +727,12 @@ class RegistrationService:
                 "form_not_collected_here",
                 "Only forms collected here can send their submissions on.",
             )
-        problem = client.path_problem(request.path)
-        if problem:
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "invalid_path",
-                "The path must be relative, without '..', a query or a fragment.",
-            )
+        objects_fields = (
+            request.object_type_url is not None
+            or request.object_type_version is not None
+            or request.reference_path is not None
+            or any(v.target_path is not None for v in request.variables)
+        )
         service = None
         if request.service_id:
             # only a service of this workspace, whatever id the body names
@@ -634,9 +747,34 @@ class RegistrationService:
                 "service_required",
                 "Choose the service to send to.",
             )
-        mapping = self._checked_mapping(
-            await self._form_for_variables(form_id), request
-        )
+        objects = service is not None and service.kind is ServiceKind.OBJECTS_API
+        if objects_fields and not objects:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "service_required" if service is None else "not_an_objects_api",
+                "These settings belong to a form that sends to an Objects API.",
+            )
+        if objects and request.path:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_path",
+                "An Objects API has no path to choose.",
+            )
+        if not objects and client.path_problem(request.path):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_path",
+                "The path must be relative, without '..', a query or a fragment.",
+            )
+        form_for_mapping = await self._form_for_variables(form_id)
+        object_type_url = object_type_version = reference_path = None
+        if objects:
+            mapping = self._checked_objects_mapping(form_for_mapping, request)
+            object_type_url, object_type_version, reference_path = (
+                self._checked_object_type(service, request, mapping)
+            )
+        else:
+            mapping = self._checked_mapping(form_for_mapping, request)
         if request.enabled and not mapping:
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -654,6 +792,9 @@ class RegistrationService:
         document.path = request.path
         document.variables = mapping
         document.transform_to_list = list(dict.fromkeys(request.transform_to_list))
+        document.object_type_url = object_type_url
+        document.object_type_version = object_type_version
+        document.reference_path = reference_path
         document.updated_by = str(user.id)
         await self._registrations.save(document)
         logger.info(
@@ -665,6 +806,117 @@ class RegistrationService:
             user.id,
         )
         return await self.get_form_registration(workspace_id, str(form_id), user)
+
+    @staticmethod
+    def _checked_objects_mapping(
+        form, request: FormRegistrationUpdateDto
+    ) -> List[VariableMapping]:
+        """The answers of an Objects API form: each source goes to a target
+        path in ``record.data``. Files cannot be sent (there is no Documents
+        API here); paths are unique and none sits inside another."""
+        if len(request.variables) > MAX_VARIABLES:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "too_many_variables",
+                f"At most {MAX_VARIABLES} variables.",
+            )
+        if request.transform_to_list:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_transform",
+                "Multiple choice answers are always sent as a list here.",
+            )
+        index = body_builder.variables_of(form)
+        mapping: List[VariableMapping] = []
+        for item in request.variables:
+            variable = index.get(item.source)
+            if variable is None or variable.kind == "group_child":
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "unknown_variable",
+                    "This form has no such variable.",
+                )
+            if not variable.supported or variable.type == "file_upload":
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "variable_not_supported",
+                    "This kind of question cannot be sent to an Objects API.",
+                )
+            path = item.target_path
+            if objects_api.path_problem(path):
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "invalid_target_path",
+                    "A target path has 1 to 8 names of letters, digits and _, "
+                    "each starting with a letter, without '__' or a trailing '_'.",
+                )
+            for earlier in mapping:
+                if objects_api.paths_conflict(earlier.target_path, path):
+                    raise _refused(
+                        HTTPStatus.UNPROCESSABLE_ENTITY,
+                        "target_path_conflict",
+                        "Target paths are unique and none sits inside another.",
+                    )
+            mapping.append(
+                VariableMapping(
+                    source=item.source, key=".".join(path), target_path=list(path)
+                )
+            )
+        return mapping
+
+    @staticmethod
+    def _checked_object_type(
+        service: RegistrationServiceDocument,
+        request: FormRegistrationUpdateDto,
+        mapping: List[VariableMapping],
+    ):
+        """``(object type URL, version, reference path)`` to store. The URL
+        must sit under the service's object types address (set by the
+        workspace's admins); we never fetch it, their Objects API does."""
+        url = None
+        if request.object_type_url is not None and request.object_type_url.strip():
+            try:
+                url = objects_api.checked_object_type(
+                    request.object_type_url, service.objecttypes_base_url
+                )
+            except objects_api.ObjectTypeRefused as refused:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    refused.code,
+                    "The object type URL must be an https address of the form "
+                    ".../objecttypes/<uuid> under the service's object types address.",
+                )
+        version = request.object_type_version
+        if version is not None and not (
+            objects_api.MIN_VERSION <= version <= objects_api.MAX_VERSION
+        ):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_object_type_version",
+                "The version is a whole number from 1 to 10000.",
+            )
+        if request.enabled and (url is None or version is None):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "object_type_required",
+                "Give the object type URL and its version.",
+            )
+        reference = request.reference_path
+        if reference is None:
+            reference = list(objects_api.DEFAULT_REFERENCE_PATH)
+        if objects_api.path_problem(reference):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_reference_path",
+                "The reference path has 1 to 8 names of letters, digits and _.",
+            )
+        if any(objects_api.paths_conflict(m.target_path, reference) for m in mapping):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "reference_path_conflict",
+                "The reference path is also used by a mapped answer.",
+            )
+        return url, version, list(reference)
 
     @staticmethod
     def _checked_mapping(
@@ -768,21 +1020,20 @@ class RegistrationService:
         self, workspace_id: RecordId, form_id: str, delivery_id: str, user: User
     ) -> DeliveryDto:
         await self._form_scope(user, Permission.FORM_EDIT, workspace_id, form_id)
-        delivery = await self._deliveries.get_in_form(
-            workspace_id, form_id, delivery_id
-        )
+        # one locked step: only a failed or cancelled delivery of this form
+        # moves, so a second (stale) click cannot reset a claimed row
+        delivery = await self._deliveries.retry(workspace_id, form_id, delivery_id)
         if delivery is None:
-            raise _not_found()
-        if delivery.status not in (DeliveryStatus.FAILED, DeliveryStatus.CANCELLED):
+            if (
+                await self._deliveries.get_in_form(workspace_id, form_id, delivery_id)
+                is None
+            ):
+                raise _not_found()
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "not_retryable",
                 "Only a delivery that failed can be tried again.",
             )
-        delivery.status = DeliveryStatus.PENDING
-        delivery.manual_attempts += 1
-        delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
         await self._queue(delivery)
         logger.info(
             "registration retry requested: workspace={} form={} delivery={} by={}",
@@ -871,7 +1122,7 @@ class RegistrationService:
             if parked is not None and parked.status is DeliveryStatus.RETRYING:
                 parked.status = DeliveryStatus.PENDING
                 parked.next_attempt_at = None
-                await self._deliveries.save(parked)
+                await self._deliveries.save_existing(parked)
             return Outcome("skipped")
         delivery = await self._deliveries.claim(
             delivery_id, _OPEN_STATES, now=self._clock()
@@ -920,7 +1171,7 @@ class RegistrationService:
         if permanent or final:
             delivery.status = DeliveryStatus.FAILED
             delivery.next_attempt_at = None
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             logger.warning(
                 "registration failed: delivery={} response={} code={} http={} attempts={}",
                 delivery.id,
@@ -935,7 +1186,7 @@ class RegistrationService:
         )
         delivery.status = DeliveryStatus.RETRYING
         delivery.next_attempt_at = self._clock() + dt.timedelta(seconds=wait)
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info(
             "registration will retry: delivery={} code={} http={} attempt={} in={}s",
             delivery.id,
@@ -950,7 +1201,7 @@ class RegistrationService:
         delivery.status = DeliveryStatus.CANCELLED
         delivery.last_error_code = code
         delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info("registration cancelled: delivery={} code={}", delivery.id, code)
         return Outcome("cancelled")
 
@@ -971,7 +1222,9 @@ class RegistrationService:
             if registration.service_id
             else None
         )
-        if service is None:
+        # a delivery that has been sent (or looked up) as an Objects API one
+        # stays one, whatever the form points at now: the snapshot decides
+        if service is None and delivery.objects_snapshot is None:
             return await self._cancel(delivery, "disabled")
         response = await self._responses.workspace_response(
             workspace_id, delivery.response_id
@@ -981,6 +1234,12 @@ class RegistrationService:
             await self._deliveries.delete_by_ids([delivery.id])
             logger.info("registration dropped, response gone: delivery={}", delivery.id)
             return Outcome("gone")
+        if delivery.objects_snapshot is not None or (
+            service.kind is ServiceKind.OBJECTS_API
+        ):
+            return await self._attempt_objects(
+                delivery, registration, service, response
+            )
         try:
             target = self._target(service, registration.path)
         except SecretUnreadable:
@@ -1016,23 +1275,418 @@ class RegistrationService:
             values, values_schema, metadata, metadata_schema
         )
         del answers, hidden_fields, values
+        if not await self._still_wanted(delivery):
+            return Outcome("gone")
         status = await client.post_json(
             target, payload, idempotency_key=str(delivery.id)
         )
+        return await self._delivered(delivery, status)
+
+    async def _delivered(
+        self,
+        delivery: RegistrationDeliveryDocument,
+        status: Optional[int],
+        remote_id: Optional[str] = None,
+        *,
+        found: bool = False,
+    ) -> Outcome:
         delivery.status = DeliveryStatus.DELIVERED
         delivery.delivered_at = self._clock()
         delivery.last_error_code = None
         delivery.last_http_status = status
+        delivery.remote_id = remote_id
         delivery.next_attempt_at = None
-        await self._deliveries.save(delivery)
+        await self._deliveries.save_existing(delivery)
         logger.info(
-            "registration delivered: delivery={} response={} http={} attempts={}",
+            "registration delivered: delivery={} response={} http={} attempts={}{}",
             delivery.id,
             delivery.response_id,
             status,
             delivery.attempts,
+            " (found by lookup, nothing sent)" if found else "",
         )
         return Outcome("delivered")
+
+    # ------------------------------------------------------------ objects api
+
+    def _objects_target(self, service: RegistrationServiceDocument) -> client.Target:
+        return client.Target(
+            base_url=service.base_url,
+            path=objects_api.RECORDS_PATH,
+            auth=ServiceAuth.TOKEN.value,
+            secret=unseal(
+                self._crypto, service.workspace_id, service.id, service.secret_sealed
+            ),
+        )
+
+    @staticmethod
+    def _objects_settings(registration, service):
+        """The stored settings of an Objects API form, checked again: stored
+        configuration is not trusted for an address, a path or a version.
+        Returns ``(object type URL, version, reference path, mapping)`` or
+        raises a permanent ``config_invalid``."""
+        invalid = client.SendFailed("config_invalid", permanent=True)
+        try:
+            url = objects_api.checked_object_type(
+                registration.object_type_url, service.objecttypes_base_url
+            )
+        except objects_api.ObjectTypeRefused:
+            raise invalid
+        version = registration.object_type_version
+        if not isinstance(version, int) or not (
+            objects_api.MIN_VERSION <= version <= objects_api.MAX_VERSION
+        ):
+            raise invalid
+        reference = list(
+            registration.reference_path or objects_api.DEFAULT_REFERENCE_PATH
+        )
+        if objects_api.path_problem(reference):
+            raise invalid
+        return (
+            url,
+            version,
+            reference,
+            RegistrationService._objects_mapping(registration, reference),
+        )
+
+    @staticmethod
+    def _objects_mapping(registration, reference):
+        """The mapped answers as ``(source, target path)``, checked against
+        the reference path; ``config_invalid`` when stored paths clash."""
+        invalid = client.SendFailed("config_invalid", permanent=True)
+        mapping = []
+        for item in registration.variables:
+            if objects_api.path_problem(item.target_path) or any(
+                objects_api.paths_conflict(m[1], item.target_path) for m in mapping
+            ):
+                raise invalid
+            mapping.append((item.source, list(item.target_path)))
+        if any(objects_api.paths_conflict(path, reference) for _s, path in mapping):
+            raise invalid
+        return mapping
+
+    @staticmethod
+    def _normal_base(base_url: str) -> str:
+        """The address as compared (scheme, host, port and path, trailing
+        slash ignored); "" for one that is not a plain https address."""
+        try:
+            return safe_http.checked_https_url(base_url, allow_query=False)[0].rstrip(
+                "/"
+            )
+        except safe_http.UrlRefused:
+            return ""
+
+    async def _still_wanted(self, delivery) -> bool:
+        """Right before a send: the delivery row and its submission still
+        exist (a deletion during the attempt, which may have waited on a
+        lookup, stops the send). The row of a deleted submission is removed
+        here; nothing is stored again."""
+        if await self._deliveries.get(delivery.id) is None:
+            return False
+        response = await self._responses.workspace_response(
+            delivery.workspace_id, delivery.response_id
+        )
+        if response is None or str(response.form_id) != str(delivery.form_id):
+            await self._deliveries.delete_by_ids([delivery.id])
+            logger.info("registration dropped, response gone: delivery={}", delivery.id)
+            return False
+        return True
+
+    async def _snapshot_settings(self, delivery, service):
+        """The settings a delivery's first send used, with the service they
+        belong to (it may no longer be the form's choice). ``config_invalid``
+        when that service is gone, its address moved to another host, or its
+        object types address no longer holds the object type: a delivery is
+        never sent somewhere its first send did not go."""
+        snapshot = delivery.objects_snapshot
+        invalid = client.SendFailed("config_invalid", permanent=True)
+        if service is None or str(service.id) != snapshot.service_id:
+            service = await self._services.get(
+                delivery.workspace_id, snapshot.service_id
+            )
+        if (
+            service is None
+            or service.kind is not ServiceKind.OBJECTS_API
+            or self._normal_base(service.base_url) != snapshot.service_base_url
+        ):
+            raise invalid
+        try:
+            url = objects_api.checked_object_type(
+                snapshot.object_type_url, service.objecttypes_base_url
+            )
+        except objects_api.ObjectTypeRefused:
+            raise invalid
+        if objects_api.path_problem(snapshot.reference_path):
+            raise invalid
+        return service, url, snapshot.object_type_version, list(snapshot.reference_path)
+
+    async def _lookup(
+        self,
+        target: client.Target,
+        object_type_url: str,
+        reference_path,
+        reference: str,
+        start_at: str,
+    ) -> Optional[str]:
+        """Does the Objects API already hold the object of this delivery?
+        ``None``: no. A string: yes, its UUID (``""`` if it has none we can
+        read). An answer that is not clearly one of these is never a "no":
+        a 4xx or an unreadable or mismatching answer raises ``lookup_failed``
+        (permanent), a connection problem or 5xx raises its usual transient
+        failure. The delivery is never sent blind after a failed lookup."""
+        try:
+            reply = await client.request(
+                target,
+                "GET",
+                query=objects_api.lookup_query(
+                    object_type_url, reference_path, reference, start_at
+                ),
+                extra_headers=objects_api.record_headers(),
+                keep_reply=True,
+                max_reply=client.MAX_LOOKUP_REPLY_BYTES,
+            )
+        except client.SendFailed as failed:
+            if failed.code == "http_4xx" and failed.permanent:
+                raise client.SendFailed(
+                    "lookup_failed", permanent=True, http_status=failed.http_status
+                )
+            raise
+        try:
+            if reply.truncated:
+                raise objects_api.LookupUnreadable()
+            return objects_api.read_lookup(reply.body, reference_path, reference)
+        except objects_api.LookupUnreadable:
+            raise client.SendFailed(
+                "lookup_failed", permanent=True, http_status=reply.status
+            )
+
+    async def _attempt_objects(
+        self, delivery, registration, service, response
+    ) -> Outcome:
+        workspace_id = delivery.workspace_id
+        snapshot = delivery.objects_snapshot
+        if snapshot is None:
+            url, version, reference_path, mapping = self._objects_settings(
+                registration, service
+            )
+            snapshot = ObjectsSnapshot(
+                service_id=str(service.id),
+                service_base_url=self._normal_base(service.base_url),
+                object_type_url=url,
+                object_type_version=version,
+                reference_path=reference_path,
+            )
+            fresh = True
+        else:
+            # a later attempt keeps the settings of the first send, whatever
+            # an admin changed since: the lookup key must not move
+            service, url, version, reference_path = await self._snapshot_settings(
+                delivery, service
+            )
+            # the form's mapping is read after the lookup: a delivery that
+            # was created is found even if the form no longer maps anything
+            mapping = None
+            fresh = False
+        try:
+            target = self._objects_target(service)
+        except SecretUnreadable:
+            raise client.SendFailed("secret_unreadable", permanent=True)
+        reference = objects_api.reference_for(delivery.id)
+        if response.created_at is None:
+            # the lookup's date comes from the submission itself, never from
+            # the clock of this attempt
+            raise client.SendFailed("internal_error", permanent=True)
+        start_at = objects_api.amsterdam_date(response.created_at)
+        if fresh:
+            delivery.objects_snapshot = snapshot
+            if not await self._deliveries.save_existing(delivery):
+                return Outcome("gone")
+        # An earlier attempt (automatic, or a retry the creator asked for) may
+        # have created the object and lost the reply: look before sending
+        # again. Found: delivered, nothing is sent.
+        if delivery.attempts > 1 or delivery.manual_attempts > 0:
+            existing = await self._lookup(
+                target, url, reference_path, reference, start_at
+            )
+            if existing is not None:
+                return await self._delivered(
+                    delivery, 200, existing or None, found=True
+                )
+        if mapping is None:
+            mapping = self._objects_mapping(registration, reference_path)
+        form = await self._form_of_response(response)
+        index = body_builder.variables_of(form)
+        for source, _path in mapping:
+            variable = index.get(source)
+            if variable is not None and (
+                not variable.supported or variable.type == "file_upload"
+            ):
+                # a question mapped earlier became a file question: files are
+                # never sent here
+                raise client.SendFailed("config_invalid", permanent=True)
+        # the only place answers are decrypted: in memory, for this attempt
+        answers, hidden_fields = self._open_answers(workspace_id, response)
+
+        def never_read(_file_id, _limit=0):
+            raise body_builder.FileMissing()
+
+        as_list = [
+            source
+            for source, _path in mapping
+            if index.get(source) is not None and index[source].type == "multiple_choice"
+        ]
+        loop = asyncio.get_running_loop()
+        try:
+            values, _schema = await loop.run_in_executor(
+                None,
+                lambda: body_builder.build_values(
+                    index,
+                    [(source, ".".join(path)) for source, path in mapping],
+                    answers,
+                    hidden_fields,
+                    as_list,
+                    never_read,
+                ),
+            )
+        except (body_builder.FileTooLarge, body_builder.FileMissing):
+            raise client.SendFailed("config_invalid", permanent=True)
+        by_path = {
+            tuple(path): values[".".join(path)]
+            for _source, path in mapping
+            if ".".join(path) in values
+        }
+        try:
+            payload = objects_api.build_record(
+                object_type_url=url,
+                version=version,
+                values=by_path,
+                reference_path=reference_path,
+                reference=reference,
+                start_at=start_at,
+            )
+        except ValueError:
+            raise client.SendFailed("config_invalid", permanent=True)
+        del answers, hidden_fields, values, by_path
+        if not await self._still_wanted(delivery):
+            return Outcome("gone")
+        reply = await client.request(
+            target,
+            "POST",
+            body=payload,
+            extra_headers=objects_api.record_headers(),
+            idempotency_key=str(delivery.id),
+            keep_reply=True,
+        )
+        # the object exists now; its UUID is all we keep of the reply (none if
+        # the reply was oversized or not what we expect: still delivered)
+        remote_id = None if reply.truncated else objects_api.read_created(reply.body)
+        return await self._delivered(delivery, reply.status, remote_id)
+
+    async def check_connection(
+        self, workspace_id: RecordId, form_id: str, user: User
+    ) -> ServiceTestDto:
+        """ "Check connection" of an Objects API form: the same lookup the job
+        runs, for a reference that cannot exist. It must answer 200 with no
+        results, which proves the address, the token, read permission and
+        that the filter is applied; a second lookup with a deliberately
+        malformed filter must be refused (400), which proves the server
+        checks the filter at all (an empty object type would otherwise
+        hide an ignored filter). Reads no records. Reports our codes only."""
+        await self._form_scope(user, Permission.WORKSPACE_MANAGE, workspace_id, form_id)
+        if self._limiter is not None:
+            # each check makes two calls to a service someone else runs
+            verdict = await self._limiter.hit(
+                CHECK_SCOPE, str(workspace_id), CHECK_PER_WINDOW, CHECK_WINDOW_SECONDS
+            )
+            if not verdict.allowed:
+                raise HTTPException(
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    content={
+                        "code": "rate_limited",
+                        "message": "Too many connection checks; try again later.",
+                    },
+                    headers={"Retry-After": str(verdict.retry_after)},
+                )
+        try:
+            # both requests together, not one budget each
+            return await asyncio.wait_for(
+                self._check_calls(workspace_id, form_id), CHECK_TOTAL_SECONDS
+            )
+        except asyncio.TimeoutError:
+            return ServiceTestDto(ok=False, code="timeout")
+
+    async def _check_calls(self, workspace_id, form_id) -> ServiceTestDto:
+        registration = await self._registrations.get_for_form(workspace_id, form_id)
+        service = (
+            await self._services.get(workspace_id, registration.service_id)
+            if registration is not None and registration.service_id
+            else None
+        )
+        if (
+            registration is None
+            or service is None
+            or service.kind is not ServiceKind.OBJECTS_API
+            or not registration.object_type_url
+            or registration.object_type_version is None
+        ):
+            return ServiceTestDto(ok=False, code="not_configured")
+        try:
+            url, _version, reference_path, _mapping = self._objects_settings(
+                registration, service
+            )
+            target = self._objects_target(service)
+        except SecretUnreadable:
+            return ServiceTestDto(ok=False, code="secret_unreadable")
+        except client.SendFailed as failed:
+            return ServiceTestDto(ok=False, code=failed.code)
+        today = objects_api.amsterdam_date(self._clock())
+        random_reference = str(uuid.uuid4())
+        try:
+            reply = await client.request(
+                target,
+                "GET",
+                query=objects_api.lookup_query(
+                    url, reference_path, random_reference, today
+                ),
+                extra_headers=objects_api.record_headers(),
+                keep_reply=True,
+            )
+            if reply.truncated or not objects_api.check_reply_empty(reply.body):
+                return ServiceTestDto(
+                    ok=False,
+                    code=(
+                        "filter_not_supported"
+                        if not reply.truncated
+                        else "lookup_failed"
+                    ),
+                    http_status=reply.status,
+                )
+        except client.SendFailed as failed:
+            return ServiceTestDto(
+                ok=False,
+                code="lookup_failed" if failed.code == "http_4xx" else failed.code,
+                http_status=failed.http_status,
+            )
+        try:
+            probe = await client.request(
+                target,
+                "GET",
+                query=objects_api.malformed_filter_query(url),
+                extra_headers=objects_api.record_headers(),
+                keep_reply=False,
+            )
+            # a 2xx: the filter was not looked at
+            return ServiceTestDto(
+                ok=False, code="filter_not_supported", http_status=probe.status
+            )
+        except client.SendFailed as failed:
+            if failed.code == "http_4xx" and failed.http_status == 400:
+                return ServiceTestDto(ok=True, http_status=reply.status)
+            return ServiceTestDto(
+                ok=False,
+                code="lookup_failed" if failed.code == "http_4xx" else failed.code,
+                http_status=failed.http_status,
+            )
 
     @staticmethod
     def _open_answers(workspace_id, response):
@@ -1119,13 +1773,13 @@ class RegistrationService:
             now - STUCK_AFTER - dt.timedelta(seconds=max(RETRY_WAITS)), SWEEP_BATCH
         ):
             delivery.status = DeliveryStatus.PENDING
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             rescued += 1 if await self._queue(delivery) else 0
         for delivery in await self._deliveries.list_stuck_in_progress(
             now - STUCK_AFTER, SWEEP_BATCH
         ):
             delivery.status = DeliveryStatus.PENDING
-            await self._deliveries.save(delivery)
+            await self._deliveries.save_existing(delivery)
             rescued += 1 if await self._queue(delivery) else 0
         return {"queued": queued, "rescued": rescued}
 

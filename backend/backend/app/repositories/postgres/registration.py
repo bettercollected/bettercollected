@@ -5,7 +5,7 @@ services, form registrations and deliveries. Queries use the spine columns of
 import datetime as dt
 from typing import Iterable, List, Optional, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 
@@ -173,6 +173,63 @@ class PostgresRegistrationDeliveryRepository(RecordRepository):
         self, document: RegistrationDeliveryDocument
     ) -> RegistrationDeliveryDocument:
         return await self.save_document(document)
+
+    async def save_existing(self, document: RegistrationDeliveryDocument) -> bool:
+        """Store ``document`` only if its row still exists (an UPDATE by id,
+        never an insert): a delivery deleted meanwhile (its response was
+        deleted) is not brought back. False when the row is gone."""
+        document.touch()
+        values = row_values(document)
+        names = self._column_names()
+        async with self._session() as session, session.begin():
+            table = self.row.__table__
+            result = await session.execute(
+                update(table)
+                .where(table.c.id == _id(document.id))
+                .values(
+                    {
+                        names[key]: values[key]
+                        for key in ("doc", "updated_at", "bc_source", "bc_checksum")
+                    }
+                )
+                .returning(table.c.id)
+            )
+            return result.first() is not None
+
+    async def retry(
+        self, workspace_id, form_id, delivery_id
+    ) -> Optional[RegistrationDeliveryDocument]:
+        """Move a ``failed`` or ``cancelled`` delivery of this form back to
+        ``pending`` (one manual attempt more) in one locked step. None when
+        the row is not there, or is in any other state (a second click, or a
+        delivery that has been claimed meanwhile, is not touched)."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(self.row.doc)
+                    .where(
+                        RegistrationDeliveryRow.id == _id(delivery_id),
+                        RegistrationDeliveryRow.workspace_id == _id(workspace_id),
+                        RegistrationDeliveryRow.form_id == _id(form_id),
+                        RegistrationDeliveryRow.status.in_(
+                            [
+                                DeliveryStatus.FAILED.value,
+                                DeliveryStatus.CANCELLED.value,
+                            ]
+                        ),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            moved = decode(self.document, doc)
+            moved.status = DeliveryStatus.PENDING
+            moved.manual_attempts += 1
+            moved.next_attempt_at = None
+            moved.touch()
+            await session.execute(self._upsert_statement(row_values(moved)))
+        return moved
 
     async def claim(
         self, delivery_id, allowed: Iterable[DeliveryStatus], *, now: dt.datetime
