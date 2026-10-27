@@ -241,9 +241,11 @@ before they submit that their answers are also sent to the organisation.
 ### Tested against
 
 Registration in an Objects API has been tested against a fake Objects API in the test suite and once, by hand,
-against the public `maykinmedia/objects-api` and `maykinmedia/objecttypes-api` images on a throwaway local stack (see
-the pull request for the versions and counts). It has **not been tested against a live environment**; try it with
-test data first.
+against the public `maykinmedia/objects-api` 3.6.2 and `maykinmedia/objecttypes-api` 3.4.2 images on a throwaway local
+stack: ten submissions delivered, one forced lost reply that the retry found without creating a second object, one
+schema mismatch refused with a 400, and the connection check passing (with `data_attr`; that version also still
+accepts the deprecated `data_attrs`, and refuses a malformed expression of either with a 400). It has **not been tested
+against a live environment**; try it with test data first.
 
 ## Not included yet
 
