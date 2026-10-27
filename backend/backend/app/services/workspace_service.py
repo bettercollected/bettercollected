@@ -131,6 +131,7 @@ class WorkspaceService:
         authorization_service: AuthorizationService,
         custom_domain_service: Optional[CustomDomainService] = None,
         workspace_domain_service: Optional[WorkspaceDomainService] = None,
+        registration_service=None,
         sso_policy=None,
         sso_release=None,
     ):
@@ -141,6 +142,7 @@ class WorkspaceService:
         self._sso_release = sso_release
         self.http_client = http_client
         self.workspace_domain_service = workspace_domain_service
+        self._registration_service = registration_service
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
@@ -844,6 +846,10 @@ class WorkspaceService:
         if self.workspace_domain_service is not None:
             # a deleted workspace's verified domains are released
             await self.workspace_domain_service.release_workspace_domains(workspace_ids)
+        if self._registration_service is not None:
+            # their registration services (and sealed secrets), form
+            # registrations and delivery records
+            await self._registration_service.delete_for_workspaces(workspace_ids)
         if self._sso_release is not None:
             await self._sso_release(workspace_ids)
 

@@ -234,6 +234,13 @@ def parse_json(raw: bytes, name: str) -> Any:
         raise invalid("it is too large")
     if not json_depth_ok(raw):
         raise invalid("it is nested too deeply")
+    # a cheap count before the parser builds anything: every value is
+    # introduced by a bracket or a comma (those inside strings only add to it)
+    if (
+        raw.count(b"{") + raw.count(b"[") + raw.count(b",")
+        > 2 * limits.MAX_JSON_NODES
+    ):
+        raise invalid("it holds too many values")
     try:
         text = raw.decode("utf-8")
         value = json.loads(

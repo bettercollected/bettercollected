@@ -214,3 +214,44 @@ def hide(component, state=True):
 
 def eq(key, value):
     return {"==": [{"var": key}, value]}
+
+
+# ------------------------------------------------------------------ timing
+# Wall-clock assertions are fragile on a shared runner. Correctness tests never
+# depend on the clock (the work budget's deadline is switched off for them);
+# timing tests only (a) compare how the cost grows with the input, which
+# separates linear from quadratic whatever the machine, or (b) allow a
+# catastrophic bound far above any runner's speed.
+
+import time
+
+# generous: only a hang or a quadratic blow-up on hostile input gets near it
+CATASTROPHIC_SECONDS = 30.0
+
+
+def best_time(fn, runs: int = 3) -> float:
+    """The fastest of ``runs`` calls of ``fn`` (seconds)."""
+    best = float("inf")
+    for _ in range(runs):
+        started = time.perf_counter()
+        fn()
+        best = min(best, time.perf_counter() - started)
+    return best
+
+
+def assert_scales_linearly(make, small: int, large: int, factor: float = 3.0, floor: float = 0.05) -> None:
+    """``make(n)`` returns a callable; its time for ``large`` may be at most
+    ``factor`` times that for ``small`` (the sizes differ by 2x: linear is 2x,
+    quadratic 4x), or both stay under ``floor`` seconds."""
+    t_small = best_time(make(small))
+    t_large = best_time(make(large))
+    assert t_large <= max(factor * t_small, floor), (small, t_small, large, t_large)
+
+
+@pytest.fixture()
+def no_deadline(monkeypatch):
+    """The build's wall-clock deadline switched off (and its text budget
+    left as it is): for tests of what a big form imports to, not of speed."""
+    from backend.app.services.open_formulieren import limits
+
+    monkeypatch.setattr(limits, "BUILD_SECONDS", 1e9)

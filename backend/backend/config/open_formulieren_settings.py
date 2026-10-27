@@ -17,6 +17,8 @@ class OpenFormulierenSettings(StoreBackedSettings):
     IMPORT: Literal["on", "off"] = "off"
     # imports of Open Formulieren forms per workspace per day (0: none)
     IMPORTS_PER_WORKSPACE_PER_DAY: int = 50
+    # attempts per workspace per day, refused archives included (0: none)
+    ATTEMPTS_PER_WORKSPACE_PER_DAY: int = 100
 
     @field_validator("IMPORT", mode="before")
     @classmethod
