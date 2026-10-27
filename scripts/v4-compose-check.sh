@@ -566,7 +566,7 @@ fresh_assertions() { # <deploy output> <events> <ps samples>
   expect "MongoDB was never started (no container, no volume)" "0 no-volume" "$(mongo_presence)"
   expect "no MONGO_URI is stored" "versions=0" "$(sdeploy settings-history MONGO_URI 2>/dev/null | tail -n 1 | tr -d '\r')"
   expect "no import ran" "0" "$(grep -c '^UPGRADE TO 4.1' "$plain")"
-  expect "the backend and the jobs worker run on Postgres" "postgres postgres postgres postgres" \
+  expect "the backend and the jobs worker are handed no store switch (Postgres is the only store)" "" \
     "$(for c in backend jobs-worker; do docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q "$c" | head -n 1)" | sed -n 's/^DB_READ_SOURCE=//p; s/^DB_WRITE_MODE=//p'; done | tr '\n' ' ' | sed 's/ $//')"
   # bootstrap-keys ran, before any service started
   check "bootstrap-keys ran (six keys generated, values not shown)" grep -q '^generated=6 (values are not shown)' "$plain"

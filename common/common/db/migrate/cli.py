@@ -23,6 +23,11 @@ from common.db.migrate.outbox import OutboxResolver
 from common.db.schema_guard import MigrationTarget
 
 
+# The commands that never read MongoDB: they run without a MONGO_URI (the import
+# commands, and the ones that compare or clean up after an import, need it).
+NO_MONGO_COMMANDS = frozenset({"jobs-sweep"})
+
+
 def build_parser(prog: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=prog,
@@ -252,6 +257,13 @@ async def run(
     args: argparse.Namespace, target: Target, mongo_primary: Sequence[str] = ()
 ) -> int:
     collections = select_collections(args, target)
+    if args.command not in NO_MONGO_COMMANDS and not (target.mongo_uri or "").strip():
+        print(
+            f"{args.command} reads MongoDB (the data of a stack from before 4.1), "
+            "and MONGO_URI is not set.",
+            file=sys.stderr,
+        )
+        return 2
     async with Runner(target) as runner:
         if args.command == "preflight":
             reports = await runner.preflight(collections)
