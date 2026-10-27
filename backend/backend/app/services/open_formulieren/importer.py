@@ -140,15 +140,18 @@ def _list(value: Any) -> List[Any]:
 
 def _help_set(form: Dict[str, Any]) -> bool:
     """Whether the form has help of its own. 4.0 exports always write both
-    help objects, empty when unused (``{"content": "", "image": null}`` and
-    ``{"display": "never", ...}``), so their presence alone says nothing."""
+    help objects, empty when unused, so their presence alone says nothing.
+    The dialog's content and image are the form's; the callout's content and
+    image come from the instance's global settings, so only its ``display``
+    (``never`` unless shown before or after the start page) is the form's."""
     dialog = _dict(form.get("help_dialog"))
-    callout = _dict(form.get("help_callout_page"))
-    filled = any(
-        (isinstance(d.get("content"), str) and d["content"].strip()) or d.get("image")
-        for d in (dialog, callout)
+    content = dialog.get("content")
+    if (isinstance(content, str) and content.strip()) or dialog.get("image"):
+        return True
+    return _dict(form.get("help_callout_page")).get("display") in (
+        "before_start_page",
+        "after_start_page",
     )
-    return bool(filled) or callout.get("display") not in (None, "", "never")
 
 
 def _last_segment(url: Any) -> str:
