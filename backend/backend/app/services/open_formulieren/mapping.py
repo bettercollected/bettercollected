@@ -257,3 +257,35 @@ FEATURE_KEYS_PRESENTATION = (
     "category",
     "product",
 )
+
+# ----------------------------------------------------------- the way back
+# What an export reads. Derived from the tables above, never repeated: one
+# source of truth for both directions.
+
+# our question type -> the component type an export writes. Where several
+# component types map to one of ours, the plainest one is written back.
+_PREFERRED_COMPONENT: Dict[str, str] = {
+    "short_text": "textfield",
+    "long_text": "textarea",
+    "email": "email",
+    "number": "number",
+    "phone_number": "phoneNumber",
+    "date": "date",
+    "dropdown": "select",
+    "multiple_choice": "radio",
+    "yes_no": "checkbox",
+    "file_upload": "file",
+    "text": "content",
+}
+REVERSE_TYPES: Dict[str, str] = {
+    ours: of_type
+    for ours, of_type in _PREFERRED_COMPONENT.items()
+    if TYPE_RULES[of_type].ours == ours
+}
+
+# our comparison -> the JSON logic operator written for it (the first
+# operator of ``COMPARISONS`` that reads as that comparison)
+REVERSE_COMPARISONS: Dict[str, str] = {}
+for _operator, _comparison in COMPARISONS.items():
+    REVERSE_COMPARISONS.setdefault(_comparison, _operator)
+del _operator, _comparison

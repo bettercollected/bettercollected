@@ -1,9 +1,9 @@
 # Open Formulieren
 
 [Open Formulieren](https://open-forms.readthedocs.io/) is an open-source form builder (a form.io based
-product from Maykin). This page describes how bettercollected works with it. Today that is **importing a form
-exported from Open Formulieren as a draft form**; the other directions (export, sending submissions to a
-registration system) add their own sections here when they ship.
+product from Maykin). This page describes how bettercollected works with it: **importing a form exported from Open
+Formulieren as a draft form** and **exporting one of our forms as an Open Formulieren import archive**; sending
+submissions to a registration system adds its own section here when it ships.
 
 Everything is behind a switch that is **off by default**.
 
@@ -198,3 +198,125 @@ endpoints, authorisation). The archives in `backend/tests/fixtures/open_formulie
 synthetic forms made in a throwaway local Open Formulieren 4.0.6 (see its README); the golden files beside them are the
 expected result of each import. Regenerate a golden file with
 `OF_UPDATE_GOLDEN=1 uv run pytest tests/app/open_formulieren/test_importer.py` and read the diff.
+
+## Export
+
+A form can be downloaded as an archive that Open Formulieren's own import accepts (their "Import form" action, or
+`POST /api/v2/forms-import`). It is the reverse of the import and reads the same tables (`services/open_formulieren/mapping.py`
+holds both directions).
+
+### Switch
+
+| Setting | Values | Default |
+|---|---|---|
+| `OPEN_FORMULIEREN_EXPORT` | `off`, `on` | `off` |
+
+* `off`: the endpoint answers **410** `open_formulieren_off` before the caller or the form is looked at, and
+  `GET /providers` does not list it.
+* `on`: `GET /providers` lists `{"providerName": "open_formulieren", "exportMode": "on"}` (with `"importMode": "on"` beside
+  it when the import switch is on too; an entry holds only the modes that are on) so the webapp can offer the download.
+
+The import and export switches are independent.
+
+### Endpoint
+
+`GET /api/v1/workspaces/{workspace_id}/forms/{form_id}/open-formulieren-export`
+
+* Needs the **form-read** permission in the form's own workspace (every role holds it); a form of another workspace is a
+  404, a non-member a 403, a signed-out caller a 401. The form's **draft** is exported (what the builder shows).
+* Answers `application/zip` with `Content-Disposition: attachment; filename="<title>-open-formulieren.zip"` (ASCII only,
+  made from the title: `[a-z0-9-]`), `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and
+  `X-Open-Formulieren-Unmapped: <n>`, the number of things listed in the archive's `README.txt` (see below). The two
+  headers are exposed to cross-origin callers (CORS `expose-headers`).
+* 422 `nothing_to_export` when no question could be exported, 422 `form_too_large_for_export` (with `maxQuestions`, `maxPages`)
+  when the form has more questions or pages than our own import accepts (checked before any work, so every export can be read back),
+  422 `export_too_large` above 4 MiB.
+
+### The archive
+
+Six entries in their own names and order (`forms.json`, `formSteps.json`, `formDefinitions.json`, `formLogic.json`,
+`formVariables.json`, `_meta.json`) plus `README.txt`, deflated, plain files, built in memory. Their importer reads only
+the five resources, never `_meta.json` or the README.
+
+* `_meta.json`: `of_release` `4.0.6` (the series we target), `created` (ISO timestamp), `of_git_sha` **empty**: it names
+  the commit of the build that wrote the file and this is not that build.
+* Links (`url`, `form`, `form_definition`, `form_steps`) use their mock-host convention, `http://localhost/api/v2/...`,
+  identifiers only. All uuids are derived from the form's id and the item's place, so exporting the same form twice gives
+  the same ids (their import replaces every uuid anyway).
+* One step per page, in order, named by the page's section title (else "Page n", "Pagina n" for a Dutch form). A page
+  with nothing exportable is left out. The form is `regular`, inactive and has no category or theme.
+* Translations: the form has one language, so `translation_enabled` is false and both language slots hold the same text
+  (their import refuses a blank Dutch name).
+* Retention: `response_expiration_type: days` becomes `submissions_removal_options.successful_submissions_removal_limit`
+  with `delete_permanently` (1 to 3650 days); other settings are listed.
+* No privacy-policy text or URL (those are global settings there), no statement of truth (`disabled`).
+
+### Reverse mapping
+
+| Ours | Open Formulieren | Notes |
+|---|---|---|
+| short text | `textfield` | required, max length, pattern (from the regex: one with a lookaround, a backreference or a repeated group that holds a repetition could backtrack on their side and is left out and listed), placeholder, help text |
+| long text | `textarea` | required, max length |
+| email | `email` | required |
+| number | `number` | required, min, max |
+| link (`url`) | `textfield` + link pattern | listed as changed |
+| phone number | `phoneNumber` | required |
+| date | `date` | fixed or "today" limits become `openForms.minDate/maxDate`; a strict "after/before" a fixed date moves by one day; a rule on another question is listed |
+| yes/no | `checkbox` | a required yes/no is exported optional (on a checkbox required means "must be ticked"); listed |
+| multiple choice | `radio`; with several answers `selectboxes` | min/max choices become `minSelectedCount/maxSelectedCount` |
+| dropdown | `select` (`multiple` when several answers) | rules on a multi-select dropdown are listed |
+| file upload | `file` | their default file types and size |
+| statement | `content` | escaped plain paragraphs, never markup |
+| repeating group | `editgrid` | `validate.maxLength` = max items, required = at least one, `groupLabel` = item label |
+| other group | `fieldset` | |
+| neighbours with a column width | `columns` | `size` = our width, packed in rows of twelve |
+| "why we ask" | tooltip | listed as changed |
+| show/hide rule, one equality | `conditional` `{show, when, eq}` | "is not" flips show and hide |
+| show/hide rule, anything else | `formLogic` `property` `hidden` action with a JSON logic trigger | `and`/`or` triggers are `is_advanced` |
+
+Left out and listed: calculated fields (their formulas are **not** translated), rating, linear rating, matrix, table,
+ranking, payment, hidden and every other type with no equivalent; page jumps; show/hide rules inside repeating groups, on
+text "contains" / "starts with", on a multi-select dropdown, on a group's items, or that read a question that was left
+out; images and videos; the "other" option; answer rules without a place (minimum length, a pattern on non-text);
+hidden URL-parameter fields (their count), purpose and consent text, the privacy link, on-submit actions.
+
+### What is never in the archive
+
+Responses and any answer; staff-only (internal) questions (only their count is told, never a title, and no rule may use
+one); hidden-field values; secrets and action credentials; workspace, user and respondent ids and emails; logos, covers,
+custom addresses and any URL of ours; sign-in, prefill, payment, appointment and registration settings. The export reads
+the form definition only and has no access to responses.
+
+Nothing executable is written: no `customConditional`, `calculateValue`, `customDefaultValue` or script of any kind.
+Rules are data: `conditional` objects and JSON logic over a fixed set of operators (`==`, `!=`, `>`, `>=`, `<`, `<=`,
+`and`, `or`, `var`). Every string is plain text: markup is removed, then `<`, `>` and `&` are escaped again (decoded entities never
+become tags; their forms render labels as HTML), every opening brace of `{{`, `{%` and `{#` (which their forms render, overlapping
+runs such as `{{{` included) is followed by a space, the form's title included, statements are written as escaped paragraphs, component keys are ASCII and never shadow their static
+variables.
+
+### The README
+
+`README.txt` (plain text, English) says what the archive holds and never holds, then two lists: **Left out (n)** and
+**Changed on the way (m)**, one line each ("page 2, "Newsletter": ..."). `X-Open-Formulieren-Unmapped` is `n + m`.
+
+### Format reference (export)
+
+At tag `4.0.6`, paths under `src/openforms/`: export shape and entry names `forms/utils.py:81-150`; mock host and link
+form `forms/utils.py:66-74`; what their import resets and rewrites (uuids replaced across the text, no category or theme,
+inactive) `forms/utils.py:197-262`; form/definition/step fields `forms/api/serializers/form.py:328-`, `form_definition.py:64-90`,
+`form_step.py:67-113`; model limits (form name 150, definition name 50) `forms/models/form.py:81`, `form_definition.py:42`;
+conditional `formio/visibility.py:23-88`; selectboxes `value[eq]` `formio/components/vanilla.py:783-795`; editgrid maximum
+`vanilla.py:1136-1139`; file component and file types `vanilla.py:454-545`, size fallback `submissions/attachments.py:155`;
+trigger rule (first operand a `var` unless `is_advanced`) `forms/api/validators.py:22-60`; `property` action
+`forms/api/serializers/logic/action_serializers.py:30-60`; static variable names a key must not shadow
+`variables/static_variables/static_variables.py:23-40`, `authentication/static_variables/static_variables.py:21-390`;
+removal options `forms/models/form.py:335-353`; date limits `formio/typing/dates.py:8-39`. Component shapes follow the
+builder defaults (`open-formulieren/formio-builder` tag `1.5.0`).
+
+### Tests
+
+`backend/tests/app/open_formulieren/test_export.py` (every type, rules of every shape, hostile text, the README, filenames,
+the round trip: our importer re-reads what we exported, and the only differences are the documented ones) and
+`test_export_api.py` (switch, authorisation, workspace scope, no responses or staff-only content in the archive, headers).
+The archives were also imported into a local Open Formulieren 4.0.6 (201, with the same number of steps, components and
+rules).

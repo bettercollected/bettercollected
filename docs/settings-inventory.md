@@ -126,6 +126,7 @@ environment, whatever the tier.
 | `API_TRUSTED_PROXIES` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUST_CLOUDFLARE` | network | backend | bool |  | R | T3 | `true` |
 | `OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY` | open_formulieren | backend | int 0..100000 |  | R | T1 | `100` |
+| `OPEN_FORMULIEREN_EXPORT` | open_formulieren | backend | enum on/off |  | R | T2 | `off` |
 | `OPEN_FORMULIEREN_IMPORT` | open_formulieren | backend | enum on/off |  | R | T2 | `off` |
 | `OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY` | open_formulieren | backend | int 0..100000 |  | R | T1 | `50` |
 | `PDF_IMPORT_CONCURRENT_IMPORTS_PER_WORKSPACE` | pdf_import | backend | int 1..100 |  | R | T1 | `1` |

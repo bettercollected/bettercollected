@@ -3,6 +3,10 @@
 ``off`` (the default): the import endpoints answer 410 and the providers list
 does not offer it. ``on``: a workspace member who may create forms can import
 a form exported from Open Formulieren as a draft (docs/open-formulieren.md).
+
+``OPEN_FORMULIEREN_EXPORT`` (``off`` by default) is the same switch for the
+other direction: ``on`` lets a member who may read a form download it as an
+Open Formulieren import archive.
 """
 
 from typing import Literal
@@ -15,12 +19,13 @@ from common.settings.loader.pydantic_source import StoreBackedSettings
 
 class OpenFormulierenSettings(StoreBackedSettings):
     IMPORT: Literal["on", "off"] = "off"
+    EXPORT: Literal["on", "off"] = "off"
     # imports of Open Formulieren forms per workspace per day (0: none)
     IMPORTS_PER_WORKSPACE_PER_DAY: int = 50
     # attempts per workspace per day, refused archives included (0: none)
     ATTEMPTS_PER_WORKSPACE_PER_DAY: int = 100
 
-    @field_validator("IMPORT", mode="before")
+    @field_validator("IMPORT", "EXPORT", mode="before")
     @classmethod
     def _normalise(cls, value):
         # an unknown value refuses to start rather than guessing a mode

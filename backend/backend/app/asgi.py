@@ -215,6 +215,9 @@ def get_application(is_test_mode: bool = False):
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # the Open Formulieren export: its file name and how many things it
+        # could not carry over (read by the webapp across origins)
+        expose_headers=["Content-Disposition", "X-Open-Formulieren-Unmapped"],
     )
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)

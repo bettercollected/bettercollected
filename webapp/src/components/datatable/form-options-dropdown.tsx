@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import { Copy, Eye, MoreVertical, Pencil, Pin, QrCode, Trash2 } from 'lucide-react';
+import { Copy, Download, Eye, MoreVertical, Pencil, Pin, QrCode, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
@@ -21,7 +21,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
-import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { useDuplicateFormMutation, useExportFormForOpenFormulierenMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { exportRefusalIsTooLarge, saveExport } from '@app/utils/open-formulieren-export';
+import { useOpenFormulierenExportOn } from '@app/lib/hooks/use-open-formulieren-export-mode';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
@@ -54,6 +56,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const dispatch = useAppDispatch();
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const [duplicateForm] = useDuplicateFormMutation();
+    const [exportForOpenFormulieren] = useExportFormForOpenFormulierenMutation();
+    const { on: openFormulierenExportOn } = useOpenFormulierenExportOn();
     const { t } = useTranslation();
 
     const isCustomDomain = !!workspace.customDomain;
@@ -222,6 +226,27 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         </li>
     );
 
+    // The form as an Open Formulieren import archive (only when the instance
+    // offers it); the toast tells how many things the archive's README lists.
+    const handleOpenFormulierenExport = () => {
+        exportForOpenFormulieren({ workspaceId: workspace.id, formId: form.formId })
+            .unwrap()
+            .then((result) => {
+                saveExport(result);
+                toast({ description: result.unmapped ? t(formConstant.menu.openFormulierenExportUnmapped, { n: result.unmapped }).toString() : t(formConstant.menu.openFormulierenExportClean).toString() });
+            })
+            .catch((error) => toast({ description: t(exportRefusalIsTooLarge(error) ? formConstant.menu.openFormulierenExportTooLarge : formConstant.menu.openFormulierenExportError).toString(), variant: 'destructive' }));
+    };
+
+    const menuItemOpenFormulierenExport = (
+        <li className="flex items-center gap-2 px-[20px] py-[10px] min-h-[36px] body4 hover:bg-brand-100 cursor-pointer" onClick={handleOpenFormulierenExport}>
+            <div className="flex shrink-0 items-center justify-center">
+                <Download width={20} height={20} className="text-black-600" />
+            </div>
+            <span>{t(formConstant.menu.openFormulierenExport)}</span>
+        </li>
+    );
+
     const menuItemDelete = (
         <li
             className="flex items-center gap-2 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer"
@@ -272,6 +297,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     {canEdit && form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemGenerateQR}
                     {canCreate && form?.settings?.provider === 'self' && menuItemDuplicate}
+                    {openFormulierenExportOn && form?.settings?.provider === 'self' && menuItemOpenFormulierenExport}
                     {canDelete && menuItemDelete}
                 </ul>
             </PopoverContent>

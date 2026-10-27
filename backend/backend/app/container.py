@@ -123,6 +123,9 @@ from backend.app.services.workspace_responders_service import WorkspaceResponder
 from backend.app.services.custom_domain_service import CustomDomainService
 from backend.app.services.pdf_import.pipeline import ImportPipeline
 from backend.app.services.pdf_import.storage import S3ObjectStore
+from backend.app.services.open_formulieren_export_service import (
+    OpenFormulierenExportService,
+)
 from backend.app.services.open_formulieren_import_service import (
     OpenFormulierenImportService,
 )
@@ -915,6 +918,11 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+    )
+    open_formulieren_export_service: OpenFormulierenExportService = providers.Singleton(
+        OpenFormulierenExportService,
+        authorization_service=authorization_service,
+        form_spec_service=form_spec_service,
     )
     # The public API: forms from spec documents, Idempotency-Key records.
     form_spec_writer: FormSpecWriter = providers.Singleton(

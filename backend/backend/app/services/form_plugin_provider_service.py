@@ -13,6 +13,7 @@ from backend.app.repositories.postgres.refdata import (
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from backend.app.services.open_formulieren_mode import (
     PROVIDER_NAME as OPEN_FORMULIEREN,
+    open_formulieren_export_enabled,
     open_formulieren_import_enabled,
 )
 from backend.app.services.google_forms_mode import (
@@ -56,9 +57,15 @@ class FormPluginProviderService:
                 for provider in providers
                 if provider.enabled and _listed(provider)
             ]
+        offered = {}
         if open_formulieren_import_enabled():
-            # no stored config: the switch alone says it is offered
-            views.append({"provider_name": OPEN_FORMULIEREN, "import_mode": "on"})
+            offered["import_mode"] = "on"
+        if open_formulieren_export_enabled():
+            offered["export_mode"] = "on"
+        if offered:
+            # no stored config: the switches alone say what is offered (an
+            # entry holds only the modes that are on)
+            views.append({"provider_name": OPEN_FORMULIEREN, **offered})
         return views
 
     @staticmethod

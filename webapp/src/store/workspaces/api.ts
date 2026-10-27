@@ -13,6 +13,7 @@ import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletio
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
+import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-formulieren-export';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -316,6 +317,16 @@ export const workspacesApi = createApi({
                 credentials: 'include'
             }),
             invalidatesTags: [WORKSPACE_TAGS]
+        }),
+        // The form as an Open Formulieren import archive (OPEN_FORMULIEREN_EXPORT,
+        // form.read): the zip, its file name and how many things the README lists.
+        exportFormForOpenFormulieren: builder.mutation<OpenFormulierenExport, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/open-formulieren-export`,
+                method: 'GET',
+                responseHandler: (response) => response.blob()
+            }),
+            transformResponse: (blob: Blob, meta) => openFormulierenExportOf(blob, meta?.response)
         }),
         deleteForm: builder.mutation<any, any>({
             query: (request) => ({
@@ -744,6 +755,7 @@ export const {
     useVerifyEmailDomainMutation,
     useDeleteEmailDomainMutation,
     useDuplicateFormMutation,
+    useExportFormForOpenFormulierenMutation,
     useGetAllMineWorkspacesQuery,
     useRequestWorkspaceSubmissionDeletionMutation,
     useCreateRespondersGroupMutation,
