@@ -410,7 +410,7 @@ def test_another_release_is_refused_naming_it(release):
 
 @pytest.mark.parametrize(
     "value",
-    [None, "", "latest", "4.0", "4", "4.0.6-alpha.1", "4.0.6+local", "v4.0.6", 4.06, ["4.0.6"], "4.0.6\n", "<b>4.0.6</b>"],
+    [None, "", "latest", "4.0", "4", "4.0.6-alpha.1", "4.0.6+local", "v4.0.6", "04.0.6", "\u0664.\u0660.\u0666", "\uff14.\uff10.\uff16", 4.06, ["4.0.6"], "4.0.6\n", "<b>4.0.6</b>"],
 )
 def test_an_unreadable_release_is_unknown_and_never_echoed(value):
     error = refused(make_zip(good(**{"_meta.json": meta(value)})))

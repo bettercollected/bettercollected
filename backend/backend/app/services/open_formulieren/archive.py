@@ -53,7 +53,9 @@ _ZIP64_LOCATOR_SIZE = 20
 _EOCD_STRUCT = struct.Struct("<4s4H2LH")
 _ALLOWED_COMPRESSION = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
 _DRIVE = re.compile(r"^[A-Za-z]:")
-_VERSION = re.compile(r"^(\d{1,4})\.(\d{1,4})\.(\d{1,6})$")
+# ASCII digits only (``\d`` also matches other scripts' digits) and no leading
+# zeros: a real release never has them
+_VERSION = re.compile(r"^(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,5})$")
 
 
 @dataclass

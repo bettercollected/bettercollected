@@ -270,7 +270,7 @@ def test_the_other_series_are_refused_naming_the_release(release):
     assert release in error.message and "3.2.x" in error.message and "4.0.x" in error.message
 
 
-@pytest.mark.parametrize("value", ["3.5", "3", "3.5.14-rc.1", "3.5.14+x", "v3.5.14", "3.5.14\n", "3.5.x", "03.5.14x", 3.5, ["3.5.14"]])
+@pytest.mark.parametrize("value", ["3.5", "3", "3.5.14-rc.1", "3.5.14+x", "v3.5.14", "3.5.14\n", "3.5.x", "03.5.14x", "03.5.1", "3.05.1", "3.5.01", "\u0663.\u0665.\u0661\u0664", "\uff13.\uff15.\uff11\uff14", "3.5.1\u0664", 3.5, ["3.5.14"]])
 def test_an_unreadable_3x_release_is_unknown_and_never_echoed(value):
     with pytest.raises(ImportRefused) as caught:
         read_archive(archive_with([[comp("textfield", "a")]], version=value))
