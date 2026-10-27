@@ -97,6 +97,19 @@ class FormRegistrationDocument(Record):
         name = "form_registrations"
 
 
+class ObjectsSnapshot(BaseModel):
+    """Objects API deliveries: the settings the first send used, kept so a
+    later lookup and send of the same delivery use the same ones even if an
+    admin edits the form in between (a changed key could otherwise create a
+    second object). Configuration only, no answers."""
+
+    service_id: str
+    service_host: str
+    object_type_url: str
+    object_type_version: int
+    reference_path: List[str]
+
+
 class RegistrationDeliveryDocument(Record):
     """Ids, status and counters; never answers, bodies, addresses or the
     destination's replies."""
@@ -115,6 +128,7 @@ class RegistrationDeliveryDocument(Record):
     last_http_status: Optional[int] = None
     # Objects API: the created object's UUID (the only thing kept of the reply)
     remote_id: Optional[str] = None
+    objects_snapshot: Optional[ObjectsSnapshot] = None
     last_attempt_at: Optional[dt.datetime] = None
     next_attempt_at: Optional[dt.datetime] = None
     delivered_at: Optional[dt.datetime] = None

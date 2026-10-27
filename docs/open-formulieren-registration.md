@@ -233,8 +233,23 @@ The remaining edge: if the Objects API indexed a just-created object late, a loo
 create a second object. The first retry comes a minute after the failed attempt at the earliest, which is normally
 long enough.
 
-What we keep after a delivery: the delivery row only (ids, status, counters, timestamps, the HTTP status and the
-object's UUID), never answers, the body or the reply. It is deleted with the submission. Deleting a submission here
+**The settings of the first send are kept.** The first time a delivery is about to be sent, the delivery row records
+the service, its host, the object type URL, the version and the reference path (configuration only). Every later
+lookup and send of that delivery uses those, so an admin editing the form between two attempts cannot move the lookup
+key and cause a second object. If that service no longer exists, its address moved to another host, or its object
+types address no longer holds the object type, the delivery fails with `config_invalid` instead of being sent anywhere
+else (a retry then fails the same way; the creator re-submits through the destination's own process, or the admin
+puts the old settings back). The lookup date is the submission's own creation time: a submission without one fails
+(`internal_error`) rather than being looked up by the clock.
+
+A lookup reply is read up to 2 MiB (a hit returns the whole stored record; every other reply is capped at 64 KB),
+parsed for the little we need and dropped. Over that cap the lookup fails (`lookup_failed`).
+
+Service addresses (both) with a `..` or `.` segment, also percent-encoded, are refused, when saved and again at every
+connection. "Check connection" is limited to 10 per minute per workspace (`429`, `rate_limited`).
+
+What we keep after a delivery: the delivery row only (ids, status, counters, timestamps, the HTTP status, the
+object's UUID and the settings snapshot above), never answers, the body or the reply. It is deleted with the submission. Deleting a submission here
 does **not** delete the object at the destination: that is the organisation's own process, and respondents are told
 before they submit that their answers are also sent to the organisation.
 

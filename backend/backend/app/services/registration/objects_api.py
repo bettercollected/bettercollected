@@ -16,15 +16,17 @@ here), and answers that are not mapped.
 from __future__ import annotations
 
 import datetime as dt
+import functools
 import re
 import uuid
 import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 from backend.app.services import safe_http
 
-SEGMENT = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+SEGMENT = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
 MAX_SEGMENTS = 8
 DEFAULT_REFERENCE_PATH = ("bettercollected_reference",)
 MAX_OBJECT_TYPE_URL = 1000
@@ -39,13 +41,15 @@ FILTER_PARAMETER = "data_attr"
 # ignores ``pageSize`` is not trusted to stop there)
 MAX_LOOKED_AT = 50
 
+# all of these are used with ``fullmatch``: ``$`` would let a trailing newline through
 _UUID = re.compile(
-    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 _OBJECT_TYPE_TAIL = re.compile(
-    r"/objecttypes/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    r".*/objecttypes/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+    re.DOTALL,
 )
-_URL_SEGMENT = re.compile(r"^[A-Za-z0-9_~-][A-Za-z0-9._~-]*$")
+_URL_SEGMENT = re.compile(r"[A-Za-z0-9_~-][A-Za-z0-9._~-]*")
 # a fixed namespace: the reference of a delivery is derived from its id, so
 # it is stable across attempts without being stored anywhere else
 _REFERENCE_NAMESPACE = uuid.UUID("7d0c1c2e-6b0a-5c0e-9a52-1d7f3a9b4e61")
@@ -65,7 +69,7 @@ def segment_problem(segment: Any) -> bool:
     trailing ``_`` (the Objects API's filter joins segments with ``__``)."""
     return (
         not isinstance(segment, str)
-        or not SEGMENT.match(segment)
+        or not SEGMENT.fullmatch(segment)
         or "__" in segment
         or segment.endswith("_")
     )
@@ -122,8 +126,8 @@ def checked_object_type(url: Any, base: Optional[str]) -> str:
     segments = path.split("/")[1:]
     if (
         not segments
-        or any(not _URL_SEGMENT.match(s) for s in segments)
-        or not _OBJECT_TYPE_TAIL.search(path)
+        or any(not _URL_SEGMENT.fullmatch(s) for s in segments)
+        or not _OBJECT_TYPE_TAIL.fullmatch(path)
     ):
         raise invalid
     if not base:
@@ -152,24 +156,15 @@ def _utc(moment: dt.datetime) -> dt.datetime:
     return moment.astimezone(dt.timezone.utc)
 
 
-def _last_sunday(year: int, month: int) -> dt.date:
-    day = dt.date(year, month, 31)
-    return day - dt.timedelta(days=(day.weekday() + 1) % 7)
+@functools.lru_cache(maxsize=1)
+def _amsterdam() -> ZoneInfo:
+    return ZoneInfo("Europe/Amsterdam")
 
 
 def amsterdam_date(moment: dt.datetime) -> str:
-    """``YYYY-MM-DD`` of ``moment`` in Europe/Amsterdam. Computed with the EU
-    summer-time rule (last Sunday of March to last Sunday of October, both at
-    01:00 UTC) so it does not depend on a time zone database being installed."""
-    utc = _utc(moment)
-    start = dt.datetime.combine(
-        _last_sunday(utc.year, 3), dt.time(1), tzinfo=dt.timezone.utc
-    )
-    end = dt.datetime.combine(
-        _last_sunday(utc.year, 10), dt.time(1), tzinfo=dt.timezone.utc
-    )
-    offset = 2 if start <= utc < end else 1
-    return (utc + dt.timedelta(hours=offset)).date().isoformat()
+    """``YYYY-MM-DD`` of ``moment`` in Europe/Amsterdam (a naive ``moment`` is
+    UTC)."""
+    return _utc(moment).astimezone(_amsterdam()).date().isoformat()
 
 
 def nest(values: Dict[Tuple[str, ...], Any]) -> Dict[str, Any]:
@@ -279,8 +274,11 @@ def _at(data: Any, path: Sequence[str]) -> Any:
 
 
 def _uuid_or_none(value: Any) -> Optional[str]:
-    if isinstance(value, str) and _UUID.match(value):
-        return str(uuid.UUID(value))
+    if isinstance(value, str) and _UUID.fullmatch(value):
+        try:
+            return str(uuid.UUID(value))
+        except ValueError:
+            return None
     return None
 
 

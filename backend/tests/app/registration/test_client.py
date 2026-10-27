@@ -364,3 +364,27 @@ async def test_a_get_follows_the_same_address_rules(tls, monkeypatch):
     with pytest.raises(SendFailed) as raised:
         await request(target(), "GET", query=[("a", "b")])
     assert raised.value.code == "not_allowed" and len(tls.requests) == 1
+
+
+async def test_the_secret_is_not_in_the_repr_of_a_target():
+    assert "hunter2" not in repr(
+        Target(base_url="https://x.example.org/", secret="hunter2")
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/api/../x/", "/api/%2e%2e/x/", "/api/%252e%252e/", "/api/..%2fx/", "/a/./b/"],
+)
+async def test_a_base_address_with_dot_segments_is_refused_unsent(tls, path):
+    with pytest.raises(SendFailed) as raised:
+        await request(Target(base_url=f"https://{HOST}{path}"), "GET")
+    assert raised.value.code == "invalid_url" and tls.requests == []
+
+
+async def test_a_reply_can_be_kept_up_to_a_larger_cap_of_the_callers_choosing(tls):
+    tls.script.answers = [(200, {}, b"y" * 100_000)]
+    small = await request(target(), "GET", keep_reply=True)
+    assert small.truncated and small.body == b""
+    big = await request(target(), "GET", keep_reply=True, max_reply=200_000)
+    assert not big.truncated and len(big.body) == 100_000

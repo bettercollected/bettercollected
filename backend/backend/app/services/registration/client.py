@@ -27,9 +27,9 @@ import asyncio
 import base64
 import re
 import ssl
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Sequence, Tuple
-from urllib.parse import quote, unquote, urlencode
+from urllib.parse import quote, unquote, urlencode, urlsplit
 
 import httpcore
 
@@ -38,6 +38,9 @@ from backend.app.services.safe_http import PinnedBackend, resolve  # noqa: F401
 
 MAX_BODY_BYTES = 20 * 1024 * 1024
 MAX_REPLY_BYTES = 64 * 1024
+# a lookup that hits returns the whole stored record, which can be large; the
+# reply is streamed, parsed for the little we need and dropped
+MAX_LOOKUP_REPLY_BYTES = 2 * 1024 * 1024
 TIMEOUTS = {"connect": 5.0, "read": 20.0, "write": 30.0, "pool": 5.0}
 TOTAL_TIMEOUT_S = 60.0
 MAX_RETRY_AFTER_S = 3600
@@ -79,7 +82,7 @@ class Target:
     path: str = ""
     auth: str = "none"
     auth_name: Optional[str] = None
-    secret: Optional[str] = None
+    secret: Optional[str] = field(default=None, repr=False)
 
 
 _RESERVED_HEADERS = {
@@ -121,6 +124,17 @@ def path_problem(path: str) -> Optional[str]:
     if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", path):
         return "not_a_path"  # looks like a scheme
     return None
+
+
+def base_path_problem(url: str) -> bool:
+    """Whether the path of a service's base address has a dot segment, or an
+    encoded (once or twice) dot, slash or backslash: fails closed, like
+    ``path_problem``."""
+    for segment in urlsplit(url.strip()).path.split("/"):
+        decoded = unquote(unquote(segment))
+        if ".." in decoded or decoded == "." or "/" in decoded or "\\" in decoded:
+            return True
+    return False
 
 
 def full_url(base_url: str, path: str) -> str:
@@ -207,6 +221,7 @@ async def _request_once(
     body: Optional[bytes],
     headers,
     keep_reply: bool,
+    max_reply: int,
 ) -> Reply:
     async with httpcore.AsyncConnectionPool(
         ssl_context=ssl_context(),
@@ -240,7 +255,7 @@ async def _request_once(
             truncated = False
             async for chunk in response.aiter_stream():
                 total += len(chunk)
-                if total > MAX_REPLY_BYTES:
+                if total > max_reply:
                     truncated = True
                     break
                 if keep_reply:
@@ -257,6 +272,7 @@ async def request(
     extra_headers: Sequence[Tuple[bytes, bytes]] = (),
     idempotency_key: Optional[str] = None,
     keep_reply: bool = False,
+    max_reply: Optional[int] = None,
 ) -> Reply:
     """One request to ``target`` (``POST`` with ``body``, or ``GET``). Returns
     the 2xx :class:`Reply` or raises :class:`SendFailed`. ``query`` pairs are
@@ -267,6 +283,8 @@ async def request(
     if body is not None and len(body) > MAX_BODY_BYTES:
         raise SendFailed("too_large", permanent=True)
     try:
+        if base_path_problem(target.base_url):
+            raise SendFailed("invalid_url", permanent=True)
         url = full_url(target.base_url, target.path)
         if query:
             url += "?" + urlencode(list(query), quote_via=quote)
@@ -296,7 +314,14 @@ async def request(
             raise SendFailed("unreachable", permanent=False)
         try:
             return await _request_once(
-                method, url, host, address, body, headers, keep_reply
+                method,
+                url,
+                host,
+                address,
+                body,
+                headers,
+                keep_reply,
+                max_reply or MAX_REPLY_BYTES,
             )
         except SendFailed:
             raise

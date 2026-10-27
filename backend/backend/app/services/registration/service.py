@@ -26,6 +26,7 @@ import uuid
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Awaitable, Callable, Dict, List, Optional
+from urllib.parse import urlsplit
 
 from common.constants import MESSAGE_NOT_FOUND
 from common.clock import utcnow
@@ -41,6 +42,7 @@ from backend.app.repositories.postgres.registration import ServiceNameTaken
 from backend.app.schemas.registration import (
     DeliveryStatus,
     FormRegistrationDocument,
+    ObjectsSnapshot,
     RegistrationDeliveryDocument,
     RegistrationServiceDocument,
     ServiceAuth,
@@ -68,6 +70,9 @@ REDEFER_AFTER = dt.timedelta(minutes=2)
 STUCK_AFTER = dt.timedelta(minutes=30)
 SWEEP_BATCH = 200
 MAX_VARIABLES = 200
+CHECK_SCOPE = "registration_check"
+CHECK_PER_WINDOW = 10
+CHECK_WINDOW_SECONDS = 60
 MAX_SECRET_LENGTH = 4000
 _HEADER_NAME = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,100}$")
 _OPEN_STATES = (DeliveryStatus.PENDING, DeliveryStatus.RETRYING)
@@ -273,6 +278,7 @@ class RegistrationService:
         workspace_repo,
         crypto,
         aws_service,
+        rate_limiter=None,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
     ):
@@ -286,6 +292,7 @@ class RegistrationService:
         self._workspaces = workspace_repo
         self._crypto = crypto
         self._aws = aws_service
+        self._limiter = rate_limiter
         self._defer = defer or _defer_job
         self._clock = clock
 
@@ -355,6 +362,8 @@ class RegistrationService:
         addresses only (checked again at every connection)."""
         try:
             url, host = safe_http.checked_https_url(base_url, allow_query=False)
+            if client.base_path_problem(url):
+                raise safe_http.UrlRefused("invalid_url")
         except safe_http.UrlRefused:
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -1322,6 +1331,18 @@ class RegistrationService:
         )
         if objects_api.path_problem(reference):
             raise invalid
+        return (
+            url,
+            version,
+            reference,
+            RegistrationService._objects_mapping(registration, reference),
+        )
+
+    @staticmethod
+    def _objects_mapping(registration, reference):
+        """The mapped answers as ``(source, target path)``, checked against
+        the reference path; ``config_invalid`` when stored paths clash."""
+        invalid = client.SendFailed("config_invalid", permanent=True)
         mapping = []
         for item in registration.variables:
             if objects_api.path_problem(item.target_path) or any(
@@ -1331,7 +1352,35 @@ class RegistrationService:
             mapping.append((item.source, list(item.target_path)))
         if any(objects_api.paths_conflict(path, reference) for _s, path in mapping):
             raise invalid
-        return url, version, reference, mapping
+        return mapping
+
+    async def _snapshot_settings(self, delivery, service):
+        """The settings a delivery's first send used, with the service they
+        belong to (it may no longer be the form's choice). ``config_invalid``
+        when that service is gone, its address moved to another host, or its
+        object types address no longer holds the object type: a delivery is
+        never sent somewhere its first send did not go."""
+        snapshot = delivery.objects_snapshot
+        invalid = client.SendFailed("config_invalid", permanent=True)
+        if str(service.id) != snapshot.service_id:
+            service = await self._services.get(
+                delivery.workspace_id, snapshot.service_id
+            )
+        if (
+            service is None
+            or service.kind is not ServiceKind.OBJECTS_API
+            or urlsplit(service.base_url).hostname != snapshot.service_host
+        ):
+            raise invalid
+        try:
+            url = objects_api.checked_object_type(
+                snapshot.object_type_url, service.objecttypes_base_url
+            )
+        except objects_api.ObjectTypeRefused:
+            raise invalid
+        if objects_api.path_problem(snapshot.reference_path):
+            raise invalid
+        return service, url, snapshot.object_type_version, list(snapshot.reference_path)
 
     async def _lookup(
         self,
@@ -1356,6 +1405,7 @@ class RegistrationService:
                 ),
                 extra_headers=objects_api.record_headers(),
                 keep_reply=True,
+                max_reply=client.MAX_LOOKUP_REPLY_BYTES,
             )
         except client.SendFailed as failed:
             if failed.code == "http_4xx" and failed.permanent:
@@ -1376,16 +1426,40 @@ class RegistrationService:
         self, delivery, registration, service, response
     ) -> Outcome:
         workspace_id = delivery.workspace_id
+        snapshot = delivery.objects_snapshot
+        if snapshot is None:
+            url, version, reference_path, mapping = self._objects_settings(
+                registration, service
+            )
+            snapshot = ObjectsSnapshot(
+                service_id=str(service.id),
+                service_host=urlsplit(service.base_url).hostname or "",
+                object_type_url=url,
+                object_type_version=version,
+                reference_path=reference_path,
+            )
+            fresh = True
+        else:
+            # a later attempt keeps the settings of the first send, whatever
+            # an admin changed since: the lookup key must not move
+            service, url, version, reference_path = await self._snapshot_settings(
+                delivery, service
+            )
+            mapping = self._objects_mapping(registration, reference_path)
+            fresh = False
         try:
             target = self._objects_target(service)
         except SecretUnreadable:
             raise client.SendFailed("secret_unreadable", permanent=True)
-        url, version, reference_path, mapping = self._objects_settings(
-            registration, service
-        )
         reference = objects_api.reference_for(delivery.id)
-        submitted = response.created_at or self._clock()
-        start_at = objects_api.amsterdam_date(submitted)
+        if response.created_at is None:
+            # the lookup's date comes from the submission itself, never from
+            # the clock of this attempt
+            raise client.SendFailed("internal_error", permanent=True)
+        start_at = objects_api.amsterdam_date(response.created_at)
+        if fresh:
+            delivery.objects_snapshot = snapshot
+            await self._deliveries.save(delivery)
         # An earlier attempt (automatic, or a retry the creator asked for) may
         # have created the object and lost the reply: look before sending
         # again. Found: delivered, nothing is sent.
@@ -1474,6 +1548,20 @@ class RegistrationService:
         checks the filter at all (an empty object type would otherwise
         hide an ignored filter). Reads no records. Reports our codes only."""
         await self._form_scope(user, Permission.WORKSPACE_MANAGE, workspace_id, form_id)
+        if self._limiter is not None:
+            # each check makes two calls to a service someone else runs
+            verdict = await self._limiter.hit(
+                CHECK_SCOPE, str(workspace_id), CHECK_PER_WINDOW, CHECK_WINDOW_SECONDS
+            )
+            if not verdict.allowed:
+                raise HTTPException(
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    content={
+                        "code": "rate_limited",
+                        "message": "Too many connection checks; try again later.",
+                    },
+                    headers={"Retry-After": str(verdict.retry_after)},
+                )
         registration = await self._registrations.get_for_form(workspace_id, form_id)
         service = (
             await self._services.get(workspace_id, registration.service_id)

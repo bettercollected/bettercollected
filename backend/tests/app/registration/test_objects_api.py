@@ -440,6 +440,9 @@ async def test_an_enabled_form_needs_its_object_type(setup):
         ["a" * 65],
         [""],
         ["ä"],
+        ["a\n"],
+        ["ok\n"],
+        ["ok", "a\n"],
         ["ok", "a__b"],
     ],
 )
@@ -476,7 +479,7 @@ async def test_target_paths_are_unique_and_none_sits_inside_another(setup):
 
 
 async def test_the_reference_path_follows_the_same_rules(setup):
-    for path in ([], ["a__b"], ["1"], ["a"] * 9, ["x_"]):
+    for path in ([], ["a__b"], ["1"], ["a"] * 9, ["x_"], ["a\n"]):
         assert (
             await refused(
                 configure_objects(
@@ -638,8 +641,12 @@ async def test_the_object_is_created_with_the_mapped_answers_only(setup, logs):
     assert done.status is DeliveryStatus.DELIVERED and done.last_http_status == 201
     assert done.remote_id == setup.fake.objects[0]["uuid"]
     stored = json.dumps(done.model_dump(mode="json"))
-    for text in PERSONAL + [TOKEN, "case.example.org", "types.example.org", TYPE_URL]:
+    for text in PERSONAL + [TOKEN]:
         assert text not in stored
+    # the settings of the first send are kept (configuration, no answers)
+    assert done.objects_snapshot.object_type_url == TYPE_URL
+    assert done.objects_snapshot.reference_path == ["bettercollected_reference"]
+    assert done.objects_snapshot.service_host == "case.example.org"
     for text in PERSONAL + [TOKEN, TYPE_URL]:
         assert not any(text in line for line in logs), text
     assert (await run(delivery)).status == "skipped" and len(setup.fake.objects) == 1
@@ -665,7 +672,14 @@ async def test_a_multiple_choice_is_a_list_and_unanswered_questions_are_left_out
 async def test_a_reply_we_cannot_read_still_counts_as_delivered(setup):
     # the object was created: a lost UUID is not a lost submission
     for index, reply in enumerate(
-        [b"<html>not json</html>", b'{"uuid": "nope"}', b"[]", b"x" * (70 * 1024)]
+        [
+            b"<html>not json</html>",
+            b'{"uuid": "nope"}',
+            b'{"uuid": "%s\\n"}' % UUID.encode(),
+            b'{"uuid": ["%s"]}' % UUID.encode(),
+            b"[]",
+            b"x" * (70 * 1024),
+        ]
     ):
         response = await submit(setup.workspace, setup.form)
         delivery = await delivery_of(setup, response)
@@ -1097,3 +1111,214 @@ async def test_the_check_needs_saved_objects_settings(setup, workspace):
     result = await svc().check_connection(workspace.id, other.form_id, testUser)
     assert (result.ok, result.code) == (False, "not_configured")
     assert setup.tls.requests == []
+
+
+# --------------------------------------------- review fixes: caps, regexes, snapshot
+
+
+def big_hit(reference, size):
+    """A lookup answer whose one object carries ``reference`` and ``size``
+    bytes of other data (a large stored record)."""
+    return json.dumps(
+        {
+            "count": 1,
+            "results": [
+                {
+                    "uuid": "44444444-4444-4444-8444-444444444444",
+                    "record": {
+                        "data": {
+                            "bettercollected_reference": reference,
+                            "padding": "x" * size,
+                        }
+                    },
+                }
+            ],
+        }
+    ).encode()
+
+
+async def test_a_large_hit_is_found_and_a_reply_over_the_lookup_cap_is_not(setup):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    reference = objects_api.reference_for(delivery.id)
+    # over the 64 KiB cap of other replies, under the lookup's own
+    setup.fake.canned["GET"] = (200, {}, big_hit(reference, 300 * 1024))
+    out = await run(delivery, 1)
+    row = await row_of(delivery)
+    assert (
+        out.status == "delivered"
+        and row.remote_id == "44444444-4444-4444-8444-444444444444"
+    )
+    assert methods(setup) == ["POST", "GET"] and setup.fake.created == 0
+    # over the cap: unreadable, so never a "no" and never a blind send
+    second = await submit(setup.workspace, setup.form)
+    other = await delivery_of(setup, second)
+    setup.fake.canned["POST"] = (503, {}, b"down")
+    await run(other, 0)
+    setup.fake.canned["GET"] = (
+        200,
+        {},
+        big_hit(
+            objects_api.reference_for(other.id), client.MAX_LOOKUP_REPLY_BYTES + 10
+        ),
+    )
+    out = await run(other, 1)
+    assert out.status == "failed"
+    assert (await row_of(other)).last_error_code == "lookup_failed"
+    assert methods(setup)[-1] == "GET"
+
+
+def test_segments_and_uuids_are_matched_whole():
+    for segment in ("abc\n", "abc ", "a\nb", "", "a" * 65, "a_", "a__b", "1a"):
+        assert objects_api.segment_problem(segment), repr(segment)
+    assert not objects_api.segment_problem("abc_d")
+    assert objects_api.read_created(b'{"uuid": "%s\\n"}' % UUID.encode()) is None
+    assert objects_api.read_created(b'{"uuid": "%s"}' % UUID.upper().encode()) == UUID
+
+
+async def test_the_settings_of_the_first_send_are_used_for_the_lookup_after_an_edit(
+    setup,
+):
+    other_type = TYPE_URL.replace("3f5e8a10", "aaaaaaaa")
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    setup.fake.drop_reply_next = 1
+    await run(delivery, 0)  # created under the first settings, reply lost
+    assert len(setup.fake.objects) == 1
+    # an admin edits the form before the retry: another type, version and reference path
+    await configure_objects(
+        setup.workspace,
+        setup.form,
+        setup.service,
+        object_type_url=other_type,
+        object_type_version=7,
+        reference_path=["meta", "ref"],
+    )
+    out = await run(delivery, 1)
+    row = await row_of(delivery)
+    assert out.status == "delivered" and setup.fake.created == 1
+    assert row.remote_id == setup.fake.objects[0]["uuid"]
+    query = dict(parse_qsl(urlsplit(setup.tls.requests[1].target).query))
+    assert query["type"] == TYPE_URL
+    assert query["data_attr"].startswith("bettercollected_reference__exact__")
+
+
+async def test_a_send_after_an_edit_still_goes_out_under_the_first_settings(setup):
+    other_type = TYPE_URL.replace("3f5e8a10", "aaaaaaaa")
+    response, delivery = await first_attempt_fails_with_503(setup)
+    await configure_objects(
+        setup.workspace,
+        setup.form,
+        setup.service,
+        object_type_url=other_type,
+        object_type_version=7,
+        reference_path=["meta", "ref"],
+    )
+    assert (await run(delivery, 1)).status == "delivered"
+    sent = json.loads(setup.tls.requests[-1].body)
+    assert sent["type"] == TYPE_URL and sent["record"]["typeVersion"] == 3
+    assert sent["record"]["data"]["bettercollected_reference"] == (
+        objects_api.reference_for(delivery.id)
+    )
+    assert "meta" not in sent["record"]["data"]
+
+
+async def test_a_delivery_whose_service_is_gone_is_not_sent_elsewhere(setup):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    other = await make_objects_service(setup.workspace, name="Another")
+    await configure_objects(setup.workspace, setup.form, other)
+    await svc().delete_service(setup.workspace.id, setup.service.id, testUser)
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "config_invalid"
+    assert methods(setup) == ["POST"]
+
+
+async def test_a_delivery_whose_service_moved_host_is_not_sent_there(setup):
+    response, delivery = await first_attempt_fails_with_503(setup)
+    await svc().update_service(
+        setup.workspace.id,
+        setup.service.id,
+        ServiceUpdateDto(
+            base_url="https://elsewhere.example.org/api/v2/", secret=TOKEN
+        ),
+        testUser,
+    )
+    out = await run(delivery, 1)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "config_invalid"
+    assert methods(setup) == ["POST"]
+
+
+async def test_a_response_without_a_creation_time_is_not_looked_up_by_the_clock(
+    setup, monkeypatch
+):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    real = container.form_response_service().workspace_response
+
+    async def without_time(workspace_id, response_id):
+        found = await real(workspace_id, response_id)
+        found.created_at = None
+        return found
+
+    monkeypatch.setattr(
+        container.form_response_service(), "workspace_response", without_time
+    )
+    out = await run(delivery)
+    assert out.status == "failed"
+    assert (await row_of(delivery)).last_error_code == "internal_error"
+    assert setup.tls.requests == []
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/../x/",
+        "/api/./x/",
+        "/api/%2e%2e/x/",
+        "/api/%2E%2E/",
+        "/api/%252e%252e/x/",
+        "/api/..%2fx/",
+        "/api/.%2e/",
+        "/api/%2e/",
+    ],
+)
+async def test_a_service_address_with_dot_segments_is_refused_fail_closed(
+    workspace, registration_on, tls, path
+):
+    base = f"https://case.example.org{path}"
+    assert (
+        await refused(make_objects_service(workspace, base_url=base)) == "invalid_url"
+    )
+    assert (
+        await refused(make_objects_service(workspace, objecttypes_base_url=base))
+        == "invalid_url"
+    )
+    service = await make_objects_service(workspace)
+    assert (
+        await refused(
+            svc().update_service(
+                workspace.id,
+                service.id,
+                ServiceUpdateDto(base_url=base, secret=TOKEN),
+                testUser,
+            )
+        )
+        == "invalid_url"
+    )
+
+
+async def test_the_connection_check_is_rate_limited_per_workspace(setup):
+    for _ in range(10):
+        assert (
+            await svc().check_connection(
+                setup.workspace.id, setup.form.form_id, testUser
+            )
+        ).ok
+    assert len(setup.tls.requests) == 20
+    with pytest.raises(HTTPException) as raised:
+        await svc().check_connection(setup.workspace.id, setup.form.form_id, testUser)
+    assert raised.value.status_code == 429
+    assert raised.value.content["code"] == "rate_limited"
+    assert "Retry-After" in raised.value.headers
+    assert len(setup.tls.requests) == 20  # nothing more was sent
