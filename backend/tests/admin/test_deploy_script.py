@@ -11,6 +11,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 import textwrap
 from pathlib import Path
 
@@ -33,6 +34,17 @@ STUB = textwrap.dedent(
 
     def has(key):
         return (store / key).exists()
+
+    def terminate_deploy_once():
+        # STUB_SIGNAL_PIDFILE: send TERM to the deploy.sh process (not its group), once, as
+        # soon as the key's file exists in STUB_SIGNAL_SCRATCH: a signal at a chosen point
+        import signal, time
+        pidfile, scratch = os.environ.get("STUB_SIGNAL_PIDFILE"), os.environ.get("STUB_SIGNAL_SCRATCH")
+        marker = state / "signalled"
+        if pidfile and scratch and not marker.exists() and list(pathlib.Path(scratch).rglob("identity.env")):
+            marker.write_text("")
+            os.kill(int(pathlib.Path(pidfile).read_text()), signal.SIGTERM)
+            time.sleep(0.3)
 
     if "run" in argv and "backend.admin" in argv:
         cmd = argv[argv.index("backend.admin") + 1:]
@@ -72,6 +84,7 @@ STUB = textwrap.dedent(
             print("cleared %s version=2" % cmd[1])
         elif verb == "settings-import" and "--env-file" in cmd:
             # the import of one generated value from a private file the host mounted at /work
+            terminate_deploy_once()
             if os.environ.get("STUB_IMPORT_ENV_HANGS"):
                 import time
                 time.sleep(60)
@@ -246,6 +259,24 @@ DOCKER_STUB = textwrap.dedent(
             print("0123456789ab")
         sys.exit(0)
     sys.exit(0)
+    '''
+)
+
+
+# `id` as deploy.sh calls it: it passes through, but it can also send TERM to deploy.sh
+# (the same hook as the compose stand-in) at the moment it is called with the key's file
+# in place, which is where the real script once evaluated `$(id -u):$(id -g)`.
+ID_STUB = textwrap.dedent(
+    '''\
+    #!/usr/bin/env python3
+    import os, sys, pathlib, signal, time
+    pidfile, scratch = os.environ.get("STUB_SIGNAL_PIDFILE"), os.environ.get("STUB_SIGNAL_SCRATCH")
+    marker = pathlib.Path(os.environ["STUB_STATE"]) / "signalled"
+    if pidfile and scratch and not marker.exists() and list(pathlib.Path(scratch).rglob("identity.env")):
+        marker.write_text("")
+        os.kill(int(pathlib.Path(pidfile).read_text()), signal.SIGTERM)
+        time.sleep(0.3)
+    os.execv(os.environ["STUB_REAL_ID"], ["id"] + sys.argv[1:])
     '''
 )
 
@@ -1684,6 +1715,92 @@ def test_the_scratch_directory_of_the_key_is_removed_on_success_failure_and_a_si
     proc.communicate(timeout=30)
     assert not list(scratch.rglob("identity.env"))
     assert not [d for d in scratch.iterdir()]
+
+
+def _key_import_site(site, tmp_path):
+    """The state of an upgrade that has no identity key anywhere: deploy.sh generates one."""
+    work, state, env = site
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    _upgrade_env(work)
+    kept = [l for l in (work / ".env").read_text().splitlines()
+            if not l.startswith(("RESPONDENT_IDENTITY_KEY", "BC_IDENTITY_KEY_SHA256"))]
+    (work / ".env").write_text("\n".join(kept) + "\n")
+    shutil.rmtree(state / "store", ignore_errors=True)
+    (state / "calls.log").unlink(missing_ok=True)
+    return scratch
+
+
+def _deploy_terminated_by_a_stand_in(site, scratch, extra=None, wait=20):
+    """Run deploy.sh until the key's file exists, where a stand-in sends it TERM (only the
+    script's own process, as `kill <pid>` does). Returns (exit status, stdout, stderr), or
+    (None, ...) when the script was still running `wait` seconds later."""
+    import signal
+    work, state, env = site
+    pidfile = state / "deploy.pid"
+    real_id = shutil.which("id")
+    bin_dir = Path(env["PATH"].split(os.pathsep)[0])
+    (bin_dir / "id").write_text(ID_STUB.replace("#!/usr/bin/env python3", f"#!{sys.executable}", 1))
+    (bin_dir / "id").chmod(0o755)
+    full = {**env, "STUB_VOLUMES": UPGRADE_VOLUMES, "BC_DEPLOY_ADMIN_WAIT_SECONDS": "2", "BC_DEPLOY_RETRY_SLEEP": "0",
+            "TMPDIR": str(scratch), "STUB_SIGNAL_PIDFILE": str(pidfile), "STUB_SIGNAL_SCRATCH": str(scratch),
+            "STUB_REAL_ID": real_id, **(extra or {})}
+    proc = subprocess.Popen(["bash", "-c", 'echo $$ > "$STUB_SIGNAL_PIDFILE"; exec bash deploy.sh'], cwd=work, env=full,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=wait)
+        return proc.returncode, out, err
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        out, err = proc.communicate()
+        return None, out, err
+
+
+def test_a_term_while_the_script_runs_id_for_the_container_user_still_runs_the_trap(site, tmp_path):
+    """`"$(id -u):$(id -g)"` is parsed again each time it is evaluated, and bash runs a trap
+    that arrived meanwhile in the middle of that parse: the handler failed with `trap: line
+    2: unexpected EOF while looking for matching `)'`, the signal was swallowed, and the
+    deploy carried on (importing the key it had been told to stop for). No command
+    substitution may be evaluated while the key's traps are armed."""
+    scratch = _key_import_site(site, tmp_path)
+    status, out, err = _deploy_terminated_by_a_stand_in(site, scratch)
+    assert "unexpected EOF" not in err and "trap:" not in err, err[-500:]
+    assert status == 143, (status, out[-500:], err[-500:])
+    assert not list(scratch.rglob("identity.env")) and not list(scratch.iterdir())
+    assert "RESPONDENT_IDENTITY_KEY" not in (site[0] / ".env").read_text(), "the deploy went on after the signal"
+
+
+def test_a_term_to_the_script_alone_while_the_import_runs_ends_it_at_once(site, tmp_path):
+    """A signal that reaches only deploy.sh (`kill <pid>`, a service manager), not the
+    process group: bash does not run a trap while a foreground command is still running, so
+    the import runs as a background job the script waits for, and the trap stops it."""
+    scratch = _key_import_site(site, tmp_path)
+    started = time.monotonic()
+    status, out, err = _deploy_terminated_by_a_stand_in(site, scratch, extra={"STUB_IMPORT_ENV_HANGS": "1"}, wait=20)
+    assert status == 143, (status, out[-500:], err[-500:])
+    assert time.monotonic() - started < 15
+    assert not list(scratch.rglob("identity.env")) and not list(scratch.iterdir())
+    # nothing of the key: not in the output, not in the stand-in's argv log
+    assert "RESPONDENT_IDENTITY_KEY=" not in out + err
+    assert "identity.env" not in (site[1] / "calls.log").read_text().replace("--env-file /work/identity.env", "")
+
+
+def test_no_command_substitution_runs_while_the_key_traps_are_armed(site, tmp_path):
+    """The rule behind the two tests above, read off an execution trace: between arming the
+    traps and disarming them, every traced command runs at the top level (a command
+    substitution would show as `++`)."""
+    work, state, env = site
+    _key_import_site(site, tmp_path)
+    full = {**env, "STUB_VOLUMES": UPGRADE_VOLUMES, "BC_DEPLOY_ADMIN_WAIT_SECONDS": "2", "BC_DEPLOY_RETRY_SLEEP": "0",
+            "TMPDIR": str(tmp_path / "scratch")}
+    done = subprocess.run(["bash", "-x", "deploy.sh"], cwd=work, env=full, capture_output=True, text=True, timeout=120)
+    assert done.returncode == 0, done.stdout[-500:]
+    lines = done.stderr.splitlines()
+    armed = [n for n, l in enumerate(lines) if l == "+ trap identity_cleanup EXIT"]
+    disarmed = [n for n, l in enumerate(lines) if l == "+ trap - EXIT INT TERM HUP"]
+    assert len(armed) == 1 and len(disarmed) == 1 and armed[0] < disarmed[0]
+    nested = [l for l in lines[armed[0]:disarmed[0]] if l.startswith("++")]
+    assert not nested, nested
 
 
 def test_the_temporal_namespace_of_the_old_stack_is_asked(site):
