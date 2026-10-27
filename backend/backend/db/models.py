@@ -103,6 +103,41 @@ class WorkspaceDomainRow(Base, BaseRow):
     )
 
 
+class RegistrationServiceRow(Base, BaseRow):
+    __tablename__ = "registration_services"
+    workspace_id = S.text("workspace_id")
+    name = S.text("name")
+    kind = S.text("kind")
+    __table_args__ = (UniqueConstraint("workspace_id", "name"),)
+
+
+class FormRegistrationRow(Base, BaseRow):
+    __tablename__ = "form_registrations"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    service_id = S.text("service_id")
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "form_id"),
+        Index(None, "service_id"),
+    )
+
+
+class RegistrationDeliveryRow(Base, BaseRow):
+    __tablename__ = "registration_deliveries"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    response_id = S.text("response_id")
+    registration_id = S.text("registration_id")
+    status = S.text("status")
+    __table_args__ = (
+        # the idempotency key: one delivery per response and registration
+        UniqueConstraint("registration_id", "response_id"),
+        Index(None, "workspace_id", "form_id", "status"),
+        Index(None, "response_id"),
+        Index(None, "status", "created_at"),
+    )
+
+
 class SsoConnectionRow(Base, BaseRow):
     __tablename__ = "sso_connections"
     workspace_id = S.text("workspace_id")

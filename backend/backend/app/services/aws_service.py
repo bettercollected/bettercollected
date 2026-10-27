@@ -197,6 +197,27 @@ class AWSS3Service:
         except ClientError:
             return
 
+    def read_object(
+        self, key: str, max_bytes: int, bucket=aws_settings.BUCKET
+    ) -> Optional[bytes]:
+        """The object's bytes, ``None`` when there is no such object. Raises
+        ``ValueError`` (naming no content) when it is larger than ``max_bytes``;
+        blocking, so async callers run it in a thread."""
+        try:
+            head = self._s3_client.head_object(Bucket=bucket, Key=key)
+        except ClientError:
+            return None
+        if int(head.get("ContentLength", 0)) > max_bytes:
+            raise ValueError("object too large")
+        try:
+            body = self._s3_client.get_object(Bucket=bucket, Key=key)["Body"]
+            data = body.read(max_bytes + 1)
+        except ClientError:
+            return None
+        if len(data) > max_bytes:
+            raise ValueError("object too large")
+        return data
+
     def generate_presigned_url(self, key: str, bucket=aws_settings.BUCKET):
         try:
             presigned_url = self._s3_client.generate_presigned_url(

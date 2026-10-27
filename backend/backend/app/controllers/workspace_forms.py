@@ -414,6 +414,24 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+            # the privacy panel names where answers are also sent
+            try:
+                destination = await container.registration_service().destination_for(
+                    workspace_id, str(form_id)
+                )
+            except Exception as error:  # noqa: BLE001 - never fail a respondent's form load
+                logger.error(
+                    "registration destination not read: workspace={} form={} ({})",
+                    workspace_id,
+                    form_id,
+                    type(error).__name__,
+                )
+                destination = None
+            if destination:
+                if isinstance(form, dict):
+                    form["registrationDestination"] = destination
+                else:
+                    form.registration_destination = destination
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag

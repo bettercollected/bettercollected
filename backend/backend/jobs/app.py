@@ -23,6 +23,7 @@ JOB_NAMES = (
     "import_form",
     "purge_provider_credentials",
     "revoke_google_grant",
+    "register_submission",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
 

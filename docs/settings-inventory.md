@@ -160,6 +160,7 @@ environment, whatever the tier.
 | `API_PUBLIC_API_REQUESTS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `120` |
 | `API_PUBLIC_API_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
 | `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `600` |
+| `OPEN_FORMULIEREN_REGISTRATION` | registration | backend | enum on/off |  | R | T2 | `off` |
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |
