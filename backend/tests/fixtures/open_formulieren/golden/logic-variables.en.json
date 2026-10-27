@@ -143,7 +143,7 @@
     "fields": 10,
     "logicRules": 3,
     "repeatingGroups": 0,
-    "dropped": 24,
+    "dropped": 23,
     "flagged": 0
   },
   "report": [
@@ -314,13 +314,6 @@
       "reason": "translations_not_carried",
       "severity": "info",
       "key": "translations"
-    },
-    {
-      "code": "dropped",
-      "kind": "feature",
-      "reason": "presentation_not_carried",
-      "severity": "info",
-      "key": "presentation"
     },
     {
       "code": "dropped",
