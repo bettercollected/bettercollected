@@ -1551,3 +1551,257 @@ async def test_the_connection_check_has_one_budget_for_both_requests(
         setup.workspace.id, setup.form.form_id, testUser
     )
     assert (result.ok, result.code) == (False, "timeout")
+
+
+# ------------------------- a disabled save keeps its settings, without checks
+
+
+MOVED_BASE = "https://types2.example.org/api/"
+MOVED_TYPE = f"https://types2.example.org/api/objecttypes/{UUID}"
+
+
+async def stored(setup):
+    return await container.form_registration_repo().get_for_form(
+        setup.workspace.id, setup.form.form_id
+    )
+
+
+async def move_types_base(setup):
+    """The admins moved the service's object types address: what the form
+    holds is now outside it."""
+    await svc().update_service(
+        setup.workspace.id,
+        setup.service.id,
+        ServiceUpdateDto(objecttypes_base_url=MOVED_BASE),
+        testUser,
+    )
+
+
+async def test_an_off_save_with_a_stale_object_type_keeps_the_settings(setup):
+    await move_types_base(setup)
+    saved = await configure_objects(
+        setup.workspace, setup.form, setup.service, enabled=False
+    )
+    assert not saved.enabled
+    assert saved.object_type_url == TYPE_URL and saved.object_type_version == 3
+    assert saved.service_id == str(setup.service.id)
+    assert [(v.source, v.target_path) for v in saved.variables] == [
+        (s, p) for s, p in MAPPING
+    ]
+    row = await stored(setup)
+    assert not row.enabled and row.object_type_url == TYPE_URL
+    # the same settings read back on the next load
+    again = await svc().get_form_registration(
+        setup.workspace.id, setup.form.form_id, testUser
+    )
+    assert again.object_type_url == TYPE_URL and not again.enabled
+
+
+async def test_turning_on_again_checks_the_stale_object_type_and_enables_nothing(setup):
+    await move_types_base(setup)
+    await configure_objects(setup.workspace, setup.form, setup.service, enabled=False)
+    assert (
+        await refused(configure_objects(setup.workspace, setup.form, setup.service))
+        == "object_type_outside_base"
+    )
+    row = await stored(setup)
+    assert not row.enabled and row.object_type_url == TYPE_URL
+    # nothing is sent for a submission while it is off
+    assert (
+        await svc().queue_for_submission(setup.workspace.id, setup.form.form_id, "r-1")
+        is None
+    )
+    assert setup.tls.requests == []
+
+
+async def test_turning_on_with_valid_settings_works_after_an_off_save(setup):
+    await move_types_base(setup)
+    await configure_objects(setup.workspace, setup.form, setup.service, enabled=False)
+    on = await configure_objects(
+        setup.workspace, setup.form, setup.service, object_type_url=MOVED_TYPE
+    )
+    assert on.enabled and on.object_type_url == MOVED_TYPE
+    assert (await stored(setup)).enabled
+
+
+async def test_an_off_save_skips_the_checks_that_depend_on_configuration(
+    setup, workspace
+):
+    # a source the form no longer has, a file question, clashing target paths
+    # and a reference inside a mapped path: stored as sent, checked when it
+    # is switched on again
+    mapping = [
+        ("gone", ["a"]),
+        ("upload", ["b"]),
+        ("name", ["c", "d"]),
+        ("age", ["c"]),
+    ]
+    saved = await configure_objects(
+        setup.workspace,
+        setup.form,
+        setup.service,
+        mapping=mapping,
+        enabled=False,
+        reference_path=["c", "d"],
+    )
+    assert [v.source for v in saved.variables] == ["gone", "upload", "name", "age"]
+    assert saved.reference_path == ["c", "d"]
+    for code, kwargs in (
+        ("unknown_variable", {}),
+        ("reference_path_conflict", dict(mapping=[("name", ["c"])])),
+    ):
+        assert (
+            await refused(
+                configure_objects(
+                    setup.workspace,
+                    setup.form,
+                    setup.service,
+                    **{"reference_path": ["c", "d"], **({"mapping": mapping} | kwargs)},
+                )
+            )
+            == code
+        )
+    # settings of the wrong kind for the service, and without a service
+    generic = await _generic_service(setup)
+    kept = await configure_objects(setup.workspace, setup.form, generic, enabled=False)
+    assert kept.object_type_url == TYPE_URL and kept.service_id == str(generic.id)
+    free = await configure_objects(
+        setup.workspace, setup.form, SimpleNamespace(id=None), enabled=False
+    )
+    assert free.service_id is None and free.object_type_url == TYPE_URL
+    # ... and on, each of those is refused as before
+    assert (
+        await refused(configure_objects(setup.workspace, setup.form, generic))
+        == "not_an_objects_api"
+    )
+    assert (
+        await refused(
+            configure_objects(setup.workspace, setup.form, SimpleNamespace(id=None))
+        )
+        == "service_required"
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs, code",
+    [
+        (
+            dict(object_type_url="http://types.example.org/api/v2/objecttypes/x"),
+            "invalid_object_type_url",
+        ),
+        (
+            dict(object_type_url=f"https://user@types.example.org/objecttypes/{UUID}"),
+            "invalid_object_type_url",
+        ),
+        (
+            dict(object_type_url="https://types.example.org/" + "a/" * 600),
+            "invalid_object_type_url",
+        ),
+        (dict(object_type_version=0), "invalid_object_type_version"),
+        (dict(object_type_version=10001), "invalid_object_type_version"),
+        (dict(reference_path=["a__b"]), "invalid_reference_path"),
+        (dict(reference_path=["a"] * 9), "invalid_reference_path"),
+        (dict(mapping=[("name", ["a b"])]), "invalid_target_path"),
+        (dict(mapping=[("name", [])]), "invalid_target_path"),
+        (dict(mapping=[("name", ["a"] * 9)]), "invalid_target_path"),
+        (dict(mapping=[("name", ["a"])] * 201), "too_many_variables"),
+        (dict(path="a/../b"), "invalid_path"),
+        (dict(path="/x?y=1"), "invalid_path"),
+    ],
+)
+async def test_an_off_save_still_refuses_what_is_malformed(setup, kwargs, code):
+    before = await stored(setup)
+    assert (
+        await refused(
+            configure_objects(
+                setup.workspace, setup.form, setup.service, enabled=False, **kwargs
+            )
+        )
+        == code
+    )
+    after = await stored(setup)
+    assert after.enabled and after.object_type_url == before.object_type_url
+    assert after.variables == before.variables
+
+
+async def test_an_off_save_for_a_generic_service_checks_names_and_path_shape(setup):
+    generic = await _generic_service(setup)
+
+    async def put(**kwargs):
+        return await svc().put_form_registration(
+            setup.workspace.id,
+            setup.form.form_id,
+            FormRegistrationUpdateDto(enabled=False, service_id=generic.id, **kwargs),
+            testUser,
+        )
+
+    kept = await put(
+        path="/cases",
+        variables=[
+            VariableMappingDto(source="gone", key="renamed"),
+            VariableMappingDto(source="name"),
+        ],
+        transform_to_list=["colours", "colours"],
+    )
+    assert kept.path == "/cases" and kept.kind == "generic_json"
+    assert [(v.source, v.key) for v in kept.variables] == [
+        ("gone", "renamed"),
+        ("name", "name"),
+    ]
+    assert kept.transform_to_list == ["colours"]
+    two = [
+        VariableMappingDto(source="a", key="k"),
+        VariableMappingDto(source="b", key="k"),
+    ]
+    assert await refused(put(variables=two)) == "invalid_key"
+    assert (
+        await refused(put(variables=[VariableMappingDto(source="a", key="1 bad")]))
+        == "invalid_key"
+    )
+    assert await refused(put(path="../x")) == "invalid_path"
+    assert await refused(put(transform_to_list=["x" * 201])) == "invalid_transform"
+    # on, a source the form does not have is refused as before
+    assert (
+        await refused(
+            svc().put_form_registration(
+                setup.workspace.id,
+                setup.form.form_id,
+                FormRegistrationUpdateDto(
+                    enabled=True,
+                    service_id=generic.id,
+                    variables=[VariableMappingDto(source="gone")],
+                ),
+                testUser,
+            )
+        )
+        == "unknown_variable"
+    )
+
+
+async def test_a_service_of_another_workspace_is_refused_on_or_off(setup):
+    for enabled in (True, False):
+        assert (
+            await refused(
+                configure_objects(
+                    setup.workspace,
+                    setup.form,
+                    SimpleNamespace(id="64b000000000000000000000"),
+                    enabled=enabled,
+                )
+            )
+            == "service_not_found"
+        )
+
+
+async def test_a_switched_off_form_sends_nothing_even_with_a_stale_object_type(setup):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    await move_types_base(setup)
+    await configure_objects(setup.workspace, setup.form, setup.service, enabled=False)
+    # a delivery that was waiting is cancelled, never sent
+    assert (await run(delivery)).status == "cancelled"
+    assert (await row_of(delivery)).last_error_code == "disabled"
+    # a later submission creates no delivery at all
+    await submit(setup.workspace, setup.form)
+    assert len(await container.registration_delivery_repo().many()) == 1
+    assert setup.tls.requests == []

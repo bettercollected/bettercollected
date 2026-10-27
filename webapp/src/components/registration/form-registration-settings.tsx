@@ -16,6 +16,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import {
     FormRegistration,
+    FormRegistrationInput,
     RegistrationTestResult,
     RegistrationVariable,
     useCheckFormRegistrationMutation,
@@ -35,6 +36,7 @@ import {
     findTargetConflict,
     formErrorField,
     formatTargetPath,
+    isPlainPath,
     isValidKey,
     isValidObjectTypeVersion,
     objectTypeUrlProblem,
@@ -149,16 +151,59 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         });
     };
 
+    /**
+     * The body of a save that switches sending off: the draft as it stands, without the
+     * client checks of a switch-on. Fragments the server would refuse as malformed (a
+     * half-typed address or path, a repeated name) are left out rather than sent, so
+     * switching off never gets stuck on a field that is not even on screen; whatever the
+     * server still refuses is shown.
+     */
+    const offBody = (): FormRegistrationInput => {
+        const rows = (variables ?? []).filter((v) => chosen[v.source] && !blockedFor(v, objects));
+        if (objects) {
+            const parsedReference = referencePath.trim() ? parseTargetPath(referencePath) : [DEFAULT_REFERENCE_PATH];
+            return {
+                enabled: false,
+                serviceId: serviceId || null,
+                path: '',
+                variables: rows.flatMap((v) => {
+                    const target = parseTargetPath(chosen[v.source].target);
+                    return target ? [{ source: v.source, targetPath: target }] : [];
+                }),
+                transformToList: [],
+                objectTypeUrl: objectTypeUrl.trim() && !objectTypeUrlProblem(objectTypeUrl) ? objectTypeUrl.trim() : null,
+                objectTypeVersion: isValidObjectTypeVersion(objectTypeVersion) ? Number(objectTypeVersion) : null,
+                referencePath: parsedReference ?? [DEFAULT_REFERENCE_PATH]
+            };
+        }
+        const names = new Set<string>();
+        const kept = rows.filter((v) => {
+            const name = chosen[v.source].key.trim() || defaultKeyOf(v.source);
+            if (!isValidKey(name) || names.has(name)) return false;
+            names.add(name);
+            return true;
+        });
+        return {
+            enabled: false,
+            serviceId: serviceId || null,
+            path: isPlainPath(path.trim()) ? path.trim() : '',
+            variables: kept.map((v) => ({ source: v.source, key: chosen[v.source].key.trim() || undefined })),
+            transformToList: kept.filter((v) => chosen[v.source].asList && canBeList(v)).map((v) => v.source)
+        };
+    };
+
     const submit = async (event: React.FormEvent) => {
         event.preventDefault();
         setSaved(false);
         setGeneral(null);
         if (!on) {
             // Turning it off never waits on the draft: an out-of-date object type address
-            // or half-filled paths must not keep sending switched on. Only the service stays.
+            // or half-filled paths must not keep sending switched on. The settings as the
+            // user last saw them go along, so they are still there when it is switched on
+            // again (the server checks them then). Only what can never be stored is left out.
             setErrors({});
             setKeyErrors({});
-            const off: any = await save({ workspaceId, formId, body: { enabled: false, serviceId: serviceId || null, path: '', variables: [], transformToList: [] } });
+            const off: any = await save({ workspaceId, formId, body: offBody() });
             if (off.data) {
                 setSaved(true);
                 setDirty(false);

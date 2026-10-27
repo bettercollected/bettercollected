@@ -190,6 +190,21 @@ export function needsSecretAgain(original: RegistrationService, next: { baseUrl:
     return next.baseUrl.trim() !== original.baseUrl || next.auth !== original.auth || (next.authName.trim() || '') !== (original.authName ?? '');
 }
 
+/**
+ * A path that can be added to a service address: relative, plain characters, no `..`
+ * (also once or twice encoded), query, fragment, backslash or scheme. Mirrors the
+ * server's rule so a switch-off never carries a path it would refuse; the server decides.
+ */
+export function isPlainPath(path: string): boolean {
+    if (path.length > 255 || !/^[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$/.test(path) || path.startsWith('//') || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path)) return false;
+    try {
+        const decoded = decodeURIComponent(decodeURIComponent(path));
+        return !/\.\.|\\|\?|#/.test(decoded);
+    } catch {
+        return false;
+    }
+}
+
 /** A variable that can be chosen. */
 export const isChoosable = (variable: RegistrationVariable) => variable.supported;
 

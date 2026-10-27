@@ -727,59 +727,27 @@ class RegistrationService:
                 "form_not_collected_here",
                 "Only forms collected here can send their submissions on.",
             )
-        objects_fields = (
-            request.object_type_url is not None
-            or request.object_type_version is not None
-            or request.reference_path is not None
-            or any(v.target_path is not None for v in request.variables)
-        )
         service = None
         if request.service_id:
             # only a service of this workspace, whatever id the body names
+            # (on or off: a foreign id is never stored)
             service = await self._services.get(workspace_id, request.service_id)
             if service is None:
                 raise _refused(
                     HTTPStatus.NOT_FOUND, "service_not_found", MESSAGE_NOT_FOUND
                 )
-        if request.enabled and service is None:
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "service_required",
-                "Choose the service to send to.",
-            )
         objects = service is not None and service.kind is ServiceKind.OBJECTS_API
-        if objects_fields and not objects:
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "service_required" if service is None else "not_an_objects_api",
-                "These settings belong to a form that sends to an Objects API.",
-            )
-        if objects and request.path:
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "invalid_path",
-                "An Objects API has no path to choose.",
-            )
-        if not objects and client.path_problem(request.path):
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "invalid_path",
-                "The path must be relative, without '..', a query or a fragment.",
-            )
-        form_for_mapping = await self._form_for_variables(form_id)
-        object_type_url = object_type_version = reference_path = None
-        if objects:
-            mapping = self._checked_objects_mapping(form_for_mapping, request)
-            object_type_url, object_type_version, reference_path = (
-                self._checked_object_type(service, request, mapping)
+        if request.enabled:
+            # switching on: every check, against the service as it is now
+            mapping, object_type_url, object_type_version, reference_path = (
+                await self._checked_settings(form_id, request, service, objects)
             )
         else:
-            mapping = self._checked_mapping(form_for_mapping, request)
-        if request.enabled and not mapping:
-            raise _refused(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                "variables_required",
-                "Choose at least one variable to send.",
+            # switching off keeps what was sent, after the checks of shape
+            # only; the ones that depend on the service's configuration or the
+            # form run again when it is switched on
+            mapping, object_type_url, object_type_version, reference_path = (
+                self._shaped_settings(request, objects)
             )
         document = await self._registrations.get_for_form(workspace_id, form_id)
         if document is None:
@@ -806,6 +774,150 @@ class RegistrationService:
             user.id,
         )
         return await self.get_form_registration(workspace_id, str(form_id), user)
+
+    async def _checked_settings(
+        self,
+        form_id: str,
+        request: FormRegistrationUpdateDto,
+        service: Optional[RegistrationServiceDocument],
+        objects: bool,
+    ):
+        """All the checks of a registration that is being switched on:
+        ``(mapping, object type URL, version, reference path)``."""
+        objects_fields = (
+            request.object_type_url is not None
+            or request.object_type_version is not None
+            or request.reference_path is not None
+            or any(v.target_path is not None for v in request.variables)
+        )
+        if service is None:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "service_required",
+                "Choose the service to send to.",
+            )
+        if objects_fields and not objects:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "not_an_objects_api",
+                "These settings belong to a form that sends to an Objects API.",
+            )
+        if objects and request.path:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_path",
+                "An Objects API has no path to choose.",
+            )
+        if not objects and client.path_problem(request.path):
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "invalid_path",
+                "The path must be relative, without '..', a query or a fragment.",
+            )
+        form_for_mapping = await self._form_for_variables(form_id)
+        object_type_url = object_type_version = reference_path = None
+        if objects:
+            mapping = self._checked_objects_mapping(form_for_mapping, request)
+            object_type_url, object_type_version, reference_path = (
+                self._checked_object_type(service, request, mapping)
+            )
+        else:
+            mapping = self._checked_mapping(form_for_mapping, request)
+        if not mapping:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "variables_required",
+                "Choose at least one variable to send.",
+            )
+        return mapping, object_type_url, object_type_version, reference_path
+
+    @staticmethod
+    def _shaped_settings(request: FormRegistrationUpdateDto, objects: bool):
+        """What an off save stores: ``(mapping, object type URL, version,
+        reference path)``, checked for shape only so that nothing malformed or
+        oversized is kept: the path, the number and names of the variables,
+        the keys (unique), the target and reference paths' segments, the
+        object type URL's form, the version's range. Nothing here looks at the
+        service's configuration (object types base, kind) or at the form's
+        questions: none of it can send anything while the registration is
+        off, and all of it is checked again by :meth:`_checked_settings` when
+        it is switched on."""
+
+        def refuse(code: str, message: str) -> HTTPException:
+            return _refused(HTTPStatus.UNPROCESSABLE_ENTITY, code, message)
+
+        if client.path_problem(request.path):
+            raise refuse(
+                "invalid_path",
+                "The path must be relative, without '..', a query or a fragment.",
+            )
+        if len(request.variables) > MAX_VARIABLES or (
+            len(request.transform_to_list) > MAX_VARIABLES
+        ):
+            raise refuse("too_many_variables", f"At most {MAX_VARIABLES} variables.")
+        mapping: List[VariableMapping] = []
+        keys = set()
+        for item in request.variables:
+            if item.target_path is not None:
+                if objects_api.path_problem(item.target_path):
+                    raise refuse(
+                        "invalid_target_path",
+                        "A target path has 1 to 8 names of letters, digits and _, "
+                        "each starting with a letter, without '__' or a trailing '_'.",
+                    )
+                mapping.append(
+                    VariableMapping(
+                        source=item.source,
+                        key=".".join(item.target_path),
+                        target_path=list(item.target_path),
+                    )
+                )
+                continue
+            key = item.key or re.sub(r"[^A-Za-z0-9_]", "_", item.source)
+            if not body_builder.KEY_PATTERN.match(key) or key in keys:
+                raise refuse(
+                    "invalid_key",
+                    "Names in the body are unique and use letters, digits and _ only.",
+                )
+            keys.add(key)
+            mapping.append(VariableMapping(source=item.source, key=key))
+        if any(not 0 < len(source) <= 200 for source in request.transform_to_list):
+            raise refuse(
+                "invalid_transform",
+                "Only a multiple choice question that is sent can be sent as a list.",
+            )
+        url = None
+        if request.object_type_url is not None and request.object_type_url.strip():
+            try:
+                url = objects_api.normalised_object_type(request.object_type_url)
+            except objects_api.ObjectTypeRefused as refused:
+                raise refuse(
+                    refused.code,
+                    "The object type URL must be an https address of the form "
+                    ".../objecttypes/<uuid>.",
+                )
+        version = request.object_type_version
+        if version is not None and not (
+            objects_api.MIN_VERSION <= version <= objects_api.MAX_VERSION
+        ):
+            raise refuse(
+                "invalid_object_type_version",
+                "The version is a whole number from 1 to 10000.",
+            )
+        reference = request.reference_path
+        if reference is None and objects:
+            reference = list(objects_api.DEFAULT_REFERENCE_PATH)
+        if reference is not None and objects_api.path_problem(reference):
+            raise refuse(
+                "invalid_reference_path",
+                "The reference path has 1 to 8 names of letters, digits and _.",
+            )
+        return (
+            mapping,
+            url,
+            version,
+            list(reference) if reference is not None else None,
+        )
 
     @staticmethod
     def _checked_objects_mapping(

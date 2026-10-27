@@ -16,6 +16,7 @@ import {
     findTargetConflict,
     formErrorField,
     formatTargetPath,
+    isPlainPath,
     isPlainToken,
     isValidKey,
     isValidObjectTypeVersion,
@@ -272,5 +273,14 @@ describe('Objects API: target paths and the reference path', () => {
         const objects: any = { kind: 'objects_api', baseUrl: 'https://objects.example.org/api/v2/', objecttypesBaseUrl: 'https://types.example.org/api/v2/', auth: 'token' };
         expect(needsSecretAgain(objects, { baseUrl: 'https://objects.example.org/api/v2/', auth: 'token', authName: '' })).toBe(false);
         expect(needsSecretAgain(objects, { baseUrl: 'https://other.example.org/api/v2/', auth: 'token', authName: '' })).toBe(true);
+    });
+});
+
+describe('a path for a switch-off', () => {
+    it('accepts a plain relative path and refuses what the server refuses', () => {
+        expect(isPlainPath('')).toBe(true);
+        expect(isPlainPath('/cases/new')).toBe(true);
+        expect(isPlainPath('cases')).toBe(true);
+        ['../x', '/a/%2e%2e/b', '/a/%252e%252e/b', '/x?y=1', '/x#f', '//host/x', 'https://evil.example/x', 'a\\b', '/a b', '/%zz', `/${'a'.repeat(255)}`].forEach((path) => expect(isPlainPath(path), path).toBe(false));
     });
 });

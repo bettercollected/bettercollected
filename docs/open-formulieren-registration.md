@@ -38,6 +38,13 @@ Only forms collected here can send submissions on (not forms imported from Googl
 registration is on and enabled for the form are sent: earlier ones never are, and edits to a submission are not sent
 again.
 
+Switching a form's registration off keeps its settings (service, path, object type URL and version, reference path and
+mapping), checked for shape only (a malformed path, key or object type URL is still refused, so nothing malformed or
+oversized is stored). Nothing that depends on the service's current configuration is checked while it is off, for
+example an object type URL that is outside the service's object types address now; switching it on again runs every
+check and refuses what no longer holds (`object_type_outside_base` and the other codes), and enables nothing. While it
+is off no delivery is created or sent.
+
 ## Services
 
 | Field | |
