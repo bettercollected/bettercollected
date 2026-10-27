@@ -43,7 +43,7 @@ again.
 |---|---|
 | Name | Your label, unique in the workspace. |
 | Address | `https://`, default port, no user name, query or fragment. The name must resolve to public addresses only. |
-| Authentication | None; a header (the header's name and a secret, for example `Authorization: Token ...` or an API key header); or basic (user name and secret). |
+| Authentication | None; a header (the header's name and a secret, for example `Authorization: Token ...` or an API key header; names the client sets itself or that steer a request, such as `Host`, `Content-*`, `Transfer-Encoding`, `Connection`, `Proxy-*`, `Accept*`, `Cookie`, `User-Agent` and `Idempotency-Key`, are refused); or basic (user name and secret). |
 | Organisation name | What respondents are told (see "What respondents see"). Defaults to the workspace title. |
 
 The **secret is write-only**. It is encrypted at rest with the credential key of the backend (`AUTH_AES_HEX_KEY`),
@@ -88,7 +88,7 @@ and, for values that are `null`, our schema says so (`["number","null"]`); a que
 supported (a file question here holds one file); the metadata is the fixed three (their extra metadata variables are
 not offered yet).
 
-Limits: the whole body at most 20 MB, at most 20 files, each at most 10 MB. A submission over a limit fails as
+Limits: the whole body at most 20 MB, at most 20 files, each at most 10 MB, all files together at most about 15 MB (checked while the body is built, so a job never holds more than that). Files are read only from the submission's own storage folder. A submission over a limit fails as
 `too_large` and is not truncated.
 
 ## Delivery, retries and failures
@@ -99,7 +99,7 @@ timeouts, TLS errors, 5xx, 408 and 429. These are **not** retried: other 4xx, a 
 over the limit, a missing file, an unreadable secret or answer. After the last attempt the delivery is `failed`; an editor can
 press Retry, which starts the schedule again.
 
-Delivery is **at least once**: if the destination processed a request but the answer was lost, the retry sends it
+A delivery waiting for a retry when the switch is turned off goes back to pending and is sent after the switch is on again. Delivery is **at least once**: if the destination processed a request but the answer was lost, the retry sends it
 again. Use `metadata.public_reference` or the `Idempotency-Key` header to deduplicate.
 
 A delivery record holds ids, a status, counters and one of our error codes (`unreachable`, `timeout`, `tls_error`,
@@ -129,7 +129,7 @@ from the stored configuration, never from a request.
 
 ## Deleting data
 
-A delivery record is removed with its submission (deletion, expiry, user and workspace deletion); a nightly sweep
+A delivery record is removed with its submission (deletion, expiry, user and workspace deletion), and a form's registration and delivery records are removed when the form is deleted (whatever the switch says); a nightly sweep
 (when registration is on) removes any whose submission is gone. **What was already sent cannot be recalled**:
 deleting a submission here does not delete the copy at the destination. That is the organisation's own process, and
 should be said in its privacy information.

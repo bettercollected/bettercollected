@@ -19,7 +19,9 @@ def form_with(fields, hidden=None):
     )
 
 
-def build(form, mapping, answers, hidden=None, read=lambda _id: b"", as_list=()):
+def build(
+    form, mapping, answers, hidden=None, read=lambda _id, _limit=None: b"", as_list=()
+):
     return body.build_values(
         body.variables_of(form),
         [(s, s) for s in mapping],
@@ -139,14 +141,19 @@ def test_a_calculated_value_is_sent_as_stored():
 def test_files_are_base64_and_capped():
     form = form_with([{"id": "up", "type": "file_upload", "title": "Up"}])
     answer = {"up": {"type": "file", "fileMetadata": {"id": "f", "name": "a.txt"}}}
-    values, _ = build(form, ["up"], answer, read=lambda _id: b"abc")
+    values, _ = build(form, ["up"], answer, read=lambda _id, _limit=None: b"abc")
     assert values["up"] == {
         "file_name": "a.txt",
         "content": base64.b64encode(b"abc").decode(),
     }
     with pytest.raises(body.FileTooLarge):
-        build(form, ["up"], answer, read=lambda _id: b"x" * (body.MAX_FILE_BYTES + 1))
-    assert build(form, ["up"], {}, read=lambda _id: b"")[0] == {"up": None}
+        build(
+            form,
+            ["up"],
+            answer,
+            read=lambda _id, _limit=None: b"x" * (body.MAX_FILE_BYTES + 1),
+        )
+    assert build(form, ["up"], {}, read=lambda _id, _limit=None: b"")[0] == {"up": None}
 
 
 def test_group_items_with_missing_children_keep_their_shape():
@@ -167,7 +174,9 @@ def test_group_items_with_missing_children_keep_their_shape():
 
 
 def test_the_body_is_utf8_json_with_the_four_keys_in_order():
-    values, schema = body.build_values({}, [], {}, None, [], lambda _id: b"")
+    values, schema = body.build_values(
+        {}, [], {}, None, [], lambda _id, _limit=None: b""
+    )
     metadata, metadata_schema = values, schema
     payload = body.serialize({"naïve": "é"}, schema, metadata, metadata_schema)
     assert list(json.loads(payload)) == [

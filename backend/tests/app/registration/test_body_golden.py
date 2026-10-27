@@ -141,7 +141,7 @@ def ours(answers, as_list=("topics",), keys=KEYS):
         answers,
         None,
         as_list,
-        lambda _id: b"synthetic file one\n",
+        lambda _id, _limit=None: b"synthetic file one\n",
     )
     metadata, metadata_schema = body.build_metadata(
         body.FIXED_METADATA, public_reference="OF-D3L3H5", form_version="", now=NOW

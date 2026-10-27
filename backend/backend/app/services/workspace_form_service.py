@@ -495,6 +495,9 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
+        if self._registration_service is not None:
+            # the form's registration and delivery records, whatever the switch says
+            await self._registration_service.delete_for_form(workspace_id, form_id)
 
         if len(workspace_ids) > 1:
             # the form stays in the other workspaces; the responses collected
@@ -604,6 +607,8 @@ class WorkspaceFormService:
             form_ids=form_ids
         )
         await self.form_service.delete_forms(form_ids=form_ids)
+        if self._registration_service is not None and form_ids:
+            await self._registration_service.delete_for_forms(list(form_ids))
         if self._pdf_import_repo is not None and form_ids:
             await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
