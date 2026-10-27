@@ -1576,6 +1576,9 @@ def test_a_retired_store_switch_is_refused_before_anything_changes(site, line, n
     assert calls == []
     # names only: the value is not echoed
     assert f"{named}=" not in done.stderr
+    refusal = done.stderr[done.stderr.index("refused: .env.deployment") :]
+    value = line.split("=", 1)[1].split("#")[0].strip().strip("'\"")
+    assert value.lower() not in refusal.lower()
 
 
 def test_a_store_switch_that_says_postgres_or_nothing_is_fine(site):
