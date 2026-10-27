@@ -25,6 +25,10 @@ The webapp Docker image (`pr-checks.yml`) is built only when its Dockerfile,
 dependencies or the files it copies by name change; the CI webapp job builds the
 app on every webapp change.
 
+A push to `develop` builds and pushes the images but deploys them only while the repository variable
+`DEVELOP_DEPLOY_ENABLED` is `true` (Settings → Secrets and variables → Actions → Variables); unset, the
+`deploy` job is skipped. `master` and tag deploys don't depend on it.
+
 ## Postgres versions
 
 The test jobs run against PostgreSQL 15 (`POSTGRES_IMAGE` in `ci.yml`, used by
