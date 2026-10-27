@@ -138,6 +138,19 @@ def _list(value: Any) -> List[Any]:
     return value if isinstance(value, list) else []
 
 
+def _help_set(form: Dict[str, Any]) -> bool:
+    """Whether the form has help of its own. 4.0 exports always write both
+    help objects, empty when unused (``{"content": "", "image": null}`` and
+    ``{"display": "never", ...}``), so their presence alone says nothing."""
+    dialog = _dict(form.get("help_dialog"))
+    callout = _dict(form.get("help_callout_page"))
+    filled = any(
+        (isinstance(d.get("content"), str) and d["content"].strip()) or d.get("image")
+        for d in (dialog, callout)
+    )
+    return bool(filled) or callout.get("display") not in (None, "", "never")
+
+
 def _last_segment(url: Any) -> str:
     """The id at the end of a link to a resource of the source instance. The
     link is only ever read for that id: never fetched, never used as an
@@ -908,7 +921,7 @@ def _form_features(archive: Archive, report: Report) -> None:
             "explanation_template",
             "submission_confirmation_template",
         )
-    ) or any(form.get(k) for k in ("theme", "category", "product", "help_dialog")):
+    ) or any(form.get(k) for k in ("theme", "category", "product")) or _help_set(form):
         feature(Reason.PRESENTATION, R.INFO, key="presentation", once=True)
     if form.get("ask_statement_of_truth") in ("required", "global_setting"):
         feature(

@@ -803,3 +803,38 @@ def test_the_exec_guard_sees_our_modules_and_ignores_others(exec_guard):
     exec("value = eval('1 + 1'); code = compile('2', 'x', 'eval')", ours)
     assert ours["value"] == 2
     assert exec_guard == ["eval", "compile"]
+
+
+EMPTY_HELP = {
+    "help_dialog": {"content": "", "image": None},
+    "help_callout_page": {"display": "never", "content": "", "image": None},
+}
+
+
+def test_empty_help_settings_are_not_reported():
+    """4.0 exports always write both help objects; empty ones say nothing."""
+    built = run([[comp("textfield", "a")]], form=EMPTY_HELP)
+    assert "presentation_not_carried" not in reasons(built)
+
+
+@pytest.mark.parametrize(
+    "help_settings",
+    [
+        {"help_dialog": {"content": "<p>Ask us</p>", "image": None}},
+        {"help_dialog": {"content": "", "image": "http://localhost/media/help.png"}},
+        {"help_callout_page": {"display": "always", "content": "", "image": None}},
+        {"help_callout_page": {"display": "never", "content": "Read this", "image": None}},
+    ],
+    ids=["dialog-content", "dialog-image", "callout-shown", "callout-content"],
+)
+def test_help_settings_with_content_are_reported(help_settings):
+    built = run([[comp("textfield", "a")]], form={**EMPTY_HELP, **help_settings})
+    assert "presentation_not_carried" in reasons(built)
+
+
+def test_whitespace_help_or_odd_shapes_are_not_reported():
+    built = run(
+        [[comp("textfield", "a")]],
+        form={"help_dialog": {"content": "   \n"}, "help_callout_page": "never"},
+    )
+    assert "presentation_not_carried" not in reasons(built)
