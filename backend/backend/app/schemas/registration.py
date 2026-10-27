@@ -20,12 +20,15 @@ def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
 
 class ServiceKind(str, enum.Enum):
     GENERIC_JSON = "generic_json"
+    OBJECTS_API = "objects_api"
 
 
 class ServiceAuth(str, enum.Enum):
     NONE = "none"
     HEADER = "header"
     BASIC = "basic"
+    # ``Authorization: Token <secret>``; the only method of an Objects API service
+    TOKEN = "token"
 
 
 class DeliveryStatus(str, enum.Enum):
@@ -52,6 +55,9 @@ class RegistrationServiceDocument(Record):
     secret_sealed: Optional[str] = None
     secret_set_at: Optional[dt.datetime] = None
     organisation_name: str
+    # Objects API only: the address the form's object type URLs must sit under.
+    # We never connect to it (their Objects API does); it only fences the URL.
+    objecttypes_base_url: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 
@@ -67,6 +73,9 @@ class VariableMapping(BaseModel):
 
     source: str
     key: str
+    # Objects API only: the segments of the path in ``record.data`` the answer
+    # is written to (``key`` then holds them joined with ``.``)
+    target_path: Optional[List[str]] = None
 
 
 class FormRegistrationDocument(Record):
@@ -78,6 +87,10 @@ class FormRegistrationDocument(Record):
     variables: List[VariableMapping] = []
     metadata_variables: List[str] = []
     transform_to_list: List[str] = []
+    # Objects API only
+    object_type_url: Optional[str] = None
+    object_type_version: Optional[int] = None
+    reference_path: Optional[List[str]] = None
     updated_by: Optional[str] = None
 
     class Settings:
@@ -100,6 +113,8 @@ class RegistrationDeliveryDocument(Record):
     manual_attempts: int = 0
     last_error_code: Optional[str] = None
     last_http_status: Optional[int] = None
+    # Objects API: the created object's UUID (the only thing kept of the reply)
+    remote_id: Optional[str] = None
     last_attempt_at: Optional[dt.datetime] = None
     next_attempt_at: Optional[dt.datetime] = None
     delivered_at: Optional[dt.datetime] = None

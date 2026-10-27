@@ -114,6 +114,9 @@ class TlsServer:
         self.host = host
         self.requests: List[Request] = []
         self.script = Script()
+        # a stateful fake (``Request -> (status, headers, body)``, or None to
+        # close the connection without answering) replaces the script
+        self.handler: Optional[Callable[[Request], Optional[tuple]]] = None
         self.dialled: List[Tuple[str, int]] = []
         self._server = None
         self.port = 0
@@ -155,13 +158,20 @@ class TlsServer:
                     headers[name.strip().lower()] = value.strip()
             length = int(headers.get("content-length", "0"))
             body = await reader.readexactly(length) if length else b""
-            self.requests.append(Request(method, target, headers, body))
+            request = Request(method, target, headers, body)
+            self.requests.append(request)
             if self.script.delay:
                 await asyncio.sleep(self.script.delay)
-            index = min(len(self.requests) - 1, len(self.script.answers) - 1)
-            status, extra, payload = self.script.answers[index]
-            if self.script.reply_body is not None:
-                payload = self.script.reply_body()
+            if self.handler is not None:
+                answer = self.handler(request)
+                if answer is None:
+                    return
+                status, extra, payload = answer
+            else:
+                index = min(len(self.requests) - 1, len(self.script.answers) - 1)
+                status, extra, payload = self.script.answers[index]
+                if self.script.reply_body is not None:
+                    payload = self.script.reply_body()
             lines_out = [f"HTTP/1.1 {status} X", f"Content-Length: {len(payload)}"]
             lines_out += [f"{k}: {v}" for k, v in extra.items()]
             writer.write(("\r\n".join(lines_out) + "\r\n\r\n").encode() + payload)
