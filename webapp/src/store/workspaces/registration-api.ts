@@ -4,13 +4,19 @@ import { workspacesApi } from '@app/store/workspaces/api';
 // Every call is `/workspaces/{id}/registration/...` or under a form. The
 // service secret is write-only: no response carries one, only `hasSecret`.
 
-export type RegistrationAuth = 'none' | 'header' | 'basic';
+export type RegistrationAuth = 'none' | 'header' | 'basic' | 'token';
+
+/** What a service speaks: plain JSON to an address, or the Objects API. */
+export type RegistrationKind = 'generic_json' | 'objects_api';
 
 export interface RegistrationService {
     id: string;
     name: string;
-    kind: 'generic_json';
+    kind: RegistrationKind;
+    /** For the Objects API: the address of the Objects API itself (`https://host/api/v2/`). */
     baseUrl: string;
+    /** Objects API only: every form's object type address sits under this one. Never fetched. */
+    objecttypesBaseUrl?: string | null;
     auth: RegistrationAuth;
     /** The header's name (auth "header") or the user name (auth "basic"). */
     authName?: string | null;
@@ -23,10 +29,14 @@ export interface RegistrationService {
 
 export interface RegistrationServiceInput {
     name?: string;
+    /** Only when creating: a service's kind cannot be changed. */
+    kind?: RegistrationKind;
     baseUrl?: string;
+    objecttypesBaseUrl?: string;
+    /** Generic JSON only: the Objects API sign-in is always its token. */
     auth?: RegistrationAuth;
     authName?: string | null;
-    /** Leave out to keep the stored secret. */
+    /** The password, header value or Objects API token. Leave out to keep the stored one. */
     secret?: string;
     organisationName?: string;
 }
@@ -39,7 +49,10 @@ export interface RegistrationTestResult {
 
 export interface RegistrationVariableMapping {
     source: string;
+    /** Generic JSON: the name in the sent body. */
     key?: string | null;
+    /** Objects API: where the answer goes inside the object's data, one name per level. */
+    targetPath?: string[] | null;
 }
 
 export interface FormRegistration {
@@ -47,9 +60,15 @@ export interface FormRegistration {
     serviceId?: string | null;
     serviceName?: string | null;
     organisationName?: string | null;
+    /** The chosen service's kind; null while none is chosen. */
+    kind?: RegistrationKind | null;
     path: string;
     variables: RegistrationVariableMapping[];
     transformToList: string[];
+    objectTypeUrl?: string | null;
+    objectTypeVersion?: number | null;
+    /** Where our delivery reference goes in the object's data. */
+    referencePath?: string[] | null;
     updatedAt?: string | null;
 }
 
@@ -59,6 +78,9 @@ export interface FormRegistrationInput {
     path: string;
     variables: RegistrationVariableMapping[];
     transformToList: string[];
+    objectTypeUrl?: string | null;
+    objectTypeVersion?: number | null;
+    referencePath?: string[];
 }
 
 export interface RegistrationVariable {
@@ -86,6 +108,8 @@ export interface RegistrationDelivery {
     nextAttemptAt?: string | null;
     deliveredAt?: string | null;
     createdAt?: string | null;
+    /** Objects API: the id of the object that was created; none for Generic JSON. */
+    remoteId?: string | null;
 }
 
 export interface RegistrationDeliveryPage {
@@ -138,6 +162,10 @@ export const registrationApi = workspacesApi.enhanceEndpoints({ addTagTypes: [SE
             query: ({ workspaceId, formId, body }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/registration`, method: 'PUT', body }),
             invalidatesTags: [FORM_TAG, DELIVERIES_TAG]
         }),
+        // The Objects API check of a form's saved settings (workspace admins; 429 after 10 a minute).
+        checkFormRegistration: builder.mutation<RegistrationTestResult, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/registration/test`, method: 'POST' })
+        }),
         getRegistrationVariables: builder.query<RegistrationVariable[], { workspaceId: string; formId: string }>({
             query: ({ workspaceId, formId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/registration/variables`, method: 'GET' })
         }),
@@ -167,6 +195,7 @@ export const {
     useTestRegistrationServiceMutation,
     useGetFormRegistrationQuery,
     useSaveFormRegistrationMutation,
+    useCheckFormRegistrationMutation,
     useGetRegistrationVariablesQuery,
     useGetRegistrationDeliveriesQuery,
     useRetryRegistrationDeliveryMutation

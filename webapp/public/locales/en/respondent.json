@@ -16,6 +16,7 @@
         "AI_USED_NO_PROVIDER": "Your answers may be analysed by AI when the form's team runs AI insights.",
         "REGISTRATION": "Also sent to",
         "REGISTRATION_DESTINATION": "Your answers are also sent to {{organisation}}'s case system.",
+        "REGISTRATION_NO_DELETION": "Deleting your answers here does not delete the copy at {{organisation}}. Contact {{organisation}} to have it deleted.",
         "STRIP_AI_USED": "Answers may be analysed by AI ({{provider}}).",
         "STRIP_AI_USED_NO_PROVIDER": "Answers may be analysed by AI.",
         "RIGHTS": "Your rights",

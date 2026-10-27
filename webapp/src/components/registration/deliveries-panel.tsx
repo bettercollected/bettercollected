@@ -15,6 +15,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ATTENTION_STATUSES, WAITING_STATUSES, deliveryErrorKey, errorCodeOf, errorKey, formatDateTime } from '@app/utils/registration';
 
 const PAGE = 50;
+const SENT_PAGE = 20; // a page of sent submissions; "Show more" adds another
 // How often the waiting count is asked again: a retried delivery is sent by a
 // background job and ends as delivered or failed a little later.
 const POLL_MS = 10_000;
@@ -42,6 +43,10 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const attention = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...ATTENTION_STATUSES], limit });
     const delivered = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: ['delivered'], limit: 1 });
     const waiting = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...WAITING_STATUSES], limit: 1 }, { pollingInterval: POLL_MS });
+    // The sent submissions are read only when asked for: they carry the created object's id.
+    const [showSent, setShowSent] = useState(false);
+    const [sentLimit, setSentLimit] = useState(SENT_PAGE);
+    const sent = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: ['delivered'], limit: sentLimit }, { skip: !showSent });
     // When the waiting count moves, something was sent or failed: read the rest again.
     const lastWaiting = useRef<number | undefined>(undefined);
     const waitingNow = waiting.data?.total;
@@ -49,6 +54,7 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
         if (waitingNow !== undefined && lastWaiting.current !== undefined && lastWaiting.current !== waitingNow) {
             attention.refetch();
             delivered.refetch();
+            if (showSent) sent.refetch();
         }
         lastWaiting.current = waitingNow;
     }, [waitingNow]);
@@ -62,7 +68,8 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const waitingTotal = waiting.data?.total ?? 0;
     const settled = !registration.isLoading && !attention.isLoading && !delivered.isLoading && !waiting.isLoading;
     // A form that never sent has nothing to show.
-    if (!settled || (!registration.data?.enabled && failedTotal + deliveredTotal + waitingTotal === 0)) return null;
+    // A failed settings read is said, not hidden: the counts below may be all there is.
+    if (!settled || (!registration.isError && !registration.data?.enabled && failedTotal + deliveredTotal + waitingTotal === 0)) return null;
 
     const retryOne = async (delivery: RegistrationDelivery) => {
         setRetrying(delivery.id);
@@ -73,7 +80,8 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
         else setMessage({ text: t('REGISTRATION.DELIVERY.RETRY_STARTED'), failed: false });
     };
 
-    const reason = (delivery: RegistrationDelivery) => t(deliveryErrorKey(delivery.lastErrorCode), { status: delivery.lastHttpStatus ?? '' });
+    const objectsApi = registration.data?.kind === 'objects_api';
+    const reason = (delivery: RegistrationDelivery) => t(deliveryErrorKey(delivery.lastErrorCode, { objectsApi, httpStatus: delivery.lastHttpStatus }), { status: delivery.lastHttpStatus ?? '' });
 
     return (
         <section className="mb-6 flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="registration-deliveries-title" data-testid="registration-deliveries">
@@ -83,6 +91,12 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                 </h2>
                 {registration.data?.serviceName && <p className="text-xs break-words text-black-600">{t('REGISTRATION.DELIVERY.SENDING_TO', { name: registration.data.serviceName })}</p>}
             </div>
+
+            {registration.isError && (
+                <p role="alert" className="text-sm text-[#A83434]">
+                    {t('REGISTRATION.DELIVERY.REGISTRATION_ERROR')}
+                </p>
+            )}
 
             <dl className="flex flex-wrap gap-x-8 gap-y-2">
                 <Count label={t('REGISTRATION.DELIVERY.DELIVERED')} value={deliveredTotal} testId="registration-count-delivered" />
@@ -119,6 +133,7 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                                         <span className="rounded-full bg-[#FBEFEF] px-2 py-0.5 text-xs font-semibold text-[#7A2525]">{t(`REGISTRATION.DELIVERY.STATUS.${delivery.status}`)}</span>
                                     </div>
                                     <p className="text-sm text-black-800">{delivery.status === 'cancelled' && !delivery.lastErrorCode ? t('REGISTRATION.DELIVERY.CANCELLED_REASON') : reason(delivery)}</p>
+                                    {delivery.remoteId && <ObjectId id={delivery.remoteId} label={t('REGISTRATION.DELIVERY.OBJECT_ID')} />}
                                     <p className="text-xs text-black-600">
                                         {delivery.lastAttemptAt ? t('REGISTRATION.DELIVERY.LAST_ATTEMPT', { time: formatDateTime(delivery.lastAttemptAt, i18n.language) }) : t('REGISTRATION.DELIVERY.NO_ATTEMPT')}
                                         {' · '}
@@ -151,7 +166,58 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                     )}
                 </div>
             )}
+
+            {deliveredTotal > 0 && (
+                <div className="flex flex-col gap-2">
+                    <div>
+                        <Button type="button" variant="v2Button" size="sm" aria-expanded={showSent} aria-controls="registration-sent-list" onClick={() => setShowSent((current) => !current)}>
+                            {showSent ? t('REGISTRATION.DELIVERY.HIDE_DELIVERED') : t('REGISTRATION.DELIVERY.SHOW_DELIVERED')}
+                        </Button>
+                    </div>
+                    <div id="registration-sent-list">
+                        {showSent && sent.isError && (
+                            <p role="alert" className="text-sm text-[#A83434]">
+                                {t('REGISTRATION.DELIVERY.LOAD_ERROR')}
+                            </p>
+                        )}
+                        {showSent && (sent.data?.items.length ?? 0) > 0 && (
+                            <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('REGISTRATION.DELIVERY.DELIVERED_LIST')}>
+                                {sent.data!.items.map((delivery) => (
+                                    <li key={delivery.id} className="flex flex-col gap-1 px-3 py-3" data-testid={`registration-sent-${delivery.id}`}>
+                                        <span className="text-sm text-black-900">
+                                            {t('REGISTRATION.DELIVERY.SUBMISSION')} <code className="text-xs break-all">{delivery.responseId}</code>
+                                        </span>
+                                        {delivery.remoteId && <ObjectId id={delivery.remoteId} label={t('REGISTRATION.DELIVERY.OBJECT_ID')} />}
+                                        {delivery.deliveredAt && <p className="text-xs text-black-600">{t('REGISTRATION.DELIVERY.SENT_AT', { time: formatDateTime(delivery.deliveredAt, i18n.language) })}</p>}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {showSent && (sent.data?.items.length ?? 0) > 0 && (
+                            <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <p role="status" className="text-xs text-black-600">
+                                    {t('REGISTRATION.DELIVERY.SENT_SHOWING', { shown: sent.data!.items.length, total: sent.data!.total })}
+                                </p>
+                                {sent.data!.total > sent.data!.items.length && (
+                                    <Button type="button" variant="v2Button" size="sm" onClick={() => setSentLimit((current) => current + SENT_PAGE)}>
+                                        {t('REGISTRATION.DELIVERY.SHOW_MORE')}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </section>
+    );
+}
+
+/** The id of the object the Objects API created: shown as text only, never fetched or linked. */
+function ObjectId({ id, label }: { id: string; label: string }) {
+    return (
+        <p className="text-xs text-black-700" data-testid="registration-object-id">
+            {label}: <code className="break-all">{id}</code>
+        </p>
     );
 }
 
