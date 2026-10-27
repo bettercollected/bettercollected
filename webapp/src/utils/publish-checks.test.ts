@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems } from './publish-checks';
+import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems, workspaceTitleProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -166,5 +166,37 @@ describe('templateReviewProblem', () => {
         expect(templateReviewProblem({ status: 403, data: { code: 'forbidden' } })).toBeUndefined();
         expect(templateReviewProblem({ status: 422, data: { code: 'form_not_publishable', problems: refusal.data.problems } })).toBeUndefined();
         expect(templateReviewProblem({ status: 422, data: { code: 'needs_review', problems: [] } })).toBeUndefined();
+    });
+});
+
+describe('workspaceTitleProblems', () => {
+    it('names no problem for a workspace with a title', () => {
+        expect(workspaceTitleProblems({ id: 'w', title: 'Acme Foundation' })).toEqual([]);
+        expect(workspaceTitleProblems({ id: 'w', title: '  Acme  ' })).toEqual([]);
+    });
+
+    it('treats no title, an empty one and one of only whitespace as no title, even when the workspace has a readable handle', () => {
+        for (const title of [undefined, null, '', ' ', ' \t\n ']) {
+            const problems = workspaceTitleProblems({ id: 'w', title, workspaceName: 'acme-forms' } as any);
+            expect(problems.map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+            expect(problems[0].fieldId).toBe('');
+        }
+    });
+
+    it('claims nothing while the workspace is still loading (no id)', () => {
+        expect(workspaceTitleProblems(undefined)).toEqual([]);
+        expect(workspaceTitleProblems(null)).toEqual([]);
+        expect(workspaceTitleProblems({ title: '' })).toEqual([]);
+    });
+
+    it('is read from a refused publish like the other server problems', () => {
+        const refusal = { status: 422, data: { code: 'form_not_publishable', problems: [{ code: 'workspace_title_missing', fieldId: null, message: 'Your workspace has no title yet.' }] } };
+        expect(problemsFromPublishError(refusal).map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+    });
+
+    it('is a blocking problem for every form, whatever checks version it was made under', () => {
+        const [problem] = workspaceTitleProblems({ id: 'w', title: '' });
+        expect(splitPublishProblems([problem], undefined)).toEqual({ blocking: [problem], recommended: [] });
+        expect(splitPublishProblems([problem], 1)).toEqual({ blocking: [problem], recommended: [] });
     });
 });

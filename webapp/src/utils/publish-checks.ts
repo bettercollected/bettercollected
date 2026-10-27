@@ -13,11 +13,11 @@ import { ContrastIssueKey, themeContrastGuard } from '@app/utils/theme-contrast'
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast' | 'needs_review';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast' | 'needs_review' | 'workspace_title_missing';
 
 export interface PublishProblem {
     code: PublishProblemCode;
-    /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID. */
+    /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID; empty for `needs_review` and `workspace_title_missing`, which belong to no question. */
     fieldId: string;
     message: string;
     /** `needs_review` only: the id of the import report to look through (nothing of its content). */
@@ -179,6 +179,18 @@ export function themeContrastProblems(theme: Partial<FormTheme> | null | undefin
     const words = issues.map((issue) => CONTRAST_WORDS[issue.key]);
     const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
     return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message: `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.` }];
+}
+
+/**
+ * The workspace's title is who respondents see receiving their answers, so a
+ * form is not published while the workspace has none (backend
+ * `workspace_title_problem`). Blank after trimming is no title; the handle
+ * never stands in for one. While the workspace is still loading (no id)
+ * nothing is claimed here: the server decides.
+ */
+export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined): PublishProblem[] {
+    if (!workspace?.id || workspace.title?.trim()) return [];
+    return [{ code: 'workspace_title_missing', fieldId: '', message: 'Your workspace has no title yet. Respondents see it as who receives their answers, so give it a title in the workspace settings.' }];
 }
 
 /** The problems a refused publish (422 form_not_publishable) carries, if any. */

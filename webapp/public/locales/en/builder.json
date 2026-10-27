@@ -10,6 +10,11 @@
   "PUBLISH": {
     "DEFAULT": "Publish"
   },
+  "PUBLISH_WORKSPACE_TITLE": {
+    "TEXT_MANAGE": "Your workspace needs a name before a form can be published. Respondents see it as who receives their answers.",
+    "TEXT_MEMBER": "Your workspace needs a name before a form can be published. Respondents see it as who receives their answers. Ask a workspace admin to set it: only admins can.",
+    "ACTION": "Set the workspace name"
+  },
   "FORM_TITLE": {
     "PLACEHOLDER": "Form Title"
   },

@@ -37,6 +37,14 @@ the two in step).
   person clears the mark on its import report (``review_problem``; the
   problem carries only the report's id, ``importId``).
 
+- **The workspace has a title:** respondents see the workspace's title as
+  who receives their answers (the privacy strip), so a form is not published
+  while its workspace has none (``workspace_title_problem``; the problem
+  carries nothing of the workspace, ``fieldId`` is empty). Blank after
+  trimming is no title; the handle never stands in for one (the default
+  workspace's handle is its owner's id). Only a new publish or republish is
+  held up: a form that is already live stays live.
+
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
 "Why we ask this" is required only of forms created under these checks
@@ -78,6 +86,7 @@ PRESET_ANSWER = "preset_answer"
 MISSING_ENDING = "missing_ending"
 THEME_CONTRAST = "theme_contrast"
 NEEDS_REVIEW = "needs_review"
+WORKSPACE_TITLE_MISSING = "workspace_title_missing"
 # The ``fieldId`` of the theme's problem: it belongs to no question (the
 # webapp's THEME_PROBLEM_ID).
 THEME_PROBLEM_ID = "theme"
@@ -341,6 +350,23 @@ def review_problem(import_id: Optional[str]) -> Dict[str, Optional[str]]:
     }
 
 
+def workspace_title_problem(title: Optional[str]) -> Optional[Dict[str, Optional[str]]]:
+    """The problem of a workspace without a title, or None when it has one.
+    ``title``: the workspace's ``title`` (None when the workspace could not be
+    read: that is no title either, so it never fails open). The problem names
+    nothing of the workspace; the webapp links to the workspace settings."""
+    if isinstance(title, str) and title.strip():
+        return None
+    return {
+        "code": WORKSPACE_TITLE_MISSING,
+        "fieldId": None,
+        "message": "Your workspace has no title yet. Respondents see it as "
+        "who receives their answers, so give it a title in the workspace "
+        "settings (a workspace admin can do this); then the form can be "
+        "published.",
+    }
+
+
 def ensure_templatable(review: Optional[Dict[str, Optional[str]]]) -> None:
     """422 ``needs_review`` (the problem shape of a refused publish, with the
     same ``importId``) while the source form's import still needs review: no
@@ -371,13 +397,17 @@ def ensure_publishable(
     form: Any,
     checks_version: Optional[int] = None,
     review: Optional[Dict[str, Optional[str]]] = None,
+    workspace_problem: Optional[Dict[str, Optional[str]]] = None,
 ) -> None:
     """422 ``form_not_publishable`` listing every problem that blocks this
     form, or nothing. ``checks_version``: the form's
     ``publish_checks_version`` (None for a form created before the checks).
     ``review``: the form's ``review_problem`` while its import still needs
-    review (listed first)."""
+    review (listed first). ``workspace_problem``: the workspace's
+    ``workspace_title_problem`` (listed next: it belongs to no question)."""
     problems = [review] if review else []
+    if workspace_problem:
+        problems.append(workspace_problem)
     problems += [
         problem
         for problem in publish_problems(form)

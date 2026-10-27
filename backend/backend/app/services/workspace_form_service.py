@@ -92,6 +92,7 @@ from backend.app.services.publish_checks import (
     ensure_publishable,
     ensure_templatable,
     review_problem,
+    workspace_title_problem,
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
@@ -1342,6 +1343,9 @@ class WorkspaceFormService:
                 else None
             ),
             review=await self._pending_import_review(workspace_id, workspace_form),
+            workspace_problem=workspace_title_problem(
+                await self._workspace_title(workspace_id)
+            ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         previous = await self._form_repo.get_latest_version_of_form(form_id)
@@ -1350,6 +1354,12 @@ class WorkspaceFormService:
         if previous is not None and previous.logo != getattr(published, "logo", None):
             await self._release_logo(str(form_id), previous.logo)
         return published
+
+    async def _workspace_title(self, workspace_id: RecordId) -> Optional[str]:
+        """The title of the workspace the form goes live in (None if it cannot
+        be read). Respondents see it as who receives their answers."""
+        workspace = await self.get_form_workspace_by_id(workspace_id)
+        return getattr(workspace, "title", None)
 
     async def _pending_import_review(self, workspace_id, workspace_form):
         """The publish problem of a form whose import (Open Formulieren) is
