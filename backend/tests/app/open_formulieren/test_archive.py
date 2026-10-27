@@ -422,3 +422,13 @@ def test_an_unreadable_release_is_unknown_and_never_echoed(value):
 def test_a_missing_release_key_is_unknown():
     error = refused(make_zip(good(**{"_meta.json": {"created": "x"}})))
     assert error.code == "open_formulieren_version_unknown"
+
+
+def test_the_test_archives_are_the_same_bytes_at_any_time(monkeypatch):
+    """Test ids are built from these bytes; xdist workers that build them on
+    either side of a zip timestamp tick must still collect the same ids."""
+    entries = {"forms.json": [{"name": "a"}], "_meta.json": {"of_release": "4.0.6"}}
+    first = make_zip(entries)
+    later = time.localtime(time.time() + 3600)
+    monkeypatch.setattr(time, "localtime", lambda *_: later)
+    assert make_zip(entries) == first

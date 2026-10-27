@@ -365,6 +365,7 @@ async def test_an_unknown_length_is_counted_as_it_arrives(
         (archive_with([[comp("textfield", "a")]], version="4.3.0"), 400, "open_formulieren_version_unsupported"),
         (archive_with([[comp("signature", "a")]]), 422, "no_importable_fields"),
     ],
+    ids=["not-a-zip", "incomplete", "unsupported-version", "no-importable-fields"],
 )
 async def test_a_refused_archive_creates_nothing(
     client, workspace, test_user_cookies, import_on, data, status, code
