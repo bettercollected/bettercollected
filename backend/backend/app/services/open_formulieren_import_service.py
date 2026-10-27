@@ -240,6 +240,15 @@ class OpenFormulierenImportService:
             await self._repo.save(record)
         if record.form_id:
             await self._mark(workspace_id, record.form_id, record, needs_review)
+        # a copy of the draft carries the same mark (duplicate_form): looking
+        # over the report clears (or sets) it there too
+        for link in await self._workspace_form_repo.list_in_workspace(workspace_id):
+            if (
+                link.settings
+                and link.settings.import_id == str(record.id)
+                and link.form_id != record.form_id
+            ):
+                await self._mark(workspace_id, link.form_id, record, needs_review)
         return record
 
     # ---------------------------------------------------------------- helpers

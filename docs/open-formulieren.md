@@ -62,7 +62,10 @@ something in the file that could not be read), `import_limit` (429), `import_bus
   `source_kind = "open_formulieren"`. It holds only the report, the source release, the file name, size and sha256.
   **The uploaded archive is not kept.** The record is deleted with its form.
 * The **mark** is on the form's workspace settings: `needs_review`, `import_source`, `import_id`
-  (`needsReview`, `importSource`, `importId` in the API). It never blocks publishing.
+  (`needsReview`, `importSource`, `importId` in the API). **Publishing is refused while it is set**, by every way of
+  publishing (builder, API, MCP): 422 `form_not_publishable` with a problem `needs_review` that carries only the
+  import's id (`importId`). Marking the import reviewed (`POST .../review`) clears the mark on the draft and on its
+  copies; then publishing works. With the import switched off, or when the report is gone, the mark holds nothing.
 
 ### The report
 

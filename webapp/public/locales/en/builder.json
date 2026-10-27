@@ -476,7 +476,7 @@
       "ID_BODY": "This form asks for a national identity number. Only ask for it if you need it and can say why.",
       "ID_MORE_one": "and {{count}} more",
       "ID_MORE_other": "and {{count}} more",
-      "NEEDS_REVIEW_NOTE": "Look through this list before you publish. You can still publish while it needs review.",
+      "NEEDS_REVIEW_NOTE": "Look through this list before you publish. Publishing waits until you mark this import as reviewed.",
       "REVIEWED_NOTE": "You marked this import as reviewed.",
       "ALL_CLEAR": "Nothing was left out or needs your attention.",
       "OPEN_EDITOR": "Open in editor",
@@ -502,6 +502,17 @@
     "BANNER": {
       "TEXT": "This form was imported from Open Formulieren and needs review.",
       "LINK": "See the import report"
+    },
+    "PUBLISH_BLOCKED": {
+      "TITLE": "This form still needs review",
+      "TEXT": "It was imported from Open Formulieren. Publishing waits until you have looked through the import report and marked it as reviewed.",
+      "OPEN_REPORT": "Open the import report",
+      "MARK_REVIEWED": "Mark as reviewed",
+      "CLOSE": "Close",
+      "CLEARED": "Marked as reviewed. You can publish now.",
+      "PUBLISH": "Publish now",
+      "FAILED": "We could not save this. Please try again.",
+      "BUTTON_HINT": "Publishing waits until the import is marked as reviewed."
     },
     "REASON": {
       "unsupported_component_type": "This question type (“{{componentType}}”) is not supported, so it was left out.",

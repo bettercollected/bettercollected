@@ -476,7 +476,7 @@
       "ID_BODY": "Dit formulier vraagt om een nationaal identificatienummer. Vraag er alleen naar als u het nodig hebt en kunt zeggen waarom.",
       "ID_MORE_one": "en nog {{count}}",
       "ID_MORE_other": "en nog {{count}}",
-      "NEEDS_REVIEW_NOTE": "Loop deze lijst door voordat u publiceert. U kunt ook publiceren zolang het nog nagekeken moet worden.",
+      "NEEDS_REVIEW_NOTE": "Loop deze lijst door voordat u publiceert. Publiceren kan pas nadat u deze import als nagekeken hebt gemarkeerd.",
       "REVIEWED_NOTE": "U hebt deze import als nagekeken gemarkeerd.",
       "ALL_CLEAR": "Er is niets weggelaten en er is niets om te controleren.",
       "OPEN_EDITOR": "Open in de editor",
@@ -502,6 +502,17 @@
     "BANNER": {
       "TEXT": "Dit formulier is geïmporteerd uit Open Formulieren en moet nog worden nagekeken.",
       "LINK": "Bekijk het importrapport"
+    },
+    "PUBLISH_BLOCKED": {
+      "TITLE": "Dit formulier moet nog worden nagekeken",
+      "TEXT": "Het is geïmporteerd uit Open Formulieren. U kunt pas publiceren nadat u het importrapport hebt doorgenomen en als nagekeken hebt gemarkeerd.",
+      "OPEN_REPORT": "Open het importrapport",
+      "MARK_REVIEWED": "Markeer als nagekeken",
+      "CLOSE": "Sluiten",
+      "CLEARED": "Gemarkeerd als nagekeken. U kunt nu publiceren.",
+      "PUBLISH": "Nu publiceren",
+      "FAILED": "Dit kon niet worden opgeslagen. Probeer het opnieuw.",
+      "BUTTON_HINT": "Publiceren kan pas nadat de import als nagekeken is gemarkeerd."
     },
     "REASON": {
       "unsupported_component_type": "Dit vraagtype (“{{componentType}}”) wordt niet ondersteund en is weggelaten.",
