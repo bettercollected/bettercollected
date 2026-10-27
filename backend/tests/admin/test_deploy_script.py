@@ -1344,10 +1344,14 @@ def _docker_calls(state):
     return path.read_text().splitlines() if path.exists() else []
 
 
-def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(site):
+def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(site, tmp_path):
     work, state, _ = site
+    # a TMPDIR of its own: tests running in parallel use the shared one
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    own_tmp = {"TMPDIR": str(scratch)}
     _upgrade_env(work)
-    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra=own_tmp)
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     # generated before the start, into the store and .env, never printed: only the fingerprint is
     assert _index(calls, "settings-import --env-file") < _index(calls, "up --build")
@@ -1366,7 +1370,7 @@ def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(si
     assert oct((work / ".env").stat().st_mode & 0o777) == "0o600"
     # a second deploy finds .env's key: nothing generated or imported, the same key and fingerprint
     (state / "calls.log").unlink()
-    done, calls = _run(site, volumes=UPGRADE_VOLUMES)
+    done, calls = _run(site, volumes=UPGRADE_VOLUMES, extra=own_tmp)
     assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
     assert "Generated a new RESPONDENT_IDENTITY_KEY" not in done.stdout
     assert not any("settings-import --env-file" in c for c in calls)
@@ -1374,7 +1378,7 @@ def test_an_upgrade_generates_the_identity_key_once_and_a_second_run_keeps_it(si
     assert _dotenv(work)["RESPONDENT_IDENTITY_KEY"] == key
     assert (state / "store" / "RESPONDENT_IDENTITY_KEY").read_text() == key
     # the scratch directory that held the value for the import is gone
-    assert not _temp_leftovers(work) and not list(Path(os.environ.get("TMPDIR", "/tmp")).glob("tmp.*/identity.env"))
+    assert not _temp_leftovers(work) and not list(scratch.rglob("identity.env"))
 
 
 @pytest.mark.parametrize("where", ["env", "env_deployment", "shell"])
