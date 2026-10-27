@@ -6,12 +6,13 @@ import { SheetClose } from '@app/shadcn/components/ui/sheet';
 
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import BackButton from './back-button';
 
 const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const workspaceTitle = workspace?.title || workspace?.workspaceName;
+    const workspaceTitle = workspaceDisplayName(workspace);
     return (
         <div className="border-b-black-300 flex h-16 w-full items-center justify-start border-b bg-white! p-4">
             {/* Workspace identity, not the product logo (de-brand decision —

@@ -23,6 +23,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
@@ -397,10 +398,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
                             <div className="flex items-center gap-3 text-[13px]" style={{ color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary }}>
-                                {(workspace?.title || workspace?.workspaceName) && (
+                                {workspaceDisplayName(workspace) && (
                                     <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
                                         <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
-                                        {workspace?.title || workspace?.workspaceName}
+                                        {workspaceDisplayName(workspace)}
                                     </span>
                                 )}
                                 {/* Where focus lands when this page opens (form.tsx focusPageStart). */}

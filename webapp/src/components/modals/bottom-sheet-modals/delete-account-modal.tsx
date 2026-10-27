@@ -14,6 +14,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
+import useWorkspaceLabel from '@app/lib/hooks/use-workspace-label';
 
 // A workspace the account is the billing owner of that has other owners: the
 // backend refuses the deletion (409) until billing moves or they are removed.
@@ -37,6 +38,7 @@ export default function DeleteAccountModal() {
     const { toast } = useToast();
 
     const { t } = useTranslation();
+    const workspaceLabel = useWorkspaceLabel();
     const [dropdownValue, setDropdownValue] = useState('');
     const [feedback, setFeedBack] = useState('');
     const [confirm, setConfirm] = useState('');
@@ -189,7 +191,7 @@ export default function DeleteAccountModal() {
                             <ul className="mt-2 list-disc pl-5">
                                 {shared.map((workspace) => (
                                     <li key={workspace.id}>
-                                        <span className="font-medium">{workspace.title || workspace.workspaceName}</span>
+                                        <span className="font-medium">{workspaceLabel(workspace)}</span>
                                         {': '}
                                         {t(workspace.billingOwnerCanChange ? 'DELETE_ACCOUNT.SHARED_MOVE_OR_REMOVE' : 'DELETE_ACCOUNT.SHARED_REMOVE_OWNERS')}
                                     </li>

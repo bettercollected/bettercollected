@@ -6,7 +6,7 @@
   },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Weet u zeker dat u uw account wilt verwijderen?",
-    "POINT_1": "Al je werkruimte wordt verwijderd.",
+    "POINT_1": "Al uw werkruimtes worden verwijderd.",
     "POINT_2": "Alle geïmporteerde formulieren worden verwijderd.",
     "POINT_3": "Alle gemaakte groepen worden verwijderd.",
     "POINT_4": "Uw werkruimtelink of uw aangepaste formulierlink zal niet meer werken.",
@@ -19,7 +19,7 @@
   "ADVANCED_SETTING": {
     "CUSTOM_DOMAIN_NOT_SET_DESCRIPTION": "U heeft geen aangepast domein ingesteld.",
     "CUSTOM_DOMAIN_SET_DESCRIPTION": "Uw aangepaste domein is momenteel ingesteld op",
-    "WORKSAPCE_HANDLE_SET_DESCRIPTION": "Uw werkruimtehandvat is momenteel ingesteld op "
+    "WORKSPACE_HANDLE_SET_DESCRIPTION": "Uw werkruimtehandvat is momenteel ingesteld op "
   },
   "ADVANCED_SETTINGS": "Geavanceerde instellingen",
   "ALL_FORMS": "Alle formulieren",
@@ -105,7 +105,8 @@
     "DELETE_FORM": "Formulier verwijderen",
     "DELETE_NOW": "Nu verwijderen",
     "ADD_TO_GROUP": "Toevoegen aan groep",
-    "OPEN": "openen"
+    "OPEN": "Openen",
+    "NEW_FORM": "Nieuw formulier"
   },
   "CHOOSE_YOUR_FORM": "Kies uw formulier",
   "CONFIRM": "BEVESTIGEN",
@@ -141,16 +142,16 @@
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
   "DELETE_ACCOUNT": {
-    "SHARED_WORKSPACES": "Je account kan nog niet worden verwijderd: je bent factuureigenaar van werkruimtes met andere eigenaren. Er is niets verwijderd.",
+    "SHARED_WORKSPACES": "Uw account kan nog niet worden verwijderd: u bent factuureigenaar van werkruimtes met andere eigenaren. Er is niets verwijderd.",
     "SHARED_MOVE_OR_REMOVE": "Maak een andere eigenaar factuureigenaar, of verwijder de andere eigenaren.",
-    "SHARED_REMOVE_OWNERS": "De factuureigenaar van deze werkruimte kan niet veranderen (betaald abonnement of je persoonlijke werkruimte): verwijder de andere eigenaren.",
+    "SHARED_REMOVE_OWNERS": "De factuureigenaar van deze werkruimte kan niet veranderen (betaald abonnement of uw persoonlijke werkruimte): verwijder de andere eigenaren.",
     "TITLE": "Account Verwijderen",
-    "DESCRIPTION": "Je staat op het punt om je bettercollected-account te verwijderen. Al je gegevens zullen worden verwijderd.",
-    "WHY_DELETE": "Waarom verwijder je je account?",
+    "DESCRIPTION": "U staat op het punt om uw bettercollected-account te verwijderen. Al uw gegevens zullen worden verwijderd.",
+    "WHY_DELETE": "Waarom verwijdert u uw account?",
     "SELECT_REASON": "Selecteer Reden",
-    "ANYTHING_ELSE": "Is er nog iets dat je wilt delen?",
+    "ANYTHING_ELSE": "Is er nog iets dat u wilt delen?",
     "OPTIONAL": "optioneel",
-    "WRITE_FEEDBACK": "Schrijf je feedback",
+    "WRITE_FEEDBACK": "Schrijf uw feedback",
     "TYPE_CONFIRM": "Om door te gaan, typ \"CONFIRM\"",
     "CONFIRM": "Bevestigen",
     "I_UNDERSTAND_CONSEQUENCES": "Ik begrijp dat het sluiten van mijn account al mijn gegevens zal verwijderen.",
@@ -250,6 +251,7 @@
     "STATUS_DELETED": "Verwijderd",
     "STATUS_PENDING": "In behandeling",
     "STATUS_DECLINED": "Geweigerd",
+    "STATUS_EXPIRED": "Verlopen",
     "SUBMISSION_DATE": "Indieningsdatum",
     "SUBMITTED_FORMS": "Ingediende formulieren",
     "PREVIEW": "Voorbeeld",
@@ -277,7 +279,7 @@
       },
       "VISIBILITY": {
         "TITLE": "Formulier zichtbaarheid",
-        "DESCRIPTION": "Formulieren worden alleen verborgen in je werkruimte.",
+        "DESCRIPTION": "Formulieren worden alleen verborgen in uw werkruimte.",
         "PUBLIC": "Openbaar",
         "PRIVATE": "Privé"
       }
@@ -298,7 +300,8 @@
   "FORM_MENU": {
     "OPEN_FORMULIEREN_EXPORT": "Downloaden voor Open Formulieren",
     "OPEN_FORMULIEREN_EXPORT_CLEAN": "Gedownload. Alles is meegenomen.",
-    "OPEN_FORMULIEREN_EXPORT_UNMAPPED": "Gedownload. {{n}} onderde(e)l(en) zijn weggelaten of aangepast: zie README.txt in het archief.",
+    "OPEN_FORMULIEREN_EXPORT_UNMAPPED_one": "Gedownload. {{count}} onderdeel is weggelaten of aangepast: zie README.txt in het archief.",
+    "OPEN_FORMULIEREN_EXPORT_UNMAPPED_other": "Gedownload. {{count}} onderdelen zijn weggelaten of aangepast: zie README.txt in het archief.",
     "OPEN_FORMULIEREN_EXPORT_TOO_LARGE": "Dit formulier heeft meer pagina's of vragen dan kunnen worden geëxporteerd.",
     "OPEN_FORMULIEREN_EXPORT_ERROR": "Het formulier kon niet worden gedownload.",
     "DELETE_FORM": "Verwijder formulier",
@@ -307,7 +310,14 @@
     "VISIBILITY": "Zichtbaarheid",
     "MAKE_FORM_PRIVATE": "Maak formulier privé",
     "MAKE_FORM_PUBLIC": "Maak formulier openbaar",
-    "DUPLICATE_FORM": "Dupliceer formulier"
+    "DUPLICATE_FORM": "Dupliceer formulier",
+    "DUPLICATE_ERROR": "Het formulier kon niet worden gedupliceerd",
+    "GENERATE_QR": "Maak QR-code"
+  },
+  "FORMS_TOOLBAR": {
+    "SEARCH_PLACEHOLDER": "Formulieren zoeken",
+    "COUNT_one": "{{count}} formulier",
+    "COUNT_other": "{{count}} formulieren"
   },
   "FORM_PAGE": {
     "EDIT_FORM": "Bewerk formulier",
@@ -316,10 +326,10 @@
     "SEARCH_BY_EMAIL": "Zoeken op e-mail",
     "SETTINGS": {
       "DEFAULT": {
-        "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer je formulieren effectief.",
+        "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer uw formulieren effectief.",
         "PIN_FORM": {
           "TITLE": "Formulier vastzetten",
-          "DESCRIPTION": "Wanneer je een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat je publiek kan zien op je formulierpagina."
+          "DESCRIPTION": "Wanneer u een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat uw publiek kan zien op uw formulierpagina."
         },
         "COLLECT_EMAILS": {
           "TITLE": "E-mails Verzamelen",
@@ -327,19 +337,19 @@
         },
         "BRANDING": {
           "TITLE": "bettercolleceted branding",
-          "DESCRIPTION": "Toon 'Aangedreven door: bettercollected' in je formulier."
+          "DESCRIPTION": "Toon 'Aangedreven door: bettercollected' in uw formulier."
         },
         "FORM_PURPOSE": {
           "TITLE": "Doel en Gebruik van het formulier",
-          "DESCRIPTION": "Deze pagina is bedoeld om je een duidelijk inzicht te geven in hoe je informatie wordt behandeld in ons formulier. Ons doel is ervoor te zorgen dat je volledig op de hoogte bent en je comfortabel voelt met hoe we je gegevens behandelen.",
+          "DESCRIPTION": "Deze pagina is bedoeld om u een duidelijk inzicht te geven in hoe uw informatie wordt behandeld in ons formulier. Ons doel is ervoor te zorgen dat u volledig op de hoogte bent en zich comfortabel voelt met hoe we uw gegevens behandelen.",
           "SEE_DETAILS": "Bekijk details"
         }
       },
       "VISIBILITY": {
         "TITLE": "Formulier zichtbaarheid",
-        "DESCRIPTION": "Je keuze voor formulierzichtbaarheid heeft rechtstreeks invloed op wie het formulier op je formulierpagina kan bekijken en openen.",
+        "DESCRIPTION": "Uw keuze voor formulierzichtbaarheid heeft rechtstreeks invloed op wie het formulier op uw formulierpagina kan bekijken en openen.",
         "PUBLIC": "Iedereen kan dit formulier zien.",
-        "PRIVATE": "Alleen jij kunt dit formulier zien.",
+        "PRIVATE": "Alleen u kunt dit formulier zien.",
         "GROUPS": {
           "TITLE": "Alleen voor bepaalde groepen",
           "GROUPS0": "Geen groepen geselecteerd.",
@@ -356,7 +366,7 @@
         "USE_CUSTOM_DOMAIN": "Gebruik aangepast domein",
         "SLUG": {
           "TITLE": "Slug wijzigen",
-          "DESCRIPTION": "Geef je formulieren een professionele uitstraling en zorg voor merkconsistentie door je aangepaste slug toe te voegen",
+          "DESCRIPTION": "Geef uw formulieren een professionele uitstraling en zorg voor merkconsistentie door uw aangepaste slug toe te voegen",
           "ENTER_SLUG": "Voer slug in",
           "AVOID_USING": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
           "SAVE_CHANGES": "Wijzigingen opslaan"
@@ -370,10 +380,10 @@
       }
     },
     "DELETION_REQUEST": {
-      "DESCRIPTION": "Hieronder vind je een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties."
+      "DESCRIPTION": "Hieronder vindt u een lijst met respondenten die hebben verzocht om het verwijderen van hun ingediende reacties."
     },
     "RESPONSES": {
-      "DESCRIPTION": "Respondenten zijn de individuen die het formulier hebben ingevuld en ingediend. Je kunt hun ingevulde datum en tijd zien.",
+      "DESCRIPTION": "Respondenten zijn de individuen die het formulier hebben ingevuld en ingediend. U kunt hun ingevulde datum en tijd zien.",
       "BACK_TO_RESPONSES": "Terug naar reacties",
       "DELETE_RESPONSE": "Verwijder reactie",
       "SUBMITTED_BY": "Ingediend door",
@@ -396,15 +406,15 @@
       "DESCRIPTION": "Gebruikt u online formulierbouwers zoals Google Forms voor het verzamelen van formulierreacties voor uzelf of uw bedrijf?"
     },
     "FORM_BRAND": {
-      "TITLE": "Heb je ooit gewenst dat je je formulieren beter kon brandmerken?",
+      "TITLE": "Wilt u uw formulieren beter in uw eigen huisstijl laten zien?",
       "DESCRIPTION": "Ik wou dat u klantvriendelijke formulier-URL's en uw eigen aangepaste domeinlinks had die uw merk weerspiegelen in plaats van standaard gegenereerde URL's."
     },
     "DATA_RIGHTS": {
-      "TITLE": "Wil je door actie laten zien dat je geeft om de gegevensrechten van gebruikers? GDPR/CCPA etc.",
+      "TITLE": "Wilt u door actie laten zien dat u geeft om de gegevensrechten van gebruikers? GDPR/CCPA etc.",
       "DESCRIPTION": "Dataprivacyregelgeving zoals GDPR en CCPA geven formulierbeantwoorders rechten zoals recht op toegang en om verwijdering van gegevens aan te vragen"
     },
     "USER_IS_FIT": {
-      "TITLE": "Je bent op de goede plek",
+      "TITLE": "U bent op de goede plek",
       "DESCRIPTION_1": "U gebruikt online formulieren om gegevens van uw gebruikers te verzamelen en geeft om branding en gebruikersgegevensrechten. Better Collected is precies voor u gebouwd.",
       "DESCRIPTION_2": " We helpen u graag verder. Meld u nu aan om een ​​betere gegevensverzamelaar te worden.",
       "BUTTON_TEXT": "Aanmelden"
@@ -412,7 +422,7 @@
     "USER_IS_NOT_FIT": {
       "TITLE": "Deze app past misschien niet perfect bij u.",
       "DESCRIPTION_1": "Deze app is gemaakt voor mensen die online formulieren gebruiken om gegevens van uw gebruikers te verzamelen en zich bekommeren om branding en gebruikersgegevensrechten.",
-      "DESCRIPTION_2": "Op basis van je keuzes lijkt het erop dat we geen goede match zijn. Je bent echter nog steeds welkom om het uit te proberen. Misschien vind je het nog steeds leuk.",
+      "DESCRIPTION_2": "Op basis van uw keuzes lijkt het erop dat we geen goede match zijn. U bent echter nog steeds welkom om het uit te proberen. Misschien vindt u het nog steeds leuk.",
       "BUTTON_TEXT": "Probeer het eens"
     }
   },
@@ -480,11 +490,11 @@
   "INVALID_WORKSPACE_HANDLE": "Ongeldige werkruimtehandle",
   "INVITATION": {
     "TITLE": "Uitnodiging",
-    "TITLE_1": "Je bent uitgenodigd voor",
+    "TITLE_1": "U bent uitgenodigd voor",
     "TITLE_2": "Word lid van de werkruimte en begin samen te werken",
     "LINK_EXPIRY": "Deze link verloopt over 7 dagen.",
     "INVITATION_EXPIRED": "Uitnodiging Verlopen",
-    "THE_INVITATION_YOU_ARE_TRYING_TO_ACCESS_HAS_EXPIRED": "De uitnodiging die je probeert te openen is verlopen.",
+    "THE_INVITATION_YOU_ARE_TRYING_TO_ACCESS_HAS_EXPIRED": "De uitnodiging die u probeert te openen is verlopen.",
     "ENSURE_TEXT": "Zorg ervoor dat u bent ingelogd op het juiste account.",
     "RETURN_TO_WORKSPACE": "Terug naar Werkruimte",
     "SWITCH_ACCOUNT": "ghfhvy",
@@ -492,7 +502,7 @@
       "ITEM_1": "Alle formulieren en antwoorden in werkruimte",
       "ITEM_2": "Formulieren importeren naar werkruimte",
       "ITEM_3": "Formulier uit werkruimte verwijderen",
-      "TITLE": "Je krijgt toegang tot:"
+      "TITLE": "U krijgt toegang tot:"
     }
   },
   "INVITE_COLLABORATOR": {
@@ -543,14 +553,14 @@
   "ONBOARDING": {
     "PRIVACY_FRIENDLY": "Privacyvriendelijke formuliermaker",
     "ADD_YOUR_ORGANIZATION": "Voeg uw organisatie toe",
-    "ADD_WORKSPACE": "Voeg je werkruimte toe",
+    "ADD_WORKSPACE": "Voeg uw werkruimte toe",
     "DESCRIPTION": "Maak uw werkruimte aan zodat uw team weet dat u er bent.",
     "TIME_MESSAGE": "Het duurt maar een paar minuten",
     "WELCOME_MESSAGE": "Welkom bij betterCollected.",
     "SUGGESTIONS": "suggesties:",
     "AVAILABLE": "Beschikbaar",
     "NOT_AVAILABLE": "Niet beschikbaar",
-    "USE_SMALLCASE": "Gebruik kleine letters voor je gebruikersnaam",
+    "USE_SMALLCASE": "Gebruik kleine letters voor uw gebruikersnaam",
     "ERROR": {
       "FILL_ORGANIZATION_NAME": "Vul de naam van uw organisatie in.",
       "FILL_HANDLE_NAME": "Vul de gebruikersnaam in",
@@ -580,10 +590,10 @@
     "DESCRIPTION": "Voeg uw beschrijving toe",
     "PRIVACY_POLICY_LINK": "Privacybeleid Link",
     "TERMS_OF_SERVICES_LINK": "Servicevoorwaardenlink",
-    "WORKSPACE_TITLE": "Jouw bedrijf",
+    "WORKSPACE_TITLE": "Uw bedrijf",
     "GROUP_NAME": "Voer groepsnaam in",
     "MEMBER_EMAIL": "Voer het e-mailadres van het lid in",
-    "SEARCH": "zoek"
+    "SEARCH": "Zoeken"
   },
   "POWERED_BY": "Mogelijk gemaakt door:",
   "PRICING_PLAN": {
@@ -630,7 +640,7 @@
   "SHARE": "deel",
   "SHARE_THIS_FORM": "Deel dit formulier",
   "SHARE_WORKSPACE": "Werkruimte delen",
-  "SHARE_YOUR_WORKSPACE": "Deel je werkruimte",
+  "SHARE_YOUR_WORKSPACE": "Deel uw werkruimte",
   "SHEETS_RECONNECT": {
     "BADGE": "Opnieuw koppelen nodig",
     "TITLE": "Nieuwe reacties komen niet in Google Sheets",
@@ -643,7 +653,7 @@
     "COLLECT_FORMS": "Verzamel uw formulieren",
     "WELCOME_BACK": "Welkom terug!",
     "SIGNIN_TO_CONTINUE": "Gelieve in te loggen om door te gaan",
-    "CONTINUE_WITH": "Heb je geen account?",
+    "CONTINUE_WITH": "Hebt u geen account?",
     "DELETE_RESPONSES": "Antwoorden verwijderen",
     "EASY_TO_MANAGE_FORMS": "Eenvoudig te beheren formulieren",
     "LOGIN_TITLE_SLOGAN": "Maak deel uit van de grotere gemeenschap door in te loggen.",
@@ -681,12 +691,12 @@
     },
     "ENTER_OTP_CODE": "Voer de OTP-code in",
     "ENTER_CODE_PLACEHOLDER": "bijv: 000000",
-    "SIGNUP_AGREEMENT_DESCRIPTION": "Door je aan te melden, ga je akkoord met onze",
-    "SIGNUP_TO_CONTINUE": "Je kunt je aanmelden door in te loggen met Google, of met een code die naar je e-mail wordt gestuurd.",
+    "SIGNUP_AGREEMENT_DESCRIPTION": "Door u aan te melden, gaat u akkoord met onze",
+    "SIGNUP_TO_CONTINUE": "U kunt zich aanmelden door in te loggen met Google, of met een code die naar uw e-mail wordt gestuurd.",
     "FEATURES": {
       "TITLE": "Wij zijn een platform voor formulierenbouwers met focus op privacy",
       "OTP_TITLE": "Word een betere gegevensverzamelaar ",
-      "OTP_SUB_TITLE": "Klant worden van bettercollected is een belofte om",
+      "OTP_SUBTITLE": "Klant worden van bettercollected is een belofte om",
       "DESCRIPTION": "In tegenstelling tot andere formulierenbouwers stellen wij de privacyrechten van degenen die de formulieren invullen voorop.",
       "OTP_DESCRIPTION": "Wij zorgen ervoor dat respondenten hun formulierantwoorden kunnen bekijken en op elk moment een verzoek tot verwijdering van hun antwoorden kunnen indienen."
     }
@@ -695,7 +705,7 @@
     "DEFAULT": "Slak",
     "VALIDATION_MESSAGE": "Voer een geldige slug in"
   },
-  "STAP": "Stap",
+  "STEP": "Stap",
   "STATUS": "Status",
   "SUBMISSIONS": "Inzendingen",
   "TERMS_OF_SERVICES": {
@@ -705,13 +715,13 @@
   "TEMPLATE": {
     "TEMPLATES": "Sjablonen",
     "DELETE_TEMPLATE": "Sjabloon Verwijderen",
-    "DELETE_TEMPLATE_DESCRIPTION": "Zodra je een sjabloon verwijdert, wordt het permanent verwijderd en kan niemand met de link er toegang toe krijgen.",
+    "DELETE_TEMPLATE_DESCRIPTION": "Zodra u een sjabloon verwijdert, wordt het permanent verwijderd en kan niemand met de link er toegang toe krijgen.",
     "NOT_FOUND": {
       "TITLE": "Geen sjablonen gevonden",
-      "DESC": "Je hebt geen sjablonen aangemaakt of geïmporteerd"
+      "DESC": "U hebt geen sjablonen aangemaakt of geïmporteerd"
     },
     "DEFAULT": "Standaard",
-    "YOUR_WORKSPACE": "Je Werkruimte",
+    "YOUR_WORKSPACE": "Uw werkruimte",
     "SHOW_ALL": "Toon Alles",
     "ALL_TEMPLATES": "Alle Sjablonen",
     "BUTTONS": {
@@ -725,17 +735,17 @@
     "SETTINGS": {
       "TITLE": "Instellingen",
       "DESCRIPTION": "Pas de zichtbaarheid van het sjabloon aan naar openbaar of privé, of verwijder het sjabloon.",
-      "DELETE_DESCRIPTION": "Zodra je een sjabloon verwijdert, wordt het permanent verwijderd, en niemand met de link kan er nog toegang toe krijgen.",
+      "DELETE_DESCRIPTION": "Zodra u een sjabloon verwijdert, wordt het permanent verwijderd, en niemand met de link kan er nog toegang toe krijgen.",
       "VISIBILITY": {
         "TEMPLATE_VISIBILITY": "Zichtbaarheid van het sjabloon",
-        "PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. Je kunt dit sjabloon delen.",
-        "PRIVATE": "Alleen jouw organisatie kan dit sjabloon gebruiken. Je kunt dit sjabloon niet delen."
+        "PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. U kunt dit sjabloon delen.",
+        "PRIVATE": "Alleen uw organisatie kan dit sjabloon gebruiken. U kunt dit sjabloon niet delen."
       }
     },
     "DELETE_MODAL": {
       "HEADER": "Formuliersjabloon Verwijderen",
-      "TITLE": "Weet je zeker dat je dit sjabloon wilt verwijderen?",
-      "SUBTITLE": "Zodra de maker je sjabloon verwijdert, wordt het permanent verwijderd."
+      "TITLE": "Weet u zeker dat u dit sjabloon wilt verwijderen?",
+      "SUBTITLE": "Zodra de maker uw sjabloon verwijdert, wordt het permanent verwijderd."
     }
   },
   "TOAST": {
@@ -770,7 +780,7 @@
     "REMOVE_FROM_GROUP": "Verwijderd uit groep",
     "SLUG_ALREADY_EXISTS": "Formulier met gegeven slug bestaat al in de werkruimte",
     "ALREADY_IN_GROUP": "Al in groep",
-    "LAST_PERSON_IN_GROUP": "Je kunt de laatste persoon van deze groep niet verwijderen",
+    "LAST_PERSON_IN_GROUP": "U kunt de laatste persoon van deze groep niet verwijderen",
     "REMOVED": "Verwijderd",
     "ACCOUNT_DELETION": {
       "SUCCESS": "Account succesvol verwijderd!",
@@ -788,17 +798,17 @@
     "VISIBILITY": "Zichtbaarheid van het formulier moet openbaar zijn om het in de werkruimte vast te zetten.",
     "REQUEST_FOR_DELETION": "Verzoek om verwijdering",
     "ALREADY_REQUESTED_FOR_DELETION": "Reeds verzocht om verwijdering",
-    "EDIT_WORKSPACE": "Bewerk je werkruimte",
+    "EDIT_WORKSPACE": "Bewerk uw werkruimte",
     "SHARE_WORKSPACE": "Deel uw werkruimte",
     "FORM_PROVIDER_HIDDEN": "Formulieraanbieders zijn uitgeschakeld.",
     "COPY_LINK": "Link kopiëren",
-    "HIDE_FORM": "Verborgen in je openbare werkruimte",
+    "HIDE_FORM": "Verborgen in uw openbare werkruimte",
     "PINNED": "Vastgemaakt aan uw openbare werkruimteweergave",
     "OPTIONS": "Opties",
     "FORM_OPTIONS": "Formulieropties",
     "SHARE_FORM": "Formulier delen",
     "FORM_IS_ALREADY_ON_GROUP": "{{form}} is al lid van {{group}}",
-    "NO_ACCESS_TO_GROUP": "Je hebt geen toegang om een ​​groep te maken",
+    "NO_ACCESS_TO_GROUP": "U hebt geen toegang om een groep te maken",
     "EMPTY_FORM_ON_WORKSPACE": "U heeft geen enkel formulier op uw werkruimte"
   },
   "UNTITLED": "Zonder titel",
@@ -858,7 +868,7 @@
         "SLOGAN": "Personaliseer uw URL's met aangepast domein",
         "TITLE": "Aangepaste Domeinnaam",
         "DESCRIPTION": "Laat uw bedrijf er professioneler uitzien en verbeter uw merkherkenning.",
-        "NOTE": "Na het opslaan toont de instellingenpagina van je domein de DNS-records die je bij je DNS-provider toevoegt.",
+        "NOTE": "Na het opslaan toont de instellingenpagina van uw domein de DNS-records die u bij uw DNS-provider toevoegt.",
         "TEXT_FIELD_TITLE": "Voer het domein in dat u wilt verbinden"
       },
       "UNLIMITED_FORMS": {
@@ -869,10 +879,11 @@
     }
   },
   "WORKSPACE": {
+    "FALLBACK_NAME": "Uw werkruimte",
     "ALL_RESPONDERS": "Alle antwoorders",
     "DEFAULT": "werkruimte",
     "BANNER": "Werkruimtebanner",
-    "BANNER_EMPTY_MESSAGE": "Je kunt slepen om de afbeelding aan te passen.",
+    "BANNER_EMPTY_MESSAGE": "U kunt slepen om de afbeelding aan te passen.",
     "DESCRIPTION": "Beschrijving werkruimte",
     "INVITATION_NOT_FOUND": "Uitnodiging niet gevonden",
     "LOGO.DESCRIPTION": "Zorg ervoor dat uw afbeelding kleiner is dan 100mb",
@@ -909,27 +920,27 @@
     "TITLE": "Bevestig Zichtbaarheid",
     "TEMPLATE": {
       "TITLE": "sjabloon",
-      "DESCRIPTION_PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. Je kunt dit sjabloon delen.",
-      "DESCRIPTION_PRIVATE": "Alleen jouw organisatie kan dit sjabloon gebruiken. Je kunt dit sjabloon niet delen."
+      "DESCRIPTION_PUBLIC": "Iedereen met de link kan dit sjabloon gebruiken. U kunt dit sjabloon delen.",
+      "DESCRIPTION_PRIVATE": "Alleen uw organisatie kan dit sjabloon gebruiken. U kunt dit sjabloon niet delen."
     },
     "FORM": {
       "TITLE": "formulier",
-      "DESCRIPTION_PUBLIC": "Iedereen met de link naar jouw formulierpagina kan toegang krijgen en het formulier bekijken.",
+      "DESCRIPTION_PUBLIC": "Iedereen met de link naar uw formulierpagina kan toegang krijgen en het formulier bekijken.",
       "DESCRIPTION_PRIVATE": "Niemand kan toegang krijgen tot of dit formulier bekijken."
     },
     "GROUP": {
       "TITLE": "Geen Groepen Geselecteerd.",
-      "DESCRIPTION": "Je hebt geen groepen geselecteerd voor je formulier. In dit geval wordt je formulier standaard openbaar gemaakt."
+      "DESCRIPTION": "U hebt geen groepen geselecteerd voor uw formulier. In dit geval wordt uw formulier standaard openbaar gemaakt."
     },
-    "ARE_YOU_SURE": "Weet je zeker dat je de"
+    "ARE_YOU_SURE": "Weet u zeker dat u de"
   },
   "CLICK_TO_COPY": "Klik om koppeling te kopiëren",
   "LOGO": {
     "UPDATE": "Bijwerken nieuw logo",
     "REMOVE": "Logo verwijderen"
   },
-  "HAVE_NOT_IMPORTED_OR_CREATED": "Je hebt geen formulier geïmporteerd of aangemaakt.",
-  "CREATE_OR_IMPORT": "Maak of importeer je eerste privacyvriendelijke formulier.",
+  "HAVE_NOT_IMPORTED_OR_CREATED": "U hebt geen formulier geïmporteerd of aangemaakt.",
+  "CREATE_OR_IMPORT": "Maak of importeer uw eerste privacyvriendelijke formulier.",
   "WORKSPACE_ROLES": {
     "OWNER": {
       "NAME": "Eigenaar",
@@ -972,8 +983,8 @@
     "BILLING_HANDLED_BY": "De facturering loopt via {{name}}",
     "BILLING_HANDLED_BY_OWNER": "De facturering loopt via de factuureigenaar van de werkruimte",
     "CANCEL": "Annuleren",
-    "NO_ACCESS": "Je hebt geen toegang tot deze pagina.",
-    "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. Je kunt het later wijzigen.",
+    "NO_ACCESS": "U hebt geen toegang tot deze pagina.",
+    "INVITE_DESCRIPTION": "Kies wat diegene in deze werkruimte mag doen. U kunt het later wijzigen.",
     "DELETED_ACCOUNT": "Verwijderd account"
   },
   "WORKSPACE_SECTIONS": {
