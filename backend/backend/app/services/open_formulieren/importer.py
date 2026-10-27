@@ -35,7 +35,9 @@ from backend.app.services.answer_validation import compile_pattern
 from backend.app.services.open_formulieren import limits
 from backend.app.services.open_formulieren import report as R
 from backend.app.services.open_formulieren.archive import Archive
-from backend.app.services.open_formulieren.errors import refuse
+from backend.app.services.open_formulieren import budget
+from backend.app.services.open_formulieren.numbers import as_plain, to_int, to_number
+from backend.app.services.open_formulieren.errors import ImportRefused, refuse, unexpected
 from backend.app.services.open_formulieren.logic import (
     Cond,
     Rule,
@@ -112,30 +114,8 @@ class Built:
     title: str
 
 
-def _int(value: Any) -> Optional[int]:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float) and value == int(value):
-        return int(value)
-    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
-        return int(value.strip())
-    return None
-
-
-def _number(value: Any) -> Optional[float]:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            number = float(value.strip())
-        except ValueError:
-            return None
-        return number if number == number and abs(number) != float("inf") else None
-    return None
+_int = to_int
+_number = to_number
 
 
 def _has_default(value: Any) -> bool:
@@ -372,6 +352,7 @@ class Planner:
         for comp in components:
             if not isinstance(comp, dict):
                 continue
+            budget.check()
             self._components += 1
             if self._components > limits.MAX_COMPONENTS:
                 raise refuse(
@@ -545,6 +526,8 @@ class Planner:
         )
         by_value: Dict[str, str] = {}
         texts: List[str] = []
+        used: set = set()
+        counts: Dict[str, int] = {}
         for option in raw[: limits.MAX_CHOICES + 1]:
             option = _dict(option)
             value = option.get("value")
@@ -555,14 +538,17 @@ class Planner:
             text = label_text(option.get("label"), limits.MAX_CHOICE) or label_text(
                 value, limits.MAX_CHOICE
             )
-            if not text:
+            if not text or value in by_value:
                 continue
-            base, number = text, 2
-            while text in texts:
-                text = f"{base} ({number})"
-                number += 1
-            if value in by_value:
-                continue
+            # distinct texts: a set and a counter per text (no list scans)
+            base = text
+            if text in used:
+                counts[base] = counts.get(base, 1) + 1
+                text = f"{base} ({counts[base]})"
+                while text in used:
+                    counts[base] += 1
+                    text = f"{base} ({counts[base]})"
+            used.add(text)
             by_value[value] = text
             texts.append(text)
         if len(texts) > limits.MAX_CHOICES:
@@ -732,9 +718,9 @@ class Planner:
                 dropped("min", R.WARNING)
                 low = high = None
             if low is not None:
-                patch["minValue"] = int(low) if low == int(low) else low
+                patch["minValue"] = as_plain(low)
             if high is not None:
-                patch["maxValue"] = int(high) if high == int(high) else high
+                patch["maxValue"] = as_plain(high)
         if of_type == "selectboxes":
             total = len(question.choices)
             low, high = _int(validate.get("minSelectedCount")), _int(
@@ -976,6 +962,7 @@ class _Ops:
 
 def _logic_ops(planner: Planner, ops: _Ops, report: Report) -> None:
     for question in _all_questions(planner):
+        budget.check()
         if question.failed:
             continue
         own = question.chain
@@ -1164,7 +1151,19 @@ def _refused(planner: Planner, ops: _Ops, index: int, why: str) -> None:
 
 
 def build_draft(archive: Archive) -> Built:
-    """The draft form and the report, or ``ImportRefused``."""
+    """The draft form and the report, or ``ImportRefused``. Within the
+    import's work budget; anything unexpected from the file's content is a
+    refusal of the archive, not a server error."""
+    with budget.scope():
+        try:
+            return _build_draft(archive)
+        except ImportRefused:
+            raise
+        except Exception as error:  # noqa: BLE001
+            raise unexpected(error) from None
+
+
+def _build_draft(archive: Archive) -> Built:
     report = Report()
     planner = Planner(archive, report)
     planner.plan()

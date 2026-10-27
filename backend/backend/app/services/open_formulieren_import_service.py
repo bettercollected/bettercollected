@@ -11,6 +11,7 @@ uploaded file kept) and the form's workspace settings carry the
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import hashlib
 from http import HTTPStatus
@@ -25,7 +26,8 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.services.open_formulieren.archive import read_archive
-from backend.app.services.open_formulieren.errors import ImportRefused
+from backend.app.services.open_formulieren import budget, limits
+from backend.app.services.open_formulieren.errors import ImportRefused, unexpected
 from backend.app.services.open_formulieren.importer import Built, build_draft
 from backend.app.services.open_formulieren.mapping import SOURCE_KIND
 from backend.app.services.open_formulieren.text import label_text
@@ -35,10 +37,32 @@ from backend.config import settings
 NOT_FOUND_CODE = "import_not_found"
 
 
+# Imports building at once in this process: decoding and building are
+# CPU-bound, hold the interpreter lock and cannot be cancelled, so only a few
+# run together; another gets 503 import_busy (retry later). Created on first
+# use, so it belongs to the running event loop.
+_SLOTS: Optional[asyncio.Semaphore] = None
+
+
+def _slots() -> asyncio.Semaphore:
+    global _SLOTS
+    if _SLOTS is None:
+        _SLOTS = asyncio.Semaphore(limits.MAX_CONCURRENT_IMPORTS)
+    return _SLOTS
+
+
 def _build(data: bytes) -> tuple:
-    """CPU-bound: decode and build. Returns (archive version, Built)."""
-    archive = read_archive(data)
-    return archive.version, build_draft(archive)
+    """CPU-bound: decode and build, within one work budget. Returns
+    (archive version, Built). Anything unexpected from the file's content is a
+    refusal of the archive."""
+    with budget.scope():
+        try:
+            archive = read_archive(data)
+            return archive.version, build_draft(archive)
+        except ImportRefused:
+            raise
+        except Exception as error:  # noqa: BLE001
+            raise unexpected(error) from None
 
 
 def _refusal(error: ImportRefused) -> HTTPException:
@@ -77,8 +101,20 @@ class OpenFormulierenImportService:
         self, workspace_id: RecordId, data: bytes, file_name: Optional[str], user: User
     ) -> FormImportDocument:
         await self.authorize_start(workspace_id, user)
+        await self._check_daily_limit(workspace_id)
+        slots = _slots()
+        if slots.locked():
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                content={
+                    "code": "import_busy",
+                    "message": "Other imports are running. Please try again in a moment.",
+                },
+                headers={"Retry-After": "5"},
+            )
         try:
-            version, built = await run_in_threadpool(_build, data)
+            async with slots:
+                version, built = await run_in_threadpool(_build, data)
         except ImportRefused as refused:
             raise _refusal(refused) from None
 
@@ -112,6 +148,24 @@ class OpenFormulierenImportService:
             raise
         # as stored (the database keeps milliseconds)
         return await self._repo.get(record.id) or record
+
+    async def _check_daily_limit(self, workspace_id: RecordId) -> None:
+        """Open Formulieren imports have their own per-workspace daily limit
+        (not shared with the PDF import's). A cheap look before any work: a
+        burst of parallel uploads may pass it together by a few."""
+        limit = settings.open_formulieren.IMPORTS_PER_WORKSPACE_PER_DAY
+        since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+        done = await self._repo.count_created_since(
+            workspace_id, since, kind=SOURCE_KIND
+        )
+        if done >= limit:
+            raise HTTPException(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                content={
+                    "code": "import_limit",
+                    "message": f"This workspace has reached {limit} imports in the last 24 hours. Please try again later.",
+                },
+            )
 
     async def get(
         self, workspace_id: RecordId, import_id: RecordId, user: User

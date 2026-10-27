@@ -37,3 +37,15 @@ MAX_REPORT_ITEMS = 500
 
 # the series of Open Formulieren releases we read (MAJOR.MINOR)
 ACCEPTED_SERIES = ((4, 0),)
+
+# one import may process this many characters of text and run this long
+# (seconds, wall clock) before it is refused as too complex
+MAX_TEXT_CHARS = 1_500_000
+BUILD_SECONDS = 5.0
+# imports running at once in this process (more: 503 import_busy)
+MAX_CONCURRENT_IMPORTS = 2
+# number parsing: anything longer or larger is not a number we use
+MAX_NUMBER_TEXT = 64
+MAX_NUMBER_VALUE = 10**15
+# parts of a multipart upload we look at (one file is all we need)
+MAX_UPLOAD_PARTS = 4
