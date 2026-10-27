@@ -503,6 +503,7 @@
       "TEXT": "Dit formulier is geïmporteerd uit Open Formulieren en moet nog worden nagekeken.",
       "LINK": "Bekijk het importrapport"
     },
+    "TEMPLATE_BLOCKED": "Het is geïmporteerd uit Open Formulieren. Er kan pas een sjabloon van worden gemaakt nadat u het als nagekeken hebt gemarkeerd, na het doornemen van het importrapport.",
     "PUBLISH_BLOCKED": {
       "TITLE": "Dit formulier moet nog worden nagekeken",
       "TEXT": "Het is geïmporteerd uit Open Formulieren. U kunt pas publiceren nadat u het importrapport hebt doorgenomen en als nagekeken hebt gemarkeerd.",

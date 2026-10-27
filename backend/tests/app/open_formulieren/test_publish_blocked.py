@@ -506,3 +506,147 @@ async def test_clearing_the_mark_keeps_its_permission(
     token = access_token(invited_user)
     viewer = {"Authorization": token, "RefreshToken": token}
     assert (await _review(client, workspace, record.id, viewer)).status_code == 403
+
+
+# ---------------------------------------------------------- templates
+
+
+async def _templates(workspace) -> int:
+    repo = container.form_template_repo()
+    total = 0
+    for v2 in (True, False):
+        total += len(
+            await repo.get_templates_with_creator(v2=v2, workspace_id=workspace.id)
+        )
+    return total
+
+
+def _template_path(workspace, form_id) -> str:
+    return f"/api/v1/workspaces/{workspace.id}/form/{form_id}/template"
+
+
+def _template_refusal(content) -> dict:
+    """The refusal of a template: ``needs_review`` with the problem shape of a
+    refused publish (same ``importId``), and nothing of the report."""
+    assert content["code"] == NEEDS_REVIEW
+    assert [p["code"] for p in content["problems"]] == [NEEDS_REVIEW]
+    assert "SECRET LABEL" not in str(content)
+    return content["problems"][0]
+
+
+async def test_the_template_endpoint_refuses_while_marked_then_works_once_cleared(
+    client: AsyncClient, workspace, test_user_cookies, import_on
+):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    before = await _templates(workspace)
+    path = _template_path(workspace, form_id)
+
+    response = await client.post(path, cookies=test_user_cookies)
+    assert response.status_code == 422, response.text
+    assert _template_refusal(response.json())["importId"] == str(record.id)
+    assert "template" in response.json()["message"]
+    assert await _templates(workspace) == before
+
+    assert (await _review(client, workspace, record.id, test_user_cookies)).status_code == 200
+    made = await client.post(path, cookies=test_user_cookies)
+    assert made.status_code == 200, made.text
+    assert await _templates(workspace) == before + 1
+
+
+async def test_the_service_refuses_a_template_while_marked(workspace, import_on):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    before = await _templates(workspace)
+    with pytest.raises(HTTPException) as raised:
+        await container.workspace_form_service().duplicate_form(
+            workspace.id, form_id, testUser, is_template=True
+        )
+    assert raised.value.status_code == 422
+    assert _template_refusal(raised.value.content)["importId"] == str(record.id)
+    assert await _templates(workspace) == before
+
+
+async def test_a_template_stays_refused_with_the_switch_off_and_works_after_clearing(
+    client, workspace, test_user_cookies
+):
+    """The mark alone decides, as for publishing: the import switch is not
+    consulted, and the review call clears it whether or not it is on."""
+    assert settings.open_formulieren.IMPORT == "off"
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    path = _template_path(workspace, form_id)
+    assert (await client.post(path, cookies=test_user_cookies)).status_code == 422
+    assert (await _review(client, workspace, record.id, test_user_cookies)).status_code == 200
+    assert (await client.post(path, cookies=test_user_cookies)).status_code == 200
+
+
+async def test_a_copy_of_a_marked_form_is_refused_as_a_template_too(
+    client, workspace, test_user_cookies, import_on
+):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    copy = await container.workspace_form_service().duplicate_form(
+        workspace.id, form_id, testUser
+    )
+    path = _template_path(workspace, copy.form_id)
+    refused = await client.post(path, cookies=test_user_cookies)
+    assert refused.status_code == 422
+    assert _template_refusal(refused.json())["importId"] == str(record.id)
+    # clearing the import clears the copy's mark with it
+    await _review(client, workspace, record.id, test_user_cookies)
+    assert (await client.post(path, cookies=test_user_cookies)).status_code == 200
+
+
+async def test_a_normal_duplicate_of_a_marked_form_still_works_and_keeps_the_mark(
+    client, workspace, test_user_cookies, import_on
+):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    before = await _templates(workspace)
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/duplicate",
+        cookies=test_user_cookies,
+    )
+    assert response.status_code == 200, response.text
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, response.json()["formId"]
+    )
+    assert (link.settings.needs_review, link.settings.import_id) == (True, str(record.id))
+    assert await _templates(workspace) == before
+
+
+async def test_a_template_from_an_unmarked_or_reviewed_form_is_made_as_before(
+    client, workspace, test_user_cookies, import_on
+):
+    plain = await _draft(workspace)
+    assert (
+        await client.post(_template_path(workspace, plain), cookies=test_user_cookies)
+    ).status_code == 200
+    reviewed = await _draft(workspace)
+    record = await _mark(workspace, reviewed)
+    await _review(client, workspace, record.id, test_user_cookies)
+    assert (
+        await client.post(_template_path(workspace, reviewed), cookies=test_user_cookies)
+    ).status_code == 200
+
+
+async def test_a_template_needs_form_create_before_the_mark_is_mentioned(
+    client: AsyncClient, workspace, import_on
+):
+    """Permissions are unchanged: a viewer is refused (403), not told about
+    the mark."""
+    form_id = await _draft(workspace)
+    await _mark(workspace, form_id)
+    link = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, invited_user.id
+    )
+    link.roles = [WorkspaceRoles.VIEWER]
+    await container.workspace_user_repo().save(link)
+    token = access_token(invited_user)
+    response = await client.post(
+        _template_path(workspace, form_id),
+        cookies={"Authorization": token, "RefreshToken": token},
+    )
+    assert response.status_code == 403
+    assert "importId" not in response.text

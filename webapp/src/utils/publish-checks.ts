@@ -194,6 +194,17 @@ export function needsReviewProblem(problems: PublishProblem[]): PublishProblem |
 }
 
 /**
+ * The problem a refused template carries (422 `needs_review`: the form is an
+ * import that still needs review), if the error is that refusal. It has the
+ * problem shape of a refused publish, with the same `importId`.
+ */
+export function templateReviewProblem(error: any): PublishProblem | undefined {
+    const body = error?.data ?? error;
+    if (body?.code !== 'needs_review' || !Array.isArray(body?.problems)) return undefined;
+    return needsReviewProblem(body.problems.filter((problem: any) => typeof problem?.message === 'string'));
+}
+
+/**
  * Which problems stop publishing and which are only recommended. "Why we ask
  * this" is required of forms created under the publish checks
  * (`settings.publishChecksVersion`); forms made before them were published
