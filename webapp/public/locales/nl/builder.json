@@ -148,7 +148,13 @@
       "DELETE_NAMED": "{{name}} verwijderen",
       "DELETE_TITLE": "{{name}} verwijderen?",
       "DELETE_TEXT": "Formulieren kunnen er dan niet meer naartoe versturen. Inzendingen die al zijn verstuurd, blijven waar ze zijn.",
-      "DELETED": "{{name}} is verwijderd."
+      "DELETED": "{{name}} is verwijderd.",
+      "KIND": "Soort",
+      "KIND_GENERIC_JSON": "Generic JSON",
+      "KIND_OBJECTS_API": "Objects API",
+      "OBJECTTYPES_ADDRESS": "Adres van de objecttypen",
+      "AUTH_TOKEN": "Een token",
+      "TOKEN": "Token"
     },
     "DIALOG": {
       "ADD_TITLE": "Zaaksysteem toevoegen",
@@ -176,7 +182,22 @@
       "REQUIRED": "Vul dit veld in.",
       "SAVE": "Opslaan",
       "SAVING": "Bezig met opslaan…",
-      "CANCEL": "Annuleren"
+      "CANCEL": "Annuleren",
+      "KIND": "Soort",
+      "KIND_GENERIC": "Generic JSON: als JSON versturen",
+      "KIND_OBJECTS": "Objects API: een object aanmaken",
+      "KIND_FIXED": "Het soort kan niet meer worden gewijzigd nadat het zaaksysteem is toegevoegd.",
+      "INTRO_OBJECTS": "Elke inzending maakt een object aan in deze Objects API, via https. Alleen de antwoorden die een formulier koppelt, worden verstuurd.",
+      "OBJECTS_ADDRESS": "Adres van de Objects API",
+      "OBJECTS_ADDRESS_HINT": "Begin met https://, bijvoorbeeld https://objects.example.org/api/v2/. Wij voegen “objects” toe. Geen poort, gebruikersnaam of query.",
+      "OBJECTTYPES_ADDRESS": "Adres van de objecttypen",
+      "OBJECTTYPES_ADDRESS_HINT": "Het objecttypeadres van elk formulier moet hiermee beginnen. We openen dit adres nooit.",
+      "TOKEN": "Token",
+      "TOKEN_HINT": "We bewaren het versleuteld en tonen het nooit meer. Het heeft lees- en schrijfrechten nodig op de objecttypen die u gebruikt: we lezen om te controleren of een object al is aangemaakt voordat we opnieuw versturen.",
+      "TOKEN_AGAIN": "U hebt het adres van de Objects API gewijzigd. Vul het token daarom opnieuw in.",
+      "TOKEN_SET_ON": "Er is een token ingesteld op {{date}}. Het wordt nooit getoond.",
+      "TOKEN_REPLACE": "Token vervangen",
+      "INTRO_NEW": "Kies het soort zaaksysteem dat u koppelt en vul de gegevens in."
     },
     "ERROR": {
       "invalid_url": "Gebruik een gewoon https://-adres, zonder poort, gebruikersnaam of query.",
@@ -201,7 +222,21 @@
       "registration_off": "Versturen naar een zaaksysteem staat uit op deze server.",
       "forbidden": "U hebt hier geen toestemming voor.",
       "not_found": "Dit is niet gevonden. Laad de pagina opnieuw.",
-      "unknown": "Er ging iets mis. Probeer het opnieuw."
+      "unknown": "Er ging iets mis. Probeer het opnieuw.",
+      "invalid_auth": "Dit soort zaaksysteem logt alleen in met een token.",
+      "objecttypes_base_required": "Vul het adres van de objecttypen in.",
+      "objecttypes_base_not_applicable": "Het adres van de objecttypen hoort alleen bij een Objects API.",
+      "invalid_object_type_url": "Gebruik een adres als https://host/api/v2/objecttypes/<id>: https, zonder poort, gebruikersnaam of query, eindigend op /objecttypes/ en de id (een UUID) van het objecttype.",
+      "object_type_outside_base": "Dit adres valt niet onder het adres van de objecttypen van het zaaksysteem. Een beheerder van de werkruimte stelt dat adres in.",
+      "invalid_object_type_version": "Gebruik een geheel getal van 1 tot en met 10000.",
+      "object_type_required": "Vul het adres en de versie van het objecttype in.",
+      "invalid_target_path": "Gebruik namen gescheiden door punten, zoals aanvrager.postcode: letters, cijfers en _, beginnend met een letter, maximaal 8 niveaus, geen __ en geen _ aan het eind.",
+      "target_path_conflict": "Twee antwoorden komen op dezelfde plek terecht, of het ene binnen het andere. Geef elk een eigen pad.",
+      "invalid_reference_path": "Gebruik namen gescheiden door punten, zoals bettercollected_reference: letters, cijfers en _, beginnend met een letter, maximaal 8 niveaus, geen __ en geen _ aan het eind.",
+      "reference_path_conflict": "Het pad van de referentie mag niet gelijk zijn aan het pad van een antwoord, dat pad niet bevatten en er niet binnen vallen.",
+      "not_an_objects_api": "Deze instellingen gelden alleen voor een Objects API.",
+      "rate_limited": "Te veel controles. Wacht een minuut en probeer het opnieuw.",
+      "address_either": "Dit geldt voor het adres van de Objects API of voor dat van de objecttypen."
     },
     "TEST": {
       "ok": "De test is aangekomen. Het zaaksysteem heeft hem geaccepteerd.",
@@ -215,7 +250,8 @@
       "http_5xx": "Het zaaksysteem had een fout (HTTP {{status}}). Probeer het later opnieuw.",
       "secret_unreadable": "Het bewaarde geheim kan niet worden gelezen. Vervang het.",
       "config_invalid": "De instellingen van dit zaaksysteem zijn niet compleet. Wijzig en bewaar ze.",
-      "unknown": "De test is mislukt."
+      "unknown": "De test is mislukt.",
+      "use_form_check": "Een Objects API wordt per formulier gecontroleerd. Open de instellingen van het formulier en kies “Verbinding controleren”."
     },
     "FORM": {
       "TITLE": "Inzendingen naar een zaaksysteem sturen",
@@ -238,13 +274,31 @@
       "ALWAYS_SENT": "Altijd verstuurd: een openbare referentie, de versie van het formulier en het tijdstip van de inzending.",
       "REASON": {
         "not_an_answer": "Geen antwoord",
-        "type_not_supported": "Kan nog niet worden verstuurd"
+        "type_not_supported": "Kan nog niet worden verstuurd",
+        "file_upload": "Bestanden kunnen niet naar een Objects API"
       },
       "DROPPED_one": "{{count}} gekozen antwoord staat niet meer in dit formulier en is weggelaten.",
       "DROPPED_other": "{{count}} gekozen antwoorden staan niet meer in dit formulier en zijn weggelaten.",
       "LATER_ONLY": "Dit geldt alleen voor latere inzendingen. Eerdere inzendingen worden niet verstuurd.",
       "SAVE": "Opslaan",
-      "SAVED": "Opgeslagen. Dit geldt voor latere inzendingen."
+      "SAVED": "Opgeslagen. Dit geldt voor latere inzendingen.",
+      "OBJECTS_HELP": "Het token heeft lees- en schrijfrechten nodig op het objecttype. Lezen gebruiken we om een object te vinden dat we al hebben aangemaakt, voordat een inzending opnieuw wordt verstuurd.",
+      "OBJECTS_EDGE": "Als de Objects API een nieuw object pas laat in de zoekresultaten toont, kan een nieuwe poging een minuut later het object dubbel aanmaken. De documentatie beschrijft dit.",
+      "SENDS_TO_OBJECTS": "Maakt objecten aan bij {{address}}",
+      "OBJECT_TYPE_URL": "Adres van het objecttype",
+      "OBJECT_TYPE_URL_HINT": "Eindigt op /objecttypes/ en de id van het objecttype. Het moet onder het adres van de objecttypen van het zaaksysteem vallen: {{base}}. We openen dit adres nooit.",
+      "OBJECT_TYPE_VERSION": "Versie van het objecttype",
+      "OBJECT_TYPE_VERSION_HINT": "Een geheel getal van 1 tot en met 10000.",
+      "REFERENCE_PATH": "Pad van de referentie",
+      "REFERENCE_PATH_HINT": "Waar we een verwijzing naar elke inzending in de gegevens van het object zetten, zodat een nieuwe poging het object kan vinden. Het schema van uw objecttype moet dit toestaan. Gebruik punten voor geneste namen.",
+      "VARIABLES_HINT_OBJECTS": "Vink de antwoorden aan die moeten worden verstuurd en geef elk de plek in de gegevens van het object, zoals aanvrager.postcode. Meerkeuzeantwoorden worden als lijst verstuurd. Onbeantwoorde vragen worden weggelaten.",
+      "TARGET_PATH": "Plek in de gegevens van het object",
+      "TARGET_TAKEN": "Een ander antwoord gaat al naar deze plek of erbinnen.",
+      "CHECK": "Verbinding controleren",
+      "CHECKING": "Bezig met controleren…",
+      "CHECK_HINT": "Gebruikt de opgeslagen instellingen. Er worden geen records gelezen of aangemaakt.",
+      "CHECK_SAVE_FIRST": "Sla uw wijzigingen op om ze te controleren.",
+      "FIX_ERRORS": "Een aantal velden vraagt uw aandacht. Er is niets opgeslagen."
     },
     "DELIVERY": {
       "TITLE": "Versturen naar een zaaksysteem",
@@ -271,23 +325,50 @@
       "RETRY_STARTED": "We versturen hem opnieuw. Dit kan een minuut duren.",
       "SHOW_MORE": "Meer tonen",
       "ERROR": {
-        "unreachable": "Het zaaksysteem was niet bereikbaar.",
-        "timeout": "Het zaaksysteem antwoordde niet op tijd.",
-        "tls_error": "De beveiligde verbinding mislukte.",
-        "not_allowed": "Het adres verwijst naar een privénetwerk.",
-        "invalid_url": "Het adres is niet geldig.",
-        "redirect_refused": "Het adres stuurt ons ergens anders heen.",
-        "http_4xx": "Het zaaksysteem weigerde de inzending (HTTP {{status}}).",
-        "http_5xx": "Het zaaksysteem had een fout (HTTP {{status}}).",
-        "too_large": "De inzending was te groot om te versturen.",
-        "config_invalid": "De instellingen voor het versturen zijn niet compleet.",
-        "secret_unreadable": "Het bewaarde geheim kan niet worden gelezen.",
-        "answers_unreadable": "De antwoorden konden niet worden gelezen.",
-        "file_missing": "Een geüpload bestand ontbreekt.",
-        "disabled": "Het versturen is uitgezet voor dit formulier.",
-        "internal_error": "Er ging iets mis aan onze kant.",
-        "unknown": "Er is geen reden vastgelegd."
-      }
+        "unreachable": "Het zaaksysteem was bij geen enkele poging bereikbaar. Controleer of het online is en of het adres klopt. Opnieuw proberen is veilig.",
+        "timeout": "Het zaaksysteem antwoordde bij geen enkele poging op tijd. Controleer of het draait. Opnieuw proberen is veilig.",
+        "tls_error": "De beveiligde verbinding met het zaaksysteem mislukte, bijvoorbeeld door het certificaat. Vraag de beheerder ervan dit te controleren. Opnieuw proberen is veilig.",
+        "not_allowed": "Het adres van het zaaksysteem verwijst naar een privénetwerk, daar versturen we niet naartoe. Een beheerder van de werkruimte moet het adres wijzigen, daarna kunt u het opnieuw proberen.",
+        "invalid_url": "Het adres van het zaaksysteem is niet geldig. Een beheerder van de werkruimte moet het corrigeren, daarna kunt u het opnieuw proberen.",
+        "redirect_refused": "Het adres stuurt ons ergens anders heen en dat volgen we niet. Een beheerder van de werkruimte moet het uiteindelijke adres invullen, daarna kunt u het opnieuw proberen.",
+        "http_4xx": "Het zaaksysteem weigerde de inzending (HTTP {{status}}). Controleer het adres, het inloggen en wat het zaaksysteem verwacht, en probeer het dan opnieuw.",
+        "http_5xx": "Het zaaksysteem had bij elke poging een fout (HTTP {{status}}). Probeer het later opnieuw; opnieuw proberen is veilig.",
+        "too_large": "De inzending was te groot om te versturen. Ze kan zo niet worden verstuurd.",
+        "config_invalid": "De instellingen waarmee deze inzending voor het eerst werd verstuurd, gelden niet meer, dus ze kan niet veilig worden verstuurd en gaat nergens anders heen. Bijvoorbeeld: het zaaksysteem is verwijderd of verplaatst, het objecttype valt buiten het adres van de objecttypen, of een gekoppelde vraag is een bestandsvraag geworden. Latere inzendingen gebruiken de huidige instellingen.",
+        "secret_unreadable": "Het bewaarde geheim (wachtwoord, headerwaarde of token) kan niet worden gelezen. Een beheerder van de werkruimte moet het opnieuw invullen in de instellingen voor zaaksystemen, daarna kunt u het opnieuw proberen.",
+        "answers_unreadable": "De bewaarde antwoorden van deze inzending konden niet worden gelezen, dus er kon niets worden verstuurd. Opnieuw proberen helpt niet. Vraag uw beheerder dit uit te zoeken.",
+        "file_missing": "Een geüpload bestand van deze inzending ontbreekt, dus ze kan zo niet worden verstuurd.",
+        "disabled": "Het versturen was uitgezet voor dit formulier, dus er is niets verstuurd. Zet het weer aan in de instellingen van het formulier en probeer het dan opnieuw.",
+        "internal_error": "Er ging iets mis aan onze kant. Probeer het opnieuw; lukt het weer niet, vraag uw beheerder dit uit te zoeken.",
+        "unknown": "Er is geen reden vastgelegd.",
+        "lookup_failed": "We konden niet vaststellen of het record al bestaat in de Objects API, dus er is niets opnieuw verstuurd. Controleer de leesrechten van het token en het objecttype, of gebruik “Verbinding controleren” bij het formulier, en probeer het dan opnieuw. Een nieuwe poging zoekt eerst, dus er ontstaat geen dubbel object.",
+        "http_4xx_schema": "Het objecttype accepteerde de gegevens niet (HTTP 400). De antwoorden passen niet in het schema. Controleer de gekoppelde antwoorden met het objecttype; een correctie in de instellingen van het formulier geldt voor latere inzendingen, niet voor deze.",
+        "http_4xx_token": "De Objects API weigerde het token (HTTP {{status}}). Controleer of het token klopt en naar het objecttype mag schrijven, en probeer het dan opnieuw."
+      },
+      "DELIVERED_LIST": "Verstuurde inzendingen",
+      "SHOW_DELIVERED": "Verstuurde inzendingen tonen",
+      "HIDE_DELIVERED": "Verstuurde inzendingen verbergen",
+      "SENT_AT": "Verstuurd: {{time}}",
+      "OBJECT_ID": "Object-id",
+      "REGISTRATION_ERROR": "De instellingen van dit formulier konden niet worden geladen, dus de leveringen zijn mogelijk onvolledig. Laad de pagina opnieuw.",
+      "SENT_SHOWING": "{{shown}} van {{total}} getoond"
+    },
+    "CHECK": {
+      "ok": "De verbinding werkt. De Objects API antwoordde zoals verwacht. Er is niets gelezen of aangemaakt.",
+      "not_configured": "Sla eerst het objecttype, de versie en minstens één antwoord op.",
+      "lookup_failed": "De Objects API weigerde het opzoeken, of het antwoord kon niet worden gelezen. Controleer of het token leesrechten heeft op dit objecttype.",
+      "filter_not_supported": "De Objects API controleert het zoekfilter niet dat wij gebruiken om een bestaand object te vinden. Een nieuwe poging kan dan een tweede object aanmaken, dus versturen is hiermee niet veilig.",
+      "secret_unreadable": "Het bewaarde token kan niet worden gelezen. Vervang het in de instellingen van de werkruimte.",
+      "config_invalid": "De instellingen zijn niet compleet. Sla ze opnieuw op.",
+      "unreachable": "De Objects API was niet bereikbaar.",
+      "timeout": "De Objects API antwoordde niet op tijd.",
+      "tls_error": "De beveiligde verbinding mislukte. Controleer het certificaat.",
+      "not_allowed": "Het adres verwijst naar een privénetwerk.",
+      "invalid_url": "Het adres is niet geldig.",
+      "redirect_refused": "Het adres stuurt ons ergens anders heen. Gebruik het uiteindelijke adres.",
+      "http_5xx": "De Objects API had een fout (HTTP {{status}}). Probeer het later opnieuw.",
+      "rate_limited": "Te veel controles. Wacht een minuut en probeer het opnieuw.",
+      "unknown": "De controle is mislukt."
     }
   },
   "PDF_IMPORT": {
@@ -503,6 +584,9 @@
       "TEXT": "Dit formulier is geïmporteerd uit Open Formulieren en moet nog worden nagekeken.",
       "LINK": "Bekijk het importrapport"
     },
+    "TEMPLATE_BLOCKED": "Het is geïmporteerd uit Open Formulieren. Er kan pas een sjabloon van worden gemaakt nadat u het als nagekeken hebt gemarkeerd, na het doornemen van het importrapport.",
+    "TEMPLATE_CREATED": "Sjabloon gemaakt",
+    "TEMPLATE_FAILED": "Het sjabloon kon niet worden gemaakt. Probeer het opnieuw.",
     "PUBLISH_BLOCKED": {
       "TITLE": "Dit formulier moet nog worden nagekeken",
       "TEXT": "Het is geïmporteerd uit Open Formulieren. U kunt pas publiceren nadat u het importrapport hebt doorgenomen en als nagekeken hebt gemarkeerd.",

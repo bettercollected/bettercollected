@@ -11,8 +11,8 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
 import { httpUrl } from '@app/utils/http-url';
-import { describeRetention } from '@app/utils/retention';
 import { measurePrimaryActionFit } from '@app/utils/panel-fit';
+import { describeRetention } from '@app/utils/retention';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, columnPlacementClass } from '@app/views/organism/layout/form-column';
@@ -159,7 +159,14 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
     if (aiUsed) rows.push({ key: 'ai', term: t('PRIVACY.AI'), detail: aiProvider ? t('PRIVACY.AI_USED', { provider: aiProvider }) : t('PRIVACY.AI_USED_NO_PROVIDER') });
     const destination = registrationDestination?.organisation?.trim();
     // The answers leave the form for a second place: say so, with its name.
-    if (destination) rows.push({ key: 'registration', term: t('PRIVACY.REGISTRATION'), detail: t('PRIVACY.REGISTRATION_DESTINATION', { organisation: destination }) });
+    // Any external registration (Generic JSON or the Objects API) also says that
+    // deleting here leaves the copy there, and who to ask.
+    if (destination)
+        rows.push({
+            key: 'registration',
+            term: t('PRIVACY.REGISTRATION'),
+            detail: `${t('PRIVACY.REGISTRATION_DESTINATION', { organisation: destination })} ${t('PRIVACY.REGISTRATION_NO_DELETION', { organisation: destination })}`
+        });
     rows.push({
         key: 'rights',
         term: t('PRIVACY.RIGHTS'),

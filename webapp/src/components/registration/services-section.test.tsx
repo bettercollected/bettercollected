@@ -214,7 +214,7 @@ describe('Add and edit', () => {
         expect(dialog).not.toHaveTextContent('RAW SERVER TEXT');
         // tied to its field when it is about one, else announced
         const field = serviceErrorField(code);
-        if (field) expect(dialog.querySelector('[aria-invalid="true"]')).not.toBeNull();
+        if (field && field !== 'objecttypesBaseUrl') expect(dialog.querySelector('[aria-invalid="true"]')).not.toBeNull();
         else expect(within(dialog).getByRole('alert')).toHaveTextContent(en.ERROR[code]);
     });
 
@@ -296,5 +296,166 @@ describe('Accessibility', () => {
         const address = await screen.findByLabelText(en.DIALOG.ADDRESS);
         await waitFor(() => expect(address).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.invalid_url)));
         expect(await axeViolations(document.body)).toEqual([]);
+    });
+});
+
+const objectsService = (overrides: Partial<RegistrationService> = {}): RegistrationService => ({
+    id: 's9',
+    name: 'Objects',
+    kind: 'objects_api',
+    baseUrl: 'https://objects.example.org/api/v2/',
+    objecttypesBaseUrl: 'https://types.example.org/api/v2/',
+    auth: 'token',
+    hasSecret: true,
+    secretSetAt: '2026-10-20T09:00:00Z',
+    organisationName: 'Example Organisation',
+    ...overrides
+});
+
+describe('Objects API services', () => {
+    const pickObjects = () => fireEvent.change(screen.getByLabelText(en.DIALOG.KIND), { target: { value: 'objects_api' } });
+    const fillObjects = (token = 'tok-ABC123') => {
+        fireEvent.change(screen.getByLabelText(en.DIALOG.NAME), { target: { value: 'Objects' } });
+        fireEvent.change(screen.getByLabelText(en.DIALOG.OBJECTS_ADDRESS), { target: { value: 'https://objects.example.org/api/v2/' } });
+        fireEvent.change(screen.getByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS), { target: { value: 'https://types.example.org/api/v2/' } });
+        fireEvent.change(screen.getByLabelText(en.DIALOG.TOKEN), { target: { value: token } });
+    };
+
+    it('offers Generic JSON and the Objects API, and swaps the fields with the kind', () => {
+        queryState.data = [];
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        const picker = screen.getByLabelText(en.DIALOG.KIND) as HTMLSelectElement;
+        expect(Array.from(picker.options).map((o) => o.value)).toEqual(['generic_json', 'objects_api']);
+        expect(picker.value).toBe('generic_json');
+        expect(screen.getByLabelText(en.DIALOG.AUTH)).toBeInTheDocument();
+        expect(screen.queryByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS)).toBeNull();
+        pickObjects();
+        expect(screen.queryByLabelText(en.DIALOG.AUTH)).toBeNull();
+        expect(screen.getByLabelText(en.DIALOG.OBJECTS_ADDRESS)).toBeInTheDocument();
+        expect(screen.getByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS)).toBeInTheDocument();
+        expect(screen.getByLabelText(en.DIALOG.TOKEN)).toHaveAttribute('type', 'password');
+    });
+
+    it('creates an Objects API service: the token goes out once, as a password field, and never comes back', async () => {
+        queryState.data = [];
+        createMock.mockResolvedValue({ data: objectsService() });
+        const { baseElement } = renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        pickObjects();
+        fillObjects();
+        expect(screen.getByLabelText(en.DIALOG.TOKEN)).toHaveValue('tok-ABC123');
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+        expect(createMock).toHaveBeenCalledWith({
+            workspaceId: 'ws1',
+            body: { name: 'Objects', kind: 'objects_api', baseUrl: 'https://objects.example.org/api/v2/', objecttypesBaseUrl: 'https://types.example.org/api/v2/', organisationName: 'Acme Health', secret: 'tok-ABC123' }
+        });
+        // no sign-in method for this kind: the server's token is implied
+        expect(createMock.mock.calls[0][0].body).not.toHaveProperty('auth');
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(resetMock).toHaveBeenCalled();
+        expect(baseElement.innerHTML).not.toContain('tok-ABC123');
+        // reopened: empty
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        pickObjects();
+        expect(screen.getByLabelText(en.DIALOG.TOKEN)).toHaveValue('');
+    });
+
+    it('refuses an empty token or one with a space, without sending', () => {
+        queryState.data = [];
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        pickObjects();
+        fillObjects('');
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        expect(screen.getByLabelText(en.DIALOG.TOKEN)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.secret_required));
+        fireEvent.change(screen.getByLabelText(en.DIALOG.TOKEN), { target: { value: 'two words' } });
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        expect(screen.getByLabelText(en.DIALOG.TOKEN)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.invalid_secret));
+        expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it('requires the object types address', () => {
+        queryState.data = [];
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        pickObjects();
+        fillObjects();
+        fireEvent.change(screen.getByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS), { target: { value: '' } });
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        expect(createMock).not.toHaveBeenCalled();
+        expect(screen.getByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS)).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('shows an unclear address refusal once for both addresses, and a token refusal at the token', async () => {
+        queryState.data = [];
+        createMock.mockResolvedValue({ error: { status: 422, data: { code: 'not_allowed' } } });
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.ADD }));
+        pickObjects();
+        fillObjects();
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        const dialog = await screen.findByRole('dialog');
+        await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent(en.ERROR.not_allowed));
+        expect(within(dialog).getByRole('alert')).toHaveTextContent(en.ERROR.address_either);
+    });
+
+    it('lists it with both addresses and the token as "set", never the token', () => {
+        queryState.data = [{ ...objectsService(), secret: 'LEAK-9' } as any];
+        const { container } = renderSection();
+        const card = screen.getByTestId('registration-service-s9');
+        expect(card).toHaveTextContent(en.SERVICES.KIND_OBJECTS_API);
+        expect(card).toHaveTextContent('https://objects.example.org/api/v2/');
+        expect(card).toHaveTextContent('https://types.example.org/api/v2/');
+        expect(card).toHaveTextContent(/Set on .+2026.*It is never shown/);
+        expect(container.innerHTML).not.toContain('LEAK-9');
+    });
+
+    it('has no Test button for this kind, but says the check is done per form', () => {
+        queryState.data = [objectsService()];
+        renderSection();
+        expect(screen.queryByRole('button', { name: /Send a test/ })).toBeNull();
+        expect(screen.getByTestId('registration-test-note-s9')).toHaveTextContent(en.TEST.use_form_check);
+        expect(testMock).not.toHaveBeenCalled();
+    });
+
+    it('edits: the kind is fixed, the token is not prefilled, and only the object types address changes without a token', async () => {
+        queryState.data = [objectsService()];
+        updateMock.mockResolvedValue({ data: objectsService() });
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.EDIT_NAMED.replace('{{name}}', 'Objects') }));
+        expect(screen.getByTestId('registration-service-kind-fixed')).toHaveTextContent(en.SERVICES.KIND_OBJECTS_API);
+        expect(screen.queryByLabelText(en.DIALOG.KIND)).toBeNull();
+        expect(screen.getByTestId('registration-secret-stored')).toHaveTextContent(/A token is set since .+2026/);
+        expect(screen.queryByLabelText(en.DIALOG.TOKEN)).toBeNull();
+        fireEvent.change(screen.getByLabelText(en.DIALOG.OBJECTTYPES_ADDRESS), { target: { value: 'https://types2.example.org/api/v2/' } });
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1));
+        expect(updateMock.mock.calls[0][0].body).toEqual({ objecttypesBaseUrl: 'https://types2.example.org/api/v2/' });
+    });
+
+    it('asks for the token again when the Objects API address changes', async () => {
+        queryState.data = [objectsService()];
+        updateMock.mockResolvedValue({ data: objectsService() });
+        renderSection();
+        fireEvent.click(screen.getByRole('button', { name: en.SERVICES.EDIT_NAMED.replace('{{name}}', 'Objects') }));
+        fireEvent.change(screen.getByLabelText(en.DIALOG.OBJECTS_ADDRESS), { target: { value: 'https://objects2.example.org/api/v2/' } });
+        const token = screen.getByLabelText(en.DIALOG.TOKEN);
+        expect(token).toHaveAccessibleDescription(en.DIALOG.TOKEN_AGAIN);
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        expect(updateMock).not.toHaveBeenCalled();
+        fireEvent.change(token, { target: { value: 'new-token-1' } });
+        fireEvent.click(screen.getByRole('button', { name: en.DIALOG.SAVE }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1));
+        expect(updateMock.mock.calls[0][0].body).toEqual({ baseUrl: 'https://objects2.example.org/api/v2/', secret: 'new-token-1' });
+    });
+
+    it('speaks Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        queryState.data = [objectsService()];
+        renderSection();
+        expect(screen.getByTestId('registration-test-note-s9')).toHaveTextContent(nl.TEST.use_form_check);
+        expect(screen.getByTestId('registration-service-s9')).toHaveTextContent(nl.SERVICES.OBJECTTYPES_ADDRESS);
     });
 });

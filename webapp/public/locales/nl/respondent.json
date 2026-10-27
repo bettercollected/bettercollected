@@ -16,6 +16,7 @@
         "AI_USED_NO_PROVIDER": "Je antwoorden kunnen door AI worden geanalyseerd als het team achter dit formulier AI-inzichten gebruikt.",
         "REGISTRATION": "Ook verstuurd naar",
         "REGISTRATION_DESTINATION": "Je antwoorden worden ook verstuurd naar het zaaksysteem van {{organisation}}.",
+        "REGISTRATION_NO_DELETION": "Als je je antwoorden hier verwijdert, wordt de kopie bij {{organisation}} niet verwijderd. Neem daarvoor contact op met {{organisation}}.",
         "STRIP_AI_USED": "Antwoorden kunnen door AI ({{provider}}) worden geanalyseerd.",
         "STRIP_AI_USED_NO_PROVIDER": "Antwoorden kunnen door AI worden geanalyseerd.",
         "RIGHTS": "Je rechten",
