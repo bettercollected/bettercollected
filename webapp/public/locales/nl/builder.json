@@ -90,9 +90,9 @@
     "LAYOUTS": "Indelingen"
   },
   "SPOTLIGHT": {
-    "PLACEHOLDER": "Welk veld wil je toevoegen?",
+    "PLACEHOLDER": "Welk veld wilt u toevoegen?",
     "TIPS": {
-      "1": "Beweeg je pijltoetsen (↕) en druk op Enter om het magische te zien.",
+      "1": "Beweeg uw pijltoetsen (↕) en druk op Enter om het magische te zien.",
       "2": "Druk op Esc om de bouwer spotlight te sluiten."
     }
   },
@@ -392,15 +392,15 @@
     "SELECTION_ADD": "Kleur kiezen",
     "SELECTION_REMOVE": "Kleur van gekozen antwoord verwijderen",
     "GALLERY_LABEL": "Thema",
-    "GALLERY_SAVED": "Jouw thema's",
+    "GALLERY_SAVED": "Uw thema's",
     "GALLERY_PRESETS": "Kant-en-klaar",
     "GALLERY_ONE_OFF": "Eenmalig",
     "GALLERY_CUSTOM": "Eigen kleuren",
     "GALLERY_LOW_CONTRAST": "Slecht leesbaar",
     "GALLERY_HINT": "Elk kant-en-klaar thema haalt het WCAG AA-contrast. Kies er een om het op het formulier te zien.",
     "CONTRAST_PASSES": "Goed leesbaar: tekst haalt 4,5:1 en bedieningselementen 3:1 (WCAG AA).",
-    "CONTRAST_FAILS_one": "Eén kleurcombinatie is slecht leesbaar. Pas die aan voordat je dit thema opslaat of publiceert.",
-    "CONTRAST_FAILS_other": "{{count}} kleurcombinaties zijn slecht leesbaar. Pas ze aan voordat je dit thema opslaat of publiceert.",
+    "CONTRAST_FAILS_one": "Eén kleurcombinatie is slecht leesbaar. Pas die aan voordat u dit thema opslaat of publiceert.",
+    "CONTRAST_FAILS_other": "{{count}} kleurcombinaties zijn slecht leesbaar. Pas ze aan voordat u dit thema opslaat of publiceert.",
     "CONTRAST_ISSUE_TEXT": "Vragen en tekst op de pagina",
     "CONTRAST_ISSUE_ANSWER": "Antwoorden in de witte invulvakken",
     "CONTRAST_ISSUE_BUTTON": "Witte tekst op knoppen",

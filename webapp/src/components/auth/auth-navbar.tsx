@@ -14,6 +14,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
+import useWorkspaceLabel from '@app/lib/hooks/use-workspace-label';
 import ProPlanHoc from '@Components/hocs/pro-plan-hoc';
 
 
@@ -57,8 +58,9 @@ export function Header(props: any) {
 
 function WorkspaceIdentity() {
     const workspace = useAppSelector(selectWorkspace);
+    const workspaceLabel = useWorkspaceLabel();
     if (!workspace?.workspaceName) return null;
-    const title = workspace?.title || workspace?.workspaceName;
+    const title = workspaceLabel(workspace);
     return (
         <Link href={`/${workspace.workspaceName}/dashboard`} className="flex min-w-0 items-center gap-2.5 outline-hidden">
             {workspace?.profileImage ? (

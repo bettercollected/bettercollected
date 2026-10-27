@@ -8,6 +8,7 @@ import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 
 /**
@@ -23,7 +24,7 @@ export function BuilderTrustStrip() {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { layout } = useGetPageAttributes(activeSlideComponent?.index ?? -10);
     return (
-        <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layout} />
+        <TrustLayer ownerName={workspaceDisplayName(workspace)} ownerImage={workspace?.profileImage} settings={standardForm?.settings} layout={layout} />
     );
 }
 

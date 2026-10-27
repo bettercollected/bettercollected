@@ -60,6 +60,8 @@ export interface TrustLayerProps {
     layout?: FormSlideLayout | null;
 }
 
+const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 /**
  * The privacy panel on every respondent form: a quiet footer strip (who is
  * collecting, a disclosure button) that opens a short, standard panel: who
@@ -135,10 +137,13 @@ export default function TrustLayer({ ownerName, ownerImage, settings, registrati
     const aiUsed = !!settings?.aiInsightsEnabled;
     const aiProvider = settings?.aiInsightsProviderName?.trim();
     const showPoweredBy = poweredBy ?? !settings?.disableBranding;
+    // A workspace with no name of its own (callers pass nothing, never its id):
+    // say whose it is in words.
+    const owner = ownerName?.trim() || t('PRIVACY.OWNER_FALLBACK');
     const newTab = <span className="sr-only"> {t('PRIVACY.OPENS_IN_NEW_TAB')}</span>;
 
     const rows: Array<{ key: string; term: string; detail: React.ReactNode }> = [];
-    if (ownerName) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: ownerName });
+    if (owner) rows.push({ key: 'receiver', term: t('PRIVACY.RECEIVER'), detail: ownerName?.trim() ? owner : capitalised(owner) });
     if (purpose) rows.push({ key: 'purpose', term: t('PRIVACY.PURPOSE'), detail: purpose });
     rows.push({
         key: 'retention',
@@ -217,11 +222,11 @@ export default function TrustLayer({ ownerName, ownerImage, settings, registrati
                     ends (or starts) with a stray divider. */}
                 <div className={cn(column, 'flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:gap-x-3')}>
                     <Shield className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
-                    {ownerName && (
+                    {owner && (
                         <span className="inline-flex items-center gap-1.5 text-black-700">
                             {ownerImage ? <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
                             <span>
-                                <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: ownerName }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
+                                <Trans t={t} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
                             </span>
                         </span>
                     )}

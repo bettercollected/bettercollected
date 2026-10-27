@@ -14,6 +14,7 @@ import SiretoFooter from '@app/components/layout/sireto-footer';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { utcToLocalDateIn, utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { portalPath } from '@app/utils/portal-path';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
@@ -39,6 +40,9 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     // ?lang= from the link stays on every link out of it.
     const { t, language } = useRespondentLanguage();
     const langQuery = respondentLangQuery(useSearchParams()?.get('lang'));
+    // The title, else a readable handle: the handle of a workspace without a
+    // title is an id, which is never shown.
+    const workspaceLabel = workspaceDisplayName({ title: workspace?.title, workspaceName: workspaceName ?? workspace?.workspaceName, id: workspace?.id, ownerId: workspace?.ownerId }) ?? t('PORTAL.UNNAMED_WORKSPACE');
     // Every link is built from encoded segments (utils/portal-path), never
     // from the current URL.
     const submissionPath = (tab: string) => portalPath(workspaceName, hasCustomDomain, 'submissions', ...(isUUID ? ['uuid'] : []), submissionId, tab);
@@ -64,8 +68,8 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                 <RespondentDocumentLanguage />
                 <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
                     <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
-                        <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
-                        <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
+                        <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspaceLabel} />
+                        <span className="text-black-900 text-sm font-semibold">{workspaceLabel}</span>
                     </div>
                 </header>
                 <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
@@ -92,8 +96,8 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
             <RespondentDocumentLanguage />
             <header className="border-b-black-300 sticky top-0 z-20 border-b bg-white">
                 <Link href={`${portalPath(workspaceName, hasCustomDomain, 'forms')}${langQuery}`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
-                    <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
-                    <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
+                    <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspaceLabel} />
+                    <span className="text-black-900 text-sm font-semibold">{workspaceLabel}</span>
                 </Link>
             </header>
             <main className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">

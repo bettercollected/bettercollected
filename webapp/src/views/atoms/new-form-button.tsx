@@ -1,4 +1,7 @@
 "use client";
+import { useTranslation } from 'react-i18next';
+
+import { buttonConstant } from '@app/constants/locales/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -11,6 +14,7 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 export default function NewFormButton() {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
     const { can } = useWorkspacePermissions();
     // Reviewers, Viewers and Privacy officers don't create forms.
@@ -24,7 +28,7 @@ export default function NewFormButton() {
                 router.push(`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
             }}
         >
-            New Form
+            {t(buttonConstant.newForm)}
         </Button>
     );
 }
