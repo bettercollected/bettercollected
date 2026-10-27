@@ -15,7 +15,7 @@ import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import globalConstants from '@app/constants/global';
 import { useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
-import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useAppSelector } from '@app/store/hooks';
@@ -122,13 +122,11 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex w-full min-w-0 flex-1 items-center gap-3">
                             <div className="w-full max-w-[420px]">
-                                <SearchInput placeholder={'Search forms'} handleSearch={handleSearch} />
+                                <SearchInput placeholder={t(formConstant.toolbar.searchPlaceholder)} handleSearch={handleSearch} />
                             </div>
                             {showPagination && (
                                 <span className="text-black-600 shrink-0 whitespace-nowrap text-sm tabular-nums">
-                                    {(showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0) === 1
-                                        ? '1 form'
-                                        : `${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0} forms`}
+                                    {t(formConstant.toolbar.count, { count: showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0 })}
                                 </span>
                             )}
                         </div>

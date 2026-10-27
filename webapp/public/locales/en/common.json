@@ -6,7 +6,7 @@
   },
   "ACCOUNT_DELETION_CONFIRMATION": {
     "TITLE": "Are you sure you want to delete Account?",
-    "POINT_1": "All your workspace will be deleted.",
+    "POINT_1": "All your workspaces will be deleted.",
     "POINT_2": "All imported forms will be deleted.",
     "POINT_3": "All created groups will be deleted.",
     "POINT_4": "Your workspace link or your custom form link will not work anymore.",
@@ -105,7 +105,8 @@
     "DELETE_FORM": "Delete Form",
     "DELETE_NOW": "Delete Now",
     "ADD_TO_GROUP": "Add to group",
-    "OPEN": "Open"
+    "OPEN": "Open",
+    "NEW_FORM": "New Form"
   },
   "CHOOSE_YOUR_FORM": "Choose your form",
   "CONFIRM": "CONFIRM",
@@ -299,7 +300,8 @@
   "FORM_MENU": {
     "OPEN_FORMULIEREN_EXPORT": "Download for Open Formulieren",
     "OPEN_FORMULIEREN_EXPORT_CLEAN": "Downloaded. Everything was carried over.",
-    "OPEN_FORMULIEREN_EXPORT_UNMAPPED": "Downloaded. {{n}} item(s) were left out or changed: see README.txt in the archive.",
+    "OPEN_FORMULIEREN_EXPORT_UNMAPPED_one": "Downloaded. {{count}} item was left out or changed: see README.txt in the archive.",
+    "OPEN_FORMULIEREN_EXPORT_UNMAPPED_other": "Downloaded. {{count}} items were left out or changed: see README.txt in the archive.",
     "OPEN_FORMULIEREN_EXPORT_TOO_LARGE": "This form has more pages or questions than can be exported.",
     "OPEN_FORMULIEREN_EXPORT_ERROR": "The form could not be downloaded.",
     "DELETE_FORM": "Delete form",
@@ -308,7 +310,14 @@
     "VISIBILITY": "Visibility",
     "MAKE_FORM_PRIVATE": "Make form private",
     "MAKE_FORM_PUBLIC": "Make form public",
-    "DUPLICATE_FORM": "Duplicate Form"
+    "DUPLICATE_FORM": "Duplicate form",
+    "DUPLICATE_ERROR": "Could not duplicate form",
+    "GENERATE_QR": "Generate QR"
+  },
+  "FORMS_TOOLBAR": {
+    "SEARCH_PLACEHOLDER": "Search forms",
+    "COUNT_one": "{{count}} form",
+    "COUNT_other": "{{count}} forms"
   },
   "FORM_PAGE": {
     "EDIT_FORM": "Edit Form",
@@ -871,6 +880,7 @@
   },
   "WORKSPACE": {
     "DEFAULT": "workspace",
+    "FALLBACK_NAME": "Your workspace",
     "BANNER": "Workspace Banner",
     "ALL_RESPONDERS": "All Responders",
     "BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
