@@ -26,6 +26,14 @@ _BLOCK = frozenset(
 _SKIP = frozenset(
     {"script", "style", "template", "iframe", "object", "embed", "noscript"}
 )
+# ASCII-only lower case that keeps every index (``str.lower`` changes the
+# length of some characters, e.g. U+0130, which would shift the positions)
+_ASCII_LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
+# more digits than any character reference can use (the largest code point
+# has seven): the rest of a run is cut, so no number the unescaper parses is
+# longer than its limit for integers
+_LONG_REFERENCE = re.compile(r"(&#[xX]?[0-9a-fA-F]{12})[0-9a-fA-F]+")
+MAX_COMBINING_RUN = 4
 _TAG_NAME = re.compile(r"(/?)([A-Za-z][A-Za-z0-9]{0,15})")
 # unicode categories that never belong in a label: control (but newline),
 # format (zero width, bidi override), surrogates, private use, unassigned
@@ -38,7 +46,7 @@ def strip_tags(value: str) -> Tuple[str, bool]:
     whatever the input (an unterminated tag, comment or element ends the
     text instead of being searched for again at every ``<``)."""
     out: List[str] = []
-    lower = value.lower()
+    lower = value.translate(_ASCII_LOWER)
     size = len(value)
     pos = 0
     markup = False
@@ -85,8 +93,26 @@ def strip_tags(value: str) -> Tuple[str, bool]:
     return "".join(out), markup
 
 
+def _cap_marks(text: str) -> str:
+    """``text`` with at most MAX_COMBINING_RUN combining marks in a row:
+    normalisation is quadratic in the length of such a run."""
+    if text.isascii():
+        return text
+    out = []
+    run = 0
+    for ch in text:
+        if unicodedata.combining(ch) or unicodedata.category(ch) in ("Mn", "Me"):
+            run += 1
+            if run > MAX_COMBINING_RUN:
+                continue
+        else:
+            run = 0
+        out.append(ch)
+    return "".join(out)
+
+
 def _clean(text: str) -> str:
-    text = unicodedata.normalize("NFC", text)
+    text = unicodedata.normalize("NFC", _cap_marks(text))
     out = []
     for ch in text:
         if ch == "\n":
@@ -116,7 +142,11 @@ def plain_text(value: Any, limit: int) -> Tuple[str, bool]:
     if "<" in value:
         value, markup = strip_tags(value)
     if "&" in value:
-        value = html.unescape(value)
+        value = _LONG_REFERENCE.sub(r"\1", value)
+        try:
+            value = html.unescape(value)
+        except ValueError:  # (a number the interpreter refuses to parse)
+            pass  # the text is kept as it is
     text = _clean(value)
     if len(text) > limit:
         text = text[: limit - 1].rstrip() + "\u2026"

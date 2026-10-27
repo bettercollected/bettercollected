@@ -19,6 +19,9 @@ MAX_JSON_NODES = 400_000
 # form's own size limits, MAX_PAGES / MAX_FIELDS, would)
 MAX_STEPS = 100
 MAX_COMPONENTS = 2000
+# questions (statements and groups included) one import may create: well under
+# a form's own limit; the edit engine's cost grows with the square of this
+MAX_IMPORT_FIELDS = 1000
 MAX_COMPONENT_DEPTH = 12
 MAX_CHOICES = 200
 MAX_LOGIC_RULES = 500

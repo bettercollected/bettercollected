@@ -300,3 +300,54 @@ describe('Privacy panel on respondent forms', () => {
         expect(screen.queryByText(/powered by/i)).not.toBeInTheDocument();
     });
 });
+
+describe('Privacy panel: answers also sent to a case system', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('says nothing about a case system when the form does not send to one', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-registration')).not.toBeInTheDocument();
+        expect(screen.queryByText(/case system/i)).not.toBeInTheDocument();
+        unmount();
+        // an empty destination is no destination
+        renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: '   ' } });
+        openPanel();
+        expect(screen.queryByTestId('privacy-registration')).not.toBeInTheDocument();
+        expect(screen.queryByText(/case system/i)).not.toBeInTheDocument();
+    });
+
+    it('names the organisation whose case system also receives the answers (English)', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: 'Example Organisation' } });
+        openPanel();
+        expect(row('registration')).toHaveTextContent("Your answers are also sent to Example Organisation's case system.");
+        // before the rights: what leaves, then what the respondent can do
+        const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
+        expect(keys.indexOf('privacy-registration')).toBeLessThan(keys.indexOf('privacy-rights'));
+    });
+
+    it('says it in Dutch to a Dutch browser, in the same "je" register', () => {
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: 'Voorbeeld Organisatie' } });
+        fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
+        expect(row('registration')).toHaveTextContent('Je antwoorden worden ook verstuurd naar het zaaksysteem van Voorbeeld Organisatie.');
+    });
+
+    it('renders an organisation name with markup as literal text', () => {
+        setBrowserLanguages(['en']);
+        const name = '<img src=x onerror="window.__pwned=1"><b>Acme</b>';
+        renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: name } });
+        openPanel();
+        const line = row('registration');
+        expect(line.querySelector('img')).toBeNull();
+        expect(line.querySelector('b')).toBeNull();
+        expect(line).toHaveTextContent(`Your answers are also sent to ${name}'s case system.`);
+        expect((window as any).__pwned).toBeUndefined();
+    });
+});
+

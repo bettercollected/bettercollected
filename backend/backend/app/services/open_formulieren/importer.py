@@ -1096,12 +1096,22 @@ def _apply(planner: Planner, ops: _Ops, form: StandardForm) -> StandardForm:
     parsed = []
     positions: List[int] = []
     for index, op in enumerate(ops.ops):
+        budget.check()
         try:
             parsed.append(FormOps.model_validate({"ops": [op]}).ops[0])
             positions.append(index)
         except ValidationError:
             _refused(planner, ops, index, "invalid")
-    form, results = apply_form_ops(form, parsed)
+    # ``check_size=False``: the per-operation size count walks the whole form
+    # for every operation; the build is bounded above (build_draft refuses a
+    # form over MAX_PAGES / MAX_FIELDS before any operation runs) and the result
+    # is validated as a whole at the end.
+    # the deadline is checked after every operation: the engine's cost grows
+    # with the form, so a big hostile one must not run it to the end
+    form, results = apply_form_ops(
+        form, parsed, on_step=lambda *_: budget.check(), check_size=False,
+        check_calculations=False,
+    )
     for result, index in zip(results, positions):
         if result.ok:
             continue
@@ -1177,7 +1187,8 @@ def _build_draft(archive: Archive) -> Built:
             reportItems=report.items[:50],
         )
     if len(planner.pages) > MAX_PAGES or (
-        len(questions) + sum(1 for q in questions if q.is_group) > MAX_FIELDS
+        len(questions) + sum(1 for q in questions if q.is_group)
+        > min(MAX_FIELDS, limits.MAX_IMPORT_FIELDS)
     ):
         raise refuse(
             "archive_too_complex",

@@ -80,6 +80,7 @@ describe('workspaceSectionUrls', () => {
         expect(workspaceSectionUrls('acme')).toEqual({
             sso: '/acme/dashboard/sso',
             domains: '/acme/dashboard/sso/domains',
+            caseSystem: '/acme/dashboard/case-system',
             ai: '/acme/dashboard/ai',
             aiProfile: '/acme/dashboard/ai/profile',
             aiMemory: '/acme/dashboard/ai/memory',

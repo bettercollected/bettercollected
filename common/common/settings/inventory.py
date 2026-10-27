@@ -568,6 +568,8 @@ OPEN_FORMULIEREN: Tuple[SettingSpec, ...] = (
           ENUM, tier=T2, default="off", choices=("on", "off")),
     _int("OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY", "open_formulieren", (BACKEND,), 50, 0, 100000,
          "Open Formulieren imports per workspace per day (429 import_limit beyond)."),
+    _int("OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY", "open_formulieren", (BACKEND,), 100, 0, 100000,
+         "Open Formulieren import attempts per workspace per day, refused archives included (429 import_limit beyond)."),
 )
 
 INVENTORY: Tuple[SettingSpec, ...] = (

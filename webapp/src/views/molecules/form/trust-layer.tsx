@@ -28,6 +28,12 @@ export interface TrustLayerProps {
      * identity or a private form, AI insights and branding all come from here.
      */
     settings?: Partial<NonNullable<StandardFormDto['settings']>>;
+    /**
+     * Set when the answers are also sent to a case system: the organisation
+     * that runs it (the published form's `registrationDestination`). Shown as
+     * text, never as markup.
+     */
+    registrationDestination?: { organisation?: string | null } | null;
     /** Where a respondent views or deletes their response (the workspace portal). */
     portalUrl?: string;
     /**
@@ -63,7 +69,7 @@ export interface TrustLayerProps {
  */
 const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
 
-export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerImage, settings, registrationDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
@@ -143,6 +149,9 @@ export default function TrustLayer({ ownerName, ownerImage, settings, portalUrl,
     });
     rows.push({ key: 'identity', term: t('PRIVACY.IDENTITY'), detail: signInRequired ? t('PRIVACY.IDENTITY_REQUIRED') : t('PRIVACY.IDENTITY_NOT_REQUIRED') });
     if (aiUsed) rows.push({ key: 'ai', term: t('PRIVACY.AI'), detail: aiProvider ? t('PRIVACY.AI_USED', { provider: aiProvider }) : t('PRIVACY.AI_USED_NO_PROVIDER') });
+    const destination = registrationDestination?.organisation?.trim();
+    // The answers leave the form for a second place: say so, with its name.
+    if (destination) rows.push({ key: 'registration', term: t('PRIVACY.REGISTRATION'), detail: t('PRIVACY.REGISTRATION_DESTINATION', { organisation: destination }) });
     rows.push({
         key: 'rights',
         term: t('PRIVACY.RIGHTS'),

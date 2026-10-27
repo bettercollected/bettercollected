@@ -152,6 +152,20 @@ async def expire_stale_imports(timestamp: int) -> str:
     return f"{expired} expired"
 
 
+@app.periodic(cron="17 * * * *", periodic_id="expire_open_formulieren_attempts")
+@app.task(
+    name="expire_open_formulieren_attempts",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="expire_open_formulieren_attempts",
+)
+async def expire_open_formulieren_attempts(timestamp: int) -> str:
+    """Delete the notes of refused Open Formulieren import attempts after two
+    days: they only exist for the per-workspace daily attempts count and hold
+    no content (docs/open-formulieren.md)."""
+    deleted = await _container().open_formulieren_import_service().expire_attempts()
+    return f"{deleted} deleted"
+
+
 @app.periodic(cron=settings.scim.RECONCILE_CRON, periodic_id="scim_reconcile")
 @app.task(
     name="scim_reconcile",

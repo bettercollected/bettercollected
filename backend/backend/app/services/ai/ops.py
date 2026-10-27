@@ -3149,6 +3149,8 @@ def apply_form_ops(
     *,
     atomic: bool = False,
     on_step: Optional[Callable[[int, StandardForm, "OpResult"], None]] = None,
+    check_size: bool = True,
+    check_calculations: bool = True,
 ) -> Tuple[StandardForm, List[OpResult]]:
     """Apply operations to a deep copy of ``form``; the original is untouched.
 
@@ -3164,10 +3166,16 @@ def apply_form_ops(
 
     Size: an op that would take the form past MAX_PAGES or MAX_FIELDS
     fails before it runs, and the rest of the batch is not applied.
+    ``check_size=False`` skips that per-op counting (it walks the whole form
+    for every op, so a batch of N ops on a large form costs N times the
+    form): for a caller that has already bounded what the batch can add and
+    wants the cost linear (the Open Formulieren import). Everyone else keeps
+    the default. ``check_calculations=False`` likewise skips the per-op walk
+    that keeps calculated fields valid, for a batch that creates none.
     """
     working = form.model_copy(deep=True)
     results: List[OpResult] = []
-    size = _form_size(working)
+    size = _form_size(working) if check_size else (0, 0)
     stopped = False
     # ref name -> (index of the op that defines it, the created id or None
     # when that op failed)
@@ -3199,13 +3207,13 @@ def apply_form_ops(
             # Calculations must stay valid after every op: an op that leaves
             # one with an unknown field, an internal field or a circle is
             # refused and undone (the builder save would refuse the form).
-            calc_before = _calculation_problems(working)
+            calc_before = _calculation_problems(working) if check_calculations else None
             snapshot = (
                 working.model_copy(deep=True)
                 if calc_before is not None or _carries_calculation(op)
                 else None
             )
-            add_pages, add_fields = _growth(working, op)
+            add_pages, add_fields = _growth(working, op) if check_size else (0, 0)
             if add_pages or add_fields:
                 problem = _size_problem(
                     size[0] + add_pages, size[1] + add_fields, size
@@ -3220,13 +3228,14 @@ def apply_form_ops(
                 if new_problems:
                     working = snapshot
                     raise OpError(_calculation_message(new_problems[0]))
-            after = _form_size(working)
-            problem = _size_problem(*after, size)
-            if problem:
-                # Not foreseen by _growth: the change is already made, so
-                # nothing of this batch may be applied.
-                raise _SizeLimitReached(problem)
-            size = after
+            if check_size:
+                after = _form_size(working)
+                problem = _size_problem(*after, size)
+                if problem:
+                    # Not foreseen by _growth: the change is already made, so
+                    # nothing of this batch may be applied.
+                    raise _SizeLimitReached(problem)
+                size = after
             created = _CREATED.get()
             for name, position in defined:
                 if created is None:
