@@ -1562,6 +1562,14 @@ def _import_kind(kind: Optional[str]):
     return value == kind
 
 
+def _failed_attempt():
+    """A refused attempt of the Open Formulieren import: failed, no form."""
+    return and_(
+        FormImportRow.status == ImportStatus.FAILED,
+        FormImportRow.form_id.is_(None),
+    )
+
+
 class PostgresFormImportRepository(RecordRepository):
     row = FormImportRow
     document = FormImportDocument
@@ -1699,11 +1707,21 @@ class PostgresFormImportRepository(RecordRepository):
         return await self.one(FormImportRow.id == _oid(import_id))
 
     async def list_by_workspace(
-        self, workspace_id: RecordId, limit: int = 20, kind: Optional[str] = "pdf"
+        self,
+        workspace_id: RecordId,
+        limit: int = 20,
+        kind: Optional[str] = "pdf",
+        include_failed: bool = False,
     ) -> List[FormImportDocument]:
+        """The workspace's imports of one kind, newest first. Refused attempts
+        of the Open Formulieren import (failed, no form: kept only to be
+        counted) are left out unless ``include_failed``."""
         return await self.many(
             FormImportRow.workspace_id == _oid(workspace_id),
             _import_kind(kind),
+            true()
+            if include_failed or kind != "open_formulieren"
+            else not_(_failed_attempt()),
             order_by=(FormImportRow.created_at.desc(), FormImportRow.id.desc()),
             limit=limit,
         )
@@ -1727,6 +1745,15 @@ class PostgresFormImportRepository(RecordRepository):
             FormImportRow.workspace_id == _oid(workspace_id),
             FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
             _import_kind("pdf"),
+        )
+
+    async def delete_failed_attempts_before(
+        self, before: datetime, kind: str = "open_formulieren"
+    ) -> int:
+        """Delete the refused attempts of an import ``kind`` made before
+        ``before`` (failed, no form: a note kept only for the daily count)."""
+        return await self.delete_where(
+            _import_kind(kind), _failed_attempt(), FormImportRow.created_at < before
         )
 
     async def delete_by_form_ids(self, form_ids: List[str]) -> int:

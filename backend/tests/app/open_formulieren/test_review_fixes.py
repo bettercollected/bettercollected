@@ -216,10 +216,12 @@ async def test_an_unexpected_failure_answers_422_over_http(client, workspace, te
 
 
 def _record(workspace, **kw):
-    return FormImportDocument(
+    fields = dict(
         workspace_id=workspace.id, form_id=None, created_by="u", status=ImportStatus.COMPLETED,
-        file_name="f", content_type="x", size_bytes=1, sha256="0", source_key="k", **kw,
+        file_name="f", content_type="x", size_bytes=1, sha256="0", source_key="k",
     )
+    fields.update(kw)
+    return FormImportDocument(**fields)
 
 
 @pytest.mark.asyncio
@@ -464,7 +466,9 @@ async def test_refused_archives_count_as_attempts(client, workspace, test_user_c
     for _ in range(3):
         refused_ = await upload(client, workspace, test_user_cookies, b"not a zip")
         assert refused_.status_code == 400 and refused_.json()["code"] == "not_a_zip"
-    records = await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren")
+    records = await container.form_import_repo().list_by_workspace(
+        workspace.id, kind="open_formulieren", include_failed=True
+    )
     assert [(r.status, r.error_code, r.form_id, r.source_key) for r in records] == [("failed", "not_a_zip", None, "")] * 3
     # the fourth attempt, even a good archive, is held back until the day passes
     fourth = await upload(client, workspace, test_user_cookies)
@@ -491,3 +495,67 @@ def dt_year_ago():
     import datetime as dt
 
     return dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=365)
+
+
+# ============================================== round 3: refused attempts' notes
+
+
+@pytest.mark.asyncio
+async def test_a_refused_attempt_keeps_nothing_from_the_file_but_its_size_and_hash(
+    client, workspace, test_user_cookies, import_on
+):
+    import hashlib
+
+    data = b"not a zip at all"
+    response = await upload(client, workspace, test_user_cookies, data, name="aanvraag-jan-jansen.zip")
+    assert response.status_code == 400
+    [note] = await container.form_import_repo().list_by_workspace(
+        workspace.id, kind="open_formulieren", include_failed=True
+    )
+    assert note.file_name == "" and "jansen" not in note.model_dump_json().lower()
+    assert (note.status, note.error_code, note.form_id, note.source_key) == ("failed", "not_a_zip", None, "")
+    assert (note.size_bytes, note.sha256) == (len(data), hashlib.sha256(data).hexdigest())
+    assert note.report == {} and note.pages == [] and note.created_by and note.source_kind == "open_formulieren"
+
+
+@pytest.mark.asyncio
+async def test_a_refused_attempt_is_not_listed_or_readable_as_an_import(
+    client, workspace, test_user_cookies, import_on
+):
+    await upload(client, workspace, test_user_cookies, b"x")
+    good = (await upload(client, workspace, test_user_cookies)).json()
+    repo = container.form_import_repo()
+    listed = await repo.list_by_workspace(workspace.id, kind="open_formulieren")
+    assert [str(r.id) for r in listed] == [good["id"]]
+    [note] = [r for r in await repo.list_by_workspace(workspace.id, kind="open_formulieren", include_failed=True) if r.status == "failed"]
+    for method, tail, kw in (("GET", (), {}), ("POST", ("review",), {"json": {"reviewed": True}})):
+        response = await client.request(method, url(workspace, str(note.id), *tail), cookies=test_user_cookies, **kw)
+        assert response.status_code == 404 and response.json()["code"] == "import_not_found"
+
+
+@pytest.mark.asyncio
+async def test_old_refused_attempts_expire_and_nothing_else_does(workspace, workspace_1):
+    import datetime as dt
+
+    from backend.jobs import tasks
+
+    repo = container.form_import_repo()
+    now = dt.datetime.now(dt.timezone.utc)
+
+    async def save(ws, age_days, **kw):
+        record = _record(ws, **kw)
+        record.created_at = now - dt.timedelta(days=age_days)
+        return await repo.save(record)
+
+    old_note = await save(workspace, 3, source_kind="open_formulieren", status=ImportStatus.FAILED, error_code="not_a_zip")
+    fresh_note = await save(workspace, 1, source_kind="open_formulieren", status=ImportStatus.FAILED, error_code="not_a_zip")
+    old_other_ws = await save(workspace_1, 5, source_kind="open_formulieren", status=ImportStatus.FAILED)
+    old_import = await save(workspace, 9, source_kind="open_formulieren", form_id="f1")  # a real import: kept
+    old_failed_with_form = await save(workspace, 9, source_kind="open_formulieren", status=ImportStatus.FAILED, form_id="f2")
+    old_pdf_failed = await save(workspace, 9, status=ImportStatus.FAILED)  # a PDF import: not ours
+    assert await tasks.expire_open_formulieren_attempts.func(0) == "2 deleted"
+    gone = [old_note.id, old_other_ws.id]
+    kept = [fresh_note.id, old_import.id, old_failed_with_form.id, old_pdf_failed.id]
+    assert [await repo.get(i) for i in gone] == [None, None]
+    assert all([await repo.get(i) is not None for i in kept])
+    assert await tasks.expire_open_formulieren_attempts.func(0) == "0 deleted"

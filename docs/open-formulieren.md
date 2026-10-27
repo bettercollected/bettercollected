@@ -49,7 +49,7 @@ All paths are under `/api/v1`; bodies are camelCase JSON.
 
 Limits: the upload is at most **5 MiB** (413 `file_too_large`); one form per archive.
 
-Imports per workspace per day, and attempts (a refused archive leaves a small record with no content and counts), have limits of their own (429 `import_limit`; not shared with the PDF import's), and only a
+Imports per workspace per day, and attempts (a refused archive leaves a small record with no content and counts), have limits of their own (429 `import_limit`; the note of a refused attempt holds only its reason, size and hash, never the file name, and is deleted after two days by the hourly `expire_open_formulieren_attempts` job; not shared with the PDF import's), and only a
 few imports build at once in a process (503 `import_busy`, with `Retry-After`). Refusals have a stable `code` (400 unless stated): `file_missing`, `file_too_large` (413), `not_a_zip`,
 `archive_unsafe`, `archive_too_large`, `archive_incomplete` (`missing`), `archive_json_invalid` (`file`),
 `archive_not_a_single_form`, `open_formulieren_version_unknown`, `open_formulieren_version_unsupported` (`version`,

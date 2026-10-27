@@ -35,6 +35,8 @@ from backend.app.services.open_formulieren_mode import refuse_open_formulieren_i
 from backend.config import settings
 
 NOT_FOUND_CODE = "import_not_found"
+# how long the note of a refused attempt is kept (it is only counted per day)
+ATTEMPT_RETENTION = dt.timedelta(days=2)
 
 
 # Imports building at once in this process: decoding and building are
@@ -176,6 +178,13 @@ class OpenFormulierenImportService:
                     },
                 )
 
+    async def expire_attempts(self) -> int:
+        """Delete the notes of refused attempts older than ATTEMPT_RETENTION
+        (the periodic sweep). Returns how many were deleted."""
+        return await self._repo.delete_failed_attempts_before(
+            dt.datetime.now(dt.timezone.utc) - ATTEMPT_RETENTION, kind=SOURCE_KIND
+        )
+
     async def _record_refusal(
         self,
         workspace_id: RecordId,
@@ -185,7 +194,8 @@ class OpenFormulierenImportService:
         code: str,
     ) -> None:
         """A refused archive still counts as an attempt: a small record with
-        no content (its name cleaned, its size and hash, the reason)."""
+        no content (the reason, its size and hash; not its name). It is only
+        needed for the daily count and expires after ATTEMPT_RETENTION."""
         now = dt.datetime.now(dt.timezone.utc)
         try:
             await self._repo.save(
@@ -197,7 +207,9 @@ class OpenFormulierenImportService:
                     status=ImportStatus.FAILED,
                     error_code=code,
                     source_kind=SOURCE_KIND,
-                    file_name=(label_text(file_name, 255) or "export.zip"),
+                    # nothing from the file but its size and hash: not its name
+                    # (it can hold a person's), not its content
+                    file_name="",
                     content_type="application/zip",
                     size_bytes=len(data),
                     sha256=hashlib.sha256(data).hexdigest(),
@@ -236,6 +248,8 @@ class OpenFormulierenImportService:
         record = await self._repo.get(import_id)
         if (
             record is None
+            # a refused attempt is a note for the daily count, not an import
+            or (record.status == ImportStatus.FAILED and not record.form_id)
             or record.source_kind != SOURCE_KIND
             or str(record.workspace_id) != str(workspace_id)
         ):

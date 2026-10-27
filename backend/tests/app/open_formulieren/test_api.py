@@ -373,8 +373,10 @@ async def test_a_refused_archive_creates_nothing(
     assert (response.status_code, response.json()["code"]) == (status, code)
     # no form, and no import: only a content-free note of the attempt (it counts
     # against the workspace's daily attempts)
-    records = await container.form_import_repo().list_by_workspace(workspace.id, kind="open_formulieren")
-    assert [(r.status, r.error_code, r.form_id) for r in records] == [("failed", code, None)]
+    records = await container.form_import_repo().list_by_workspace(
+        workspace.id, kind="open_formulieren", include_failed=True
+    )
+    assert [(r.status, r.error_code, r.form_id, r.file_name) for r in records] == [("failed", code, None, "")]
     assert await container.workspace_form_repo().list_in_workspace(workspace.id) == []
 
 
