@@ -49,7 +49,10 @@ def make_zip(
             data = value if isinstance(value, bytes) else json.dumps(value).encode()
             info = zipfile.ZipInfo(name, date_time=ZIP_DATE_TIME)
             info.compress_type = kind
-            info.external_attr = 0o600 << 16  # what ``writestr`` gives a name
+            # the modes ``writestr`` gives a file name and a directory name
+            info.external_attr = (
+                (0o40775 << 16) | 0x10 if name.endswith("/") else 0o600 << 16
+            )
             archive.writestr(info, data)
     return buffer.getvalue()
 
