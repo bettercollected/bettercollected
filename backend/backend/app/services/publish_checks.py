@@ -32,6 +32,11 @@ the two in step).
   colours (an old form on the defaults) isn't checked, and text over an
   image background can't be measured, so it never blocks.
 
+- **Imports are looked over first:** a draft made by an import from another
+  product (``WorkspaceFormSettings.needs_review``) is not published until a
+  person clears the mark on its import report (``review_problem``; the
+  problem carries only the report's id, ``importId``).
+
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
 "Why we ask this" is required only of forms created under these checks
@@ -72,6 +77,7 @@ REQUIRED_UNANSWERABLE = "required_unanswerable"
 PRESET_ANSWER = "preset_answer"
 MISSING_ENDING = "missing_ending"
 THEME_CONTRAST = "theme_contrast"
+NEEDS_REVIEW = "needs_review"
 # The ``fieldId`` of the theme's problem: it belongs to no question (the
 # webapp's THEME_PROBLEM_ID).
 THEME_PROBLEM_ID = "theme"
@@ -322,16 +328,36 @@ def _missing_ending_problems(form: Any) -> List[Dict[str, Optional[str]]]:
     return problems
 
 
+def review_problem(import_id: Optional[str]) -> Dict[str, Optional[str]]:
+    """The problem of a form whose import is still marked "needs review".
+    ``importId`` is the id of the import report (no report content): the
+    webapp links to it. ``fieldId`` is empty: it belongs to no question."""
+    return {
+        "code": NEEDS_REVIEW,
+        "fieldId": None,
+        "importId": import_id,
+        "message": "It was imported and still needs review. Look through the "
+        "import report and mark it as reviewed; then it can be published.",
+    }
+
+
 def requires_why_we_ask(checks_version: Optional[int]) -> bool:
     """Is a form created under ``checks_version`` held to the reason rule?"""
     return bool(checks_version) and checks_version >= 1
 
 
-def ensure_publishable(form: Any, checks_version: Optional[int] = None) -> None:
+def ensure_publishable(
+    form: Any,
+    checks_version: Optional[int] = None,
+    review: Optional[Dict[str, Optional[str]]] = None,
+) -> None:
     """422 ``form_not_publishable`` listing every problem that blocks this
     form, or nothing. ``checks_version``: the form's
-    ``publish_checks_version`` (None for a form created before the checks)."""
-    problems = [
+    ``publish_checks_version`` (None for a form created before the checks).
+    ``review``: the form's ``review_problem`` while its import still needs
+    review (listed first)."""
+    problems = [review] if review else []
+    problems += [
         problem
         for problem in publish_problems(form)
         if problem["code"] != MISSING_WHY_WE_ASK

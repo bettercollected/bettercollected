@@ -110,6 +110,27 @@ describe('the import report', () => {
         expect(container.textContent).not.toContain('{{');
     });
 
+    it('says what became of an address question, and keeps the generic sentence for other converted questions', async () => {
+        const data = {
+            ...IMPORT,
+            report: {
+                truncated: false,
+                items: [
+                    { code: 'changed', kind: 'component', key: 'address', label: 'Your address', reason: 'converted_to_text', severity: 'info', step: 0, detail: { componentType: 'addressNL' } },
+                    { code: 'changed', kind: 'component', key: 'other', label: 'Other question', reason: 'converted_to_text', severity: 'info', step: 0, detail: { componentType: 'bsn' } }
+                ]
+            }
+        };
+        const { container, unmount } = render(wrap(<ImportReportView data={data} workspaceId="ws1" workspaceName="acme" />));
+        expect(container.textContent).toContain(en.REASON.converted_to_text_address);
+        expect(container.textContent).toContain('This question of type “bsn” became a short text question.');
+        expect(container.textContent).not.toContain('type “addressNL”');
+        unmount();
+        await i18n.changeLanguage('nl');
+        const dutch = render(wrap(<ImportReportView data={data} workspaceId="ws1" workspaceName="acme" />));
+        expect(dutch.container.textContent).toContain(nl.REASON.converted_to_text_address);
+    });
+
     it('renders labels and details as text, never as HTML', () => {
         const hostile = '<img src=x onerror="window.__pwned = true">';
         const data = {
@@ -195,6 +216,18 @@ describe('the import report', () => {
             render(wrap(<ImportReport workspaceId="ws1" workspaceName="acme" importId="nope" />));
         });
         expect(await screen.findByRole('alert')).toHaveTextContent(en.ERROR.import_not_found);
+    });
+
+    it('shows no report for the stand-in left by clearing the mark of an import whose report is gone', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => json(200, { ...IMPORT, formId: null, status: 'removed', needsReview: false, summary: {}, report: { truncated: false, items: [] } }))
+        );
+        await act(async () => {
+            render(wrap(<ImportReport workspaceId="ws1" workspaceName="acme" importId="gone" />));
+        });
+        expect(await screen.findByRole('alert')).toHaveTextContent(en.ERROR.import_not_found);
+        expect(screen.queryByText('Your draft form is ready')).not.toBeInTheDocument();
     });
 });
 

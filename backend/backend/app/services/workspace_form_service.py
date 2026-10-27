@@ -90,6 +90,7 @@ from backend.app.services.event_service import event_logger_service
 from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
+    review_problem,
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.retention import checked_retention, submission_expiry
@@ -1339,6 +1340,7 @@ class WorkspaceFormService:
                 if workspace_form.settings
                 else None
             ),
+            review=await self._pending_import_review(workspace_id, workspace_form),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         previous = await self._form_repo.get_latest_version_of_form(form_id)
@@ -1347,6 +1349,17 @@ class WorkspaceFormService:
         if previous is not None and previous.logo != getattr(published, "logo", None):
             await self._release_logo(str(form_id), previous.logo)
         return published
+
+    async def _pending_import_review(self, workspace_id, workspace_form):
+        """The publish problem of a form whose import (Open Formulieren) is
+        still marked "needs review": a person clears the mark first (the
+        import report's review call, which works whether or not the import
+        switch is on and whether or not the report still exists). The mark
+        alone decides: it never fails open."""
+        settings = workspace_form.settings
+        if not settings or not settings.needs_review:
+            return None
+        return review_problem(settings.import_id)
 
     async def _upgrade_slug_from_title_on_publish(self, workspace_id, form_id):
         """Give the form a title-based share slug when it goes live.
@@ -1400,11 +1413,12 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
-        workspace_form = (
+        source_link = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
                 workspace_id=workspace_id, query=str(form_id)
             )
         )
+        workspace_form = source_link
         if not workspace_form:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
@@ -1470,6 +1484,14 @@ class WorkspaceFormService:
                     publish_checks_version=PUBLISH_CHECKS_VERSION
                 ),
             )
+            # An unreviewed import stays unreviewed in its copy: the copy
+            # can't be published around the mark. Clearing it on the import
+            # report clears the copies too (OpenFormulierenImportService.review).
+            source_settings = source_link.settings
+            if source_settings and source_settings.needs_review:
+                workspace_form.settings.needs_review = True
+                workspace_form.settings.import_source = source_settings.import_source
+                workspace_form.settings.import_id = source_settings.import_id
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
             workspace_form = await self.workspace_form_repository.save(workspace_form)

@@ -35,6 +35,8 @@ from backend.app.services.open_formulieren_mode import refuse_open_formulieren_i
 from backend.config import settings
 
 NOT_FOUND_CODE = "import_not_found"
+# the status of the stand-in answered for a report that is gone (never stored)
+REPORT_REMOVED = "removed"
 # how long the note of a refused attempt is kept (it is only counted per day)
 ATTEMPT_RETENTION = dt.timedelta(days=2)
 
@@ -231,8 +233,19 @@ class OpenFormulierenImportService:
     async def review(
         self, workspace_id: RecordId, import_id: RecordId, reviewed: bool, user: User
     ) -> FormImportDocument:
-        refuse_open_formulieren_import()
+        """Mark the import reviewed (or not). Not behind the import switch
+        and not tied to the report: the mark lives on the forms (the draft
+        and its copies) and publishing waits for it, so it can always be
+        cleared by whoever may edit forms here, also when the import is
+        switched off or the report is gone."""
+        if not reviewed:
+            # outside the switch the review call only clears the mark
+            refuse_open_formulieren_import()
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        if await self._repo.get(import_id) is None:
+            return await self._review_without_report(
+                workspace_id, import_id, reviewed, user
+            )
         record = await self._record(workspace_id, import_id)
         needs_review = not reviewed
         if bool(record.report.get("needsReview")) != needs_review:
@@ -240,7 +253,41 @@ class OpenFormulierenImportService:
             await self._repo.save(record)
         if record.form_id:
             await self._mark(workspace_id, record.form_id, record, needs_review)
+        # a copy of the draft carries the same mark (duplicate_form): looking
+        # over the report clears (or sets) it there too
+        await self._workspace_form_repo.set_review_mark_by_import(
+            workspace_id, str(record.id), needs_review
+        )
         return record
+
+    async def _review_without_report(
+        self, workspace_id: RecordId, import_id: RecordId, reviewed: bool, user: User
+    ) -> FormImportDocument:
+        """The report is gone (deleted with the form it was made for) but
+        copies of that form still carry its mark: clear it on the forms of
+        this workspace that name the import. Nothing else can be said about
+        the import, so only clearing is possible, and a mark that names no
+        form here is a 404 like any unknown import."""
+        if not reviewed:
+            raise _not_found()
+        named = await self._workspace_form_repo.set_review_mark_by_import(
+            workspace_id, str(import_id), needs_review=False
+        )
+        if not named:
+            raise _not_found()
+        return FormImportDocument(
+            id=import_id,
+            workspace_id=workspace_id,
+            created_by=str(user.id),
+            status=REPORT_REMOVED,
+            source_kind=SOURCE_KIND,
+            file_name="",
+            content_type="",
+            size_bytes=0,
+            sha256="",
+            source_key="",
+            report={"needsReview": False},
+        )
 
     # ---------------------------------------------------------------- helpers
 
@@ -260,15 +307,9 @@ class OpenFormulierenImportService:
         self, workspace_id, form_id: str, record: FormImportDocument, needs_review: bool
     ) -> None:
         """The form's own mark, on its link to the workspace."""
-        link = await self._workspace_form_repo.find_workspace_form(
-            workspace_id, str(form_id)
+        await self._workspace_form_repo.set_review_mark(
+            workspace_id, str(form_id), needs_review, SOURCE_KIND, str(record.id)
         )
-        if link is None:
-            return
-        link.settings.needs_review = needs_review
-        link.settings.import_source = SOURCE_KIND
-        link.settings.import_id = str(record.id)
-        await self._workspace_form_repo.update(str(link.id), link)
 
     async def _remove(self, workspace_id, form_id: str) -> None:
         try:

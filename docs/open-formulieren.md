@@ -17,8 +17,9 @@ Everything is behind a switch that is **off by default**.
 | `OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY` | 0 to 100000 | `50` |
 | `OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY` | 0 to 100000 | `100` |
 
-* `off`: the three import endpoints answer **410** `open_formulieren_off` (before anything is read) and
-  `GET /providers` does not list the import.
+* `off`: the upload and the report endpoints answer **410** `open_formulieren_off` (before anything is read) and
+  `GET /providers` does not list the import. The review call (`POST .../review`) is the exception: it still works, so
+  a form that carries the "needs review" mark can always be cleared and published.
 * `on`: a workspace member who may create forms can import; `GET /providers` lists
   `{"providerName": "open_formulieren", "importMode": "on"}` so the webapp can offer it.
 
@@ -62,7 +63,12 @@ something in the file that could not be read), `import_limit` (429), `import_bus
   `source_kind = "open_formulieren"`. It holds only the report, the source release, the file name, size and sha256.
   **The uploaded archive is not kept.** The record is deleted with its form.
 * The **mark** is on the form's workspace settings: `needs_review`, `import_source`, `import_id`
-  (`needsReview`, `importSource`, `importId` in the API). It never blocks publishing.
+  (`needsReview`, `importSource`, `importId` in the API). **Publishing is refused while it is set**, by every way of
+  publishing (builder, API, MCP): 422 `form_not_publishable` with a problem `needs_review` that carries only the
+  import's id (`importId`). Marking the import reviewed (`POST .../review`) clears the mark on the draft and on its
+  copies; then publishing works. The mark holds whatever the import switch says and whether or not the report still exists; clearing it
+  (`POST .../review`) is not behind the switch and, when the report is gone (deleted with its form), clears the mark
+  of the forms in the workspace that name the import (the answer is then a stand-in with `status` `removed`).
 
 ### The report
 
