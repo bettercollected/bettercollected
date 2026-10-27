@@ -8,7 +8,9 @@ import pytest
 from backend.app.services.open_formulieren import limits
 from backend.app.services.open_formulieren.archive import read_archive
 from backend.app.services.open_formulieren.errors import ImportRefused
-from backend.app.services.open_formulieren.importer import archive_language, build_draft
+from backend.app.services.open_formulieren import importer
+from backend.app.services.open_formulieren.importer import Planner, anchored, archive_language, build_draft
+from backend.app.services.open_formulieren.report import Report
 from backend.app.services.open_formulieren.mapping import HOUSE_NUMBER_PATTERN, POSTCODE_PATTERN
 from tests.app.open_formulieren.conftest import (
     archive_with,
@@ -321,3 +323,155 @@ def test_hostile_text_in_the_label_never_reaches_the_titles():
     titles = [q["title"] for q in questions(built)]
     assert all("<" not in t and len(t) <= limits.MAX_TITLE for t in titles)
     assert titles[0].startswith("x()Home") or titles[0].startswith("Home")
+
+
+# ------------------------------------------- refused before it is planned
+
+
+def test_an_archive_of_nothing_but_addresses_is_refused_before_it_is_planned(no_deadline, monkeypatch):
+    """Counts, not time: no more questions are made than the cap allows."""
+    made = []
+    original = Planner._make
+
+    def counting(self, *args, **kw):
+        made.append(1)
+        return original(self, *args, **kw)
+
+    monkeypatch.setattr(Planner, "_make", counting)
+    with pytest.raises(ImportRefused) as caught:
+        run([[address(f"a{i}", f"A{i}") for i in range(limits.MAX_COMPONENTS)]])
+    assert (caught.value.status, caught.value.code) == (422, "archive_too_complex")
+    assert len(made) <= limits.MAX_IMPORT_FIELDS  # not 5 * MAX_COMPONENTS
+
+
+def test_the_early_refusal_counts_like_the_form_size_check(no_deadline):
+    """A repeating group counts twice (as an item and as a group), exactly as
+    ``_build_draft`` counts it: 3 + 197 * 5 = 988 passes, 200 addresses make 1003."""
+    grid = comp("editgrid", "g", "People", components=[comp("textfield", "n")])
+    built = run([[grid] + [address(f"a{i}", f"A{i}") for i in range(197)]])
+    assert built.summary["fields"] == 1 + 197 * 5 and built.summary["repeatingGroups"] == 1
+    with pytest.raises(ImportRefused):
+        run([[grid] + [address(f"a{i}", f"A{i}") for i in range(200)]])
+    # the largest that fits: 3 + 199 * 5 = 998, then room for two more questions
+    built = run([[grid] + [address(f"a{i}") for i in range(199)] + [comp("textfield", "x"), comp("textfield", "y")]])
+    assert built.summary["repeatingGroups"] == 1
+    with pytest.raises(ImportRefused):
+        run([[grid] + [address(f"a{i}") for i in range(199)] + [comp("textfield", f"x{i}") for i in range(3)]])
+
+
+# ------------------------------------------------------- the key names
+
+
+class _CountingSet(set):
+    probes = 0
+
+    def __contains__(self, item):
+        _CountingSet.probes += 1
+        return super().__contains__(item)
+
+
+def test_unique_keys_cost_one_probe_per_key_not_a_scan():
+    planner = Planner(read_archive(archive_with([[]])), Report())
+    planner._address_keys = _CountingSet()
+    _CountingSet.probes = 0
+    found = [planner._address_key("same", "city") for _ in range(400)]
+    assert len(set(found)) == 400 and found[0] == "same.city" and found[1] == "same.city~2"
+    assert _CountingSet.probes <= 400 + 5  # a scan would be about 80,000
+
+
+def test_a_real_key_shaped_like_a_derived_one_is_stepped_over():
+    planner = Planner(read_archive(archive_with([[]])), Report())
+    planner.seen_keys.update({"a.city", "a.city~2"})
+    assert [planner._address_key("a", "city") for _ in range(2)] == ["a.city~3", "a.city~4"]
+
+
+# --------------------------------------- reports name the component itself
+
+
+def _names(built, kind="logic"):
+    return [(i["key"], i.get("label")) for i in built.report.items if i["kind"] == kind]
+
+
+def test_a_report_about_logic_names_the_address_component_once():
+    built = run([[address(), comp("textfield", "t", conditional={"show": True, "when": "missing", "eq": "x"})]])
+    broken = run([[address(conditional={"show": True, "when": "missing", "eq": "x"})]])
+    assert _names(broken) == [("address", "Home")]
+    assert items(broken, reason="condition_source_missing")[0]["detail"] == {"source": "missing"}
+    assert [i["key"] for i in built.report.items if i["kind"] == "logic"] == ["t"]
+
+
+def test_conflicting_rules_on_an_address_are_reported_once_under_its_own_key():
+    radio = comp("radio", "r", values=[{"value": "a", "label": "A"}, {"value": "b", "label": "B"}])
+    built = run(
+        [[radio, address()]],
+        logic=[rule(eq("r", "a"), hide("address"), order=0), rule(eq("r", "b"), hide("address", False), order=1)],
+    )
+    assert _names(built) == [("address", "Home")]
+    assert items(built, kind="logic")[0]["reason"] == "conflicting_rules"
+
+
+def test_no_report_item_carries_a_name_that_is_not_in_the_file():
+    built = run(
+        [
+            [
+                address(
+                    conditional={"show": True, "when": "missing", "eq": "x"},
+                    validate={"plugins": ["p"], "required": True},
+                    prefill={"plugin": "demo", "attribute": "a"},
+                )
+            ]
+        ]
+    )
+    for item in built.report.items:
+        assert "." not in item.get("key", "") and "~" not in item.get("key", ""), item
+        assert "\u2013" not in item.get("label", ""), item
+
+
+def test_parts_the_form_refuses_are_reported_once_under_the_components_key():
+    planner = Planner(read_archive(archive_with([[address(), comp("textfield", "t")]])), Report())
+    planner.plan()
+    ops = importer._build_ops(planner)
+    for index, (kind, question, _) in enumerate(ops.meta):
+        if question is not None and question.unit is not None:
+            importer._refused(planner, ops, index, "no")
+    refused = [i for i in planner.report.items if i["reason"] == "rejected_by_form_rules"]
+    assert [(i["key"], i["label"]) for i in refused] == [("address", "Home")]
+
+
+# --------------------------------------------------------------- anchoring
+
+
+def test_a_pattern_means_the_whole_answer_as_in_the_source():
+    """Open Formulieren adds ^ and $ when a pattern lacks them
+    (formio/components/utils.py:6-14, 4.0.6); ours search, so they are added."""
+    import re
+
+    assert anchored("[0-9]+") == "^(?:[0-9]+)$"
+    assert anchored(" ^a$ ") == "^a$"
+    assert anchored("^a") == "^(?:^a)$"
+    assert anchored("a$") == "^(?:a$)$"
+    piped = re.compile(anchored("a|b"))
+    assert piped.search("a") and piped.search("b")
+    assert not piped.search("xa") and not piped.search("bx") and not piped.search("ab")
+
+
+def test_the_pattern_of_a_text_question_is_carried_anchored():
+    built = run([[comp("textfield", "u", validate={"pattern": "[0-9]{3}"}), comp("textfield", "v", validate={"pattern": "^[0-9]{3}$"})]])
+    first, second = questions(built)
+    assert first["validations"]["regex"] == "^(?:[0-9]{3})$"
+    assert second["validations"]["regex"] == "^[0-9]{3}$"
+
+
+def test_the_postcode_and_place_patterns_of_an_address_are_carried_anchored():
+    custom = address(
+        openForms={
+            "translations": {},
+            "components": {
+                "postcode": {"validate": {"pattern": "1234 [A-Z]{2}"}},
+                "city": {"validate": {"pattern": "Amsterdam|Utrecht"}},
+            },
+        }
+    )
+    got = questions(run([[custom]]))
+    assert rules_of(got[3])["regex"] == "^(?:1234 [A-Z]{2})$"
+    assert rules_of(got[4])["regex"] == "^(?:Amsterdam|Utrecht)$"

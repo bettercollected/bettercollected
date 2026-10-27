@@ -105,7 +105,7 @@ to plain text (tags, attributes and scripts removed, control and direction chara
 syntax is kept as literal text and never rendered.
 
 **Addresses.** An `addressNL` component holds five answers and offers a lookup of street and place from postcode and
-house number (`deriveAddress`; it needs the Dutch address register). It becomes five short text questions in the same
+house number (`deriveAddress`; it needs an address lookup service). It becomes five short text questions in the same
 place, in this order, titled "<label> – <part>": Street, House number, Addition, Postcode, Place (Straat,
 Huisnummer, Toevoeging, Postcode, Plaats when the form's texts are Dutch; a component without a label is called
 Address or Adres). The language is read from the archive: the text at the top level of an export is that of the
@@ -119,9 +119,10 @@ the `en` one (a component's own label decides for that component); English when 
   apart; here they are one question, as the Dutch "toevoeging" is written ("a", "bis", "2", "a 2", "a-2"): up to ten
   characters, one or two parts of at most four letters or digits, separated by a space or a hyphen.
 * House number: one to five digits (their rule). Postcode: the pattern of a postcode question here, or the
-  component's own pattern for the postcode (`openForms.components.postcode.validate.pattern`) when it runs; the
-  component's pattern for the place (`openForms.components.city.validate.pattern`) is carried the same way. A pattern
-  that cannot be used is reported (`validation_not_carried`).
+  component's own pattern for the postcode (`openForms.components.postcode.validate.pattern`) when it is accepted;
+  the component's pattern for the place (`openForms.components.city.validate.pattern`) is carried the same way.
+  A pattern is accepted when RE2 compiles it within the pattern limits; one that is not is reported
+  (`validation_not_carried`). Patterns are anchored, see "Patterns" below.
 * The help text goes with the first question; a column width with all five.
 * One item is reported (`changed`, `converted_to_text`, `detail.componentType` = `addressNL`, `detail.questions` = 5,
   `detail.lookup` = `not_carried`; a warning when `deriveAddress` was on, else info): the lookup is not carried.
@@ -129,6 +130,14 @@ the `en` one (a component's own label decides for that component); English when 
   or a path in it (`address`, `address.postcode`) is reported as a missing source (`condition_source_missing`), never
   guessed; a rule that hides or shows the component applies to all five. The exporter does not write the address
   component back: our questions leave as text questions.
+
+**Patterns.** Open Formulieren matches `validate.pattern` against the whole answer: its validation adds a leading `^`
+and a trailing `$` when the pattern lacks one (`formio/components/utils.py:6-14`, used for the text components at
+`formio/components/vanilla.py:130-136, 336-342` and `custom.py:389, 1173`). Ours search the answer, so a pattern that
+does not both start with `^` and end with `$` is carried as `^(?:pattern)$` (the same meaning, and the alternation
+`a|b` keeps its intended reading). This holds for the short text path and for an address's postcode and place. A
+pattern is accepted when RE2 compiles it within the pattern limits; how the browser evaluates patterns is a separate
+matter that this import does not change.
 
 **Visibility.** A simple `conditional` (`show`, `when`, `eq`) becomes a show/hide rule on the question. JSON logic
 rules are read as data, never run: a trigger that is one comparison of a component with a literal (`==`, `!=`, `>`,
