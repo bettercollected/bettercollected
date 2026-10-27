@@ -297,7 +297,8 @@
       "CHECK": "Check connection",
       "CHECKING": "Checking…",
       "CHECK_HINT": "Uses the saved settings. It reads no records and creates nothing.",
-      "CHECK_SAVE_FIRST": "Save your changes to check them."
+      "CHECK_SAVE_FIRST": "Save your changes to check them.",
+      "FIX_ERRORS": "Some fields need your attention. Nothing was saved."
     },
     "DELIVERY": {
       "TITLE": "Sending to a case system",
@@ -348,7 +349,9 @@
       "SHOW_DELIVERED": "Show sent submissions",
       "HIDE_DELIVERED": "Hide sent submissions",
       "SENT_AT": "Sent: {{time}}",
-      "OBJECT_ID": "Object id"
+      "OBJECT_ID": "Object id",
+      "REGISTRATION_ERROR": "The settings of this form could not be loaded, so the deliveries may be incomplete. Reload the page.",
+      "SENT_SHOWING": "Showing {{shown}} of {{total}}"
     },
     "CHECK": {
       "ok": "The connection works. The Objects API answered as expected. No record was read or created.",

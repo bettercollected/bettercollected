@@ -15,6 +15,7 @@ import { Switch } from '@app/shadcn/components/ui/switch';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import {
+    FormRegistration,
     RegistrationTestResult,
     RegistrationVariable,
     useCheckFormRegistrationMutation,
@@ -86,6 +87,8 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
     const [referencePath, setReferencePath] = useState(DEFAULT_REFERENCE_PATH);
     const [check, setCheck] = useState<CheckState | null>(null);
     const [dirty, setDirty] = useState(false);
+    // What the last save answered: the check works on it at once, before the query refetches.
+    const [savedRegistration, setSavedRegistration] = useState<FormRegistration | null>(null);
     const [chosen, setChosen] = useState<Record<string, Chosen>>({});
     const [dropped, setDropped] = useState(0);
     const [errors, setErrors] = useState<{ service?: string; path?: string; variables?: string; objectType?: string; version?: string; reference?: string }>({});
@@ -150,6 +153,22 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         event.preventDefault();
         setSaved(false);
         setGeneral(null);
+        if (!on) {
+            // Turning it off never waits on the draft: an out-of-date object type address
+            // or half-filled paths must not keep sending switched on. Only the service stays.
+            setErrors({});
+            setKeyErrors({});
+            const off: any = await save({ workspaceId, formId, body: { enabled: false, serviceId: serviceId || null, path: '', variables: [], transformToList: [] } });
+            if (off.data) {
+                setSaved(true);
+                setDirty(false);
+                setSavedRegistration(off.data);
+                setDropped(0);
+            } else {
+                setGeneral(t(errorKey(errorCodeOf(off.error))));
+            }
+            return;
+        }
         const sources = (variables ?? []).filter((v) => chosen[v.source] && !blockedFor(v, objects)).map((v) => v.source);
         const found: typeof errors = {};
         const keyProblems: Record<string, string> = {};
@@ -196,7 +215,11 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         }
         setErrors(found);
         setKeyErrors(keyProblems);
-        if (Object.keys(found).length || Object.keys(keyProblems).length) return;
+        if (Object.keys(found).length || Object.keys(keyProblems).length) {
+            // never a silent stop: say so, next to the fields that are marked
+            setGeneral(t('REGISTRATION.FORM.FIX_ERRORS'));
+            return;
+        }
 
         const response: any = await save({
             workspaceId,
@@ -223,6 +246,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
         if (response.data) {
             setSaved(true);
             setDirty(false);
+            setSavedRegistration(response.data);
             setDropped(0);
             return;
         }
@@ -511,7 +535,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                     {on && objects && (
                         <div className="flex flex-col gap-2 rounded-md border border-black-300 p-3" data-testid="registration-check">
                             <div className="flex flex-wrap items-center gap-3">
-                                <Button type="button" variant="v2Button" isLoading={check === 'checking'} disabled={check === 'checking' || dirty || !registration.serviceId} onClick={runConnectionCheck}>
+                                <Button type="button" variant="v2Button" isLoading={check === 'checking'} disabled={check === 'checking' || dirty || !(savedRegistration ?? registration).serviceId} onClick={runConnectionCheck}>
                                     {check === 'checking' ? t('REGISTRATION.FORM.CHECKING') : t('REGISTRATION.FORM.CHECK')}
                                 </Button>
                                 <p id="registration-check-hint" className="text-xs text-black-600">

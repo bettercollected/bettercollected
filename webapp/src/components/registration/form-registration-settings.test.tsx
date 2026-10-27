@@ -452,6 +452,71 @@ describe('Objects API form settings', () => {
     });
 });
 
+describe('Turning an Objects API form off', () => {
+    beforeEach(() => {
+        servicesState.data = objectsServices;
+    });
+
+    it('works with an object type address that is outside the service base now', async () => {
+        saveMock.mockResolvedValue({ data: objectsRegistration({ enabled: false }) });
+        registrationState.data = objectsRegistration({ objectTypeUrl: `https://old.example.org/api/v2/objecttypes/${OT_ID}` });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body).toEqual({ enabled: false, serviceId: 's9', path: '', variables: [], transformToList: [] });
+        expect(await screen.findByText(en.FORM.SAVED)).toBeInTheDocument();
+    });
+
+    it('works with empty or invalid target paths, and says nothing is wrong', async () => {
+        saveMock.mockResolvedValue({ data: objectsRegistration({ enabled: false }) });
+        registrationState.data = objectsRegistration({ variables: [{ source: 'q1', targetPath: [] }] });
+        renderSettings();
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: '' } });
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body.enabled).toBe(false);
+        expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it("shows the server's refusal of the off save", async () => {
+        saveMock.mockResolvedValue({ error: { status: 404, data: { code: 'service_not_found' } } });
+        registrationState.data = objectsRegistration();
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(await screen.findByRole('alert')).toHaveTextContent(en.ERROR.service_not_found);
+    });
+
+    it('never stops silently when switched on: marks the fields and says nothing was saved', () => {
+        registrationState.data = objectsRegistration({ variables: [{ source: 'q1', targetPath: ['a'] }] });
+        renderSettings();
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'bad path' } });
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(saveMock).not.toHaveBeenCalled();
+        expect(screen.getByRole('alert')).toHaveTextContent(en.FORM.FIX_ERRORS);
+        expect(within_('q1').getByLabelText(en.FORM.TARGET_PATH)).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('checks the connection from what the save answered, before the settings are read again', async () => {
+        // the query still holds a form without a service
+        registrationState.data = registration();
+        saveMock.mockResolvedValue({ data: objectsRegistration() });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.change(screen.getByLabelText(en.FORM.SERVICE), { target: { value: 's9' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL), { target: { value: OT_URL } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '3' } });
+        fireEvent.click(within_('q1').getByRole('checkbox'));
+        fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: 'applicant.postcode' } });
+        expect(screen.getByRole('button', { name: en.FORM.CHECK })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await screen.findByText(en.FORM.SAVED);
+        expect(screen.getByRole('button', { name: en.FORM.CHECK })).toBeEnabled();
+    });
+});
+
 describe('Check connection', () => {
     beforeEach(() => {
         servicesState.data = objectsServices;

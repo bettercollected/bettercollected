@@ -15,7 +15,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ATTENTION_STATUSES, WAITING_STATUSES, deliveryErrorKey, errorCodeOf, errorKey, formatDateTime } from '@app/utils/registration';
 
 const PAGE = 50;
-const SENT_PAGE = 20;
+const SENT_PAGE = 20; // a page of sent submissions; "Show more" adds another
 // How often the waiting count is asked again: a retried delivery is sent by a
 // background job and ends as delivered or failed a little later.
 const POLL_MS = 10_000;
@@ -45,7 +45,8 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const waiting = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: [...WAITING_STATUSES], limit: 1 }, { pollingInterval: POLL_MS });
     // The sent submissions are read only when asked for: they carry the created object's id.
     const [showSent, setShowSent] = useState(false);
-    const sent = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: ['delivered'], limit: SENT_PAGE }, { skip: !showSent });
+    const [sentLimit, setSentLimit] = useState(SENT_PAGE);
+    const sent = useGetRegistrationDeliveriesQuery({ workspaceId, formId, status: ['delivered'], limit: sentLimit }, { skip: !showSent });
     // When the waiting count moves, something was sent or failed: read the rest again.
     const lastWaiting = useRef<number | undefined>(undefined);
     const waitingNow = waiting.data?.total;
@@ -53,6 +54,7 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
         if (waitingNow !== undefined && lastWaiting.current !== undefined && lastWaiting.current !== waitingNow) {
             attention.refetch();
             delivered.refetch();
+            if (showSent) sent.refetch();
         }
         lastWaiting.current = waitingNow;
     }, [waitingNow]);
@@ -66,7 +68,8 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const waitingTotal = waiting.data?.total ?? 0;
     const settled = !registration.isLoading && !attention.isLoading && !delivered.isLoading && !waiting.isLoading;
     // A form that never sent has nothing to show.
-    if (!settled || (!registration.data?.enabled && failedTotal + deliveredTotal + waitingTotal === 0)) return null;
+    // A failed settings read is said, not hidden: the counts below may be all there is.
+    if (!settled || (!registration.isError && !registration.data?.enabled && failedTotal + deliveredTotal + waitingTotal === 0)) return null;
 
     const retryOne = async (delivery: RegistrationDelivery) => {
         setRetrying(delivery.id);
@@ -88,6 +91,12 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                 </h2>
                 {registration.data?.serviceName && <p className="text-xs break-words text-black-600">{t('REGISTRATION.DELIVERY.SENDING_TO', { name: registration.data.serviceName })}</p>}
             </div>
+
+            {registration.isError && (
+                <p role="alert" className="text-sm text-[#A83434]">
+                    {t('REGISTRATION.DELIVERY.REGISTRATION_ERROR')}
+                </p>
+            )}
 
             <dl className="flex flex-wrap gap-x-8 gap-y-2">
                 <Count label={t('REGISTRATION.DELIVERY.DELIVERED')} value={deliveredTotal} testId="registration-count-delivered" />
@@ -183,6 +192,18 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
                                     </li>
                                 ))}
                             </ul>
+                        )}
+                        {showSent && (sent.data?.items.length ?? 0) > 0 && (
+                            <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <p role="status" className="text-xs text-black-600">
+                                    {t('REGISTRATION.DELIVERY.SENT_SHOWING', { shown: sent.data!.items.length, total: sent.data!.total })}
+                                </p>
+                                {sent.data!.total > sent.data!.items.length && (
+                                    <Button type="button" variant="v2Button" size="sm" onClick={() => setSentLimit((current) => current + SENT_PAGE)}>
+                                        {t('REGISTRATION.DELIVERY.SHOW_MORE')}
+                                    </Button>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

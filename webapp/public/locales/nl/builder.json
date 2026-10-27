@@ -297,7 +297,8 @@
       "CHECK": "Verbinding controleren",
       "CHECKING": "Bezig met controleren…",
       "CHECK_HINT": "Gebruikt de opgeslagen instellingen. Er worden geen records gelezen of aangemaakt.",
-      "CHECK_SAVE_FIRST": "Sla uw wijzigingen op om ze te controleren."
+      "CHECK_SAVE_FIRST": "Sla uw wijzigingen op om ze te controleren.",
+      "FIX_ERRORS": "Een aantal velden vraagt uw aandacht. Er is niets opgeslagen."
     },
     "DELIVERY": {
       "TITLE": "Versturen naar een zaaksysteem",
@@ -348,7 +349,9 @@
       "SHOW_DELIVERED": "Verstuurde inzendingen tonen",
       "HIDE_DELIVERED": "Verstuurde inzendingen verbergen",
       "SENT_AT": "Verstuurd: {{time}}",
-      "OBJECT_ID": "Object-id"
+      "OBJECT_ID": "Object-id",
+      "REGISTRATION_ERROR": "De instellingen van dit formulier konden niet worden geladen, dus de leveringen zijn mogelijk onvolledig. Laad de pagina opnieuw.",
+      "SENT_SHOWING": "{{shown}} van {{total}} getoond"
     },
     "CHECK": {
       "ok": "De verbinding werkt. De Objects API antwoordde zoals verwacht. Er is niets gelezen of aangemaakt.",

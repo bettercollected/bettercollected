@@ -20,7 +20,7 @@ const en = enBuilder.REGISTRATION as any;
 const nl = nlBuilder.REGISTRATION as any;
 
 const status = { data: { enabled: true } as { enabled: boolean } | undefined, isLoading: false };
-const registrationState: { data: FormRegistration | undefined; isLoading: boolean } = { data: undefined, isLoading: false };
+const registrationState: { data: FormRegistration | undefined; isLoading: boolean; isError?: boolean } = { data: undefined, isLoading: false, isError: false };
 const lists: Record<string, { data: { items: RegistrationDelivery[]; total: number } | undefined; isLoading: boolean; isError: boolean }> = {};
 const queries: any[] = [];
 const pollOptions: any[] = [];
@@ -79,6 +79,7 @@ const setLists = (failed: RegistrationDelivery[], failedTotal = failed.length, d
 beforeEach(() => {
     status.data = { enabled: true };
     registrationState.data = { enabled: true, serviceId: 's1', serviceName: 'Cases', organisationName: 'Example Organisation', path: '', variables: [], transformToList: [] };
+    registrationState.isError = false;
     permissions = new Set([WorkspacePermission.RESPONSE_READ, WorkspacePermission.FORM_EDIT]);
     Object.keys(lists).forEach((k) => delete lists[k]);
     queries.length = 0;
@@ -198,6 +199,57 @@ describe('Deliveries on the responses tab', () => {
         // plain text: never a link or an image the browser could fetch
         expect(container.querySelector('a, img')).toBeNull();
         expect(queries).toContainEqual({ workspaceId: 'ws1', formId: 'f1', status: ['delivered'], limit: 20 });
+    });
+
+    const sentItems = (count: number, total: number) => {
+        lists['delivered'] = {
+            data: { items: Array.from({ length: count }, (_, i) => delivery({ id: `s${i}`, status: 'delivered', lastErrorCode: null, deliveredAt: '2026-10-26T10:20:00Z' })), total },
+            isLoading: false,
+            isError: false,
+            refetch: refetchMock
+        };
+    };
+
+    it('pages the sent submissions: 20 at a time, with the total and a way to see more', () => {
+        setLists([delivery()]);
+        sentItems(20, 45);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: en.DELIVERY.SHOW_DELIVERED }));
+        expect(screen.getByText('Showing 20 of 45')).toBeInTheDocument();
+        expect(queries).toContainEqual({ workspaceId: 'ws1', formId: 'f1', status: ['delivered'], limit: 20 });
+        const more = within(screen.getByTestId('registration-deliveries')).getAllByRole('button', { name: en.DELIVERY.SHOW_MORE }).at(-1)!;
+        fireEvent.click(more);
+        expect(queries).toContainEqual({ workspaceId: 'ws1', formId: 'f1', status: ['delivered'], limit: 40 });
+    });
+
+    it('shows no "show more" once every sent submission is listed', () => {
+        setLists([delivery()]);
+        sentItems(3, 3);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: en.DELIVERY.SHOW_DELIVERED }));
+        expect(screen.getByText('Showing 3 of 3')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: en.DELIVERY.SHOW_MORE })).toBeNull();
+    });
+
+    it('reads the sent list again, with the others, when the waiting count moves', () => {
+        setLists([delivery()], 1, 12, 2);
+        sentItems(2, 12);
+        const { rerender } = render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: en.DELIVERY.SHOW_DELIVERED }));
+        refetchMock.mockClear();
+        setLists([delivery()], 1, 12, 1);
+        sentItems(2, 12);
+        rerender(<Deliveries workspaceId="ws1" formId="f1" canRetry />);
+        // failed, delivered counts and the sent list
+        expect(refetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it("says so when the form's settings could not be read, instead of showing nothing", () => {
+        registrationState.data = undefined;
+        registrationState.isError = true;
+        setLists([], 0, 0, 0);
+        render(<Deliveries workspaceId="ws1" formId="f1" canRetry />, { wrapper });
+        expect(screen.getByRole('alert')).toHaveTextContent(en.DELIVERY.REGISTRATION_ERROR);
     });
 
     it('shows no object id for a Generic JSON delivery', () => {
