@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import FormIntegrations from '@app/components/form/integrations';
+import FormRegistrationSection from '@app/components/registration/form-registration-settings';
 import { useModal } from '@app/components/modal-views/context';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { formPage } from '@app/constants/locales/form-page';
@@ -52,6 +53,9 @@ export default function FormSettings() {
                     <FormIntegrations />
                 </section>
             )}
+
+            {/* Owners and admins, while this server sends to case systems; renders nothing otherwise. */}
+            <FormRegistrationSection />
 
             {can(WorkspacePermission.FORM_DELETE) && (
             <section className="flex flex-col gap-2">

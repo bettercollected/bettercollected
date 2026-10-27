@@ -20,6 +20,7 @@ const LABELS: Record<string, string> = {
     'WORKSPACE_SECTIONS.THEMES': 'Themes',
     'WORKSPACE_SECTIONS.SSO': 'Single sign-on',
     'WORKSPACE_SECTIONS.DOMAINS': 'Domains',
+    'WORKSPACE_SECTIONS.CASE_SYSTEM': 'Case system',
     'WORKSPACE_SECTIONS.AI': 'AI'
 };
 const t = (key: string) => LABELS[key] ?? key;
@@ -31,7 +32,7 @@ const holding =
 const OWNER = holding(...Object.values(P));
 const MEMBER = holding(P.FORM_READ, P.FORM_EDIT, P.FORM_CREATE, P.RESPONSE_READ);
 
-const visible = (can: (p: string) => boolean, ssoEnabled = true) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled }), can);
+const visible = (can: (p: string) => boolean, ssoEnabled = true, registrationEnabled = false) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled, registrationEnabled }), can);
 const names = (items: Array<{ name: React.ReactNode }>) => items.map((item) => item.name);
 
 describe('the Workspace group', () => {
@@ -88,6 +89,22 @@ describe('the Workspace group', () => {
         expect(navItemForPath(path, [site, ...items])?.name).toBe(name);
         expect(items.filter((item) => isNavItemActive(path, item)).map((item) => item.name)).toEqual([name]);
         expect(isNavItemActive(path, site)).toBe(false);
+    });
+
+    it('adds Case system for admins only while this server sends to case systems', () => {
+        expect(names(visible(OWNER, true, false))).not.toContain('Case system');
+        expect(names(visible(OWNER, true, true))).toEqual(['Members', 'Themes', 'Single sign-on', 'Case system', 'AI']);
+        // behind workspace.manage, like the API
+        expect(names(visible(MEMBER, true, true))).toEqual(['AI']);
+        expect(names(visible(holding(P.SECURITY_MANAGE), true, true))).toEqual(['Single sign-on', 'AI']);
+        const item = visible(OWNER, true, true).find((i) => i.key === 'case-system');
+        expect(item).toMatchObject({ url: '/acme/dashboard/case-system', permission: P.WORKSPACE_MANAGE });
+    });
+
+    it('titles the Case system page and keeps its item active', () => {
+        const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, registrationEnabled: true });
+        expect(navItemForPath('/acme/dashboard/case-system', items)?.name).toBe('Case system');
+        expect(items.filter((item) => isNavItemActive('/acme/dashboard/case-system', item)).map((item) => item.name)).toEqual(['Case system']);
     });
 
     it('titles the Domains page "Domains" when SSO is off', () => {
