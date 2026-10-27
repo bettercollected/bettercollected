@@ -506,6 +506,7 @@
     "PUBLISH_BLOCKED": {
       "TITLE": "Dit formulier moet nog worden nagekeken",
       "TEXT": "Het is geïmporteerd uit Open Formulieren. U kunt pas publiceren nadat u het importrapport hebt doorgenomen en als nagekeken hebt gemarkeerd.",
+      "TEXT_NO_REPORT": "Het is geïmporteerd uit Open Formulieren. U kunt pas publiceren nadat u het als nagekeken hebt gemarkeerd. Het importrapport is niet beschikbaar.",
       "OPEN_REPORT": "Open het importrapport",
       "MARK_REVIEWED": "Markeer als nagekeken",
       "CLOSE": "Sluiten",
@@ -520,6 +521,7 @@
       "always_hidden": "Deze vraag is in het oorspronkelijke formulier altijd verborgen en is weggelaten.",
       "not_allowed_in_repeating_group": "Een vraag van het type “{{componentType}}” kan niet in een herhaalgroep staan en is weggelaten.",
       "converted_to_text": "Deze vraag van het type “{{componentType}}” is een korte tekstvraag geworden.",
+      "converted_to_text_address": "Deze adresvraag is vijf korte tekstvragen geworden: straat, huisnummer, toevoeging, postcode en plaats. Het adres wordt niet opgezocht aan de hand van postcode en huisnummer; de gegevens worden ingevuld.",
       "converted_to_number": "Deze vraag is een getalvraag geworden.",
       "converted_to_yes_no": "Deze vraag is een ja-of-nee-vraag geworden.",
       "datetime_split": "Deze vraag naar datum en tijd is twee vragen geworden: één voor de datum en één voor de tijd.",

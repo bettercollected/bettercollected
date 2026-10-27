@@ -87,9 +87,6 @@ from backend.app.services.internal_fields import (
     strip_internal_fields,
 )
 from backend.app.services.event_service import event_logger_service
-from backend.app.services.open_formulieren_mode import (
-    open_formulieren_import_enabled,
-)
 from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
@@ -1355,25 +1352,14 @@ class WorkspaceFormService:
 
     async def _pending_import_review(self, workspace_id, workspace_form):
         """The publish problem of a form whose import (Open Formulieren) is
-        still marked "needs review": a person clears the mark on the import
-        report first. None when the mark is clear, when the import is switched
-        off (its report and the way to clear the mark are then out of reach),
-        or when the report is gone (deleted with the form it was made for,
-        so a copy of that form has nothing left to review)."""
+        still marked "needs review": a person clears the mark first (the
+        import report's review call, which works whether or not the import
+        switch is on and whether or not the report still exists). The mark
+        alone decides: it never fails open."""
         settings = workspace_form.settings
         if not settings or not settings.needs_review:
             return None
-        if not open_formulieren_import_enabled():
-            return None
-        import_id = settings.import_id
-        if self._pdf_import_repo is not None and import_id:
-            try:
-                record = await self._pdf_import_repo.get(RecordId(import_id))
-            except Exception:  # noqa: BLE001 — a malformed id is no report
-                record = None
-            if record is None:
-                return None
-        return review_problem(import_id)
+        return review_problem(settings.import_id)
 
     async def _upgrade_slug_from_title_on_publish(self, workspace_id, form_id):
         """Give the form a title-based share slug when it goes live.

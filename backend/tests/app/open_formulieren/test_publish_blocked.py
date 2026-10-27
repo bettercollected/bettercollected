@@ -302,33 +302,124 @@ async def test_a_copy_of_a_reviewed_import_is_not_marked(
     assert not link.settings.needs_review
 
 
-async def test_a_copy_whose_report_is_gone_is_not_held_for_it(workspace, import_on):
+async def test_a_copy_whose_report_is_gone_is_still_held_and_can_be_cleared(
+    client, workspace, test_user_cookies, import_on
+):
     form_id = await _draft(workspace)
-    await _mark(workspace, form_id)
+    record = await _mark(workspace, form_id)
     copy = await container.workspace_form_service().duplicate_form(
         workspace.id, form_id, testUser
     )
     # the original is deleted: its report goes with it
     await container.form_import_repo().delete_by_form_ids([form_id])
+    assert await container.form_import_repo().get(record.id) is None
+    with pytest.raises(HTTPException) as raised:
+        await container.workspace_form_service().publish_form(
+            workspace.id, copy.form_id, testUser
+        )
+    assert _only_problem(raised.value.content)["importId"] == str(record.id)
+
+    # the report cannot be read, but the mark can still be cleared
+    assert (
+        await client.get(
+            f"/api/v1/workspaces/{workspace.id}/open-formulieren-imports/{record.id}",
+            cookies=test_user_cookies,
+        )
+    ).status_code == 404
+    cleared = await _review(client, workspace, record.id, test_user_cookies)
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["needsReview"] is False
+    assert cleared.json()["status"] == "removed" and cleared.json()["formId"] is None
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, copy.form_id
+    )
+    assert link.settings.needs_review is False
     published = await container.workspace_form_service().publish_form(
         workspace.id, copy.form_id, testUser
     )
     assert published.version == 1
 
 
+async def test_a_gone_report_cannot_be_marked_again_or_cleared_by_a_stranger(
+    client, workspace, workspace_1, test_user_cookies, test_user_cookies_1, import_on
+):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    copy = await container.workspace_form_service().duplicate_form(
+        workspace.id, form_id, testUser
+    )
+    await container.form_import_repo().delete_by_form_ids([form_id])
+    # only clearing is possible without a report
+    assert (
+        await _review(client, workspace, record.id, test_user_cookies, reviewed=False)
+    ).status_code == 404
+    # another workspace's owner finds nothing of this one's, and clears nothing
+    other = await _review(client, workspace_1, record.id, test_user_cookies_1)
+    assert other.status_code == 404 and other.json()["code"] == "import_not_found"
+    # a made-up id clears nothing either
+    made_up = await _review(client, workspace, "6720a0c1e4b0c8a5f1d2e3f4", test_user_cookies)
+    assert made_up.status_code == 404
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, copy.form_id
+    )
+    assert link.settings.needs_review is True
+
+
 # -------------------------------------------------- switch and permissions
 
 
-async def test_with_the_import_switched_off_the_mark_holds_nothing(workspace):
-    """Off, the report and the way to clear the mark are out of reach (410),
-    so a leftover mark must not strand the form."""
+async def test_with_the_import_switched_off_the_mark_still_holds_and_can_be_cleared(
+    client, workspace, test_user_cookies
+):
     assert settings.open_formulieren.IMPORT == "off"
     form_id = await _draft(workspace)
-    await _mark(workspace, form_id)
-    published = await container.workspace_form_service().publish_form(
+    record = await _mark(workspace, form_id)
+    copy = await container.workspace_form_service().duplicate_form(
         workspace.id, form_id, testUser
     )
-    assert published.version == 1
+    for target in (form_id, copy.form_id):
+        with pytest.raises(HTTPException) as raised:
+            await container.workspace_form_service().publish_form(
+                workspace.id, target, testUser
+            )
+        assert _only_problem(raised.value.content)["importId"] == str(record.id)
+    # the report itself stays off (410); the review does not
+    get = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/open-formulieren-imports/{record.id}",
+        cookies=test_user_cookies,
+    )
+    assert get.status_code == 410
+    cleared = await _review(client, workspace, record.id, test_user_cookies)
+    assert cleared.status_code == 200, cleared.text
+    for target in (form_id, copy.form_id):
+        published = await container.workspace_form_service().publish_form(
+            workspace.id, target, testUser
+        )
+        assert published.version == 1
+
+
+async def test_a_review_with_the_switch_off_keeps_its_permission(
+    client, workspace, workspace_1, test_user_cookies_1
+):
+    form_id = await _draft(workspace)
+    record = await _mark(workspace, form_id)
+    link = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, invited_user.id
+    )
+    link.roles = [WorkspaceRoles.VIEWER]
+    await container.workspace_user_repo().save(link)
+    token = access_token(invited_user)
+    viewer = {"Authorization": token, "RefreshToken": token}
+    assert (await _review(client, workspace, record.id, viewer)).status_code == 403
+    assert (await _review(client, workspace, record.id, None)).status_code in (401, 403)
+    # a member of another workspace: not found (their own workspace has no such import)
+    assert (
+        await _review(client, workspace_1, record.id, test_user_cookies_1)
+    ).status_code == 404
+    linked = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form_id
+    )
+    assert linked.settings.needs_review is True
 
 
 async def test_publishing_still_needs_form_edit(

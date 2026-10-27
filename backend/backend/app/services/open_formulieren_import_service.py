@@ -35,6 +35,8 @@ from backend.app.services.open_formulieren_mode import refuse_open_formulieren_i
 from backend.config import settings
 
 NOT_FOUND_CODE = "import_not_found"
+# the status of the stand-in answered for a report that is gone (never stored)
+REPORT_REMOVED = "removed"
 # how long the note of a refused attempt is kept (it is only counted per day)
 ATTEMPT_RETENTION = dt.timedelta(days=2)
 
@@ -231,8 +233,16 @@ class OpenFormulierenImportService:
     async def review(
         self, workspace_id: RecordId, import_id: RecordId, reviewed: bool, user: User
     ) -> FormImportDocument:
-        refuse_open_formulieren_import()
+        """Mark the import reviewed (or not). Not behind the import switch
+        and not tied to the report: the mark lives on the forms (the draft
+        and its copies) and publishing waits for it, so it can always be
+        cleared by whoever may edit forms here, also when the import is
+        switched off or the report is gone."""
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        if await self._repo.get(import_id) is None:
+            return await self._review_without_report(
+                workspace_id, import_id, reviewed, user
+            )
         record = await self._record(workspace_id, import_id)
         needs_review = not reviewed
         if bool(record.report.get("needsReview")) != needs_review:
@@ -250,6 +260,40 @@ class OpenFormulierenImportService:
             ):
                 await self._mark(workspace_id, link.form_id, record, needs_review)
         return record
+
+    async def _review_without_report(
+        self, workspace_id: RecordId, import_id: RecordId, reviewed: bool, user: User
+    ) -> FormImportDocument:
+        """The report is gone (deleted with the form it was made for) but
+        copies of that form still carry its mark: clear it on the forms of
+        this workspace that name the import. Nothing else can be said about
+        the import, so only clearing is possible, and a mark that names no
+        form here is a 404 like any unknown import."""
+        if not reviewed:
+            raise _not_found()
+        links = [
+            link
+            for link in await self._workspace_form_repo.list_in_workspace(workspace_id)
+            if link.settings and link.settings.import_id == str(import_id)
+        ]
+        if not links:
+            raise _not_found()
+        for link in links:
+            link.settings.needs_review = False
+            await self._workspace_form_repo.update(str(link.id), link)
+        return FormImportDocument(
+            id=import_id,
+            workspace_id=workspace_id,
+            created_by=str(user.id),
+            status=REPORT_REMOVED,
+            source_kind=SOURCE_KIND,
+            file_name="",
+            content_type="",
+            size_bytes=0,
+            sha256="",
+            source_key="",
+            report={"needsReview": False},
+        )
 
     # ---------------------------------------------------------------- helpers
 

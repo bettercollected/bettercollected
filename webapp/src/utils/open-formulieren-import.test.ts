@@ -101,6 +101,18 @@ describe('the upload refusals', () => {
 });
 
 describe('the report sentences', () => {
+    it('uses its own sentence for a converted address question, the generic one for any other', () => {
+        const address = reportSentenceOf({ code: 'changed', reason: 'converted_to_text', detail: { componentType: 'addressNL' } });
+        expect(address.key).toBe('REASON.converted_to_text_address');
+        expect(valueOf(en, address.key)).toBe('This address question became five short text questions: street, house number, addition, postcode and place. The address is not looked up from the postcode and house number; the details are typed in.');
+        expect(valueOf(nl, address.key)).toBe('Deze adresvraag is vijf korte tekstvragen geworden: straat, huisnummer, toevoeging, postcode en plaats. Het adres wordt niet opgezocht aan de hand van postcode en huisnummer; de gegevens worden ingevuld.');
+        // another type, or no detail (a server without it): the existing sentence
+        expect(reportSentenceOf({ code: 'changed', reason: 'converted_to_text', detail: { componentType: 'bsn' } }).key).toBe('REASON.converted_to_text');
+        expect(reportSentenceOf({ code: 'changed', reason: 'converted_to_text' }).key).toBe('REASON.converted_to_text');
+        // another reason with the same component type keeps its own sentence
+        expect(reportSentenceOf({ code: 'dropped', reason: 'unsupported_component_type', detail: { componentType: 'addressNL' } }).key).toBe('REASON.unsupported_component_type');
+    });
+
     it('has an English and a Dutch sentence for every reason of the contract', () => {
         for (const reason of REPORT_REASONS) {
             const { key } = reportSentenceOf({ code: 'dropped', reason });
