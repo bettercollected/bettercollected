@@ -21,6 +21,7 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useImportText } from '@app/components/open-formulieren-import/report-items';
 import { useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { PublishBlockedByReviewDialog } from '@app/components/open-formulieren-import/publish-blocked-dialog';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/template-api';
@@ -83,6 +84,7 @@ const Navbar = () => {
 
     // An import that still needs review is not made into a template: the form's own mark (as the builder banner
     // reads it) tells before the click, and the server's `needs_review` refusal when a stale mark let it through.
+    const importText = useImportText();
     const heldForReview = useShowNeedsReviewBanner(standardForm?.settings, workspace?.id);
     const [templateReview, setTemplateReview] = useState<{ importId: string } | null>(null);
 
@@ -149,13 +151,13 @@ const Navbar = () => {
             workspace_id: workspace.id
         });
         if (response?.data) {
-            toast({ title: 'Temaplate Created', variant: 'default' });
+            toast({ title: importText('TEMPLATE_CREATED'), variant: 'default' });
             return;
         }
         const unreviewed = templateReviewProblem(response?.error);
         // never silent: without an import id the dialog still explains (it just has no report to clear)
         if (unreviewed) setTemplateReview({ importId: unreviewed.importId || standardForm?.settings?.importId || '' });
-        else toast({ title: "Couldn't create the template. Please try again.", variant: 'destructive' });
+        else toast({ title: importText('TEMPLATE_FAILED'), variant: 'destructive' });
     };
 
     return (

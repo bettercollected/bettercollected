@@ -113,7 +113,7 @@ describe('making a template from a form that still needs review', () => {
         });
         expect(calls.some((call) => call.method === 'POST' && call.url.endsWith('/workspaces/ws-1/open-formulieren-imports/imp1/review') && JSON.parse(call.body as string).reviewed === true)).toBe(true);
         await waitFor(() => expect(createTemplateMock).toHaveBeenCalledWith({ form_id: 'form-1', workspace_id: 'ws-1' }));
-        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Temaplate Created' })));
+        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Template created' })));
         expect(screen.queryByRole('dialog', { name: 'This form still needs review' })).not.toBeInTheDocument();
     });
 
@@ -151,7 +151,7 @@ describe('making a template from a form that still needs review', () => {
             fireEvent.click(makeTemplate());
         });
         await waitFor(() => expect(createTemplateMock).toHaveBeenCalledTimes(1));
-        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Temaplate Created' }));
+        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Template created' }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -162,7 +162,7 @@ describe('making a template from a form that still needs review', () => {
         await act(async () => {
             fireEvent.click(makeTemplate());
         });
-        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })));
+        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: "Couldn't create the template. Please try again.", variant: 'destructive' })));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -176,5 +176,21 @@ describe('making a template from a form that still needs review', () => {
         });
         const dialog = await screen.findByRole('dialog', { name: 'Dit formulier moet nog worden nagekeken' });
         expect(dialog).toHaveTextContent('Er kan pas een sjabloon van worden gemaakt');
+    });
+
+    it('says the template is made, and when it could not be, in Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        setUp({});
+        await renderNavbar();
+        await act(async () => {
+            fireEvent.click(makeTemplate());
+        });
+        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Sjabloon gemaakt' })));
+        toastMock.mockReset();
+        createTemplateMock.mockResolvedValue({ error: { status: 500, data: {} } });
+        await act(async () => {
+            fireEvent.click(makeTemplate());
+        });
+        await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Het sjabloon kon niet worden gemaakt. Probeer het opnieuw.', variant: 'destructive' })));
     });
 });
