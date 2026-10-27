@@ -1,7 +1,8 @@
 # Registration of submissions in a case system
 
 A form built here can send each submission, as it arrives, to a case system or any other service that accepts a
-JSON document. The format is the one Open Formulieren's "Generic JSON registration" sends, so a receiver built for
+JSON document (**Generic JSON**), or create an object in an **Objects API** (see "Objects API" below). The Generic
+JSON format is the one Open Formulieren's "Generic JSON registration" sends, so a receiver built for
 Open Formulieren can accept submissions from here too. This page is for the people who run the instance and the
 workspace admins who set it up.
 
@@ -104,7 +105,8 @@ again. Use `metadata.public_reference` or the `Idempotency-Key` header to dedupl
 
 A delivery record holds ids, a status, counters and one of our error codes (`unreachable`, `timeout`, `tls_error`,
 `not_allowed`, `invalid_url`, `redirect_refused`, `http_4xx`, `http_5xx`, `too_large`, `config_invalid`,
-`secret_unreadable`, `answers_unreadable`, `file_missing`, `disabled`, `internal_error`) and the HTTP status. Never answers, the body, the
+`secret_unreadable`, `answers_unreadable`, `file_missing`, `disabled`, `internal_error`, and for an Objects API
+`lookup_failed`) and the HTTP status. Never answers, the body, the
 address, the secret or what the destination replied. Logs name ids and codes only.
 
 ## Outbound safety
@@ -134,7 +136,117 @@ A delivery record is removed with its submission (deletion, expiry, user and wor
 deleting a submission here does not delete the copy at the destination. That is the organisation's own process, and
 should be said in its privacy information.
 
+## Objects API
+
+A service of kind **Objects API** creates one object per submission in an
+[Objects API](https://github.com/maykinmedia/objects-api) (the register Open Formulieren's "Objects API registration"
+writes to). The same switch (`OPEN_FORMULIEREN_REGISTRATION`), job, retry schedule, address rules and delivery list
+apply. What differs:
+
+### Setup
+
+1. In the Objects API, create an **object type** (in the Objecttypes API) whose JSON schema allows the keys you map and
+   the reference key below, and a **token** for this service with **read and write** permission on that object type.
+   Read is needed for the duplicate check (below); write creates the objects.
+2. In the workspace, add a service of kind `objects_api`:
+   - **Address**: the Objects API's base address, for example `https://objects.example.org/api/v2/`. https, port 443,
+     no credentials, public addresses only, checked when saved and at every connection. We append `objects`.
+   - **Object types address**: the base all of this service's object type URLs must sit under, for example
+     `https://objecttypes.example.org/api/v2/`. https, port 443, no credentials, public on resolve (checked when
+     saved). We never connect to it: the Objects API does.
+   - **Token**: sent as `Authorization: Token <token>`. Write-only, sealed like every service secret. `none` and
+     `basic` authentication are refused for this kind.
+   - **Organisation name**: shown to respondents, as for Generic JSON.
+   Only workspace owners and admins can set these. Changing the address needs the token again; changing the object
+   types address does not.
+3. On the form, choose the service and set:
+   - the **object type URL** (https, at most 1000 characters, no credentials, query or fragment, ending in
+     `/objecttypes/<uuid>`). It must sit under the service's object types address: same scheme and host and a path
+     under it, compared after normalisation, so `..`, encoded characters, user-info tricks and look-alike hosts are
+     refused (`object_type_outside_base`, `invalid_object_type_url`). A form editor cannot point it elsewhere. It is
+     only sent as a value; we never fetch it. It is checked again at every send, so changing the service's object
+     types address later stops sends for a form that is now outside it (`config_invalid`).
+   - the **object type version** (a whole number from 1 to 10000);
+   - the **mapped answers**, each with a **target path** in `record.data`: 1 to 8 names of letters, digits and `_`,
+     starting with a letter, at most 64 characters, without `__` or a trailing `_`; unique, and none inside another.
+     Only mapped answers are sent. **File questions cannot be mapped** (`variable_not_supported`): there is no
+     Documents API here. Multiple choice answers are sent as a list of the chosen options; unanswered questions are
+     left out of `data`;
+   - the **reference path** (default `bettercollected_reference`), the key in `record.data` that holds the delivery's
+     reference. It follows the same rules and may not clash with a mapped path. The object type's schema has to allow
+     it.
+4. Press **Check connection** (`POST .../forms/{form}/registration/test`, admins only): it uses the saved settings, asks the Objects API for a
+   reference that cannot exist and expects `200` with no results, then asks once with a deliberately malformed filter
+   and expects `400`. Together they show that the address, token, read permission and the filter work, and that the
+   server really looks at the filter (an empty object type would otherwise hide an ignored filter). It reads no
+   records and creates nothing. Codes: `lookup_failed` (a 4xx, for example no read permission, or an answer we cannot
+   read), `filter_not_supported`, `not_configured`, `secret_unreadable`, and the transport codes. Testing a service
+   itself answers `use_form_check`: a test record would create an object.
+
+### The record
+
+`POST <address>/objects` with `Content-Crs: EPSG:4326` and this body (Open Formulieren 4.0.6:
+`contrib/objects_api/clients/objects.py:5-18`, `contrib/objects_api/typing.py:6-15`):
+
+```json
+{"type": "<object type URL>", "record": {"typeVersion": 3, "data": {"person": {"name": "Ada"}, "bettercollected_reference": "<uuid>"}, "startAt": "2026-10-27"}}
+```
+
+- `data` holds only the mapped answers, nested by their target paths, plus the reference.
+- `startAt` is the submission date in Europe/Amsterdam (UTC would be a day early between midnight and 02:00).
+- `geometry` is never sent, and no files.
+- The reply is read up to 64 KB, only the object's `uuid` is taken from it (kept as the delivery's `remoteId`) and the
+  rest is dropped. A reply that is oversized or unreadable still counts as delivered: the object exists.
+- A `400` (the data does not fit the object type's schema) is permanent: `failed`, `http_4xx`. Other errors follow
+  the Generic JSON rules above.
+
+### No duplicate objects
+
+Each delivery has a **reference**: a UUID derived from the delivery's id (no personal data, the same on every attempt),
+written into `record.data` at the reference path.
+
+Before **every send after the first** (an automatic retry, or a retry an editor asked for) the job asks the Objects
+API whether an object with that reference exists:
+
+```
+GET <address>/objects?type=<object type URL>&data_attr=<reference path joined with __>__exact__<reference>&date=<startAt>&pageSize=1
+```
+
+The query is built only from the stored, validated settings and our own ids; no answer reaches it.
+
+- **The filter parameter is `data_attr`.** The Objects API 3.x documents `data_attrs` as deprecated in favour of
+  `data_attr` (one `key__operator__value` expression per parameter, nested keys joined with `__`). The manual run
+  used the pinned images listed in the PR; a version that only knows `data_attrs` ignores `data_attr`, which the
+  connection check and the content check below both catch. `date` is the record's own `startAt`: without it the
+  Objects API lists only records that started today.
+- **A hit is never trusted on its count.** On a hit we read the returned object's `record.data` at the reference path
+  and require it to equal our reference. Only then is the delivery `delivered` (with that object's UUID) and nothing
+  is sent. A hit that does not carry our reference, or whose data cannot be read, an answer that is not a list of
+  objects, and an oversized or malformed answer all give `failed` with `lookup_failed`: never `delivered`, never a
+  blind send. An Objects API that ignores the filter therefore cannot make a delivery look delivered.
+- **No hit** (an empty list): the object is sent.
+- **The lookup itself fails**: a connection problem, timeout, 5xx, 408 or 429 is retried later like a send. Any other
+  4xx (no read permission, an unsupported filter) is `failed` with `lookup_failed`. A redirect, a refused address and
+  the other safety refusals keep their own codes.
+
+The remaining edge: if the Objects API indexed a just-created object late, a lookup could miss it and the retry would
+create a second object. The first retry comes a minute after the failed attempt at the earliest, which is normally
+long enough.
+
+What we keep after a delivery: the delivery row only (ids, status, counters, timestamps, the HTTP status and the
+object's UUID), never answers, the body or the reply. It is deleted with the submission. Deleting a submission here
+does **not** delete the object at the destination: that is the organisation's own process, and respondents are told
+before they submit that their answers are also sent to the organisation.
+
+### Tested against
+
+Registration in an Objects API has been tested against a fake Objects API in the test suite and once, by hand,
+against the public `maykinmedia/objects-api` and `maykinmedia/objecttypes-api` images on a throwaway local stack (see
+the pull request for the versions and counts). It has **not been tested against a live environment**; try it with
+test data first.
+
 ## Not included yet
 
-The Objects API and the ZGW APIs registrations (planned), several registrations per form, sending earlier or edited
+The ZGW APIs registrations (planned), updating an existing object, payment status, the Documents API (files),
+fetching the object type's schema before saving, several registrations per form, sending earlier or edited
 submissions, client certificates, custom CA bundles, proxies, OAuth client credentials, the webapp screens.
