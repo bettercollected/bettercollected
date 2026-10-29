@@ -183,7 +183,13 @@ this holds; otherwise it is reported as before (`user_variable_not_carried`) wit
    a variable with the key of a component, `key_collision`. A question it reads must also be one whose value is only
    what the respondent typed: one that another action, a prefill, a service fetch or a script of the source form also
    sets is `source_rewritten`, and one that starts from a default value (not carried over) is `source_default`
-   (`detail.source`).
+   (`detail.source`). A question that something can **hide** is `source_conditional`: it has a show/hide condition of
+   its own, a rule shows or hides it (whatever the trigger, also one we could not carry), it sits inside a layout
+   component with such a condition or rule (or marked hidden), or its step can be made (not) applicable by a rule or
+   starts as not applicable. The same applies to a bare `var`. Their form clears a hidden component's value, so a
+   calculation on it has no value there, while a calculated question here reads every answer that was submitted.
+   An action whose output mapping is longer than 200 entries is not read to the end and counts as writing every
+   variable and every key (`other_source` for a variable, `source_rewritten` for a question it reads).
 6. At most 50 per form and within the 1000-question cap (`too_many`, in the file's order), and the form's own rules
    accept it (`rejected`).
 
@@ -214,13 +220,23 @@ Where the two meet, the translation is exact except where noted:
   so the translation guards them: `min(a, b)` is `if(a == null or b == null, null, min(a, b))` (the guard is only
   exact for plain answers and numbers, which is why `min` and `max` take nothing else).
 * **Division by zero.** An error in the original, caught and logged (`submissions/logic/log_utils.py:12-18`): the
-  variable keeps what it held before. In v1 the result has no value. The two agree only when the variable started
-  empty, so a division is carried only then (`initial_value`).
+  variable keeps what it held before. In v1 the result has no value. On a first evaluation the two agree only when the
+  variable started empty, so a division is carried only then (`initial_value`); a later evaluation differs as in
+  "What the variable holds between runs" below.
 * **Numbers.** The original uses binary floating point, v1 decimals kept to 15 significant digits (`0.1 + 0.2` is
   `0.3` here and `0.30000000000000004` there). The difference never exceeds the float's own rounding error. A result
   of 10^15 or more has no value in v1.
-* **A hidden or unanswered question** has no value there (a hidden component is cleared, `formio/visibility.py:118-132`)
-  and none here.
+* **A hidden question.** A hidden component is cleared there (`formio/visibility.py:118-132`), so arithmetic on it
+  gives no value. A calculated question here reads every answer that was submitted, hidden by a condition or not, so a
+  variable reading a question that can be hidden would not agree: it is not carried (`source_conditional`, above).
+  An unanswered question has no value in both.
+* **What the variable holds between runs.** Open Formulieren saves variable values with the submission step and
+  reloads them, so a variable keeps its last *computed* value when a later evaluation gives no result: `a / b` is
+  `0.25` after `a = 1, b = 4` and stays `0.25` when `b` becomes `0` (the division fails and is logged), whatever the
+  variable started with. A calculated question here is evaluated from the current answers only: it is empty in that
+  case. The two do not agree there; ours never shows a value that no longer follows from the answers (arguably the
+  better behaviour). The same holds when an operand is cleared. The `initial_value` rule in this list only covers
+  the first evaluation.
 * **A bare answer.** A variable whose value is just `{"var": "a"}` is assigned even when the result is empty
   (`submissions/logic/actions.py:424-441` and `rules.py:159-170` at 4.0.6: an empty result is stored as empty); only
   an "undefined" result, which a hidden or cleared question gives (`formio/visibility.py:131-132`), assigns nothing
