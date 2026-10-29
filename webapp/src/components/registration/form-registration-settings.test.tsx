@@ -219,14 +219,91 @@ describe('Settings', () => {
         expect(saveMock).not.toHaveBeenCalled();
     });
 
-    it('can turn sending off without choosing anything', async () => {
+    it('keeps the settings when sending is turned off: the request carries them', async () => {
+        registrationState.data = registration({
+            enabled: true,
+            serviceId: 's1',
+            path: '/zaken',
+            variables: [
+                { source: 'q2', key: 'interests' },
+                { source: 'q1', key: 'postcode' }
+            ],
+            transformToList: ['q2']
+        });
+        saveMock.mockResolvedValue({ data: registration({ serviceId: 's1' }) });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body).toEqual({
+            enabled: false,
+            serviceId: 's1',
+            path: '/zaken',
+            variables: [
+                { source: 'q1', key: 'postcode' },
+                { source: 'q2', key: 'interests' }
+            ],
+            transformToList: ['q2']
+        });
+        expect(await screen.findByText(en.FORM.SAVED)).toBeInTheDocument();
+    });
+
+    it('sends what the user last saw, edits included, and leaves out what can never be stored', async () => {
         registrationState.data = registration({ enabled: true, serviceId: 's1', variables: [{ source: 'q1', key: 'postcode' }] });
+        saveMock.mockResolvedValue({ data: registration() });
+        renderSettings();
+        fireEvent.change(screen.getByLabelText(en.FORM.PATH), { target: { value: '/new' } });
+        fireEvent.click(within(screen.getByTestId('registration-variable-ref')).getByRole('checkbox'));
+        fireEvent.change(within(screen.getByTestId('registration-variable-ref')).getByLabelText(en.FORM.KEY), { target: { value: 'postcode' } });
+        fireEvent.click(within(screen.getByTestId('registration-variable-q2')).getByRole('checkbox'));
+        fireEvent.change(within(screen.getByTestId('registration-variable-q2')).getByLabelText(en.FORM.KEY), { target: { value: '1bad' } });
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        // the repeated and the invalid name are not sent; no validation message either
+        expect(saveMock.mock.calls[0][0].body).toEqual({ enabled: false, serviceId: 's1', path: '/new', variables: [{ source: 'q1', key: 'postcode' }], transformToList: [] });
+        expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('does not send a path the server would refuse', async () => {
+        registrationState.data = registration({ enabled: true, serviceId: 's1', variables: [{ source: 'q1', key: 'postcode' }] });
+        saveMock.mockResolvedValue({ data: registration() });
+        renderSettings();
+        fireEvent.change(screen.getByLabelText(en.FORM.PATH), { target: { value: '../x?y' } });
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body.path).toBe('');
+    });
+
+    it('sends at most the 200 variables the server takes', async () => {
+        const many: RegistrationVariable[] = Array.from({ length: 205 }, (_, i) => ({ source: `v${i}`, label: `V${i}`, type: 'short_text', supported: true }));
+        variablesState.data = many;
+        registrationState.data = registration({ enabled: true, serviceId: 's1', variables: many.map((v) => ({ source: v.source, key: v.source })) });
         saveMock.mockResolvedValue({ data: registration() });
         renderSettings();
         fireEvent.click(toggle());
         fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
-        await waitFor(() => expect(saveMock).toHaveBeenCalled());
-        expect(saveMock.mock.calls[0][0].body).toMatchObject({ enabled: false });
+        await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
+        expect(saveMock.mock.calls[0][0].body.variables).toHaveLength(200);
+    });
+
+    it('shows the refusal of an off save, in the alert', async () => {
+        registrationState.data = registration({ enabled: true, serviceId: 's1', variables: [{ source: 'q1', key: 'postcode' }] });
+        saveMock.mockResolvedValue({ error: { status: 422, data: { code: 'invalid_path', message: 'RAW' } } });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(await screen.findByRole('alert')).toHaveTextContent(en.ERROR.invalid_path);
+    });
+
+    it('turning it on again checks the draft as before and sends nothing when it is wrong', async () => {
+        registrationState.data = registration({ enabled: false, serviceId: 's1', variables: [{ source: 'q1', key: '1bad' }] });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(saveMock).not.toHaveBeenCalled();
+        expect(screen.getByRole('alert')).toHaveTextContent(en.FORM.FIX_ERRORS);
     });
 
     it.each(ERROR_CODES)('shows a sentence for the refusal "%s"', async (code) => {
@@ -457,26 +534,48 @@ describe('Turning an Objects API form off', () => {
         servicesState.data = objectsServices;
     });
 
-    it('works with an object type address that is outside the service base now', async () => {
-        saveMock.mockResolvedValue({ data: objectsRegistration({ enabled: false }) });
-        registrationState.data = objectsRegistration({ objectTypeUrl: `https://old.example.org/api/v2/objecttypes/${OT_ID}` });
+    it('keeps an object type address that is outside the service base now, and still succeeds', async () => {
+        const stale = `https://old.example.org/api/v2/objecttypes/${OT_ID}`;
+        saveMock.mockResolvedValue({ data: objectsRegistration({ enabled: false, objectTypeUrl: stale }) });
+        registrationState.data = objectsRegistration({ objectTypeUrl: stale });
         renderSettings();
         fireEvent.click(toggle());
         fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
         await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
-        expect(saveMock.mock.calls[0][0].body).toEqual({ enabled: false, serviceId: 's9', path: '', variables: [], transformToList: [] });
+        expect(saveMock.mock.calls[0][0].body).toEqual({
+            enabled: false,
+            serviceId: 's9',
+            path: '',
+            variables: [{ source: 'q1', targetPath: ['applicant', 'postcode'] }],
+            transformToList: [],
+            objectTypeUrl: stale,
+            objectTypeVersion: 3,
+            referencePath: ['bettercollected_reference']
+        });
         expect(await screen.findByText(en.FORM.SAVED)).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).toBeNull();
     });
 
-    it('works with empty or invalid target paths, and says nothing is wrong', async () => {
+    it('turning it on again with the stale address is checked here and sends nothing', async () => {
+        registrationState.data = objectsRegistration({ enabled: false, objectTypeUrl: `https://old.example.org/api/v2/objecttypes/${OT_ID}` });
+        renderSettings();
+        fireEvent.click(toggle());
+        fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
+        expect(saveMock).not.toHaveBeenCalled();
+        expect(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL)).toHaveAccessibleDescription(expect.stringContaining(en.ERROR.object_type_outside_base));
+    });
+
+    it('leaves out an address, version or target path that cannot be stored, and says nothing is wrong', async () => {
         saveMock.mockResolvedValue({ data: objectsRegistration({ enabled: false }) });
         registrationState.data = objectsRegistration({ variables: [{ source: 'q1', targetPath: [] }] });
         renderSettings();
         fireEvent.change(within_('q1').getByLabelText(en.FORM.TARGET_PATH), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_URL), { target: { value: 'http://half' } });
+        fireEvent.change(screen.getByLabelText(en.FORM.OBJECT_TYPE_VERSION), { target: { value: '0' } });
         fireEvent.click(toggle());
         fireEvent.click(screen.getByRole('button', { name: en.FORM.SAVE }));
         await waitFor(() => expect(saveMock).toHaveBeenCalledTimes(1));
-        expect(saveMock.mock.calls[0][0].body.enabled).toBe(false);
+        expect(saveMock.mock.calls[0][0].body).toMatchObject({ enabled: false, variables: [], objectTypeUrl: null, objectTypeVersion: null, referencePath: ['bettercollected_reference'] });
         expect(screen.queryByRole('alert')).toBeNull();
     });
 

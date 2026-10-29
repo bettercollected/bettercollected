@@ -376,3 +376,27 @@ async def test_answers_that_do_not_decrypt_fail_permanently_never_an_empty_body(
     row = await container.registration_delivery_repo().get(delivery.id)
     assert outcome.status == "failed" and row.last_error_code == "answers_unreadable"
     assert setup.tls.requests == []
+
+
+async def test_an_off_save_that_lands_after_the_first_check_stops_the_send(
+    setup, monkeypatch
+):
+    response = await submit(setup.workspace, setup.form)
+    delivery = await delivery_of(setup, response)
+    service = container.registration_service()
+    real = service._responses.workspace_response
+    state = {"off": False}
+
+    async def switch_off_once_read(*args, **kwargs):
+        if not state["off"]:
+            state["off"] = True
+            await configure(
+                setup.workspace, setup.form, setup.service, ["name"], enabled=False
+            )
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr(service._responses, "workspace_response", switch_off_once_read)
+    outcome = await service.run_delivery(str(delivery.id))
+    row = await container.registration_delivery_repo().get(delivery.id)
+    assert outcome.status == "cancelled" and row.last_error_code == "disabled"
+    assert setup.tls.requests == []
