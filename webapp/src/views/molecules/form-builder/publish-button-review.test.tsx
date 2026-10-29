@@ -249,7 +249,7 @@ describe('publishing a form that still needs review', () => {
         });
         const dialog = await screen.findByRole('dialog', { name: 'Dit formulier moet nog worden nagekeken' });
         expect(dialog).toHaveTextContent('U kunt pas publiceren nadat u het importrapport hebt doorgenomen');
-        expect(await screen.findByRole('link', { name: 'Open het importrapport' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Markeer als nagekeken' })).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'Importrapport openen' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Markeren als nagekeken' })).toBeInTheDocument();
     });
 });

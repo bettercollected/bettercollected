@@ -43,7 +43,8 @@ import {
     objectTypeUrlProblem,
     parseTargetPath,
     referenceConflicts,
-    variableReasonKey
+    variableReasonKey,
+    variableTypeKey
 } from '@app/utils/registration';
 
 interface Chosen {
@@ -76,6 +77,10 @@ export default function FormRegistrationSection() {
 
 export function FormRegistrationSettings({ workspaceId, workspaceName, formId }: { workspaceId: string; workspaceName?: string; formId: string }) {
     const { t } = useTranslation('builder');
+    const typeLabel = (type: string) => {
+        const key = variableTypeKey(type);
+        return key ? t(key) : type.replace(/_/g, ' ');
+    };
     const registrationQuery = useGetFormRegistrationQuery({ workspaceId, formId });
     const servicesQuery = useGetRegistrationServicesQuery(workspaceId);
     const variablesQuery = useGetRegistrationVariablesQuery({ workspaceId, formId });
@@ -506,7 +511,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
                                                         </label>
                                                     </div>
                                                     <span className="text-xs text-black-600">
-                                                        {variable.type.replace(/_/g, ' ')}
+                                                        {typeLabel(variable.type)}
                                                         {!choosable && (
                                                             <>
                                                                 {' · '}

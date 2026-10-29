@@ -55,6 +55,7 @@ function Summary({ data }: { data: OpenFormulierenImport }) {
         { key: 'pages', label: text('REPORT.PAGES', { count: s?.pages ?? 0 }) },
         { key: 'fields', label: text('REPORT.QUESTIONS', { count: s?.fields ?? 0 }) },
         { key: 'rules', label: text('REPORT.RULES', { count: s?.logicRules ?? 0 }) },
+        ...((s?.calculations ?? 0) > 0 ? [{ key: 'calculations', label: text('REPORT.CALCULATIONS', { count: s?.calculations ?? 0 }) }] : []),
         { key: 'dropped', label: text('REPORT.DROPPED', { count: s?.dropped ?? 0 }), warn: (s?.dropped ?? 0) > 0 },
         { key: 'flagged', label: text('REPORT.FLAGGED', { count: s?.flagged ?? 0 }), warn: (s?.flagged ?? 0) > 0 }
     ];

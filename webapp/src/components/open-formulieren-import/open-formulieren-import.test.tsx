@@ -131,6 +131,54 @@ describe('the import report', () => {
         expect(dutch.container.textContent).toContain(nl.REASON.converted_to_text_address);
     });
 
+    it('says why a variable was not carried over, and that one became a calculated question, in both languages', async () => {
+        const data = {
+            ...IMPORT,
+            summary: { ...IMPORT.summary, calculations: 2 },
+            report: {
+                truncated: false,
+                items: [
+                    { code: 'changed', kind: 'variable', key: 'total', label: 'Total', reason: 'user_variable_calculated', severity: 'info', detail: { dataType: 'float' } },
+                    { code: 'dropped', kind: 'variable', key: 'a', label: 'A', reason: 'user_variable_not_carried', severity: 'warning', detail: { cause: 'source_missing', source: 'price', dataType: 'float' } },
+                    { code: 'dropped', kind: 'variable', key: 'b', label: 'B', reason: 'user_variable_not_carried', severity: 'warning', detail: { cause: 'operator', operator: 'if' } },
+                    { code: 'dropped', kind: 'variable', key: 'c', label: 'C', reason: 'user_variable_not_carried', severity: 'warning', detail: { cause: 'order' } },
+                    { code: 'dropped', kind: 'variable', key: 'd', label: 'D', reason: 'user_variable_not_carried', severity: 'warning', detail: { dataType: 'string' } }
+                ]
+            }
+        };
+        const english = render(wrap(<ImportReportView data={data} workspaceId="ws1" workspaceName="acme" />));
+        expect(within(screen.getByLabelText(en.REPORT.SUMMARY_LABEL)).getByText('2 calculated questions')).toBeInTheDocument();
+        for (const sentence of [
+            'This variable (type “float”) became a calculated question.',
+            'This variable uses “price”, which is not a question in the new form.',
+            'This variable is calculated with “if”, which is not supported, so it was not carried over.',
+            // a detail the server left out reads as "unknown", never as a bare placeholder
+            'This variable uses “unknown”, which a later rule sets.',
+            // no cause (an older server): the generic sentence
+            'This variable (type “string”) was not carried over.'
+        ])
+            expect(english.container.textContent).toContain(sentence);
+        expect(english.container.textContent).not.toContain('{{');
+        english.unmount();
+
+        await i18n.changeLanguage('nl');
+        const dutch = render(wrap(<ImportReportView data={data} workspaceId="ws1" workspaceName="acme" />));
+        expect(within(screen.getByLabelText(nl.REPORT.SUMMARY_LABEL)).getByText('2 berekende vragen')).toBeInTheDocument();
+        for (const sentence of [
+            'Deze variabele (type “float”) is een berekende vraag geworden.',
+            'Deze variabele gebruikt “price”. Dat is geen vraag in het nieuwe formulier.',
+            'Deze variabele wordt berekend met “if”. Dat wordt niet ondersteund; daarom is hij niet overgenomen.',
+            'Deze variabele gebruikt “onbekend”. Dat wordt door een latere regel ingesteld.',
+            'Deze variabele (type “string”) is niet overgenomen.'
+        ])
+            expect(dutch.container.textContent).toContain(sentence);
+    });
+
+    it('shows no calculated-question count when the server sends none', () => {
+        render(wrap(<ImportReportView data={IMPORT} workspaceId="ws1" workspaceName="acme" />));
+        expect(within(screen.getByLabelText(en.REPORT.SUMMARY_LABEL)).queryByText(/calculated/)).toBeNull();
+    });
+
     it('renders labels and details as text, never as HTML', () => {
         const hostile = '<img src=x onerror="window.__pwned = true">';
         const data = {

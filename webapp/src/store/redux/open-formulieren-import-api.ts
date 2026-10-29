@@ -27,6 +27,8 @@ export interface ImportSummary {
     fields: number;
     logicRules: number;
     repeatingGroups?: number;
+    /** Variables that became calculated questions (only sent when above 0). */
+    calculations?: number;
     dropped: number;
     flagged: number;
 }
