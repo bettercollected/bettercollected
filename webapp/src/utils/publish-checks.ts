@@ -4,7 +4,7 @@ import { PageJump } from '@app/models/types/form-builder-shared';
 import { Ending, isJumpEndingMissing, withEndingIds } from '@app/utils/endings';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import { ContrastIssueKey, themeContrastGuard } from '@app/utils/theme-contrast';
+import { ContrastIssueKey, contrastKey, themeContrastGuard } from '@app/utils/theme-contrast';
 
 /**
  * Honest defaults a form must meet before it is published. The backend
@@ -22,6 +22,10 @@ export interface PublishProblem {
     message: string;
     /** `needs_review` only: the id of the import report to look through (nothing of its content). */
     importId?: string | null;
+    /** Advice, not a block: the problem is listed as a recommendation and the form can still be published (`theme_contrast` of an older form that is live with these colours). */
+    advisory?: boolean;
+    /** An `advisory` `theme_contrast` only: the failing pairings (the dialog words them itself, translated). */
+    contrastIssues?: ContrastIssueKey[];
 }
 
 /** Most characters a "why we ask this" line may have (backend WHY_WE_ASK_MAX_LENGTH). */
@@ -161,24 +165,67 @@ const CONTRAST_WORDS: Record<ContrastIssueKey, string> = {
     text: 'questions and text on the page',
     answer: 'answers in the input boxes',
     button: 'white text on buttons',
+    outlined: 'text and edges of outlined buttons',
     border: 'input borders',
     action: 'chosen answers and progress'
 };
 
+/** The first publish-checks version that always holds a form's theme to the contrast rule (backend `THEME_CONTRAST_FROM_VERSION`). */
+export const THEME_CONTRAST_FROM_VERSION = 3;
+
+/** Is a form created under `publishChecksVersion` always held to the contrast rule? Older forms are held to it only when their colours changed (backend `requires_theme_contrast`). */
+export function requiresThemeContrast(publishChecksVersion?: number | null): boolean {
+    return !!publishChecksVersion && publishChecksVersion >= THEME_CONTRAST_FROM_VERSION;
+}
+
+/**
+ * The colours of a form's live version, as the builder knows them: the theme
+ * (the live version's colours), `null` (never published), or `undefined` (not
+ * known: the server decides).
+ */
+export type LiveTheme = Partial<FormTheme> | null | undefined;
+
+/**
+ * What a failing theme does at publish (backend `theme_contrast_blocks`):
+ * - `block`: a new form (`requiresThemeContrast`), a form that was never
+ *   published (nothing live relies on its colours, and nothing shows they are
+ *   unchanged), or a form whose colours differ from its live version's (what
+ *   the check reads: `contrastKey`);
+ * - `advisory`: an older form republished with the colours it went live with;
+ * - `server`: an older form whose live colours are not known here; nothing is
+ *   claimed and the server, which reads them, decides.
+ */
+export type ThemeContrastGate = 'block' | 'advisory' | 'server';
+
+export function themeContrastGate(publishChecksVersion: number | null | undefined, theme: Partial<FormTheme> | null | undefined, live: LiveTheme): ThemeContrastGate {
+    if (requiresThemeContrast(publishChecksVersion) || live === null) return 'block';
+    if (live === undefined) return 'server';
+    return contrastKey(theme) !== contrastKey(live) ? 'block' : 'advisory';
+}
+
+/** Does the theme have the four colours the contrast rule reads? One without them (an old form on the defaults) isn't checked. */
+export const hasGuardedColours = (theme: Partial<FormTheme> | null | undefined): theme is Partial<FormTheme> => !!theme && (['primary', 'secondary', 'tertiary', 'accent'] as const).every((role) => isHexColour(theme[role]));
+
 /**
  * The form's theme, when its own colours fail WCAG AA contrast where the
  * respondent form shows them (text 4.5:1, controls 3:1; utils/theme-contrast.ts
- * themeContrastGuard). Every preset passes; a custom or saved palette may
- * not. It stops publishing for every form: respondents can't read it. A
+ * themeContrastGuard; an outlined button is measured by its real text and edge
+ * colours). Every preset passes; a custom or saved palette may not. It stops
+ * publishing as `gate` says (`themeContrastGate`; `block` unless told): for
+ * `advisory` the problem is only advice, for `server` nothing is claimed. A
  * theme without its four colours (an old form on the defaults) isn't checked.
  */
-export function themeContrastProblems(theme: Partial<FormTheme> | null | undefined): PublishProblem[] {
-    if (!theme || !(['primary', 'secondary', 'tertiary', 'accent'] as const).every((role) => isHexColour(theme[role]))) return [];
+export function themeContrastProblems(theme: Partial<FormTheme> | null | undefined, gate: ThemeContrastGate = 'block'): PublishProblem[] {
+    if (gate === 'server' || !hasGuardedColours(theme)) return [];
     const { issues } = themeContrastGuard(theme as FormTheme);
     if (!issues.length) return [];
     const words = issues.map((issue) => CONTRAST_WORDS[issue.key]);
     const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
-    return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message: `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.` }];
+    const advisory = gate === 'advisory';
+    const message = advisory
+        ? `The theme's colours are hard to read: ${list}. This form was made before the colour check, so it can still be published as it is; colours you change later will need to pass.`
+        : `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.`;
+    return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message, ...(advisory ? { advisory: true, contrastIssues: issues.map((issue) => issue.key) } : {}) }];
 }
 
 // Characters that show nothing: format, space, line/paragraph separator and control characters (zero-width space,
@@ -249,11 +296,12 @@ export function templateReviewProblem(error: any): PublishProblem | undefined {
  * Which problems stop publishing and which are only recommended. "Why we ask
  * this" is required of forms created under the publish checks
  * (`settings.publishChecksVersion`); forms made before them were published
- * without it and stay publishable, so for them it is a recommendation. The
- * other rules hold for every form (backend `ensure_publishable`).
+ * without it and stay publishable, so for them it is a recommendation, and so
+ * is an `advisory` problem (the colours of an older form that is live with
+ * them). The other rules hold for every form (backend `ensure_publishable`).
  */
 export function splitPublishProblems(problems: PublishProblem[], publishChecksVersion?: number | null): { blocking: PublishProblem[]; recommended: PublishProblem[] } {
     const requiresReason = !!publishChecksVersion && publishChecksVersion >= 1;
-    const recommended = requiresReason ? [] : problems.filter((problem) => problem.code === 'missing_why_we_ask');
+    const recommended = problems.filter((problem) => problem.advisory || (!requiresReason && problem.code === 'missing_why_we_ask'));
     return { blocking: problems.filter((problem) => !recommended.includes(problem)), recommended };
 }

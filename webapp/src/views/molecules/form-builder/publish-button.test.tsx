@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import '@app/shared/hocs/i18n-provider';
 import { PublishProblem, splitPublishProblems } from '@app/utils/publish-checks';
 
 import { PublishProblemsDialog } from './publish-button';

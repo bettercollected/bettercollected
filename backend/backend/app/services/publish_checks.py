@@ -27,10 +27,18 @@ the two in step).
   instead of the one the creator chose).
 - **Readable colours:** the form theme's own colours meet WCAG 2.2 AA
   contrast where the respondent form shows them (text 4.5:1, controls 3:1;
-  ``services/theme_contrast.py``, the port of the builder's contrast guard).
-  Every preset passes; a custom palette may not. A theme without its four
-  colours (an old form on the defaults) isn't checked, and text over an
-  image background can't be measured, so it never blocks.
+  ``services/theme_contrast.py``, the port of the builder's contrast guard;
+  an outlined button is measured by its real text and edge colours, not as
+  white text on its colour). Every preset passes; a custom palette may not.
+  A theme without its four colours (an old form on the defaults) isn't
+  checked, and text over an image background can't be measured, so it never
+  blocks. The rule holds for new forms and for theme changes
+  (``theme_contrast_blocks``): a form created before check version 3 that
+  is already live keeps publishing and republishing with the colours it
+  went live with (the builder shows the failing colours as a recommendation);
+  once its colours differ from the live version's (what contrast reads: the
+  four colours, outlined buttons and the background's colours), or if it has
+  never been published, the rule holds for it like any other.
 
 - **Imports are looked over first:** a draft made by an import from another
   product (``WorkspaceFormSettings.needs_review``) is not published until a
@@ -75,6 +83,7 @@ from backend.app.services.internal_fields import (
     iter_question_fields,
 )
 from backend.app.services.theme_contrast import (
+    contrast_key,
     display_ratio,
     has_guarded_colours,
     theme_contrast_guard,
@@ -84,10 +93,13 @@ FORM_NOT_PUBLISHABLE = "form_not_publishable"
 
 # The version of these checks a new form is created under. A form without one
 # (created earlier) is not required to say why it asks; a form created under
-# version 1 is not held to the workspace-title rule (version 2).
-PUBLISH_CHECKS_VERSION = 2
+# version 1 is not held to the workspace-title rule (version 2); a form
+# created under version 2 or earlier is not held to the contrast rule unless
+# its theme changed (version 3).
+PUBLISH_CHECKS_VERSION = 3
 WHY_WE_ASK_FROM_VERSION = 1
 WORKSPACE_TITLE_FROM_VERSION = 2
+THEME_CONTRAST_FROM_VERSION = 3
 
 MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
@@ -280,6 +292,7 @@ _CONTRAST_WORDS = {
     "text": "questions and text on the page",
     "answer": "answers in the input boxes",
     "button": "white text on buttons",
+    "outlined": "text and edges of outlined buttons",
     "border": "input borders",
     "action": "chosen answers and progress",
 }
@@ -441,11 +454,40 @@ def requires_workspace_title(checks_version: Optional[int]) -> bool:
     return bool(checks_version) and checks_version >= WORKSPACE_TITLE_FROM_VERSION
 
 
+def requires_theme_contrast(checks_version: Optional[int]) -> bool:
+    """Is a form created under ``checks_version`` always held to the contrast
+    rule? Only forms created under version 3 or later: earlier ones are held
+    to it only when their theme changed (``theme_contrast_blocks``)."""
+    return bool(checks_version) and checks_version >= THEME_CONTRAST_FROM_VERSION
+
+
+def theme_contrast_blocks(
+    checks_version: Optional[int],
+    theme: Any,
+    published_theme: Any = None,
+    was_published: bool = False,
+) -> bool:
+    """Does a failing theme stop this publish, or is it only advice?
+
+    It stops it for a new form (``requires_theme_contrast``), for a form that
+    has never been published (nothing live relies on its colours, and there is
+    nothing to show they are unchanged), and for any form whose colours are
+    not those of its live version (``published_theme``: the theme of the
+    latest published version; the colours compared are ``contrast_key``).
+    Only an older form republished with the colours it went live with is
+    exempt. ``was_published``: a published version exists."""
+    if requires_theme_contrast(checks_version) or not was_published:
+        return True
+    return contrast_key(theme) != contrast_key(published_theme)
+
+
 def ensure_publishable(
     form: Any,
     checks_version: Optional[int] = None,
     review: Optional[Dict[str, Optional[str]]] = None,
     workspace_problem: Optional[Dict[str, Optional[str]]] = None,
+    published_theme: Any = None,
+    was_published: bool = False,
 ) -> None:
     """422 ``form_not_publishable`` listing every problem that blocks this
     form, or nothing. ``checks_version``: the form's
@@ -453,15 +495,24 @@ def ensure_publishable(
     ``review``: the form's ``review_problem`` while its import still needs
     review (listed first). ``workspace_problem``: the workspace's
     ``workspace_title_problem`` (listed next: it belongs to no question; held
-    only against forms created under ``requires_workspace_title``)."""
+    only against forms created under ``requires_workspace_title``).
+    ``published_theme`` and ``was_published``: the latest published version's
+    theme and whether there is one; the theme's contrast stops the publish
+    only as ``theme_contrast_blocks`` says (the default: it always does)."""
     problems = [review] if review else []
     if workspace_problem and requires_workspace_title(checks_version):
         problems.append(workspace_problem)
+    contrast_blocks = theme_contrast_blocks(
+        checks_version, _get(form, "theme"), published_theme, was_published
+    )
     problems += [
         problem
         for problem in publish_problems(form)
-        if problem["code"] != MISSING_WHY_WE_ASK
-        or requires_why_we_ask(checks_version)
+        if (
+            problem["code"] != MISSING_WHY_WE_ASK
+            or requires_why_we_ask(checks_version)
+        )
+        and (problem["code"] != THEME_CONTRAST or contrast_blocks)
     ]
     if problems:
         raise HTTPException(

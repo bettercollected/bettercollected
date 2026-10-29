@@ -38,6 +38,7 @@ from backend.app.services.theme_contrast import (
     AA_NON_TEXT,
     AA_TEXT,
     contrast,
+    contrast_key,
     display_ratio,
     theme_contrast_guard,
 )
@@ -90,6 +91,24 @@ def test_guard_of_the_shared_themes(case):
         assert not theme_contrast_guard({**case["theme"], **guard.fix}).issues
 
 
+@pytest.mark.parametrize("case", CASES["keys"], ids=lambda case: case["name"])
+def test_the_contrast_key_of_the_shared_cases(case):
+    """The key publishing compares to tell whether an older form's colours
+    changed; the webapp's ``contrastKey`` runs the same pairs."""
+    assert (contrast_key(case["a"]) == contrast_key(case["b"])) is case["same"]
+
+
+def test_the_contrast_key_reads_what_the_guard_reads():
+    """Two themes with the same key get the same guard verdict."""
+    for case in CASES["keys"]:
+        if case["same"] and case["a"] and case["b"]:
+            a, b = (theme_contrast_guard(case[side]) for side in ("a", "b"))
+            assert [(i.key, i.ratio) for i in a.issues] == [
+                (i.key, i.ratio) for i in b.issues
+            ], case["name"]
+            assert a.image_ground is b.image_ground
+
+
 def test_the_ratio_is_shown_rounded_down():
     assert display_ratio(4.4999) == "4.4"
     assert display_ratio(contrast("#777777", "#FFFFFF")) == "4.4"
@@ -100,7 +119,7 @@ def test_the_ratio_is_shown_rounded_down():
 
 
 def test_the_shared_cases_list_every_preset_as_it_is():
-    guarded = ("primary", "secondary", "tertiary", "accent", "background")
+    guarded = ("primary", "secondary", "tertiary", "accent", "background", "buttonStyle")
     for name, preset in theme_dict.items():
         shared = next(c for c in CASES["themes"] if c["name"] == f"preset {name}")
         assert shared["theme"] == {k: preset[k] for k in guarded if k in preset}
@@ -189,8 +208,9 @@ def test_a_theme_without_its_four_colours_is_not_checked(theme):
     assert theme_contrast_problems(theme) == []
 
 
-def test_it_blocks_every_form_old_or_new():
-    for checks_version in (None, 1):
+def test_it_blocks_a_form_that_was_never_published_old_or_new():
+    # (which older forms it holds back, and which it doesn't: test_theme_contrast_gate.py)
+    for checks_version in (None, 1, 2, 3):
         with pytest.raises(HTTPException) as raised:
             ensure_publishable(_form(PASTEL), checks_version=checks_version)
         assert raised.value.status_code == 422
