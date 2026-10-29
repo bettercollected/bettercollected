@@ -10,6 +10,7 @@ from common.ids import RecordId
 from classy_fastapi import Routable, post
 from common.models.user import User
 from fastapi import Depends, Header, Request
+from pydantic import BaseModel, Field
 
 from backend.app.container import container
 from backend.app.router import router
@@ -17,8 +18,32 @@ from backend.app.services.form_spec.service import DryRunRequest, DryRunResponse
 from backend.app.services.user_service import get_logged_user
 
 
+class PatternCheckRequest(BaseModel):
+    pattern: str = Field(max_length=1000)
+
+
+class PatternCheckResponse(BaseModel):
+    valid: bool
+    message: Optional[str] = None
+    reason: Optional[str] = None
+
+
 @router(prefix="/workspaces/{workspace_id}/forms", tags=["Form spec"])
 class FormSpecRouter(Routable):
+    @post("/pattern/check", response_model=PatternCheckResponse)
+    async def check_answer_pattern(
+        self,
+        workspace_id: RecordId,
+        request: PatternCheckRequest,
+        user: User = Depends(get_logged_user),
+    ) -> PatternCheckResponse:
+        """Whether an answer pattern can be saved (RE2 syntax, at most 200
+        characters): ``{valid, message}``. The builder asks while a pattern
+        is typed. Needs ``form.edit``; stores nothing."""
+        return await container.form_spec_service().check_pattern(
+            workspace_id=workspace_id, pattern=request.pattern, user=user
+        )
+
     @post(
         "/validate",
         # The body is read by hand (size-capped), so describe it here.

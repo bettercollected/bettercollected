@@ -530,6 +530,7 @@ def test_values_and_choices(form):
         ("name", {"minLength": -1}, "cannot be negative"),
         ("name", {"pattern": "(unclosed"}, "is not a valid pattern"),
         ("name", {"pattern": "a" * 201}, "at most 200 characters"),
+        ("name", {"pattern": "^(?=a)b$"}, "no lookarounds and no backreferences"),
         (
             "name",
             {"pattern": "^a$", "preset": "digits"},

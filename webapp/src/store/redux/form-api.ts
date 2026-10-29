@@ -35,6 +35,14 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
+        // Whether an answer pattern can be saved (RE2 syntax, the engine the server matches answers with).
+        checkAnswerPattern: builder.mutation<{ valid: boolean; message: string | null; reason: string | null }, { workspaceId: string; pattern: string }>({
+            query: ({ workspaceId, pattern }) => ({
+                url: `/workspaces/${workspaceId}/forms/pattern/check`,
+                method: 'POST',
+                body: { pattern }
+            })
+        }),
         // The organisation logo (utils/form-logo.ts): PNG, JPEG or WebP, at most 1 MB.
         uploadFormLogo: builder.mutation<any, { workspaceId: string; formId: string; file: File }>({
             query: ({ workspaceId, formId, file }) => {
@@ -171,6 +179,7 @@ export const formsApi = createApi({
 export const {
     useCreateV2FormMutation,
     usePatchV2FormMutation,
+    useCheckAnswerPatternMutation,
     useUploadFormLogoMutation,
     useRemoveFormLogoMutation,
     usePublishV2FormMutation,

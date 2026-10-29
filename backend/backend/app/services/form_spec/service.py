@@ -33,6 +33,7 @@ from backend.app.services.ai.ops import (
     too_many_ops,
 )
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_patterns import pattern_problem, pattern_reason
 from backend.app.services.form_spec.checks import check_spec_document
 from backend.app.services.form_spec.diff import spec_diff
 
@@ -152,6 +153,20 @@ class FormSpecService:
         document = await read_json_document(request)
         # CPU-bound (up to 1 MB of JSON): off the event loop
         return await run_in_threadpool(check_spec_document, document)
+
+    async def check_pattern(
+        self, workspace_id: RecordId, pattern: str, user: User
+    ) -> Dict[str, Any]:
+        """Authorise, then say whether the answer pattern can be saved (the
+        rule every save applies, ``checked_pattern``)."""
+        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        problem = await run_in_threadpool(pattern_problem, pattern)
+        return {
+            "valid": problem is None,
+            "message": problem,
+            # RE2's own words, for a screen that adds its own sentence
+            "reason": None if problem is None else pattern_reason(pattern),
+        }
 
     async def load(self, workspace_id: RecordId, form_id: str):
         """(StandardForm, association settings) of a form of this workspace,
