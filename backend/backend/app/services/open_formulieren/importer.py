@@ -119,6 +119,9 @@ class Question:
     # differ from the original's)
     default_value: bool = False
     rewritten: bool = False
+    # a rule, a condition, an enclosing layout component or its step can hide
+    # it (the original then clears its value; a calculation here would not)
+    conditional: bool = False
     # the id the form gave the question once it was created
     field_id: Optional[str] = None
 
@@ -281,6 +284,12 @@ class Planner:
         self.variables: Dict[str, V.Info] = {}
         self.deferred: List[int] = []
         self.written: set = set()
+        # components a rule can show or hide, steps a rule can make (not)
+        # applicable, and how many enclosing layout components can be hidden
+        self.hide_keys: set = set()
+        self.step_keys: set = set()
+        self._hideable_parents = 0
+        self._step_hideable = False
         self.page_ids: Dict[str, str] = {}
 
     # --------------------------------------------------------- reporting
@@ -324,6 +333,8 @@ class Planner:
         )
         self.variables = V.analyse(self.archive.variables, self.rules, self.archive.is_3x)
         self.written = V.written_keys(self.archive.variables, self.rules)
+        self.hide_keys = V.hide_targets(self.rules)
+        self.step_keys = V.step_targets(self.rules)
         consumed = V.consumed_rules(self.rules, self.variables)
         for index, rule in enumerate(self.rules):
             if index in consumed:
@@ -428,6 +439,12 @@ class Planner:
                 step.get("name") or (definition or {}).get("name"), limits.MAX_TITLE
             )
             page = Page(position, title)
+            step_uuid = step.get("uuid")
+            self._step_hideable = (
+                step.get("is_applicable") is False
+                or "" in self.step_keys
+                or (isinstance(step_uuid, str) and step_uuid in self.step_keys)
+            )
             self.walk(_list(configuration.get("components")), page, [], None, 0)
             if page.items:
                 self.pages.append(page)
@@ -567,7 +584,23 @@ class Planner:
         for problem in decision.conflicts:
             self.note(R.DROPPED, problem, kind=R.LOGIC, key=key, label=label)
         own = chain + ([decision.rule] if decision.rule else [])
+        # whether a condition, a rule or ``hidden`` can hide this component,
+        # and with it everything inside it (``Question.conditional``)
+        hideable = (
+            V.has_conditional(comp.get("conditional"))
+            or comp.get("hidden") is True
+            or bool(key and key in self.hide_keys)
+            or "" in self.hide_keys
+        )
+        self._hideable_parents += 1 if hideable else 0
+        try:
+            self._dispatch(comp, of_type, page, own, group, depth, key, label, col_span)
+        finally:
+            self._hideable_parents -= 1 if hideable else 0
 
+    def _dispatch(
+        self, comp, of_type, page, own, group, depth, key, label, col_span
+    ) -> None:
         if of_type == "fieldset":
             self._fieldset(comp, page, own, group, depth, key, label, col_span)
             return
@@ -784,6 +817,7 @@ class Planner:
         question.choices = choices
         question.multiple = comp.get("multiple") is True
         question.default_value = comp.get("defaultValue") not in (None, "")
+        question.conditional = bool(chain) or self._hideable_parents > 0 or self._step_hideable
         question.rewritten = (
             bool(_dict(comp.get("prefill")).get("plugin"))
             or any(comp.get(name) for name in SCRIPT_KEYS)
@@ -1495,6 +1529,8 @@ def _add_calculations(planner: Planner, form: StandardForm) -> StandardForm:
             unusable[key] = V.Cause.SOURCE_REWRITTEN
         elif question.default_value:
             unusable[key] = V.Cause.SOURCE_DEFAULT
+        elif question.conditional:
+            unusable[key] = V.Cause.SOURCE_CONDITIONAL
         elif question.field_id is None:
             unusable[key] = V.Cause.SOURCE_MISSING
         else:

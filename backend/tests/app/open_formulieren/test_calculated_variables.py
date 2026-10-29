@@ -29,7 +29,9 @@ from tests.app.open_formulieren.conftest import (
     CATASTROPHIC_SECONDS,
     archive_with,
     comp,
+    eq,
     exec_guard,  # noqa: F401  (fixture)
+    hide,
     no_deadline,  # noqa: F401  (fixture)
     rule,
 )
@@ -873,6 +875,177 @@ def test_an_integer_variable_keeps_a_fraction_as_the_original_stores_it():
     assert len(calcs(built)) == 1
     assert value_of(built, "T", A=1, B=4) == 0.25
     assert len(calcs(one({"*": [var("a"), 0.5]}, variables_extra={"data_type": "int"}))) == 1
+
+
+def choice_and_a(**extra):
+    return [[comp("textfield", "choice", label="Choice"), num("a", label="A", **extra), num("b", label="B")]]
+
+
+COND = {"conditional": {"show": False, "when": "choice", "eq": "no"}}
+
+
+def test_a_source_a_rule_can_hide_stays_out_the_owners_repro():
+    """``a`` is hidden when choice is no. There it is cleared, so ``a + 1`` has
+    no value; here the answer is still read."""
+    steps = choice_and_a()
+    rules = [rule(eq("choice", "no"), hide("a"), order=0), always(setter("t", {"+": [var("a"), 1]}), order=1)]
+    built = run(steps, rules, [uvar("t")])
+    assert calcs(built) == []
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_conditional", "source": "a"}
+
+
+def test_a_bare_copy_of_a_source_a_rule_can_hide_stays_out_too():
+    rules = [rule(eq("choice", "no"), hide("a"), order=0), always(setter("t", var("a")), order=1)]
+    built = run(choice_and_a(), rules, [uvar("t")])
+    assert not_carried(built, "t")["cause"] == "source_conditional"
+
+
+def test_a_rule_that_shows_the_source_counts_and_so_does_one_we_cannot_read():
+    # showing a question that starts hidden, hiding on a trigger we cannot
+    # translate: either way the original may clear the answer
+    for target, trigger in (
+        (hide("a", False), eq("choice", "no")),
+        (hide("a"), {"cat": [var("choice"), "x"]}),
+    ):
+        rules = [rule(trigger, target, order=0), always(setter("t", {"+": [var("a"), 1]}), order=1)]
+        built = run(choice_and_a(), rules, [uvar("t")])
+        assert not_carried(built, "t")["cause"] == "source_conditional", target
+
+
+def test_a_source_with_its_own_show_or_hide_condition_stays_out():
+    for cond in (
+        {"conditional": {"show": False, "when": "choice", "eq": "no"}},
+        {"conditional": {"show": True, "when": "choice", "eq": "yes"}},
+        {"conditional": {"show": True, "when": "choice"}},  # incomplete: refused anyway
+    ):
+        built = run(choice_and_a(**cond), [always(setter("t", {"+": [var("a"), 1]}))], [uvar("t")])
+        assert not_carried(built, "t") == {"dataType": "float", "cause": "source_conditional", "source": "a"}, cond
+    # the other source is not touched by it
+    built = run(choice_and_a(**COND), [always(setter("t", {"+": [var("b"), 1]}))], [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"conditional": None},
+        {"conditional": {}},
+        {"conditional": {"show": True}},
+        {"conditional": {"show": True, "when": "", "eq": ""}},
+        {"conditional": {"show": True, "when": None, "eq": "x"}},
+    ],
+)
+def test_a_source_with_no_condition_is_fine(extra):
+    built = run(choice_and_a(**extra), [always(setter("t", {"+": [var("a"), 1]}))], [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+def test_a_rule_that_changes_another_property_does_not_count():
+    other = {
+        "component": "a",
+        "action": {"type": "property", "property": {"value": "validate.required", "type": "bool"}, "state": True},
+    }
+    rules = [rule(eq("choice", "no"), other, order=0), always(setter("t", {"+": [var("a"), 1]}), order=1)]
+    built = run(choice_and_a(), rules, [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [
+        lambda inner: comp("fieldset", "fs", components=inner, **COND),
+        lambda inner: comp("fieldset", "fs", components=[comp("fieldset", "inner", components=inner, **COND)]),
+        lambda inner: comp("columns", "cols", columns=[{"size": 6, "components": inner}], **COND),
+        lambda inner: comp("fieldset", "fs", components=[comp("columns", "cols", columns=[{"size": 6, "components": inner}], **COND)]),
+    ],
+)
+def test_a_source_inside_a_layout_component_that_can_be_hidden_stays_out(layout):
+    steps = [[comp("textfield", "choice", label="Choice"), layout([num("a", label="A")]), num("b", label="B")]]
+    built = run(steps, [always(setter("t", {"+": [var("a"), 1]}))], [uvar("t")])
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_conditional", "source": "a"}
+
+
+def test_a_source_inside_a_fieldset_a_rule_hides_stays_out_and_a_plain_one_is_fine():
+    def steps(**extra):
+        return [[comp("textfield", "choice"), comp("fieldset", "fs", components=[num("a", label="A")], **extra)]]
+
+    rules = [rule(eq("choice", "no"), hide("fs"), order=0), always(setter("t", {"+": [var("a"), 1]}), order=1)]
+    assert not_carried(run(steps(), rules, [uvar("t")]), "t")["cause"] == "source_conditional"
+    built = run(steps(), [always(setter("t", {"+": [var("a"), 1]}))], [uvar("t")])
+    assert len(calcs(built)) == 1
+
+
+def test_a_source_on_a_step_a_rule_can_make_not_applicable_stays_out():
+    step_uuid = "10000000-0000-4000-8000-000000000001"
+    skip = {"uuid": "s", "form_step_uuid": step_uuid, "action": {"type": "step-not-applicable"}}
+    steps = [[comp("textfield", "choice", label="Choice"), num("b", label="B")], [num("a", label="A")]]
+    rules = [rule(eq("choice", "no"), skip, order=0)]
+    built = run(steps, rules + [always(setter("t", {"+": [var("a"), 1]}), order=1)], [uvar("t")])
+    assert not_carried(built, "t") == {"dataType": "float", "cause": "source_conditional", "source": "a"}
+    # a source on the other step is untouched
+    built = run(steps, rules + [always(setter("t", {"+": [var("b"), 1]}), order=1)], [uvar("t")])
+    assert len(calcs(built)) == 1
+    # a target we cannot name puts every step in doubt
+    anonymous = {"uuid": "s", "action": {"type": "step-applicable"}}
+    built = run(steps, [rule(eq("choice", "no"), anonymous, order=0), always(setter("t", {"+": [var("b"), 1]}), order=1)], [uvar("t")])
+    assert not_carried(built, "t")["cause"] == "source_conditional"
+
+
+def test_a_variable_that_reads_a_variable_with_a_conditional_source_stays_out():
+    rules = [
+        rule(eq("choice", "no"), hide("a"), order=0),
+        always(setter("t", {"+": [var("a"), 1]}, "1"), order=1),
+        always(setter("u", {"*": [var("t"), 2]}, "2"), order=2),
+    ]
+    built = run(choice_and_a(), rules, [uvar("t"), uvar("u")])
+    assert calcs(built) == []
+    assert not_carried(built, "t")["cause"] == "source_conditional"
+    assert not_carried(built, "u") == {"dataType": "float", "cause": "depends_on_variable", "source": "t"}
+
+
+# ------------------------------------------- an output mapping past its cap
+
+
+def dmn(*form_variables, filler=0):
+    mappings = [{"form_variable": f"filler{i}", "dmn_variable": "x"} for i in range(filler)]
+    mappings += [{"form_variable": name, "dmn_variable": "x"} for name in form_variables]
+    return {"uuid": "o", "action": {"type": "evaluate-dmn", "config": {"output_mapping": mappings}}}
+
+
+def test_a_decision_that_names_a_variable_inside_the_cap_is_seen():
+    built = run(TWO_NUMBERS, [always(setter("t", {"+": [var("a"), 1]})), rule(eq_a(), dmn("t", filler=V.MAX_MAPPINGS - 1), order=1)], [uvar("t")])
+    assert not_carried(built, "t")["cause"] == "other_source"
+
+
+def test_a_decision_with_more_mappings_than_we_read_writes_every_variable():
+    action = dmn("t", filler=V.MAX_MAPPINGS)  # "t" is entry 201: never read
+    built = run(TWO_NUMBERS, [always(setter("t", {"+": [var("a"), 1]})), rule(eq_a(), action, order=1)], [uvar("t")])
+    assert calcs(built) == []
+    assert not_carried(built, "t")["cause"] == "other_source"
+    # even a variable it does not name
+    built = run(TWO_NUMBERS, [always(setter("t", {"+": [var("a"), 1]})), rule(eq_a(), dmn(filler=V.MAX_MAPPINGS + 1), order=1)], [uvar("t")])
+    assert not_carried(built, "t")["cause"] == "other_source"
+
+
+def test_a_decision_with_more_mappings_than_we_read_may_write_a_source():
+    action = dmn("a", filler=V.MAX_MAPPINGS)  # "a" is entry 201: never read
+    rules = [always(setter("t", {"+": [var("a"), var("b")]})), rule(eq_a(), action, order=1)]
+    built = run(TWO_NUMBERS, rules, [uvar("t")])
+    assert calcs(built) == []
+    # the action may write the variable too, which is named first
+    assert not_carried(built, "t")["cause"] == "other_source"
+    # and, were the variable not in doubt itself, the source is
+    infos = V.analyse([uvar("t")], [always(setter("t", {"+": [var("a"), 1]}))], False)
+    written = V.written_keys([], [rule(eq_a(), action)])
+    assert V.resolve(infos, {"a": V.Source("id-a", (0, 1))}, {}, {"a"}, written) == []
+    assert infos["t"].cause == "source_rewritten" and infos["t"].detail == {"source": "a"}
+
+
+def test_written_keys_marks_an_over_long_mapping_as_writing_everything():
+    rules = [rule(True, dmn(filler=V.MAX_MAPPINGS + 1))]
+    assert V.WRITES_ANY in V.written_keys([], rules)
+    assert V.WRITES_ANY not in V.written_keys([], [rule(True, dmn(filler=V.MAX_MAPPINGS))])
 
 
 # ----------------------------------------------- chains, cycles and order

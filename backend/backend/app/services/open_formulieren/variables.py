@@ -49,7 +49,21 @@ MAX_NAME = 200
 # hold this many (``calculated_fields.MAX_CALCULATED_FIELDS``)
 MAX_CALCULATIONS = 50
 
+# an action that names more output mappings than this is read as writing every
+# variable (see ``_other_writers``)
+MAX_MAPPINGS = 200
+
 NUMERIC_TYPES = frozenset({"int", "float"})
+
+
+class _WritesAny:
+    """Stands in a set of written keys for "any key at all"."""
+
+    def __repr__(self) -> str:
+        return "WRITES_ANY"
+
+
+WRITES_ANY = _WritesAny()
 
 
 class Cause:
@@ -75,6 +89,10 @@ class Cause:
     # file, or starts from a default: we do not carry those, so it differs
     SOURCE_REWRITTEN = "source_rewritten"
     SOURCE_DEFAULT = "source_default"
+    # a rule (or a condition, a hidden layout component, a step that may not
+    # apply) can hide the question: there the answer is cleared, here it is
+    # still read
+    SOURCE_CONDITIONAL = "source_conditional"
     DEPENDS = "depends_on_variable"  # a variable that is not carried
     CYCLE = "cycle"  # in a circle of variables, or reads one
     ORDER = "order"  # reads a variable a later rule sets
@@ -275,11 +293,13 @@ class Info:
         return self.cause is None
 
 
-def _other_writers(action: Dict[str, Any]) -> Set[str]:
+def _other_writers(action: Dict[str, Any]) -> Set[Any]:
     """Keys of variables an action that is not a ``variable`` action writes
     to: the action's own target, a synchronisation's destination, a decision's
-    output mapping."""
-    names: Set[str] = set()
+    output mapping. An output mapping longer than ``MAX_MAPPINGS`` is not read
+    to the end, so the action counts as writing every key (``WRITES_ANY``):
+    nothing it could touch is carried."""
+    names: Set[Any] = set()
     target = action.get("variable")
     if isinstance(target, str) and target:
         names.add(target)
@@ -287,20 +307,23 @@ def _other_writers(action: Dict[str, Any]) -> Set[str]:
     destination = config.get("destination_variable")
     if isinstance(destination, str) and destination:
         names.add(destination)
-    for mapping in _list(config.get("output_mapping"))[:200]:
+    mappings = _list(config.get("output_mapping"))
+    if len(mappings) > MAX_MAPPINGS:
+        names.add(WRITES_ANY)
+    for mapping in mappings[:MAX_MAPPINGS]:
         found = _dict(mapping).get("form_variable")
         if isinstance(found, str) and found:
             names.add(found)
     return names
 
 
-def written_keys(variables: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Set[str]:
+def written_keys(variables: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Set[Any]:
     """Every key something in the file writes: the target of any action that
     sets a variable (a component's key as well), a synchronisation's
     destination, a decision's outputs, a variable filled by prefill or a
     service. A calculation must not read one of these unless it is itself
     the variable a calculation sets (``resolve``)."""
-    keys: Set[str] = set()
+    keys: Set[Any] = set()
     for rule in rules:
         for raw in _list(rule.get("actions")):
             action = _dict(raw)
@@ -318,6 +341,44 @@ def written_keys(variables: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -
         ):
             keys.add(key)
     return keys
+
+
+def hide_targets(rules: List[Dict[str, Any]]) -> Set[str]:
+    """Keys of the components any rule can show or hide (an action of type
+    ``property`` on ``hidden``), whatever its trigger or whether we carry the
+    rule: the original clears a hidden component, so a calculation reading one
+    would differ. The empty string stands for a target we cannot name."""
+    keys: Set[str] = set()
+    for rule in rules:
+        for raw in _list(rule.get("actions")):
+            action = _dict(raw)
+            body = _dict(action.get("action"))
+            if body.get("type") == "property" and _dict(body.get("property")).get("value") == "hidden":
+                target = action.get("component")
+                keys.add(target if isinstance(target, str) else "")
+    return keys
+
+
+def step_targets(rules: List[Dict[str, Any]]) -> Set[str]:
+    """Uuids of the steps a rule can make (not) applicable; the empty string
+    stands for a target we cannot name (every step is then in doubt)."""
+    uuids: Set[str] = set()
+    for rule in rules:
+        for raw in _list(rule.get("actions")):
+            action = _dict(raw)
+            if _dict(action.get("action")).get("type") in ("step-not-applicable", "step-applicable"):
+                target = action.get("form_step_uuid")
+                uuids.add(target if isinstance(target, str) and target else "")
+    return uuids
+
+
+def has_conditional(conditional: Any) -> bool:
+    """The component carries a show/hide condition of its own. Any ``when``
+    counts, also an incomplete one, which the original ignores: we would
+    rather refuse than reason about it."""
+    if not isinstance(conditional, dict):
+        return False
+    return bool(conditional.get("when"))
 
 
 def analyse(
@@ -343,7 +404,7 @@ def analyse(
         infos[key] = Info(key, variable.get("name"), data_type if isinstance(data_type, str) else "")
         records[key] = variable
     setters: Dict[str, List[Tuple[int, Dict[str, Any], Dict[str, Any]]]] = {}
-    elsewhere: Set[str] = set()
+    elsewhere: Set[Any] = set()
     for index, rule in enumerate(rules):
         for raw in _list(rule.get("actions")):
             action = _dict(raw)
@@ -360,6 +421,7 @@ def analyse(
             info.fail(Cause.DUPLICATE)
         elif (
             key in elsewhere
+            or WRITES_ANY in elsewhere
             or record.get("prefill_plugin")
             or record.get("prefill_attribute")
             or record.get("service_fetch_configuration")
@@ -435,7 +497,7 @@ def resolve(
     sources: Mapping[str, Source],
     unusable: Mapping[str, str],
     component_keys: Set[str],
-    rewritten: Optional[Set[str]] = None,
+    rewritten: Optional[Set[Any]] = None,
 ) -> List[Info]:
     """The variables that become calculated questions, in an order where each
     comes after the ones it reads; every other candidate gets its cause.
@@ -455,7 +517,7 @@ def resolve(
         for ref in info.refs:
             if ref in infos:
                 continue  # another variable: followed below
-            if ref in (rewritten or ()):
+            if ref in (rewritten or ()) or WRITES_ANY in (rewritten or ()):
                 info.fail(Cause.SOURCE_REWRITTEN, source=ref)
                 break
             if ref in sources:
@@ -524,6 +586,9 @@ __all__ = [
     "Source",
     "analyse",
     "consumed_rules",
+    "has_conditional",
+    "hide_targets",
+    "step_targets",
     "written_keys",
     "parse_expression",
     "references",
