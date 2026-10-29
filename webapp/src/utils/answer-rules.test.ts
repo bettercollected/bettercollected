@@ -22,6 +22,12 @@ import {
     validateAnswerRulesInSlide
 } from './answer-rules';
 
+const UNSAFE_CASES = (
+    JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/pattern-safety.cases.json'), 'utf-8')) as {
+        unsafe: Array<{ pattern: string; hazard: string }>;
+    }
+).unsafe;
+
 const field = (type: FieldTypes, validations: StandardFormFieldDto['validations'], properties: StandardFormFieldDto['properties'] = {}): StandardFormFieldDto => ({ id: 'f', index: 0, type, validations, properties });
 const preset = (id: string) => FORMAT_PRESETS.find((p) => p.id === id)!.pattern;
 const text = (value: string) => ({ type: 'text', text: value });
@@ -142,36 +148,25 @@ describe('the pattern length cap', () => {
 });
 
 describe('a pattern whose shape can freeze a browser', () => {
-    // timing-free: the engine's `test` is watched, never raced
+    // timing-free: the engine's `test` is watched, never raced. The hazardous patterns come from the
+    // shared case table rather than being written here, so no such pattern sits in this source.
     const spy = () => vi.spyOn(RegExp.prototype, 'test');
     afterEach(() => vi.restoreAllMocks());
     const answerThatFreezes = `${'a'.repeat(5000)}b`;
+    const unsafe = UNSAFE_CASES.map((c) => c.pattern);
+    const nested = UNSAFE_CASES.find((c) => c.hazard === 'nested_repeat')!.pattern;
 
     it('never reaches the backtracking RegExp.test, for text and number questions', () => {
         const test = spy();
-        const nested = '^(a+)+$';
         expect(compilePattern(nested)).toBeNull();
         expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: nested }), text(answerThatFreezes))).toEqual([]);
-        expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex: '^(a|aa)+$' }), text(answerThatFreezes))).toEqual([]);
-        // optional or bounded repeats, overlapping repeats across a separator, inline flags
-        for (const regex of [
-            '^(a?|b?){28}a{28}$',
-            '^(?:a|b?){28}c$',
-            '^(a?){30}a{30}$',
-            `^${'a?'.repeat(20)}${'a'.repeat(20)}$`,
-            '^.*a.*a.*a.*a.*a.*a.*a.*a$',
-            '^[\\s\\S]*x[\\s\\S]*x[\\s\\S]*x$',
-            '^(?i)a+$',
-            'a*(?:b|a*)(?:c|a*)x',
-            '^(?:a*)?(?:a*)?(?:a*)?(?:a*)?(?:a*)?!',
-            'a{1,99}a{1,99}a{1,99}!',
-            '\\d*\\d*x',
-            '(.*)\\s(.*)x',
-            '^(a+)+\\-$'
-        ]) {
+        // every unsafe shape in the shared table, on a text and a long-text question
+        for (const regex of unsafe) {
             expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('a'.repeat(28)))).toEqual([]);
+            expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex }), text(answerThatFreezes))).toEqual([]);
         }
-        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: '^(\\d+)+$' }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
+        const digits = unsafe.find((p) => p.includes('\\d'))!;
+        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: digits }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
         expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex: nested })], { f: text(answerThatFreezes) })).toEqual({});
         expect(test).not.toHaveBeenCalled();
     });
@@ -198,16 +193,19 @@ describe('a pattern whose shape can freeze a browser', () => {
         // \- outside a class is an error with the u flag and fine without it
         expect(() => new RegExp('^a+\\-$', 'u')).toThrow();
         expect(compilePattern('^a+\\-$')).not.toBeNull();
-        expect(compilePattern('^(a+)+\\-$')).toBeNull();
+        // an unsafe shape that also only compiles without the u flag (from the shared table)
+        const lenientOnly = unsafe.find((p) => p.endsWith('\\-$'))!;
+        expect(() => new RegExp(lenientOnly, 'u')).toThrow();
+        expect(compilePattern(lenientOnly)).toBeNull();
     });
 
     it('is told apart from one that does not compile', () => {
-        expect(patternProblem('^(a+)+$')).toBe('nested_repeat');
+        expect(patternProblem(nested)).toBe('nested_repeat');
         expect(patternProblem('([')).toBe('invalid');
         expect(patternProblem('^[a-z]+$')).toBeNull();
         expect(patternProblem(undefined)).toBeNull();
         // the shape is pointed out next to the pattern box, not in the conflicts
-        expect(answerRuleConflicts({ regex: '^(a+)+$' })).toEqual([]);
+        expect(answerRuleConflicts({ regex: nested })).toEqual([]);
     });
 
     it('keeps the presets and the whole-number rule testable', () => {
