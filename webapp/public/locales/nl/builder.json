@@ -721,5 +721,11 @@
       "noted": "Goed om te weten."
     },
     "DETAIL_UNKNOWN": "onbekend"
+  },
+  "PATTERN_CHECK": {
+    "INVALID": "Dit patroon kan niet worden gebruikt: {{reason}}.",
+    "UNAVAILABLE": "Het patroon kon nu niet worden gecontroleerd. Probeer het opnieuw.",
+    "SYNTAX": "Patronen gebruiken RE2-syntaxis: er zijn geen lookarounds en geen terugverwijzingen.",
+    "KEPT": "Het patroon dat de vraag al heeft, blijft gelden tot dit patroon geldig is."
   }
 }

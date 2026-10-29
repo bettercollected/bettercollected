@@ -15,6 +15,12 @@ import { store } from '@app/store/store';
 
 import PropertiesDrawer, { pageCrumbLabel } from './properties-drawer';
 
+// the server's answer to "can this pattern be saved" while one is typed
+const checkPattern = vi.fn().mockResolvedValue({ data: { valid: true, message: null, reason: null } });
+vi.mock('@app/store/redux/form-api', async (original) => ({
+    ...((await original()) as object),
+    useCheckAnswerPatternMutation: () => [checkPattern]
+}));
 vi.mock('next/navigation', () => ({
     usePathname: () => '/acme/dashboard/forms/f1/edit',
     useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -217,7 +223,9 @@ describe('question panel: answer rules', () => {
         renderBuilder({ id: 'c', index: 1 });
         await screen.findByRole('heading', { name: 'Answer rules' });
         act(() => void fireEvent.change(screen.getByLabelText('Regular expression'), { target: { value: '^[A-Z]+$' } }));
-        expect(builder!.formFields[1].properties!.fields![1].validations?.regex).toBe('^[A-Z]+$');
+        // saved once the server says it can be used
+        await vi.waitFor(() => expect(builder!.formFields[1].properties!.fields![1].validations?.regex).toBe('^[A-Z]+$'));
+        expect(checkPattern).toHaveBeenCalledWith({ workspaceId: '', pattern: '^[A-Z]+$' });
         expect((screen.getByLabelText('Format') as HTMLSelectElement).value).toBe('custom');
         act(() => void fireEvent.change(screen.getByLabelText('Min. characters'), { target: { value: '9' } }));
         act(() => void fireEvent.change(screen.getByLabelText('Max. characters'), { target: { value: '3' } }));

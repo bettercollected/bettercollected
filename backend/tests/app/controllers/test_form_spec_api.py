@@ -695,7 +695,12 @@ class TestGrowthAndImages:
 
     @pytest.mark.parametrize(
         "pattern, words",
-        [("(unclosed", "is not a valid pattern"), ("a" * 201, "at most 200")],
+        [
+            ("(unclosed", "is not a valid pattern"),
+            ("a" * 201, "at most 200"),
+            ("^(?=a)b$", "no lookarounds and no backreferences"),
+            (r"(a)\1", "no lookarounds and no backreferences"),
+        ],
     )
     async def test_validate_refuses_a_pattern_the_op_refuses(
         self, client: AsyncClient, workspace, test_user_cookies, pattern, words

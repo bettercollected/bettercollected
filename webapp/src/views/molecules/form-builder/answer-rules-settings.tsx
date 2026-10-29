@@ -1,13 +1,21 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+
+import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { useAppSelector } from '@app/store/hooks';
+import { useCheckAnswerPatternMutation } from '@app/store/redux/form-api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
 import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
 type Patch = Partial<IFormFieldValidation>;
+
+/** Quiet time after typing in the pattern box before it is checked. */
+export const PATTERN_CHECK_DELAY_MS = 400;
 
 /**
  * "Answer rules": limits on an answer beyond Required, written to the
@@ -33,7 +41,7 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
                         <NumberSetting label="Highest" integer={false} step="any" value={rules.maxValue} onChange={(maxValue) => onChange({ maxValue })} invalid={valueConflict} />
                     </div>
                     {rules.regex && rules.regex !== INTEGER_PATTERN ? (
-                        <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; it is still checked.</p>
+                        <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; the server checks it when the answer is sent.</p>
                     ) : (
                         <SettingSwitch label="Whole numbers only" checked={rules.regex === INTEGER_PATTERN} onCheckedChange={(checked) => onChange({ regex: checked ? INTEGER_PATTERN : undefined })} />
                     )}
@@ -82,6 +90,41 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
         if (isCustom) setPattern(rules.regex ?? '');
     }
 
+    // A custom pattern is checked by the server (RE2 syntax) while it is typed.
+    // Only a pattern that passes goes into the form; until then the one the
+    // form already has stays, and the reason is shown.
+    const { t } = useTranslation('builder');
+    const workspace = useAppSelector(selectWorkspace);
+    const [checkPattern] = useCheckAnswerPatternMutation();
+    const [problem, setProblem] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
+    const latest = useRef(0);
+    const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    useEffect(() => () => clearTimeout(timer.current), []);
+    const typed = (next: string) => {
+        setPattern(next);
+        clearTimeout(timer.current);
+        const turn = ++latest.current;
+        if (!next) {
+            setProblem(null);
+            setChecking(false);
+            onChange({ regex: undefined }); // emptying the box is the way to remove it
+            return;
+        }
+        setChecking(true);
+        timer.current = setTimeout(async () => {
+            const response: any = await checkPattern({ workspaceId: workspace?.id as string, pattern: next });
+            if (turn !== latest.current) return; // typed on since
+            setChecking(false);
+            if (response?.data?.valid) {
+                setProblem(null);
+                onChange({ regex: next });
+            } else {
+                setProblem(response?.data ? (response.data.reason ?? '') : '');
+            }
+        }, PATTERN_CHECK_DELAY_MS);
+    };
+
     const lengthConflict = rules.minLength !== undefined && rules.maxLength !== undefined && rules.minLength > rules.maxLength;
 
     return (
@@ -101,9 +144,14 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         const value = event.target.value;
                         if (value === 'custom') {
                             setAdvancedOpen(true);
-                            if (pattern) onChange({ regex: pattern });
+                            if (pattern && !problem && !checking) onChange({ regex: pattern });
                             return;
                         }
+                        // another format replaces what was typed: nothing left to check
+                        clearTimeout(timer.current);
+                        latest.current++;
+                        setProblem(null);
+                        setChecking(false);
                         onChange({ regex: FORMAT_PRESETS.find((p) => p.id === value)?.pattern });
                     }}
                     className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
@@ -130,15 +178,19 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         maxLength={PATTERN_MAX_LENGTH}
                         value={pattern}
                         placeholder="^[A-Z]{3}[0-9]{4}$"
-                        aria-describedby={`${patternId}-hint`}
-                        onChange={(event) => {
-                            setPattern(event.target.value);
-                            onChange({ regex: event.target.value || undefined });
-                        }}
-                        className="h-8 w-full rounded border border-control bg-white px-2 font-mono text-xs focus:border-brand-500"
+                        aria-describedby={problem !== null ? `${patternId}-problem ${patternId}-hint` : `${patternId}-hint`}
+                        aria-invalid={problem !== null ? true : undefined}
+                        onChange={(event) => typed(event.target.value)}
+                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-brand-500 ${problem !== null ? 'border-red-600' : 'border-control'}`}
                     />
+                    {problem !== null && (
+                        <p id={`${patternId}-problem`} role="alert" className="text-[11px] leading-relaxed text-red-700">
+                            {problem ? t('PATTERN_CHECK.INVALID', { reason: problem }) : t('PATTERN_CHECK.UNAVAILABLE')} {t('PATTERN_CHECK.SYNTAX')}
+                            {rules.regex ? ` ${t('PATTERN_CHECK.KEPT')}` : ''}
+                        </p>
+                    )}
                     <p id={`${patternId}-hint`} className="text-[11px] leading-relaxed text-black-600">
-                        Answers must match it (use ^ and $ to match the whole answer). Respondents see a general “not in the expected format” message, so say in the description what you expect.
+                        Answers must match it (use ^ and $ to match the whole answer). It is checked when the answer is sent, not while it is typed. Respondents see a general “not in the expected format” message, so say in the description what you expect.
                     </p>
                 </div>
             </details>

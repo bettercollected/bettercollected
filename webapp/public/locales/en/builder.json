@@ -721,5 +721,11 @@
       "noted": "Good to know."
     },
     "DETAIL_UNKNOWN": "unknown"
+  },
+  "PATTERN_CHECK": {
+    "INVALID": "This pattern cannot be used: {{reason}}.",
+    "UNAVAILABLE": "The pattern could not be checked right now. Try again.",
+    "SYNTAX": "Patterns use RE2 syntax: there are no lookarounds and no backreferences.",
+    "KEPT": "The pattern the question already has stays in use until this one is valid."
   }
 }

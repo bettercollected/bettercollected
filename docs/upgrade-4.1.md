@@ -143,6 +143,10 @@ Remove them from the stack definition, `.env` and `.env.deployment`, and from th
   hosted storage's `public/` prefix: a stack on other storage sets it to its own public storage prefix.
 - **Mail sender.** Sign-in, invitation and submission-update mails come from the instance's name
   (`ORGANIZATION_NAME`) with fixed subjects; tell your users if they filter by workspace name.
+- **Answer patterns (custom "must match" rules on text questions).**
+  - **Where the check runs:** the respondent's browser no longer runs a pattern a form creator wrote. Only the built-in formats (postcode, phone, IBAN and so on) and the whole-number rule are still checked while typing. A custom pattern is checked by the server, with RE2, when the respondent submits the form; the form then goes back to the question and shows the message.
+  - **Saving:** a new or changed pattern must be valid RE2. Lookarounds (`(?=…)`, `(?!…)`, `(?<=…)`) and backreferences (`\1`) are refused with a clear message.
+  - **Patterns saved before 4.1 that RE2 can't compile are no longer checked anywhere.** The server skips them and the browser doesn't run them, so a form keeps working but that rule isn't enforced until its creator replaces it with an RE2 pattern. To find them, look for text questions whose pattern uses `(?=`, `(?!`, `(?<` or a backreference.
 - **Single sign-on.** Before enabling it on a hosted stack, filter Polis's internet egress as
   described in [sso.md](sso.md) ("Polis egress"). SSO stays off unless `SSO_ENABLED` is set.
 

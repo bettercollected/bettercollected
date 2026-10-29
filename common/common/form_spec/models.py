@@ -13,7 +13,6 @@ keys are refused, so a typo is reported instead of silently dropped.
 """
 
 import enum
-import re
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.models.standard_form import (
@@ -33,6 +32,7 @@ from common.models.standard_form import (
     LayoutType,
     StandardFormFieldType,
 )
+from common.form_spec.re2_patterns import re2_problem
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
@@ -51,23 +51,26 @@ PATTERN_MAX_LENGTH = 200
 
 def checked_pattern(pattern: str) -> str:
     """An answer pattern as it may be stored: trimmed, at most
-    PATTERN_MAX_LENGTH characters, a regular expression that compiles.
-    Raises ValueError with a plain message. The one rule for the spec and
-    the set_field_validation op.
+    PATTERN_MAX_LENGTH characters, and one RE2 can use (the engine the server
+    matches answers with, in linear time: backend services/answer_validation.
+    py). So lookarounds and backreferences are refused here, not silently left
+    unchecked later. Raises ValueError with a plain message. The one rule for
+    the spec, the set_field_validation op and the importer.
 
-    Only compiled here, never matched: submitted answers are matched with
-    re2 (linear time) on a capped input in the backend's
-    services/answer_validation.py. A creator's pattern is untrusted and
-    Python's re can backtrack for a very long time."""
+    Only compiled here, never matched, and RE2 compiles in time linear in the
+    pattern's size within a fixed memory budget. The respondent's browser
+    never runs a creator's pattern."""
     pattern = pattern.strip()
     if not pattern:
         raise ValueError("The pattern is empty: give a regular expression, or none.")
     if len(pattern) > PATTERN_MAX_LENGTH:
         raise ValueError(f"A pattern can be at most {PATTERN_MAX_LENGTH} characters.")
-    try:
-        re.compile(pattern)
-    except re.error as error:
-        raise ValueError(f"'{pattern}' is not a valid pattern ({error}).")
+    problem = re2_problem(pattern)
+    if problem is not None:
+        raise ValueError(
+            f"'{pattern}' is not a valid pattern ({problem}). Answer patterns use "
+            "RE2 syntax: there are no lookarounds and no backreferences."
+        )
     return pattern
 
 

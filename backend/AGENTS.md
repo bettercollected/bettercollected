@@ -289,6 +289,17 @@ big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
 
+**Answer patterns** are matched on the server with RE2 (linear time) and never run by the respondent's browser
+(the webapp checks only its format presets and the whole-number rule, `utils/answer-rules.ts`; a creator's
+pattern is checked on submit and the 422 `pattern` problem is shown on its question). So a pattern RE2 cannot
+use would silently go unchecked: `checked_pattern` (`common/common/form_spec/models.py`, RE2 compile in
+`common/common/form_spec/re2_patterns.py`, within `PATTERN_MAX_MEM` and `PATTERN_MAX_PROGRAM`) refuses it in the
+form spec, the ops engine, the REST API and the Open Formulieren import (an archive pattern it refuses is
+`validation_not_carried`), and `services/form_patterns.py` `check_form_patterns` applies it on every form save
+(422 `invalid_pattern` with the reason and question ids; a pattern the stored draft already holds is kept; a copy
+drops it). The builder asks `POST /workspaces/{id}/forms/pattern/check` while a pattern is typed. There is no
+shape analysis of patterns: two review rounds found bypasses in one, and RE2 makes it unnecessary.
+
 **Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
 `calculated` field on a page stores an expressions-v1 AST at `properties.expression`
 ([../docs/spec/expressions-v1.md](../docs/spec/expressions-v1.md)), a display `format` and
