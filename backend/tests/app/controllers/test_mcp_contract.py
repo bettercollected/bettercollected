@@ -180,8 +180,8 @@ class TestToolList:
             "Error executing tool get_form: 1 validation error for get_formArguments\n"
             "form_id\n  Field required"
         )
-        # a refusal of the product's services is an error result with its
-        # text (empty here, as before), not a hidden crash
+        # a refusal of the product's services is an error result, not a
+        # hidden crash; its text is empty (as before) ...
         async def refuse(*args, **kwargs):
             raise HTTPException(status_code=409, content={"message": "Not now"})
 
@@ -193,6 +193,42 @@ class TestToolList:
         )
         assert refused == {
             "content": [{"type": "text", "text": "Error executing tool publish_form: "}],
+            "isError": True,
+        }
+
+        # ... except a refused publish (422 form_not_publishable), which says
+        # why: one "code: message" line per problem
+        async def not_publishable(*args, **kwargs):
+            raise HTTPException(
+                status_code=422,
+                content={
+                    "code": "form_not_publishable",
+                    "message": "This form can't be published yet: Add a reason.",
+                    "problems": [
+                        {
+                            "code": "missing_why_we_ask",
+                            "fieldId": "q1",
+                            "message": "Add a reason.",
+                        }
+                    ],
+                },
+            )
+
+        monkeypatch.setattr(
+            container.workspace_form_service(), "publish_form", not_publishable
+        )
+        unpublishable = await _call_tool(
+            client, token, "publish_form", {"form_id": workspace_form.form_id}
+        )
+        assert unpublishable == {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Error executing tool publish_form: "
+                    "This form can't be published yet:\n"
+                    'missing_why_we_ask (field "q1"): Add a reason.',
+                }
+            ],
             "isError": True,
         }
 

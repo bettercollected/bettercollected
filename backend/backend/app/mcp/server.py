@@ -12,6 +12,7 @@ Tools deliberately reuse the same services/pipelines as the product —
 import functools
 import json
 import logging
+import unicodedata
 from contextvars import ContextVar
 from importlib.metadata import version as package_version
 from typing import Any, Callable, Dict, List, Optional
@@ -48,6 +49,7 @@ from backend.app.services.form_spec.service import (
     DOCUMENT_TOO_LARGE,
     MAX_DOCUMENT_BYTES,
 )
+from backend.app.services.publish_checks import FORM_NOT_PUBLISHABLE
 
 
 def _c():
@@ -522,6 +524,55 @@ def _error_text(error: HTTPException) -> str:
     return str(content)
 
 
+# What a refused publish tells the caller: at most this many problems, each
+# at most this many characters.
+MAX_PUBLISH_PROBLEMS = 20
+MAX_PUBLISH_PROBLEM_CHARS = 500
+MAX_PUBLISH_FIELD_ID_CHARS = 64
+
+
+def _one_line(value: Any, limit: int) -> str:
+    """``value`` as one plain line of at most ``limit`` characters: control
+    and format characters (newlines, ESC and ANSI sequences, bidi overrides,
+    zero-width and tag characters) are dropped, other whitespace becomes a
+    single space. The text goes to an agent: a question id or title an editor
+    wrote must not be able to start a line of its own."""
+    text = "".join(
+        char
+        for char in str(value if value is not None else "")
+        if char.isspace() or unicodedata.category(char) not in ("Cc", "Cf")
+    )
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def _publish_refusal_text(error: HTTPException) -> Optional[str]:
+    """Why a publish was refused, one problem per line as ``code: message``
+    (``code (field "<id>"): message`` when the problem belongs to a question),
+    in the server's order. Only the code, the question id and the message of
+    each problem: nothing else of the refusal (no report id or content).
+    None unless this is the 422 ``form_not_publishable`` refusal."""
+    content = error.content
+    if not isinstance(content, dict) or content.get("code") != FORM_NOT_PUBLISHABLE:
+        return None
+    problems = [p for p in content.get("problems") or [] if isinstance(p, dict)]
+    lines = []
+    for problem in problems[:MAX_PUBLISH_PROBLEMS]:
+        code = _one_line(problem.get("code"), 64) or "problem"
+        field_id = _one_line(
+            problem.get("fieldId"), MAX_PUBLISH_FIELD_ID_CHARS
+        ).replace('"', "'")
+        where = f' (field "{field_id}")' if field_id else ""
+        message = _one_line(problem.get("message"), MAX_PUBLISH_PROBLEM_CHARS)
+        line = f"{code}{where}: {message}"
+        if len(line) > MAX_PUBLISH_PROBLEM_CHARS:
+            line = line[: MAX_PUBLISH_PROBLEM_CHARS - 3] + "..."
+        lines.append(line)
+    if len(problems) > MAX_PUBLISH_PROBLEMS:
+        lines.append(f"and {len(problems) - MAX_PUBLISH_PROBLEMS} more")
+    return "\n".join(["This form can't be published yet:", *lines])
+
+
 @mcp.tool()
 async def publish_form(form_id: str) -> str:
     """Publish a form so it can accept responses. Returns the share slug."""
@@ -530,11 +581,18 @@ async def publish_form(form_id: str) -> str:
 
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
-    await container.workspace_form_service().publish_form(
-        workspace_id=key.workspace_id,
-        form_id=RecordId(form_id),
-        user=_acting_user(key),
-    )
+    try:
+        await container.workspace_form_service().publish_form(
+            workspace_id=key.workspace_id,
+            form_id=RecordId(form_id),
+            user=_acting_user(key),
+        )
+    except HTTPException as e:
+        reasons = _publish_refusal_text(e)
+        if reasons is None:
+            # any other refusal (403, 404, 410, ...) is answered as before
+            raise
+        raise ValueError(reasons) from e
     refreshed = (
         await _c().workspace_form_repo().find_workspace_form(key.workspace_id, form_id)
     )
