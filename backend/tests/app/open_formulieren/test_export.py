@@ -582,8 +582,10 @@ def test_every_fixture_survives_import_export_import(name):
     second = build_draft(read_archive(result.data))
     a, b = normal(strip(describe(first))), normal(strip(describe(second)))
     for desc in (a, b):
-        # the one documented change of these fixtures: a required checkbox
+        # the documented changes of these fixtures: a required checkbox, and a
+        # calculated question (made from a variable) that the export leaves out
         for page in desc["pages"]:
+            page["questions"] = [q for q in page["questions"] if q["type"] != "calculated"]
             for question in page["questions"]:
                 _lossy_checkbox(question)
     assert a["pages"] == b["pages"]

@@ -130,6 +130,10 @@ describe('the report sentences', () => {
             expect(valueOf(nl, key), `nl ${cause}`).toBeTruthy();
             expect(valueOf(nl, key)).not.toBe(valueOf(en, key));
         }
+        // a source a rule can hide has its own sentence in both languages
+        expect(VARIABLE_CAUSES).toContain('source_conditional');
+        expect(valueOf(en, 'VARIABLE_CAUSE.source_conditional')).toContain('A rule can hide it');
+        expect(valueOf(nl, 'VARIABLE_CAUSE.source_conditional')).toContain('verborgen worden');
         // every sentence the locale files hold has a cause the code knows
         expect(Object.keys(en.VARIABLE_CAUSE).sort()).toEqual([...VARIABLE_CAUSES].sort());
         expect(Object.keys(nl.VARIABLE_CAUSE).sort()).toEqual([...VARIABLE_CAUSES].sort());

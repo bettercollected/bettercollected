@@ -108,6 +108,7 @@ def test_structure_of_the_logic_form():
         "calculateValue", "customConditional", "customDefaultValue", "logic", "validate.custom",
     ]
     assert len(items(built, reason="user_variable_not_carried")) == 5
+    assert items(built, reason="user_variable_calculated") == []
     assert {i["detail"]["actionType"] for i in items(built, reason="action_not_supported")} >= {"disable-next", "step-not-applicable", "variable"}
 
 

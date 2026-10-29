@@ -200,6 +200,7 @@ describe('Dutch sentences for a variable that was not carried over', () => {
         const dutch = Object.fromEntries(causes);
         expect(dutch.initial_value).toBe('Deze variabele bevat een deling en heeft een beginwaarde; daarom is hij niet overgenomen.');
         expect(dutch.too_many).toContain('Deze past er niet meer bij.');
+        expect(dutch.source_conditional).toBe('Deze variabele gebruikt “{{source}}”. Dat kan door een regel verborgen worden; het bronformulier laat het dan leeg.');
         expect(dutch.rejected).toBe('De formuliereditor heeft deze berekening niet aangenomen.');
     });
 });
