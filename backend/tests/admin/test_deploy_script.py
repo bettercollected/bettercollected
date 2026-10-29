@@ -2132,6 +2132,19 @@ def test_a_failing_mv_makes_service_env_file_fail_and_removes_its_scratch_file(s
     assert not (work / ".env.webapp").exists() and not _temp_leftovers(work)
 
 
+def test_a_chmod_that_fails_does_not_stop_service_env_file(site):
+    """Some bind mounts (vfat, CIFS) refuse chmod; the file is already 600 from the umask, so the
+    deploy carries on (a failed write or rename still stops it, see the failing-mv test)."""
+    work, _, _ = site
+    _stand_in(site, "chmod", "#!/bin/sh\nexit 1\n")
+    (work / ".env.deployment").write_text("FOO=1\n")
+    done = _functions_run(site, 'service_env_file .env.webapp FOO; echo "rc=$?"\n')
+    assert "rc=0" in done.stdout and "Could not create" not in done.stderr, (done.stdout, done.stderr)
+    assert (work / ".env.webapp").read_text() == "FOO=1\n"
+    assert oct((work / ".env.webapp").stat().st_mode & 0o777) == "0o600"
+    assert not _temp_leftovers(work)
+
+
 def _term_during_chmod(site, script):
     """Run the functions with a `chmod` stand-in that sends TERM to the script's own process when
     it touches a `.env.*` scratch file; returns (status, stdout, stderr)."""
