@@ -519,10 +519,9 @@ async def test_the_mcp_server_refuses_then_publishes(
     form_id = await _draft(untitled_workspace)
     token = await _make_key(untitled_workspace.id, ["forms:write"])
     result = await _call_tool(client, token, "publish_form", {"form_id": str(form_id)})
-    # the MCP server's error text for a refused publish is empty by contract
-    # (test_mcp_contract: "errors read as before"); what matters here is that
-    # it is an error and nothing went live
+    # the MCP server says why (test_mcp_publish_refusal); nothing went live
     assert result.get("isError") is True, result
+    assert WORKSPACE_TITLE_MISSING in result["content"][0]["text"]
     assert await _latest(form_id) is None
 
     await _set_title(untitled_workspace, "Acme")

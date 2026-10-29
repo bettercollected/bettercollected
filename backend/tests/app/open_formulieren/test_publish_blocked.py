@@ -255,6 +255,8 @@ async def test_the_mcp_server_refuses_then_publishes(
     token = await _make_key(workspace.id, ["forms:write"])
     result = await _call_tool(client, token, "publish_form", {"form_id": str(form_id)})
     assert result.get("isError") is True, result
+    assert NEEDS_REVIEW in result["content"][0]["text"]
+    assert str(record.id) not in result["content"][0]["text"]
     assert await _latest(form_id) is None
 
     await _review(client, workspace, record.id, test_user_cookies)
