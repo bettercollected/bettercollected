@@ -389,7 +389,7 @@ async def run_action(
         receiving_mail = get_parameter("Receiving Mail Address")
 
         if receiving_mail:
-            # Only a current member of the workspace or the form's creator:
+            # Only a current member of the workspace (the creator while one):
             # checked now, not as of when the action was saved (a refusal or a
             # failed check raises, so nothing is sent and the job shows why)
             receiving_mail = approved_copy_recipient(

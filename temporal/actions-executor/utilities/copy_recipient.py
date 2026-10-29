@@ -3,7 +3,8 @@
 The backend refuses any other address when the action is saved
 (``backend/app/services/copy_recipient.py``), but a membership can end after
 that, so the executor asks again right before it sends: the address must be
-that of a current member of the form's workspace or the form's creator. The
+that of a current, enabled member of the form's workspace (the form's creator
+only while they are one). The
 executor has no database access to workspaces, so it asks the backend's
 in-network route (``POST /temporal/workspaces/{id}/forms/{id}/copy-recipient``,
 the ``api-key`` it already uses for the secrets route), which answers yes or no
@@ -34,7 +35,7 @@ class CopyRecipientError(Exception):
 
 
 class CopyRecipientRefused(CopyRecipientError):
-    """The address is not a member of the workspace or the form's creator."""
+    """The address is not that of a current member of the workspace."""
 
 
 class CopyRecipientUnavailable(CopyRecipientError):
@@ -118,11 +119,11 @@ def approved_copy_recipient(
     if not answer["allowed"]:
         logger.warning(
             "creator_copy_mail not sent: the address is no member of the "
-            "workspace and not the form's creator (%s)",
+            "workspace (%s)",
             where,
         )
         raise CopyRecipientRefused(
             f"{NOT_ALLOWED_CODE}: the receiving address is not a member of the "
-            "workspace or the form's creator"
+            "workspace"
         )
     return normalized

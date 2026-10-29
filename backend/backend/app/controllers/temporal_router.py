@@ -68,7 +68,7 @@ class TemporalRouter(Routable):
     ):
         """The actions executor asks, right before a "send me a copy" mail,
         whether the address may still receive it (a member of the workspace
-        or the form's creator, as of now). Only a yes or no goes back, never
+        who is still enabled, the form's creator included, as of now). Only a yes or no goes back, never
         who the members are."""
         allowed = await self.copy_recipient_service.is_allowed(
             payload.address, workspace_id, form_id

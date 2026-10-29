@@ -2,19 +2,18 @@
 
 The ``creator_copy_mail`` action sends each new response to its
 ``Receiving Mail Address`` through the instance's mail server. That address is
-only ever one of two things:
-
-* the e-mail address of a current (not disabled) member of the form's
-  workspace, or
-* the form creator's own e-mail address (the person who made the form, even
-  after they left the workspace).
+the e-mail address of a current, enabled member of the form's workspace. The
+form's creator counts like any member: their own address is allowed only
+while they are still such a member, so a creator who was removed or disabled
+stops receiving copies.
 
 Anything else is refused, at save (:meth:`CopyRecipientService.ensure_allowed`,
 a 422 with the stable code :data:`COPY_RECIPIENT_NOT_ALLOWED`) and again right
 before sending (the actions executor asks ``POST
 /temporal/workspaces/{id}/forms/{id}/copy-recipient``, which answers
 :meth:`CopyRecipientService.is_allowed`). The second check is the one that
-counts: a member removed after the action was saved stops receiving copies.
+counts: a member (the creator included) removed or disabled after the action
+was saved stops receiving copies.
 
 Addresses are compared after trimming whitespace and case-folding the whole
 address (:func:`normalize_address`). Plus tags and dots are *not* stripped: a
@@ -103,10 +102,10 @@ class CopyRecipientService:
         self._http_client = http_client
 
     async def _allowed_addresses(self, workspace_id, form_id) -> Set[str]:
-        """The normalised addresses allowed now: the workspace's members that
-        are not disabled, and the form's creator. Empty when the form does not
-        belong to the workspace (nothing is allowed for a form that is not
-        there)."""
+        """The normalised addresses allowed now: those of the workspace's
+        members that are not disabled (the form's creator is one of them only
+        while they are). Empty when the form does not belong to the workspace
+        (nothing is allowed for a form that is not there)."""
         link = await self._workspace_forms.find_workspace_form(
             RecordId(str(workspace_id)), str(form_id)
         )
@@ -119,8 +118,6 @@ class CopyRecipientService:
             )
             if not member.disabled
         }
-        if link.user_id:
-            user_ids.add(str(link.user_id))
         if not user_ids:
             return set()
         response = await self._http_client.get(

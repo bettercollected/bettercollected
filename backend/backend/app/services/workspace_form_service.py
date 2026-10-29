@@ -1571,7 +1571,7 @@ class WorkspaceFormService:
             )
         if action.name == CREATOR_COPY_ACTION:
             # the action mails each response through the instance's server:
-            # only to a member of this workspace or the form's creator
+            # only to a current member of this workspace
             await self._copy_recipient_service.ensure_parameters_allowed(
                 add_action_to_form_params.parameters, workspace_id, form_id
             )

@@ -1,5 +1,6 @@
 """The "send me a copy" action (``creator_copy_mail``) may only mail a current
-member of the form's workspace or the form's creator: refused with a 422 when
+member of the form's workspace (the form's creator only while they are one):
+refused with a 422 when
 it is attached (``copy_recipient_not_allowed``) and answered yes or no to the
 actions executor right before it sends."""
 
@@ -70,6 +71,21 @@ def _cookies(user):
     return {"Authorization": token, "RefreshToken": token}
 
 
+async def _remove_member(workspace, user):
+    membership = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, user.id
+    )
+    await container.workspace_user_repo().delete_by_id(membership.id)
+
+
+async def _disable_member(workspace, user):
+    membership = await container.workspace_user_repo().find_workspace_user(
+        workspace.id, user.id
+    )
+    membership.disabled = True
+    await container.workspace_user_repo().save(membership)
+
+
 def _attach(client, workspace, form, action, address, user=testUser):
     return client.post(
         f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/actions",
@@ -119,14 +135,12 @@ class TestAtSave:
         assert [str(a.id) for a in actions] == [str(mail_action.id)]
         assert parameters[str(mail_action.id)][0].value == address
 
-    async def test_the_creator_is_allowed_after_leaving_the_workspace(
+    async def test_a_creator_who_left_the_workspace_is_refused(
         self, client: AsyncClient, workspace, workspace_form, mail_action
     ):
-        # the creator's membership is gone; the form still has them as its creator
-        membership = await container.workspace_user_repo().find_workspace_user(
-            workspace.id, testUser.id
-        )
-        await container.workspace_user_repo().delete_by_id(membership.id)
+        # the creator's membership is gone: their address is no longer allowed,
+        # although the form still names them as its creator
+        await _remove_member(workspace, testUser)
         # another member (who may attach actions) saves the action
         response = await _attach(
             client,
@@ -137,7 +151,22 @@ class TestAtSave:
             user=invited_user,
         )
 
-        assert response.status_code == 200, response.text
+        await _refused(response, workspace_form)
+
+    async def test_a_disabled_creator_is_refused(
+        self, client: AsyncClient, workspace, workspace_form, mail_action
+    ):
+        await _disable_member(workspace, testUser)
+        response = await _attach(
+            client,
+            workspace,
+            workspace_form,
+            mail_action,
+            "owner@acme.example",
+            user=invited_user,
+        )
+
+        await _refused(response, workspace_form)
 
     async def test_a_non_member_is_refused(
         self, client: AsyncClient, workspace, workspace_form, mail_action
@@ -297,6 +326,34 @@ class TestAtSend:
 
         assert response.status_code == 200, response.text
         assert response.json() == {"allowed": allowed}
+
+    async def test_a_creator_removed_between_save_and_send_is_not_allowed(
+        self, client: AsyncClient, workspace, workspace_form, mail_action
+    ):
+        saved = await _attach(
+            client, workspace, workspace_form, mail_action, "owner@acme.example"
+        )
+        assert saved.status_code == 200, saved.text
+        before = await self._ask(client, workspace, workspace_form, "owner@acme.example")
+        await _remove_member(workspace, testUser)
+
+        after = await self._ask(client, workspace, workspace_form, "owner@acme.example")
+
+        assert before.json() == {"allowed": True}
+        assert after.json() == {"allowed": False}
+
+    async def test_a_creator_disabled_between_save_and_send_is_not_allowed(
+        self, client: AsyncClient, workspace, workspace_form, mail_action
+    ):
+        saved = await _attach(
+            client, workspace, workspace_form, mail_action, "owner@acme.example"
+        )
+        assert saved.status_code == 200, saved.text
+        await _disable_member(workspace, testUser)
+
+        after = await self._ask(client, workspace, workspace_form, "owner@acme.example")
+
+        assert after.json() == {"allowed": False}
 
     @pytest.mark.parametrize("address", ["", "   ", "\t\n", "a" * 255, "a" * 300])
     async def test_a_blank_or_overlong_address_is_a_422(

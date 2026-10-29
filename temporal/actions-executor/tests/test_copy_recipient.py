@@ -1,5 +1,5 @@
 """The "send me a copy" action (creator_copy_mail) mails only a current member
-of the form's workspace or the form's creator, checked right before sending
+of the form's workspace (the creator only while one), checked right before sending
 through the backend's in-network route. Anything else, or a check that cannot
 be made, sends nothing and fails the job with a message that holds no address.
 """
@@ -131,9 +131,16 @@ def test_a_member_is_mailed(backend):
     assert call["json"] == {"address": MEMBER}
 
 
-def test_the_creator_is_mailed(backend):
+def test_the_creator_is_mailed_while_the_backend_says_they_are_a_member(backend):
     backend(CREATOR)
     assert _run(CREATOR) == [[CREATOR]]
+
+
+def test_a_creator_who_is_no_longer_a_member_is_not_mailed(backend):
+    backend(MEMBER)  # the backend no longer counts the creator
+    with pytest.raises(CopyRecipientRefused):
+        _run(CREATOR)
+    assert _Capture.sent == []
 
 
 def test_an_outsider_is_not_mailed(backend):
@@ -144,7 +151,7 @@ def test_an_outsider_is_not_mailed(backend):
 
 
 def test_a_member_removed_since_the_action_was_saved_is_not_mailed(backend):
-    backend(CREATOR)  # the membership is gone: only the creator is left
+    backend(OUTSIDER)  # the membership is gone
     with pytest.raises(CopyRecipientRefused):
         _run(MEMBER)
     assert _Capture.sent == []
