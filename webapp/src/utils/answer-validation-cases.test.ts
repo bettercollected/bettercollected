@@ -3,7 +3,7 @@ import { resolve } from 'path';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
-import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
+import { browserChecksPattern, validateAnswerRulesInSlide } from '@app/utils/answer-rules';
 import { getHiddenFieldIds, logicSourcesById, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { validateSlide } from '@app/utils/vvalidation-utils';
@@ -74,6 +74,23 @@ function respondentProblems(slides: StandardFormFieldDto[], answers: Record<stri
     return problems;
 }
 
+/**
+ * What the browser is expected to report: the server's problems, except the
+ * pattern misses of a custom pattern. The browser tests no pattern a creator
+ * wrote (utils/answer-rules.ts); only the server does, on submit, and the
+ * respondent is taken back to the question (utils/server-answer-errors.ts).
+ */
+function expectedInBrowser(form: StandardFormFieldDto[], errors: Problem[]): Problem[] {
+    const regexOf = new Map<string, string | undefined>();
+    const walk = (fields: StandardFormFieldDto[] | undefined) =>
+        (fields ?? []).forEach((field) => {
+            regexOf.set(field.id, field.validations?.regex);
+            walk(field.properties?.fields);
+        });
+    walk(form);
+    return errors.filter((problem) => !(problem.rule === 'pattern' && !browserChecksPattern(regexOf.get(problem.fieldId))));
+}
+
 const sorted = (problems: Problem[]) => problems.map((p) => JSON.stringify([p.fieldId, p.rule, p.item ?? null])).sort();
 
 describe('answer validation cases shared with the server', () => {
@@ -85,6 +102,6 @@ describe('answer validation cases shared with the server', () => {
     });
 
     it.each(CLIENT_CASES.map((c) => [c.name, c] as const))('%s', (_name, testCase) => {
-        expect(sorted(respondentProblems(testCase.form, testCase.answers))).toEqual(sorted(testCase.errors));
+        expect(sorted(respondentProblems(testCase.form, testCase.answers))).toEqual(sorted(expectedInBrowser(testCase.form, testCase.errors)));
     });
 });

@@ -4,6 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 
+import { FORMAT_PRESETS } from './answer-rules';
 import { validateFormFieldAnswer, validateFormOpen, validateSlide } from './vvalidation-utils';
 
 const q = (id: string, required = false, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type: FieldTypes.SHORT_TEXT, ...(required ? { validations: { required: true } } : {}), ...extra });
@@ -54,10 +55,15 @@ describe('validateFormOpen', () => {
 describe('validateFormFieldAnswer — legacy (v1) answer checks', () => {
     const legacy = (type: FormBuilderTagNames, validations: Record<string, unknown>) => ({ id: 'f', index: 0, type, validations }) as unknown as StandardFormFieldDto;
 
-    it('flags a text that does NOT match the pattern (it used to flag matching ones)', () => {
-        const field = legacy(FormBuilderTagNames.INPUT_SHORT_TEXT, { regex: '^[0-9]{4}$' });
-        expect(validateFormFieldAnswer(field, { text: '1234' } as any)).toEqual([]);
+    it('flags a text that does NOT match a built-in format (it used to flag matching ones)', () => {
+        const field = legacy(FormBuilderTagNames.INPUT_SHORT_TEXT, { regex: FORMAT_PRESETS.find((preset) => preset.id === 'postcode_nl')!.pattern });
+        expect(validateFormFieldAnswer(field, { text: '1234 AB' } as any)).toEqual([]);
         expect(validateFormFieldAnswer(field, { text: 'abcd' } as any)).toEqual([FormValidationError.REGEX_PATTERN]);
+    });
+
+    it('leaves a pattern a creator wrote to the server', () => {
+        const field = legacy(FormBuilderTagNames.INPUT_SHORT_TEXT, { regex: '^[0-9]{4}$' });
+        expect(validateFormFieldAnswer(field, { text: 'abcd' } as any)).toEqual([]);
     });
 
     it('a limit of 0 is a limit, and too many choices is its own error', () => {

@@ -1,11 +1,24 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, answerRuleMessage, checkAnswerRules, compilePattern, presetForPattern, summarizeAnswerRules, validateAnswerRulesInSlide } from './answer-rules';
+import {
+    FORMAT_PRESETS,
+    INTEGER_PATTERN,
+    PATTERN_MAX_LENGTH,
+    answerRuleConflicts,
+    answerRuleKind,
+    answerRuleMessage,
+    browserChecksPattern,
+    checkAnswerRules,
+    compilePattern,
+    presetForPattern,
+    summarizeAnswerRules,
+    validateAnswerRulesInSlide
+} from './answer-rules';
 
 const field = (type: FieldTypes, validations: StandardFormFieldDto['validations'], properties: StandardFormFieldDto['properties'] = {}): StandardFormFieldDto => ({ id: 'f', index: 0, type, validations, properties });
 const preset = (id: string) => FORMAT_PRESETS.find((p) => p.id === id)!.pattern;
@@ -53,10 +66,13 @@ describe('checking an answer', () => {
         expect(checkAnswerRules(letters, text('R2D2'))).toEqual(['PATTERN']);
     });
 
-    it('a pattern that does not compile is ignored rather than blocking everyone', () => {
-        expect(compilePattern('([')).toBeNull();
-        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: '([' }), text('anything'))).toEqual([]);
-        expect(answerRuleConflicts({ regex: '([' })).toHaveLength(1);
+    it('a custom pattern is not tested here, whatever it is: the server checks it on submit', () => {
+        for (const regex of ['([', '^[a-z]+$', '^(a+)+$', '^(?=a)b$']) {
+            expect(compilePattern(regex)).toBeNull();
+            expect(browserChecksPattern(regex)).toBe(false);
+            expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('9 not a match'))).toEqual([]);
+        }
+        expect(answerRuleConflicts({ regex: '([' })).toEqual([]);
     });
 
     it('number range (0 is a real limit) and whole numbers', () => {
@@ -123,5 +139,51 @@ describe('the pattern length cap', () => {
     it('a stored pattern over the cap is pointed out', () => {
         expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH) })).toEqual([]);
         expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH + 1) })).toEqual(['The pattern is longer than 200 characters. Shorten it.']);
+    });
+});
+
+describe('a pattern a creator wrote never runs in the browser', () => {
+    afterEach(() => vi.restoreAllMocks());
+    const custom = ['^(a+)+$', '^[a-z]+$', '(?i)abc', '^(?:A(?:\\A)?)+$', '^(?:\\u{1F600}|\\ud83d\\ude00)+$', '^a+\\-$'];
+    const slow = `${'a'.repeat(5000)}!`;
+
+    it('is neither compiled nor tested, on a text or a number question or a slide', () => {
+        const test = vi.spyOn(RegExp.prototype, 'test');
+        const compiled: string[] = [];
+        const Original = RegExp;
+        // every RegExp built while the answers are checked (on the page or on a slide)
+        vi.stubGlobal(
+            'RegExp',
+            class extends Original {
+                constructor(pattern: string | RegExp, flags?: string) {
+                    super(pattern, flags);
+                    compiled.push(String(pattern));
+                }
+            }
+        );
+        try {
+            for (const regex of custom) {
+                expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text(slow))).toEqual([]);
+                expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex }), text('x'))).toEqual([]);
+                expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex }), { type: 'number', number: '12x' })).toEqual([]);
+                expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex })], { f: text(slow) })).toEqual({});
+            }
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        expect(test).not.toHaveBeenCalled();
+        expect(compiled.filter((source) => custom.includes(source))).toEqual([]);
+    });
+
+    it('while the presets and whole numbers are still checked live, by identity', () => {
+        const test = vi.spyOn(RegExp.prototype, 'test');
+        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('nope'))).toEqual(['PATTERN']);
+        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('1234 AB'))).toEqual([]);
+        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: INTEGER_PATTERN }), { type: 'number', number: '1.5' })).toEqual(['NOT_INTEGER']);
+        expect(test).toHaveBeenCalledTimes(3);
+        // a pattern that only looks like a preset is a custom one
+        expect(browserChecksPattern(`${preset('postcode_nl')} `)).toBe(false);
+        expect(browserChecksPattern(preset('iban'))).toBe(true);
+        expect(FORMAT_PRESETS.every((p) => browserChecksPattern(p.pattern))).toBe(true);
     });
 });
