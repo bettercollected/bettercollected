@@ -226,8 +226,13 @@ service_env_file() {
 # key: `bootstrap-keys` refuses an environment that carries one). Extra
 # `docker compose run` options go in the admin_cli_opts array.
 admin_cli_opts=()
+# the command admin_cli runs, as an array a caller can start itself (admin_cli_cmd)
+admin_cli_words() {
+  admin_cli_cmd=("${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T "${admin_cli_opts[@]}" admin /api/backend/.venv/bin/python -m backend.admin "$@")
+}
 admin_cli() {
-  "${docker_compose_cmd[@]}" "${compose_files[@]}" run --rm --no-deps -T "${admin_cli_opts[@]}" admin /api/backend/.venv/bin/python -m backend.admin "$@"
+  admin_cli_words "$@"
+  "${admin_cli_cmd[@]}"
 }
 
 compose_config_json() {
@@ -937,8 +942,40 @@ function stack_keys() {
 #    recorded as BC_IDENTITY_KEY_SHA256 (a hash of 32 random bytes) and passes;
 #    BC_IDENTITY_KEY_SOURCE=env says the .env key is the intended one;
 #  - SETTINGS_STORE=off and the key is only in the store.
+#
+# While the key's file exists, the traps below remove it on every way out. Two rules keep
+# them dependable, because bash is easy to catch out here:
+#  - no command substitution ($(...), `...`, <(...)) while they are armed. Bash parses
+#    each one again when it is evaluated and, if a signal arrives during that parse, runs
+#    the trap in the middle of it, where the handler fails to parse
+#    ("trap: line 2: unexpected EOF while looking for matching `)'"), is dropped, and the
+#    script carries on as if nothing had been sent. What the region needs (the user id,
+#    the directory) is computed before it.
+#  - the import runs as a background job the script waits for: bash runs a trap only once
+#    a foreground command ends, so a signal sent to the script alone would otherwise wait
+#    for the import; `wait` returns at once and the handler stops the job.
 identity_tmp_dir=""
+identity_import_pid=""
+identity_import_started=""
 identity_cleanup() {
+  local waited=0
+  # a signal between the `&` and the pid being recorded: $! is the import (the only job this
+  # script starts in the background)
+  if [ -z "$identity_import_pid" ] && [ -n "$identity_import_started" ]; then
+    identity_import_pid=$!
+  fi
+  identity_import_started=""
+  if [ -n "$identity_import_pid" ]; then
+    kill "$identity_import_pid" 2>/dev/null
+    # docker compose stops its container before it exits; a client that ignores the signal is killed
+    while kill -0 "$identity_import_pid" 2>/dev/null && [ "$waited" -lt 150 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    kill -9 "$identity_import_pid" 2>/dev/null
+    wait "$identity_import_pid" 2>/dev/null
+    identity_import_pid=""
+  fi
   [ -z "$identity_tmp_dir" ] || rm -rf "$identity_tmp_dir"
   identity_tmp_dir=""
 }
@@ -952,7 +989,7 @@ sha256_of() {
 }
 
 ensure_identity_key() {
-  local count rows key dir out rc store_off=false
+  local count rows key dir rc uid_gid store_off=false
   case "$(printf '%s' "${SETTINGS_STORE-$(dotenv_value .env SETTINGS_STORE)}" | tr '[:upper:]' '[:lower:]')" in
     off) store_off=true ;;
   esac
@@ -1009,23 +1046,34 @@ ensure_identity_key() {
     return 1
   fi
   key=$(openssl rand -hex 32) || return 1
+  uid_gid="$(id -u):$(id -g)"
   dir=$(private_dir) || return 1
   # the scratch directory goes on every way out, a signal included
   identity_tmp_dir=$dir
   trap identity_cleanup EXIT
   trap 'identity_cleanup; exit 130' INT
   trap 'identity_cleanup; exit 143' TERM HUP
+  # no command substitution from here to the `trap -` below (see identity_cleanup)
   # a private file in a private directory, removed right after; the value is never an argument
   printf 'RESPONDENT_IDENTITY_KEY=%s\n' "$key" > "$dir/identity.env"
-  admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/work")
-  out=$(admin_cli settings-import --env-file /work/identity.env 2>&1)
+  admin_cli_opts=(--user "$uid_gid" -v "$dir:/work")
+  admin_cli_words settings-import --env-file /work/identity.env
+  identity_import_started=1
+  "${admin_cli_cmd[@]}" > "$dir/import.out" 2>&1 &
+  identity_import_pid=$!
+  wait "$identity_import_pid"
   rc=$?
+  identity_import_pid=""
+  identity_import_started=""
   admin_cli_opts=()
+  # what the import said (never the key: the line that names it is replaced), while the directory exists
+  if [ "$rc" -ne 0 ]; then
+    sed 's/^refused RESPONDENT_IDENTITY_KEY .*/refused RESPONDENT_IDENTITY_KEY (the generated value was not accepted)/' "$dir/import.out" >&2
+  fi
   identity_cleanup
   trap - EXIT INT TERM HUP
   if [ "$rc" -ne 0 ]; then
     unset key
-    printf '%s\n' "$out" | sed 's/^refused RESPONDENT_IDENTITY_KEY .*/refused RESPONDENT_IDENTITY_KEY (the generated value was not accepted)/' >&2
     echo "Could not store a new RESPONDENT_IDENTITY_KEY (see above). Nothing was started." >&2
     return 1
   fi
