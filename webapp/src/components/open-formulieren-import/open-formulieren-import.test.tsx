@@ -166,9 +166,9 @@ describe('the import report', () => {
         expect(within(screen.getByLabelText(nl.REPORT.SUMMARY_LABEL)).getByText('2 berekende vragen')).toBeInTheDocument();
         for (const sentence of [
             'Deze variabele (type “float”) is een berekende vraag geworden.',
-            'Deze variabele gebruikt “price”, dat geen vraag in het nieuwe formulier is.',
-            'Deze variabele wordt berekend met “if”, dat niet wordt ondersteund, daarom is zij niet overgenomen.',
-            'Deze variabele gebruikt “onbekend”, die een latere regel vult.',
+            'Deze variabele gebruikt “price”. Dat is geen vraag in het nieuwe formulier.',
+            'Deze variabele wordt berekend met “if”. Dat wordt niet ondersteund; daarom is hij niet overgenomen.',
+            'Deze variabele gebruikt “onbekend”. Dat wordt door een latere regel ingesteld.',
             'Deze variabele (type “string”) is niet overgenomen.'
         ])
             expect(dutch.container.textContent).toContain(sentence);

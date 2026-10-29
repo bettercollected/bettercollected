@@ -44,7 +44,7 @@
     "SAVE_GROUP": "Groep opslaan",
     "ADD_REGEX": "Regex toevoegen",
     "ADD_MEMBER": "Lid toevoegen",
-    "ADD_FORM": "Voeg formulier toe",
+    "ADD_FORM": "Formulier toevoegen",
     "BACK": "terug",
     "CANCEL": "Annuleren",
     "CHECK_MY_DATA": "Controleer mijn gegevens",
@@ -54,24 +54,24 @@
     "CONFIRM": "Bevestigen",
     "COPY_LINK": "Link kopiëren",
     "CREATE_FORM": "Formulier maken",
-    "CREATE_WORKSPACE": "Maak een werkruimte",
+    "CREATE_WORKSPACE": "Werkruimte maken",
     "CUSTOMIZE_LINK": "Link aanpassen",
     "DELETE": "Verwijderen",
     "DELETE_ACCOUNT": " Account verwijderen",
     "DONE": "Klaar",
     "EDIT": "Bewerken",
     "GETIN": "Kom binnen",
-    "GOOGLE_SIGNIN": "Meld u aan met Google",
+    "GOOGLE_SIGNIN": "Aanmelden met Google",
     "IMPORT_FORMS": "Formulieren importeren",
     "IMPORT_NOW": "Nu importeren",
-    "INVITE_COLLABORATOR": "Nodig medewerker uit",
+    "INVITE_COLLABORATOR": "Medewerker uitnodigen",
     "LOGIN": "log in",
     "LOGOUT": "Uitloggen",
     "NEXT": "Volgende",
-    "OPEN_WORKSPACE": "Open Werkruimte",
+    "OPEN_WORKSPACE": "Werkruimte openen",
     "PREVIOUS": "Vorige",
     "PRO": "PRO",
-    "REQUEST_AN_INTEGRATION": "Vraag een integratie aan",
+    "REQUEST_AN_INTEGRATION": "Integratie aanvragen",
     "REMOVE": "Verwijderen",
     "RESEND": "Opnieuw verzenden",
     "RESEND_CODE": "Code opnieuw verzenden",
@@ -114,7 +114,7 @@
     "DESCRIPTION": "Vragen of opmerkingen? Schrijf ons gewoon een bericht",
     "DEFAULT": "Contacteer ons"
   },
-  "CREATE_FORM": "Maak Formulier",
+  "CREATE_FORM": "Formulier maken",
   "CUSTOMIZE_DOMAIN": {
     "DEFAULT": "Domein aanpassen",
     "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
@@ -148,7 +148,7 @@
     "TITLE": "Account Verwijderen",
     "DESCRIPTION": "U staat op het punt om uw bettercollected-account te verwijderen. Al uw gegevens zullen worden verwijderd.",
     "WHY_DELETE": "Waarom verwijdert u uw account?",
-    "SELECT_REASON": "Selecteer Reden",
+    "SELECT_REASON": "Reden selecteren",
     "ANYTHING_ELSE": "Is er nog iets dat u wilt delen?",
     "OPTIONAL": "optioneel",
     "WRITE_FEEDBACK": "Schrijf uw feedback",
@@ -342,7 +342,7 @@
         "FORM_PURPOSE": {
           "TITLE": "Doel en Gebruik van het formulier",
           "DESCRIPTION": "Deze pagina is bedoeld om u een duidelijk inzicht te geven in hoe uw informatie wordt behandeld in ons formulier. Ons doel is ervoor te zorgen dat u volledig op de hoogte bent en zich comfortabel voelt met hoe we uw gegevens behandelen.",
-          "SEE_DETAILS": "Bekijk details"
+          "SEE_DETAILS": "Details bekijken"
         }
       },
       "VISIBILITY": {
