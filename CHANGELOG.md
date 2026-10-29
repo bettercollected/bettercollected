@@ -13,12 +13,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
-## [4.1.0] - 2026-10-29
+## [4.1.0] - Unreleased
 
 4.1.0 runs on PostgreSQL only. MongoDB is no longer a store: on upgrade it is read once to import what a 4.0 stack still holds, then switched off with its volume kept for a rollback. The backend, auth and the Google Forms integration refuse to start while MongoDB still holds data that Postgres lacks. Background jobs run on the Postgres job queue, and Temporal leaves the compose stack. Anonymous responses are tied to their respondent with a keyed hash, which needs a new secret. Typeform and the Brevo marketing tracker are gone, and the Google Forms import gets an `on`/`readonly`/`off` switch. The release also adds the Open Formulieren import, export and registration, behind switches that are off by default, plus a long list of security and accessibility fixes.
 
 **Upgrading from 4.0.x: read [Upgrading from 4.0.x to 4.1](docs/upgrade-4.1.md) first, and back up before you start.** The changes that need your attention:
 
+- **Upgrade from 4.0.14 or later.** It is the rollback target: it finishes the jobs 4.1 leaves queued and reads the single sign-on rows 4.1 writes. A stack on an earlier 4.0.x moves to 4.0.14 first.
 - **A new required secret, `RESPONDENT_IDENTITY_KEY`, on the backend.** The 4.1 backend refuses to start without it. On a compose stack `./deploy.sh` generates it once. On an orchestrated stack you set it in the backend's environment before the upgrade.
 - **The MongoDB import on upgrade.** `./deploy.sh` runs it before the services start, and a verify difference stops the deploy. An orchestrated stack already on dual writes follows the runbook's cutover.
 - **Retired settings:**
