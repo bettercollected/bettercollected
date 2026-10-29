@@ -128,9 +128,9 @@ async def test_the_invitation_in_dutch():
     message = await invitation("nl-NL", role="Viewer")
     body = " ".join(message.body.split())
     assert (
-        message.subject == "Je bent uitgenodigd voor een werkruimte op BetterCollected"
+        message.subject == "U bent uitgenodigd voor een werkruimte op BetterCollected"
     )
-    assert "nodigt je uit voor deze werkruimte als" in body
+    assert "nodigt u uit voor deze werkruimte als" in body
     assert "Kijker</span>" in body
     assert "Naar de werkruimte" in body
     assert "Join workspace" not in body

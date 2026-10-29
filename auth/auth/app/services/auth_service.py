@@ -181,7 +181,8 @@ class AuthService:
         if is_sender_name(title):
             title = None
         image_url = storage_image_url(workspace_profile_image)
-        t = texts(locale)
+        # a creator is addressed formally, a respondent informally (Dutch)
+        t = texts(locale, respondent=not creator)
         subject = t["code_subject"].format(product=product)
         message = MessageSchema(
             subject=subject,

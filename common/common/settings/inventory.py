@@ -155,7 +155,7 @@ SERVER: Tuple[SettingSpec, ...] = (
          "Public address of the web app. Code default: http://localhost:3000 (development)."),
     _url("CLIENT_ADMIN_URL", "server", (AUTH,),
          "Public address of the dashboard. Code default: http://localhost:3000 (development)."),
-    _text("ORGANIZATION_NAME", "server", (AUTH,), "Organisation name used in outgoing mail.",
+    _text("ORGANIZATION_NAME", "server", (AUTH, EXECUTOR), "Organisation name used in outgoing mail.",
           "Better Collected", max_length=100),
     _int("API_ALLOWED_COLLABORATORS", "limits", (BACKEND,), 10, 0, 10000,
          "Collaborators allowed per workspace."),

@@ -13,7 +13,7 @@ from jinja2 import Environment, FileSystemLoader, Undefined, select_autoescape
 
 from auth.app.services import mail_service
 from auth.app.services.auth_service import AuthService
-from auth.app.services.mail_text import TEXTS
+from auth.app.services.mail_text import RESPONDENT_TEXTS, TEXTS, texts
 from auth.app.services.notification_service import (
     NotificationService,
     render_sheets_reconnect,
@@ -52,7 +52,7 @@ def instance(monkeypatch):
     )
 
 
-async def code_mail(locale, title="Acme Zorg"):
+async def code_mail(locale, title="Acme Zorg", creator=False):
     repo = SimpleNamespace(
         get_user_by_email=AsyncMock(return_value=None), save_otp_user=AsyncMock()
     )
@@ -62,7 +62,7 @@ async def code_mail(locale, title="Acme Zorg"):
             receiver_mail="someone@example.com",
             workspace_title=title,
             workspace_profile_image=None,
-            creator=False,
+            creator=creator,
             locale=locale,
         )
     return mail.return_value.send_message.await_args.args[0]
@@ -168,7 +168,8 @@ async def test_the_sender_is_the_instance_whatever_is_supplied(locale):
         assert "Bcc" not in message.subject
         assert "\r" not in message.subject and "\n" not in message.subject
         assert message.subject in {
-            TEXTS[locale][key].format(product="BetterCollected")
+            table[key].format(product="BetterCollected")
+            for table in (texts(locale), texts(locale, respondent=True))
             for key in (
                 "code_subject",
                 "invite_subject",
@@ -213,9 +214,13 @@ async def test_the_invitation_names_the_inviter_only_as_information(locale):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language", ["nl", "nl-NL", "NL_be"])
 async def test_a_dutch_language_tag_selects_dutch_everywhere(language):
-    assert (await code_mail(language)).subject == TEXTS["nl"]["code_subject"].format(
-        product="BetterCollected"
-    )
+    # (code_mail is the respondent's; the creator's is formal)
+    assert (await code_mail(language)).subject == texts(
+        "nl", respondent=True
+    )["code_subject"].format(product="BetterCollected")
+    assert (await code_mail(language, creator=True)).subject == TEXTS["nl"][
+        "code_subject"
+    ].format(product="BetterCollected")
     assert (await invitation_mail(language)).subject == TEXTS["nl"][
         "invite_subject"
     ].format(product="BetterCollected")
@@ -231,3 +236,80 @@ async def test_anything_else_selects_english(language):
     )
     assert 'lang="en"' in render_submission_update("F", None, LINK, language)
     assert 'lang="en"' in render_sheets_reconnect("F", None, FORM_LINK, language)
+
+
+# ----------------------------------------------------------- Dutch register
+# Creators and team members are addressed formally ("u", "uw"), like the
+# dashboard; respondents informally ("je"), like the respondent pages.
+
+
+async def creator_code_mail(locale):
+    return await code_mail(locale, creator=True)
+
+
+# the mails (and the recipient they are for) that use "u" in Dutch
+FORMAL_MAILS = {
+    "creator code": creator_code_mail,
+    "invitation": invitation_mail,
+    "sheets reconnect": sheets_mail,
+}
+# the mails respondents receive: "je"
+INFORMAL_MAILS = {
+    "respondent code": code_mail,
+    "submission update": update_mail,
+}
+
+INFORMAL_WORDS = re.compile(r"\b(je|jij|jouw|jou|jouwe)\b", re.I)
+FORMAL_PRONOUN = re.compile(r"(?<![\w-])(u|uw)(?![\w-])", re.I)
+
+
+def _words(message):
+    """What a reader reads: subject and body text without markup, comments,
+    styles or the titles people chose."""
+    body = re.sub(r"<!--.*?-->|<style.*?</style>", " ", message.body, flags=re.S)
+    body = re.sub(r"<[^>]+>", " ", body)
+    return " ".join((message.subject + " " + body).split())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", FORMAL_MAILS)
+async def test_dutch_creator_and_team_mails_say_u(name):
+    words = _words(await FORMAL_MAILS[name]("nl"))
+    assert not INFORMAL_WORDS.search(words), INFORMAL_WORDS.search(words)
+    assert FORMAL_PRONOUN.search(words), name
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", INFORMAL_MAILS)
+async def test_dutch_respondent_mails_say_je(name):
+    words = _words(await INFORMAL_MAILS[name]("nl"))
+    assert INFORMAL_WORDS.search(words), name
+    # no formal pronoun (the Dutch "u"/"uw"); English text is not Dutch
+    assert not FORMAL_PRONOUN.search(words), FORMAL_PRONOUN.search(words)
+
+
+def test_the_dutch_table_is_formal_except_for_respondent_texts():
+    respondent_keys = {k for k in TEXTS["nl"] if k.startswith("update_")}
+    for key, text in TEXTS["nl"].items():
+        if key in respondent_keys:
+            assert not FORMAL_PRONOUN.search(text), key
+        else:
+            assert not INFORMAL_WORDS.search(text), key
+    # the code mail's informal variant is exactly the keys that differ
+    for key, text in RESPONDENT_TEXTS["nl"].items():
+        assert INFORMAL_WORDS.search(text) and not FORMAL_PRONOUN.search(text), key
+        assert key in TEXTS["nl"] and TEXTS["nl"][key] != text
+
+
+@pytest.mark.asyncio
+async def test_the_dutch_creator_code_subject_is_formal_and_the_respondents_is_not():
+    assert (await code_mail("nl", creator=True)).subject == (
+        "Uw verificatiecode voor BetterCollected"
+    )
+    assert (await code_mail("nl", creator=False)).subject == (
+        "Je verificatiecode voor BetterCollected"
+    )
+    # English has one text for both
+    assert (await code_mail("en", creator=True)).subject == (
+        (await code_mail("en", creator=False)).subject
+    )
