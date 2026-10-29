@@ -12,6 +12,7 @@ Tools deliberately reuse the same services/pipelines as the product —
 import functools
 import json
 import logging
+import unicodedata
 from contextvars import ContextVar
 from importlib.metadata import version as package_version
 from typing import Any, Callable, Dict, List, Optional
@@ -44,11 +45,11 @@ from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import applied, parse_ops, too_many_ops
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.form_spec.checks import check_spec_document
-from backend.app.services.publish_checks import FORM_NOT_PUBLISHABLE
 from backend.app.services.form_spec.service import (
     DOCUMENT_TOO_LARGE,
     MAX_DOCUMENT_BYTES,
 )
+from backend.app.services.publish_checks import FORM_NOT_PUBLISHABLE
 
 
 def _c():
@@ -527,11 +528,27 @@ def _error_text(error: HTTPException) -> str:
 # at most this many characters.
 MAX_PUBLISH_PROBLEMS = 20
 MAX_PUBLISH_PROBLEM_CHARS = 500
+MAX_PUBLISH_FIELD_ID_CHARS = 64
+
+
+def _one_line(value: Any, limit: int) -> str:
+    """``value`` as one plain line of at most ``limit`` characters: control
+    and format characters (newlines, ESC and ANSI sequences, bidi overrides,
+    zero-width and tag characters) are dropped, other whitespace becomes a
+    single space. The text goes to an agent: a question id or title an editor
+    wrote must not be able to start a line of its own."""
+    text = "".join(
+        char
+        for char in str(value if value is not None else "")
+        if char.isspace() or unicodedata.category(char) not in ("Cc", "Cf")
+    )
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def _publish_refusal_text(error: HTTPException) -> Optional[str]:
     """Why a publish was refused, one problem per line as ``code: message``
-    (``code (field <id>): message`` when the problem belongs to a question),
+    (``code (field "<id>"): message`` when the problem belongs to a question),
     in the server's order. Only the code, the question id and the message of
     each problem: nothing else of the refusal (no report id or content).
     None unless this is the 422 ``form_not_publishable`` refusal."""
@@ -541,10 +558,12 @@ def _publish_refusal_text(error: HTTPException) -> Optional[str]:
     problems = [p for p in content.get("problems") or [] if isinstance(p, dict)]
     lines = []
     for problem in problems[:MAX_PUBLISH_PROBLEMS]:
-        code = str(problem.get("code") or "problem")
-        field_id = problem.get("fieldId")
-        where = f" (field {field_id})" if field_id else ""
-        message = " ".join(str(problem.get("message") or "").split())
+        code = _one_line(problem.get("code"), 64) or "problem"
+        field_id = _one_line(
+            problem.get("fieldId"), MAX_PUBLISH_FIELD_ID_CHARS
+        ).replace('"', "'")
+        where = f' (field "{field_id}")' if field_id else ""
+        message = _one_line(problem.get("message"), MAX_PUBLISH_PROBLEM_CHARS)
         line = f"{code}{where}: {message}"
         if len(line) > MAX_PUBLISH_PROBLEM_CHARS:
             line = line[: MAX_PUBLISH_PROBLEM_CHARS - 3] + "..."

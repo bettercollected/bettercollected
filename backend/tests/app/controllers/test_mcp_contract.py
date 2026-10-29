@@ -226,7 +226,7 @@ class TestToolList:
                     "type": "text",
                     "text": "Error executing tool publish_form: "
                     "This form can't be published yet:\n"
-                    "missing_why_we_ask (field q1): Add a reason.",
+                    'missing_why_we_ask (field "q1"): Add a reason.',
                 }
             ],
             "isError": True,

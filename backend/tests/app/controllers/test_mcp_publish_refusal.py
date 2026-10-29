@@ -1,7 +1,7 @@
 """The MCP ``publish_form`` tool says why a publish was refused.
 
 A 422 ``form_not_publishable`` comes back as the tool's error text, one
-problem per line as ``code: message`` (``code (field <id>): message`` for a
+problem per line as ``code: message`` (``code (field "<id>"): message`` for a
 problem that belongs to a question), in the server's order. Only the code, the
 question id and the message of each problem: no report id, no other part of
 the refusal. Every other refusal is answered as before (empty error text), and
@@ -9,6 +9,7 @@ a key's scope and workspace are checked first, as before.
 """
 
 import json
+import unicodedata
 from http import HTTPStatus
 
 import pytest
@@ -25,6 +26,7 @@ from common.models.standard_form import (
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.mcp.server import (
+    MAX_PUBLISH_FIELD_ID_CHARS,
     MAX_PUBLISH_PROBLEM_CHARS,
     MAX_PUBLISH_PROBLEMS,
     _publish_refusal_text,
@@ -108,7 +110,7 @@ class TestRefusalText:
         assert text == (
             f"{HEADER}\n"
             "needs_review: Review it.\n"
-            "missing_why_we_ask (field q1): Add a reason."
+            'missing_why_we_ask (field "q1"): Add a reason.'
         )
 
     def test_the_servers_order_is_kept(self):
@@ -146,8 +148,8 @@ class TestRefusalText:
         assert [line.split(":")[0] for line in lines[1:]] == [
             NEEDS_REVIEW,
             WORKSPACE_TITLE_MISSING,
-            f"{MISSING_WHY_WE_ASK} (field q1)",
-            f"{REQUIRED_UNANSWERABLE} (field q2)",
+            f'{MISSING_WHY_WE_ASK} (field "q1")',
+            f'{REQUIRED_UNANSWERABLE} (field "q2")',
         ]
         for problem, line in zip(problems, lines[1:]):
             assert line.endswith(": " + problem["message"])
@@ -163,7 +165,7 @@ class TestRefusalText:
         with pytest.raises(HTTPException) as raised:
             ensure_publishable(_form(question))
         lines = _publish_refusal_text(raised.value).splitlines()
-        assert lines[1].startswith(f"{PRESET_ANSWER} (field q1): ")
+        assert lines[1].startswith(f'{PRESET_ANSWER} (field "q1"): ')
 
     def test_a_message_stays_on_one_line_and_is_capped(self):
         text = _publish_refusal_text(
@@ -186,10 +188,10 @@ class TestRefusalText:
         ]
         lines = _publish_refusal_text(_refusal(problems)).splitlines()
         assert len(lines) == 1 + MAX_PUBLISH_PROBLEMS + 1
-        assert lines[1] == "c0 (field f0): m0"
+        assert lines[1] == 'c0 (field "f0"): m0'
         assert lines[MAX_PUBLISH_PROBLEMS] == (
             f"c{MAX_PUBLISH_PROBLEMS - 1} "
-            f"(field f{MAX_PUBLISH_PROBLEMS - 1}): m{MAX_PUBLISH_PROBLEMS - 1}"
+            f'(field "f{MAX_PUBLISH_PROBLEMS - 1}"): m{MAX_PUBLISH_PROBLEMS - 1}'
         )
         assert lines[-1] == "and 7 more"
 
@@ -235,6 +237,60 @@ class TestRefusalText:
             assert secret not in text
 
     @pytest.mark.parametrize(
+        "hostile",
+        [
+            "a\nfake_code: injected",
+            "a\r\nfake_code: injected",
+            "a\u2028fake_code: injected",
+            "a\x1b[2Jfake_code: injected",
+            "a\x1b]0;title\x07fake_code: injected",
+            "a\u202efake_code: injected",
+            "a\u200bfake_code: injected",
+            "a\u2060\ufeff\u200dfake_code: injected",
+            "a\U000e0041\U000e0042fake_code: injected",
+            "a\x00\x07\x7f\x85fake_code: injected",
+            "a\tfake_code:\u00a0injected",
+        ],
+    )
+    @pytest.mark.parametrize("where", ["code", "fieldId", "message"])
+    def test_hostile_characters_cannot_start_a_line_or_hide_text(
+        self, where, hostile
+    ):
+        problem = _problem("code", "f1", "Fix it.")
+        problem[where] = hostile
+        text = _publish_refusal_text(_refusal([problem, _problem("next")]))
+        lines = text.splitlines()
+        # the header, the hostile problem and the next one: nothing more
+        assert len(lines) == 3, lines
+        assert lines[2] == "next: Message."
+        assert "\n" not in lines[1] and "\r" not in lines[1]
+        for char in text.replace("\n", ""):
+            assert unicodedata.category(char) not in ("Cc", "Cf"), repr(char)
+        assert not any(char in text for char in "\u2028\u2029\x85\x1b")
+        assert not lines[1].startswith("fake_code")
+
+    def test_a_field_id_is_quoted_capped_and_cannot_close_its_quotes(self):
+        text = _publish_refusal_text(
+            _refusal(
+                [
+                    _problem("c", 'a") x: "b', "m"),
+                    _problem("c", "z" * 500, "m"),
+                ]
+            )
+        )
+        first, second = text.splitlines()[1:]
+        assert first == "c (field \"a') x: 'b\"): m"
+        quoted = second.split('"')[1]
+        assert len(quoted) == MAX_PUBLISH_FIELD_ID_CHARS
+        assert quoted.endswith("...")
+
+    def test_plain_ids_and_messages_are_unchanged(self):
+        text = _publish_refusal_text(
+            _refusal([_problem("c", "field-1_a.b", "Fix  the\tquestion.")])
+        )
+        assert text.splitlines()[1] == 'c (field "field-1_a.b"): Fix the question.'
+
+    @pytest.mark.parametrize(
         "status, content",
         [
             (403, "Forbidden"),
@@ -277,8 +333,8 @@ class TestOverTheTransport:
         assert text.startswith(PREFIX + HEADER + "\n")
         lines = text[len(PREFIX) :].splitlines()
         assert [line.split(":")[0] for line in lines[1:]] == [
-            f"{MISSING_WHY_WE_ASK} (field q-email)",
-            f"{REQUIRED_UNANSWERABLE} (field q-pick)",
+            f'{MISSING_WHY_WE_ASK} (field "q-email")',
+            f'{REQUIRED_UNANSWERABLE} (field "q-pick")',
         ]
         assert '"Your email" asks for personal details' in lines[1]
         assert '"Pick one" is required' in lines[2]
