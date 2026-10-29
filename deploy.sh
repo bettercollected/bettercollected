@@ -153,7 +153,7 @@ file_assigns() {
 
 # Drops every assignment of VAR from the root .env.
 env_unset() {
-  local var=$1 tmp
+  local var=$1 tmp rc
   if [ -f .env ] && file_assigns .env "$var"; then
     tmp=$(mktemp .env.XXXXXX) || return 1
     # the copy of .env is removed on every way out, a signal included (see guard_arm)
@@ -161,7 +161,9 @@ env_unset() {
     grep -vE "^[[:space:]]*(export[[:space:]]+)?${var}[[:space:]]*=" .env > "$tmp" || true
     chmod 600 "$tmp"
     mv "$tmp" .env
+    rc=$?  # guard_disarm's own status is not the step's
     guard_disarm
+    return "$rc"
   fi
 }
 
@@ -180,7 +182,7 @@ env_put() {
 # anything else, so a bug in the public webapp cannot expose the backend's secrets. An existing file is never
 # changed (only its mode is made private). An item ending in * is a name prefix.
 service_env_file() {
-  local file=$1 line name value item match tmp copied content
+  local file=$1 line name value item match tmp copied content rc
   shift
   if [ -L "$file" ]; then
     echo "refused: $file is a symbolic link" >&2
@@ -216,10 +218,13 @@ service_env_file() {
   fi
   tmp=$(mktemp .env.XXXXXX) || return 1
   guard_arm "$tmp" || { rm -f "$tmp"; return 1; }
-  printf '%s' "$content" > "$tmp"
-  chmod 600 "$tmp"
-  mv "$tmp" "$file"
+  printf '%s' "$content" > "$tmp" && chmod 600 "$tmp" && mv "$tmp" "$file"
+  rc=$?  # guard_disarm's own status is not the step's
   guard_disarm
+  if [ "$rc" -ne 0 ]; then
+    echo "Could not create ${file}." >&2
+    return 1
+  fi
   # names only, never a value: what the operator sees moved into the service's file
   if [ -n "$copied" ]; then
     echo "Created ${file} from .env.deployment with: ${copied}"
@@ -307,6 +312,10 @@ guard_cleanup() {
 }
 
 # guard_arm PATH: PATH (a file or a directory) is removed on every way out, until guard_disarm.
+# These two functions are the only place in this script that sets or clears a trap, and no
+# other trap exists: guard_disarm clears EXIT, INT, TERM and HUP outright instead of
+# restoring an earlier handler (a test pins this). A step that needs a trap of its own must
+# extend the guard, not add a second `trap`.
 guard_arm() {
   if [ -n "$guard_path" ]; then
     echo "deploy.sh: internal error: a scratch path is already guarded" >&2
@@ -318,6 +327,8 @@ guard_arm() {
   trap 'guard_cleanup; exit 143' TERM HUP
 }
 
+# guard_disarm: removes the path and the traps. It returns 0: a step that needs its own
+# status takes it (`rc=$?`) before calling this.
 guard_disarm() {
   guard_cleanup
   trap - EXIT INT TERM HUP
@@ -403,7 +414,7 @@ warn_env_aliases() {
 # when the built-in login is gone (or was never there) and 1 when it may still work:
 # the caller decides how loud that is.
 umami_credentials() {
-  local state password stamp scratch attempt
+  local state password stamp scratch attempt rc
   local js="deploy/umami-rotate.js"
   local i
   for i in $(seq 1 30); do
@@ -446,8 +457,13 @@ umami_credentials() {
     scratch=$(private_dir) || return 1
     guard_arm "$scratch" || { rm -rf "$scratch"; return 1; }
     sed 's/^UMAMI_PASSWORD=.*/UMAMI_PASSWORD=/' .env.deployment > "$scratch/env" && cat "$scratch/env" > .env.deployment
+    rc=$?  # guard_disarm's own status is not the step's
     guard_disarm
-    echo "Blanked UMAMI_PASSWORD in .env.deployment (backup: .env.deployment.pre-umami.${stamp}, holds the old value)."
+    if [ "$rc" -eq 0 ]; then
+      echo "Blanked UMAMI_PASSWORD in .env.deployment (backup: .env.deployment.pre-umami.${stamp}, holds the old value)."
+    else
+      echo "WARNING: could not blank UMAMI_PASSWORD in .env.deployment; remove the old value by hand (backup: .env.deployment.pre-umami.${stamp})." >&2
+    fi
   fi
   echo "Replaced Umami's built-in admin/umami login with a generated password (the UMAMI_PASSWORD setting; not shown)."
   echo "To sign in to Umami yourself: ./deploy.sh settings-env-export --keys UMAMI_USERNAME,UMAMI_PASSWORD --out FILE"
@@ -1520,7 +1536,12 @@ legacy_mongo_import() { # legacy_mongo_import <google forms enabled: true|false>
     guard_arm "$dir" || { rm -rf "$dir"; return 1; }
     sed -E 's/^([[:space:]]*(export[[:space:]]+)?MONGO_URI[[:space:]]*=).*/\1/' .env.deployment > "$dir/env" \
       && cat "$dir/env" > .env.deployment
+    rc=$?  # guard_disarm's own status is not the step's
     guard_disarm
+    if [ "$rc" -ne 0 ]; then
+      legacy_mongo_failed "MONGO_URI could not be blanked in .env.deployment" "$log"
+      return 1
+    fi
     echo "Blanked MONGO_URI in .env.deployment (backup: .env.deployment.pre-4.1.${stamp}, holds the old value)."
   fi
   env_put BC_LEGACY_MONGO_IMPORTED "$stamp"

@@ -2077,6 +2077,184 @@ def test_a_term_while_a_copy_of_env_deployment_is_blanked_still_runs_the_trap_an
     _nothing_secret_shown(site, out, err)
 
 
+# --- the guard around the .env edits, run on the functions alone ---------------------------
+
+GUARDED_FUNCTIONS = ("guard_cleanup", "guard_arm", "guard_disarm", "file_assigns", "env_unset", "env_put",
+                     "dotenv_unquote", "service_env_file")
+
+
+def _functions(*names):
+    """The source of deploy.sh's functions NAMES (and the guard's variables), to run them alone."""
+    text = (ROOT / "deploy.sh").read_text()
+    out = ['guard_path=""\nguard_pid=""\nguard_started=""\n']
+    for name in names:
+        found = re.search(rf"^{name}\(\) \{{\n.*?^\}}\n", text, re.S | re.M)
+        assert found, name
+        out.append(found.group(0))
+    return "".join(out)
+
+
+def _functions_run(site, script, extra=None, popen=False):
+    work, state, env = site
+    full = {**env, **(extra or {})}
+    argv = ["bash", "-c", 'echo $$ > "${STUB_SIGNAL_PIDFILE:-/dev/null}"\numask 077\n' + _functions(*GUARDED_FUNCTIONS) + script]
+    if popen:
+        return subprocess.Popen(argv, cwd=work, env=full, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                start_new_session=True)
+    return subprocess.run(argv, cwd=work, env=full, capture_output=True, text=True, timeout=60)
+
+
+def _stand_in(site, name, body):
+    bin_dir = Path(site[2]["PATH"].split(os.pathsep)[0])
+    (bin_dir / name).write_text(body)
+    (bin_dir / name).chmod(0o755)
+
+
+def test_a_failing_mv_makes_env_unset_and_env_put_fail_and_still_removes_the_copy(site):
+    """The guard's own disarm must not hide the step's status: with `mv` failing, env_unset
+    returns non-zero, `env_put ... || return 1` propagates it, and the copy of .env is gone."""
+    work, _, _ = site
+    _stand_in(site, "mv", "#!/bin/sh\nexit 1\n")
+    (work / ".env").write_text("A=1\nB=2\n")
+    done = _functions_run(site, 'env_unset A; echo "unset=$?"\nenv_put B 3 || echo "put failed"\n')
+    assert "unset=1" in done.stdout and "put failed" in done.stdout, (done.stdout, done.stderr)
+    assert (work / ".env").read_text() == "A=1\nB=2\n"
+    assert not _temp_leftovers(work)
+
+
+def test_a_failing_mv_makes_service_env_file_fail_and_removes_its_scratch_file(site):
+    """service_env_file used to swallow a failed `mv` and report the file as created; it now fails."""
+    work, _, _ = site
+    _stand_in(site, "mv", "#!/bin/sh\nexit 1\n")
+    (work / ".env.deployment").write_text("FOO=1\n")
+    done = _functions_run(site, 'service_env_file .env.webapp FOO; echo "rc=$?"\n')
+    assert "rc=1" in done.stdout and "Created" not in done.stdout and "Could not create .env.webapp" in done.stderr
+    assert not (work / ".env.webapp").exists() and not _temp_leftovers(work)
+
+
+def _term_during_chmod(site, script):
+    """Run the functions with a `chmod` stand-in that sends TERM to the script's own process when
+    it touches a `.env.*` scratch file; returns (status, stdout, stderr)."""
+    import signal
+    work, state, env = site
+    _stand_in(site, "chmod", HOOK_STUB.replace("#!/usr/bin/env python3", f"#!{sys.executable}", 1))
+    proc = _functions_run(site, script, popen=True, extra={
+        "STUB_SIGNAL_PIDFILE": str(state / "pid"), "STUB_SIGNAL_SCRATCH": ".env.", "STUB_SIGNAL_CMD": "chmod",
+        "STUB_REAL_CHMOD": shutil.which("chmod")})
+    try:
+        out, err = proc.communicate(timeout=20)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        out, err = proc.communicate()
+        return None, out, err
+    return proc.returncode, out, err
+
+
+def test_a_term_while_env_unset_holds_its_copy_of_env_runs_the_trap_and_leaves_env_alone(site):
+    work, _, _ = site
+    (work / ".env").write_text("A=1\nSECRET=DUMMY-secret\n")
+    status, out, err = _term_during_chmod(site, "env_unset A\necho survived\n")
+    assert status == 143 and "survived" not in out, (status, out, err)
+    assert "trap:" not in err and "unexpected EOF" not in err
+    assert (work / ".env").read_text() == "A=1\nSECRET=DUMMY-secret\n"
+    assert not _temp_leftovers(work) and not _temp_leftovers(work)
+
+
+def test_a_term_while_service_env_file_holds_its_scratch_file_runs_the_trap_and_creates_nothing(site):
+    work, _, _ = site
+    (work / ".env.deployment").write_text("FOO=DUMMY-secret\n")
+    status, out, err = _term_during_chmod(site, "service_env_file .env.webapp FOO\necho survived\n")
+    assert status == 143 and "survived" not in out, (status, out, err)
+    assert not (work / ".env.webapp").exists() and not _temp_leftovers(work)
+
+
+def test_env_unset_and_env_put_rewrite_an_awkward_env_byte_for_byte(site):
+    work, _, _ = site
+    (work / ".env").write_bytes(
+        b"# comment A=1\n"
+        b"A=1\r\n"
+        b'export A = "two words"\n'
+        b"  A =x\n"
+        b"B=has=equals and $dollar and \\back\\slash\n"
+        b"C=\n"
+        b'D="quoted # not comment"\n'
+        b"A_B=keep\n"
+        b"E=crlf\r\n"
+        b"B=again\n"
+        b"A=last of the duplicates\n"
+        b"tail=no newline at the end"
+    )
+    done = _functions_run(site, "env_unset A && echo ok\n")
+    assert done.returncode == 0 and "ok" in done.stdout, done.stderr
+    expected = (
+        b"# comment A=1\n"
+        b"B=has=equals and $dollar and \\back\\slash\n"
+        b"C=\n"
+        b'D="quoted # not comment"\n'
+        b"A_B=keep\n"
+        b"E=crlf\r\n"
+        b"B=again\n"
+        b"tail=no newline at the end\n"
+    )
+    assert (work / ".env").read_bytes() == expected
+    assert stat.S_IMODE((work / ".env").stat().st_mode) == 0o600 and not _temp_leftovers(work)
+    # an assignment appended to a file that does not end in a newline, value taken literally
+    (work / ".env").write_bytes(b"X=1")
+    done = _functions_run(site, "env_put NEW 'a=b $c \"d\" \\e'\n")
+    assert done.returncode == 0, done.stderr
+    assert (work / ".env").read_bytes() == b'X=1\nNEW=a=b $c "d" \\e\n'
+    # replacing an existing assignment
+    done = _functions_run(site, "env_put X two\n")
+    assert (work / ".env").read_bytes() == b'NEW=a=b $c "d" \\e\nX=two\n'
+
+
+def test_service_env_file_copies_awkward_lines_byte_for_byte(site):
+    work, _, _ = site
+    (work / ".env.deployment").write_bytes(
+        b"# comment FOO=0\n"
+        b"FOO=1\r\n"
+        b'export FOO2 = "not wanted"\n'
+        b"NEXT_PUBLIC_A='single quoted'\n"
+        b"  NEXT_PUBLIC_B = with=equals $dollar \\ back\n"
+        b"NEXT_PUBLIC_EMPTY=\n"
+        b'NEXT_PUBLIC_QEMPTY=""\n'
+        b"export NEXT_PUBLIC_C=exported # trailing\n"
+        b"FOO=dup\n"
+        b"OTHER=secret\n"
+        b"NEXT_PUBLIC_LAST=nonl"
+    )
+    done = _functions_run(site, "service_env_file .env.webapp FOO 'NEXT_PUBLIC_*'; echo \"rc=$?\"\n")
+    assert "rc=0" in done.stdout, done.stderr
+    assert "Created .env.webapp from .env.deployment with: FOO, NEXT_PUBLIC_A, NEXT_PUBLIC_B, NEXT_PUBLIC_C, NEXT_PUBLIC_LAST\n" in done.stdout
+    assert (work / ".env.webapp").read_bytes() == (
+        b"FOO=1\r\n"
+        b"NEXT_PUBLIC_A='single quoted'\n"
+        b"NEXT_PUBLIC_B = with=equals $dollar \\ back\n"
+        b"NEXT_PUBLIC_C=exported # trailing\n"
+        b"FOO=dup\n"
+        b"NEXT_PUBLIC_LAST=nonl\n"
+    )
+    assert stat.S_IMODE((work / ".env.webapp").stat().st_mode) == 0o600 and not _temp_leftovers(work)
+    # an existing file is never changed
+    (work / ".env.webapp").write_text("MINE=1\n")
+    _functions_run(site, "service_env_file .env.webapp FOO\n")
+    assert (work / ".env.webapp").read_text() == "MINE=1\n"
+
+
+def test_the_only_traps_in_deploy_sh_are_the_guards():
+    """guard_disarm clears every trap outright instead of restoring an earlier one: that is only
+    sound while no other trap exists."""
+    text = (ROOT / "deploy.sh").read_text()
+    inside = set()
+    for name in ("guard_arm", "guard_disarm"):
+        found = re.search(rf"^{name}\(\) \{{\n.*?^\}}\n", text, re.S | re.M)
+        start = text[: found.start()].count("\n") + 1
+        inside |= set(range(start, start + found.group(0).count("\n")))
+    stray = [n for n, line in enumerate(text.splitlines(), 1)
+             if re.search(r"(^|[;&|{(]|\s)trap\s", line.split("#", 1)[0]) and n not in inside]
+    assert not stray, stray
+
+
 def test_a_successful_prune_removes_its_directory_keeps_the_backups_private_and_shows_no_secret(site, tmp_path):
     work, state, _ = site
     (work / ".env").write_text(SECRET_ENV)
