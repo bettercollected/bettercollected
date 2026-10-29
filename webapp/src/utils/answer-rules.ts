@@ -249,6 +249,17 @@ export function summarizeAnswerRules(field: StandardFormFieldDto): string[] {
     return lines;
 }
 
+/** Whether a pattern can be read as a regular expression at all. It is only compiled (linear, safe),
+ * never run against an answer: the respondent's browser runs built-in presets only. */
+function patternCompiles(pattern: string): boolean {
+    try {
+        new RegExp(pattern, 'u');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /** Problems with the rules themselves (shown in the builder, next to the inputs). */
 export function answerRuleConflicts(rules: IFormFieldValidation | undefined): string[] {
     const conflicts: string[] = [];
@@ -256,6 +267,8 @@ export function answerRuleConflicts(rules: IFormFieldValidation | undefined): st
     if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push('The minimum length is more than the maximum.');
     if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
     if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
-    if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
+    // compiling only, never matching: the builder still says when a pattern can't be read at all
+    if (rules.regex && !patternCompiles(rules.regex)) conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
+    else if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
     return conflicts;
 }

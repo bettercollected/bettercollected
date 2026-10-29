@@ -72,7 +72,12 @@ describe('checking an answer', () => {
             expect(browserChecksPattern(regex)).toBe(false);
             expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('9 not a match'))).toEqual([]);
         }
-        expect(answerRuleConflicts({ regex: '([' })).toEqual([]);
+        // the builder still says when a pattern can't be read at all; reading it never runs it
+        const test = vi.spyOn(RegExp.prototype, 'test');
+        expect(answerRuleConflicts({ regex: '([' })).toEqual(['The pattern is not a valid regular expression, so it is not checked.']);
+        expect(answerRuleConflicts({ regex: '^(a+)+$' })).toEqual([]);
+        expect(test).not.toHaveBeenCalled();
+        test.mockRestore();
     });
 
     it('number range (0 is a real limit) and whole numbers', () => {
