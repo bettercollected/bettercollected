@@ -214,7 +214,9 @@ def test_another_actions_overrides_do_not_count():
     assert _used(config) == INSTANCE_USED
 
 
-def test_the_creators_copy_follows_the_same_rule():
+def test_the_creators_copy_follows_the_same_rule(monkeypatch):
+    # who may be mailed is tests/test_copy_recipient.py; here it is allowed
+    monkeypatch.setattr(actions, "approved_copy_recipient", lambda address, *_: address)
     action = _action(
         "creator_copy_mail", **{"Receiving Mail Address": "own@acme.example"}
     )

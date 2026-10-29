@@ -110,6 +110,7 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.utils import AiohttpClient
 from backend.app.utils.respondent_identity import identity_of
 from backend.app.models.enum.permission import Permission
+from backend.app.services.copy_recipient import CREATOR_COPY_ACTION
 from backend.config import settings
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
@@ -314,7 +315,10 @@ class WorkspaceFormService:
         form_template_repo: PostgresFormTemplateRepository,
         pdf_import_repo=None,
         registration_service=None,
+        copy_recipient_service=None,
     ):
+        # who the "send me a copy" action may mail (services/copy_recipient.py)
+        self._copy_recipient_service = copy_recipient_service
         self.form_provider_service = form_provider_service
         # import records of PDF imports go with their forms
         self._pdf_import_repo = pdf_import_repo
@@ -1568,6 +1572,12 @@ class WorkspaceFormService:
                     "code": "action_secrets_not_allowed",
                     "message": "Connect Google Sheets to set this action's credentials.",
                 },
+            )
+        if action.name == CREATOR_COPY_ACTION:
+            # the action mails each response through the instance's server:
+            # only to a current member of this workspace
+            await self._copy_recipient_service.ensure_parameters_allowed(
+                add_action_to_form_params.parameters, workspace_id, form_id
             )
         await self.action_service.create_action_in_workspace_from_action(
             workspace_id=workspace_id, action=action, user=user

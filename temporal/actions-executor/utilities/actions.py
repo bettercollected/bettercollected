@@ -25,13 +25,14 @@ from utilities.form import (
     get_questions_and_answers,
     sheet_title_for,
 )
+from utilities.copy_recipient import approved_copy_recipient
 from utilities.mail import response_mail_context
 from utilities.smtp_group import merge_layers, smtp_overridden, smtp_settings
 from utilities.mail_headers import (
     FROM_NAME_MAX,
     SUBJECT_MAX,
     one_line,
-    uses_own_smtp,
+    respondent_from_name,
 )
 from settings.application import settings
 
@@ -365,12 +366,11 @@ async def run_action(
             username, password, sender, port, server = smtp_settings(
                 get_parameters(), get_secrets()
             )
-            # Through the workspace's own SMTP server and from its own address,
-            # the workspace really is the sender: its title is the From name.
-            # Otherwise (the action's defaults, the instance's server) a mail is
-            # never sent in a workspace's name.
-            own_smtp = uses_own_smtp(action, workspace, form)
-            from_name = workspace.get("title", "") if own_smtp else ""
+            # "<workspace> via <instance>", whichever SMTP server sends it: the
+            # instance is named as the sender, the workspace as on whose behalf
+            from_name = respondent_from_name(
+                workspace.get("title"), settings.organization_name
+            )
 
             mail_config = config_mail(
                 username, password, sender, port, server, from_name
@@ -388,6 +388,15 @@ async def run_action(
         receiving_mail = get_parameter("Receiving Mail Address")
 
         if receiving_mail:
+            # Only a current member of the workspace (the creator while one):
+            # checked now, not as of when the action was saved (a refusal or a
+            # failed check raises, so nothing is sent and the job shows why)
+            receiving_mail = approved_copy_recipient(
+                receiving_mail,
+                get_workspace_details().get("id"),
+                form.get("form_id"),
+                action.get("id"),
+            )
             username, password, sender, port, server = smtp_settings(
                 get_parameters(), get_secrets()
             )

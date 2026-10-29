@@ -4,7 +4,7 @@ A workspace or form title is free text a workspace member typed, so it can
 never add a header line or reorder what a mail client shows."""
 
 import unicodedata
-from typing import Any, Dict, Iterable, Optional, Set
+from typing import Any, Optional
 
 # RFC 5322 recommends lines of at most 78 characters; a display name longer
 # than that is cut by most clients anyway.
@@ -34,40 +34,37 @@ def one_line(value: Optional[Any], limit: int) -> str:
     return text
 
 
-def _named_values(items: Optional[Iterable[Dict[str, Any]]]) -> Set[str]:
-    names = set()
-    for item in items or []:
-        if not isinstance(item, dict):
-            continue
-        name, value = item.get("name"), item.get("value")
-        if name is not None and value is not None and value != "":
-            names.add(name)
-    return names
+# the longest " via <instance>" tail kept whole; the workspace gets the rest
+INSTANCE_NAME_MAX = 40
+FALLBACK_INSTANCE_NAME = "BetterCollected"
 
 
-def set_by_workspace(
-    action: Dict[str, Any], workspace: Dict[str, Any], form: Dict[str, Any]
-) -> Set[str]:
-    """The names of the action parameters the workspace configured itself (on
-    the workspace or on the form), as opposed to the action's own defaults,
-    which the instance's administrators set."""
-    action_id = action.get("id")
-    names: Set[str] = set()
-    for owner in (workspace, form):
-        overrides = (owner or {}).get("parameters") or {}
-        if isinstance(overrides, dict):
-            names |= _named_values(overrides.get(action_id))
-    return names
+def _squashed(value: str) -> str:
+    return "".join(value.split()).casefold()
 
 
-# what makes a mail go through the workspace's own SMTP server, sent from its
-# own address
-OWN_SMTP_PARAMETERS = ("server", "Sender")
+def respondent_from_name(
+    workspace_title: Optional[Any], instance_name: Optional[Any]
+) -> str:
+    """The From display name of a respondent's copy: "<workspace> via
+    <instance>", as the sign-in code mail names a workspace. The instance is
+    the sender (its ``ORGANIZATION_NAME``); the workspace title is free text a
+    member typed, so it is folded to one line and cut to fit ``FROM_NAME_MAX``
+    with the tail. A workspace that is no one, or just the instance's own
+    name, leaves the instance alone.
 
-
-def uses_own_smtp(
-    action: Dict[str, Any], workspace: Dict[str, Any], form: Dict[str, Any]
-) -> bool:
-    """Whether the workspace configured both the SMTP server and the From
-    address of this action itself."""
-    return set(OWN_SMTP_PARAMETERS) <= set_by_workspace(action, workspace, form)
+    A title cannot pose as something else in the sender line either: an
+    encoded-word start ("=?", RFC 2047) is removed, and a title that looks like
+    an address or a link ("@", "://") is dropped, so a mail client never shows
+    a workspace-chosen "billing@bank.example" or URL as the sender."""
+    instance = one_line(instance_name, INSTANCE_NAME_MAX) or FALLBACK_INSTANCE_NAME
+    tail = f" via {instance}"
+    title = one_line(workspace_title, FROM_NAME_MAX * 4)
+    while "=?" in title:  # "==??" becomes "=?" after one pass
+        title = title.replace("=?", "")
+    if "@" in title or "://" in title:
+        title = ""
+    title = one_line(title, FROM_NAME_MAX - len(tail))
+    if not title or _squashed(title) == _squashed(instance):
+        return instance
+    return title + tail

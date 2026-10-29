@@ -84,7 +84,7 @@ class TestSheetsReconnectNotice:
 
         assert response.status_code == 200, response.text
         message = sent.await_args.args[0]
-        assert message.subject == "Koppel Google Sheets opnieuw voor een van je formulieren"
+        assert message.subject == "Koppel Google Sheets opnieuw voor een van uw formulieren"
         body = " ".join(message.body.split())
         assert '<html lang="nl"' in body
         assert "Google Sheets opnieuw koppelen" in body
