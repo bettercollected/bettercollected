@@ -13,7 +13,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
-## [4.1.0] - Unreleased
+## [4.1.0] - 2026-10-30
 
 4.1.0 runs on PostgreSQL only. MongoDB is no longer a store: on upgrade it is read once to import what a 4.0 stack still holds, then switched off with its volume kept for a rollback. The backend, auth and the Google Forms integration refuse to start while MongoDB still holds data that Postgres lacks. Background jobs run on the Postgres job queue, and Temporal leaves the compose stack. Anonymous responses are tied to their respondent with a keyed hash, which needs a new secret. Typeform and the Brevo marketing tracker are gone, and the Google Forms import gets an `on`/`readonly`/`off` switch. The release also adds the Open Formulieren import, export and registration, behind switches that are off by default, plus a long list of security and accessibility fixes.
 
