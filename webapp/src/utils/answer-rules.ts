@@ -60,19 +60,23 @@ export function presetForPattern(pattern: string | undefined | null): FormatPres
     return pattern ? FORMAT_PRESETS.find((preset) => preset.pattern === pattern) : undefined;
 }
 
-/** The pattern as a RegExp, or null when it does not compile. Unicode first (for \p{L}), then plain. */
+const KNOWN_PATTERNS: Map<string, RegExp> = new Map([...FORMAT_PRESETS.map((preset) => preset.pattern), INTEGER_PATTERN].map((pattern) => [pattern, new RegExp(pattern, 'u')]));
+
+/**
+ * The RegExp for a pattern this browser may test answers with: only our own
+ * fixed ones, the format presets and "whole numbers only", looked up by
+ * exact identity (never by analysing the string). A pattern a creator wrote
+ * is not tested here at all: it could take a backtracking engine very long,
+ * and no check of its shape can promise it does not. The server matches it
+ * with RE2 (linear time) when the answer is submitted, and the respondent is
+ * taken back to the question with the message (utils/server-answer-errors.ts).
+ */
 export function compilePattern(pattern: string | undefined | null): RegExp | null {
-    if (!pattern) return null;
-    try {
-        return new RegExp(pattern, 'u');
-    } catch {
-        try {
-            return new RegExp(pattern);
-        } catch {
-            return null;
-        }
-    }
+    return (pattern && KNOWN_PATTERNS.get(pattern)) || null;
 }
+
+/** Whether this browser checks the pattern itself (a preset), or leaves it to the server. */
+export const browserChecksPattern = (pattern: string | undefined | null): boolean => compilePattern(pattern) !== null;
 
 /** Which kind of answer rules a field takes, if any. */
 export function answerRuleKind(field: Pick<StandardFormFieldDto, 'type' | 'properties'> | undefined | null): AnswerRuleKind | null {
@@ -245,6 +249,17 @@ export function summarizeAnswerRules(field: StandardFormFieldDto): string[] {
     return lines;
 }
 
+/** Whether a pattern can be read as a regular expression at all. It is only compiled (linear, safe),
+ * never run against an answer: the respondent's browser runs built-in presets only. */
+function patternCompiles(pattern: string): boolean {
+    try {
+        new RegExp(pattern, 'u');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /** Problems with the rules themselves (shown in the builder, next to the inputs). */
 export function answerRuleConflicts(rules: IFormFieldValidation | undefined): string[] {
     const conflicts: string[] = [];
@@ -252,7 +267,8 @@ export function answerRuleConflicts(rules: IFormFieldValidation | undefined): st
     if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push('The minimum length is more than the maximum.');
     if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
     if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
-    if (rules.regex && !compilePattern(rules.regex)) conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
+    // compiling only, never matching: the builder still says when a pattern can't be read at all
+    if (rules.regex && !patternCompiles(rules.regex)) conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
     else if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
     return conflicts;
 }

@@ -30,7 +30,7 @@ vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
     default: () => null
 }));
 
-const field = (id: string, index: number): StandardFormFieldDto => ({ id, index, type: FieldTypes.SHORT_TEXT, title: `Question ${id}` });
+const field = (id: string, index: number, validations?: StandardFormFieldDto['validations']): StandardFormFieldDto => ({ id, index, type: FieldTypes.SHORT_TEXT, title: `Question ${id}`, ...(validations ? { validations } : {}) });
 const slide = (id: string, index: number, fields: StandardFormFieldDto[]): StandardFormFieldDto => ({ id, index, type: FieldTypes.SLIDE, properties: { fields } });
 
 let responder: ReturnType<typeof useResponderState> | null = null;
@@ -79,5 +79,41 @@ describe('answers the server refused', () => {
         await vi.waitFor(() => expect(responder!.responderState.currentSlide).toBe(0));
         expect(responder!.responderState.history).toEqual([]);
         expect(await screen.findByText('Dit antwoord kon niet worden verwerkt. Beantwoord de vraag opnieuw.')).toBeInTheDocument();
+    });
+
+    // A custom pattern is not tested in the browser, so a miss only shows up
+    // when the server refuses the submission: back to its page and question.
+    it.each([
+        ['nl', 'Volgende', 'Antwoorden versturen', 'Dit antwoord heeft niet de verwachte vorm. Controleer het.'],
+        ['en', 'Continue', 'Submit response', 'This answer is not in the expected format. Please check it.']
+    ])('takes the respondent back to the question a custom pattern refused (%s)', async (lang, next, send, message) => {
+        window.history.replaceState(null, '', `/acme/forms/f1?lang=${lang}`);
+        submit.mockResolvedValue({ error: { status: 422, data: { code: 'invalid_answers', message: 'x', errors: [{ fieldId: 'a', rule: 'pattern' }] } } });
+        store.dispatch(setForm({ formId: `server-${Math.random()}`, title: 'Server', fields: [slide('s1', 0, [field('a', 0, { regex: '^[A-Z]{3}$' })]), slide('s2', 1, [field('b', 0)])] }));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Page />
+                </Provider>
+            </ReduxProvider>
+        );
+
+        act(() => responder!.setResponderState({ ...responder!.responderState, currentSlide: 0, history: [] }));
+        // nothing in the browser checks it: the answer goes on to page 2
+        await type('a', 'not three capitals');
+        expect(screen.queryByText(message)).toBeNull();
+        act(() => void fireEvent.click(screen.getByRole('button', { name: next })));
+        expect(responder!.responderState.currentSlide).toBe(1);
+
+        await type('b', 'second');
+        await act(() => new Promise((resolve) => setTimeout(resolve, 600)));
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: send })));
+        expect(submit).toHaveBeenCalledTimes(1);
+
+        // the server said no: back to page 1, with its message on the question
+        await vi.waitFor(() => expect(responder!.responderState.currentSlide).toBe(0));
+        expect(responder!.responderState.history).toEqual([]);
+        expect(await screen.findByText(message)).toBeInTheDocument();
+        expect(screen.getByText('Question a')).toBeInTheDocument();
     });
 });
