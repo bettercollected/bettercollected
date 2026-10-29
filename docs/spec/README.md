@@ -43,6 +43,19 @@ ending after submitting instead of the default one. Endings stored before
 they had ids are given `ending-<n>` (their position, from 1) when read, so
 the same form always shows the same ids.
 
+An answer `pattern` is a regular expression of at most 200 characters that
+the whole text answer must match (use `^` and `$`). It uses RE2 syntax, the
+engine the server matches answers with (in linear time): there are no
+lookarounds and no backreferences, and a pattern RE2 cannot compile is
+refused when the form is saved, with RE2's reason. The respondent's browser
+does not run a pattern a creator wrote; it only checks the built-in format
+presets and "whole numbers only", so a custom pattern is checked when the
+answer is submitted, and the respondent is taken back to the question with
+the message. A pattern a form already holds that RE2 cannot use is kept until
+it is changed (the server does not check it). When an operation, a form saved
+with the API or an Open Formulieren import brings such a pattern, it is
+refused (the import leaves it out and lists it as not carried).
+
 ## What is not in the document
 
 - Data the server owns: workspace, owner and form ids, timestamps, publish

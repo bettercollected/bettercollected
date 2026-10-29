@@ -240,14 +240,15 @@ def test_a_pattern_that_cannot_be_enforced_is_dropped_not_carried():
                 comp("textfield", "broken", validate={"pattern": "([a-z"}),
                 comp("textfield", "long", validate={"pattern": "a" * 300}),
                 comp("textfield", "ok", validate={"pattern": "^(a+)+$"}),
+                comp("textfield", "backref", validate={"pattern": r"^(a)\1$"}),
             ]
         ]
     )
-    look, broken, long_, ok = questions(built)
-    for q in (look, broken, long_):
+    look, broken, long_, ok, backref = questions(built)
+    for q in (look, broken, long_, backref):
         assert "regex" not in q["validations"]
     assert ok["validations"]["regex"] == "^(a+)+$"  # RE2 matches it in linear time
-    assert {i["key"] for i in items(built, reason="validation_not_carried", severity="warning")} == {"look", "broken", "long"}
+    assert {i["key"] for i in items(built, reason="validation_not_carried", severity="warning")} == {"look", "broken", "long", "backref"}
 
 
 def test_validator_plugins_are_reported():
