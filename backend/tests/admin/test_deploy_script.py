@@ -1188,15 +1188,18 @@ def test_a_failing_mv_makes_service_env_file_fail_and_removes_its_scratch_file(s
     assert not (work / ".env.webapp").exists() and not _temp_leftovers(work)
 
 
-def test_a_failing_write_makes_service_env_file_fail_where_it_used_to_report_success(site):
-    """The scratch file is written with `&&` before the chmod and the mv: a write that fails (here
-    through a `chmod` that fails) no longer leaves the final file behind."""
+def test_a_chmod_that_fails_does_not_stop_service_env_file(site):
+    """Some bind mounts (vfat, CIFS) refuse chmod; the file is already 600 from the umask, so the
+    deploy carries on as it did before the guard (a failed write or rename still stops it, see
+    the failing-mv test)."""
     work, _, _ = site
     _stand_in(site, "chmod", "#!/bin/sh\nexit 1\n")
     (work / ".env.deployment").write_text("FOO=1\n")
     done = _functions_run(site, 'service_env_file .env.webapp FOO; echo "rc=$?"\n')
-    assert "rc=1" in done.stdout, (done.stdout, done.stderr)
-    assert not (work / ".env.webapp").exists() and not _temp_leftovers(work)
+    assert "rc=0" in done.stdout, (done.stdout, done.stderr)
+    assert (work / ".env.webapp").read_text() == "FOO=1\n"
+    assert oct((work / ".env.webapp").stat().st_mode & 0o777) == "0o600"
+    assert not _temp_leftovers(work)
 
 
 def _term_during_chmod(site, script):
