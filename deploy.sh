@@ -153,12 +153,17 @@ file_assigns() {
 
 # Drops every assignment of VAR from the root .env.
 env_unset() {
-  local var=$1 tmp
+  local var=$1 tmp rc
   if [ -f .env ] && file_assigns .env "$var"; then
     tmp=$(mktemp .env.XXXXXX) || return 1
+    # the copy of .env is removed on every way out, a signal included (see guard_arm)
+    guard_arm "$tmp" || { rm -f "$tmp"; return 1; }
     grep -vE "^[[:space:]]*(export[[:space:]]+)?${var}[[:space:]]*=" .env > "$tmp" || true
     chmod 600 "$tmp"
     mv "$tmp" .env
+    rc=$?  # guard_disarm's own status is not the step's
+    guard_disarm
+    return "$rc"
   fi
 }
 
@@ -177,7 +182,7 @@ env_put() {
 # anything else, so a bug in the public webapp cannot expose the backend's secrets. An existing file is never
 # changed (only its mode is made private). An item ending in * is a name prefix.
 service_env_file() {
-  local file=$1 line name value item match tmp copied
+  local file=$1 line name value item match tmp copied content rc
   shift
   if [ -L "$file" ]; then
     echo "refused: $file is a symbolic link" >&2
@@ -187,7 +192,9 @@ service_env_file() {
     chmod 600 "$file" 2>/dev/null
     return 0
   fi
-  tmp=$(mktemp .env.XXXXXX) || return 1
+  # the lines are collected in memory (the loop runs command substitutions, which the
+  # guard does not allow), then written to a scratch file the guard removes on a signal
+  content=""
   copied=""
   if [ -f .env.deployment ]; then
     while IFS= read -r line || [ -n "$line" ]; do
@@ -205,12 +212,19 @@ service_env_file() {
       value=$(dotenv_unquote "${line#*=}")
       [ -n "$value" ] || continue
       line=${line#"${line%%[![:space:]]*}"}
-      printf '%s\n' "${line#export }" >> "$tmp"
+      content+="${line#export }"$'\n'
       case ", $copied," in *", $name,"*) ;; *) copied="${copied:+$copied, }$name" ;; esac
     done < .env.deployment
   fi
-  chmod 600 "$tmp"
-  mv "$tmp" "$file"
+  tmp=$(mktemp .env.XXXXXX) || return 1
+  guard_arm "$tmp" || { rm -f "$tmp"; return 1; }
+  printf '%s' "$content" > "$tmp" && chmod 600 "$tmp" && mv "$tmp" "$file"
+  rc=$?  # guard_disarm's own status is not the step's
+  guard_disarm
+  if [ "$rc" -ne 0 ]; then
+    echo "Could not create ${file}." >&2
+    return 1
+  fi
   # names only, never a value: what the operator sees moved into the service's file
   if [ -n "$copied" ]; then
     echo "Created ${file} from .env.deployment with: ${copied}"
@@ -246,6 +260,92 @@ private_dir() {
   dir=$(mktemp -d) || return 1
   chmod 700 "$dir"
   printf '%s' "$dir"
+}
+
+# --- secrets in scratch files: the guard ------------------------------------------------------
+# Every scratch file or directory that holds a secret (a copy of .env or .env.deployment, an
+# export, a generated key, a half-written replacement of .env) is removed on every way out
+# of the step that uses it, a signal (Ctrl-C, TERM, HUP) included. A step does
+#
+#     dir=$(private_dir) || return 1                  # (or mktemp for a file) before arming:
+#     guard_arm "$dir" || { rm -rf "$dir"; return 1; } #   nothing secret exists yet
+#     ... write the secret, run the container with guard_run, use what it wrote ...
+#     guard_disarm                                    # removes "$dir" and the traps
+#
+# Two rules keep the traps dependable, because bash is easy to catch out here:
+#  - no command substitution ($(...), `...`, <(...)), subshell or pipeline between guard_arm
+#    and guard_disarm. Bash parses each command substitution again when it is evaluated and,
+#    if a signal arrives during that parse, runs the trap in the middle of it, where the
+#    handler fails to parse ("trap: line 2: unexpected EOF while looking for matching `)'"),
+#    is dropped, and the script carries on as if nothing had been sent. Whatever the step
+#    needs (the user id, a name) is computed before guard_arm.
+#  - a container runs through guard_run, as a background job the script waits for: bash runs
+#    a trap only once a foreground command ends, so a signal sent to the script alone would
+#    otherwise wait for the container; `wait` returns at once and the handler stops the job
+#    (TERM, KILL after 15 s) before it removes the path.
+# One guard at a time (guard_arm refuses a second one), so there is one job to stop: the job
+# guard_run starts is the only background job this script has, which is what lets the cleanup
+# fall back on `$!` for a signal that arrives between the `&` and the pid being recorded. A
+# second background job elsewhere would need its own flag and pid.
+guard_path=""
+guard_pid=""
+guard_started=""
+guard_cleanup() {
+  local waited=0
+  if [ -z "$guard_pid" ] && [ -n "$guard_started" ]; then
+    guard_pid=$!
+  fi
+  guard_started=""
+  if [ -n "$guard_pid" ]; then
+    kill "$guard_pid" 2>/dev/null
+    # docker compose stops its container before it exits; a client that ignores the signal is killed
+    while kill -0 "$guard_pid" 2>/dev/null && [ "$waited" -lt 150 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    kill -9 "$guard_pid" 2>/dev/null
+    wait "$guard_pid" 2>/dev/null
+    guard_pid=""
+  fi
+  [ -z "$guard_path" ] || rm -rf "$guard_path"
+  guard_path=""
+}
+
+# guard_arm PATH: PATH (a file or a directory) is removed on every way out, until guard_disarm.
+# These two functions are the only place in this script that sets or clears a trap, and no
+# other trap exists: guard_disarm clears EXIT, INT, TERM and HUP outright instead of
+# restoring an earlier handler (a test pins this). A step that needs a trap of its own must
+# extend the guard, not add a second `trap`.
+guard_arm() {
+  if [ -n "$guard_path" ]; then
+    echo "deploy.sh: internal error: a scratch path is already guarded" >&2
+    return 1
+  fi
+  guard_path=$1
+  trap guard_cleanup EXIT
+  trap 'guard_cleanup; exit 130' INT
+  trap 'guard_cleanup; exit 143' TERM HUP
+}
+
+# guard_disarm: removes the path and the traps. It returns 0: a step that needs its own
+# status takes it (`rc=$?`) before calling this.
+guard_disarm() {
+  guard_cleanup
+  trap - EXIT INT TERM HUP
+}
+
+# guard_run CMD...: CMD as the guarded background job; returns its status. Its output and
+# standard input are the caller's (redirect the call to capture the output).
+guard_run() {
+  local rc
+  guard_started=1
+  "$@" <&0 &
+  guard_pid=$!
+  wait "$guard_pid"
+  rc=$?
+  guard_pid=""
+  guard_started=""
+  return "$rc"
 }
 
 # Number of kept versions the store holds for KEY (0 when none), "" on error.
@@ -314,7 +414,7 @@ warn_env_aliases() {
 # when the built-in login is gone (or was never there) and 1 when it may still work:
 # the caller decides how loud that is.
 umami_credentials() {
-  local state password stamp scratch attempt
+  local state password stamp scratch attempt rc
   local js="deploy/umami-rotate.js"
   local i
   for i in $(seq 1 30); do
@@ -355,9 +455,15 @@ umami_credentials() {
     stamp=$(date +%Y%m%d%H%M%S)
     cp -p .env.deployment ".env.deployment.pre-umami.${stamp}" && chmod 600 ".env.deployment.pre-umami.${stamp}"
     scratch=$(private_dir) || return 1
+    guard_arm "$scratch" || { rm -rf "$scratch"; return 1; }
     sed 's/^UMAMI_PASSWORD=.*/UMAMI_PASSWORD=/' .env.deployment > "$scratch/env" && cat "$scratch/env" > .env.deployment
-    rm -rf "$scratch"
-    echo "Blanked UMAMI_PASSWORD in .env.deployment (backup: .env.deployment.pre-umami.${stamp}, holds the old value)."
+    rc=$?  # guard_disarm's own status is not the step's
+    guard_disarm
+    if [ "$rc" -eq 0 ]; then
+      echo "Blanked UMAMI_PASSWORD in .env.deployment (backup: .env.deployment.pre-umami.${stamp}, holds the old value)."
+    else
+      echo "WARNING: could not blank UMAMI_PASSWORD in .env.deployment; remove the old value by hand (backup: .env.deployment.pre-umami.${stamp})." >&2
+    fi
   fi
   echo "Replaced Umami's built-in admin/umami login with a generated password (the UMAMI_PASSWORD setting; not shown)."
   echo "To sign in to Umami yourself: ./deploy.sh settings-env-export --keys UMAMI_USERNAME,UMAMI_PASSWORD --out FILE"
@@ -371,44 +477,54 @@ umami_credentials() {
 # with the same value (docs/admin-service.md). Without --apply it only reports.
 # --typeform and --no-typeform (from before the Typeform removal) are ignored.
 settings_prune() {
-  local args=() arg keep=() dir rc stamp
+  local args=() arg keep=() dir rc stamp name base uid_gid apply=false swap=false
   for arg in "$@"; do
     case "$arg" in
       --typeform|--no-typeform) echo "$arg is ignored: the Typeform integration was removed in 4.1." >&2 ;;
       *) args+=("$arg") ;;
     esac
   done
-  local name
+  for arg in "${args[@]}"; do
+    case "$arg" in
+      --apply) apply=true ;;
+      --swap) swap=true ;;
+    esac
+  done
   for name in "${env_driven_keys[@]}"; do keep+=(--keep "$name"); done
+  uid_gid="$(id -u):$(id -g)"
   dir=$(private_dir) || return 1
+  # copies of the secret files: removed on every way out, a signal included (see guard_arm)
+  guard_arm "$dir" || { rm -rf "$dir"; return 1; }
   cp -p .env "$dir/.env" 2>/dev/null
   cp -p .env.deployment "$dir/.env.deployment" 2>/dev/null
   chmod 600 "$dir"/.env* 2>/dev/null
-  admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/work")
-  admin_cli settings-prune --env-file /work/.env --env-file /work/.env.deployment "${keep[@]}" "${args[@]}"
+  admin_cli_opts=(--user "$uid_gid" -v "$dir:/work")
+  admin_cli_words settings-prune --env-file /work/.env --env-file /work/.env.deployment "${keep[@]}" "${args[@]}"
+  guard_run "${admin_cli_cmd[@]}"
   rc=$?
   admin_cli_opts=()
-  if printf '%s\n' "${args[@]}" | grep -qx -- '--swap' && printf '%s\n' "${args[@]}" | grep -qx -- '--apply'; then
+  if [ "$swap" = true ] && [ "$apply" = true ]; then
     [ -f "$dir/.env" ] && cat "$dir/.env" > .env
     [ -f "$dir/.env.deployment" ] && cat "$dir/.env.deployment" > .env.deployment
   fi
   for stamp in "$dir"/.env.pre-v4.* "$dir"/.env.deployment.pre-v4.* "$dir"/.env.pruned "$dir"/.env.deployment.pruned; do
     [ -e "$stamp" ] || continue
-    if [ -e "./$(basename "$stamp")" ]; then
-      echo "not overwriting existing $(basename "$stamp")" >&2
+    base=${stamp##*/}
+    if [ -e "./$base" ]; then
+      echo "not overwriting existing $base" >&2
     else
-      mv "$stamp" "./$(basename "$stamp")"
-      chmod 600 "./$(basename "$stamp")"
+      mv "$stamp" "./$base"
+      chmod 600 "./$base"
     fi
   done
-  rm -rf "$dir"
+  guard_disarm
   chmod 600 .env 2>/dev/null
   return "$rc"
 }
 
 # ./deploy.sh settings-env-export --keys A,B --out FILE (break-glass)
 settings_env_export() {
-  local keys="" out="" dir rc
+  local keys="" out="" dir rc uid_gid
   while [ $# -gt 0 ]; do
     case "$1" in
       --keys) keys="$2"; shift 2 ;;
@@ -426,20 +542,27 @@ settings_env_export() {
     echo "refused: $out exists" >&2
     return 1
   fi
+  uid_gid="$(id -u):$(id -g)"
   dir=$(private_dir) || return 1
-  admin_cli_opts=(--user "$(id -u):$(id -g)" -v "$dir:/out")
-  admin_cli settings-env-export --keys "$keys" --out /out/export.env
+  # the exported secrets: removed on every way out, a signal included (see guard_arm)
+  guard_arm "$dir" || { rm -rf "$dir"; return 1; }
+  admin_cli_opts=(--user "$uid_gid" -v "$dir:/out")
+  admin_cli_words settings-env-export --keys "$keys" --out /out/export.env
+  guard_run "${admin_cli_cmd[@]}"
   rc=$?
   admin_cli_opts=()
   if [ "$rc" -eq 0 ]; then
-    if ( umask 077; set -C; cat "$dir/export.env" > "$out" ) 2>/dev/null && chmod 600 "$out"; then
+    # exclusive creation (noclobber), in this shell: no subshell while the guard is armed
+    set -C
+    if { cat "$dir/export.env" > "$out"; } 2>/dev/null && chmod 600 "$out"; then
       echo "written: $out (mode 600; delete it when done)"
     else
       echo "refused: $out could not be created exclusively" >&2
       rc=1
     fi
+    set +C
   fi
-  rm -rf "$dir"
+  guard_disarm
   return "$rc"
 }
 
@@ -943,42 +1066,7 @@ function stack_keys() {
 #    BC_IDENTITY_KEY_SOURCE=env says the .env key is the intended one;
 #  - SETTINGS_STORE=off and the key is only in the store.
 #
-# While the key's file exists, the traps below remove it on every way out. Two rules keep
-# them dependable, because bash is easy to catch out here:
-#  - no command substitution ($(...), `...`, <(...)) while they are armed. Bash parses
-#    each one again when it is evaluated and, if a signal arrives during that parse, runs
-#    the trap in the middle of it, where the handler fails to parse
-#    ("trap: line 2: unexpected EOF while looking for matching `)'"), is dropped, and the
-#    script carries on as if nothing had been sent. What the region needs (the user id,
-#    the directory) is computed before it.
-#  - the import runs as a background job the script waits for: bash runs a trap only once
-#    a foreground command ends, so a signal sent to the script alone would otherwise wait
-#    for the import; `wait` returns at once and the handler stops the job.
-identity_tmp_dir=""
-identity_import_pid=""
-identity_import_started=""
-identity_cleanup() {
-  local waited=0
-  # a signal between the `&` and the pid being recorded: $! is the import (the only job this
-  # script starts in the background)
-  if [ -z "$identity_import_pid" ] && [ -n "$identity_import_started" ]; then
-    identity_import_pid=$!
-  fi
-  identity_import_started=""
-  if [ -n "$identity_import_pid" ]; then
-    kill "$identity_import_pid" 2>/dev/null
-    # docker compose stops its container before it exits; a client that ignores the signal is killed
-    while kill -0 "$identity_import_pid" 2>/dev/null && [ "$waited" -lt 150 ]; do
-      sleep 0.1
-      waited=$((waited + 1))
-    done
-    kill -9 "$identity_import_pid" 2>/dev/null
-    wait "$identity_import_pid" 2>/dev/null
-    identity_import_pid=""
-  fi
-  [ -z "$identity_tmp_dir" ] || rm -rf "$identity_tmp_dir"
-  identity_tmp_dir=""
-}
+# While the key's file exists, the guard (guard_arm, above) removes it on every way out.
 
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -1048,30 +1136,20 @@ ensure_identity_key() {
   key=$(openssl rand -hex 32) || return 1
   uid_gid="$(id -u):$(id -g)"
   dir=$(private_dir) || return 1
-  # the scratch directory goes on every way out, a signal included
-  identity_tmp_dir=$dir
-  trap identity_cleanup EXIT
-  trap 'identity_cleanup; exit 130' INT
-  trap 'identity_cleanup; exit 143' TERM HUP
-  # no command substitution from here to the `trap -` below (see identity_cleanup)
+  # the scratch directory goes on every way out, a signal included (see guard_arm)
+  guard_arm "$dir" || { rm -rf "$dir"; return 1; }
   # a private file in a private directory, removed right after; the value is never an argument
   printf 'RESPONDENT_IDENTITY_KEY=%s\n' "$key" > "$dir/identity.env"
   admin_cli_opts=(--user "$uid_gid" -v "$dir:/work")
   admin_cli_words settings-import --env-file /work/identity.env
-  identity_import_started=1
-  "${admin_cli_cmd[@]}" > "$dir/import.out" 2>&1 &
-  identity_import_pid=$!
-  wait "$identity_import_pid"
+  guard_run "${admin_cli_cmd[@]}" > "$dir/import.out" 2>&1
   rc=$?
-  identity_import_pid=""
-  identity_import_started=""
   admin_cli_opts=()
   # what the import said (never the key: the line that names it is replaced), while the directory exists
   if [ "$rc" -ne 0 ]; then
     sed 's/^refused RESPONDENT_IDENTITY_KEY .*/refused RESPONDENT_IDENTITY_KEY (the generated value was not accepted)/' "$dir/import.out" >&2
   fi
-  identity_cleanup
-  trap - EXIT INT TERM HUP
+  guard_disarm
   if [ "$rc" -ne 0 ]; then
     unset key
     echo "Could not store a new RESPONDENT_IDENTITY_KEY (see above). Nothing was started." >&2
@@ -1455,9 +1533,15 @@ legacy_mongo_import() { # legacy_mongo_import <google forms enabled: true|false>
   if file_assigns .env.deployment MONGO_URI; then
     cp -p .env.deployment ".env.deployment.pre-4.1.${stamp}" && chmod 600 ".env.deployment.pre-4.1.${stamp}"
     dir=$(private_dir) || return 1
+    guard_arm "$dir" || { rm -rf "$dir"; return 1; }
     sed -E 's/^([[:space:]]*(export[[:space:]]+)?MONGO_URI[[:space:]]*=).*/\1/' .env.deployment > "$dir/env" \
       && cat "$dir/env" > .env.deployment
-    rm -rf "$dir"
+    rc=$?  # guard_disarm's own status is not the step's
+    guard_disarm
+    if [ "$rc" -ne 0 ]; then
+      legacy_mongo_failed "MONGO_URI could not be blanked in .env.deployment" "$log"
+      return 1
+    fi
     echo "Blanked MONGO_URI in .env.deployment (backup: .env.deployment.pre-4.1.${stamp}, holds the old value)."
   fi
   env_put BC_LEGACY_MONGO_IMPORTED "$stamp"
