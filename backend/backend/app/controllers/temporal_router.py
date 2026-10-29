@@ -1,7 +1,7 @@
 from common.ids import RecordId
 from classy_fastapi import Routable, post, patch
 from fastapi import Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from backend.app.container import container
 from backend.app.router import router
@@ -10,7 +10,15 @@ from backend.app.models.dtos.form_actions_dto import FormActionsDto
 
 
 class CopyRecipientQuery(BaseModel):
-    address: str
+    # one address: no longer than an address can be, and not blank
+    address: str = Field(max_length=254)
+
+    @field_validator("address")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("address must not be blank")
+        return value
 
 
 @router(

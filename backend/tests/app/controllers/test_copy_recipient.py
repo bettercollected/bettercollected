@@ -288,7 +288,6 @@ class TestAtSend:
             ("outsider@elsewhere.example", False),
             ("owner+x@acme.example", False),
             ("owner@acme.example\r\nBcc: a@b.example", False),
-            ("", False),
         ],
     )
     async def test_members_yes_others_no(
@@ -298,6 +297,43 @@ class TestAtSend:
 
         assert response.status_code == 200, response.text
         assert response.json() == {"allowed": allowed}
+
+    @pytest.mark.parametrize("address", ["", "   ", "\t\n", "a" * 255, "a" * 300])
+    async def test_a_blank_or_overlong_address_is_a_422(
+        self, client: AsyncClient, workspace, workspace_form, address
+    ):
+        response = await self._ask(client, workspace, workspace_form, address)
+
+        assert response.status_code == 422, response.text
+
+    async def test_an_address_of_the_longest_length_is_answered(
+        self, client: AsyncClient, workspace, workspace_form
+    ):
+        address = "a" * 242 + "@acme.test"
+        assert len(address) == 252
+
+        response = await self._ask(client, workspace, workspace_form, address)
+
+        assert response.json() == {"allowed": False}
+
+    async def test_a_creator_who_changed_their_email_is_not_mailed_at_the_old_one(
+        self, client: AsyncClient, workspace, workspace_form, monkeypatch
+    ):
+        # the creator's address is read live from the account, not kept
+        # with the action: the old one stops working once they change it
+        before = await self._ask(
+            client, workspace, workspace_form, "owner@acme.example"
+        )
+        monkeypatch.setitem(EMAILS, testUser.id, "owner-new@acme.example")
+
+        old = await self._ask(client, workspace, workspace_form, "owner@acme.example")
+        new = await self._ask(
+            client, workspace, workspace_form, "owner-new@acme.example"
+        )
+
+        assert before.json() == {"allowed": True}
+        assert old.json() == {"allowed": False}
+        assert new.json() == {"allowed": True}
 
     async def test_a_member_removed_since_the_save_is_no_longer_allowed(
         self, client: AsyncClient, workspace, workspace_form, mail_action
