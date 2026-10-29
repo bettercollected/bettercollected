@@ -52,11 +52,14 @@ a repeated group (also an optional or bounded one) that can split one text in
 several ways (`(a+)+`, `(\w+\s?)+`, `(a?|b?){28}`), a repeated group whose
 choices start with the same character (`(a|aa)+`), a repeat of something that
 can match nothing (`(a?)*`), more than two overlapping repeats in one
-sequence, also across a separator they can match themselves (`\d*\d*\d*`,
-`.*a.*a.*a`, `a?` twenty times in a row), inline flags (`(?i)`) and
+sequence, also across a separator they can match themselves and from inside
+optional groups and alternations (`\d*\d*\d*`, `.*a.*a.*a`,
+`a*(?:b|a*)(?:c|a*)x`, `a?` twenty times in a row), inline flags (`(?i)`) and
 backreferences (`\1`). The check reads the shape of the pattern, never its
 running time, and is conservative: `(\w+\s)+` (each round ends in a separator)
-and two overlapping repeats are fine. It reduces the risk but cannot prove that
+and two overlapping repeats are fine. A pattern that does not start with `^` is
+tried at every start of the answer, so it gets a thousandth of the allowance
+(`a{1,99}a{1,99}a{1,99}!` and `\d*\d*x` need a `^`). It reduces the risk but cannot prove that
 no pattern is super-linear, so the respondent form also tests only answers up
 to 1,000 characters in the browser and leaves longer ones to the server.
 The cases are in [`pattern-safety.cases.json`](pattern-safety.cases.json), run

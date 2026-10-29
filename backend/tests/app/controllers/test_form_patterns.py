@@ -103,6 +103,9 @@ async def test_an_unsafe_pattern_is_refused_on_save_with_the_question_and_no_pat
         (r"^(a?|b?){28}a{28}$", "nested_repeat"),
         (r"^.*a.*a.*a.*a.*a.*a.*a.*a$", "adjacent_repeats"),
         (r"^(?i)abc$", "inline_flags"),
+        (r"a*(?:b|a*)(?:c|a*)x", "adjacent_repeats"),
+        (r"a{1,99}a{1,99}a{1,99}!", "adjacent_repeats"),
+        (r"\d*\d*x", "adjacent_repeats"),
     ],
 )
 async def test_each_hazard_is_refused_with_its_code(
@@ -237,5 +240,23 @@ async def test_a_unicode_property_pattern_is_checked_though_python_cannot_compil
         workspace_form,
         test_user_cookies,
         with_pattern(r"^[\p{L} '-]+$"),
+    )
+    assert kept.status_code == 200, kept.text
+
+
+async def test_a_pattern_that_starts_with_a_caret_may_hold_more_repeats(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    test_user_cookies: dict[str, str],
+):
+    # tried at every start of an answer, \d*\d*x is refused; anchored, it is
+    # a limited amount of work and kept
+    refused = await patch(
+        client, workspace, workspace_form, test_user_cookies, with_pattern(r"\d*\d*x")
+    )
+    assert refused.status_code == 422, refused.text
+    kept = await patch(
+        client, workspace, workspace_form, test_user_cookies, with_pattern(r"^\d*\d*x$")
     )
     assert kept.status_code == 200, kept.text

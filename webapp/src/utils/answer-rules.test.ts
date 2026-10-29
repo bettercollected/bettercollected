@@ -154,7 +154,21 @@ describe('a pattern whose shape can freeze a browser', () => {
         expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: nested }), text(answerThatFreezes))).toEqual([]);
         expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex: '^(a|aa)+$' }), text(answerThatFreezes))).toEqual([]);
         // optional or bounded repeats, overlapping repeats across a separator, inline flags
-        for (const regex of ['^(a?|b?){28}a{28}$', '^(?:a|b?){28}c$', '^(a?){30}a{30}$', `^${'a?'.repeat(20)}${'a'.repeat(20)}$`, '^.*a.*a.*a.*a.*a.*a.*a.*a$', '^[\\s\\S]*x[\\s\\S]*x[\\s\\S]*x$', '^(?i)a+$']) {
+        for (const regex of [
+            '^(a?|b?){28}a{28}$',
+            '^(?:a|b?){28}c$',
+            '^(a?){30}a{30}$',
+            `^${'a?'.repeat(20)}${'a'.repeat(20)}$`,
+            '^.*a.*a.*a.*a.*a.*a.*a.*a$',
+            '^[\\s\\S]*x[\\s\\S]*x[\\s\\S]*x$',
+            '^(?i)a+$',
+            'a*(?:b|a*)(?:c|a*)x',
+            '^(?:a*)?(?:a*)?(?:a*)?(?:a*)?(?:a*)?!',
+            'a{1,99}a{1,99}a{1,99}!',
+            '\\d*\\d*x',
+            '(.*)\\s(.*)x',
+            '^(a+)+\\-$'
+        ]) {
             expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('a'.repeat(28)))).toEqual([]);
         }
         expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: '^(\\d+)+$' }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
@@ -178,6 +192,13 @@ describe('a pattern whose shape can freeze a browser', () => {
         const test = spy();
         expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('nope'))).toEqual(['PATTERN']);
         expect(test).toHaveBeenCalledTimes(1);
+    });
+
+    it('checks the shape before the lenient compile too: a pattern only the non-u compile accepts', () => {
+        // \- outside a class is an error with the u flag and fine without it
+        expect(() => new RegExp('^a+\\-$', 'u')).toThrow();
+        expect(compilePattern('^a+\\-$')).not.toBeNull();
+        expect(compilePattern('^(a+)+\\-$')).toBeNull();
     });
 
     it('is told apart from one that does not compile', () => {

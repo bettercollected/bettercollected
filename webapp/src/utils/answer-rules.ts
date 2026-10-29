@@ -83,9 +83,9 @@ function compileRaw(pattern: string): RegExp | null {
  */
 export function compilePattern(pattern: string | undefined | null): RegExp | null {
     if (!pattern) return null;
-    const compiled = compileRaw(pattern);
-    if (!compiled || patternHazard(pattern)) return null;
-    return compiled;
+    // the shape is checked before either compile (the one with the u flag, then the lenient one without it)
+    if (patternHazard(pattern)) return null;
+    return compileRaw(pattern);
 }
 
 /**

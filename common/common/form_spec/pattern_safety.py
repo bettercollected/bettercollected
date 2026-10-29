@@ -32,8 +32,12 @@ never one of these shapes accepted):
   times in a row, ``(a|aa)`` twenty times in a row. Each variable repeat
   counts as its number of ways to match (an unbounded one as
   ``WORK_UNBOUNDED``), the ones that overlap (also across a mandatory
-  character they can match themselves) multiply, and the product may not
-  pass ``WORK_LIMIT``: at most two unbounded repeats.
+  character they can match themselves, and from inside optional groups and
+  alternations: ``a*(?:b|a*)(?:c|a*)x``) multiply, and the product may not
+  pass ``WORK_LIMIT``: at most two unbounded repeats. A pattern that does not
+  start with ``^`` is tried at every start of the answer, so it gets
+  ``WORK_LIMIT / WORK_UNBOUNDED``: ``a{1,99}a{1,99}a{1,99}!`` and
+  ``\\d*\\d*x`` need a ``^``, with it they are fine.
 - ``inline_flags``: ``(?i)``, ``(?i:...)`` and the like change what
   characters match; the analysis works on exact sets, so they are refused.
 - ``too_complex``: longer than ``PATTERN_MAX_LENGTH`` or nested deeper than
@@ -98,7 +102,8 @@ HAZARD_MESSAGES: Dict[str, str] = {
     EMPTY_REPEAT: "A repeated group that can match nothing, such as (a?)*, can "
     "take a browser very long to check.",
     ADJACENT_REPEATS: "Several repeats in a row that match the same characters, "
-    "such as \\d*\\d*\\d*, can take a browser very long to check. Use one.",
+    "such as \\d*\\d*\\d*, can take a browser very long to check. Use fewer, "
+    "or start the pattern with ^.",
     TOO_COMPLEX: "This pattern is too long or too complex to check safely. "
     "Shorten or simplify it.",
     UNPARSEABLE: "This pattern could not be read to check it safely. " "Simplify it.",
@@ -107,6 +112,7 @@ HAZARD_MESSAGES: Dict[str, str] = {
 }
 
 MAX_CODEPOINT = 0x10FFFF
+_ASCII_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 Ranges = Tuple[Tuple[int, int], ...]
 ALL: Ranges = ((0, MAX_CODEPOINT),)
 _LINE_TERMINATORS: Ranges = ((10, 10), (13, 13), (0x2028, 0x2029))
@@ -195,7 +201,7 @@ def _property(name: str, negated: bool) -> Ranges:
 
 
 # ---------------------------------------------------------------- the tree
-# A node is a tuple: ("char", ranges) ("zero",) ("seq", [nodes])
+# A node is a tuple: ("char", ranges) ("zero",) ("bol",) ("seq", [nodes])
 # ("alt", [nodes]) ("rep", body, min, max-or-None) ("look", body)
 # ("backref",)
 
@@ -266,7 +272,7 @@ class _Parser:
         # lazy or possessive suffix
         if self.peek() in ("?", "+"):
             self.i += 1
-        if atom[0] == "zero":
+        if atom[0] in ("zero", "bol"):
             return atom  # a repeated anchor or lookaround matches nothing more
         if atom[0] == "look":
             return atom
@@ -304,7 +310,10 @@ class _Parser:
         if char == ".":
             self.i += 1
             return ("char", _negate(_LINE_TERMINATORS))
-        if char in ("^", "$"):
+        if char == "^":
+            self.i += 1
+            return ("bol",)
+        if char == "$":
             self.i += 1
             return ("zero",)
         if char == "\\":
@@ -355,7 +364,9 @@ class _Parser:
             else:
                 # inline flags: (?i) is a flag-only group, (?i:...) scopes them
                 j = self.i + 1
-                while j < len(self.p) and (self.p[j].isalpha() or self.p[j] == "-"):
+                while j < len(self.p) and (
+                    self.p[j] in _ASCII_LETTERS or self.p[j] == "-"
+                ):
                     j += 1
                 if j >= len(self.p) or j == self.i + 1:
                     raise _Unparseable()
@@ -378,7 +389,9 @@ class _Parser:
             raise _Unparseable()
         char = self.peek()
         self.i += 1
-        if char in "bBAZzG":
+        if char == "A":
+            return ("bol",)
+        if char in "bBZzG":
             return ("zero",)
         if char in "123456789":
             self.backref = True
@@ -513,6 +526,9 @@ class _Analysis:
         # by node identity; the tree outlives the analysis, so ids are unique
         self._info: Dict[int, Tuple[bool, Ranges]] = {}
         self._alphabet: Dict[int, Ranges] = {}
+        self._alt_weights: Dict[int, int] = {}
+        self._ids = 0
+        self.anchored = False
 
     def flag(self, code: str) -> None:
         if self.problem is None:
@@ -527,7 +543,7 @@ class _Analysis:
         kind = node[0]
         if kind == "char":
             result = (False, node[1])
-        elif kind in ("zero", "look"):
+        elif kind in ("zero", "bol", "look"):
             result = (True, ())
         elif kind == "backref":
             result = (True, ALL)
@@ -609,7 +625,7 @@ class _Analysis:
         kind = node[0]
         if kind == "char":
             result = node[1]
-        elif kind in ("zero", "look"):
+        elif kind in ("zero", "bol", "look"):
             result = ()
         elif kind == "backref":
             result = ALL
@@ -622,49 +638,169 @@ class _Analysis:
         self._alphabet[key] = result
         return result
 
-    def _weight(self, item: tuple) -> int:
-        """How many ways the item can match the same text, roughly: a
-        variable repeat has (max - min + 1) of them, an unbounded one
-        WORK_UNBOUNDED; an alternation whose choices can start alike, one
-        per choice. 1 for anything else."""
-        if item[0] == "rep":
-            low, high = item[2], item[3]
-            if high is None:
-                return WORK_UNBOUNDED
-            if high != low:
-                return min(high - low + 1, WORK_UNBOUNDED)
-        elif item[0] == "alt":
-            seen: Ranges = ()
-            for branch in item[1]:
-                first = self.info(branch)[1]
-                if _overlap(seen, first):
-                    return len(item[1])
-                seen = _union(seen, first)
-        return 1
+    def _flatten(self, items: list, out: list) -> None:
+        """The ways of matching the same text that a sequence holds, in
+        order: ("atom", characters, ways, gates, id) for a variable repeat
+        or an ambiguous alternation, wherever it sits (inside an optional
+        group or a loop too), ("mand", characters) for a character that must
+        be there, and ("cut", ids) where mandatory characters end repeats of
+        an optional group. A variable repeat has (max - min + 1) ways, an
+        unbounded one WORK_UNBOUNDED. ``gates``: see ``_optional``."""
+        for item in items:
+            kind = item[0]
+            if kind == "seq":
+                self._flatten(item[1], out)
+            elif kind == "rep":
+                body, low, high = item[1], item[2], item[3]
+                inner: list = []
+                self._flatten(body[1] if body[0] == "seq" else [body], inner)
+                has_atoms = any(e[0] == "atom" for e in inner)
+                if high is not None and high <= 1:
+                    # x? or x{1}: what is inside counts, wherever it is
+                    if low == 0:
+                        inner = self._optional(inner)
+                        if not any(e[0] == "atom" for e in inner):
+                            inner.append(self._atom(self.alphabet(body), 2))
+                    out.extend(inner)
+                    continue
+                ways = (
+                    WORK_UNBOUNDED
+                    if high is None
+                    else min(high - low + 1, WORK_UNBOUNDED)
+                )
+                if has_atoms:
+                    # a loop over variable repeats: they count, a few rounds
+                    # of them (the loop's own ambiguity is nested_repeat's),
+                    # and so do the rounds themselves
+                    inner = self._optional(inner, wrap=True)
+                    for _ in range(min(max(low, 1), 3)):
+                        out.extend(inner)
+                self._emit(item, ways, out)
+            elif kind == "alt":
+                self._emit(item, self._alt_weight(item), out)
+            elif kind == "char":
+                out.append(("mand", item[1]))
+
+    def _atom(self, characters: Ranges, ways: int) -> tuple:
+        self._ids += 1
+        return ("atom", characters, ways, (), self._ids)
+
+    @staticmethod
+    def _optional(inner: list, wrap: bool = False) -> list:
+        """The entries of an optional group as they go into the sequence
+        around it. The group may be skipped, so its mandatory characters
+        never end the repeats outside it; they end the repeats inside it (a
+        ``cut``: those multiply with what came before the cut, not after),
+        and keep the repeats after them from multiplying with outside
+        repeats that cannot match them (``gates``). ``wrap``: the group is a
+        loop, so its leading mandatory characters also follow its last
+        repeats."""
+        result: list = []
+        live: Dict[int, Ranges] = {}  # repeats not ended yet: id -> characters
+        gates: Ranges = ()
+        leading: list = []  # mandatory characters before the first repeat
+
+        def mandatory(characters: Ranges) -> None:
+            if live and not any(_overlap(other, characters) for other in live.values()):
+                result.append(("cut", frozenset(live)))
+                live.clear()
+
+        for entry in inner:
+            if entry[0] == "atom":
+                result.append(entry[:3] + (_union(entry[3], gates),) + entry[4:])
+                live[entry[4]] = entry[1]
+            elif entry[0] == "cut":
+                result.append(entry)
+                for gone in entry[1]:
+                    live.pop(gone, None)
+            else:
+                if not live and not any(e[0] == "atom" for e in result):
+                    leading.append(entry)
+                gates = _union(gates, entry[1])
+                mandatory(entry[1])
+        if wrap:
+            for entry in leading:
+                mandatory(entry[1])
+        return result
+
+    def _emit(self, item: tuple, ways: int, out: list) -> None:
+        if ways > 1:
+            out.append(self._atom(self.alphabet(item), ways))
+        elif not self.info(item)[0]:
+            out.append(("mand", self.alphabet(item)))
+
+    def _alt_weight(self, item: tuple) -> int:
+        """An alternation's ways: one per choice when the choices can start
+        alike, times the most its choices hold inside themselves."""
+        key = id(item)
+        cached = self._alt_weights.get(key)
+        if cached is not None:
+            return cached
+        seen: Ranges = ()
+        alike = False
+        inside = 1
+        for branch in item[1]:
+            first = self.info(branch)[1]
+            if _overlap(seen, first):
+                alike = True
+            seen = _union(seen, first)
+            inside = max(
+                inside, self._chain_cost(branch[1] if branch[0] == "seq" else [branch])
+            )
+        result = (len(item[1]) if alike else 1) * inside
+        self._alt_weights[key] = result
+        return result
+
+    def _chain_cost(self, items: list) -> int:
+        """The most work a sequence's variable repeats add up to: those that
+        match the same characters multiply (``.*a.*a.*a`` is cubic,
+        ``a?a?a?...a?aaa`` exponential), also across a mandatory character
+        they can match themselves (the ``a``) and from inside optional groups
+        and alternations (``a*(?:b|a*)(?:c|a*)x``)."""
+        flat: list = []
+        self._flatten(items, flat)
+        chain: List[Tuple[int, Ranges, int]] = []  # (id, characters, ways)
+        best = 1
+        for entry in flat:
+            if entry[0] == "atom":
+                cost = entry[2]
+                for _, other, ways in chain:
+                    # (a character that had to be there between them, which
+                    # the earlier repeat cannot match, keeps them apart)
+                    if _overlap(other, entry[1]) and (
+                        not entry[3] or _overlap(other, entry[3])
+                    ):
+                        cost *= ways
+                best = max(best, cost)
+                chain.append((entry[4], entry[1], entry[2]))
+            elif entry[0] == "cut":
+                chain = [c for c in chain if c[0] not in entry[1]]
+            elif not any(_overlap(other, entry[1]) for _, other, _ in chain):
+                chain = []  # a mandatory character the repeats cannot match
+        return best
 
     def _adjacent(self, items: list) -> None:
-        """Repeats in one sequence that match the same characters multiply
-        their work (``.*a.*a.*a`` is cubic, ``a?a?a?...a?aaa`` exponential),
-        also across mandatory characters the repeats can match themselves
-        (the ``a`` above). Their combined weight may not pass WORK_LIMIT:
-        two overlapping unbounded repeats are the most."""
-        chain: List[Tuple[Ranges, int]] = []
-        for item in items:
-            weight = self._weight(item)
-            alphabet = self.alphabet(item)
-            if weight > 1:
-                cost = weight
-                for other, other_weight in chain:
-                    if _overlap(other, alphabet):
-                        cost *= other_weight
-                if cost > WORK_LIMIT:
-                    self.flag(ADJACENT_REPEATS)
-                    return
-                chain.append((alphabet, weight))
-            elif not self.info(item)[0] and not any(
-                _overlap(other, alphabet) for other, _ in chain
-            ):
-                chain = []  # a mandatory item the repeats cannot match
+        """The work of a sequence may not pass WORK_LIMIT: two overlapping
+        unbounded repeats are the most. A pattern that does not start with
+        ``^`` is tried at every start position of the answer, so its limit is
+        divided by WORK_UNBOUNDED (about the longest answer tested)."""
+        limit = WORK_LIMIT if self.anchored else WORK_LIMIT // WORK_UNBOUNDED
+        if self._chain_cost(items) > limit:
+            self.flag(ADJACENT_REPEATS)
+
+
+def _anchored(node: tuple) -> bool:
+    """Whether every way into the pattern starts with ``^`` (or ``\\A``)."""
+    if node[0] == "bol":
+        return True
+    if node[0] == "alt":
+        return all(_anchored(branch) for branch in node[1])
+    if node[0] == "seq":
+        for item in node[1]:
+            if item[0] == "zero":
+                continue  # a comment, \b
+            return _anchored(item)
+    return False
 
 
 def pattern_hazard(pattern: Optional[str]) -> Optional[str]:
@@ -686,6 +822,7 @@ def pattern_hazard(pattern: Optional[str]) -> Optional[str]:
     if parser.backref:
         return BACKREFERENCE
     analysis = _Analysis()
+    analysis.anchored = _anchored(tree)
     try:
         analysis.walk(tree, (), False)
     except RecursionError:

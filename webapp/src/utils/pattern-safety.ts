@@ -28,8 +28,12 @@
  *   characters multiply their work: `.*a.*a.*a`, `\d*\d*\d*`, `a?` twenty
  *   times in a row. Each variable repeat counts as its number of ways to
  *   match (an unbounded one as WORK_UNBOUNDED), the ones that overlap (also
- *   across a mandatory character they can match themselves) multiply, and
- *   the product may not pass WORK_LIMIT: at most two unbounded repeats.
+ *   across a mandatory character they can match themselves, and from inside
+ *   optional groups and alternations: `a*(?:b|a*)(?:c|a*)x`) multiply, and
+ *   the product may not pass WORK_LIMIT: at most two unbounded repeats. A
+ *   pattern that does not start with `^` is tried at every start of the
+ *   answer, so it gets WORK_LIMIT / WORK_UNBOUNDED: `a{1,99}a{1,99}a{1,99}!`
+ *   and `\d*\d*x` need a `^`, with it they are fine.
  * - inline_flags: `(?i)`, `(?i:...)` change what characters match; refused.
  * - too_complex: longer than PATTERN_MAX_LENGTH or nested too deep.
  * - unparseable: not a pattern this analysis can read (a broken one, or a
@@ -67,7 +71,7 @@ export const PATTERN_HAZARD_MESSAGES: Record<PatternHazard, string> = {
     nested_repeat: 'A repeated group inside a repeated group, such as (a+)+, can take a browser very long to check. Make each repeat end in a separator or use one repeat.',
     overlapping_alternatives: 'A repeated group whose choices can start with the same character, such as (a|aa)+, can take a browser very long to check. Make the choices start differently or merge them.',
     empty_repeat: 'A repeated group that can match nothing, such as (a?)*, can take a browser very long to check.',
-    adjacent_repeats: 'Several repeats in a row that match the same characters, such as \\d*\\d*\\d*, can take a browser very long to check. Use one.',
+    adjacent_repeats: 'Several repeats in a row that match the same characters, such as \\d*\\d*\\d*, can take a browser very long to check. Use fewer, or start the pattern with ^.',
     too_complex: 'This pattern is too long or too complex to check safely. Shorten or simplify it.',
     unparseable: 'This pattern could not be read to check it safely. Simplify it.',
     inline_flags: 'Flags written inside a pattern, such as (?i), are not supported. Match both cases with a class such as [Aa] instead.'
@@ -165,14 +169,18 @@ function propertyRanges(name: string, negated: boolean): Ranges {
     return ALL;
 }
 
-// A node: char (a set), zero (matches nothing, e.g. an anchor), seq, alt,
+// A node: char (a set), zero (matches nothing, e.g. `$`), bol (`^`), seq, alt,
 // rep (body, min, max or null for unbounded), look (a lookaround's content),
 // backref.
-type Node = { kind: 'char'; set: Ranges } | { kind: 'zero' } | { kind: 'seq'; items: Node[] } | { kind: 'alt'; branches: Node[] } | { kind: 'rep'; body: Node; min: number; max: number | null } | { kind: 'look'; body: Node } | { kind: 'backref' };
+type Node =
+    { kind: 'char'; set: Ranges } | { kind: 'zero' } | { kind: 'bol' } | { kind: 'seq'; items: Node[] } | { kind: 'alt'; branches: Node[] } | { kind: 'rep'; body: Node; min: number; max: number | null } | { kind: 'look'; body: Node } | { kind: 'backref' };
 
 const ZERO: Node = { kind: 'zero' };
+const BOL: Node = { kind: 'bol' };
 const isDigit = (char: string | undefined): boolean => char !== undefined && char >= '0' && char <= '9';
-const isAlpha = (char: string | undefined): boolean => char !== undefined && /^[A-Za-z]$/.test(char);
+// (no RegExp in here: the respondent form's tests watch that no pattern is tested)
+const isAlpha = (char: string | undefined): boolean => char !== undefined && ((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z'));
+const isHex = (char: string): boolean => (char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F');
 
 class Parser {
     private chars: string[];
@@ -254,7 +262,7 @@ class Parser {
         }
         // lazy or possessive suffix
         if (this.peek() === '?' || this.peek() === '+') this.i++;
-        if (atom.kind === 'zero' || atom.kind === 'look') return atom; // nothing to repeat
+        if (atom.kind === 'zero' || atom.kind === 'bol' || atom.kind === 'look') return atom; // nothing to repeat
         return { kind: 'rep', body: atom, min, max };
     }
 
@@ -285,7 +293,11 @@ class Parser {
             this.i++;
             return { kind: 'char', set: negate(LINE_TERMINATORS) };
         }
-        if (char === '^' || char === '$') {
+        if (char === '^') {
+            this.i++;
+            return BOL;
+        }
+        if (char === '$') {
             this.i++;
             return ZERO;
         }
@@ -346,7 +358,8 @@ class Parser {
         if (this.eof()) throw new Unparseable();
         const char = this.peek();
         this.i++;
-        if ('bBAZzG'.includes(char)) return ZERO;
+        if (char === 'A') return BOL;
+        if ('bBZzG'.includes(char)) return ZERO;
         if ('123456789'.includes(char)) {
             this.backref = true;
             return { kind: 'backref' };
@@ -430,7 +443,7 @@ class Parser {
     }
 
     private code(digits: string): Ranges {
-        if (!/^[0-9a-fA-F]+$/.test(digits)) return ALL;
+        if (!digits || !Array.from(digits).every(isHex)) return ALL;
         const code = parseInt(digits, 16);
         return code > MAX_CODEPOINT ? ALL : [[code, code]];
     }
@@ -496,6 +509,9 @@ class Analysis {
     // by node identity: nodes are shared constants only for ZERO, whose info is fixed
     private infos = new Map<Node, [boolean, Ranges]>();
     private alphabets = new Map<Node, Ranges>();
+    private altWeights = new Map<Node, number>();
+    anchored = false;
+    private ids = 0;
 
     flag(code: PatternHazard): void {
         if (this.problem === null) this.problem = code;
@@ -511,6 +527,7 @@ class Analysis {
                 result = [false, node.set];
                 break;
             case 'zero':
+            case 'bol':
             case 'look':
                 result = [true, NONE];
                 break;
@@ -621,6 +638,7 @@ class Analysis {
                 result = node.set;
                 break;
             case 'zero':
+            case 'bol':
             case 'look':
                 result = NONE;
                 break;
@@ -642,51 +660,167 @@ class Analysis {
     }
 
     /**
-     * How many ways the item can match the same text, roughly: a variable
-     * repeat has (max - min + 1) of them, an unbounded one WORK_UNBOUNDED; an
-     * alternation whose choices can start alike, one per choice. 1 for
-     * anything else.
+     * The ways of matching the same text that a sequence holds, in order:
+     * `atom` for a variable repeat or an ambiguous alternation, wherever it
+     * sits (inside an optional group or a loop too), `mand` for a character
+     * that must be there, and `cut` where mandatory characters end repeats of
+     * an optional group. A variable repeat has (max - min + 1) ways, an
+     * unbounded one WORK_UNBOUNDED. `gates`: see `optional`.
      */
-    private weight(item: Node): number {
-        if (item.kind === 'rep') {
-            if (item.max === null) return WORK_UNBOUNDED;
-            if (item.max !== item.min) return Math.min(item.max - item.min + 1, WORK_UNBOUNDED);
-        } else if (item.kind === 'alt') {
-            let seen: Ranges = NONE;
-            for (const branch of item.branches) {
-                const first = this.info(branch)[1];
-                if (overlap(seen, first)) return item.branches.length;
-                seen = union(seen, first);
+    private flatten(items: Node[], out: Entry[]): void {
+        for (const item of items) {
+            if (item.kind === 'seq') {
+                this.flatten(item.items, out);
+            } else if (item.kind === 'rep') {
+                const { body, min, max } = item;
+                let inner: Entry[] = [];
+                this.flatten(body.kind === 'seq' ? body.items : [body], inner);
+                if (max !== null && max <= 1) {
+                    // x? or x{1}: what is inside counts, wherever it is
+                    if (min === 0) {
+                        inner = this.optional(inner);
+                        if (!inner.some((entry) => entry.kind === 'atom')) inner.push(this.atom(this.alphabet(body), 2));
+                    }
+                    out.push(...inner);
+                    continue;
+                }
+                const ways = max === null ? WORK_UNBOUNDED : Math.min(max - min + 1, WORK_UNBOUNDED);
+                if (inner.some((entry) => entry.kind === 'atom')) {
+                    // a loop over variable repeats: they count, a few rounds of
+                    // them (the loop's own ambiguity is nested_repeat's), and
+                    // so do the rounds themselves
+                    inner = this.optional(inner, true);
+                    for (let round = 0; round < Math.min(Math.max(min, 1), 3); round++) out.push(...inner);
+                }
+                this.emit(item, ways, out);
+            } else if (item.kind === 'alt') {
+                this.emit(item, this.altWeight(item), out);
+            } else if (item.kind === 'char') {
+                out.push({ kind: 'mand', set: item.set });
             }
         }
-        return 1;
+    }
+
+    private atom(set: Ranges, ways: number): Atom {
+        this.ids++;
+        return { kind: 'atom', set, ways, gates: NONE, id: this.ids };
     }
 
     /**
-     * Repeats in one sequence that match the same characters multiply their
-     * work (`.*a.*a.*a` is cubic, `a?a?a?…a?aaa` exponential), also across
-     * mandatory characters the repeats can match themselves (the `a` above).
-     * Their combined weight may not pass WORK_LIMIT: two overlapping
-     * unbounded repeats are the most.
+     * The entries of an optional group as they go into the sequence around
+     * it. The group may be skipped, so its mandatory characters never end the
+     * repeats outside it; they end the repeats inside it (a `cut`: those
+     * multiply with what came before the cut, not after), and keep the
+     * repeats after them from multiplying with outside repeats that cannot
+     * match them (`gates`). `wrap`: the group is a loop, so its leading
+     * mandatory characters also follow its last repeats.
      */
-    private adjacent(items: Node[]): void {
-        let chain: Array<[Ranges, number]> = [];
-        for (const item of items) {
-            const weight = this.weight(item);
-            const alphabet = this.alphabet(item);
-            if (weight > 1) {
-                let cost = weight;
-                for (const [other, otherWeight] of chain) if (overlap(other, alphabet)) cost *= otherWeight;
-                if (cost > WORK_LIMIT) {
-                    this.flag('adjacent_repeats');
-                    return;
-                }
-                chain.push([alphabet, weight]);
-            } else if (!this.info(item)[0] && !chain.some(([other]) => overlap(other, alphabet))) {
-                chain = []; // a mandatory item the repeats cannot match
+    private optional(inner: Entry[], wrap = false): Entry[] {
+        const result: Entry[] = [];
+        const live = new Map<number, Ranges>(); // repeats not ended yet: id -> characters
+        let gates: Ranges = NONE;
+        const leading: Mand[] = []; // mandatory characters before the first repeat
+        const mandatory = (set: Ranges) => {
+            if (live.size && ![...live.values()].some((other) => overlap(other, set))) {
+                result.push({ kind: 'cut', ids: new Set(live.keys()) });
+                live.clear();
+            }
+        };
+        for (const entry of inner) {
+            if (entry.kind === 'atom') {
+                result.push({ ...entry, gates: union(entry.gates, gates) });
+                live.set(entry.id, entry.set);
+            } else if (entry.kind === 'cut') {
+                result.push(entry);
+                entry.ids.forEach((id) => live.delete(id));
+            } else {
+                if (!live.size && !result.some((e) => e.kind === 'atom')) leading.push(entry);
+                gates = union(gates, entry.set);
+                mandatory(entry.set);
             }
         }
+        if (wrap) for (const entry of leading) mandatory(entry.set);
+        return result;
     }
+
+    private emit(item: Node, ways: number, out: Entry[]): void {
+        if (ways > 1) out.push(this.atom(this.alphabet(item), ways));
+        else if (!this.info(item)[0]) out.push({ kind: 'mand', set: this.alphabet(item) });
+    }
+
+    /** An alternation's ways: one per choice when the choices can start alike, times the most its choices hold inside themselves. */
+    private altWeight(item: Node & { kind: 'alt' }): number {
+        const cached = this.altWeights.get(item);
+        if (cached !== undefined) return cached;
+        let seen: Ranges = NONE;
+        let alike = false;
+        let inside = 1;
+        for (const branch of item.branches) {
+            const first = this.info(branch)[1];
+            if (overlap(seen, first)) alike = true;
+            seen = union(seen, first);
+            inside = Math.max(inside, this.chainCost(branch.kind === 'seq' ? branch.items : [branch]));
+        }
+        const result = (alike ? item.branches.length : 1) * inside;
+        this.altWeights.set(item, result);
+        return result;
+    }
+
+    /**
+     * The most work a sequence's variable repeats add up to: those that match
+     * the same characters multiply (`.*a.*a.*a` is cubic, `a?a?a?…a?aaa`
+     * exponential), also across a mandatory character they can match
+     * themselves (the `a`) and from inside optional groups and alternations
+     * (`a*(?:b|a*)(?:c|a*)x`).
+     */
+    private chainCost(items: Node[]): number {
+        const flat: Entry[] = [];
+        this.flatten(items, flat);
+        let chain: Atom[] = [];
+        let best = 1;
+        for (const entry of flat) {
+            if (entry.kind === 'atom') {
+                let cost = entry.ways;
+                // (a character that had to be there between them, which the earlier repeat cannot match, keeps them apart)
+                for (const other of chain) if (overlap(other.set, entry.set) && (!entry.gates.length || overlap(other.set, entry.gates))) cost *= other.ways;
+                best = Math.max(best, cost);
+                chain.push(entry);
+            } else if (entry.kind === 'cut') {
+                chain = chain.filter((other) => !entry.ids.has(other.id));
+            } else if (!chain.some((other) => overlap(other.set, entry.set))) {
+                chain = []; // a mandatory character the repeats cannot match
+            }
+        }
+        return best;
+    }
+
+    /**
+     * The work of a sequence may not pass WORK_LIMIT: two overlapping
+     * unbounded repeats are the most. A pattern that does not start with `^`
+     * is tried at every start position of the answer, so its limit is divided
+     * by WORK_UNBOUNDED (about the longest answer tested).
+     */
+    private adjacent(items: Node[]): void {
+        const limit = this.anchored ? WORK_LIMIT : WORK_LIMIT / WORK_UNBOUNDED;
+        if (this.chainCost(items) > limit) this.flag('adjacent_repeats');
+    }
+}
+
+type Atom = { kind: 'atom'; set: Ranges; ways: number; gates: Ranges; id: number };
+type Mand = { kind: 'mand'; set: Ranges };
+type Entry = Atom | Mand | { kind: 'cut'; ids: Set<number> };
+
+/** Whether every way into the pattern starts with `^` (or `\A`). */
+function isAnchored(node: Node): boolean {
+    if (node.kind === 'bol') return true;
+    if (node.kind === 'alt') return node.branches.every(isAnchored);
+    if (node.kind === 'seq') {
+        for (const item of node.items) {
+            if (item.kind === 'zero') continue; // a comment, \b
+            return isAnchored(item);
+        }
+    }
+    return false;
 }
 
 const memo = new Map<string, PatternHazard | null>();
@@ -715,6 +849,7 @@ function analyse(pattern: string): PatternHazard | null {
     }
     if (parser.backref) return 'backreference';
     const analysis = new Analysis();
+    analysis.anchored = isAnchored(tree);
     try {
         analysis.walk(tree, NONE, false);
     } catch {

@@ -729,7 +729,7 @@
     "NESTED_REPEAT": "Een herhaalde groep binnen een herhaalde groep, zoals (a+)+, kan een browser erg lang bezighouden. Laat elke herhaling eindigen op een scheidingsteken of gebruik één herhaling.",
     "OVERLAPPING_ALTERNATIVES": "Een herhaalde groep waarvan de keuzes met hetzelfde teken kunnen beginnen, zoals (a|aa)+, kan een browser erg lang bezighouden. Laat de keuzes verschillend beginnen of voeg ze samen.",
     "EMPTY_REPEAT": "Een herhaalde groep die niets kan overeenkomen, zoals (a?)*, kan een browser erg lang bezighouden.",
-    "ADJACENT_REPEATS": "Meerdere herhalingen achter elkaar die dezelfde tekens toelaten, zoals \\d*\\d*\\d*, kunnen een browser erg lang bezighouden. Gebruik er één.",
+    "ADJACENT_REPEATS": "Meerdere herhalingen achter elkaar die dezelfde tekens toelaten, zoals \\d*\\d*\\d*, kunnen een browser erg lang bezighouden. Gebruik er minder, of laat het patroon met ^ beginnen.",
     "TOO_COMPLEX": "Dit patroon is te lang of te ingewikkeld om veilig te controleren. Kort het in of vereenvoudig het.",
     "UNPARSEABLE": "Dit patroon kon niet worden gelezen om het veilig te controleren. Vereenvoudig het.",
     "INLINE_FLAGS": "Vlaggen binnen een patroon, zoals (?i), worden niet ondersteund. Gebruik in plaats daarvan een klasse zoals [Aa] voor hoofdletters en kleine letters."

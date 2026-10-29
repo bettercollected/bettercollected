@@ -294,7 +294,8 @@ cases `docs/spec/pattern-safety.cases.json`; keep the two in step): the server i
 respondent's browser evaluates the same pattern with a backtracking `RegExp`, so `^(a+)+$` could freeze a tab.
 `pattern_hazard()` parses the pattern and refuses the shapes that can explode (nested or overlapping repeats
 including optional/bounded ones, empty repeats, a work estimate over `WORK_LIMIT` for overlapping repeats in one
-sequence, also across separators they can match, inline flags, backreferences, too long/deep/unreadable); it
+sequence, also across separators they can match and from inside optional groups and alternations, with a
+thousandth of the allowance when the pattern does not start with `^` since it is tried at every start, inline flags, backreferences, too long/deep/unreadable); it
 reads the shape, never times anything, and cannot prove the absence of super-linear patterns, so the webapp
 also tests answers only up to `PATTERN_TEST_MAX_LENGTH` (1,000; longer ones are left to the server's RE2). `checked_pattern` applies it (form spec, ops engine, REST API, Open Formulieren
 import: an archive pattern it refuses is `validation_not_carried`), and `services/form_patterns.py`
