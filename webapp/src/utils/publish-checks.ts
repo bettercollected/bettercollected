@@ -13,11 +13,11 @@ import { ContrastIssueKey, themeContrastGuard } from '@app/utils/theme-contrast'
  * to fix, and where, before anything is sent.
  */
 
-export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast' | 'needs_review';
+export type PublishProblemCode = 'missing_why_we_ask' | 'required_unanswerable' | 'preset_answer' | 'untitled_question' | 'missing_ending' | 'theme_contrast' | 'needs_review' | 'workspace_title_missing';
 
 export interface PublishProblem {
     code: PublishProblemCode;
-    /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID. */
+    /** The question; for `missing_ending` the page whose jump it is; for `theme_contrast` THEME_PROBLEM_ID; empty for `needs_review` and `workspace_title_missing`, which belong to no question. */
     fieldId: string;
     message: string;
     /** `needs_review` only: the id of the import report to look through (nothing of its content). */
@@ -179,6 +179,47 @@ export function themeContrastProblems(theme: Partial<FormTheme> | null | undefin
     const words = issues.map((issue) => CONTRAST_WORDS[issue.key]);
     const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
     return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message: `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.` }];
+}
+
+// Characters that show nothing: format, space, line/paragraph separator and control characters (zero-width space,
+// word joiner, BOM, NBSP, ...), plus the fillers and blanks Unicode files elsewhere (Hangul and Braille blanks, soft
+// hyphen, Mongolian vowel separator). Same set as the backend's `visible_title` (services/publish_checks.py).
+const INVISIBLE = new RegExp('[\\p{Cf}\\p{Zs}\\p{Zl}\\p{Zp}\\p{Cc}\\u115f\\u1160\\u3164\\uffa0\\u2800\\u00ad\\u180e]', 'gu');
+
+/** The characters of a title that can be seen; '' when there are none. */
+export function visibleTitle(title: string | null | undefined): string {
+    return typeof title === 'string' ? title.replace(INVISIBLE, '') : '';
+}
+
+/**
+ * Does the workspace have a title respondents can read? It needs a visible character, and "untitled" (any case) is
+ * the placeholder, not a title: the onboarding page and the login redirect treat it as no title too.
+ */
+export function hasWorkspaceTitle(title: string | null | undefined): boolean {
+    const visible = visibleTitle(title);
+    return visible !== '' && visible.toLowerCase() !== 'untitled';
+}
+
+/** The first publish-checks version that holds a form to the workspace-title rule (backend `WORKSPACE_TITLE_FROM_VERSION`). */
+export const WORKSPACE_TITLE_FROM_VERSION = 2;
+
+/** Is a form created under `publishChecksVersion` held to the workspace-title rule? Forms made before it (or with no version) are not (backend `requires_workspace_title`). */
+export function requiresWorkspaceTitle(publishChecksVersion?: number | null): boolean {
+    return !!publishChecksVersion && publishChecksVersion >= WORKSPACE_TITLE_FROM_VERSION;
+}
+
+/**
+ * The workspace's title is who respondents see receiving their answers, so a
+ * form created under the workspace-title rule is not published while the
+ * workspace has none (backend `workspace_title_problem`, the same rule:
+ * `hasWorkspaceTitle`). An older form is not held to it. The handle never
+ * stands in for a title. While the workspace is still loading (no id)
+ * nothing is claimed here: the server decides.
+ */
+export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined, publishChecksVersion?: number | null): PublishProblem[] {
+    if (!requiresWorkspaceTitle(publishChecksVersion)) return [];
+    if (!workspace?.id || hasWorkspaceTitle(workspace.title)) return [];
+    return [{ code: 'workspace_title_missing', fieldId: '', message: 'Your workspace has no title yet. Respondents see it as who receives their answers, so give it a title in the workspace settings.' }];
 }
 
 /** The problems a refused publish (422 form_not_publishable) carries, if any. */

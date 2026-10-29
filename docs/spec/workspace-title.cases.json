@@ -1,0 +1,40 @@
+{
+  "description": "When a workspace has a title respondents can read (publish check workspace_title_missing). A title needs at least one visible character (Cf, Zs, Zl, Zp, Cc and the fillers U+115F U+1160 U+3164 U+FFA0, Braille blank U+2800, U+00AD, U+180E show nothing) and is not 'untitled' in any case. Run by backend/tests/app/services/test_workspace_title_check.py (services/publish_checks.py has_workspace_title) and webapp src/utils/publish-checks.test.ts (hasWorkspaceTitle), so the builder and the server agree.",
+  "refused": [
+    null,
+    "",
+    "  ",
+    "\t",
+    "\n",
+    "\u00a0",
+    "\u200b",
+    "\u2060",
+    "\ufeff",
+    "\u3164",
+    "\u115f\u1160",
+    "\uffa0",
+    "\u2800",
+    "\u00ad",
+    "\u180e",
+    "\u2028\u2029",
+    "\u0000\u0007",
+    " \u200b \u3164\n\t\ufeff\u00a0 ",
+    "untitled",
+    "Untitled",
+    "UNTITLED",
+    "  Untitled \n",
+    "un\u200btitled",
+    "\u200bUNTITLED\ufeff"
+  ],
+  "accepted": [
+    "Acme Foundation",
+    "A",
+    "  Acme  ",
+    "Caf\u00e9 de Vries",
+    "\u200bA\u3164",
+    " \u200b \u3164\n\ufeffx\u2060 ",
+    "Untitled workspace",
+    "untitled-2",
+    "\u00dcn\u00efcode \u540d\u524d"
+  ]
+}

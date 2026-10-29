@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -329,6 +329,29 @@ describe('Settings', () => {
         renderSettings();
         expect(screen.getByRole('heading', { name: nl.FORM.TITLE })).toBeInTheDocument();
         expect(screen.getByText(nl.FORM.LATER_ONLY)).toBeInTheDocument();
+    });
+
+    it('names the type of each answer in words, in the language of the screen', async () => {
+        const row = (source: string) => screen.getByTestId(`registration-variable-${source}`);
+        renderSettings();
+        fireEvent.click(toggle());
+        expect(row('q1')).toHaveTextContent('Short text');
+        expect(row('q2')).toHaveTextContent('Multiple choice');
+        expect(row('ref')).toHaveTextContent('Hidden field');
+        cleanup();
+
+        await i18n.changeLanguage('nl');
+        renderSettings();
+        fireEvent.click(screen.getByRole('switch', { name: nl.FORM.ENABLE }));
+        expect(row('q1')).toHaveTextContent('Korte tekst');
+        expect(row('q2')).toHaveTextContent('Meerkeuze');
+        expect(row('q3')).toHaveTextContent('Bestandsupload');
+        expect(row('ref')).toHaveTextContent('Verborgen veld');
+        // a type nobody labelled still reads as words, never as the raw code
+        expect(row('q5')).toHaveTextContent('signature');
+        expect(row('q1').textContent!.toLowerCase()).not.toMatch(/short|text/);
+        expect(row('q2').textContent!.toLowerCase()).not.toMatch(/multiple|choice/);
+        expect(row('ref').textContent!.toLowerCase()).not.toContain('hidden');
     });
 });
 

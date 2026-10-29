@@ -37,6 +37,19 @@ the two in step).
   person clears the mark on its import report (``review_problem``; the
   problem carries only the report's id, ``importId``).
 
+- **The workspace has a title:** respondents see the workspace's title as
+  who receives their answers (the privacy strip), so a form is not published
+  while its workspace has none (``workspace_title_problem``; the problem
+  carries nothing of the workspace, ``fieldId`` is empty). A title needs a
+  visible character (spaces, zero-width and filler characters show nothing)
+  and is not "untitled", which onboarding also treats as no title; the
+  handle never stands in for one (the default workspace's handle is its
+  owner's id). Only a new publish or republish is
+  held up: a form that is already live stays live. Like "why we ask", the
+  rule is held to forms created under check version 2 or later
+  (``requires_workspace_title``): a form made before it publishes and
+  republishes as it always did, whatever its workspace's title.
+
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
 "Why we ask this" is required only of forms created under these checks
@@ -48,6 +61,7 @@ for every form.
 
 import copy
 import re
+import unicodedata
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
@@ -68,9 +82,12 @@ from backend.app.services.theme_contrast import (
 
 FORM_NOT_PUBLISHABLE = "form_not_publishable"
 
-# The version of these checks a new form is created under; a form without one
-# (created earlier) is not required to say why it asks.
-PUBLISH_CHECKS_VERSION = 1
+# The version of these checks a new form is created under. A form without one
+# (created earlier) is not required to say why it asks; a form created under
+# version 1 is not held to the workspace-title rule (version 2).
+PUBLISH_CHECKS_VERSION = 2
+WHY_WE_ASK_FROM_VERSION = 1
+WORKSPACE_TITLE_FROM_VERSION = 2
 
 MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
@@ -78,6 +95,7 @@ PRESET_ANSWER = "preset_answer"
 MISSING_ENDING = "missing_ending"
 THEME_CONTRAST = "theme_contrast"
 NEEDS_REVIEW = "needs_review"
+WORKSPACE_TITLE_MISSING = "workspace_title_missing"
 # The ``fieldId`` of the theme's problem: it belongs to no question (the
 # webapp's THEME_PROBLEM_ID).
 THEME_PROBLEM_ID = "theme"
@@ -341,6 +359,55 @@ def review_problem(import_id: Optional[str]) -> Dict[str, Optional[str]]:
     }
 
 
+# Characters that show nothing: format, space, line/paragraph separator and
+# control characters (zero-width space, word joiner, BOM, NBSP, ...), plus
+# the fillers and blanks Unicode files elsewhere (Hangul and Braille blanks,
+# soft hyphen, Mongolian vowel separator).
+_INVISIBLE_CATEGORIES = {"Cf", "Zs", "Zl", "Zp", "Cc"}
+_INVISIBLE_EXTRA = {
+    "\u115f", "\u1160", "\u3164", "\uffa0", "\u2800", "\u00ad", "\u180e",
+}  # fmt: skip
+# What onboarding also treats as "no title" (webapp onboarding page, login).
+_PLACEHOLDER_TITLE = "untitled"
+
+
+def visible_title(title: Optional[str]) -> str:
+    """The characters of ``title`` that can be seen; "" when there are none.
+    Mirrored by the webapp's ``visibleTitle`` (utils/publish-checks.ts)."""
+    if not isinstance(title, str):
+        return ""
+    return "".join(
+        char
+        for char in title
+        if char not in _INVISIBLE_EXTRA
+        and unicodedata.category(char) not in _INVISIBLE_CATEGORIES
+    )
+
+
+def has_workspace_title(title: Optional[str]) -> bool:
+    """A title needs at least one visible character, and "untitled" (any
+    case, as onboarding treats it) is the placeholder, not a title."""
+    visible = visible_title(title)
+    return bool(visible) and visible.casefold() != _PLACEHOLDER_TITLE
+
+
+def workspace_title_problem(title: Optional[str]) -> Optional[Dict[str, Optional[str]]]:
+    """The problem of a workspace without a title, or None when it has one.
+    ``title``: the workspace's ``title`` (None when the workspace could not be
+    read: that is no title either, so it never fails open). The problem names
+    nothing of the workspace; the webapp links to the workspace settings."""
+    if has_workspace_title(title):
+        return None
+    return {
+        "code": WORKSPACE_TITLE_MISSING,
+        "fieldId": None,
+        "message": "Your workspace has no title yet. Respondents see it as "
+        "who receives their answers, so give it a title in the workspace "
+        "settings (a workspace admin can do this); then the form can be "
+        "published.",
+    }
+
+
 def ensure_templatable(review: Optional[Dict[str, Optional[str]]]) -> None:
     """422 ``needs_review`` (the problem shape of a refused publish, with the
     same ``importId``) while the source form's import still needs review: no
@@ -364,20 +431,32 @@ def ensure_templatable(review: Optional[Dict[str, Optional[str]]]) -> None:
 
 def requires_why_we_ask(checks_version: Optional[int]) -> bool:
     """Is a form created under ``checks_version`` held to the reason rule?"""
-    return bool(checks_version) and checks_version >= 1
+    return bool(checks_version) and checks_version >= WHY_WE_ASK_FROM_VERSION
+
+
+def requires_workspace_title(checks_version: Optional[int]) -> bool:
+    """Is a form created under ``checks_version`` held to the workspace-title
+    rule? Only forms created under version 2 or later: earlier ones (and forms
+    with no version) publish and republish as before."""
+    return bool(checks_version) and checks_version >= WORKSPACE_TITLE_FROM_VERSION
 
 
 def ensure_publishable(
     form: Any,
     checks_version: Optional[int] = None,
     review: Optional[Dict[str, Optional[str]]] = None,
+    workspace_problem: Optional[Dict[str, Optional[str]]] = None,
 ) -> None:
     """422 ``form_not_publishable`` listing every problem that blocks this
     form, or nothing. ``checks_version``: the form's
     ``publish_checks_version`` (None for a form created before the checks).
     ``review``: the form's ``review_problem`` while its import still needs
-    review (listed first)."""
+    review (listed first). ``workspace_problem``: the workspace's
+    ``workspace_title_problem`` (listed next: it belongs to no question; held
+    only against forms created under ``requires_workspace_title``)."""
     problems = [review] if review else []
+    if workspace_problem and requires_workspace_title(checks_version):
+        problems.append(workspace_problem)
     problems += [
         problem
         for problem in publish_problems(form)

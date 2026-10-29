@@ -67,7 +67,8 @@ function renderButton() {
 }
 
 const setUp = (settings: Record<string, unknown>) => {
-    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+    // a titled workspace: without a title nothing here would be published (publish-button-workspace-title.test.tsx)
+    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', title: 'Acme Foundation' } as any));
     store.dispatch(setForm({ formId: 'form-1', title: 'Imported form', settings, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
 };
 
@@ -248,7 +249,7 @@ describe('publishing a form that still needs review', () => {
         });
         const dialog = await screen.findByRole('dialog', { name: 'Dit formulier moet nog worden nagekeken' });
         expect(dialog).toHaveTextContent('U kunt pas publiceren nadat u het importrapport hebt doorgenomen');
-        expect(await screen.findByRole('link', { name: 'Open het importrapport' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Markeer als nagekeken' })).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'Importrapport openen' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Markeren als nagekeken' })).toBeInTheDocument();
     });
 });
