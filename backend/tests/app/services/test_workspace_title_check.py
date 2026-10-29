@@ -2,7 +2,11 @@
 (services/publish_checks.py ``workspace_title_problem``): respondents see the
 workspace's title as who receives their answers. Every way of publishing
 refuses with the existing ``form_not_publishable`` error and one problem,
-``workspace_title_missing``, which carries nothing of the workspace."""
+``workspace_title_missing``, which carries nothing of the workspace.
+
+Only forms created under check version 2 or later are held to it
+(``requires_workspace_title``, like "why we ask" from version 1): a form made
+earlier publishes and republishes as it always did."""
 
 import json
 from pathlib import Path
@@ -22,9 +26,12 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.publish_checks import (
     FORM_NOT_PUBLISHABLE,
     MISSING_WHY_WE_ASK,
+    PUBLISH_CHECKS_VERSION,
     WORKSPACE_TITLE_MISSING,
     ensure_publishable,
     has_workspace_title,
+    requires_why_we_ask,
+    requires_workspace_title,
     workspace_title_problem,
 )
 from tests.app.controllers.data import testUser
@@ -62,6 +69,29 @@ async def _draft(workspace, question_type=T.SHORT_TEXT) -> str:
 
 async def _set_title(workspace, title):
     await container.workspace_repo().set_fields(workspace, {"title": title})
+
+
+async def _set_checks_version(workspace, form_id, version):
+    """Make the form as created under an older check version (None: before
+    the checks existed)."""
+    repo = container.workspace_form_repo()
+    workspace_form = await repo.get_workspace_form_in_workspace(
+        workspace_id=workspace.id, query=str(form_id)
+    )
+    workspace_form.settings.publish_checks_version = version
+    await repo.save(workspace_form)
+
+
+async def _rename_draft(form_id, title):
+    draft = await container.form_service().get_form_document_by_id(form_id)
+    draft.title = title
+    await container.form_service().update_form(form_id=form_id, form=draft)
+
+
+async def _publish(workspace, form_id):
+    return await container.workspace_form_service().publish_form(
+        workspace.id, form_id, testUser
+    )
 
 
 async def _latest(form_id):
@@ -156,7 +186,7 @@ def test_ensure_publishable_lists_it_after_the_review_problem_and_before_the_res
     with pytest.raises(HTTPException) as raised:
         ensure_publishable(
             form,
-            checks_version=1,
+            checks_version=PUBLISH_CHECKS_VERSION,
             review=review,
             workspace_problem=workspace_title_problem(""),
         )
@@ -165,7 +195,76 @@ def test_ensure_publishable_lists_it_after_the_review_problem_and_before_the_res
 
 
 def test_a_titled_workspace_adds_no_problem():
-    ensure_publishable(_form(), workspace_problem=workspace_title_problem("Acme"))
+    ensure_publishable(
+        _form(),
+        checks_version=PUBLISH_CHECKS_VERSION,
+        workspace_problem=workspace_title_problem("Acme"),
+    )
+
+
+# ------------------------------------------ which forms are held to the rule
+
+
+def test_the_rule_starts_at_version_2_and_new_forms_are_created_under_it():
+    assert PUBLISH_CHECKS_VERSION == 2
+    assert [requires_workspace_title(v) for v in (None, 0, 1, 2, 3)] == [
+        False,
+        False,
+        False,
+        True,
+        True,
+    ]
+
+
+def test_the_version_bump_leaves_why_we_ask_as_it_was():
+    assert [requires_why_we_ask(v) for v in (None, 0, 1, 2, 3)] == [
+        False,
+        False,
+        True,
+        True,
+        True,
+    ]
+
+
+@pytest.mark.parametrize("version", [None, 0, 1])
+def test_an_older_form_is_not_held_to_the_title(version):
+    ensure_publishable(
+        _form(), checks_version=version, workspace_problem=workspace_title_problem("")
+    )
+
+
+@pytest.mark.parametrize("version", [2, 3])
+def test_a_form_under_the_rule_is_held_to_the_title(version):
+    with pytest.raises(HTTPException) as raised:
+        ensure_publishable(
+            _form(),
+            checks_version=version,
+            workspace_problem=workspace_title_problem(""),
+        )
+    assert [p["code"] for p in raised.value.content["problems"]] == [
+        WORKSPACE_TITLE_MISSING
+    ]
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [(None, []), (1, [MISSING_WHY_WE_ASK]), (2, [MISSING_WHY_WE_ASK])],
+)
+def test_the_other_checks_do_not_change_with_the_version(version, expected):
+    """With a titled workspace, an email question without a reason is refused
+    exactly as before for every version (and passes for a form older than
+    the reason rule)."""
+    workspace_problem = workspace_title_problem("Acme")
+    if not expected:
+        ensure_publishable(
+            _form(T.EMAIL), checks_version=version, workspace_problem=workspace_problem
+        )
+        return
+    with pytest.raises(HTTPException) as raised:
+        ensure_publishable(
+            _form(T.EMAIL), checks_version=version, workspace_problem=workspace_problem
+        )
+    assert [p["code"] for p in raised.value.content["problems"]] == expected
 
 
 # ----------------------------------------------------------- the service
@@ -208,6 +307,70 @@ async def test_publish_works_once_the_workspace_has_a_title(untitled_workspace):
         untitled_workspace.id, form_id, testUser
     )
     assert published.version == 1
+
+
+async def test_a_new_form_is_created_under_the_title_rule(untitled_workspace):
+    form_id = await _draft(untitled_workspace)
+    workspace_form = (
+        await container.workspace_form_repo().get_workspace_form_in_workspace(
+            workspace_id=untitled_workspace.id, query=str(form_id)
+        )
+    )
+    assert workspace_form.settings.publish_checks_version == PUBLISH_CHECKS_VERSION
+    assert requires_workspace_title(workspace_form.settings.publish_checks_version)
+
+
+@pytest.mark.parametrize("version", [None, 1])
+async def test_an_existing_form_publishes_and_republishes_in_an_untitled_workspace(
+    untitled_workspace, version
+):
+    form_id = await _draft(untitled_workspace)
+    await _set_checks_version(untitled_workspace, form_id, version)
+    assert (await _publish(untitled_workspace, form_id)).version == 1
+    # a republish is a new publish of an edited draft
+    await _rename_draft(form_id, "Second")
+    assert (await _publish(untitled_workspace, form_id)).version == 2
+    # a blank title is no different from none for an older form
+    await _set_title(untitled_workspace, " \u200b ")
+    await _rename_draft(form_id, "Third")
+    assert (await _publish(untitled_workspace, form_id)).version == 3
+
+
+async def test_an_older_form_keeps_why_we_ask_as_it_was(untitled_workspace):
+    """The version bump changes no other check: a form from before the
+    checks publishes without a reason, one from version 1 still needs it."""
+    before = await _draft(untitled_workspace, T.EMAIL)
+    await _set_checks_version(untitled_workspace, before, None)
+    assert (await _publish(untitled_workspace, before)).version == 1
+
+    first = await _draft(untitled_workspace, T.EMAIL)
+    await _set_checks_version(untitled_workspace, first, 1)
+    with pytest.raises(HTTPException) as raised:
+        await _publish(untitled_workspace, first)
+    codes = [p["code"] for p in raised.value.content["problems"]]
+    assert codes == [MISSING_WHY_WE_ASK]
+
+
+async def test_a_new_form_in_a_titled_workspace_is_not_affected(workspace):
+    form_id = await _draft(workspace)
+    assert (await _publish(workspace, form_id)).version == 1
+
+
+async def test_the_older_form_check_does_not_read_the_workspace(
+    untitled_workspace, monkeypatch
+):
+    """An older form is not held to the rule, so publishing it makes no
+    workspace lookup for it."""
+    form_id = await _draft(untitled_workspace)
+    await _set_checks_version(untitled_workspace, form_id, 1)
+
+    async def boom(self, workspace_id):
+        raise AssertionError("the workspace title was read")
+
+    monkeypatch.setattr(
+        type(container.workspace_form_service()), "_workspace_title", boom
+    )
+    assert (await _publish(untitled_workspace, form_id)).version == 1
 
 
 async def test_the_handle_does_not_stand_in_for_a_title(untitled_workspace):

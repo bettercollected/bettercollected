@@ -91,6 +91,7 @@ from backend.app.services.publish_checks import (
     PUBLISH_CHECKS_VERSION,
     ensure_publishable,
     ensure_templatable,
+    requires_workspace_title,
     review_problem,
     workspace_title_problem,
 )
@@ -1335,16 +1336,21 @@ class WorkspaceFormService:
         # Honest defaults (services/publish_checks.py): checked on the draft
         # that is about to go live, whoever publishes it (builder, API, MCP),
         # by the rules the form was created under.
+        checks_version = (
+            workspace_form.settings.publish_checks_version
+            if workspace_form.settings
+            else None
+        )
         ensure_publishable(
             await self.form_service.get_form_document_by_id(str(form_id)),
-            checks_version=(
-                workspace_form.settings.publish_checks_version
-                if workspace_form.settings
-                else None
-            ),
+            checks_version=checks_version,
             review=await self._pending_import_review(workspace_id, workspace_form),
-            workspace_problem=workspace_title_problem(
-                await self._workspace_title(workspace_id)
+            # Only a form created under the workspace-title rule is held to it
+            # (an older form never reads the workspace here).
+            workspace_problem=(
+                workspace_title_problem(await self._workspace_title(workspace_id))
+                if requires_workspace_title(checks_version)
+                else None
             ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)

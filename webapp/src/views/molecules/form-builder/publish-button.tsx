@@ -125,7 +125,7 @@ const PublishButton = ({
         // The builder's live endings with its live pages; the saved ones otherwise.
         const found = [
             // The workspace's title: who respondents see receiving their answers. It belongs to no question.
-            ...workspaceTitleProblems(workspace),
+            ...workspaceTitleProblems(workspace, checksVersion),
             ...(fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null)),
             // The builder's live theme with its live pages; the saved one otherwise.
             ...themeContrastProblems(fields?.length ? formState?.theme : standardForm?.theme)

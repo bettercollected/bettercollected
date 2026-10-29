@@ -45,7 +45,10 @@ the two in step).
   and is not "untitled", which onboarding also treats as no title; the
   handle never stands in for one (the default workspace's handle is its
   owner's id). Only a new publish or republish is
-  held up: a form that is already live stays live.
+  held up: a form that is already live stays live. Like "why we ask", the
+  rule is held to forms created under check version 2 or later
+  (``requires_workspace_title``): a form made before it publishes and
+  republishes as it always did, whatever its workspace's title.
 
 Internal ("for office use") fields are not respondent-facing and are skipped.
 
@@ -79,9 +82,12 @@ from backend.app.services.theme_contrast import (
 
 FORM_NOT_PUBLISHABLE = "form_not_publishable"
 
-# The version of these checks a new form is created under; a form without one
-# (created earlier) is not required to say why it asks.
-PUBLISH_CHECKS_VERSION = 1
+# The version of these checks a new form is created under. A form without one
+# (created earlier) is not required to say why it asks; a form created under
+# version 1 is not held to the workspace-title rule (version 2).
+PUBLISH_CHECKS_VERSION = 2
+WHY_WE_ASK_FROM_VERSION = 1
+WORKSPACE_TITLE_FROM_VERSION = 2
 
 MISSING_WHY_WE_ASK = "missing_why_we_ask"
 REQUIRED_UNANSWERABLE = "required_unanswerable"
@@ -425,7 +431,14 @@ def ensure_templatable(review: Optional[Dict[str, Optional[str]]]) -> None:
 
 def requires_why_we_ask(checks_version: Optional[int]) -> bool:
     """Is a form created under ``checks_version`` held to the reason rule?"""
-    return bool(checks_version) and checks_version >= 1
+    return bool(checks_version) and checks_version >= WHY_WE_ASK_FROM_VERSION
+
+
+def requires_workspace_title(checks_version: Optional[int]) -> bool:
+    """Is a form created under ``checks_version`` held to the workspace-title
+    rule? Only forms created under version 2 or later: earlier ones (and forms
+    with no version) publish and republish as before."""
+    return bool(checks_version) and checks_version >= WORKSPACE_TITLE_FROM_VERSION
 
 
 def ensure_publishable(
@@ -439,9 +452,10 @@ def ensure_publishable(
     ``publish_checks_version`` (None for a form created before the checks).
     ``review``: the form's ``review_problem`` while its import still needs
     review (listed first). ``workspace_problem``: the workspace's
-    ``workspace_title_problem`` (listed next: it belongs to no question)."""
+    ``workspace_title_problem`` (listed next: it belongs to no question; held
+    only against forms created under ``requires_workspace_title``)."""
     problems = [review] if review else []
-    if workspace_problem:
+    if workspace_problem and requires_workspace_title(checks_version):
         problems.append(workspace_problem)
     problems += [
         problem

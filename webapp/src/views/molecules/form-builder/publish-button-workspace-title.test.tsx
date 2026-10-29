@@ -51,9 +51,9 @@ function renderButton() {
     );
 }
 
-const setUp = (workspace: Record<string, unknown>) => {
+const setUp = (workspace: Record<string, unknown>, publishChecksVersion: number | null = 2) => {
     store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', ...workspace } as any));
-    store.dispatch(setForm({ formId: 'form-1', title: 'Sign-up', settings: { publishChecksVersion: 1 }, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
+    store.dispatch(setForm({ formId: 'form-1', title: 'Sign-up', settings: { publishChecksVersion }, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
 };
 
 const clickPublish = async () => {
@@ -177,6 +177,19 @@ describe('publishing from a workspace without a title', () => {
         expect(screen.getByRole('dialog')).toHaveTextContent('Ask a workspace admin');
     });
 
+    for (const [name, version] of [
+        ['version 1', 1],
+        ['no checks version', null]
+    ] as const) {
+        it(`publishes an existing form made under ${name} from a workspace without a title, as before`, async () => {
+            setUp({ title: '', workspaceName: 'readable-handle' }, version);
+            renderButton();
+            await clickPublish();
+            await waitFor(() => expect(publishFormMock).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'form-1' }));
+            expect(screen.queryByRole('dialog', { name: 'Before you publish' })).not.toBeInTheDocument();
+        });
+    }
+
     it('publishes as before once the workspace has a title', async () => {
         setUp({ title: 'Acme Foundation' });
         renderButton();
@@ -187,7 +200,7 @@ describe('publishing from a workspace without a title', () => {
 
     it('does not claim anything while the workspace is still loading: the server decides', async () => {
         store.dispatch(setWorkspace({} as any));
-        store.dispatch(setForm({ formId: 'form-1', title: 'Sign-up', settings: { publishChecksVersion: 1 }, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
+        store.dispatch(setForm({ formId: 'form-1', title: 'Sign-up', settings: { publishChecksVersion: 2 }, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
         renderButton();
         await clickPublish();
         expect(screen.queryByRole('dialog', { name: 'Before you publish' })).not.toBeInTheDocument();

@@ -200,14 +200,24 @@ export function hasWorkspaceTitle(title: string | null | undefined): boolean {
     return visible !== '' && visible.toLowerCase() !== 'untitled';
 }
 
+/** The first publish-checks version that holds a form to the workspace-title rule (backend `WORKSPACE_TITLE_FROM_VERSION`). */
+export const WORKSPACE_TITLE_FROM_VERSION = 2;
+
+/** Is a form created under `publishChecksVersion` held to the workspace-title rule? Forms made before it (or with no version) are not (backend `requires_workspace_title`). */
+export function requiresWorkspaceTitle(publishChecksVersion?: number | null): boolean {
+    return !!publishChecksVersion && publishChecksVersion >= WORKSPACE_TITLE_FROM_VERSION;
+}
+
 /**
  * The workspace's title is who respondents see receiving their answers, so a
- * form is not published while the workspace has none (backend
- * `workspace_title_problem`, the same rule: `hasWorkspaceTitle`). The handle
- * never stands in for a title. While the workspace is still loading (no id)
+ * form created under the workspace-title rule is not published while the
+ * workspace has none (backend `workspace_title_problem`, the same rule:
+ * `hasWorkspaceTitle`). An older form is not held to it. The handle never
+ * stands in for a title. While the workspace is still loading (no id)
  * nothing is claimed here: the server decides.
  */
-export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined): PublishProblem[] {
+export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined, publishChecksVersion?: number | null): PublishProblem[] {
+    if (!requiresWorkspaceTitle(publishChecksVersion)) return [];
     if (!workspace?.id || hasWorkspaceTitle(workspace.title)) return [];
     return [{ code: 'workspace_title_missing', fieldId: '', message: 'Your workspace has no title yet. Respondents see it as who receives their answers, so give it a title in the workspace settings.' }];
 }
