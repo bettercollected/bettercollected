@@ -18,7 +18,9 @@
   "PUBLISH_CONTRAST": {
     "ADVISORY": "De kleuren van het thema zijn slecht leesbaar: {{pairs}}. Dit formulier is gemaakt vóór de kleurcontrole, dus u kunt het nog steeds zo publiceren. Kleuren die u later wijzigt, moeten wel voldoen.",
     "INTRO": "Dit houdt u niet tegen om te publiceren. U kunt nu publiceren en het later verbeteren.",
-    "SHOW": "Thema tonen"
+    "SHOW": "Thema tonen",
+    "WHY_WE_ASK_INTRO": "Aanbevolen: mensen vertrouwen een formulier meer als het zegt waarom het om hun gegevens vraagt. U kunt nu publiceren en dit later toevoegen.",
+    "WHY_WE_ASK_CONTEXT": "Mensen vertrouwen een formulier meer als het zegt waarom het om hun gegevens vraagt."
   },
   "FORM_TITLE": {
     "PLACEHOLDER": "Formulier Titel"

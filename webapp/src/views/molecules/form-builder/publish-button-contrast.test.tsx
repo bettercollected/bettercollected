@@ -203,3 +203,46 @@ describe('the advice about an older form’s colours, in the dialog', () => {
         expect((enBuilder as any).THEME.CONTRAST_ISSUE_OUTLINED).toBeTruthy();
     });
 });
+
+describe('the colour advice beside a "why we ask this" recommendation', () => {
+    afterEach(async () => {
+        await i18n.changeLanguage('en');
+    });
+    const reason: PublishProblem = { code: 'missing_why_we_ask', fieldId: 'e', message: '"Email" asks for personal details.' };
+    const recommended = [reason, ...(splitPublishProblems(themeContrastProblems(PASTEL, 'advisory'), 2).recommended as PublishProblem[])];
+    const renderBoth = () => render(<PublishProblemsDialog blocking={[]} recommended={recommended} onClose={vi.fn()} onPublishAnyway={vi.fn()} onShowQuestion={vi.fn()} canShowQuestion={() => true} />);
+
+    it('keeps each item\'s own context: a neutral intro, the reason item says why it matters', () => {
+        renderBoth();
+        const list = screen.getByTestId('publish-recommendations');
+        expect(screen.getByText(en.INTRO)).toBeInTheDocument();
+        expect(screen.queryByText(en.WHY_WE_ASK_INTRO)).not.toBeInTheDocument();
+        expect(list).toHaveTextContent('"Email" asks for personal details.');
+        expect(list).toHaveTextContent(en.WHY_WE_ASK_CONTEXT);
+        expect(list).toHaveTextContent('can still be published as it is');
+        expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    });
+
+    it('is the same in Dutch', async () => {
+        await act(async () => {
+            await i18n.changeLanguage('nl');
+        });
+        renderBoth();
+        const list = screen.getByTestId('publish-recommendations');
+        expect(screen.getByText(nl.INTRO)).toBeInTheDocument();
+        expect(list).toHaveTextContent(nl.WHY_WE_ASK_CONTEXT);
+        expect(list).toHaveTextContent('De kleuren van het thema zijn slecht leesbaar');
+        expect(`${nl.WHY_WE_ASK_INTRO} ${nl.WHY_WE_ASK_CONTEXT}`).not.toMatch(/\b(je|jouw|jij)\b/i);
+    });
+
+    it('keeps the reason intro when it is alone, and no context line then', () => {
+        render(<PublishProblemsDialog blocking={[]} recommended={[reason]} onClose={vi.fn()} onPublishAnyway={vi.fn()} onShowQuestion={vi.fn()} canShowQuestion={() => true} />);
+        expect(screen.getByText(en.WHY_WE_ASK_INTRO)).toBeInTheDocument();
+        expect(screen.getByTestId('publish-recommendations')).not.toHaveTextContent(en.WHY_WE_ASK_CONTEXT);
+    });
+
+    it('has no accessibility violations', async () => {
+        renderBoth();
+        expect(await axeViolations(document.body)).toEqual([]);
+    });
+});

@@ -38,6 +38,7 @@ from backend.app.services.theme_contrast import (
     AA_NON_TEXT,
     AA_TEXT,
     contrast,
+    contrast_key,
     display_ratio,
     theme_contrast_guard,
 )
@@ -88,6 +89,24 @@ def test_guard_of_the_shared_themes(case):
     assert guard.image_ground is case["imageGround"]
     if guard.fix:  # the suggestion passes
         assert not theme_contrast_guard({**case["theme"], **guard.fix}).issues
+
+
+@pytest.mark.parametrize("case", CASES["keys"], ids=lambda case: case["name"])
+def test_the_contrast_key_of_the_shared_cases(case):
+    """The key publishing compares to tell whether an older form's colours
+    changed; the webapp's ``contrastKey`` runs the same pairs."""
+    assert (contrast_key(case["a"]) == contrast_key(case["b"])) is case["same"]
+
+
+def test_the_contrast_key_reads_what_the_guard_reads():
+    """Two themes with the same key get the same guard verdict."""
+    for case in CASES["keys"]:
+        if case["same"] and case["a"] and case["b"]:
+            a, b = (theme_contrast_guard(case[side]) for side in ("a", "b"))
+            assert [(i.key, i.ratio) for i in a.issues] == [
+                (i.key, i.ratio) for i in b.issues
+            ], case["name"]
+            assert a.image_ground is b.image_ground
 
 
 def test_the_ratio_is_shown_rounded_down():

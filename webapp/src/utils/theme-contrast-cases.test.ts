@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast } from './color-contrast';
-import { themeContrastGuard } from './theme-contrast';
+import { contrastKey, themeContrastGuard } from './theme-contrast';
 
 /**
  * The colour pairs and themes shared with the server's publish check
@@ -34,7 +34,7 @@ interface ThemeCase {
     imageGround: boolean;
 }
 
-const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/theme-contrast.cases.json'), 'utf-8')) as { pairs: PairCase[]; themes: ThemeCase[] };
+const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/theme-contrast.cases.json'), 'utf-8')) as { pairs: PairCase[]; themes: ThemeCase[]; keys: Array<{ name: string; a: Record<string, any>; b: Record<string, any>; same: boolean }> };
 
 /** A ratio as the guard shows it: one decimal, rounded down. */
 const display = (ratio: number) => (Math.floor(ratio * 10) / 10).toFixed(1);
@@ -77,5 +77,21 @@ describe.each(corpus.themes.map((theme) => [theme.name, theme] as const))('theme
         });
         expect(result.fix).toEqual(shared.fix);
         expect(result.imageGround).toBe(shared.imageGround);
+    });
+});
+
+describe.each(corpus.keys.map((pair) => [pair.name, pair] as const))('contrastKey: %s', (_name, shared) => {
+    it('is the same, or not, as the server says', () => {
+        expect(contrastKey(shared.a) === contrastKey(shared.b)).toBe(shared.same);
+    });
+});
+
+describe('contrastKey', () => {
+    it('reads what the guard reads: themes with the same key get the same verdict', () => {
+        for (const shared of corpus.keys.filter((pair) => pair.same && pair.a && pair.b && pair.a.primary && pair.b.primary)) {
+            const [a, b] = [shared.a, shared.b].map((theme) => themeContrastGuard(theme as Parameters<typeof themeContrastGuard>[0]));
+            expect(a.issues, shared.name).toEqual(b.issues);
+            expect(a.imageGround, shared.name).toBe(b.imageGround);
+        }
     });
 });

@@ -323,23 +323,19 @@ const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase
 
 /**
  * Everything the contrast guard reads from a theme: its four colours, whether
- * its buttons are outlined, and what its background puts behind the text.
+ * its buttons are outlined, and the ground the page puts behind the text, as
+ * `pageGrounds` reads it (an image with an address; both stops of a gradient;
+ * the white sheet of the `margin` pattern; anything else, an absent background
+ * or type, `color` and other patterns included, is the plain page colour).
+ * Gradient stops count only for a gradient, the image's address never does.
  * Two themes with the same key get the same verdict, so "the theme changed"
- * (publish-checks.ts `themeContrastBlocks`) compares keys. The server's
- * `contrast_key` (services/theme_contrast.py) is the same.
+ * (publish-checks.ts `themeContrastGate`) compares keys. The server's
+ * `contrast_key` (services/theme_contrast.py) is the same; the `keys` section
+ * of docs/spec/theme-contrast.cases.json holds themes that must, and must not,
+ * share a key, and both test suites run it.
  */
 export function contrastKey(theme: Partial<FormTheme> | null | undefined): string {
     const bg = theme?.background;
-    return JSON.stringify([
-        upper(theme?.primary) ?? null,
-        upper(theme?.secondary) ?? null,
-        upper(theme?.tertiary) ?? null,
-        upper(theme?.accent) ?? null,
-        isOutlined(theme),
-        bg?.type ?? null,
-        upper(bg?.gradientFrom) ?? null,
-        upper(bg?.gradientTo) ?? null,
-        bg?.pattern ?? null,
-        !!bg?.imageUrl
-    ]);
+    const ground = bg?.type === 'image' && bg.imageUrl ? ['image'] : bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo ? ['gradient', upper(bg.gradientFrom), upper(bg.gradientTo)] : bg?.type === 'pattern' && bg.pattern === 'margin' ? ['margin'] : ['plain'];
+    return JSON.stringify([upper(theme?.primary) ?? null, upper(theme?.secondary) ?? null, upper(theme?.tertiary) ?? null, upper(theme?.accent) ?? null, isOutlined(theme), ...ground]);
 }

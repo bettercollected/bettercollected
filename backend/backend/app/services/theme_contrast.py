@@ -396,21 +396,36 @@ def _colour(value: Any) -> Any:
 
 def contrast_key(theme: Any) -> Tuple[Any, ...]:
     """Everything the contrast check reads from a theme: its four colours,
-    whether its buttons are outlined, and what its background puts behind the
-    text. Two themes with the same key get the same verdict, so "the theme
-    changed" (publish_checks.theme_contrast_blocks) and "this saved theme is
-    already stored" (form_themes) both compare keys. Mirrored by the webapp's
-    ``contrastKey`` (utils/theme-contrast.ts)."""
+    whether its buttons are outlined, and the ground the page puts behind the
+    text, as ``_page_grounds`` reads it (an image with an address; both stops
+    of a gradient; the white sheet of the ``margin`` pattern; anything else,
+    an absent background or type, ``color`` and other patterns included, is
+    the plain page colour). Gradient stops count only for a gradient, the
+    image's address never does. Two themes with the same key get the same
+    verdict, so "the theme changed" (publish_checks.theme_contrast_blocks)
+    and "this saved theme is already stored" (form_themes) both compare keys.
+    Mirrored by the webapp's ``contrastKey`` (utils/theme-contrast.ts); the
+    ``keys`` section of docs/spec/theme-contrast.cases.json holds themes that
+    must, and must not, share a key, and both test suites run it."""
     bg = _get(theme, "background")
+    kind = _get(bg, "type")
+    if kind == "image" and _get(bg, "imageUrl"):
+        ground: Tuple[Any, ...] = ("image",)
+    elif kind == "gradient" and _get(bg, "gradientFrom") and _get(bg, "gradientTo"):
+        ground = (
+            "gradient",
+            _colour(_get(bg, "gradientFrom")),
+            _colour(_get(bg, "gradientTo")),
+        )
+    elif kind == "pattern" and _get(bg, "pattern") == "margin":
+        ground = ("margin",)
+    else:
+        ground = ("plain",)
     return (
         *(
             _colour(_get(theme, role))
             for role in ("primary", "secondary", "tertiary", "accent")
         ),
         is_outlined(theme),
-        _get(bg, "type"),
-        _colour(_get(bg, "gradientFrom")),
-        _colour(_get(bg, "gradientTo")),
-        _get(bg, "pattern"),
-        bool(_get(bg, "imageUrl")),
+        *ground,
     )

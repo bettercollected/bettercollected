@@ -273,6 +273,8 @@ export function PublishProblemsDialog({
                                 t('PUBLISH_CONTRAST.ADVISORY', { pairs: (problem.contrastIssues ?? []).map((key) => lowerFirst(t(`THEME.CONTRAST_ISSUE_${key.toUpperCase()}`))).join('; ') })
                               : problem.message}
                     </span>
+                    {/* beside the colour advice the description is about that, so the reason item says its own context */}
+                    {problem.code === 'missing_why_we_ask' && advisoryColours && <span className="text-xs text-black-600">{t('PUBLISH_CONTRAST.WHY_WE_ASK_CONTEXT')}</span>}
                     {problem.code === 'workspace_title_missing' && canSetWorkspaceTitle && onSetWorkspaceTitle && (
                         <button type="button" onClick={onSetWorkspaceTitle} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
                             {t('PUBLISH_WORKSPACE_TITLE.ACTION')}
@@ -299,7 +301,7 @@ export function PublishProblemsDialog({
                             ? `${count(blocking.length)} would mislead or stop the people filling in this form. Fix ${blocking.length === 1 ? 'it' : 'them'} and publish again.`
                             : advisoryColours
                               ? t('PUBLISH_CONTRAST.INTRO')
-                              : 'Recommended: people trust a form more when it says why it asks for their details. You can publish now and add this later.'}
+                              : t('PUBLISH_CONTRAST.WHY_WE_ASK_INTRO')}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto">

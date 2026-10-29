@@ -273,7 +273,7 @@ describe('contrastKey', () => {
             { tertiary: '#6B7281' },
             { accent: '#FFFFFE' },
             { buttonStyle: 'outlined' },
-            { background: { type: 'gradient', gradientFrom: '#FFFFFF' } },
+            { background: { type: 'gradient', gradientFrom: '#FFFFFF', gradientTo: '#E5E7EB' } },
             { background: { type: 'image', imageUrl: '/a.png' } }
         ]) {
             expect(contrastKey({ ...theme, ...change } as any), JSON.stringify(change)).not.toBe(base);

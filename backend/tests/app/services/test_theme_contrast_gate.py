@@ -154,7 +154,10 @@ def test_an_older_form_is_stopped_only_when_its_colours_changed(version):
 
 def test_only_what_the_check_reads_counts_as_a_change():
     version = 2
-    live = {**PASTEL, "background": {"type": "gradient", "gradientFrom": "#ffffff"}}
+    live = {
+        **PASTEL,
+        "background": {"type": "gradient", "gradientFrom": "#FFFFFF", "gradientTo": "#E5E7EB"},
+    }
     # letter case of a hex colour, fonts, titles and shape change nothing
     same = {
         **live,
@@ -162,7 +165,7 @@ def test_only_what_the_check_reads_counts_as_a_change():
         "primary": "#9ca3af",
         "titleFont": "besley",
         "radius": "round",
-        "background": {"type": "gradient", "gradientFrom": "#FFFFFF"},
+        "background": {"type": "gradient", "gradientFrom": "#ffffff", "gradientTo": "#e5e7eb"},
     }
     assert theme_contrast_blocks(version, same, live, was_published=True) is False
     for change in (
@@ -171,12 +174,34 @@ def test_only_what_the_check_reads_counts_as_a_change():
         {"tertiary": "#E5E7EC"},
         {"accent": "#FFFFFE"},
         {"buttonStyle": "outlined"},
-        {"background": {"type": "gradient", "gradientFrom": "#FFFFFE"}},
+        {"background": {"type": "gradient", "gradientFrom": "#FFFFFE", "gradientTo": "#E5E7EB"}},
+        {"background": {"type": "gradient", "gradientFrom": "#FFFFFF", "gradientTo": "#E5E7EC"}},
         {"background": {"type": "pattern", "pattern": "margin"}},
         {"background": {"type": "image", "imageUrl": "/api/v1/media/a.png"}},
     ):
         theme = {**live, **change}
         assert theme_contrast_blocks(version, theme, live, was_published=True), change
+
+
+@pytest.mark.parametrize(
+    "background",
+    [
+        {"type": "color"},
+        {},
+        {"type": "color", "gradientFrom": "#000000", "gradientTo": "#FFFFFF"},
+        {"type": "gradient", "gradientFrom": "#FFFFFF"},
+        {"type": "pattern", "pattern": "columns"},
+    ],
+)
+def test_a_re_saved_background_that_shows_no_difference_is_not_a_change(background):
+    """An older form live with no background, saved again with an explicit
+    colour background or leftover stops, keeps the exemption."""
+    live = Theme(**PASTEL)
+    saved = Theme(**PASTEL, background=background)
+    assert theme_contrast_blocks(2, saved, live, was_published=True) is False
+    ensure_publishable(
+        _form(saved), checks_version=2, published_theme=live, was_published=True
+    )
 
 
 def test_an_older_form_that_is_live_publishes_with_the_colours_it_has():

@@ -18,7 +18,9 @@
   "PUBLISH_CONTRAST": {
     "ADVISORY": "The theme's colours are hard to read: {{pairs}}. This form was made before the colour check, so it can still be published as it is. Colours you change later will need to pass.",
     "INTRO": "These don't stop you from publishing. You can publish now and improve them later.",
-    "SHOW": "Show the theme"
+    "SHOW": "Show the theme",
+    "WHY_WE_ASK_INTRO": "Recommended: people trust a form more when it says why it asks for their details. You can publish now and add this later.",
+    "WHY_WE_ASK_CONTEXT": "People trust a form more when it says why it asks for their details."
   },
   "FORM_TITLE": {
     "PLACEHOLDER": "Form Title"

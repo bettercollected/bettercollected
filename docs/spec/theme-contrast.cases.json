@@ -1,5 +1,5 @@
 {
-  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it.",
+  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it. 'keys': pairs of themes that must ('same': true) or must not ('same': false) produce the same contrast key, the key publishing compares to tell whether an older live form's colours changed (backend theme_contrast.contrast_key, webapp contrastKey): it holds the four colours (hex case ignored), whether buttons are outlined, and the ground the guard reads (an image with an address; both stops of a gradient; the white sheet of the margin pattern; else the plain page), so a re-saved or leftover background that shows no difference is no change. Keys are compared within a language, never across.",
   "pairs": [
     {
       "name": "black on white",
@@ -955,6 +955,576 @@
         "tertiary": "#3D4148"
       },
       "imageGround": false
+    }
+  ],
+  "keys": [
+    {
+      "name": "an absent background and an explicit colour background",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "color"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "an absent background and an empty background",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {}
+      },
+      "same": true
+    },
+    {
+      "name": "leftover gradient stops under a colour background are not read",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "color",
+          "gradientFrom": "#000000",
+          "gradientTo": "#FFFFFF"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "leftover gradient stops under a pattern are not read",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin",
+          "gradientFrom": "#000000",
+          "gradientTo": "#FFFFFF"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "a gradient with one stop adds no ground",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "a pattern other than margin adds no ground",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "columns"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "a pattern with leftover pattern name under a colour background",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "color",
+          "pattern": "margin"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "an image without an address adds no ground",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "which image it is does not matter",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "/api/v1/media/a.png"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "https://images.example/b.jpg"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "an image's leftover gradient stops are not read",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "/a.png"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "/a.png",
+          "gradientFrom": "#000000",
+          "gradientTo": "#FFFFFF"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "hex case is not a change",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EB"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#ffffff",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#e5e7eb"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "title, fonts, shape and highlight are not read",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "title": "Renamed",
+        "titleFont": "besley",
+        "bodyFont": "archivo",
+        "radius": "round",
+        "highlight": "#A3305A",
+        "selection": "#1E4D3B",
+        "style": "classic"
+      },
+      "same": true
+    },
+    {
+      "name": "a pill or filled button reads like no button style",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "pill"
+      },
+      "same": true
+    },
+    {
+      "name": "filled reads like no button style",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "filled"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "same": true
+    },
+    {
+      "name": "the artwork under a colour page is not read",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "color",
+          "artwork": "marble"
+        }
+      },
+      "same": true
+    },
+    {
+      "name": "a missing theme and a theme without colours",
+      "a": null,
+      "b": {},
+      "same": true
+    },
+    {
+      "name": "the questions colour",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101829",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "same": false
+    },
+    {
+      "name": "the button colour",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E3",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "same": false
+    },
+    {
+      "name": "the border colour",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7281",
+        "accent": "#FFFFFF"
+      },
+      "same": false
+    },
+    {
+      "name": "the page colour",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFE"
+      },
+      "same": false
+    },
+    {
+      "name": "outlined against filled buttons",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "outlined"
+      },
+      "same": false
+    },
+    {
+      "name": "outlined against pill buttons",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "pill"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "outlined"
+      },
+      "same": false
+    },
+    {
+      "name": "a gradient with both stops against none",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EB"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "a different gradient stop",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EB"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EC"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "a gradient against the margin sheet",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EB"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "the margin sheet against the plain page",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "pattern",
+          "pattern": "margin"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "an image with an address against none",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "/api/v1/media/a.png"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "an image against a gradient",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "image",
+          "imageUrl": "/a.png"
+        }
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#E5E7EB"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "colours against none",
+      "a": {},
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "same": false
     }
   ]
 }
