@@ -172,14 +172,18 @@ this holds; otherwise it is reported as before (`user_variable_not_carried`) wit
    never guessed at.
 3. The variable is a number: `data_type` `int` or `float` (`not_numeric`).
 4. Its value is an expression of the subset below. Anything else is `operator` (with `detail.operator`, cut to 40
-   characters) or `operand`; an expression over 60 nodes, 12 levels or 20 arguments is `too_complex`. A division
-   needs a variable that starts empty (`initial_value`: see below).
+   characters) or `operand`; an expression over 60 nodes, 12 levels or 20 arguments is `too_complex`. A division,
+   or a value that is just one answer (a bare `var`), needs a variable that starts empty (`initial_value`: see
+   below).
 5. Everything it reads is a number question we imported (`number`, `currency`; not in a repeating group, not
    `multiple`) or another variable that qualifies. A key that is not imported (a dropped component, a static variable
    such as `now`) is `source_missing` (`detail.source`); `source_not_number`, `source_in_group`, `source_multiple`;
    another variable that did not qualify is `depends_on_variable`; a circle of variables, or one that reads a circle,
    `cycle`; one that reads a variable a *later* rule sets, `order` (their evaluation is a single pass in rule order);
-   a variable with the key of a component, `key_collision`.
+   a variable with the key of a component, `key_collision`. A question it reads must also be one whose value is only
+   what the respondent typed: one that another action, a prefill, a service fetch or a script of the source form also
+   sets is `source_rewritten`, and one that starts from a default value (not carried over) is `source_default`
+   (`detail.source`).
 6. At most 50 per form and within the 1000-question cap (`too_many`, in the file's order), and the form's own rules
    accept it (`rejected`).
 
@@ -217,6 +221,14 @@ Where the two meet, the translation is exact except where noted:
   of 10^15 or more has no value in v1.
 * **A hidden or unanswered question** has no value there (a hidden component is cleared, `formio/visibility.py:118-132`)
   and none here.
+* **A bare answer.** A variable whose value is just `{"var": "a"}` is assigned even when the result is empty
+  (`submissions/logic/actions.py:424-441` and `rules.py:159-170` at 4.0.6: an empty result is stored as empty); only
+  an "undefined" result, which a hidden or cleared question gives (`formio/visibility.py:131-132`), assigns nothing
+  and leaves the variable as it was. Arithmetic on such a question gives an empty result instead. So a bare answer is
+  carried only when the variable starts empty (`initial_value`). At 3.5.14 (`actions.py:438`) there is no such skip.
+* **Whole numbers.** An `int` variable keeps what was computed, without truncation, in the original too
+  (`submission_value_variable.py:597-605`, `:694-702`, `:362-379`; its initial value alone is checked against the
+  type, `variables/utils.py:32`), so a result such as `7 / 2` is `3.5` in both.
 * **Rule order.** Their rules are saved in dependency order (`forms/api/serializers/logic/form_logic.py:35-92`); a
   chain is only carried when the file's order already has each variable set before it is read.
 
