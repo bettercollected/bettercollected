@@ -956,8 +956,15 @@ function stack_keys() {
 #    for the import; `wait` returns at once and the handler stops the job.
 identity_tmp_dir=""
 identity_import_pid=""
+identity_import_started=""
 identity_cleanup() {
   local waited=0
+  # a signal between the `&` and the pid being recorded: $! is the import (the only job this
+  # script starts in the background)
+  if [ -z "$identity_import_pid" ] && [ -n "$identity_import_started" ]; then
+    identity_import_pid=$!
+  fi
+  identity_import_started=""
   if [ -n "$identity_import_pid" ]; then
     kill "$identity_import_pid" 2>/dev/null
     # docker compose stops its container before it exits; a client that ignores the signal is killed
@@ -1051,11 +1058,13 @@ ensure_identity_key() {
   printf 'RESPONDENT_IDENTITY_KEY=%s\n' "$key" > "$dir/identity.env"
   admin_cli_opts=(--user "$uid_gid" -v "$dir:/work")
   admin_cli_words settings-import --env-file /work/identity.env
+  identity_import_started=1
   "${admin_cli_cmd[@]}" > "$dir/import.out" 2>&1 &
   identity_import_pid=$!
   wait "$identity_import_pid"
   rc=$?
   identity_import_pid=""
+  identity_import_started=""
   admin_cli_opts=()
   # what the import said (never the key: the line that names it is replaced), while the directory exists
   if [ "$rc" -ne 0 ]; then
