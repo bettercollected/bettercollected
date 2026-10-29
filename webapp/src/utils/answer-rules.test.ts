@@ -9,24 +9,16 @@ import {
     FORMAT_PRESETS,
     INTEGER_PATTERN,
     PATTERN_MAX_LENGTH,
-    PATTERN_TEST_MAX_LENGTH,
     answerRuleConflicts,
     answerRuleKind,
     answerRuleMessage,
+    browserChecksPattern,
     checkAnswerRules,
     compilePattern,
-    patternBreaks,
-    patternProblem,
     presetForPattern,
     summarizeAnswerRules,
     validateAnswerRulesInSlide
 } from './answer-rules';
-
-const UNSAFE_CASES = (
-    JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/pattern-safety.cases.json'), 'utf-8')) as {
-        unsafe: Array<{ pattern: string; hazard: string }>;
-    }
-).unsafe;
 
 const field = (type: FieldTypes, validations: StandardFormFieldDto['validations'], properties: StandardFormFieldDto['properties'] = {}): StandardFormFieldDto => ({ id: 'f', index: 0, type, validations, properties });
 const preset = (id: string) => FORMAT_PRESETS.find((p) => p.id === id)!.pattern;
@@ -74,10 +66,13 @@ describe('checking an answer', () => {
         expect(checkAnswerRules(letters, text('R2D2'))).toEqual(['PATTERN']);
     });
 
-    it('a pattern that does not compile is ignored rather than blocking everyone', () => {
-        expect(compilePattern('([')).toBeNull();
-        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: '([' }), text('anything'))).toEqual([]);
-        expect(answerRuleConflicts({ regex: '([' })).toHaveLength(1);
+    it('a custom pattern is not tested here, whatever it is: the server checks it on submit', () => {
+        for (const regex of ['([', '^[a-z]+$', '^(a+)+$', '^(?=a)b$']) {
+            expect(compilePattern(regex)).toBeNull();
+            expect(browserChecksPattern(regex)).toBe(false);
+            expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('9 not a match'))).toEqual([]);
+        }
+        expect(answerRuleConflicts({ regex: '([' })).toEqual([]);
     });
 
     it('number range (0 is a real limit) and whole numbers', () => {
@@ -147,69 +142,48 @@ describe('the pattern length cap', () => {
     });
 });
 
-describe('a pattern whose shape can freeze a browser', () => {
-    // timing-free: the engine's `test` is watched, never raced. The hazardous patterns come from the
-    // shared case table rather than being written here, so no such pattern sits in this source.
-    const spy = () => vi.spyOn(RegExp.prototype, 'test');
+describe('a pattern a creator wrote never runs in the browser', () => {
     afterEach(() => vi.restoreAllMocks());
-    const answerThatFreezes = `${'a'.repeat(5000)}b`;
-    const unsafe = UNSAFE_CASES.map((c) => c.pattern);
-    const nested = UNSAFE_CASES.find((c) => c.hazard === 'nested_repeat')!.pattern;
+    const custom = ['^(a+)+$', '^[a-z]+$', '(?i)abc', '^(?:A(?:\\A)?)+$', '^(?:\\u{1F600}|\\ud83d\\ude00)+$', '^a+\\-$'];
+    const slow = `${'a'.repeat(5000)}!`;
 
-    it('never reaches the backtracking RegExp.test, for text and number questions', () => {
-        const test = spy();
-        expect(compilePattern(nested)).toBeNull();
-        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: nested }), text(answerThatFreezes))).toEqual([]);
-        // every unsafe shape in the shared table, on a text and a long-text question
-        for (const regex of unsafe) {
-            expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('a'.repeat(28)))).toEqual([]);
-            expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex }), text(answerThatFreezes))).toEqual([]);
+    it('is neither compiled nor tested, on a text or a number question or a slide', () => {
+        const test = vi.spyOn(RegExp.prototype, 'test');
+        const compiled: string[] = [];
+        const Original = RegExp;
+        // every RegExp built while the answers are checked (on the page or on a slide)
+        vi.stubGlobal(
+            'RegExp',
+            class extends Original {
+                constructor(pattern: string | RegExp, flags?: string) {
+                    super(pattern, flags);
+                    compiled.push(String(pattern));
+                }
+            }
+        );
+        try {
+            for (const regex of custom) {
+                expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text(slow))).toEqual([]);
+                expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex }), text('x'))).toEqual([]);
+                expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex }), { type: 'number', number: '12x' })).toEqual([]);
+                expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex })], { f: text(slow) })).toEqual({});
+            }
+        } finally {
+            vi.unstubAllGlobals();
         }
-        const digits = unsafe.find((p) => p.includes('\\d'))!;
-        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: digits }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
-        expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex: nested })], { f: text(answerThatFreezes) })).toEqual({});
         expect(test).not.toHaveBeenCalled();
+        expect(compiled.filter((source) => custom.includes(source))).toEqual([]);
     });
 
-    it('is not tested against a long answer either: the server checks it with RE2', () => {
-        const test = spy();
-        const rules = field(FieldTypes.SHORT_TEXT, { regex: '^[a-z]+$' });
-        // at the cap it is tested, over it left to the server
-        expect(checkAnswerRules(rules, text('1'.repeat(PATTERN_TEST_MAX_LENGTH)))).toEqual(['PATTERN']);
-        expect(test).toHaveBeenCalledTimes(1);
-        expect(checkAnswerRules(rules, text('1'.repeat(PATTERN_TEST_MAX_LENGTH + 1)))).toEqual([]);
-        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: INTEGER_PATTERN }), { type: 'number', number: '1.'.repeat(PATTERN_TEST_MAX_LENGTH) })).toEqual([]);
-        expect(patternBreaks('^[a-z]+$', 'x'.repeat(PATTERN_TEST_MAX_LENGTH + 1))).toBe(false);
-        expect(test).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not stop a safe pattern from being tested', () => {
-        const test = spy();
+    it('while the presets and whole numbers are still checked live, by identity', () => {
+        const test = vi.spyOn(RegExp.prototype, 'test');
         expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('nope'))).toEqual(['PATTERN']);
-        expect(test).toHaveBeenCalledTimes(1);
-    });
-
-    it('checks the shape before the lenient compile too: a pattern only the non-u compile accepts', () => {
-        // \- outside a class is an error with the u flag and fine without it
-        expect(() => new RegExp('^a+\\-$', 'u')).toThrow();
-        expect(compilePattern('^a+\\-$')).not.toBeNull();
-        // an unsafe shape that also only compiles without the u flag (from the shared table)
-        const lenientOnly = unsafe.find((p) => p.endsWith('\\-$'))!;
-        expect(() => new RegExp(lenientOnly, 'u')).toThrow();
-        expect(compilePattern(lenientOnly)).toBeNull();
-    });
-
-    it('is told apart from one that does not compile', () => {
-        expect(patternProblem(nested)).toBe('nested_repeat');
-        expect(patternProblem('([')).toBe('invalid');
-        expect(patternProblem('^[a-z]+$')).toBeNull();
-        expect(patternProblem(undefined)).toBeNull();
-        // the shape is pointed out next to the pattern box, not in the conflicts
-        expect(answerRuleConflicts({ regex: nested })).toEqual([]);
-    });
-
-    it('keeps the presets and the whole-number rule testable', () => {
-        for (const p of FORMAT_PRESETS) expect(compilePattern(p.pattern)).not.toBeNull();
-        expect(compilePattern(INTEGER_PATTERN)).not.toBeNull();
+        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('1234 AB'))).toEqual([]);
+        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: INTEGER_PATTERN }), { type: 'number', number: '1.5' })).toEqual(['NOT_INTEGER']);
+        expect(test).toHaveBeenCalledTimes(3);
+        // a pattern that only looks like a preset is a custom one
+        expect(browserChecksPattern(`${preset('postcode_nl')} `)).toBe(false);
+        expect(browserChecksPattern(preset('iban'))).toBe(true);
+        expect(FORMAT_PRESETS.every((p) => browserChecksPattern(p.pattern))).toBe(true);
     });
 });

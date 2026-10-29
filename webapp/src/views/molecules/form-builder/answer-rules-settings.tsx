@@ -1,18 +1,21 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
-import { useAtomValue } from 'jotai';
 import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
-import { patternSaveErrorsAtom } from '@app/store/jotai/pattern-save-errors';
-import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, patternProblem, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
-import { PatternHazard } from '@app/utils/pattern-safety';
+import { useAppSelector } from '@app/store/hooks';
+import { useCheckAnswerPatternMutation } from '@app/store/redux/form-api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
 import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
 type Patch = Partial<IFormFieldValidation>;
+
+/** Quiet time after typing in the pattern box before it is checked. */
+export const PATTERN_CHECK_DELAY_MS = 400;
 
 /**
  * "Answer rules": limits on an answer beyond Required, written to the
@@ -30,7 +33,7 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
 
     return (
         <div className="flex flex-col gap-3">
-            {kind === 'text' && <TextRules fieldId={field.id} rules={rules} onChange={onChange} />}
+            {kind === 'text' && <TextRules rules={rules} onChange={onChange} />}
             {kind === 'number' && (
                 <>
                     <div className="flex gap-2">
@@ -38,10 +41,7 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
                         <NumberSetting label="Highest" integer={false} step="any" value={rules.maxValue} onChange={(maxValue) => onChange({ maxValue })} invalid={valueConflict} />
                     </div>
                     {rules.regex && rules.regex !== INTEGER_PATTERN ? (
-                        <>
-                            <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; it is still checked.</p>
-                            <PatternHazardNotice hazard={patternHazardOf(rules.regex)} stored />
-                        </>
+                        <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; the server checks it when the answer is sent.</p>
                     ) : (
                         <SettingSwitch label="Whole numbers only" checked={rules.regex === INTEGER_PATTERN} onCheckedChange={(checked) => onChange({ regex: checked ? INTEGER_PATTERN : undefined })} />
                     )}
@@ -76,7 +76,7 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
     );
 }
 
-function TextRules({ fieldId, rules, onChange }: { fieldId: string; rules: IFormFieldValidation; onChange: (patch: Patch) => void }) {
+function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange: (patch: Patch) => void }) {
     const formatId = useId();
     const patternId = useId();
     const preset = presetForPattern(rules.regex);
@@ -90,13 +90,41 @@ function TextRules({ fieldId, rules, onChange }: { fieldId: string; rules: IForm
         if (isCustom) setPattern(rules.regex ?? '');
     }
 
-    // What the box holds can be a hazard (utils/pattern-safety.ts): it is not
-    // handed to the form, so nothing the server would refuse is ever saved.
-    const localHazard = patternHazardOf(pattern);
-    // or one the server refused when the form was saved (an older client, a form made through the API)
-    const saveError = useAtomValue(patternSaveErrorsAtom)[fieldId];
-    const refused = saveError && saveError.regex === rules.regex && pattern === rules.regex ? saveError.hazard : null;
-    const hazard = localHazard ?? refused;
+    // A custom pattern is checked by the server (RE2 syntax) while it is typed.
+    // Only a pattern that passes goes into the form; until then the one the
+    // form already has stays, and the reason is shown.
+    const { t } = useTranslation('builder');
+    const workspace = useAppSelector(selectWorkspace);
+    const [checkPattern] = useCheckAnswerPatternMutation();
+    const [problem, setProblem] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
+    const latest = useRef(0);
+    const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    useEffect(() => () => clearTimeout(timer.current), []);
+    const typed = (next: string) => {
+        setPattern(next);
+        clearTimeout(timer.current);
+        const turn = ++latest.current;
+        if (!next) {
+            setProblem(null);
+            setChecking(false);
+            onChange({ regex: undefined }); // emptying the box is the way to remove it
+            return;
+        }
+        setChecking(true);
+        timer.current = setTimeout(async () => {
+            const response: any = await checkPattern({ workspaceId: workspace?.id as string, pattern: next });
+            if (turn !== latest.current) return; // typed on since
+            setChecking(false);
+            if (response?.data?.valid) {
+                setProblem(null);
+                onChange({ regex: next });
+            } else {
+                setProblem(response?.data ? (response.data.reason ?? '') : '');
+            }
+        }, PATTERN_CHECK_DELAY_MS);
+    };
+
     const lengthConflict = rules.minLength !== undefined && rules.maxLength !== undefined && rules.minLength > rules.maxLength;
 
     return (
@@ -111,14 +139,19 @@ function TextRules({ fieldId, rules, onChange }: { fieldId: string; rules: IForm
                 </label>
                 <select
                     id={formatId}
-                    value={preset?.id ?? (isCustom || hazard ? 'custom' : '')}
+                    value={preset?.id ?? (isCustom ? 'custom' : '')}
                     onChange={(event) => {
                         const value = event.target.value;
                         if (value === 'custom') {
                             setAdvancedOpen(true);
-                            if (pattern) onChange({ regex: pattern });
+                            if (pattern && !problem && !checking) onChange({ regex: pattern });
                             return;
                         }
+                        // another format replaces what was typed: nothing left to check
+                        clearTimeout(timer.current);
+                        latest.current++;
+                        setProblem(null);
+                        setChecking(false);
                         onChange({ regex: FORMAT_PRESETS.find((p) => p.id === value)?.pattern });
                     }}
                     className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
@@ -145,44 +178,22 @@ function TextRules({ fieldId, rules, onChange }: { fieldId: string; rules: IForm
                         maxLength={PATTERN_MAX_LENGTH}
                         value={pattern}
                         placeholder="^[A-Z]{3}[0-9]{4}$"
-                        aria-describedby={hazard ? `${patternId}-hazard ${patternId}-hint` : `${patternId}-hint`}
-                        aria-invalid={hazard ? true : undefined}
-                        onChange={(event) => {
-                            const next = event.target.value;
-                            setPattern(next);
-                            // an unsafe pattern is shown with its error but not saved
-                            onChange({ regex: next && !patternHazardOf(next) ? next : undefined });
-                        }}
-                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-brand-500 ${hazard ? 'border-red-600' : 'border-control'}`}
+                        aria-describedby={problem !== null ? `${patternId}-problem ${patternId}-hint` : `${patternId}-hint`}
+                        aria-invalid={problem !== null ? true : undefined}
+                        onChange={(event) => typed(event.target.value)}
+                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-brand-500 ${problem !== null ? 'border-red-600' : 'border-control'}`}
                     />
-                    <PatternHazardNotice hazard={hazard} stored={!!localHazard && pattern === rules.regex} id={`${patternId}-hazard`} />
+                    {problem !== null && (
+                        <p id={`${patternId}-problem`} role="alert" className="text-[11px] leading-relaxed text-red-700">
+                            {problem ? t('PATTERN_CHECK.INVALID', { reason: problem }) : t('PATTERN_CHECK.UNAVAILABLE')} {t('PATTERN_CHECK.SYNTAX')}
+                            {rules.regex ? ` ${t('PATTERN_CHECK.KEPT')}` : ''}
+                        </p>
+                    )}
                     <p id={`${patternId}-hint`} className="text-[11px] leading-relaxed text-black-600">
-                        Answers must match it (use ^ and $ to match the whole answer). Respondents see a general “not in the expected format” message, so say in the description what you expect.
+                        Answers must match it (use ^ and $ to match the whole answer). It is checked when the answer is sent, not while it is typed. Respondents see a general “not in the expected format” message, so say in the description what you expect.
                     </p>
                 </div>
             </details>
         </>
-    );
-}
-
-/** The hazard in a pattern that compiles (one that does not is reported by answerRuleConflicts), or null. */
-function patternHazardOf(pattern: string | undefined): PatternHazard | null {
-    const problem = patternProblem(pattern);
-    return problem && problem !== 'invalid' && !(problem === 'too_complex' && (pattern?.length ?? 0) > PATTERN_MAX_LENGTH) ? problem : null;
-}
-
-/**
- * Why a pattern is refused: it can take a browser very long to check
- * (utils/pattern-safety.ts; the server refuses the same patterns when a form
- * is saved). `stored`: the form already holds it, so it is kept but skipped
- * by respondents' browsers.
- */
-function PatternHazardNotice({ hazard, stored, id }: { hazard: PatternHazard | null; stored?: boolean; id?: string }) {
-    const { t } = useTranslation('builder');
-    if (!hazard) return null;
-    return (
-        <p id={id} role="alert" className="text-[11px] leading-relaxed text-red-700">
-            {stored ? t('PATTERN_HAZARD.STORED_NOTE') : t('PATTERN_HAZARD.NOT_SAVED')} {t(`PATTERN_HAZARD.${hazard.toUpperCase()}`)}
-        </p>
     );
 }

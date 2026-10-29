@@ -44,30 +44,17 @@ they had ids are given `ending-<n>` (their position, from 1) when read, so
 the same form always shows the same ids.
 
 An answer `pattern` is a regular expression of at most 200 characters that
-the whole text answer must match (use `^` and `$`). The server matches it with
-RE2 (linear time); the respondent's browser uses a backtracking engine, so a
-pattern whose shape can make that engine take exponential time on a crafted
-or unlucky answer is refused when the form is saved: a repeated group inside
-a repeated group (also an optional or bounded one) that can split one text in
-several ways (`(a+)+`, `(\w+\s?)+`, `(a?|b?){28}`), a repeated group whose
-choices start with the same character (`(a|aa)+`), a repeat of something that
-can match nothing (`(a?)*`), more than two overlapping repeats in one
-sequence, also across a separator they can match themselves and from inside
-optional groups and alternations (`\d*\d*\d*`, `.*a.*a.*a`,
-`a*(?:b|a*)(?:c|a*)x`, `a?` twenty times in a row), inline flags (`(?i)`) and
-backreferences (`\1`). The check reads the shape of the pattern, never its
-running time, and is conservative: `(\w+\s)+` (each round ends in a separator)
-and two overlapping repeats are fine. A pattern that does not start with `^` is
-tried at every start of the answer, so it gets a thousandth of the allowance
-(`a{1,99}a{1,99}a{1,99}!` and `\d*\d*x` need a `^`). It reduces the risk but cannot prove that
-no pattern is super-linear, so the respondent form also tests only answers up
-to 1,000 characters in the browser and leaves longer ones to the server.
-The cases are in [`pattern-safety.cases.json`](pattern-safety.cases.json), run
-by the server and the webapp, which refuse the same patterns with the same
-words. A pattern a form already holds is kept (respondents' browsers skip
-it and the server still checks it) until it is changed. When an operation, a
-form saved with the API or an Open Formulieren import brings one of these
-patterns, it is refused (the import leaves it out and lists it as not carried).
+the whole text answer must match (use `^` and `$`). It uses RE2 syntax, the
+engine the server matches answers with (in linear time): there are no
+lookarounds and no backreferences, and a pattern RE2 cannot compile is
+refused when the form is saved, with RE2's reason. The respondent's browser
+does not run a pattern a creator wrote; it only checks the built-in format
+presets and "whole numbers only", so a custom pattern is checked when the
+answer is submitted, and the respondent is taken back to the question with
+the message. A pattern a form already holds that RE2 cannot use is kept until
+it is changed (the server does not check it). When an operation, a form saved
+with the API or an Open Formulieren import brings such a pattern, it is
+refused (the import leaves it out and lists it as not carried).
 
 ## What is not in the document
 

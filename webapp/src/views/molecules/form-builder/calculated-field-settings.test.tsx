@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { store } from '@app/store/store';
 import { calculationVariables } from '@app/utils/calculated-fields';
 import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-settings';
 import CalculatedFieldSettings, { FORMULA_IDLE_MS, firstQuestionKey, isIncompleteError, openReference, suggestionsFor } from '@app/views/molecules/form-builder/calculated-field-settings';
@@ -192,7 +194,11 @@ describe('the preview without an answer', () => {
 
 describe('the short-text Format select', () => {
     it('has room for its text too', () => {
-        render(<AnswerRulesSettings field={field('name', FieldTypes.SHORT_TEXT, 'Name')} onChange={() => {}} />);
+        render(
+            <ReduxProvider store={store}>
+                <AnswerRulesSettings field={field('name', FieldTypes.SHORT_TEXT, 'Name')} onChange={() => {}} />
+            </ReduxProvider>
+        );
         expect(screen.getByLabelText('Format').className).toContain('py-0');
     });
 });

@@ -2,7 +2,6 @@
 import type { Draft } from 'immer';
 
 import { FieldTypes } from '@app/models/dtos/form';
-import { PATTERN_HAZARD_MESSAGES, patternHazard } from '@app/utils/pattern-safety';
 
 import { REQUIRED_CALCULATION_MESSAGE, setCalculation } from '../calculations';
 import { checkedDateRules, dateRuleProblems, dateRuleSources } from '../date-rules';
@@ -400,7 +399,7 @@ function ruleApplies(field: FormField, types: Set<string>, rule: string, kinds: 
 
 /**
  * The spec's pattern rule (common `checked_pattern`): trimmed, not empty, at
- * most PATTERN_MAX_LENGTH characters, compiles, is no ReDoS hazard. JavaScript's RegExp stands in
+ * most PATTERN_MAX_LENGTH characters, compiles. JavaScript's RegExp stands in
  * for Python's `re`; the few patterns one accepts and the other refuses are
  * refused by the server.
  */
@@ -413,10 +412,6 @@ export function checkedPattern(pattern: string): string {
     } catch (error) {
         throw new OpError(`'${trimmed}' is not a valid pattern (${(error as Error).message}).`);
     }
-    // a shape a browser's backtracking engine can take exponential time on
-    // (utils/pattern-safety.ts; the server refuses the same ones)
-    const hazard = patternHazard(trimmed);
-    if (hazard) throw new OpError(PATTERN_HAZARD_MESSAGES[hazard]);
     return trimmed;
 }
 

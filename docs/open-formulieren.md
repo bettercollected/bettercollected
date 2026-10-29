@@ -144,9 +144,7 @@ and a trailing `$` when the pattern lacks one (`formio/components/utils.py:6-14`
 `formio/components/vanilla.py:130-136, 336-342` and `custom.py:389, 1173`). Ours search the answer, so a pattern that
 does not both start with `^` and end with `$` is carried as `^(?:pattern)$` (the same meaning, and the alternation
 `a|b` keeps its intended reading). This holds for the short text path and for an address's postcode and place. A
-pattern is accepted when RE2 compiles it within the pattern limits and its shape cannot make a browser's backtracking
-engine take exponential time (`(a+)+`, `(a|aa)+`, a backreference; see `docs/spec/README.md`, answer patterns); one that
-is not is reported (`validation_not_carried`), because the respondent form checks patterns in the browser too.
+pattern is accepted when RE2 compiles it within the pattern limits (the engine our server matches answers with, so lookarounds and backreferences are not); one that is not is reported (`validation_not_carried`).
 
 **Visibility.** A simple `conditional` (`show`, `when`, `eq`) becomes a show/hide rule on the question. JSON logic
 rules are read as data, never run: a trigger that is one comparison of a component with a literal (`==`, `!=`, `>`,

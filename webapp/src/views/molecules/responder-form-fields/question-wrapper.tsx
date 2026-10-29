@@ -15,7 +15,7 @@ import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
-import { answerRuleMessage, checkAnswerRules, isAnswerRuleProblem } from '@app/utils/answer-rules';
+import { answerRuleMessage, browserChecksPattern, checkAnswerRules, isAnswerRuleProblem } from '@app/utils/answer-rules';
 import { isAnswerableField } from '@app/utils/leaflet-sections';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
@@ -56,7 +56,10 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const flagged = invalidFields?.[field.id] ?? [];
     const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
-    const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t) : undefined;
+    // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
+    // the server finds a miss, and its message stays until the next Continue.
+    const serverPattern = flagged.includes('PATTERN') && !!field?.validations?.regex && !browserChecksPattern(field.validations.regex);
+    const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t) : serverPattern ? answerRuleMessage(field, 'PATTERN', t) : undefined;
     // Problems only the server finds (an answer of the wrong kind).
     const serverProblem = flagged.find(isServerProblem);
     const serverMessage = serverProblem ? serverProblemMessage(serverProblem, t) : undefined;

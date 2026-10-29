@@ -5,22 +5,6 @@ import { Provider, useAtomValue, useSetAtom } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Toaster } from '@app/shadcn/components/ui/toaster';
-import { setForm } from '@app/store/forms/slice';
-import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
-import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { DispatchArgs, dispatchAtom, docHistoryAtom } from '@app/store/jotai/form-document';
-import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-language';
-import { PatternSaveError, patternSaveErrorsAtom } from '@app/store/jotai/pattern-save-errors';
-import { store } from '@app/store/store';
-import { setWorkspace } from '@app/store/workspaces/slice';
-
-import AutoSaveForm, { flushAutosave, saveOutcomeOf } from './audo-save-form';
-import PublishButton from './publish-button';
-
 const patchFormMock = vi.fn();
 const publishFormMock = vi.fn();
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
@@ -37,6 +21,21 @@ const reloadMock = vi.fn();
 vi.mock('@app/utils/reload-page', () => ({ reloadPage: () => reloadMock() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => '/ws/dashboard/forms/form-1/edit' }));
 
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { Toaster } from '@app/shadcn/components/ui/toaster';
+import { setForm } from '@app/store/forms/slice';
+import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
+import { DispatchArgs, dispatchAtom, docHistoryAtom } from '@app/store/jotai/form-document';
+import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-language';
+import { store } from '@app/store/store';
+import { setWorkspace } from '@app/store/workspaces/slice';
+
+import AutoSaveForm, { flushAutosave, saveOutcomeOf } from './audo-save-form';
+import PublishButton from './publish-button';
+
 const LOADED_VERSION = '2026-10-17T09:00:00.000+00:00';
 const SAVED_VERSION = '2026-10-17T09:00:02.000+00:00';
 
@@ -50,15 +49,7 @@ const page = (): StandardFormFieldDto[] => [
 ];
 
 // The builder's edit functions, captured from inside the Provider.
-const editor: {
-    fields?: ReturnType<typeof useFormFieldsAtom>;
-    form?: ReturnType<typeof useFormState>;
-    status?: string;
-    dispatch?: (args: DispatchArgs) => boolean;
-    language?: string | null;
-    undoSteps?: number;
-    patternErrors?: Record<string, PatternSaveError>;
-} = {};
+const editor: { fields?: ReturnType<typeof useFormFieldsAtom>; form?: ReturnType<typeof useFormState>; status?: string; dispatch?: (args: DispatchArgs) => boolean; language?: string | null; undoSteps?: number } = {};
 
 /** Does what the editor page does: load the form into the builder state, then mark it hydrated. */
 function EditorPage({ hydrate = true, welcomeTitle }: { hydrate?: boolean; welcomeTitle?: string }) {
@@ -72,7 +63,6 @@ function EditorPage({ hydrate = true, welcomeTitle }: { hydrate?: boolean; welco
     editor.status = autosaveStatus.state;
     editor.dispatch = useSetAtom(dispatchAtom);
     editor.language = useAtomValue(formLanguageAtom);
-    editor.patternErrors = useAtomValue(patternSaveErrorsAtom);
     editor.undoSteps = useAtomValue(docHistoryAtom).steps.length;
     useFormLanguageSync();
     React.useEffect(() => {
@@ -150,19 +140,6 @@ describe('AutoSaveForm', () => {
         await act(async () => editor.fields!.updateDescription(0, 0, 'Your name'));
         await advance(1000);
         expect(lastVersion()).toBe(SAVED_VERSION);
-    });
-
-    it('a pattern the server refuses is kept for the pattern box, and cleared by the next save that goes through', async () => {
-        patchFormMock.mockResolvedValueOnce({ error: { status: 422, data: { code: 'unsafe_pattern', message: 'x', errors: [{ fieldId: 'q-1', hazard: 'nested_repeat' }] } } });
-        renderEditor();
-        await act(async () => void editor.dispatch!({ ops: [{ op: 'set_field_validation', fieldId: 'q-1', validation: { pattern: '^[a-z]+$' } }], label: 'Pattern' }));
-        await advance(1000);
-        expect(editor.patternErrors).toEqual({ 'q-1': { hazard: 'nested_repeat', regex: '^[a-z]+$' } });
-        expect(editor.status).toBe('error');
-
-        await act(async () => editor.fields!.updateDescription(0, 0, 'again'));
-        await advance(1000);
-        expect(editor.patternErrors).toEqual({});
     });
 
     it('deleting every page is saved', async () => {

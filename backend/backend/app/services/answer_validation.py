@@ -57,6 +57,12 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import re2
 from common.form_spec.models import PATTERN_MAX_LENGTH
+from common.form_spec.re2_patterns import (  # noqa: F401  (re-exported)
+    PATTERN_MAX_MEM,
+    PATTERN_MAX_PROGRAM,
+    re2_options,
+    to_re2_syntax,
+)
 from common.models.standard_form import default_ending, ending_by_id
 from loguru import logger
 
@@ -93,13 +99,8 @@ INTEGER_PATTERN = r"^-?\d+$"
 # A pattern is never matched against more characters than this (longer
 # text is left to the browser's check).
 PATTERN_INPUT_MAX_LENGTH = 10_000
-# RE2 memory per pattern: heavy patterns (``^\p{L}{0,300}$``) fail to compile
-# within it in a few milliseconds instead of taking 100+ ms; every preset
-# compiles in well under a millisecond.
-PATTERN_MAX_MEM = 1 << 20
-# Matching costs up to (text length x program size) when RE2 falls back from
-# its DFA: a bigger program is not checked here.
-PATTERN_MAX_PROGRAM = 5_000
+# RE2 memory and program size per pattern: common form_spec/re2_patterns.py,
+# the limits a pattern must be within to be saved as well.
 # Per response: patterns compiled that were not in the cache, and the time
 # spent compiling and matching patterns.
 PATTERN_COMPILES_PER_RESPONSE = 50
@@ -159,10 +160,6 @@ _NOT_VALUE_KEYS = {"field", "type"}
 _JS_WHITESPACE = (
     "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006"
     "\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
-)
-_JS_SPACE_CLASS = (
-    r"\s\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}"
-    r"\x{3000}\x{feff}"
 )
 _JS_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
 _JS_RADIX = {"x": 16, "o": 8, "b": 2}
@@ -270,50 +267,7 @@ def _is_set(value: Any) -> bool:
     )
 
 
-def to_re2_syntax(pattern: str) -> str:
-    """Rewrite the JavaScript-only bits of a pattern RE2 reads differently:
-    ``\\uXXXX`` / ``\\u{...}`` escapes, and ``\\s`` (Unicode spaces in
-    JavaScript, ASCII in RE2). Everything else is passed on as written."""
-    out: List[str] = []
-    in_class = False
-    i = 0
-    while i < len(pattern):
-        char = pattern[i]
-        if char == "\\" and i + 1 < len(pattern):
-            escaped = pattern[i + 1]
-            if escaped == "u":
-                if pattern.startswith("{", i + 2) and "}" in pattern[i + 3 :]:
-                    end = pattern.index("}", i + 3)
-                    out.append(r"\x{" + pattern[i + 3 : end] + "}")
-                    i = end + 1
-                    continue
-                code = pattern[i + 2 : i + 6]
-                if len(code) == 4 and all(c in "0123456789abcdefABCDEF" for c in code):
-                    out.append(r"\x{" + code + "}")
-                    i += 6
-                    continue
-            if escaped == "s":
-                out.append(_JS_SPACE_CLASS if in_class else f"[{_JS_SPACE_CLASS}]")
-            elif escaped == "S" and not in_class:
-                out.append(f"[^{_JS_SPACE_CLASS}]")
-            else:
-                out.append(pattern[i : i + 2])
-            i += 2
-            continue
-        if char == "[" and not in_class:
-            in_class = True
-        elif char == "]" and in_class:
-            in_class = False
-        out.append(char)
-        i += 1
-    return "".join(out)
-
-
-_RE2_OPTIONS = re2.Options()
-# RE2 would print the pattern to stderr when it does not compile.
-_RE2_OPTIONS.log_errors = False
-_RE2_OPTIONS.never_capture = True
-_RE2_OPTIONS.max_mem = PATTERN_MAX_MEM
+_RE2_OPTIONS = re2_options()
 
 _UNUSABLE = object()  # cached: the pattern is not checked here
 

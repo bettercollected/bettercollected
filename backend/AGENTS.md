@@ -289,20 +289,16 @@ big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
 
-**Pattern safety** (`common/common/form_spec/pattern_safety.py`, webapp twin `utils/pattern-safety.ts`, shared
-cases `docs/spec/pattern-safety.cases.json`; keep the two in step): the server is linear-time (RE2), but the
-respondent's browser evaluates the same pattern with a backtracking `RegExp`, so `^(a+)+$` could freeze a tab.
-`pattern_hazard()` parses the pattern and refuses the shapes that can explode (nested or overlapping repeats
-including optional/bounded ones, empty repeats, a work estimate over `WORK_LIMIT` for overlapping repeats in one
-sequence, also across separators they can match and from inside optional groups and alternations, with a
-thousandth of the allowance when the pattern does not start with `^` since it is tried at every start, inline flags, backreferences, too long/deep/unreadable); it
-reads the shape, never times anything, and cannot prove the absence of super-linear patterns, so the webapp
-also tests answers only up to `PATTERN_TEST_MAX_LENGTH` (1,000; longer ones are left to the server's RE2). `checked_pattern` applies it (form spec, ops engine, REST API, Open Formulieren
-import: an archive pattern it refuses is `validation_not_carried`), and `services/form_patterns.py`
-`check_form_patterns` applies it on every form save (422 `unsafe_pattern` with question ids, never the
-pattern; a pattern the stored draft already holds is kept; a copy drops it; one that does not compile is no
-hazard). The webapp never hands a hazard pattern to `RegExp.test` (`compilePattern` returns null), the builder
-shows the error inline (`builder` PATTERN_HAZARD.*), and the server still checks stored ones with RE2 on submit.
+**Answer patterns** are matched on the server with RE2 (linear time) and never run by the respondent's browser
+(the webapp checks only its format presets and the whole-number rule, `utils/answer-rules.ts`; a creator's
+pattern is checked on submit and the 422 `pattern` problem is shown on its question). So a pattern RE2 cannot
+use would silently go unchecked: `checked_pattern` (`common/common/form_spec/models.py`, RE2 compile in
+`common/common/form_spec/re2_patterns.py`, within `PATTERN_MAX_MEM` and `PATTERN_MAX_PROGRAM`) refuses it in the
+form spec, the ops engine, the REST API and the Open Formulieren import (an archive pattern it refuses is
+`validation_not_carried`), and `services/form_patterns.py` `check_form_patterns` applies it on every form save
+(422 `invalid_pattern` with the reason and question ids; a pattern the stored draft already holds is kept; a copy
+drops it). The builder asks `POST /workspaces/{id}/forms/pattern/check` while a pattern is typed. There is no
+shape analysis of patterns: two review rounds found bypasses in one, and RE2 makes it unnecessary.
 
 **Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
 `calculated` field on a page stores an expressions-v1 AST at `properties.expression`

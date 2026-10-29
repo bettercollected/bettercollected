@@ -1,7 +1,6 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import type { LogicSources } from '@app/utils/conditional-logic';
-import { PatternHazard, patternHazard } from '@app/utils/pattern-safety';
 import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
@@ -61,64 +60,23 @@ export function presetForPattern(pattern: string | undefined | null): FormatPres
     return pattern ? FORMAT_PRESETS.find((preset) => preset.pattern === pattern) : undefined;
 }
 
-/** The pattern as a RegExp (compiled, never run), or null when it does not compile. Unicode first (for \p{L}), then plain. */
-function compileRaw(pattern: string): RegExp | null {
-    try {
-        return new RegExp(pattern, 'u');
-    } catch {
-        try {
-            return new RegExp(pattern);
-        } catch {
-            return null;
-        }
-    }
-}
+const KNOWN_PATTERNS: Map<string, RegExp> = new Map([...FORMAT_PRESETS.map((preset) => preset.pattern), INTEGER_PATTERN].map((pattern) => [pattern, new RegExp(pattern, 'u')]));
 
 /**
- * The pattern as a RegExp to test answers with, or null when it must not be
- * tested here: it does not compile, or its shape can take this backtracking
- * engine exponential time (`^(a+)+$`, utils/pattern-safety.ts). The server
- * checks such a pattern with RE2 (linear time) when the answer is submitted
- * and answers 422, which the form shows next to the question.
+ * The RegExp for a pattern this browser may test answers with: only our own
+ * fixed ones, the format presets and "whole numbers only", looked up by
+ * exact identity (never by analysing the string). A pattern a creator wrote
+ * is not tested here at all: it could take a backtracking engine very long,
+ * and no check of its shape can promise it does not. The server matches it
+ * with RE2 (linear time) when the answer is submitted, and the respondent is
+ * taken back to the question with the message (utils/server-answer-errors.ts).
  */
 export function compilePattern(pattern: string | undefined | null): RegExp | null {
-    if (!pattern) return null;
-    // the shape is checked before either compile (the one with the u flag, then the lenient one without it)
-    if (patternHazard(pattern)) return null;
-    return compileRaw(pattern);
+    return (pattern && KNOWN_PATTERNS.get(pattern)) || null;
 }
 
-/**
- * The longest answer (in UTF-16 units) this browser tests against a pattern.
- * The structural check (utils/pattern-safety.ts) bounds the work of a pattern
- * for answers up to about this long (WORK_UNBOUNDED) but cannot prove no
- * pattern is super-linear, so a longer answer is left to the server, which
- * matches with RE2 (linear time) up to PATTERN_INPUT_MAX_LENGTH, 10,000
- * characters, when the answer is submitted.
- */
-export const PATTERN_TEST_MAX_LENGTH = 1000;
-
-/**
- * Whether the answer breaks the pattern, as far as this browser can tell:
- * false when the pattern must not be tested here (does not compile, unsafe
- * shape) or the answer is longer than PATTERN_TEST_MAX_LENGTH.
- */
-export function patternBreaks(pattern: string | undefined | null, text: string): boolean {
-    if (text.length > PATTERN_TEST_MAX_LENGTH) return false;
-    const compiled = compilePattern(pattern);
-    return !!compiled && !compiled.test(text);
-}
-
-/** What is wrong with a pattern the builder is given: it does not compile, or its shape is a hazard. null when it is fine. */
-export function patternProblem(pattern: string | undefined | null): 'invalid' | PatternHazard | null {
-    if (!pattern) return null;
-    const hazard = patternHazard(pattern);
-    if (!compileRaw(pattern)) {
-        // the server refuses a hazard even where this browser cannot compile the pattern ((?i), (?P<x>...))
-        return hazard && hazard !== 'unparseable' && hazard !== 'too_complex' ? hazard : 'invalid';
-    }
-    return hazard;
-}
+/** Whether this browser checks the pattern itself (a preset), or leaves it to the server. */
+export const browserChecksPattern = (pattern: string | undefined | null): boolean => compilePattern(pattern) !== null;
 
 /** Which kind of answer rules a field takes, if any. */
 export function answerRuleKind(field: Pick<StandardFormFieldDto, 'type' | 'properties'> | undefined | null): AnswerRuleKind | null {
@@ -169,7 +127,8 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
             const length = Array.from(text).length;
             if (isSet(rules.minLength) && length < rules.minLength) problems.push('TOO_SHORT');
             if (isSet(rules.maxLength) && length > rules.maxLength) problems.push('TOO_LONG');
-            if (patternBreaks(rules.regex, text.trim())) problems.push('PATTERN');
+            const pattern = compilePattern(rules.regex);
+            if (pattern && !pattern.test(text.trim())) problems.push('PATTERN');
             break;
         }
         case 'number': {
@@ -177,7 +136,10 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
             if (!number) break;
             if (isSet(rules.minValue) && number.value < rules.minValue) problems.push('TOO_SMALL');
             if (isSet(rules.maxValue) && number.value > rules.maxValue) problems.push('TOO_LARGE');
-            if (rules.regex && patternBreaks(rules.regex, number.typed)) problems.push(rules.regex === INTEGER_PATTERN ? 'NOT_INTEGER' : 'PATTERN');
+            if (rules.regex) {
+                const pattern = compilePattern(rules.regex);
+                if (pattern && !pattern.test(number.typed)) problems.push(rules.regex === INTEGER_PATTERN ? 'NOT_INTEGER' : 'PATTERN');
+            }
             break;
         }
         case 'choices': {
@@ -294,8 +256,6 @@ export function answerRuleConflicts(rules: IFormFieldValidation | undefined): st
     if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push('The minimum length is more than the maximum.');
     if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
     if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
-    // a pattern that is a hazard is explained next to the pattern box (translated)
-    if (rules.regex && patternProblem(rules.regex) === 'invalid') conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
-    else if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
+    if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
     return conflicts;
 }

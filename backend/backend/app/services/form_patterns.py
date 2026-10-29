@@ -1,33 +1,28 @@
 """The answer patterns on a form, checked when a person saves it.
 
 A question's pattern (``validations.regex``) is matched on the server with
-RE2 (linear time), but the respondent's browser matches it with a
-backtracking engine: ``^(a+)+$`` can freeze a tab on one unlucky answer. So a
-save refuses a pattern whose shape can do that (``common.form_spec.
-pattern_safety``, the rule the form spec, the AI ops and the importer apply
-through ``checked_pattern``; the webapp builder shows the same message).
+RE2, in linear time (``services/answer_validation.py``); the respondent's
+browser never runs it. A pattern RE2 cannot use (a lookaround, a
+backreference, a mistake) would be skipped there, so a save refuses it with
+the rule the spec, the ops and the import apply through ``checked_pattern``.
 
 - A pattern the stored draft already holds exactly is kept, so a form saved
-  before this check still saves and can be edited; the respondent form never
-  hands such a pattern to the browser's engine
-  (``webapp/src/utils/answer-rules.ts``), and the server still checks it.
+  before this check still saves and can be edited.
 - A copy (a template) drops the pattern instead of refusing: nobody can fix
   it by hand there.
-- A pattern that does not compile is no hazard (as before: it is stored, the
-  builder says it is not checked).
-- Otherwise 422 ``unsafe_pattern`` with the question ids, never the pattern.
+- Otherwise 422 ``invalid_pattern`` with the reason and the question ids.
 """
 
-import re
 from http import HTTPStatus
 from typing import Dict, Iterable, List, Optional, Set
 
-from common.form_spec.pattern_safety import HAZARD_MESSAGES, UNPARSEABLE, pattern_hazard
+from common.form_spec.models import PATTERN_MAX_LENGTH, checked_pattern
+from common.form_spec.re2_patterns import re2_problem
 from common.models.standard_form import StandardForm, StandardFormField
 
 from backend.app.exceptions import HTTPException
 
-ERROR_CODE = "unsafe_pattern"
+ERROR_CODE = "invalid_pattern"
 
 
 def _walk(fields: Optional[Iterable[StandardFormField]]):
@@ -45,16 +40,22 @@ def _pattern(field: StandardFormField) -> Optional[str]:
     return regex if isinstance(regex, str) and regex.strip() else None
 
 
-def _no_engine_runs(pattern: str, hazard: str) -> bool:
-    """A pattern that is no pattern at all (the builder saves one while it is
-    being typed, ``(a+``): it does not compile, so nothing evaluates it."""
-    if hazard != UNPARSEABLE:
-        return False
+def pattern_problem(pattern: str) -> Optional[str]:
+    """Why a pattern cannot be saved, or None."""
     try:
-        re.compile(pattern)
-    except re.error:
-        return True
-    return False
+        checked_pattern(pattern)
+    except ValueError as error:
+        return str(error)
+    return None
+
+
+def pattern_reason(pattern: str) -> Optional[str]:
+    """The short reason a pattern cannot be saved (RE2's own words, or the
+    length rule), or None."""
+    pattern = pattern.strip()
+    if len(pattern) > PATTERN_MAX_LENGTH:
+        return f"A pattern can be at most {PATTERN_MAX_LENGTH} characters."
+    return re2_problem(pattern)
 
 
 def check_form_patterns(
@@ -63,7 +64,7 @@ def check_form_patterns(
     drop: bool = False,
 ) -> None:
     """Refuse (422) or, with ``drop``, remove every pattern of ``form`` that
-    can freeze a browser, except the ones ``stored`` already holds."""
+    cannot be saved, except the ones ``stored`` already holds."""
     keep: Set[str] = {
         pattern
         for pattern in (
@@ -76,19 +77,19 @@ def check_form_patterns(
         pattern = _pattern(field)
         if pattern is None or pattern in keep:
             continue
-        hazard = pattern_hazard(pattern.strip())
-        if hazard is None or _no_engine_runs(pattern.strip(), hazard):
+        problem = pattern_problem(pattern)
+        if problem is None:
             continue
         if drop:
             field.validations.regex = None
         else:
-            refused.append({"fieldId": str(field.id), "hazard": hazard})
+            refused.append({"fieldId": str(field.id), "message": problem})
     if refused:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={
                 "code": ERROR_CODE,
-                "message": HAZARD_MESSAGES[refused[0]["hazard"]],
+                "message": refused[0]["message"],
                 "errors": refused,
             },
         )
