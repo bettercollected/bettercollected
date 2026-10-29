@@ -704,6 +704,7 @@
       "source_multiple": "This variable uses “{{source}}”, which can hold several values.",
       "source_rewritten": "This variable uses “{{source}}”, which a rule, a prefill or a script of the source form also sets.",
       "source_default": "This variable uses “{{source}}”, which starts from a default value that was not carried over.",
+      "source_conditional": "This variable uses “{{source}}”. A rule can hide it; the source form then leaves it empty.",
       "depends_on_variable": "This variable uses the variable “{{source}}”, which was not carried over.",
       "cycle": "This variable depends on itself through other variables.",
       "order": "This variable uses “{{source}}”, which a later rule sets.",

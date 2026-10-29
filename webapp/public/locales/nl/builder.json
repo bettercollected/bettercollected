@@ -704,6 +704,7 @@
       "source_multiple": "Deze variabele gebruikt “{{source}}”. Dat kan meerdere waarden bevatten.",
       "source_rewritten": "Deze variabele gebruikt “{{source}}”. Dat wordt ook ingesteld door een regel, een prefill of een script van het brondformulier.",
       "source_default": "Deze variabele gebruikt “{{source}}”. Dat begint met een standaardwaarde die niet is overgenomen.",
+      "source_conditional": "Deze variabele gebruikt “{{source}}”. Dat kan door een regel verborgen worden; het bronformulier laat het dan leeg.",
       "depends_on_variable": "Deze variabele gebruikt de variabele “{{source}}”. Die is niet overgenomen.",
       "cycle": "Deze variabele hangt via andere variabelen van zichzelf af.",
       "order": "Deze variabele gebruikt “{{source}}”. Dat wordt door een latere regel ingesteld.",

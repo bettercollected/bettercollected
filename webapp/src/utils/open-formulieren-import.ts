@@ -122,6 +122,7 @@ export const VARIABLE_CAUSES = [
     'source_multiple',
     'source_rewritten',
     'source_default',
+    'source_conditional',
     'depends_on_variable',
     'cycle',
     'order',
