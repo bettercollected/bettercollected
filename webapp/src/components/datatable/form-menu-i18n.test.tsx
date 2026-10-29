@@ -105,8 +105,11 @@ describe('the form menu', () => {
     it('is Dutch in Dutch, Open starting with a capital', async () => {
         await inLanguage('nl');
         openMenu();
-        for (const label of ['Openen', 'Link kopiëren', 'Maak QR-code', 'Dupliceer formulier', 'Downloaden voor Open Formulieren', 'Verwijder formulier']) {
+        for (const label of ['Formulier vastzetten', 'Openen', 'Bewerken', 'Link kopiëren', 'Link aanpassen', 'QR-code maken', 'Formulier dupliceren', 'Downloaden voor Open Formulieren', 'Formulier verwijderen']) {
             expect(await screen.findByText(label)).toBeInTheDocument();
+        }
+        for (const old of ['Vastzetten formulier', 'Maak QR-code', 'Dupliceer formulier', 'Verwijder formulier', 'Open in de editor']) {
+            expect(screen.queryByText(old)).toBeNull();
         }
         for (const english of ['Duplicate form', 'Generate QR', 'openen']) {
             expect(screen.queryByText(english)).toBeNull();

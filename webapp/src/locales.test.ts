@@ -90,3 +90,68 @@ describe('the Dutch dashboard register', () => {
         expect(commonNl.BUTTON.OPEN).toBe('Openen');
     });
 });
+
+describe('Dutch action labels', () => {
+    // Menu items and buttons are infinitives with the object first, like
+    // "Openen", "Bewerken" and "Link kopiëren": "Formulier vastzetten", not
+    // "Vastzetten formulier" and not the imperative "Maak QR-code".
+    const actions = (): Array<[string, string]> => [
+        ...leaves(commonNl.FORM_MENU as Tree, 'FORM_MENU.'),
+        ['FORM_PAGE.EDIT_FORM', commonNl.FORM_PAGE.EDIT_FORM],
+        ['FORM_PAGE.SHARE_FORM', commonNl.FORM_PAGE.SHARE_FORM],
+        ['BUTTON.CUSTOMIZE_LINK', commonNl.BUTTON.CUSTOMIZE_LINK],
+        ...leaves(builderNl.OPEN_FORMULIEREN_IMPORT.PUBLISH_BLOCKED as Tree, 'PUBLISH_BLOCKED.').filter(([key]) => /OPEN_REPORT|MARK_REVIEWED/.test(key)),
+        ['REPORT.OPEN_EDITOR', builderNl.OPEN_FORMULIEREN_IMPORT.REPORT.OPEN_EDITOR],
+        ['REPORT.MARK_REVIEWED', builderNl.OPEN_FORMULIEREN_IMPORT.REPORT.MARK_REVIEWED],
+        ['BANNER.LINK', builderNl.OPEN_FORMULIEREN_IMPORT.BANNER.LINK]
+    ];
+    const imperative = /^(Maak|Bewerk|Deel|Verwijder|Dupliceer|Open|Markeer|Kopieer|Bekijk|Download|Zet|Pas|Gebruik|Probeer)\b/;
+
+    it('starts none of the form menu, the form toolbar or the import report buttons with an imperative', () => {
+        // the notes that follow an export are sentences, not actions
+        const offenders = actions()
+            .filter(([key]) => !/EXPORT_(CLEAN|UNMAPPED|TOO_LARGE|ERROR)|DUPLICATE_ERROR/.test(key))
+            .filter(([, value]) => imperative.test(value))
+            .map(([key, value]) => `${key}: ${value}`);
+        expect(offenders).toEqual([]);
+    });
+
+    it('puts the object first in the form menu', () => {
+        expect(commonNl.FORM_MENU).toMatchObject({
+            PIN_FORM: 'Formulier vastzetten',
+            DUPLICATE_FORM: 'Formulier dupliceren',
+            DELETE_FORM: 'Formulier verwijderen',
+            GENERATE_QR: 'QR-code maken',
+            MAKE_FORM_PRIVATE: 'Formulier privé maken',
+            MAKE_FORM_PUBLIC: 'Formulier openbaar maken'
+        });
+        expect(commonNl.FORM_PAGE).toMatchObject({ EDIT_FORM: 'Formulier bewerken', SHARE_FORM: 'Formulier delen' });
+    });
+
+    it('words the import report buttons as infinitives', () => {
+        const report = builderNl.OPEN_FORMULIEREN_IMPORT;
+        expect(report.REPORT.OPEN_EDITOR).toBe('Openen in de editor');
+        expect(report.REPORT.MARK_REVIEWED).toBe('Markeren als nagekeken');
+        expect(report.PUBLISH_BLOCKED.MARK_REVIEWED).toBe('Markeren als nagekeken');
+        expect(report.PUBLISH_BLOCKED.OPEN_REPORT).toBe('Importrapport openen');
+    });
+});
+
+describe('Dutch field type labels in the registration answers list', () => {
+    const types = (tree: Tree) => (tree as any).REGISTRATION.FORM.TYPE as Record<string, string>;
+
+    it('names every type in Dutch, with no English type name left', () => {
+        const nl = types(builderNl as Tree);
+        const en = types(builderEn as Tree);
+        expect(Object.keys(nl).sort()).toEqual(Object.keys(en).sort());
+        // the same word in both languages is fine only for these
+        const same = new Set(['matrix']);
+        for (const [type, label] of Object.entries(nl)) {
+            if (!same.has(type) && type !== 'url') expect(label, type).not.toBe(en[type]);
+        }
+        expect(nl.short_text).toBe('Korte tekst');
+        expect(nl.multiple_choice).toBe('Meerkeuze');
+        expect(nl.long_text).toBe('Lange tekst');
+        expect(nl.hidden).toBe('Verborgen veld');
+    });
+});

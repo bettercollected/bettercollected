@@ -7,6 +7,7 @@ import {
     ERROR_CODES,
     TEST_CODES,
     VARIABLE_REASONS,
+    VARIABLE_TYPES,
     canBeList,
     checkKey,
     defaultKeyOf,
@@ -27,7 +28,8 @@ import {
     referenceConflicts,
     serviceErrorField,
     testKey,
-    variableReasonKey
+    variableReasonKey,
+    variableTypeKey
 } from '@app/utils/registration';
 
 import enBuilder from '../../public/locales/en/builder.json';
@@ -57,6 +59,19 @@ describe('registration error codes', () => {
     it.each(VARIABLE_REASONS)('maps the variable reason "%s"', (reason) => {
         expect(resolve(enBuilder, variableReasonKey(reason))).toEqual(expect.any(String));
         expect(resolve(nlBuilder, variableReasonKey(reason))).toEqual(expect.any(String));
+    });
+
+    it.each(VARIABLE_TYPES)('labels the field type "%s" in both languages', (type) => {
+        const key = variableTypeKey(type)!;
+        expect(resolve(enBuilder, key)).toEqual(expect.any(String));
+        expect(resolve(nlBuilder, key)).toEqual(expect.any(String));
+    });
+
+    it('builds a type key only for a listed type', () => {
+        expect(variableTypeKey('short_text')).toBe('REGISTRATION.FORM.TYPE.short_text');
+        expect(variableTypeKey('signature')).toBeNull();
+        expect(variableTypeKey('a.b')).toBeNull();
+        expect(variableTypeKey(undefined)).toBeNull();
     });
 
     it('falls back to a generic sentence for a code it does not know, and never to the API text', () => {

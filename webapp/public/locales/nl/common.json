@@ -55,7 +55,7 @@
     "COPY_LINK": "Link kopiëren",
     "CREATE_FORM": "Formulier maken",
     "CREATE_WORKSPACE": "Maak een werkruimte",
-    "CUSTOMIZE_LINK": "Uw link aanpassen",
+    "CUSTOMIZE_LINK": "Link aanpassen",
     "DELETE": "Verwijderen",
     "DELETE_ACCOUNT": " Account verwijderen",
     "DONE": "Klaar",
@@ -194,7 +194,7 @@
   "DESCRIPTION": "Beschrijving",
   "DOMAIN": "Domein",
   "EARLY_ACCESS": "Krijg vroege toegang!",
-  "EDIT_FORM": "Bewerk Formulier",
+  "EDIT_FORM": "Formulier bewerken",
   "EDIT_WORKSPACE": {
     "TITLE": "Werkruimte bewerken",
     "DESCRIPTION": "",
@@ -304,15 +304,15 @@
     "OPEN_FORMULIEREN_EXPORT_UNMAPPED_other": "Gedownload. {{count}} onderdelen zijn weggelaten of aangepast: zie README.txt in het archief.",
     "OPEN_FORMULIEREN_EXPORT_TOO_LARGE": "Dit formulier heeft meer pagina's of vragen dan kunnen worden geëxporteerd.",
     "OPEN_FORMULIEREN_EXPORT_ERROR": "Het formulier kon niet worden gedownload.",
-    "DELETE_FORM": "Verwijder formulier",
-    "PIN_FORM": "Vastzetten formulier",
+    "DELETE_FORM": "Formulier verwijderen",
+    "PIN_FORM": "Formulier vastzetten",
     "SHARE": "Delen",
     "VISIBILITY": "Zichtbaarheid",
-    "MAKE_FORM_PRIVATE": "Maak formulier privé",
-    "MAKE_FORM_PUBLIC": "Maak formulier openbaar",
-    "DUPLICATE_FORM": "Dupliceer formulier",
+    "MAKE_FORM_PRIVATE": "Formulier privé maken",
+    "MAKE_FORM_PUBLIC": "Formulier openbaar maken",
+    "DUPLICATE_FORM": "Formulier dupliceren",
     "DUPLICATE_ERROR": "Het formulier kon niet worden gedupliceerd",
-    "GENERATE_QR": "Maak QR-code"
+    "GENERATE_QR": "QR-code maken"
   },
   "FORMS_TOOLBAR": {
     "SEARCH_PLACEHOLDER": "Formulieren zoeken",
@@ -320,8 +320,8 @@
     "COUNT_other": "{{count}} formulieren"
   },
   "FORM_PAGE": {
-    "EDIT_FORM": "Bewerk formulier",
-    "SHARE_FORM": "Deel formulier",
+    "EDIT_FORM": "Formulier bewerken",
+    "SHARE_FORM": "Formulier delen",
     "PRO": "Pro",
     "SEARCH_BY_EMAIL": "Zoeken op e-mail",
     "SETTINGS": {
@@ -359,10 +359,10 @@
       },
       "LINKS": {
         "DESCRIPTION": "Maak gepersonaliseerde formulierlinks die aansluiten bij hun merk of specifieke eisen. Een link-slug is een beknopt, beschrijvend deel van een URL dat de inhoud van de webpagina identificeert.",
-        "CHANGE_SLUG": "Aanpassen Link",
+        "CHANGE_SLUG": "Link aanpassen",
         "CUSTOM_DOMAIN_LINK": "Link met aangepast domein",
         "DEFAULT_LINK": "Standaard link",
-        "COPY_LINK": "Kopieer link",
+        "COPY_LINK": "Link kopiëren",
         "USE_CUSTOM_DOMAIN": "Gebruik aangepast domein",
         "SLUG": {
           "TITLE": "Slug wijzigen",
@@ -385,7 +385,7 @@
     "RESPONSES": {
       "DESCRIPTION": "Respondenten zijn de individuen die het formulier hebben ingevuld en ingediend. U kunt hun ingevulde datum en tijd zien.",
       "BACK_TO_RESPONSES": "Terug naar reacties",
-      "DELETE_RESPONSE": "Verwijder reactie",
+      "DELETE_RESPONSE": "Reactie verwijderen",
       "SUBMITTED_BY": "Ingediend door",
       "SUBMITTED_AT": "Ingediend op",
       "ANONYMOUS": "Anoniem"

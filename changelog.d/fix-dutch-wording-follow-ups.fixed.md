@@ -1,0 +1,1 @@
+- Dutch wording: form menu and import report buttons are infinitives with the object first ("Formulier vastzetten", "Openen in de editor"), the registration answers list and the relative time on form cards ("4 uur geleden") are no longer English in Dutch, and the Open Formulieren import report explains why a variable was or was not carried over as a calculated question.
