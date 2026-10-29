@@ -20,6 +20,28 @@ export function utcToLocalDateTimeIn(dateStr: any, language: string): string {
     return dateStr && date.isValid() ? new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long', timeStyle: 'short' }).format(date.toDate()) : '';
 }
 
+const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['year', 365 * 24 * 3600],
+    ['month', 30 * 24 * 3600],
+    ['day', 24 * 3600],
+    ['hour', 3600],
+    ['minute', 60]
+];
+
+/**
+ * How long ago a UTC date was, in a language: "4 hours ago" / "4 uur geleden",
+ * and "now" / "nu" under a minute (or for a date a little ahead of the clock).
+ * Empty for a missing or invalid date.
+ */
+export function utcToRelativeIn(dateStr: any, language: string, now: number = Date.now()): string {
+    const date = moment.utc(dateStr);
+    if (!dateStr || !date.isValid()) return '';
+    const seconds = Math.max(0, Math.floor((now - date.valueOf()) / 1000));
+    const format = new Intl.RelativeTimeFormat(intlLocale(language), { numeric: 'auto' });
+    const [unit, size] = RELATIVE_UNITS.find(([, size]) => seconds >= size) ?? ['second', 1];
+    return unit === 'second' ? format.format(0, 'second') : format.format(-Math.floor(seconds / size), unit);
+}
+
 /**
  * Formats a date and time in the "yyyy-mm-dd:hh:mm:ss" format, optionally adding days and hours.
  *

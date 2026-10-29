@@ -1,9 +1,12 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { describe, expect, it } from 'vitest';
 
 import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, problemsFromPublishError, splitPublishProblems, templateReviewProblem, themeContrastProblems } from './publish-checks';
+import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, hasWorkspaceTitle, problemsFromPublishError, requiresWorkspaceTitle, splitPublishProblems, templateReviewProblem, themeContrastProblems, visibleTitle, workspaceTitleProblems } from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -166,5 +169,74 @@ describe('templateReviewProblem', () => {
         expect(templateReviewProblem({ status: 403, data: { code: 'forbidden' } })).toBeUndefined();
         expect(templateReviewProblem({ status: 422, data: { code: 'form_not_publishable', problems: refusal.data.problems } })).toBeUndefined();
         expect(templateReviewProblem({ status: 422, data: { code: 'needs_review', problems: [] } })).toBeUndefined();
+    });
+});
+
+describe('workspaceTitleProblems', () => {
+    it('names no problem for a workspace with a title', () => {
+        expect(workspaceTitleProblems({ id: 'w', title: 'Acme Foundation' }, 2)).toEqual([]);
+        expect(workspaceTitleProblems({ id: 'w', title: '  Acme  ' }, 2)).toEqual([]);
+    });
+
+    it('treats no title, an empty one and one of only whitespace as no title, even when the workspace has a readable handle', () => {
+        for (const title of [undefined, null, '', ' ', ' \t\n ']) {
+            const problems = workspaceTitleProblems({ id: 'w', title, workspaceName: 'acme-forms' } as any, 2);
+            expect(problems.map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+            expect(problems[0].fieldId).toBe('');
+        }
+    });
+
+    it('claims nothing while the workspace is still loading (no id)', () => {
+        expect(workspaceTitleProblems(undefined, 2)).toEqual([]);
+        expect(workspaceTitleProblems(null, 2)).toEqual([]);
+        expect(workspaceTitleProblems({ title: '' }, 2)).toEqual([]);
+    });
+
+    it('is read from a refused publish like the other server problems', () => {
+        const refusal = { status: 422, data: { code: 'form_not_publishable', problems: [{ code: 'workspace_title_missing', fieldId: null, message: 'Your workspace has no title yet.' }] } };
+        expect(problemsFromPublishError(refusal).map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+    });
+
+    it('is held to forms created under the rule (version 2 or later) only', () => {
+        expect(requiresWorkspaceTitle(2)).toBe(true);
+        expect(requiresWorkspaceTitle(3)).toBe(true);
+        for (const version of [undefined, null, 0, 1]) {
+            expect(requiresWorkspaceTitle(version)).toBe(false);
+            expect(workspaceTitleProblems({ id: 'w', title: '' }, version)).toEqual([]);
+        }
+        expect(workspaceTitleProblems({ id: 'w', title: '' }, 2).map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+    });
+
+    it('is a blocking problem for a form that is held to it', () => {
+        const [problem] = workspaceTitleProblems({ id: 'w', title: '' }, 2);
+        expect(splitPublishProblems([problem], 2)).toEqual({ blocking: [problem], recommended: [] });
+    });
+
+    it('leaves the "why we ask" rule as it was for older and newer forms', () => {
+        const reason = { code: 'missing_why_we_ask', fieldId: 'f', message: 'm' } as any;
+        expect(splitPublishProblems([reason], undefined)).toEqual({ blocking: [], recommended: [reason] });
+        expect(splitPublishProblems([reason], 1)).toEqual({ blocking: [reason], recommended: [] });
+        expect(splitPublishProblems([reason], 2)).toEqual({ blocking: [reason], recommended: [] });
+    });
+});
+
+// The cases shared with the server (backend/tests/app/services/test_workspace_title_check.py): the builder's check and
+// the server's agree on what is a title.
+const titleCases = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/workspace-title.cases.json'), 'utf-8')) as { refused: Array<string | null>; accepted: string[] };
+
+describe('hasWorkspaceTitle', () => {
+    it.each(titleCases.refused)('is no title: %j', (title) => {
+        expect(hasWorkspaceTitle(title)).toBe(false);
+        expect(workspaceTitleProblems({ id: 'w', title }, 2).map((problem) => problem.code)).toEqual(['workspace_title_missing']);
+    });
+
+    it.each(titleCases.accepted)('is a title: %j', (title) => {
+        expect(hasWorkspaceTitle(title)).toBe(true);
+        expect(workspaceTitleProblems({ id: 'w', title }, 2)).toEqual([]);
+    });
+
+    it('shows only what can be seen', () => {
+        expect(visibleTitle(' \u200bAc\u3164me\ufeff ')).toBe('Acme');
+        expect(visibleTitle(undefined)).toBe('');
     });
 });

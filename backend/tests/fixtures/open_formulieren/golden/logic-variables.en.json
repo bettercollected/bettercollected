@@ -170,13 +170,6 @@
     {
       "code": "dropped",
       "kind": "logic",
-      "reason": "trigger_not_supported",
-      "severity": "warning",
-      "key": "rule-5"
-    },
-    {
-      "code": "dropped",
-      "kind": "logic",
       "reason": "action_not_supported",
       "severity": "warning",
       "key": "rule-6",
@@ -310,6 +303,13 @@
     },
     {
       "code": "dropped",
+      "kind": "logic",
+      "reason": "trigger_not_supported",
+      "severity": "warning",
+      "key": "rule-5"
+    },
+    {
+      "code": "dropped",
       "kind": "feature",
       "reason": "translations_not_carried",
       "severity": "info",
@@ -343,7 +343,9 @@
       "severity": "info",
       "key": "total",
       "detail": {
-        "dataType": "float"
+        "dataType": "float",
+        "cause": "source_default",
+        "source": "quantity"
       }
     },
     {
@@ -353,7 +355,8 @@
       "severity": "info",
       "key": "isPremium",
       "detail": {
-        "dataType": "boolean"
+        "dataType": "boolean",
+        "cause": "not_numeric"
       }
     },
     {
@@ -363,7 +366,8 @@
       "severity": "info",
       "key": "greeting",
       "detail": {
-        "dataType": "string"
+        "dataType": "string",
+        "cause": "not_numeric"
       }
     },
     {
@@ -373,7 +377,8 @@
       "severity": "info",
       "key": "reviewDate",
       "detail": {
-        "dataType": "date"
+        "dataType": "date",
+        "cause": "no_rule"
       }
     },
     {
@@ -383,7 +388,8 @@
       "severity": "info",
       "key": "tags",
       "detail": {
-        "dataType": "array"
+        "dataType": "array",
+        "cause": "no_rule"
       }
     },
     {

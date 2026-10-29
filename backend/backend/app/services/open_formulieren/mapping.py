@@ -79,6 +79,7 @@ class Reason:
     VALUE = "condition_value_not_supported"
     # variables
     USER_VARIABLE = "user_variable_not_carried"
+    USER_VARIABLE_CALCULATED = "user_variable_calculated"
     # features and settings
     SIGN_IN = "sign_in_not_carried"
     PAYMENT = "payment_not_carried"

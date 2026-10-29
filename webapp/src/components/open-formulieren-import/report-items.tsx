@@ -8,7 +8,7 @@ import type { ImportReportItem } from '@app/store/redux/open-formulieren-import-
 import { groupReport, reportLabelOf, reportSentenceOf } from '@app/utils/open-formulieren-import';
 
 const ROOT = 'OPEN_FORMULIEREN_IMPORT';
-const DETAIL_NAMES = ['componentType', 'property', 'actionType', 'plugin', 'dataType'];
+const DETAIL_NAMES = ['componentType', 'property', 'actionType', 'plugin', 'dataType', 'operator', 'source', 'rules'];
 
 /** Translate a key below OPEN_FORMULIEREN_IMPORT (builder namespace). */
 export function useImportText() {

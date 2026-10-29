@@ -69,6 +69,7 @@ export const REPORT_REASONS = [
     'condition_value_not_supported',
     // variables
     'user_variable_not_carried',
+    'user_variable_calculated',
     // features and settings
     'sign_in_not_carried',
     'payment_not_carried',
@@ -95,7 +96,41 @@ export const NATIONAL_IDENTITY_FLAG = 'national_identity_number';
 const REASONS = new Set<string>(REPORT_REASONS);
 const ERROR_CODES = new Set<string>(UPLOAD_ERROR_CODES);
 /** The only detail keys a sentence may use (api contract section 5). */
-const DETAIL_KEYS = ['componentType', 'property', 'actionType', 'plugin', 'dataType'] as const;
+const DETAIL_KEYS = ['componentType', 'property', 'actionType', 'plugin', 'dataType', 'cause', 'operator', 'source', 'rules'] as const;
+
+/**
+ * Why a variable was not carried over as a calculated question
+ * (`detail.cause` of `user_variable_not_carried`). Each has its own sentence
+ * under VARIABLE_CAUSE; a cause this list does not know (a newer server), or
+ * none (an older one), keeps the generic sentence.
+ */
+export const VARIABLE_CAUSES = [
+    'no_rule',
+    'several_rules',
+    'other_source',
+    'duplicate_key',
+    'not_numeric',
+    'condition',
+    'trigger_from_step',
+    'operator',
+    'operand',
+    'too_complex',
+    'initial_value',
+    'source_missing',
+    'source_not_number',
+    'source_in_group',
+    'source_multiple',
+    'source_rewritten',
+    'source_default',
+    'source_conditional',
+    'depends_on_variable',
+    'cycle',
+    'order',
+    'key_collision',
+    'too_many',
+    'rejected'
+] as const;
+const CAUSES = new Set<string>(VARIABLE_CAUSES);
 
 /** Text from the server, made safe to put in a sentence: plain, one line, short. */
 export function plainText(value: unknown, max = 80): string {
@@ -176,6 +211,8 @@ export function reportSentenceOf(item: Pick<ImportReportItem, 'code' | 'reason' 
     if (item.key) values.key = plainText(item.key, 120);
     // an address question (addressNL) becomes five text questions: its own sentence, not the generic one
     if (item.reason === 'converted_to_text' && item.detail?.componentType === 'addressNL') return { key: 'REASON.converted_to_text_address', values };
+    // a variable that was not carried: the cause, when the server says it and we know it
+    if (item.reason === 'user_variable_not_carried' && typeof item.detail?.cause === 'string' && CAUSES.has(item.detail.cause)) return { key: `VARIABLE_CAUSE.${item.detail.cause}`, values };
     if (REASONS.has(item.reason)) return { key: `REASON.${item.reason}`, values };
     const code = (REPORT_CODES as ReadonlyArray<string>).includes(item.code) ? item.code : 'other';
     return { key: `REASON_FALLBACK.${code}`, values };

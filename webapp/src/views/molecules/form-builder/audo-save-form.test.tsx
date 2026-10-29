@@ -203,7 +203,7 @@ describe('publishing from the editor', () => {
         vi.useFakeTimers();
         patchFormMock.mockReset().mockResolvedValue(saved());
         publishFormMock.mockReset().mockResolvedValue({ data: { formId: 'form-1' } });
-        store.dispatch(setWorkspace({ id: 'ws-1' } as any));
+        store.dispatch(setWorkspace({ id: 'ws-1', title: 'Acme Foundation' } as any));
         store.dispatch(setForm({ formId: 'form-1', title: 'Loaded form', updatedAt: LOADED_VERSION, settings: { publishChecksVersion: null } } as any));
     });
     afterEach(() => vi.useRealTimers());

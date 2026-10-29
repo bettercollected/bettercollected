@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { openFormulierenImportOn } from '@app/lib/hooks/use-open-formulieren-import-mode';
-import { MAX_UPLOAD_BYTES, REPORT_REASONS, UPLOAD_ERROR_CODES, groupReport, nationalIdentityItems, plainText, reportLabelOf, reportSentenceOf, uploadProblemOf, uploadTooLarge } from '@app/utils/open-formulieren-import';
+import { MAX_UPLOAD_BYTES, REPORT_REASONS, UPLOAD_ERROR_CODES, VARIABLE_CAUSES, groupReport, nationalIdentityItems, plainText, reportLabelOf, reportSentenceOf, uploadProblemOf, uploadTooLarge } from '@app/utils/open-formulieren-import';
 
 import enBuilder from '../../public/locales/en/builder.json';
 import nlBuilder from '../../public/locales/nl/builder.json';
@@ -120,6 +120,41 @@ describe('the report sentences', () => {
             expect(valueOf(en, key), `en ${reason}`).toBeTruthy();
             expect(valueOf(nl, key), `nl ${reason}`).toBeTruthy();
         }
+    });
+
+    it('gives each cause of a variable that was not carried its own sentence, in English and Dutch', () => {
+        for (const cause of VARIABLE_CAUSES) {
+            const { key } = reportSentenceOf({ code: 'dropped', reason: 'user_variable_not_carried', detail: { cause, dataType: 'string', source: 'a', operator: 'if' } });
+            expect(key).toBe(`VARIABLE_CAUSE.${cause}`);
+            expect(valueOf(en, key), `en ${cause}`).toBeTruthy();
+            expect(valueOf(nl, key), `nl ${cause}`).toBeTruthy();
+            expect(valueOf(nl, key)).not.toBe(valueOf(en, key));
+        }
+        // a source a rule can hide has its own sentence in both languages
+        expect(VARIABLE_CAUSES).toContain('source_conditional');
+        expect(valueOf(en, 'VARIABLE_CAUSE.source_conditional')).toContain('A rule can hide it');
+        expect(valueOf(nl, 'VARIABLE_CAUSE.source_conditional')).toContain('verborgen worden');
+        // every sentence the locale files hold has a cause the code knows
+        expect(Object.keys(en.VARIABLE_CAUSE).sort()).toEqual([...VARIABLE_CAUSES].sort());
+        expect(Object.keys(nl.VARIABLE_CAUSE).sort()).toEqual([...VARIABLE_CAUSES].sort());
+    });
+
+    it('keeps the generic sentence for a variable without a cause, or with one it does not know', () => {
+        expect(reportSentenceOf({ code: 'dropped', reason: 'user_variable_not_carried', detail: { dataType: 'string' } }).key).toBe('REASON.user_variable_not_carried');
+        expect(reportSentenceOf({ code: 'dropped', reason: 'user_variable_not_carried' }).key).toBe('REASON.user_variable_not_carried');
+        expect(reportSentenceOf({ code: 'dropped', reason: 'user_variable_not_carried', detail: { cause: 'a_cause_from_a_newer_server' } }).key).toBe('REASON.user_variable_not_carried');
+        // a cause on another reason changes nothing
+        expect(reportSentenceOf({ code: 'dropped', reason: 'unsupported_component_type', detail: { cause: 'no_rule' } }).key).toBe('REASON.unsupported_component_type');
+    });
+
+    it('reads a calculated variable, and passes the cause details on as short plain text', () => {
+        const calculated = reportSentenceOf({ code: 'changed', reason: 'user_variable_calculated', detail: { dataType: 'float' } });
+        expect(calculated.key).toBe('REASON.user_variable_calculated');
+        expect(valueOf(nl, calculated.key)).toContain('berekende vraag');
+        const { values } = reportSentenceOf({ code: 'dropped', reason: 'user_variable_not_carried', detail: { cause: 'operator', operator: 'if\n' + 'x'.repeat(200), source: '<b>a</b>', rules: 2 } });
+        expect(values.operator).toHaveLength(80);
+        expect(values.source).toBe('<b>a</b>'); // text, never markup: the screens render it as text
+        expect(values.rules).toBe('2');
     });
 
     it('uses a generic line for a reason it does not know, by what happened to the item', () => {

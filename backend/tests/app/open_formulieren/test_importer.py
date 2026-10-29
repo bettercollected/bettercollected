@@ -729,7 +729,12 @@ def test_features_that_are_not_carried_are_reported():
 def test_user_variables_are_reported_and_static_ones_are_not_in_the_file():
     built = build("logic-variables.en.zip")
     assert sorted(i["key"] for i in items(built, kind="variable")) == ["greeting", "isPremium", "reviewDate", "tags", "total"]
-    assert items(built, kind="variable", key="total")[0]["detail"] == {"dataType": "float"}
+    # ``total`` is one unconditional product of two numbers, but both start from a default
+    # (not carried here), so the original would compute from them: not carried
+    assert items(built, kind="variable", key="total")[0]["reason"] == "user_variable_not_carried"
+    assert items(built, kind="variable", key="total")[0]["detail"] == {"dataType": "float", "cause": "source_default", "source": "quantity"}
+    assert items(built, kind="variable", key="isPremium")[0]["detail"] == {"dataType": "boolean", "cause": "not_numeric"}
+    assert items(built, kind="variable", key="tags")[0]["detail"] == {"dataType": "array", "cause": "no_rule"}
 
 
 def test_an_unexpected_entry_is_listed_in_the_report():

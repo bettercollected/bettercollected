@@ -274,7 +274,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[210px] p-0 bg-white"
+                className="w-[256px] p-0 bg-white"
                 align="end"
                 onClick={(e) => { e.stopPropagation(); setOpen(false); }}
                 onInteractOutside={() => setOpen(false)}

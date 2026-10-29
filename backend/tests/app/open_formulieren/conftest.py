@@ -103,6 +103,16 @@ def describe(built) -> Dict[str, Any]:
             for child in question.properties.fields or []:
                 titles[child.id] = child.title
 
+    def titled(node: Any) -> Any:
+        """An expression with each variable named by its question's title."""
+        if isinstance(node, dict) and set(node) == {"var"}:
+            return {"var": titles.get(node["var"], node["var"])}
+        if isinstance(node, dict):
+            return {op: titled(args) for op, args in node.items()}
+        if isinstance(node, list):
+            return [titled(a) for a in node]
+        return node
+
     def question(field) -> Dict[str, Any]:
         properties = field.properties
         entry: Dict[str, Any] = {"type": _value(field.type), "title": field.title}
@@ -140,6 +150,12 @@ def describe(built) -> Dict[str, Any]:
                     for c in properties.logic.conditions
                 ],
             }
+        if _value(field.type) == "calculated":
+            entry["expression"] = titled(properties.expression)
+            if properties.format:
+                entry["format"] = properties.format.model_dump(exclude_none=True, by_alias=True)
+            entry["hiddenFromRespondents"] = properties.hidden_from_respondents
+            entry["unansweredAsZero"] = properties.unanswered_as_zero
         if properties.repeat:
             entry["repeat"] = properties.repeat.model_dump(
                 exclude_none=True, by_alias=True

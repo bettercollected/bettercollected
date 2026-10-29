@@ -72,6 +72,33 @@ export const DELIVERY_ERROR_CODES = [
 
 /** Why a variable cannot be chosen (`reason`). */
 export const VARIABLE_REASONS = ['not_an_answer', 'type_not_supported'] as const;
+/** Field types the answers list names in words (`REGISTRATION.FORM.TYPE.<type>`). */
+export const VARIABLE_TYPES = [
+    'short_text',
+    'long_text',
+    'number',
+    'rating',
+    'linear_rating',
+    'opinion_scale',
+    'multiple_choice',
+    'dropdown',
+    'email',
+    'url',
+    'phone_number',
+    'yes_no',
+    'date',
+    'file_upload',
+    'calculated',
+    'group',
+    'hidden',
+    'matrix',
+    'ranking',
+    'tabular_input',
+    'payment',
+    'statement',
+    'text',
+    'slide'
+] as const;
 
 /** The code of a failed call: the API's `code`, else one from the HTTP status. */
 export function errorCodeOf(error: any): string {
@@ -116,6 +143,14 @@ export function deliveryErrorKey(code?: string | null, options: { objectsApi?: b
 
 /** Translation key for why a variable is greyed out. */
 export const variableReasonKey = (reason?: string | null) => `REGISTRATION.FORM.REASON.${isKnown(VARIABLE_REASONS, reason) ? reason : 'type_not_supported'}`;
+
+/**
+ * Translation key for a field type in the answers list, or null for a type
+ * without a label (the caller then shows the type itself, with spaces for
+ * underscores). Only listed types become keys, so a type the server sends
+ * never builds an arbitrary key.
+ */
+export const variableTypeKey = (type?: string | null): string | null => (isKnown(VARIABLE_TYPES, type) ? `REGISTRATION.FORM.TYPE.${type}` : null);
 
 /** Which field of the service dialog an error belongs to, so it is shown there. */
 export function serviceErrorField(code: string, kind: RegistrationKind = 'generic_json'): 'name' | 'baseUrl' | 'objecttypesBaseUrl' | 'authName' | 'secret' | null {

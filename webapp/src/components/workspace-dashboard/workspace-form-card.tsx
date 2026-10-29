@@ -10,7 +10,6 @@ import { Pencil, Share2 } from 'lucide-react';
 import PrivateIcon from '@Components/icons/private';
 import PublicIcon from '@Components/icons/public';
 import { Button } from '@app/shadcn/components/ui/button';
-import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@Components/datatable/form-options-dropdown';
 import FormProviderIcon from '@Components/icons/form-provider-icon';
@@ -26,6 +25,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { utcToRelativeIn } from '@app/utils/date-utils';
 import { getFormFields } from '@app/utils/form-builder-block-utils';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
@@ -49,7 +49,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const { openModal } = useModal();
     const router = useRouter();
     const { can } = useWorkspacePermissions();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
 
     const handleShareClick = (event: any) => {
@@ -151,7 +151,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                         </div>
                                     ) : (
                                         <div className=" text-black-600 text-sm">
-                                            {t('FORM.LAST_EDITED')} {moment.utc(form?.updatedAt).fromNow()}
+                                            {t('FORM.LAST_EDITED')} {utcToRelativeIn(form?.updatedAt, i18n.language)}
                                         </div>
                                     )}
                                 </div>
@@ -173,7 +173,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             <>
                                 <DotIcon />
                                 <span className="text-black-600 text-sm">
-                                    {t('FORM.LAST_EDITED')} {moment.utc(form?.updatedAt).fromNow()}
+                                    {t('FORM.LAST_EDITED')} {utcToRelativeIn(form?.updatedAt, i18n.language)}
                                 </span>
                             </>
                         )}
