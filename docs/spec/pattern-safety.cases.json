@@ -1,0 +1,174 @@
+{
+  "description": "Answer patterns a browser can evaluate safely. A pattern is unsafe when a backtracking engine (the respondent's browser) can take exponential or cubic time on it: nested or overlapping repeats, empty repeats, three overlapping repeats in a row, backreferences, a pattern too long or too deeply nested to analyse, or one that cannot be read at all (unparseable). 'safe' patterns are accepted, each 'unsafe' one is refused with its hazard code. Run by common/tests/test_pattern_safety.py (common.form_spec.pattern_safety.pattern_hazard) and webapp src/utils/pattern-safety.test.ts (patternHazard), so the builder, the API and the respondent form agree. Only the shape is analysed, never the running time.",
+  "safe": [
+    "^[1-9][0-9]{3} ?[A-Za-z]{2}$",
+    "^[A-Za-z]{2}[0-9]{2}(?: ?[A-Za-z0-9]){11,30}$",
+    "^\\+?[0-9][0-9 ()-]{5,19}$",
+    "^[\\p{L} '-]+$",
+    "^-?\\d+$",
+    "^[a-z]+(\\s[a-z]+)*$",
+    "^([a-z]+ )*[a-z]+$",
+    "^(\\p{L}+ )*\\p{L}+$",
+    "^(\\d+\\.)*\\d+$",
+    "^([^,]+,)*[^,]+$",
+    "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$",
+    "^(?:\\+31|0031|0)[0-9]{9}$",
+    "^(?:[A-Za-z]|[0-9])+$",
+    "^\\d*\\.?\\d*$",
+    "^(?=.*[A-Z])(?=.*\\d).{8,}$",
+    "^\\s*\\S+\\s*$",
+    "^(\\d{1,3}\\.){3}\\d{1,3}$",
+    "^[A-Z]{2}\\d{2}( ?\\w{4}){2,7}$",
+    "^(a{2})+$",
+    "^(?:https?://)?[^\\s/]+(?:/\\S*)?$",
+    "^.*foo.*bar.*$",
+    "^(?i)[a-z]+$",
+    "^(?:ab|cd)+$",
+    "^[a-z]+(?:-[a-z]+){0,3}$",
+    "^(a*b)*$",
+    "(?# note )^\\d{4}-\\d{2}-\\d{2}$",
+    "^[\\d,.]+(?:e[+-]?\\d+)?$",
+    "^a$|^b$",
+    "^\\u00e9+\\x41*\\u{1F600}?$",
+    "^a{2,}$",
+    "x{"
+  ],
+  "unsafe": [
+    {
+      "pattern": "^(a+)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "(a*)*",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(a+){2,}$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(a{1,10})+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(\\w+\\s?)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^((ab)+)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(?:\\d*)*$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^([a-z]+[0-9]*)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(\\p{L}+\\s?)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^([\\w.]+\\.)+[a-z]+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(.*a){10}$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "(x+x+)+y",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "(?=(a+)+$)",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "(?:(?:a+)+)",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "(a|aa)+",
+      "hazard": "overlapping_alternatives"
+    },
+    {
+      "pattern": "^(a|a)*$",
+      "hazard": "overlapping_alternatives"
+    },
+    {
+      "pattern": "^(\\w|\\d)+$",
+      "hazard": "overlapping_alternatives"
+    },
+    {
+      "pattern": "^(\\d+|\\d+\\.)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(?:ab|ac)+$",
+      "hazard": "overlapping_alternatives"
+    },
+    {
+      "pattern": "^(a?)*$",
+      "hazard": "empty_repeat"
+    },
+    {
+      "pattern": "^(\\s*)+$",
+      "hazard": "nested_repeat"
+    },
+    {
+      "pattern": "^(?:|a)+$",
+      "hazard": "empty_repeat"
+    },
+    {
+      "pattern": "^\\d*\\d*\\d*$",
+      "hazard": "adjacent_repeats"
+    },
+    {
+      "pattern": "^.*.*.*$",
+      "hazard": "adjacent_repeats"
+    },
+    {
+      "pattern": "^[a-z]*[a-z]?[a-z]*[a-z]+$",
+      "hazard": "adjacent_repeats"
+    },
+    {
+      "pattern": "(a)\\1",
+      "hazard": "backreference"
+    },
+    {
+      "pattern": "(?P<x>a)(?P=x)",
+      "hazard": "backreference"
+    },
+    {
+      "pattern": "(?<x>a)\\k<x>",
+      "hazard": "backreference"
+    },
+    {
+      "pattern": "^(a)(b)\\2$",
+      "hazard": "backreference"
+    },
+    {
+      "pattern": "(",
+      "hazard": "unparseable"
+    },
+    {
+      "pattern": "a)",
+      "hazard": "unparseable"
+    },
+    {
+      "pattern": "[a",
+      "hazard": "unparseable"
+    },
+    {
+      "pattern": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "hazard": "too_complex"
+    },
+    {
+      "pattern": "(((((((((((((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))))))))))))))",
+      "hazard": "too_complex"
+    }
+  ]
+}

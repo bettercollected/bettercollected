@@ -55,6 +55,7 @@ from backend.app.services.ai.notice_token import stamp_response as stamp_ai_noti
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_images import check_form_images
+from backend.app.services.form_patterns import check_form_patterns
 from backend.app.services.form_themes import ensure_valid_themes
 from backend.app.services.rich_text import sanitise_form_titles
 from backend.app.services.form_logo import (
@@ -692,6 +693,7 @@ class WorkspaceFormService:
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing
         check_form_images(form, None, drop=drop_unusable_settings)
+        check_form_patterns(form, None, drop=drop_unusable_settings)
         _sanitise_titles(form)
         # The language the new form brings (a body, a template, an import):
         # a listed one normalised, another well-formed tag kept, anything
@@ -801,6 +803,7 @@ class WorkspaceFormService:
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
+        check_form_patterns(form, existing_form)
         _sanitise_titles(form)
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
@@ -1481,6 +1484,7 @@ class WorkspaceFormService:
         # (Unsplash photos kept by their canonical address, others dropped); the source's grandfathered
         # addresses do not carry over (services/form_images.py).
         check_form_images(duplicated_form, None, drop=True)
+        check_form_patterns(duplicated_form, None, drop=True)
         _sanitise_titles(duplicated_form)
         if is_template:
             duplicated_form.workspace_id = workspace_id

@@ -720,5 +720,16 @@
       "noted": "Goed om te weten."
     },
     "DETAIL_UNKNOWN": "onbekend"
+  },
+  "PATTERN_HAZARD": {
+    "NOT_SAVED": "Niet opgeslagen.",
+    "STORED_NOTE": "Eerder opgeslagen: de browser van een respondent slaat dit patroon over en de server controleert het nog wel. Vervang het door een eenvoudiger patroon.",
+    "BACKREFERENCE": "Een patroon mag niet teruggrijpen op een eerdere groep (\\1): een browser kan er erg lang over doen om het te controleren.",
+    "NESTED_REPEAT": "Een herhaalde groep binnen een herhaalde groep, zoals (a+)+, kan een browser erg lang bezighouden. Laat elke herhaling eindigen op een scheidingsteken of gebruik één herhaling.",
+    "OVERLAPPING_ALTERNATIVES": "Een herhaalde groep waarvan de keuzes met hetzelfde teken kunnen beginnen, zoals (a|aa)+, kan een browser erg lang bezighouden. Laat de keuzes verschillend beginnen of voeg ze samen.",
+    "EMPTY_REPEAT": "Een herhaalde groep die niets kan overeenkomen, zoals (a?)*, kan een browser erg lang bezighouden.",
+    "ADJACENT_REPEATS": "Meerdere herhalingen achter elkaar die dezelfde tekens toelaten, zoals \\d*\\d*\\d*, kunnen een browser erg lang bezighouden. Gebruik er één.",
+    "TOO_COMPLEX": "Dit patroon is te lang of te ingewikkeld om veilig te controleren. Kort het in of vereenvoudig het.",
+    "UNPARSEABLE": "Dit patroon kon niet worden gelezen om het veilig te controleren. Vereenvoudig het."
   }
 }

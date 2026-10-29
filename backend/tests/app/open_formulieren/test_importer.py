@@ -239,15 +239,26 @@ def test_a_pattern_that_cannot_be_enforced_is_dropped_not_carried():
                 comp("textfield", "look", validate={"pattern": "^(?!x)a$"}),
                 comp("textfield", "broken", validate={"pattern": "([a-z"}),
                 comp("textfield", "long", validate={"pattern": "a" * 300}),
-                comp("textfield", "ok", validate={"pattern": "^(a+)+$"}),
+                # RE2 matches these in linear time, a browser's engine does not
+                comp("textfield", "nested", validate={"pattern": "^(a+)+$"}),
+                comp("textfield", "alternatives", validate={"pattern": "^(a|aa)+$"}),
+                comp("textfield", "ok", validate={"pattern": "^[a-z]+( [a-z]+)*$"}),
             ]
         ]
     )
-    look, broken, long_, ok = questions(built)
-    for q in (look, broken, long_):
+    look, broken, long_, nested, alternatives, ok = questions(built)
+    for q in (look, broken, long_, nested, alternatives):
         assert "regex" not in q["validations"]
-    assert ok["validations"]["regex"] == "^(a+)+$"  # RE2 matches it in linear time
-    assert {i["key"] for i in items(built, reason="validation_not_carried", severity="warning")} == {"look", "broken", "long"}
+    assert ok["validations"]["regex"] == "^[a-z]+( [a-z]+)*$"
+    assert {i["key"] for i in items(built, reason="validation_not_carried", severity="warning")} == {
+        "look",
+        "broken",
+        "long",
+        "nested",
+        "alternatives",
+    }
+    # reported by property, never with the pattern itself
+    assert "(a+)+" not in json.dumps(built.report.items, default=str)
 
 
 def test_validator_plugins_are_reported():

@@ -1,6 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import type { LogicSources } from '@app/utils/conditional-logic';
+import { PatternHazard, patternHazard } from '@app/utils/pattern-safety';
 import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
@@ -60,9 +61,8 @@ export function presetForPattern(pattern: string | undefined | null): FormatPres
     return pattern ? FORMAT_PRESETS.find((preset) => preset.pattern === pattern) : undefined;
 }
 
-/** The pattern as a RegExp, or null when it does not compile. Unicode first (for \p{L}), then plain. */
-export function compilePattern(pattern: string | undefined | null): RegExp | null {
-    if (!pattern) return null;
+/** The pattern as a RegExp (compiled, never run), or null when it does not compile. Unicode first (for \p{L}), then plain. */
+function compileRaw(pattern: string): RegExp | null {
     try {
         return new RegExp(pattern, 'u');
     } catch {
@@ -72,6 +72,27 @@ export function compilePattern(pattern: string | undefined | null): RegExp | nul
             return null;
         }
     }
+}
+
+/**
+ * The pattern as a RegExp to test answers with, or null when it must not be
+ * tested here: it does not compile, or its shape can take this backtracking
+ * engine exponential time (`^(a+)+$`, utils/pattern-safety.ts). The server
+ * checks such a pattern with RE2 (linear time) when the answer is submitted
+ * and answers 422, which the form shows next to the question.
+ */
+export function compilePattern(pattern: string | undefined | null): RegExp | null {
+    if (!pattern) return null;
+    const compiled = compileRaw(pattern);
+    if (!compiled || patternHazard(pattern)) return null;
+    return compiled;
+}
+
+/** What is wrong with a pattern the builder is given: it does not compile, or its shape is a hazard. null when it is fine. */
+export function patternProblem(pattern: string | undefined | null): 'invalid' | PatternHazard | null {
+    if (!pattern) return null;
+    if (!compileRaw(pattern)) return 'invalid';
+    return patternHazard(pattern);
 }
 
 /** Which kind of answer rules a field takes, if any. */
@@ -252,7 +273,8 @@ export function answerRuleConflicts(rules: IFormFieldValidation | undefined): st
     if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push('The minimum length is more than the maximum.');
     if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
     if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
-    if (rules.regex && !compilePattern(rules.regex)) conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
+    // a pattern that is a hazard is explained next to the pattern box (translated)
+    if (rules.regex && patternProblem(rules.regex) === 'invalid') conflicts.push('The pattern is not a valid regular expression, so it is not checked.');
     else if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
     return conflicts;
 }

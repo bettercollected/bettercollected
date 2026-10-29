@@ -33,6 +33,10 @@ from common.models.standard_form import (
     LayoutType,
     StandardFormFieldType,
 )
+from common.form_spec.pattern_safety import (  # noqa: F401  (PATTERN_MAX_LENGTH re-exported)
+    PATTERN_MAX_LENGTH,
+    pattern_hazard_message,
+)
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
@@ -45,8 +49,8 @@ JUMP_TARGET_SUBMIT = "__SUBMIT__"
 # Size limits of one document (far above any real form).
 MAX_PAGES = 200
 MAX_FIELDS = 2000  # questions and content blocks, group questions included
-# Longest answer pattern (regular expression) a question may have.
-PATTERN_MAX_LENGTH = 200
+# Longest answer pattern a question may have: PATTERN_MAX_LENGTH (200),
+# defined in pattern_safety.py, which analyses patterns up to that length.
 
 
 def checked_pattern(pattern: str) -> str:
@@ -55,10 +59,12 @@ def checked_pattern(pattern: str) -> str:
     Raises ValueError with a plain message. The one rule for the spec and
     the set_field_validation op.
 
-    Only compiled here, never matched: submitted answers are matched with
-    re2 (linear time) on a capped input in the backend's
-    services/answer_validation.py. A creator's pattern is untrusted and
-    Python's re can backtrack for a very long time."""
+    Never matched here: submitted answers are matched with re2 (linear
+    time) on a capped input in the backend's services/answer_validation.py,
+    since a creator's pattern is untrusted and Python's re can backtrack for
+    a very long time. The respondent's browser backtracks too, so a pattern
+    whose shape can take it exponential time (``(a+)+``) or that uses a
+    backreference is refused (form_spec/pattern_safety.py)."""
     pattern = pattern.strip()
     if not pattern:
         raise ValueError("The pattern is empty: give a regular expression, or none.")
@@ -68,6 +74,9 @@ def checked_pattern(pattern: str) -> str:
         re.compile(pattern)
     except re.error as error:
         raise ValueError(f"'{pattern}' is not a valid pattern ({error}).")
+    message = pattern_hazard_message(pattern)
+    if message:
+        raise ValueError(message)
     return pattern
 
 

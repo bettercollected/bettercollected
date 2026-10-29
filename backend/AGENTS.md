@@ -289,6 +289,18 @@ big for a float count as Infinity, as in JavaScript. Problems answer 422 `{"code
 never with values. `RESPONSE_VALIDATION_ENFORCE=false` switches to log only (form id, count, rule codes).
 v1 and imported forms (fields not on pages) are not validated.
 
+**Pattern safety** (`common/common/form_spec/pattern_safety.py`, webapp twin `utils/pattern-safety.ts`, shared
+cases `docs/spec/pattern-safety.cases.json`; keep the two in step): the server is linear-time (RE2), but the
+respondent's browser evaluates the same pattern with a backtracking `RegExp`, so `^(a+)+$` could freeze a tab.
+`pattern_hazard()` parses the pattern and refuses the shapes that can explode (nested or overlapping repeats,
+empty repeats, three overlapping repeats in a row, backreferences, too long/deep/unreadable); it reads the
+shape, never times anything. `checked_pattern` applies it (form spec, ops engine, REST API, Open Formulieren
+import: an archive pattern it refuses is `validation_not_carried`), and `services/form_patterns.py`
+`check_form_patterns` applies it on every form save (422 `unsafe_pattern` with question ids, never the
+pattern; a pattern the stored draft already holds is kept; a copy drops it; one that does not compile is no
+hazard). The webapp never hands a hazard pattern to `RegExp.test` (`compilePattern` returns null), the builder
+shows the error inline (`builder` PATTERN_HAZARD.*), and the server still checks stored ones with RE2 on submit.
+
 **Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
 `calculated` field on a page stores an expressions-v1 AST at `properties.expression`
 ([../docs/spec/expressions-v1.md](../docs/spec/expressions-v1.md)), a display `format` and

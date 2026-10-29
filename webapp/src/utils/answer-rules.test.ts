@@ -1,11 +1,24 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, answerRuleMessage, checkAnswerRules, compilePattern, presetForPattern, summarizeAnswerRules, validateAnswerRulesInSlide } from './answer-rules';
+import {
+    FORMAT_PRESETS,
+    INTEGER_PATTERN,
+    PATTERN_MAX_LENGTH,
+    answerRuleConflicts,
+    answerRuleKind,
+    answerRuleMessage,
+    checkAnswerRules,
+    compilePattern,
+    patternProblem,
+    presetForPattern,
+    summarizeAnswerRules,
+    validateAnswerRulesInSlide
+} from './answer-rules';
 
 const field = (type: FieldTypes, validations: StandardFormFieldDto['validations'], properties: StandardFormFieldDto['properties'] = {}): StandardFormFieldDto => ({ id: 'f', index: 0, type, validations, properties });
 const preset = (id: string) => FORMAT_PRESETS.find((p) => p.id === id)!.pattern;
@@ -123,5 +136,43 @@ describe('the pattern length cap', () => {
     it('a stored pattern over the cap is pointed out', () => {
         expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH) })).toEqual([]);
         expect(answerRuleConflicts({ regex: 'a'.repeat(PATTERN_MAX_LENGTH + 1) })).toEqual(['The pattern is longer than 200 characters. Shorten it.']);
+    });
+});
+
+describe('a pattern whose shape can freeze a browser', () => {
+    // timing-free: the engine's `test` is watched, never raced
+    const spy = () => vi.spyOn(RegExp.prototype, 'test');
+    afterEach(() => vi.restoreAllMocks());
+    const answerThatFreezes = `${'a'.repeat(5000)}b`;
+
+    it('never reaches the backtracking RegExp.test, for text and number questions', () => {
+        const test = spy();
+        const nested = '^(a+)+$';
+        expect(compilePattern(nested)).toBeNull();
+        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: nested }), text(answerThatFreezes))).toEqual([]);
+        expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex: '^(a|aa)+$' }), text(answerThatFreezes))).toEqual([]);
+        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: '^(\\d+)+$' }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
+        expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex: nested })], { f: text(answerThatFreezes) })).toEqual({});
+        expect(test).not.toHaveBeenCalled();
+    });
+
+    it('does not stop a safe pattern from being tested', () => {
+        const test = spy();
+        expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: preset('postcode_nl') }), text('nope'))).toEqual(['PATTERN']);
+        expect(test).toHaveBeenCalledTimes(1);
+    });
+
+    it('is told apart from one that does not compile', () => {
+        expect(patternProblem('^(a+)+$')).toBe('nested_repeat');
+        expect(patternProblem('([')).toBe('invalid');
+        expect(patternProblem('^[a-z]+$')).toBeNull();
+        expect(patternProblem(undefined)).toBeNull();
+        // the shape is pointed out next to the pattern box, not in the conflicts
+        expect(answerRuleConflicts({ regex: '^(a+)+$' })).toEqual([]);
+    });
+
+    it('keeps the presets and the whole-number rule testable', () => {
+        for (const p of FORMAT_PRESETS) expect(compilePattern(p.pattern)).not.toBeNull();
+        expect(compilePattern(INTEGER_PATTERN)).not.toBeNull();
     });
 });

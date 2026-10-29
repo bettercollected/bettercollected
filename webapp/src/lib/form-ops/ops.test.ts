@@ -212,6 +212,12 @@ describe('answer rules', () => {
         expect(one({ op: 'set_field_validation', fieldId: 'age', validation: { minLength: 1 } }).result.message).toBe("Text lengths only apply to short or long text questions; 'Age' is a number question.");
         expect(one({ op: 'set_field_validation', fieldId: 'color', validation: { maxChoices: 4 } }).result.message).toBe("'Favourite colour' has 3 choice(s), so the maximum choices cannot be 4.");
         expect(one({ op: 'set_field_validation', fieldId: 'name', validation: { pattern: '(' } }).result.message).toMatch(/^'\(' is not a valid pattern/);
+        // a shape that can take a browser exponential time is refused with the server's words
+        expect(one({ op: 'set_field_validation', fieldId: 'name', validation: { pattern: '^(a+)+$' } }).result.message).toBe(
+            'A repeated group inside a repeated group, such as (a+)+, can take a browser very long to check. Make each repeat end in a separator or use one repeat.'
+        );
+        expect(one({ op: 'set_field_validation', fieldId: 'name', validation: { pattern: '(a)\\1' } }).result.message).toMatch(/^A pattern cannot refer back/);
+        expect(one({ op: 'set_field_validation', fieldId: 'name', validation: { pattern: '^[a-z]+( [a-z]+)*$' } }).result.message).toMatch(/^Updated the answer rules/);
         expect(one({ op: 'set_field_validation', fieldId: 'name', validation: {} }).result.message).toMatch(/^Nothing to change/);
         const cleared = one({ op: 'set_field_validation', fieldId: 'name', validation: { required: null } });
         expect(cleared.result.message).toBe("Updated the answer rules of 'Your name' (optional)");

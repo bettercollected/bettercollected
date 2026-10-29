@@ -2,9 +2,12 @@
 
 import { useId, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
-import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
+import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, patternProblem, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
+import { PatternHazard } from '@app/utils/pattern-safety';
 import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
 type Patch = Partial<IFormFieldValidation>;
@@ -33,7 +36,10 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
                         <NumberSetting label="Highest" integer={false} step="any" value={rules.maxValue} onChange={(maxValue) => onChange({ maxValue })} invalid={valueConflict} />
                     </div>
                     {rules.regex && rules.regex !== INTEGER_PATTERN ? (
-                        <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; it is still checked.</p>
+                        <>
+                            <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; it is still checked.</p>
+                            <PatternHazardNotice pattern={rules.regex} stored />
+                        </>
                     ) : (
                         <SettingSwitch label="Whole numbers only" checked={rules.regex === INTEGER_PATTERN} onCheckedChange={(checked) => onChange({ regex: checked ? INTEGER_PATTERN : undefined })} />
                     )}
@@ -82,6 +88,9 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
         if (isCustom) setPattern(rules.regex ?? '');
     }
 
+    // What the box holds can be a hazard (utils/pattern-safety.ts): it is not
+    // handed to the form, so nothing the server would refuse is ever saved.
+    const hazard = patternHazardOf(pattern);
     const lengthConflict = rules.minLength !== undefined && rules.maxLength !== undefined && rules.minLength > rules.maxLength;
 
     return (
@@ -96,7 +105,7 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                 </label>
                 <select
                     id={formatId}
-                    value={preset?.id ?? (isCustom ? 'custom' : '')}
+                    value={preset?.id ?? (isCustom || hazard ? 'custom' : '')}
                     onChange={(event) => {
                         const value = event.target.value;
                         if (value === 'custom') {
@@ -130,18 +139,45 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         maxLength={PATTERN_MAX_LENGTH}
                         value={pattern}
                         placeholder="^[A-Z]{3}[0-9]{4}$"
-                        aria-describedby={`${patternId}-hint`}
+                        aria-describedby={hazard ? `${patternId}-hazard ${patternId}-hint` : `${patternId}-hint`}
+                        aria-invalid={hazard ? true : undefined}
                         onChange={(event) => {
-                            setPattern(event.target.value);
-                            onChange({ regex: event.target.value || undefined });
+                            const next = event.target.value;
+                            setPattern(next);
+                            // an unsafe pattern is shown with its error but not saved
+                            onChange({ regex: next && !patternHazardOf(next) ? next : undefined });
                         }}
-                        className="h-8 w-full rounded border border-control bg-white px-2 font-mono text-xs focus:border-brand-500"
+                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-brand-500 ${hazard ? 'border-red-600' : 'border-control'}`}
                     />
+                    <PatternHazardNotice pattern={pattern} stored={!!hazard && pattern === rules.regex} id={`${patternId}-hazard`} />
                     <p id={`${patternId}-hint`} className="text-[11px] leading-relaxed text-black-600">
                         Answers must match it (use ^ and $ to match the whole answer). Respondents see a general “not in the expected format” message, so say in the description what you expect.
                     </p>
                 </div>
             </details>
         </>
+    );
+}
+
+/** The hazard in a pattern that compiles (one that does not is reported by answerRuleConflicts), or null. */
+function patternHazardOf(pattern: string | undefined): PatternHazard | null {
+    const problem = patternProblem(pattern);
+    return problem && problem !== 'invalid' && !(problem === 'too_complex' && (pattern?.length ?? 0) > PATTERN_MAX_LENGTH) ? problem : null;
+}
+
+/**
+ * Why a pattern is refused: it can take a browser very long to check
+ * (utils/pattern-safety.ts; the server refuses the same patterns when a form
+ * is saved). `stored`: the form already holds it, so it is kept but skipped
+ * by respondents' browsers.
+ */
+function PatternHazardNotice({ pattern, stored, id }: { pattern: string | undefined; stored?: boolean; id?: string }) {
+    const { t } = useTranslation('builder');
+    const hazard = patternHazardOf(pattern);
+    if (!hazard) return null;
+    return (
+        <p id={id} role="alert" className="text-[11px] leading-relaxed text-red-700">
+            {stored ? t('PATTERN_HAZARD.STORED_NOTE') : t('PATTERN_HAZARD.NOT_SAVED')} {t(`PATTERN_HAZARD.${hazard.toUpperCase()}`)}
+        </p>
     );
 }

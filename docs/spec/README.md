@@ -43,6 +43,24 @@ ending after submitting instead of the default one. Endings stored before
 they had ids are given `ending-<n>` (their position, from 1) when read, so
 the same form always shows the same ids.
 
+An answer `pattern` is a regular expression of at most 200 characters that
+the whole text answer must match (use `^` and `$`). The server matches it with
+RE2 (linear time); the respondent's browser uses a backtracking engine, so a
+pattern whose shape can make that engine take exponential time on a crafted
+or unlucky answer is refused when the form is saved: a repeated group inside
+a repeated group that can split one text in several ways (`(a+)+`,
+`(\w+\s?)+`), a repeated group whose choices start with the same character
+(`(a|aa)+`), a repeat of something that can match nothing (`(a?)*`), three
+overlapping repeats in a row (`\d*\d*\d*`) and backreferences (`\1`). The check
+reads the shape of the pattern, never its running time, and is conservative:
+`(\w+\s)+` (each round ends in a separator) and two repeats in a row are fine.
+The cases are in [`pattern-safety.cases.json`](pattern-safety.cases.json), run
+by the server and the webapp, which refuse the same patterns with the same
+words. A pattern a form already holds is kept (respondents' browsers skip
+it and the server still checks it) until it is changed. When an operation, a
+form saved with the API or an Open Formulieren import brings one of these
+patterns, it is refused (the import leaves it out and lists it as not carried).
+
 ## What is not in the document
 
 - Data the server owns: workspace, owner and form ids, timestamps, publish

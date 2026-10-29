@@ -1,0 +1,646 @@
+/**
+ * Answer patterns that could freeze a browser (ReDoS).
+ *
+ * The server matches answer patterns with RE2 (linear time), but this
+ * browser evaluates them with JavaScript's backtracking `RegExp`: a pattern
+ * such as `^(a+)+$` takes exponential time on an answer like `aaaa…b`. This
+ * finds the pattern shapes whose backtracking cost can explode, by a small
+ * structural analysis of the parsed pattern (never a regex on a regex), so
+ * the builder refuses them and the respondent form never hands them to
+ * `RegExp`.
+ *
+ * The Python twin is `common/common/form_spec/pattern_safety.py` (same
+ * algorithm, same hazard codes); the shared cases are
+ * `docs/spec/pattern-safety.cases.json`, run by both. Keep the two in step.
+ *
+ * Hazards (conservative: a pattern that is merely unusual may be refused,
+ * never one of these shapes accepted):
+ * - backreference: `\1`, `\k<name>`, `(?P=name)`.
+ * - nested_repeat: a repeated part inside a repeated group that can start
+ *   with what may follow it: `(a+)+`, `(a*)*`, `(\w+\s?)+`, `((ab)+)+`.
+ *   `(\w+\s)+` is fine: the separator ends every iteration.
+ * - overlapping_alternatives: a repeated group with two alternatives that
+ *   can start with the same character: `(a|aa)+`.
+ * - empty_repeat: an unbounded repeat of something that can match nothing:
+ *   `(a?)*`.
+ * - adjacent_repeats: three or more unbounded repeats in a row (only
+ *   optional things between them) that overlap: `\d*\d*\d*`.
+ * - too_complex: longer than PATTERN_MAX_LENGTH or nested too deep.
+ * - unparseable: not a pattern this analysis can read (a broken one, or a
+ *   syntax it does not know); a pattern that cannot be analysed is not
+ *   trusted.
+ *
+ * Two repeats in a row (`\d*\.?\d*`) cost quadratic time at most and are
+ * allowed, as are lookarounds (their content is analysed on its own).
+ * Character sets are exact for classes, ranges and `\d \w \s`; Unicode
+ * properties (`\p{L}`) are approximated by a superset, which can only add
+ * overlaps, never hide one.
+ */
+
+export type PatternHazard = 'backreference' | 'nested_repeat' | 'overlapping_alternatives' | 'empty_repeat' | 'adjacent_repeats' | 'too_complex' | 'unparseable';
+
+export const PATTERN_HAZARDS: ReadonlyArray<PatternHazard> = ['backreference', 'nested_repeat', 'overlapping_alternatives', 'empty_repeat', 'adjacent_repeats', 'too_complex', 'unparseable'];
+
+/** The same cap as the form spec and the server (common form_spec PATTERN_MAX_LENGTH). */
+export const PATTERN_MAX_LENGTH = 200;
+const MAX_DEPTH = 40;
+
+/** What the server says (common pattern_safety.py HAZARD_MESSAGES); the builder shows the translated text (`builder` PATTERN_HAZARD.*). */
+export const PATTERN_HAZARD_MESSAGES: Record<PatternHazard, string> = {
+    backreference: 'A pattern cannot refer back to an earlier group (\\1): it can take a browser very long to check.',
+    nested_repeat: 'A repeated group inside a repeated group, such as (a+)+, can take a browser very long to check. Make each repeat end in a separator or use one repeat.',
+    overlapping_alternatives: 'A repeated group whose choices can start with the same character, such as (a|aa)+, can take a browser very long to check. Make the choices start differently or merge them.',
+    empty_repeat: 'A repeated group that can match nothing, such as (a?)*, can take a browser very long to check.',
+    adjacent_repeats: 'Several repeats in a row that match the same characters, such as \\d*\\d*\\d*, can take a browser very long to check. Use one.',
+    too_complex: 'This pattern is too long or too complex to check safely. Shorten or simplify it.',
+    unparseable: 'This pattern could not be read to check it safely. Simplify it.'
+};
+
+const MAX_CODEPOINT = 0x10ffff;
+type Ranges = ReadonlyArray<readonly [number, number]>;
+const ALL: Ranges = [[0, MAX_CODEPOINT]];
+const NONE: Ranges = [];
+const LINE_TERMINATORS: Ranges = [
+    [10, 10],
+    [13, 13],
+    [0x2028, 0x2029]
+];
+const DIGITS: Ranges = [[48, 57]];
+const WORD: Ranges = [
+    [48, 57],
+    [65, 90],
+    [95, 95],
+    [97, 122]
+];
+const SPACE: Ranges = [
+    [9, 13],
+    [32, 32],
+    [0xa0, 0xa0],
+    [0x1680, 0x1680],
+    [0x2000, 0x200a],
+    [0x2028, 0x2029],
+    [0x202f, 0x202f],
+    [0x205f, 0x205f],
+    [0x3000, 0x3000],
+    [0xfeff, 0xfeff]
+];
+const LETTERS_SUPERSET: Ranges = [
+    [65, 90],
+    [97, 122],
+    [0x80, MAX_CODEPOINT]
+];
+const NUMBERS_SUPERSET: Ranges = [
+    [48, 57],
+    [0x80, MAX_CODEPOINT]
+];
+
+class Unparseable extends Error {}
+class TooDeep extends Error {}
+
+function norm(ranges: Array<readonly [number, number]>): Ranges {
+    const sorted = [...ranges].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const merged: Array<[number, number]> = [];
+    for (const [low, high] of sorted) {
+        const last = merged[merged.length - 1];
+        if (last && low <= last[1] + 1) {
+            if (high > last[1]) last[1] = high;
+        } else {
+            merged.push([low, high]);
+        }
+    }
+    return merged;
+}
+
+function negate(ranges: Ranges): Ranges {
+    const out: Array<[number, number]> = [];
+    let start = 0;
+    for (const [low, high] of ranges) {
+        if (low > start) out.push([start, low - 1]);
+        start = high + 1;
+    }
+    if (start <= MAX_CODEPOINT) out.push([start, MAX_CODEPOINT]);
+    return out;
+}
+
+function union(a: Ranges, b: Ranges): Ranges {
+    if (!a.length) return b;
+    if (!b.length) return a;
+    return norm([...a, ...b]);
+}
+
+function overlap(a: Ranges, b: Ranges): boolean {
+    let i = 0;
+    let j = 0;
+    while (i < a.length && j < b.length) {
+        if (a[i][1] < b[j][0]) i++;
+        else if (b[j][1] < a[i][0]) j++;
+        else return true;
+    }
+    return false;
+}
+
+function propertyRanges(name: string, negated: boolean): Ranges {
+    const key = (name.split('=').pop() ?? '').trim();
+    if (negated) return ALL;
+    if (key.startsWith('L')) return LETTERS_SUPERSET;
+    if (key.startsWith('N')) return NUMBERS_SUPERSET;
+    return ALL;
+}
+
+// A node: char (a set), zero (matches nothing, e.g. an anchor), seq, alt,
+// rep (body, min, max or null for unbounded), look (a lookaround's content),
+// backref.
+type Node = { kind: 'char'; set: Ranges } | { kind: 'zero' } | { kind: 'seq'; items: Node[] } | { kind: 'alt'; branches: Node[] } | { kind: 'rep'; body: Node; min: number; max: number | null } | { kind: 'look'; body: Node } | { kind: 'backref' };
+
+const ZERO: Node = { kind: 'zero' };
+const isDigit = (char: string | undefined): boolean => char !== undefined && char >= '0' && char <= '9';
+const isAlpha = (char: string | undefined): boolean => char !== undefined && /^[A-Za-z]$/.test(char);
+
+class Parser {
+    private chars: string[];
+    private i = 0;
+    private depth = 0;
+    backref = false;
+
+    constructor(pattern: string) {
+        this.chars = Array.from(pattern);
+    }
+
+    private eof(): boolean {
+        return this.i >= this.chars.length;
+    }
+
+    private peek(offset = 0): string {
+        return this.chars[this.i + offset] ?? '';
+    }
+
+    private slice(from: number, to: number): string {
+        return this.chars.slice(from, to).join('');
+    }
+
+    private find(char: string, from: number): number {
+        return this.chars.indexOf(char, from);
+    }
+
+    parse(): Node {
+        const node = this.alternation();
+        if (!this.eof()) throw new Unparseable(); // a stray ")"
+        return node;
+    }
+
+    private alternation(): Node {
+        this.depth++;
+        if (this.depth > MAX_DEPTH) throw new TooDeep();
+        const branches = [this.sequence()];
+        while (this.peek() === '|') {
+            this.i++;
+            branches.push(this.sequence());
+        }
+        this.depth--;
+        return branches.length === 1 ? branches[0] : { kind: 'alt', branches };
+    }
+
+    private sequence(): Node {
+        const items: Node[] = [];
+        while (!this.eof() && this.peek() !== '|' && this.peek() !== ')') {
+            const atom = this.quantified(this.atom());
+            // a group without a repeat is just its content
+            if (atom.kind === 'seq') items.push(...atom.items);
+            else items.push(atom);
+        }
+        return items.length === 1 ? items[0] : { kind: 'seq', items };
+    }
+
+    private quantified(atom: Node): Node {
+        const char = this.peek();
+        let min: number;
+        let max: number | null;
+        if (char === '*') {
+            min = 0;
+            max = null;
+            this.i++;
+        } else if (char === '+') {
+            min = 1;
+            max = null;
+            this.i++;
+        } else if (char === '?') {
+            min = 0;
+            max = 1;
+            this.i++;
+        } else if (char === '{') {
+            const found = this.braces();
+            if (!found) return atom;
+            [min, max] = found;
+        } else {
+            return atom;
+        }
+        // lazy or possessive suffix
+        if (this.peek() === '?' || this.peek() === '+') this.i++;
+        if (atom.kind === 'zero' || atom.kind === 'look') return atom; // nothing to repeat
+        return { kind: 'rep', body: atom, min, max };
+    }
+
+    /** {n} {n,} {n,m} at the cursor, consumed; null (nothing consumed) when it is not a quantifier, which then reads as literal text. */
+    private braces(): [number, number | null] | null {
+        let j = this.i + 1;
+        const start = j;
+        while (isDigit(this.chars[j])) j++;
+        if (j === start) return null;
+        const min = parseInt(this.slice(start, j), 10);
+        let max: number | null = min;
+        if (this.chars[j] === ',') {
+            j++;
+            const from = j;
+            while (isDigit(this.chars[j])) j++;
+            max = j > from ? parseInt(this.slice(from, j), 10) : null;
+        }
+        if (this.chars[j] !== '}') return null;
+        this.i = j + 1;
+        return [min, max];
+    }
+
+    private atom(): Node {
+        const char = this.peek();
+        if (char === '(') return this.group();
+        if (char === '[') return { kind: 'char', set: this.charClass() };
+        if (char === '.') {
+            this.i++;
+            return { kind: 'char', set: negate(LINE_TERMINATORS) };
+        }
+        if (char === '^' || char === '$') {
+            this.i++;
+            return ZERO;
+        }
+        if (char === '\\') return this.escape();
+        if (char === '*' || char === '+' || char === '?') throw new Unparseable(); // nothing to repeat
+        this.i++;
+        const code = char.codePointAt(0) as number;
+        return { kind: 'char', set: [[code, code]] };
+    }
+
+    private group(): Node {
+        this.i++; // (
+        let look = false;
+        if (this.peek() === '?') {
+            const rest = this.slice(this.i + 1, this.i + 4);
+            if (rest.startsWith('=') || rest.startsWith('!')) {
+                look = true;
+                this.i += 2;
+            } else if (rest.startsWith('<=') || rest.startsWith('<!')) {
+                look = true;
+                this.i += 3;
+            } else if (rest.startsWith('#')) {
+                const end = this.find(')', this.i);
+                if (end < 0) throw new Unparseable();
+                this.i = end + 1;
+                return ZERO;
+            } else if (rest.startsWith('P=')) {
+                const end = this.find(')', this.i);
+                if (end < 0) throw new Unparseable();
+                this.i = end + 1;
+                this.backref = true;
+                return { kind: 'backref' };
+            } else if (rest.startsWith('P<') || rest.startsWith('<')) {
+                const end = this.find('>', this.i);
+                if (end < 0) throw new Unparseable();
+                this.i = end + 1;
+            } else if (rest.startsWith(':') || rest.startsWith('>')) {
+                this.i += 2;
+            } else {
+                // inline flags: (?i) is a flag-only group, (?i:...) scopes them
+                let j = this.i + 1;
+                while (j < this.chars.length && (isAlpha(this.chars[j]) || this.chars[j] === '-')) j++;
+                if (j >= this.chars.length || j === this.i + 1) throw new Unparseable();
+                if (this.chars[j] === ')') {
+                    this.i = j + 1;
+                    return ZERO;
+                }
+                if (this.chars[j] !== ':') throw new Unparseable();
+                this.i = j + 1;
+            }
+        }
+        const body = this.alternation();
+        if (this.peek() !== ')') throw new Unparseable();
+        this.i++;
+        return look ? { kind: 'look', body } : body;
+    }
+
+    private escape(): Node {
+        this.i++; // backslash
+        if (this.eof()) throw new Unparseable();
+        const char = this.peek();
+        this.i++;
+        if ('bBAZzG'.includes(char)) return ZERO;
+        if ('123456789'.includes(char)) {
+            this.backref = true;
+            return { kind: 'backref' };
+        }
+        if (char === 'k' && this.peek() === '<') {
+            this.backref = true;
+            const end = this.find('>', this.i);
+            this.i = end >= 0 ? end + 1 : this.chars.length;
+            return { kind: 'backref' };
+        }
+        return { kind: 'char', set: this.classEscape(char) };
+    }
+
+    /** The set an escape stands for (after the backslash and its letter, both consumed); a lone escaped character stands for itself. */
+    private classEscape(char: string): Ranges {
+        switch (char) {
+            case 'd':
+                return DIGITS;
+            case 'D':
+                return negate(DIGITS);
+            case 'w':
+                return WORD;
+            case 'W':
+                return negate(WORD);
+            case 's':
+                return SPACE;
+            case 'S':
+                return negate(SPACE);
+            case 'p':
+            case 'P': {
+                let name: string;
+                if (this.peek() === '{') {
+                    const end = this.find('}', this.i);
+                    if (end < 0) throw new Unparseable();
+                    name = this.slice(this.i + 1, end);
+                    this.i = end + 1;
+                } else {
+                    name = this.peek();
+                    this.i++;
+                }
+                return propertyRanges(name, char === 'P');
+            }
+            case 'x':
+                return this.hex(2);
+            case 'u': {
+                if (this.peek() === '{') {
+                    const end = this.find('}', this.i);
+                    if (end < 0) throw new Unparseable();
+                    const digits = this.slice(this.i + 1, end);
+                    this.i = end + 1;
+                    return this.code(digits);
+                }
+                return this.hex(4);
+            }
+            case 'c':
+                this.i++;
+                return ALL; // control character: not worth modelling
+            case 'n':
+                return [[10, 10]];
+            case 'r':
+                return [[13, 13]];
+            case 't':
+                return [[9, 9]];
+            case 'f':
+                return [[12, 12]];
+            case 'v':
+                return [[11, 11]];
+            case '0':
+                return [[0, 0]];
+            default: {
+                const code = char.codePointAt(0) as number;
+                return [[code, code]];
+            }
+        }
+    }
+
+    private hex(count: number): Ranges {
+        const digits = this.slice(this.i, this.i + count);
+        this.i += Array.from(digits).length;
+        return this.code(digits);
+    }
+
+    private code(digits: string): Ranges {
+        if (!/^[0-9a-fA-F]+$/.test(digits)) return ALL;
+        const code = parseInt(digits, 16);
+        return code > MAX_CODEPOINT ? ALL : [[code, code]];
+    }
+
+    private charClass(): Ranges {
+        this.i++; // [
+        let negated = false;
+        if (this.peek() === '^') {
+            negated = true;
+            this.i++;
+        }
+        const ranges: Array<readonly [number, number]> = [];
+        let first = true;
+        for (;;) {
+            if (this.eof()) throw new Unparseable();
+            if (this.peek() === ']' && !first) {
+                this.i++;
+                break;
+            }
+            first = false;
+            const low = this.classAtom(ranges);
+            if (low === null) continue;
+            // a range a-z
+            if (this.peek() === '-' && this.peek(1) !== ']' && this.peek(1) !== '') {
+                this.i++;
+                const high = this.classAtom(ranges);
+                if (high === null) {
+                    ranges.push([low, low], [45, 45]);
+                    continue;
+                }
+                if (high < low) throw new Unparseable();
+                ranges.push([low, high]);
+            } else {
+                ranges.push([low, low]);
+            }
+        }
+        const result = norm(ranges);
+        return negated ? negate(result) : result;
+    }
+
+    /** One class member: the code of a single character, or null after adding a whole set (`\d`, `\p{L}`) to `ranges`. */
+    private classAtom(ranges: Array<readonly [number, number]>): number | null {
+        const char = this.peek();
+        this.i++;
+        if (char !== '\\') return char.codePointAt(0) as number;
+        if (this.eof()) throw new Unparseable();
+        const escaped = this.peek();
+        this.i++;
+        if (escaped === 'b') return 8;
+        if ('dDwWsSpP'.includes(escaped)) {
+            ranges.push(...this.classEscape(escaped));
+            return null;
+        }
+        const found = this.classEscape(escaped);
+        if (found.length === 1 && found[0][0] === found[0][1]) return found[0][0];
+        ranges.push(...found);
+        return null;
+    }
+}
+
+class Analysis {
+    problem: PatternHazard | null = null;
+    // by node identity: nodes are shared constants only for ZERO, whose info is fixed
+    private infos = new Map<Node, [boolean, Ranges]>();
+
+    flag(code: PatternHazard): void {
+        if (this.problem === null) this.problem = code;
+    }
+
+    /** [can match the empty string, characters it can start with]. */
+    info(node: Node): [boolean, Ranges] {
+        const cached = this.infos.get(node);
+        if (cached) return cached;
+        let result: [boolean, Ranges];
+        switch (node.kind) {
+            case 'char':
+                result = [false, node.set];
+                break;
+            case 'zero':
+            case 'look':
+                result = [true, NONE];
+                break;
+            case 'backref':
+                result = [true, ALL];
+                break;
+            case 'seq': {
+                let nullable = true;
+                let first: Ranges = NONE;
+                for (const item of node.items) {
+                    const [itemNullable, itemFirst] = this.info(item);
+                    first = union(first, itemFirst);
+                    if (!itemNullable) {
+                        nullable = false;
+                        break;
+                    }
+                }
+                result = [nullable, first];
+                break;
+            }
+            case 'alt': {
+                let nullable = false;
+                let first: Ranges = NONE;
+                for (const branch of node.branches) {
+                    const [branchNullable, branchFirst] = this.info(branch);
+                    nullable = nullable || branchNullable;
+                    first = union(first, branchFirst);
+                }
+                result = [nullable, first];
+                break;
+            }
+            case 'rep': {
+                const [bodyNullable, bodyFirst] = this.info(node.body);
+                result = [bodyNullable || node.min === 0, bodyFirst];
+                break;
+            }
+        }
+        this.infos.set(node, result);
+        return result;
+    }
+
+    walk(node: Node, follow: Ranges, inLoop: boolean): void {
+        if (this.problem !== null) return;
+        switch (node.kind) {
+            case 'backref':
+                this.flag('backreference');
+                break;
+            case 'look':
+                this.walk(node.body, NONE, inLoop);
+                break;
+            case 'seq': {
+                let ahead = follow;
+                for (let index = node.items.length - 1; index >= 0; index--) {
+                    const item = node.items[index];
+                    this.walk(item, ahead, inLoop);
+                    const [itemNullable, itemFirst] = this.info(item);
+                    ahead = itemNullable ? union(itemFirst, ahead) : itemFirst;
+                }
+                this.adjacent(node.items);
+                break;
+            }
+            case 'alt': {
+                for (const branch of node.branches) this.walk(branch, follow, inLoop);
+                if (inLoop) {
+                    let seen: Ranges = NONE;
+                    for (const branch of node.branches) {
+                        const first = this.info(branch)[1];
+                        if (overlap(seen, first)) {
+                            this.flag('overlapping_alternatives');
+                            return;
+                        }
+                        seen = union(seen, first);
+                    }
+                }
+                break;
+            }
+            case 'rep': {
+                const { body, min, max } = node;
+                if (max !== null && max <= 1) {
+                    this.walk(body, follow, inLoop); // x? : not a loop
+                    return;
+                }
+                const [nullable, first] = this.info(body);
+                // a fixed count (x{4}) has one way to match; a variable one
+                // (x+, x{2,5}) that can start what a loop's next round or
+                // exit starts with is ambiguous
+                const variable = max === null || max !== min;
+                if (inLoop && variable && overlap(first, follow)) {
+                    this.flag('nested_repeat');
+                    return;
+                }
+                this.walk(body, union(first, follow), true);
+                if (max === null && nullable) this.flag('empty_repeat');
+                break;
+            }
+        }
+    }
+
+    /** Three unbounded repeats in a row (only optional things between) whose neighbours overlap. */
+    private adjacent(items: Node[]): void {
+        let chain: Node[] = [];
+        for (const item of items) {
+            if (item.kind === 'rep' && item.max === null) {
+                const first = this.info(item.body)[1];
+                const previous = chain[chain.length - 1];
+                if (previous && previous.kind === 'rep' && overlap(this.info(previous.body)[1], first)) chain.push(item);
+                else chain = [item];
+                if (chain.length >= 3) {
+                    this.flag('adjacent_repeats');
+                    return;
+                }
+            } else if (!this.info(item)[0]) {
+                chain = [];
+            }
+        }
+    }
+}
+
+const memo = new Map<string, PatternHazard | null>();
+const MEMO_LIMIT = 512;
+
+/** null when `pattern` is safe to evaluate with a backtracking engine, else the hazard. */
+export function patternHazard(pattern: string | undefined | null): PatternHazard | null {
+    if (!pattern) return null;
+    const known = memo.get(pattern);
+    if (known !== undefined) return known;
+    const result = analyse(pattern);
+    if (memo.size >= MEMO_LIMIT) memo.clear();
+    memo.set(pattern, result);
+    return result;
+}
+
+function analyse(pattern: string): PatternHazard | null {
+    if (Array.from(pattern).length > PATTERN_MAX_LENGTH) return 'too_complex';
+    const parser = new Parser(pattern);
+    let tree: Node;
+    try {
+        tree = parser.parse();
+    } catch (error) {
+        return error instanceof TooDeep ? 'too_complex' : 'unparseable';
+    }
+    if (parser.backref) return 'backreference';
+    const analysis = new Analysis();
+    try {
+        analysis.walk(tree, NONE, false);
+    } catch {
+        return 'too_complex';
+    }
+    return analysis.problem;
+}
