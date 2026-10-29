@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import i18n from 'i18next';
+import { Provider, createStore } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
+import { patternSaveErrorsAtom } from '@app/store/jotai/pattern-save-errors';
 
 import AnswerRulesSettings from './answer-rules-settings';
 
@@ -61,5 +63,30 @@ describe('the custom pattern box', () => {
     it('also points out an unsafe pattern an import left on a number question', () => {
         render(<AnswerRulesSettings field={field({ regex: '^(\\d+)+$' }, FieldTypes.NUMBER)} onChange={() => {}} />);
         expect(screen.getByRole('alert')).toHaveTextContent('Saved earlier');
+    });
+
+    it('refuses inline flags, even where this browser cannot compile them, and does not save them', () => {
+        const onChange = vi.fn();
+        render(<AnswerRulesSettings field={field()} onChange={onChange} />);
+        type('(?i)abc');
+        expect(screen.getByRole('alert')).toHaveTextContent('Flags written inside a pattern, such as (?i), are not supported.');
+        expect(onChange).toHaveBeenLastCalledWith({ regex: undefined });
+    });
+
+    it('shows what the server refused when the form was saved, until the pattern changes', () => {
+        const store = createStore();
+        store.set(patternSaveErrorsAtom, { q: { hazard: 'nested_repeat', regex: '^[a-z]+$' } });
+        const { rerender } = render(
+            <Provider store={store}>
+                <AnswerRulesSettings field={field({ regex: '^[a-z]+$' })} onChange={() => {}} />
+            </Provider>
+        );
+        expect(screen.getByRole('alert')).toHaveTextContent('Not saved. A repeated group inside a repeated group');
+        rerender(
+            <Provider store={store}>
+                <AnswerRulesSettings field={field({ regex: '^[a-z]$' })} onChange={() => {}} />
+            </Provider>
+        );
+        expect(screen.queryByRole('alert')).toBeNull();
     });
 });

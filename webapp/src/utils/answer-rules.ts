@@ -88,11 +88,36 @@ export function compilePattern(pattern: string | undefined | null): RegExp | nul
     return compiled;
 }
 
+/**
+ * The longest answer (in UTF-16 units) this browser tests against a pattern.
+ * The structural check (utils/pattern-safety.ts) bounds the work of a pattern
+ * for answers up to about this long (WORK_UNBOUNDED) but cannot prove no
+ * pattern is super-linear, so a longer answer is left to the server, which
+ * matches with RE2 (linear time) up to PATTERN_INPUT_MAX_LENGTH, 10,000
+ * characters, when the answer is submitted.
+ */
+export const PATTERN_TEST_MAX_LENGTH = 1000;
+
+/**
+ * Whether the answer breaks the pattern, as far as this browser can tell:
+ * false when the pattern must not be tested here (does not compile, unsafe
+ * shape) or the answer is longer than PATTERN_TEST_MAX_LENGTH.
+ */
+export function patternBreaks(pattern: string | undefined | null, text: string): boolean {
+    if (text.length > PATTERN_TEST_MAX_LENGTH) return false;
+    const compiled = compilePattern(pattern);
+    return !!compiled && !compiled.test(text);
+}
+
 /** What is wrong with a pattern the builder is given: it does not compile, or its shape is a hazard. null when it is fine. */
 export function patternProblem(pattern: string | undefined | null): 'invalid' | PatternHazard | null {
     if (!pattern) return null;
-    if (!compileRaw(pattern)) return 'invalid';
-    return patternHazard(pattern);
+    const hazard = patternHazard(pattern);
+    if (!compileRaw(pattern)) {
+        // the server refuses a hazard even where this browser cannot compile the pattern ((?i), (?P<x>...))
+        return hazard && hazard !== 'unparseable' && hazard !== 'too_complex' ? hazard : 'invalid';
+    }
+    return hazard;
 }
 
 /** Which kind of answer rules a field takes, if any. */
@@ -144,8 +169,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
             const length = Array.from(text).length;
             if (isSet(rules.minLength) && length < rules.minLength) problems.push('TOO_SHORT');
             if (isSet(rules.maxLength) && length > rules.maxLength) problems.push('TOO_LONG');
-            const pattern = compilePattern(rules.regex);
-            if (pattern && !pattern.test(text.trim())) problems.push('PATTERN');
+            if (patternBreaks(rules.regex, text.trim())) problems.push('PATTERN');
             break;
         }
         case 'number': {
@@ -153,10 +177,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
             if (!number) break;
             if (isSet(rules.minValue) && number.value < rules.minValue) problems.push('TOO_SMALL');
             if (isSet(rules.maxValue) && number.value > rules.maxValue) problems.push('TOO_LARGE');
-            if (rules.regex) {
-                const pattern = compilePattern(rules.regex);
-                if (pattern && !pattern.test(number.typed)) problems.push(rules.regex === INTEGER_PATTERN ? 'NOT_INTEGER' : 'PATTERN');
-            }
+            if (rules.regex && patternBreaks(rules.regex, number.typed)) problems.push(rules.regex === INTEGER_PATTERN ? 'NOT_INTEGER' : 'PATTERN');
             break;
         }
         case 'choices': {

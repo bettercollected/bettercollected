@@ -14,6 +14,7 @@ import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai
 import { IFormState, formStateAtom } from '@app/store/jotai/form';
 import { builderFieldsAtom } from '@app/store/jotai/form-document';
 import { adoptSavedLanguageAtom, formLanguageAtom } from '@app/store/jotai/form-language';
+import { patternSaveErrorsAtom, patternSaveErrorsOf } from '@app/store/jotai/pattern-save-errors';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
@@ -117,6 +118,9 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (version) formData.append('expected_updated_at', version);
                         const response: any = await patch({ formId, workspaceId, body: formData });
                         const outcome = saveOutcomeOf(response);
+                        // a pattern the server refuses (an older client, an API-made form):
+                        // the pattern box says why, as it does for one typed here
+                        store.set(patternSaveErrorsAtom, patternSaveErrorsOf(response, body) ?? {});
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own
@@ -256,12 +260,10 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         <Dialog open={conflict} onOpenChange={(open) => !open && setConflict(false)}>
             <DialogContent className="max-w-md" title="This form changed elsewhere">
                 <DialogHeader>
-                    <div aria-hidden="true" className="text-lg font-semibold leading-none tracking-tight">
+                    <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
                         This form changed elsewhere
                     </div>
-                    <DialogDescription>
-                        Someone saved this form in another tab or window after you opened it. Your latest changes here were not saved, so theirs are not overwritten. Reload to continue from the latest version.
-                    </DialogDescription>
+                    <DialogDescription>Someone saved this form in another tab or window after you opened it. Your latest changes here were not saved, so theirs are not overwritten. Reload to continue from the latest version.</DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setConflict(false)}>

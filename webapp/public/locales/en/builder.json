@@ -731,6 +731,7 @@
     "EMPTY_REPEAT": "A repeated group that can match nothing, such as (a?)*, can take a browser very long to check.",
     "ADJACENT_REPEATS": "Several repeats in a row that match the same characters, such as \\d*\\d*\\d*, can take a browser very long to check. Use one.",
     "TOO_COMPLEX": "This pattern is too long or too complex to check safely. Shorten or simplify it.",
-    "UNPARSEABLE": "This pattern could not be read to check it safely. Simplify it."
+    "UNPARSEABLE": "This pattern could not be read to check it safely. Simplify it.",
+    "INLINE_FLAGS": "Flags written inside a pattern, such as (?i), are not supported. Match both cases with a class such as [Aa] instead."
   }
 }

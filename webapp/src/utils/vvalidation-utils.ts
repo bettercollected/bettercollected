@@ -7,7 +7,7 @@ import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dt
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
-import { compilePattern } from '@app/utils/answer-rules';
+import { patternBreaks } from '@app/utils/answer-rules';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 /**
@@ -108,8 +108,7 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
                 }
                 // An answer that does NOT match the pattern breaks the rule
                 // (this used to be inverted: matching answers were flagged).
-                const pattern = compilePattern(validations?.regex);
-                if (pattern && !pattern.test(text)) {
+                if (patternBreaks(validations?.regex, text)) {
                     errors.push(FormValidationError.REGEX_PATTERN);
                 }
             } else if (type === FormBuilderTagNames.INPUT_NUMBER && number !== undefined) {

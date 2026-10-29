@@ -16,34 +16,50 @@
  * Hazards (conservative: a pattern that is merely unusual may be refused,
  * never one of these shapes accepted):
  * - backreference: `\1`, `\k<name>`, `(?P=name)`.
- * - nested_repeat: a repeated part inside a repeated group that can start
- *   with what may follow it: `(a+)+`, `(a*)*`, `(\w+\s?)+`, `((ab)+)+`.
- *   `(\w+\s)+` is fine: the separator ends every iteration.
+ * - nested_repeat: a repeated part (`x?` too) inside a repeated group that
+ *   can start with what may follow it: `(a+)+`, `(a*)*`, `(\w+\s?)+`,
+ *   `((ab)+)+`, `(a?a){30}`. `(\w+\s)+` is fine: the separator ends every
+ *   iteration.
  * - overlapping_alternatives: a repeated group with two alternatives that
  *   can start with the same character: `(a|aa)+`.
- * - empty_repeat: an unbounded repeat of something that can match nothing:
- *   `(a?)*`.
- * - adjacent_repeats: three or more unbounded repeats in a row (only
- *   optional things between them) that overlap: `\d*\d*\d*`.
+ * - empty_repeat: a repeat (bounded or not) of something that can match
+ *   nothing: `(\s*)+`, `(a?|b?){28}`.
+ * - adjacent_repeats: repeats in one sequence that match the same
+ *   characters multiply their work: `.*a.*a.*a`, `\d*\d*\d*`, `a?` twenty
+ *   times in a row. Each variable repeat counts as its number of ways to
+ *   match (an unbounded one as WORK_UNBOUNDED), the ones that overlap (also
+ *   across a mandatory character they can match themselves) multiply, and
+ *   the product may not pass WORK_LIMIT: at most two unbounded repeats.
+ * - inline_flags: `(?i)`, `(?i:...)` change what characters match; refused.
  * - too_complex: longer than PATTERN_MAX_LENGTH or nested too deep.
  * - unparseable: not a pattern this analysis can read (a broken one, or a
  *   syntax it does not know); a pattern that cannot be analysed is not
  *   trusted.
  *
- * Two repeats in a row (`\d*\.?\d*`) cost quadratic time at most and are
- * allowed, as are lookarounds (their content is analysed on its own).
+ * Two overlapping unbounded repeats (`\d*\.?\d*`) cost quadratic time at
+ * most and are allowed, as are lookarounds (their content is analysed on
+ * its own). The check reduces the risk, it cannot prove that no pattern is
+ * super-linear; the respondent form also tests only short answers
+ * (PATTERN_TEST_MAX_LENGTH in answer-rules.ts), which bounds what is left.
  * Character sets are exact for classes, ranges and `\d \w \s`; Unicode
  * properties (`\p{L}`) are approximated by a superset, which can only add
  * overlaps, never hide one.
  */
 
-export type PatternHazard = 'backreference' | 'nested_repeat' | 'overlapping_alternatives' | 'empty_repeat' | 'adjacent_repeats' | 'too_complex' | 'unparseable';
+export type PatternHazard = 'backreference' | 'nested_repeat' | 'overlapping_alternatives' | 'empty_repeat' | 'adjacent_repeats' | 'too_complex' | 'unparseable' | 'inline_flags';
 
-export const PATTERN_HAZARDS: ReadonlyArray<PatternHazard> = ['backreference', 'nested_repeat', 'overlapping_alternatives', 'empty_repeat', 'adjacent_repeats', 'too_complex', 'unparseable'];
+export const PATTERN_HAZARDS: ReadonlyArray<PatternHazard> = ['backreference', 'nested_repeat', 'overlapping_alternatives', 'empty_repeat', 'adjacent_repeats', 'too_complex', 'unparseable', 'inline_flags'];
 
 /** The same cap as the form spec and the server (common form_spec PATTERN_MAX_LENGTH). */
 export const PATTERN_MAX_LENGTH = 200;
 const MAX_DEPTH = 40;
+/**
+ * Work estimate per start position: an unbounded repeat counts as this many
+ * ways to match (about the longest text the browser tests), and the repeats
+ * of one sequence that overlap may multiply to at most WORK_LIMIT.
+ */
+const WORK_UNBOUNDED = 1000;
+const WORK_LIMIT = 1_000_000;
 
 /** What the server says (common pattern_safety.py HAZARD_MESSAGES); the builder shows the translated text (`builder` PATTERN_HAZARD.*). */
 export const PATTERN_HAZARD_MESSAGES: Record<PatternHazard, string> = {
@@ -53,7 +69,8 @@ export const PATTERN_HAZARD_MESSAGES: Record<PatternHazard, string> = {
     empty_repeat: 'A repeated group that can match nothing, such as (a?)*, can take a browser very long to check.',
     adjacent_repeats: 'Several repeats in a row that match the same characters, such as \\d*\\d*\\d*, can take a browser very long to check. Use one.',
     too_complex: 'This pattern is too long or too complex to check safely. Shorten or simplify it.',
-    unparseable: 'This pattern could not be read to check it safely. Simplify it.'
+    unparseable: 'This pattern could not be read to check it safely. Simplify it.',
+    inline_flags: 'Flags written inside a pattern, such as (?i), are not supported. Match both cases with a class such as [Aa] instead.'
 };
 
 const MAX_CODEPOINT = 0x10ffff;
@@ -96,6 +113,7 @@ const NUMBERS_SUPERSET: Ranges = [
 
 class Unparseable extends Error {}
 class TooDeep extends Error {}
+class InlineFlags extends Error {}
 
 function norm(ranges: Array<readonly [number, number]>): Ranges {
     const sorted = [...ranges].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -311,12 +329,10 @@ class Parser {
                 let j = this.i + 1;
                 while (j < this.chars.length && (isAlpha(this.chars[j]) || this.chars[j] === '-')) j++;
                 if (j >= this.chars.length || j === this.i + 1) throw new Unparseable();
-                if (this.chars[j] === ')') {
-                    this.i = j + 1;
-                    return ZERO;
-                }
-                if (this.chars[j] !== ':') throw new Unparseable();
-                this.i = j + 1;
+                if (this.chars[j] !== ')' && this.chars[j] !== ':') throw new Unparseable();
+                // (?i) and (?i:...) change what characters match; the analysis
+                // works on exact sets, so they are refused
+                throw new InlineFlags();
             }
         }
         const body = this.alternation();
@@ -479,6 +495,7 @@ class Analysis {
     problem: PatternHazard | null = null;
     // by node identity: nodes are shared constants only for ZERO, whose info is fixed
     private infos = new Map<Node, [boolean, Ranges]>();
+    private alphabets = new Map<Node, Ranges>();
 
     flag(code: PatternHazard): void {
         if (this.problem === null) this.problem = code;
@@ -572,41 +589,101 @@ class Analysis {
             }
             case 'rep': {
                 const { body, min, max } = node;
-                if (max !== null && max <= 1) {
-                    this.walk(body, follow, inLoop); // x? : not a loop
-                    return;
-                }
                 const [nullable, first] = this.info(body);
                 // a fixed count (x{4}) has one way to match; a variable one
-                // (x+, x{2,5}) that can start what a loop's next round or
+                // (x?, x+, x{2,5}) that can start what a loop's next round or
                 // exit starts with is ambiguous
                 const variable = max === null || max !== min;
                 if (inLoop && variable && overlap(first, follow)) {
                     this.flag('nested_repeat');
                     return;
                 }
+                if (max !== null && max <= 1) {
+                    this.walk(body, follow, inLoop); // x? : not a loop itself
+                    return;
+                }
                 this.walk(body, union(first, follow), true);
-                if (max === null && nullable) this.flag('empty_repeat');
+                // any repeat of something that can match nothing, bounded or
+                // not: (a?|b?){28} has as many ways to match as it has rounds
+                if (nullable && this.problem === null) this.flag('empty_repeat');
                 break;
             }
         }
     }
 
-    /** Three unbounded repeats in a row (only optional things between) whose neighbours overlap. */
+    /** Every character the node can match, anywhere in it. */
+    private alphabet(node: Node): Ranges {
+        const cached = this.alphabets.get(node);
+        if (cached) return cached;
+        let result: Ranges;
+        switch (node.kind) {
+            case 'char':
+                result = node.set;
+                break;
+            case 'zero':
+            case 'look':
+                result = NONE;
+                break;
+            case 'backref':
+                result = ALL;
+                break;
+            case 'rep':
+                result = this.alphabet(node.body);
+                break;
+            case 'seq':
+                result = node.items.reduce<Ranges>((all, child) => union(all, this.alphabet(child)), NONE);
+                break;
+            case 'alt':
+                result = node.branches.reduce<Ranges>((all, child) => union(all, this.alphabet(child)), NONE);
+                break;
+        }
+        this.alphabets.set(node, result);
+        return result;
+    }
+
+    /**
+     * How many ways the item can match the same text, roughly: a variable
+     * repeat has (max - min + 1) of them, an unbounded one WORK_UNBOUNDED; an
+     * alternation whose choices can start alike, one per choice. 1 for
+     * anything else.
+     */
+    private weight(item: Node): number {
+        if (item.kind === 'rep') {
+            if (item.max === null) return WORK_UNBOUNDED;
+            if (item.max !== item.min) return Math.min(item.max - item.min + 1, WORK_UNBOUNDED);
+        } else if (item.kind === 'alt') {
+            let seen: Ranges = NONE;
+            for (const branch of item.branches) {
+                const first = this.info(branch)[1];
+                if (overlap(seen, first)) return item.branches.length;
+                seen = union(seen, first);
+            }
+        }
+        return 1;
+    }
+
+    /**
+     * Repeats in one sequence that match the same characters multiply their
+     * work (`.*a.*a.*a` is cubic, `a?a?a?…a?aaa` exponential), also across
+     * mandatory characters the repeats can match themselves (the `a` above).
+     * Their combined weight may not pass WORK_LIMIT: two overlapping
+     * unbounded repeats are the most.
+     */
     private adjacent(items: Node[]): void {
-        let chain: Node[] = [];
+        let chain: Array<[Ranges, number]> = [];
         for (const item of items) {
-            if (item.kind === 'rep' && item.max === null) {
-                const first = this.info(item.body)[1];
-                const previous = chain[chain.length - 1];
-                if (previous && previous.kind === 'rep' && overlap(this.info(previous.body)[1], first)) chain.push(item);
-                else chain = [item];
-                if (chain.length >= 3) {
+            const weight = this.weight(item);
+            const alphabet = this.alphabet(item);
+            if (weight > 1) {
+                let cost = weight;
+                for (const [other, otherWeight] of chain) if (overlap(other, alphabet)) cost *= otherWeight;
+                if (cost > WORK_LIMIT) {
                     this.flag('adjacent_repeats');
                     return;
                 }
-            } else if (!this.info(item)[0]) {
-                chain = [];
+                chain.push([alphabet, weight]);
+            } else if (!this.info(item)[0] && !chain.some(([other]) => overlap(other, alphabet))) {
+                chain = []; // a mandatory item the repeats cannot match
             }
         }
     }
@@ -633,6 +710,7 @@ function analyse(pattern: string): PatternHazard | null {
     try {
         tree = parser.parse();
     } catch (error) {
+        if (error instanceof InlineFlags) return 'inline_flags';
         return error instanceof TooDeep ? 'too_complex' : 'unparseable';
     }
     if (parser.backref) return 'backreference';

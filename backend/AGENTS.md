@@ -292,9 +292,11 @@ v1 and imported forms (fields not on pages) are not validated.
 **Pattern safety** (`common/common/form_spec/pattern_safety.py`, webapp twin `utils/pattern-safety.ts`, shared
 cases `docs/spec/pattern-safety.cases.json`; keep the two in step): the server is linear-time (RE2), but the
 respondent's browser evaluates the same pattern with a backtracking `RegExp`, so `^(a+)+$` could freeze a tab.
-`pattern_hazard()` parses the pattern and refuses the shapes that can explode (nested or overlapping repeats,
-empty repeats, three overlapping repeats in a row, backreferences, too long/deep/unreadable); it reads the
-shape, never times anything. `checked_pattern` applies it (form spec, ops engine, REST API, Open Formulieren
+`pattern_hazard()` parses the pattern and refuses the shapes that can explode (nested or overlapping repeats
+including optional/bounded ones, empty repeats, a work estimate over `WORK_LIMIT` for overlapping repeats in one
+sequence, also across separators they can match, inline flags, backreferences, too long/deep/unreadable); it
+reads the shape, never times anything, and cannot prove the absence of super-linear patterns, so the webapp
+also tests answers only up to `PATTERN_TEST_MAX_LENGTH` (1,000; longer ones are left to the server's RE2). `checked_pattern` applies it (form spec, ops engine, REST API, Open Formulieren
 import: an archive pattern it refuses is `validation_not_carried`), and `services/form_patterns.py`
 `check_form_patterns` applies it on every form save (422 `unsafe_pattern` with question ids, never the
 pattern; a pattern the stored draft already holds is kept; a copy drops it; one that does not compile is no

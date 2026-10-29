@@ -700,6 +700,9 @@ class TestGrowthAndImages:
             ("a" * 201, "at most 200"),
             ("^(a+)+$", "repeated group inside a repeated group"),
             (r"(a)\1", "refer back"),
+            ("^(a?|b?){28}a{28}$", "repeated group inside a repeated group"),
+            ("^.*a.*a.*a$", "repeats in a row"),
+            ("(?i)abc", "Flags written inside a pattern"),
         ],
     )
     async def test_validate_refuses_a_pattern_the_op_refuses(

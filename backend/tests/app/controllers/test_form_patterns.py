@@ -100,6 +100,9 @@ async def test_an_unsafe_pattern_is_refused_on_save_with_the_question_and_no_pat
         ("^(a|aa)+$", "overlapping_alternatives"),
         (r"(a)\1", "backreference"),
         (r"^\d*\d*\d*$", "adjacent_repeats"),
+        (r"^(a?|b?){28}a{28}$", "nested_repeat"),
+        (r"^.*a.*a.*a.*a.*a.*a.*a.*a$", "adjacent_repeats"),
+        (r"^(?i)abc$", "inline_flags"),
     ],
 )
 async def test_each_hazard_is_refused_with_its_code(

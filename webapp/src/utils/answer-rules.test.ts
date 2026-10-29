@@ -9,11 +9,13 @@ import {
     FORMAT_PRESETS,
     INTEGER_PATTERN,
     PATTERN_MAX_LENGTH,
+    PATTERN_TEST_MAX_LENGTH,
     answerRuleConflicts,
     answerRuleKind,
     answerRuleMessage,
     checkAnswerRules,
     compilePattern,
+    patternBreaks,
     patternProblem,
     presetForPattern,
     summarizeAnswerRules,
@@ -151,9 +153,25 @@ describe('a pattern whose shape can freeze a browser', () => {
         expect(compilePattern(nested)).toBeNull();
         expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex: nested }), text(answerThatFreezes))).toEqual([]);
         expect(checkAnswerRules(field(FieldTypes.LONG_TEXT, { regex: '^(a|aa)+$' }), text(answerThatFreezes))).toEqual([]);
+        // optional or bounded repeats, overlapping repeats across a separator, inline flags
+        for (const regex of ['^(a?|b?){28}a{28}$', '^(?:a|b?){28}c$', '^(a?){30}a{30}$', `^${'a?'.repeat(20)}${'a'.repeat(20)}$`, '^.*a.*a.*a.*a.*a.*a.*a.*a$', '^[\\s\\S]*x[\\s\\S]*x[\\s\\S]*x$', '^(?i)a+$']) {
+            expect(checkAnswerRules(field(FieldTypes.SHORT_TEXT, { regex }), text('a'.repeat(28)))).toEqual([]);
+        }
         expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: '^(\\d+)+$' }), { type: 'number', number: '1111111111111111111111x' })).toEqual([]);
         expect(validateAnswerRulesInSlide([field(FieldTypes.SHORT_TEXT, { regex: nested })], { f: text(answerThatFreezes) })).toEqual({});
         expect(test).not.toHaveBeenCalled();
+    });
+
+    it('is not tested against a long answer either: the server checks it with RE2', () => {
+        const test = spy();
+        const rules = field(FieldTypes.SHORT_TEXT, { regex: '^[a-z]+$' });
+        // at the cap it is tested, over it left to the server
+        expect(checkAnswerRules(rules, text('1'.repeat(PATTERN_TEST_MAX_LENGTH)))).toEqual(['PATTERN']);
+        expect(test).toHaveBeenCalledTimes(1);
+        expect(checkAnswerRules(rules, text('1'.repeat(PATTERN_TEST_MAX_LENGTH + 1)))).toEqual([]);
+        expect(checkAnswerRules(field(FieldTypes.NUMBER, { regex: INTEGER_PATTERN }), { type: 'number', number: '1.'.repeat(PATTERN_TEST_MAX_LENGTH) })).toEqual([]);
+        expect(patternBreaks('^[a-z]+$', 'x'.repeat(PATTERN_TEST_MAX_LENGTH + 1))).toBe(false);
+        expect(test).toHaveBeenCalledTimes(1);
     });
 
     it('does not stop a safe pattern from being tested', () => {

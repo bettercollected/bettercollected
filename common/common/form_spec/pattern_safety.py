@@ -19,17 +19,23 @@ never one of these shapes accepted):
 
 - ``backreference``: ``\\1``, ``\\k<name>``, ``(?P=name)``. Matching them
   needs backtracking even for simple patterns (RE2 refuses them too).
-- ``nested_repeat``: a repeated part inside a repeated group that can start
-  with what may follow it, so one text splits into iterations in many ways:
-  ``(a+)+``, ``(a*)*``, ``(\\w+\\s?)+``, ``((ab)+)+``. ``(\\w+\\s)+`` is fine:
-  the separator ends every iteration.
+- ``nested_repeat``: a repeated part (``x?`` too) inside a repeated group
+  that can start with what may follow it, so one text splits into
+  iterations in many ways: ``(a+)+``, ``(a*)*``, ``(\\w+\\s?)+``, ``((ab)+)+``,
+  ``(a?a){30}``. ``(\\w+\\s)+`` is fine: the separator ends every iteration.
 - ``overlapping_alternatives``: a repeated group with two alternatives that
-  can start with the same character: ``(a|aa)+``, ``(\\w|\\d)*``.
-- ``empty_repeat``: an unbounded repeat of something that can match nothing:
-  ``(a?)*``, ``(\\s*)+``.
-- ``adjacent_repeats``: three or more unbounded repeats in a row (only
-  optional things between them) that overlap in what they match, which costs
-  cubic time or worse: ``\\d*\\d*\\d*``, ``.*.*.*``.
+  can start with the same character: ``(a|aa)+``, ``(\\w|\\d){9}``.
+- ``empty_repeat``: a repeat (bounded or not) of something that can match
+  nothing: ``(\\s*)+`` and ``(a?|b?){28}``.
+- ``adjacent_repeats``: repeats in one sequence that match the same
+  characters multiply their work: ``.*a.*a.*a``, ``\\d*\\d*\\d*``, ``a?`` twenty
+  times in a row, ``(a|aa)`` twenty times in a row. Each variable repeat
+  counts as its number of ways to match (an unbounded one as
+  ``WORK_UNBOUNDED``), the ones that overlap (also across a mandatory
+  character they can match themselves) multiply, and the product may not
+  pass ``WORK_LIMIT``: at most two unbounded repeats.
+- ``inline_flags``: ``(?i)``, ``(?i:...)`` and the like change what
+  characters match; the analysis works on exact sets, so they are refused.
 - ``too_complex``: longer than ``PATTERN_MAX_LENGTH`` or nested deeper than
   ``MAX_DEPTH``.
 - ``unparseable``: not a pattern this analysis can read (a broken one, or a
@@ -37,8 +43,11 @@ never one of these shapes accepted):
   Callers that only store patterns skip a broken one no engine would run
   (``services/form_patterns.py``).
 
-Two repeats in a row (``\\d*\\.?\\d*``) cost quadratic time at most and are
-allowed, as are lookarounds (their content is analysed on its own).
+Two overlapping unbounded repeats (``\\d*\\.?\\d*``) cost quadratic time at
+most and are allowed, as are lookarounds (their content is analysed on its
+own). The check reduces the risk, it cannot prove that no pattern is
+super-linear; the respondent form also tests only short answers
+(``PATTERN_TEST_MAX_LENGTH``), which bounds what is left.
 Character sets are exact for classes, ranges and the escapes ``\\d \\w \\s``;
 Unicode properties (``\\p{L}``) are approximated by a superset (ASCII letters
 or digits plus everything above U+007F, or everything), which can only add
@@ -49,6 +58,12 @@ from typing import Dict, List, Optional, Tuple
 
 PATTERN_MAX_LENGTH = 200
 MAX_DEPTH = 40
+# Work estimate per start position: an unbounded repeat counts as this many
+# ways to match (about the longest text the browser tests, PATTERN_TEST_MAX_
+# LENGTH in the webapp's answer-rules.ts), and the repeats of one sequence
+# that overlap may multiply to at most WORK_LIMIT.
+WORK_UNBOUNDED = 1000
+WORK_LIMIT = 1_000_000
 
 BACKREFERENCE = "backreference"
 NESTED_REPEAT = "nested_repeat"
@@ -57,6 +72,7 @@ EMPTY_REPEAT = "empty_repeat"
 ADJACENT_REPEATS = "adjacent_repeats"
 TOO_COMPLEX = "too_complex"
 UNPARSEABLE = "unparseable"
+INLINE_FLAGS = "inline_flags"
 
 HAZARDS = (
     BACKREFERENCE,
@@ -66,6 +82,7 @@ HAZARDS = (
     ADJACENT_REPEATS,
     TOO_COMPLEX,
     UNPARSEABLE,
+    INLINE_FLAGS,
 )
 
 # Shown to editors; the webapp has the same texts (twin, plus Dutch).
@@ -85,6 +102,8 @@ HAZARD_MESSAGES: Dict[str, str] = {
     TOO_COMPLEX: "This pattern is too long or too complex to check safely. "
     "Shorten or simplify it.",
     UNPARSEABLE: "This pattern could not be read to check it safely. " "Simplify it.",
+    INLINE_FLAGS: "Flags written inside a pattern, such as (?i), are not "
+    "supported. Match both cases with a class such as [Aa] instead.",
 }
 
 MAX_CODEPOINT = 0x10FFFF
@@ -114,6 +133,10 @@ class _Unparseable(Exception):
 
 
 class _TooDeep(Exception):
+    pass
+
+
+class _InlineFlags(Exception):
     pass
 
 
@@ -336,12 +359,11 @@ class _Parser:
                     j += 1
                 if j >= len(self.p) or j == self.i + 1:
                     raise _Unparseable()
-                if self.p[j] == ")":
-                    self.i = j + 1
-                    return ("zero",)
-                if self.p[j] != ":":
+                if self.p[j] not in (")", ":"):
                     raise _Unparseable()
-                self.i = j + 1
+                # (?i) and (?i:...) change what characters match; the
+                # analysis works on exact sets, so they are refused
+                raise _InlineFlags()
         body = self.alternation()
         if self.peek() != ")":
             raise _Unparseable()
@@ -490,6 +512,7 @@ class _Analysis:
         self.problem: Optional[str] = None
         # by node identity; the tree outlives the analysis, so ids are unique
         self._info: Dict[int, Tuple[bool, Ranges]] = {}
+        self._alphabet: Dict[int, Ranges] = {}
 
     def flag(self, code: str) -> None:
         if self.problem is None:
@@ -560,37 +583,88 @@ class _Analysis:
                     seen = _union(seen, first)
         elif kind == "rep":
             body, low, high = node[1], node[2], node[3]
-            if high is not None and high <= 1:
-                self.walk(body, follow, in_loop)  # x? : not a loop
-                return
             nullable, first = self.info(body)
             # a fixed count (x{4}) has one way to match; a variable one
-            # (x+, x{2,5}) at the start of what a loop's next round or exit
-            # can start with is ambiguous
+            # (x?, x+, x{2,5}) that can start what a loop's next round or
+            # exit starts with is ambiguous
             variable = high is None or high != low
             if in_loop and variable and _overlap(first, follow):
                 self.flag(NESTED_REPEAT)
                 return
+            if high is not None and high <= 1:
+                self.walk(body, follow, in_loop)  # x? : not a loop itself
+                return
             self.walk(body, _union(first, follow), True)
-            if high is None and nullable:
+            # any repeat of something that can match nothing, bounded or
+            # not: (a?|b?){28} has as many ways to match as it has rounds
+            if nullable and self.problem is None:
                 self.flag(EMPTY_REPEAT)
 
+    def alphabet(self, node: tuple) -> Ranges:
+        """Every character the node can match, anywhere in it."""
+        key = id(node)
+        cached = self._alphabet.get(key)
+        if cached is not None:
+            return cached
+        kind = node[0]
+        if kind == "char":
+            result = node[1]
+        elif kind in ("zero", "look"):
+            result = ()
+        elif kind == "backref":
+            result = ALL
+        elif kind == "rep":
+            result = self.alphabet(node[1])
+        else:  # seq, alt
+            result = ()
+            for child in node[1]:
+                result = _union(result, self.alphabet(child))
+        self._alphabet[key] = result
+        return result
+
+    def _weight(self, item: tuple) -> int:
+        """How many ways the item can match the same text, roughly: a
+        variable repeat has (max - min + 1) of them, an unbounded one
+        WORK_UNBOUNDED; an alternation whose choices can start alike, one
+        per choice. 1 for anything else."""
+        if item[0] == "rep":
+            low, high = item[2], item[3]
+            if high is None:
+                return WORK_UNBOUNDED
+            if high != low:
+                return min(high - low + 1, WORK_UNBOUNDED)
+        elif item[0] == "alt":
+            seen: Ranges = ()
+            for branch in item[1]:
+                first = self.info(branch)[1]
+                if _overlap(seen, first):
+                    return len(item[1])
+                seen = _union(seen, first)
+        return 1
+
     def _adjacent(self, items: list) -> None:
-        """Three unbounded repeats in a row (only optional things between)
-        whose neighbours overlap."""
-        chain: List[tuple] = []
+        """Repeats in one sequence that match the same characters multiply
+        their work (``.*a.*a.*a`` is cubic, ``a?a?a?...a?aaa`` exponential),
+        also across mandatory characters the repeats can match themselves
+        (the ``a`` above). Their combined weight may not pass WORK_LIMIT:
+        two overlapping unbounded repeats are the most."""
+        chain: List[Tuple[Ranges, int]] = []
         for item in items:
-            if item[0] == "rep" and item[3] is None:
-                first = self.info(item[1])[1]
-                if chain and _overlap(self.info(chain[-1][1])[1], first):
-                    chain.append(item)
-                else:
-                    chain = [item]
-                if len(chain) >= 3:
+            weight = self._weight(item)
+            alphabet = self.alphabet(item)
+            if weight > 1:
+                cost = weight
+                for other, other_weight in chain:
+                    if _overlap(other, alphabet):
+                        cost *= other_weight
+                if cost > WORK_LIMIT:
                     self.flag(ADJACENT_REPEATS)
                     return
-            elif not self.info(item)[0]:
-                chain = []
+                chain.append((alphabet, weight))
+            elif not self.info(item)[0] and not any(
+                _overlap(other, alphabet) for other, _ in chain
+            ):
+                chain = []  # a mandatory item the repeats cannot match
 
 
 def pattern_hazard(pattern: Optional[str]) -> Optional[str]:
@@ -605,6 +679,8 @@ def pattern_hazard(pattern: Optional[str]) -> Optional[str]:
         tree = parser.parse()
     except (_TooDeep, RecursionError):
         return TOO_COMPLEX
+    except _InlineFlags:
+        return INLINE_FLAGS
     except _Unparseable:
         return UNPARSEABLE
     if parser.backref:

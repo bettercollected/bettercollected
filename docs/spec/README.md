@@ -48,12 +48,17 @@ the whole text answer must match (use `^` and `$`). The server matches it with
 RE2 (linear time); the respondent's browser uses a backtracking engine, so a
 pattern whose shape can make that engine take exponential time on a crafted
 or unlucky answer is refused when the form is saved: a repeated group inside
-a repeated group that can split one text in several ways (`(a+)+`,
-`(\w+\s?)+`), a repeated group whose choices start with the same character
-(`(a|aa)+`), a repeat of something that can match nothing (`(a?)*`), three
-overlapping repeats in a row (`\d*\d*\d*`) and backreferences (`\1`). The check
-reads the shape of the pattern, never its running time, and is conservative:
-`(\w+\s)+` (each round ends in a separator) and two repeats in a row are fine.
+a repeated group (also an optional or bounded one) that can split one text in
+several ways (`(a+)+`, `(\w+\s?)+`, `(a?|b?){28}`), a repeated group whose
+choices start with the same character (`(a|aa)+`), a repeat of something that
+can match nothing (`(a?)*`), more than two overlapping repeats in one
+sequence, also across a separator they can match themselves (`\d*\d*\d*`,
+`.*a.*a.*a`, `a?` twenty times in a row), inline flags (`(?i)`) and
+backreferences (`\1`). The check reads the shape of the pattern, never its
+running time, and is conservative: `(\w+\s)+` (each round ends in a separator)
+and two overlapping repeats are fine. It reduces the risk but cannot prove that
+no pattern is super-linear, so the respondent form also tests only answers up
+to 1,000 characters in the browser and leaves longer ones to the server.
 The cases are in [`pattern-safety.cases.json`](pattern-safety.cases.json), run
 by the server and the webapp, which refuse the same patterns with the same
 words. A pattern a form already holds is kept (respondents' browsers skip
