@@ -20,10 +20,25 @@ import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
 import { usePropertiesTab } from '@app/store/jotai/properties-tab';
-import { usePublishV2FormMutation } from '@app/store/redux/form-api';
+import { useLazyGetPublishedFormQuery, usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { PublishProblem, THEME_PROBLEM_ID, getPublishProblems, needsReviewProblem, problemsFromPublishError, splitPublishProblems, themeContrastProblems, workspaceTitleProblems } from '@app/utils/publish-checks';
+import {
+    LiveTheme,
+    PublishProblem,
+    THEME_PROBLEM_ID,
+    getPublishProblems,
+    needsReviewProblem,
+    problemsFromPublishError,
+    requiresThemeContrast,
+    splitPublishProblems,
+    themeContrastGate,
+    themeContrastProblems,
+    workspaceTitleProblems
+} from '@app/utils/publish-checks';
 import { flushAutosave } from '@app/views/molecules/form-builder/audo-save-form';
+
+/** A label in the middle of a sentence. */
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
 /** Where a question sits in the builder: its page, and the page-level field holding it. */
 function locate(slides: Array<StandardFormFieldDto> | undefined, fieldId: string) {
@@ -61,6 +76,7 @@ const PublishButton = ({
     const { can } = useWorkspacePermissions();
     const { openBottomSheetModal } = useBottomSheetModal();
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
+    const [readPublishedForm] = useLazyGetPublishedFormQuery();
     const router = useRouter();
     const pathname = usePathname();
     const { setActiveFieldComponent } = useActiveFieldComponent();
@@ -115,20 +131,37 @@ const PublishButton = ({
         else toast({ description: "Couldn't publish the form. Please try again.", variant: 'destructive' });
     };
 
+    // The colours the form went live with: its theme, null while it was never published, undefined when they
+    // can't be read here (then the server, which reads them at publish, decides).
+    const readLiveTheme = async (): Promise<LiveTheme> => {
+        try {
+            const reply: any = await readPublishedForm({ workspaceId: workspace.id, formId: standardForm.formId }, false);
+            if (reply?.data) return reply.data.theme ?? {};
+            return reply?.error?.status === 404 ? null : undefined;
+        } catch {
+            return undefined;
+        }
+    };
+
     const publishForm = async () => {
         if (heldForReview && standardForm?.settings?.importId) {
             setReviewDialog({ importId: standardForm.settings.importId, othersFollow: false });
             return;
         }
         const fields = getFields?.() ?? givenFields;
+        // The builder's live theme with its live pages; the saved one otherwise.
+        const theme = fields?.length ? formState?.theme : standardForm?.theme;
+        // A failing theme stops a new form, a form never published and a form whose colours changed; an older form
+        // that is live with these colours is only advised. Only then is the live version read.
+        const failing = themeContrastProblems(theme).length > 0;
+        const gate = failing && !requiresThemeContrast(checksVersion) ? themeContrastGate(checksVersion, theme, await readLiveTheme()) : 'block';
         // Honest defaults first: the creator sees what to fix, and where.
         // The builder's live endings with its live pages; the saved ones otherwise.
         const found = [
             // The workspace's title: who respondents see receiving their answers. It belongs to no question.
             ...workspaceTitleProblems(workspace, checksVersion),
             ...(fields?.length ? getPublishProblems(fields, formState.thankyouPage ?? null) : getPublishProblems(standardForm?.fields, standardForm?.thankyouPage ?? null)),
-            // The builder's live theme with its live pages; the saved one otherwise.
-            ...themeContrastProblems(fields?.length ? formState?.theme : standardForm?.theme)
+            ...themeContrastProblems(theme, gate)
         ];
         if (found.length) {
             setProblems(found);
@@ -225,13 +258,21 @@ export function PublishProblemsDialog({
 }) {
     const { t } = useTranslation('builder');
     const open = blocking.length + recommended.length > 0;
+    const advisoryColours = recommended.some((problem) => problem.code === 'theme_contrast' && problem.advisory);
     const count = (n: number) => (n === 1 ? 'One thing' : `${n} things`);
     const list = (items: PublishProblem[], testId: string) => (
         <ul className="flex flex-col gap-2" data-testid={testId}>
             {items.map((problem) => (
                 <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-300 p-3 text-sm">
                     {/* the workspace's problem is worded here (translated, and by who the reader is), not by the server's sentence */}
-                    <span className="text-black-800">{problem.code === 'workspace_title_missing' ? t(canSetWorkspaceTitle ? 'PUBLISH_WORKSPACE_TITLE.TEXT_MANAGE' : 'PUBLISH_WORKSPACE_TITLE.TEXT_MEMBER') : problem.message}</span>
+                    <span className="text-black-800">
+                        {problem.code === 'workspace_title_missing'
+                            ? t(canSetWorkspaceTitle ? 'PUBLISH_WORKSPACE_TITLE.TEXT_MANAGE' : 'PUBLISH_WORKSPACE_TITLE.TEXT_MEMBER')
+                            : problem.code === 'theme_contrast' && problem.advisory
+                              ? // advice about an older form's colours: worded here (translated), not by the English sentence
+                                t('PUBLISH_CONTRAST.ADVISORY', { pairs: (problem.contrastIssues ?? []).map((key) => lowerFirst(t(`THEME.CONTRAST_ISSUE_${key.toUpperCase()}`))).join('; ') })
+                              : problem.message}
+                    </span>
                     {problem.code === 'workspace_title_missing' && canSetWorkspaceTitle && onSetWorkspaceTitle && (
                         <button type="button" onClick={onSetWorkspaceTitle} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
                             {t('PUBLISH_WORKSPACE_TITLE.ACTION')}
@@ -239,7 +280,7 @@ export function PublishProblemsDialog({
                     )}
                     {problem.code !== 'workspace_title_missing' && canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
-                            {problem.code === 'missing_ending' ? 'Show the page' : problem.code === 'theme_contrast' ? 'Show the theme' : 'Show the question'}
+                            {problem.code === 'missing_ending' ? 'Show the page' : problem.code === 'theme_contrast' ? (problem.advisory ? t('PUBLISH_CONTRAST.SHOW') : 'Show the theme') : 'Show the question'}
                         </button>
                     )}
                 </li>
@@ -256,7 +297,9 @@ export function PublishProblemsDialog({
                     <DialogDescription>
                         {blocking.length > 0
                             ? `${count(blocking.length)} would mislead or stop the people filling in this form. Fix ${blocking.length === 1 ? 'it' : 'them'} and publish again.`
-                            : 'Recommended: people trust a form more when it says why it asks for their details. You can publish now and add this later.'}
+                            : advisoryColours
+                              ? t('PUBLISH_CONTRAST.INTRO')
+                              : 'Recommended: people trust a form more when it says why it asks for their details. You can publish now and add this later.'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto">

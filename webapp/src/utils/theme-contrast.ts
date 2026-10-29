@@ -1,8 +1,11 @@
-import type { FormTheme } from '@app/constants/theme';
+import { type FormTheme, isHexColour } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn, mixColours } from './color-contrast';
 
 type ThemeColours = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent'>;
+
+/** The ink of an outlined button when the theme gives none of its own (the questions' default colour). */
+const DEFAULT_INK = '#101828';
 
 /** The app's focus ring colour (tailwind.css --color-brand-500). */
 export const FOCUS_RING = '#123FC9';
@@ -89,12 +92,19 @@ export interface ContrastCheck {
  * (theme-shared softInk / requiredMarkColour, 7:1 and 4.5:1), the Leaflet
  * band (leafletColours, 7:1), and actionInk (the button colour or the ink).
  */
-export function themeContrastChecks(theme: ThemeColours): ContrastCheck[] {
+export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme, 'buttonStyle'>>): ContrastCheck[] {
     const calendar = calendarColours(theme);
+    // An outlined button is its ink on the page colour, not white text on the button colour.
+    const ink = outlinedButtonInk(theme);
     const pairs: Array<Omit<ContrastCheck, 'ratio' | 'passes'>> = [
         { key: 'text', kind: 'role', label: 'Questions and text on the background', foreground: theme.primary, background: theme.accent, minimum: AA_TEXT },
         { key: 'answer', kind: 'role', label: 'Answers in the white input boxes', foreground: theme.primary, background: '#FFFFFF', minimum: AA_TEXT },
-        { key: 'button', kind: 'role', label: 'White text on buttons', foreground: '#FFFFFF', background: theme.secondary, minimum: AA_TEXT },
+        ...(isOutlined(theme)
+            ? [
+                  { key: 'outlined-text', kind: 'role' as const, label: 'Text on outlined buttons', foreground: ink, background: theme.accent, minimum: AA_TEXT },
+                  { key: 'outlined-edge', kind: 'role' as const, label: 'Edges of outlined buttons on the background', foreground: ink, background: theme.accent, minimum: AA_NON_TEXT }
+              ]
+            : [{ key: 'button', kind: 'role' as const, label: 'White text on buttons', foreground: '#FFFFFF', background: theme.secondary, minimum: AA_TEXT }]),
         { key: 'border', kind: 'role', label: 'Input borders on the background', foreground: theme.tertiary, background: theme.accent, minimum: AA_NON_TEXT },
         { key: 'action', kind: 'role', label: 'Chosen answers, icons and progress on the background', foreground: theme.secondary, background: theme.accent, minimum: AA_NON_TEXT },
         { key: 'action-text', kind: 'derived', label: 'Text in the button colour on the background', foreground: actionText(theme), background: theme.accent, minimum: AA_TEXT },
@@ -113,7 +123,7 @@ export function themeContrastChecks(theme: ThemeColours): ContrastCheck[] {
 }
 
 /** A pairing the creator chose that fails AA, by the role that would fix it. */
-export type ContrastIssueKey = 'text' | 'answer' | 'button' | 'border' | 'action';
+export type ContrastIssueKey = 'text' | 'answer' | 'button' | 'outlined' | 'border' | 'action';
 
 export interface ContrastIssue {
     key: ContrastIssueKey;
@@ -122,7 +132,7 @@ export interface ContrastIssue {
     minimum: number;
 }
 
-type GuardedTheme = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent' | 'background'>;
+type GuardedTheme = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent' | 'background'> & Partial<Pick<FormTheme, 'buttonStyle'>>;
 
 export interface ContrastGuard {
     /** The failing pairings, in a fixed order; empty when the theme passes. */
@@ -154,31 +164,64 @@ function pageGrounds(theme: GuardedTheme): string[] {
     return grounds;
 }
 
-/** What each role must reach, and on what (one list per role the creator picks). */
-function roleRules(grounds: string[]) {
+/**
+ * Does the theme draw its buttons outlined (text and edge, no fill)? Such a
+ * button is not white text on the button colour: see `outlinedButtonInk`.
+ */
+export const isOutlined = (theme: Partial<Pick<FormTheme, 'buttonStyle'>> | null | undefined) => theme?.buttonStyle === 'outlined';
+
+/**
+ * The ink of an outlined button (its text and 2px edge) on its ground, the
+ * page colour: the secondary where it reads as text (4.5:1, which also
+ * clears the 3:1 an edge needs), else the theme's ink. What the respondent
+ * form draws (theme-root.ts) and what the contrast guard measures; the
+ * server's `outlined_button_ink` (services/theme_contrast.py) is the same.
+ */
+export function outlinedButtonInk(theme?: Partial<FormTheme> | null): string {
+    const page = isHexColour(theme?.accent) ? theme!.accent : WHITE;
+    if (isHexColour(theme?.secondary) && contrast(theme!.secondary, page) >= AA_TEXT) return theme!.secondary;
+    return isHexColour(theme?.primary) ? theme!.primary : DEFAULT_INK;
+}
+
+/**
+ * What each role must reach, and on what (one list per role the creator
+ * picks). An outlined button has no white text on the button colour: its
+ * real colours are measured by `outlinedRules`.
+ */
+function roleRules(grounds: string[], outlined = false) {
     return {
         // questions on the page, answers in the white input boxes
-        primary: [...grounds.map((ground) => ({ key: 'text' as const, ground, minimum: AA_TEXT })), { key: 'answer' as const, ground: WHITE, minimum: AA_TEXT }],
+        primary: [...grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT })), { key: 'answer' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }],
         // white text on the button; the chosen answer, icons and progress on the page
-        secondary: [{ key: 'button' as const, ground: WHITE, minimum: AA_TEXT }, ...grounds.map((ground) => ({ key: 'action' as const, ground, minimum: AA_NON_TEXT }))],
+        secondary: [...(outlined ? [] : [{ key: 'button' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }]), ...grounds.map((ground) => ({ key: 'action' as ContrastIssueKey, ground, minimum: AA_NON_TEXT }))],
         // input borders on the page
-        tertiary: grounds.map((ground) => ({ key: 'border' as const, ground, minimum: AA_NON_TEXT }))
+        tertiary: grounds.map((ground) => ({ key: 'border' as ContrastIssueKey, ground, minimum: AA_NON_TEXT }))
     };
 }
 
-const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'border', 'action'];
+/**
+ * What an outlined button's real colours must reach: its ink as text on the
+ * button's own background (the page colour) at 4.5:1, and as its edge against
+ * the page at 3:1.
+ */
+function outlinedRules(theme: GuardedTheme, grounds: string[]) {
+    const colour = outlinedButtonInk(theme);
+    return [{ key: 'outlined' as ContrastIssueKey, colour, ground: theme.accent, minimum: AA_TEXT }, ...grounds.map((ground) => ({ key: 'outlined' as ContrastIssueKey, colour, ground, minimum: AA_NON_TEXT }))];
+}
+
+const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'outlined', 'border', 'action'];
 
 function failures(theme: GuardedTheme, grounds: string[]): ContrastIssue[] {
-    const rules = roleRules(grounds);
+    const outlined = isOutlined(theme);
+    const rules = roleRules(grounds, outlined);
+    const checks = [...(['primary', 'secondary', 'tertiary'] as const).flatMap((role) => rules[role].map((rule) => ({ ...rule, colour: theme[role] }))), ...(outlined ? outlinedRules(theme, grounds) : [])];
     const worst = new Map<ContrastIssueKey, ContrastIssue>();
-    for (const role of ['primary', 'secondary', 'tertiary'] as const) {
-        for (const rule of rules[role]) {
-            const raw = contrast(theme[role], rule.ground);
-            const ratio = Number.isNaN(raw) ? 1 : raw;
-            if (ratio >= rule.minimum) continue;
-            const seen = worst.get(rule.key);
-            if (!seen || ratio < seen.ratio) worst.set(rule.key, { key: rule.key, ratio, minimum: rule.minimum });
-        }
+    for (const rule of checks) {
+        const raw = contrast(rule.colour, rule.ground);
+        const ratio = Number.isNaN(raw) ? 1 : raw;
+        if (ratio >= rule.minimum) continue;
+        const seen = worst.get(rule.key);
+        if (!seen || ratio < seen.ratio) worst.set(rule.key, { key: rule.key, ratio, minimum: rule.minimum });
     }
     return ISSUE_ORDER.filter((key) => worst.has(key)).map((key) => worst.get(key)!);
 }
@@ -260,7 +303,7 @@ export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
     for (const weight of [0, 0.85, 0.92, 1]) {
         const ground = weight === 0 ? { accent: theme.accent, background: theme.background } : lightenGround(theme, weight);
         const candidate: GuardedTheme = { ...theme, ...ground };
-        const rules = roleRules(pageGrounds(candidate));
+        const rules = roleRules(pageGrounds(candidate), isOutlined(theme));
         const primary = nearestPassing(theme.primary, rules.primary);
         const secondary = nearestPassing(theme.secondary, rules.secondary);
         const tertiary = nearestPassing(theme.tertiary, rules.tertiary);
@@ -274,4 +317,29 @@ export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
     }
     // Unreachable for hex colours: on white, black text and a black border pass.
     return { issues, fix: null, imageGround };
+}
+
+const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase() : value);
+
+/**
+ * Everything the contrast guard reads from a theme: its four colours, whether
+ * its buttons are outlined, and what its background puts behind the text.
+ * Two themes with the same key get the same verdict, so "the theme changed"
+ * (publish-checks.ts `themeContrastBlocks`) compares keys. The server's
+ * `contrast_key` (services/theme_contrast.py) is the same.
+ */
+export function contrastKey(theme: Partial<FormTheme> | null | undefined): string {
+    const bg = theme?.background;
+    return JSON.stringify([
+        upper(theme?.primary) ?? null,
+        upper(theme?.secondary) ?? null,
+        upper(theme?.tertiary) ?? null,
+        upper(theme?.accent) ?? null,
+        isOutlined(theme),
+        bg?.type ?? null,
+        upper(bg?.gradientFrom) ?? null,
+        upper(bg?.gradientTo) ?? null,
+        bg?.pattern ?? null,
+        !!bg?.imageUrl
+    ]);
 }

@@ -206,7 +206,8 @@ def test_a_titled_workspace_adds_no_problem():
 
 
 def test_the_rule_starts_at_version_2_and_new_forms_are_created_under_it():
-    assert PUBLISH_CHECKS_VERSION == 2
+    # new forms are created under the latest version (3 added the contrast gate)
+    assert PUBLISH_CHECKS_VERSION >= 2
     assert [requires_workspace_title(v) for v in (None, 0, 1, 2, 3)] == [
         False,
         False,

@@ -16,6 +16,14 @@ Where the respondent form shows each role, and what it must reach:
   for the chosen answer, icons and progress;
 - ``tertiary`` (input borders): 3:1 on the page.
 
+An outlined button (``buttonStyle`` ``outlined``) is not white text on the
+button colour: its text and 2px edge are its *ink* (``outlined_button_ink``:
+the button colour where it reads as text on the page, else the questions'
+colour) on the page colour. So for an outlined theme the white-on-button rule
+is replaced by measuring those real colours (``outlined``: the ink on the page
+colour 4.5:1, its edge on the page 3:1); the chosen answer, icons and progress
+(``action``) stay as they are.
+
 "The page" is the background colour (``accent``), both stops of a gradient
 and the white sheet of the ``margin`` pattern. Text over an image can't be
 measured, so an image page has none (the input boxes and the buttons are
@@ -37,9 +45,13 @@ _HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 TEXT = "text"
 ANSWER = "answer"
 BUTTON = "button"
+OUTLINED = "outlined"
 BORDER = "border"
 ACTION = "action"
-ISSUE_ORDER = (TEXT, ANSWER, BUTTON, BORDER, ACTION)
+ISSUE_ORDER = (TEXT, ANSWER, BUTTON, OUTLINED, BORDER, ACTION)
+# The ink of an outlined button when the theme gives none of its own (the
+# webapp's theme-root.ts inkOf / pageOf fallbacks).
+DEFAULT_INK = "#101828"
 ROLES = ("primary", "secondary", "tertiary")
 
 
@@ -158,29 +170,73 @@ def _page_grounds(theme: Dict[str, Any]) -> List[str]:
     return grounds
 
 
-def _role_rules(grounds: List[str]) -> Dict[str, List[Tuple[str, str, float]]]:
-    """What each role must reach, and on what: ``(issue key, ground, minimum)``."""
+def is_outlined(theme: Any) -> bool:
+    """Does the theme draw its buttons outlined (text and edge, no fill)?"""
+    return _get(theme, "buttonStyle") == "outlined"
+
+
+def outlined_button_ink(theme: Any) -> str:
+    """The text and 2px edge of an outlined button, on the page colour: the
+    button colour where it reads as text there (4.5:1, which also clears the
+    3:1 an edge needs), else the questions' colour. The webapp draws the same
+    (``outlinedButtonInk`` in ``theme-root.ts``)."""
+    page = _get(theme, "accent")
+    page = page if is_hex_colour(page) else WHITE
+    secondary = _get(theme, "secondary")
+    if is_hex_colour(secondary) and contrast(secondary, page) >= AA_TEXT:
+        return secondary
+    primary = _get(theme, "primary")
+    return primary if is_hex_colour(primary) else DEFAULT_INK
+
+
+def _role_rules(
+    grounds: List[str], outlined: bool = False
+) -> Dict[str, List[Tuple[str, str, float]]]:
+    """What each role must reach, and on what: ``(issue key, ground, minimum)``.
+    An outlined button has no white text on the button colour; its real
+    colours are measured by ``_outlined_failures``."""
     return {
         "primary": [(TEXT, ground, AA_TEXT) for ground in grounds]
         + [(ANSWER, WHITE, AA_TEXT)],
-        "secondary": [(BUTTON, WHITE, AA_TEXT)]
+        "secondary": ([] if outlined else [(BUTTON, WHITE, AA_TEXT)])
         + [(ACTION, ground, AA_NON_TEXT) for ground in grounds],
         "tertiary": [(BORDER, ground, AA_NON_TEXT) for ground in grounds],
     }
 
 
+def _outlined_rules(
+    theme: Dict[str, Any], grounds: List[str]
+) -> List[Tuple[str, str, str, float]]:
+    """What an outlined button's real colours must reach:
+    ``(issue key, colour, ground, minimum)``. Its text sits on the button's
+    own background (the page colour) at 4.5:1; its edge sits against the page
+    at 3:1."""
+    ink = outlined_button_ink(theme)
+    page = theme.get("accent")
+    return [(OUTLINED, ink, page, AA_TEXT)] + [
+        (OUTLINED, ink, ground, AA_NON_TEXT) for ground in grounds
+    ]
+
+
 def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
-    rules = _role_rules(grounds)
+    outlined = is_outlined(theme)
+    rules = _role_rules(grounds, outlined)
+    checks = [
+        (key, theme.get(role), ground, minimum)
+        for role in ROLES
+        for key, ground, minimum in rules[role]
+    ]
+    if outlined:
+        checks += _outlined_rules(theme, grounds)
     worst: Dict[str, ContrastIssue] = {}
-    for role in ROLES:
-        for key, ground, minimum in rules[role]:
-            raw = contrast(theme.get(role), ground)
-            ratio = 1.0 if math.isnan(raw) else raw
-            if ratio >= minimum:
-                continue
-            seen = worst.get(key)
-            if seen is None or ratio < seen.ratio:
-                worst[key] = ContrastIssue(key, ratio, minimum)
+    for key, colour, ground, minimum in checks:
+        raw = contrast(colour, ground)
+        ratio = 1.0 if math.isnan(raw) else raw
+        if ratio >= minimum:
+            continue
+        seen = worst.get(key)
+        if seen is None or ratio < seen.ratio:
+            worst[key] = ContrastIssue(key, ratio, minimum)
     return [worst[key] for key in ISSUE_ORDER if key in worst]
 
 
@@ -281,7 +337,14 @@ def _background_dict(bg: Any) -> Dict[str, Any]:
 def _plain(theme: Any) -> Dict[str, Any]:
     return {
         key: _get(theme, key)
-        for key in ("primary", "secondary", "tertiary", "accent", "background")
+        for key in (
+            "primary",
+            "secondary",
+            "tertiary",
+            "accent",
+            "background",
+            "buttonStyle",
+        )
     }
 
 
@@ -299,7 +362,7 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
         return ContrastGuard(issues, None, image_ground)
     for weight in (0, 0.85, 0.92, 1):
         candidate = {**plain, **(_lighten_ground(plain, weight) if weight else {})}
-        rules = _role_rules(_page_grounds(candidate))
+        rules = _role_rules(_page_grounds(candidate), is_outlined(plain))
         moved = {role: _nearest_passing(plain[role], rules[role]) for role in ROLES}
         if None in moved.values():
             continue
@@ -324,4 +387,30 @@ def has_guarded_colours(theme: Any) -> bool:
     return theme is not None and all(
         is_hex_colour(_get(theme, role))
         for role in ("primary", "secondary", "tertiary", "accent")
+    )
+
+
+def _colour(value: Any) -> Any:
+    return value.upper() if isinstance(value, str) else value
+
+
+def contrast_key(theme: Any) -> Tuple[Any, ...]:
+    """Everything the contrast check reads from a theme: its four colours,
+    whether its buttons are outlined, and what its background puts behind the
+    text. Two themes with the same key get the same verdict, so "the theme
+    changed" (publish_checks.theme_contrast_blocks) and "this saved theme is
+    already stored" (form_themes) both compare keys. Mirrored by the webapp's
+    ``contrastKey`` (utils/theme-contrast.ts)."""
+    bg = _get(theme, "background")
+    return (
+        *(
+            _colour(_get(theme, role))
+            for role in ("primary", "secondary", "tertiary", "accent")
+        ),
+        is_outlined(theme),
+        _get(bg, "type"),
+        _colour(_get(bg, "gradientFrom")),
+        _colour(_get(bg, "gradientTo")),
+        _get(bg, "pattern"),
+        bool(_get(bg, "imageUrl")),
     )

@@ -15,6 +15,11 @@
     "TEXT_MEMBER": "Your workspace needs a name before a form can be published. Respondents see it as who receives their answers. Ask a workspace admin to set it: only admins can.",
     "ACTION": "Set the workspace name"
   },
+  "PUBLISH_CONTRAST": {
+    "ADVISORY": "The theme's colours are hard to read: {{pairs}}. This form was made before the colour check, so it can still be published as it is. Colours you change later will need to pass.",
+    "INTRO": "These don't stop you from publishing. You can publish now and improve them later.",
+    "SHOW": "Show the theme"
+  },
   "FORM_TITLE": {
     "PLACEHOLDER": "Form Title"
   },
@@ -516,6 +521,7 @@
     "CONTRAST_ISSUE_TEXT": "Questions and text on the page",
     "CONTRAST_ISSUE_ANSWER": "Answers in the white input boxes",
     "CONTRAST_ISSUE_BUTTON": "White text on buttons",
+    "CONTRAST_ISSUE_OUTLINED": "Text and edges of outlined buttons",
     "CONTRAST_ISSUE_BORDER": "Input borders on the page",
     "CONTRAST_ISSUE_ACTION": "Chosen answers, icons and progress on the page",
     "CONTRAST_RATIO": "{{ratio}}:1, needs {{minimum}}:1",

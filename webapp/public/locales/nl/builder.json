@@ -15,6 +15,11 @@
     "TEXT_MEMBER": "Uw werkruimte heeft een naam nodig voordat een formulier kan worden gepubliceerd. Respondenten zien die naam als de partij die hun antwoorden ontvangt. Vraag een beheerder van de werkruimte om de naam in te stellen: alleen beheerders kunnen dat.",
     "ACTION": "Werkruimtenaam instellen"
   },
+  "PUBLISH_CONTRAST": {
+    "ADVISORY": "De kleuren van het thema zijn slecht leesbaar: {{pairs}}. Dit formulier is gemaakt vóór de kleurcontrole, dus u kunt het nog steeds zo publiceren. Kleuren die u later wijzigt, moeten wel voldoen.",
+    "INTRO": "Dit houdt u niet tegen om te publiceren. U kunt nu publiceren en het later verbeteren.",
+    "SHOW": "Thema tonen"
+  },
   "FORM_TITLE": {
     "PLACEHOLDER": "Formulier Titel"
   },
@@ -516,6 +521,7 @@
     "CONTRAST_ISSUE_TEXT": "Vragen en tekst op de pagina",
     "CONTRAST_ISSUE_ANSWER": "Antwoorden in de witte invulvakken",
     "CONTRAST_ISSUE_BUTTON": "Witte tekst op knoppen",
+    "CONTRAST_ISSUE_OUTLINED": "Tekst en randen van omlijnde knoppen",
     "CONTRAST_ISSUE_BORDER": "Randen van invulvakken op de pagina",
     "CONTRAST_ISSUE_ACTION": "Gekozen antwoorden, pictogrammen en voortgang op de pagina",
     "CONTRAST_RATIO": "{{ratio}}:1, moet {{minimum}}:1 zijn",

@@ -60,6 +60,7 @@ describe('the shared themes', () => {
             expect(shared, preset.title).toBeDefined();
             for (const role of ['primary', 'secondary', 'tertiary', 'accent'] as const) expect(shared!.theme[role]).toBe(preset[role]);
             expect(shared!.theme.background).toEqual(preset.background);
+            expect(shared!.theme.buttonStyle).toEqual(preset.buttonStyle ?? undefined);
             expect(shared!.issues).toEqual([]);
         }
     });

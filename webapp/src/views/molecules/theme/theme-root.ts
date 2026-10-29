@@ -3,6 +3,7 @@ import { CSSProperties, useEffect } from 'react';
 import { themeFaces } from '@app/assets/fonts/theme-faces';
 import { FormTheme, THEME_BUTTON_STYLES, THEME_FONTS, THEME_RADII, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
 import { contrast } from '@app/utils/color-contrast';
+import { outlinedButtonInk } from '@app/utils/theme-contrast';
 
 /**
  * A theme's type, shape and highlight as CSS custom properties and data
@@ -104,16 +105,8 @@ export function highlightColours(theme?: Partial<FormTheme> | null) {
     };
 }
 
-/**
- * The ink of an outlined button (its text and 2px edge) on its ground, the
- * page colour: the secondary where it reads as text (4.5:1, which also
- * clears the 3:1 an edge needs), else the theme's ink.
- */
-export function outlinedButtonInk(theme?: Partial<FormTheme> | null): string {
-    const page = pageOf(theme);
-    if (isHexColour(theme?.secondary) && ratio(theme!.secondary, page) >= 4.5) return theme!.secondary;
-    return inkOf(theme);
-}
+/** The ink of an outlined button (its text and 2px edge) on the page colour: see utils/theme-contrast.ts. */
+export { outlinedButtonInk };
 
 export interface ThemeRootProps {
     /** Custom properties for the element's `style`. */

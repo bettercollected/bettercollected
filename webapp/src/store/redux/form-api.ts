@@ -56,6 +56,12 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
+        // The form's live (latest published) version, as staff read it: its theme tells whether an older form's
+        // colours changed since it went live (utils/publish-checks.ts themeContrastGate). 404 while it was never published.
+        getPublishedForm: builder.query<any, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ method: 'GET', url: `/workspaces/${workspaceId}/forms/${formId}`, params: { published: true } }),
+            keepUnusedDataFor: 0
+        }),
         getFormResponse: builder.query<any, any>({
             query: (request) => ({
                 method: 'GET',
@@ -175,6 +181,7 @@ export const {
     useRemoveFormLogoMutation,
     usePublishV2FormMutation,
     useGetFormResponseQuery,
+    useLazyGetPublishedFormQuery,
     useSubmitResponseMutation,
     useSendFlowEventMutation,
     useGetFlowAnalyticsQuery,

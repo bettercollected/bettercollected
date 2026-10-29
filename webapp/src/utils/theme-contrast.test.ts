@@ -9,7 +9,7 @@ import { ThemeColors } from '@app/constants/theme';
 import { REQUIRED_RED, mixHex } from '@app/views/molecules/theme/theme-shared';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn } from './color-contrast';
-import { FOCUS_RING, actionText, calendarColours, themeContrastChecks, themeContrastGuard } from './theme-contrast';
+import { FOCUS_RING, actionText, calendarColours, contrastKey, outlinedButtonInk, themeContrastChecks, themeContrastGuard } from './theme-contrast';
 
 describe('contrast', () => {
     it('follows the WCAG formula', () => {
@@ -192,5 +192,91 @@ describe('themeContrastGuard', () => {
     it('holds the margin sheet to the same rules as the page', () => {
         const theme = { primary: '#101828', secondary: '#1649E2', tertiary: '#F0F0F0', accent: '#1E4D3B', background: { type: 'pattern' as const, pattern: 'margin' as const } };
         expect(themeContrastGuard(theme).issues.map((issue) => issue.key)).toContain('border');
+    });
+});
+
+describe('an outlined button', () => {
+    const READABLE = { primary: '#101828', secondary: '#1649E2', tertiary: '#6B7280', accent: '#FFFFFF' };
+    // White text on this orange is 3.3:1 (a filled button fails), and as text on white it is 3.3:1 too: an outlined button takes the dark ink instead.
+    const MID_TONE = { ...READABLE, secondary: '#D9730D' };
+    const outlined = { buttonStyle: 'outlined' as const };
+
+    it('is its ink on the page, not white text on the button colour', () => {
+        expect(themeContrastGuard(MID_TONE).issues.map((issue) => issue.key)).toEqual(['button']);
+        expect(themeContrastGuard({ ...MID_TONE, ...outlined }).issues).toEqual([]);
+        expect(themeContrastGuard({ ...MID_TONE, buttonStyle: 'pill' }).issues.map((issue) => issue.key)).toEqual(['button']);
+    });
+
+    it('takes the button colour as ink where it reads as text, else the questions colour', () => {
+        expect(outlinedButtonInk({ ...READABLE, ...outlined })).toBe('#1649E2');
+        expect(outlinedButtonInk({ ...MID_TONE, ...outlined })).toBe('#101828');
+        expect(outlinedButtonInk({ ...READABLE, accent: '#0B1220', primary: '#F5F7FB', secondary: '#FFD166' })).toBe('#FFD166');
+    });
+
+    it('measures the real text and edge colours instead of skipping the check', () => {
+        const pale = { primary: '#9CA3AF', secondary: '#F5C242', tertiary: '#E5E7EB', accent: '#FFFFFF', ...outlined };
+        const issues = themeContrastGuard(pale).issues;
+        expect(issues.map((issue) => issue.key)).not.toContain('button');
+        const issue = issues.find((candidate) => candidate.key === 'outlined')!;
+        // the ink falls back to the pale questions colour, which is 2.5:1 on the button's page-coloured ground
+        expect(issue).toMatchObject({ minimum: AA_TEXT });
+        expect(issue.ratio).toBeCloseTo(contrast('#9CA3AF', '#FFFFFF'), 5);
+    });
+
+    it('holds the edge to the page it sits against, a darker gradient stop included', () => {
+        const theme = { ...READABLE, secondary: '#1E4D8C', ...outlined, background: { type: 'gradient' as const, gradientFrom: '#FFFFFF', gradientTo: '#7A8CB8' } };
+        const [issue] = themeContrastGuard(theme).issues;
+        expect(issue.key).toBe('outlined');
+        expect(issue.ratio).toBeCloseTo(contrast('#1E4D8C', '#7A8CB8'), 5);
+        expect(issue.minimum).toBe(AA_NON_TEXT);
+    });
+
+    it('needs a less dark button colour than a filled button, and the suggestion passes', () => {
+        const yellow = { ...READABLE, secondary: '#F5C242' };
+        const filled = themeContrastGuard(yellow).fix!;
+        const fix = themeContrastGuard({ ...yellow, ...outlined }).fix!;
+        expect(fix.secondary).not.toBe(filled.secondary);
+        expect(contrast(fix.secondary!, '#FFFFFF')).toBeGreaterThanOrEqual(AA_NON_TEXT);
+        expect(contrast(fix.secondary!, '#FFFFFF')).toBeLessThan(AA_TEXT);
+        expect(themeContrastGuard({ ...yellow, ...fix, ...outlined }).issues).toEqual([]);
+    });
+
+    it('reads as the one theme for the presets, filled or outlined', () => {
+        for (const preset of ThemeColors) {
+            expect(themeContrastGuard({ ...preset, buttonStyle: 'outlined' }).issues, preset.title).toEqual([]);
+            expect(themeContrastGuard({ ...preset, buttonStyle: 'filled' }).issues, preset.title).toEqual([]);
+        }
+    });
+
+    it('replaces the white-on-button check of the themes checks with the ink on the page', () => {
+        const keys = (theme: Parameters<typeof themeContrastChecks>[0]) => themeContrastChecks(theme).map((check) => check.key);
+        expect(keys(READABLE)).toContain('button');
+        expect(keys({ ...READABLE, ...outlined })).not.toContain('button');
+        expect(keys({ ...READABLE, ...outlined })).toEqual(expect.arrayContaining(['outlined-text', 'outlined-edge']));
+        for (const check of themeContrastChecks({ ...MID_TONE, ...outlined })) expect(check.ratio, check.label).toBeGreaterThanOrEqual(check.minimum);
+    });
+});
+
+describe('contrastKey', () => {
+    const theme = { primary: '#101828', secondary: '#1649E2', tertiary: '#6B7280', accent: '#FFFFFF' };
+
+    it('ignores what the check does not read', () => {
+        expect(contrastKey({ ...theme, title: 'x', titleFont: 'besley', radius: 'round', buttonStyle: 'pill' } as any)).toBe(contrastKey(theme as any));
+        expect(contrastKey({ ...theme, primary: '#101828'.toLowerCase() } as any)).toBe(contrastKey(theme as any));
+    });
+
+    it('reads the colours, outlined buttons and what the background puts behind the text', () => {
+        const base = contrastKey(theme as any);
+        for (const change of [
+            { primary: '#101829' },
+            { secondary: '#1649E3' },
+            { tertiary: '#6B7281' },
+            { accent: '#FFFFFE' },
+            { buttonStyle: 'outlined' },
+            { background: { type: 'gradient', gradientFrom: '#FFFFFF' } },
+            { background: { type: 'image', imageUrl: '/a.png' } }
+        ]) {
+            expect(contrastKey({ ...theme, ...change } as any), JSON.stringify(change)).not.toBe(base);
+        }
     });
 });

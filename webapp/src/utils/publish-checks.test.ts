@@ -6,7 +6,22 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { THEME_PROBLEM_ID, asksForIdentity, getPublishProblems, hasWorkspaceTitle, problemsFromPublishError, requiresWorkspaceTitle, splitPublishProblems, templateReviewProblem, themeContrastProblems, visibleTitle, workspaceTitleProblems } from './publish-checks';
+import {
+    THEME_CONTRAST_FROM_VERSION,
+    THEME_PROBLEM_ID,
+    asksForIdentity,
+    getPublishProblems,
+    hasWorkspaceTitle,
+    problemsFromPublishError,
+    requiresThemeContrast,
+    requiresWorkspaceTitle,
+    splitPublishProblems,
+    templateReviewProblem,
+    themeContrastGate,
+    themeContrastProblems,
+    visibleTitle,
+    workspaceTitleProblems
+} from './publish-checks';
 
 const q = (id: string, type: string, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: 'Question', ...extra }) as StandardFormFieldDto;
 const page = (...fields: StandardFormFieldDto[]) => [{ id: 'page', index: 0, type: FieldTypes.SLIDE, properties: { fields } } as StandardFormFieldDto];
@@ -144,9 +159,10 @@ describe('themeContrastProblems', () => {
         ]);
     });
 
-    it('blocks for every form, old or new', () => {
+    it('blocks unless told it is only advice', () => {
         const problems = themeContrastProblems({ title: 'Custom', primary: '#101828', secondary: '#FDE68A', tertiary: '#818CA0', accent: '#FFFFFF' });
         expect(splitPublishProblems(problems, undefined).blocking).toEqual(problems);
+        expect(splitPublishProblems(problems, 3).blocking).toEqual(problems);
         expect(problems[0].message).toContain('white text on buttons and chosen answers and progress');
     });
 
@@ -238,5 +254,61 @@ describe('hasWorkspaceTitle', () => {
     it('shows only what can be seen', () => {
         expect(visibleTitle(' \u200bAc\u3164me\ufeff ')).toBe('Acme');
         expect(visibleTitle(undefined)).toBe('');
+    });
+});
+
+describe('the contrast gate: which forms a failing theme stops', () => {
+    const PASTEL = { title: 'Pastel', primary: '#9CA3AF', secondary: '#1649E2', tertiary: '#E5E7EB', accent: '#FFFFFF' };
+    const PALE = { ...PASTEL, title: 'Pale', primary: '#B0B7C3' };
+
+    it('starts at version 3, which new forms are created under', () => {
+        expect(THEME_CONTRAST_FROM_VERSION).toBe(3);
+        expect([undefined, null, 0, 1, 2, 3, 4].map(requiresThemeContrast)).toEqual([false, false, false, false, false, true, true]);
+        // the other two rules keep their versions
+        expect([undefined, 0, 1, 2, 3].map(requiresWorkspaceTitle)).toEqual([false, false, false, true, true]);
+        expect(splitPublishProblems([{ code: 'missing_why_we_ask', fieldId: 'e', message: 'x' }], 1).blocking).toHaveLength(1);
+    });
+
+    it('stops a new form even with the colours it went live with', () => {
+        expect(themeContrastGate(3, PASTEL, PASTEL)).toBe('block');
+        expect(themeContrastGate(3, PASTEL, undefined)).toBe('block');
+    });
+
+    it('only advises an older form that is live with the colours it has', () => {
+        for (const version of [undefined, null, 1, 2]) expect(themeContrastGate(version, PASTEL, PASTEL)).toBe('advisory');
+        // case, fonts, titles and shape are not colours
+        expect(themeContrastGate(2, { ...PASTEL, primary: '#9ca3af', titleFont: 'besley', title: 'Renamed' } as any, PASTEL)).toBe('advisory');
+    });
+
+    it('stops an older form whose colours changed, or that was never published', () => {
+        expect(themeContrastGate(2, PALE, PASTEL)).toBe('block');
+        expect(themeContrastGate(2, { ...PASTEL, buttonStyle: 'outlined' } as any, PASTEL)).toBe('block');
+        expect(themeContrastGate(2, PASTEL, null)).toBe('block');
+        expect(themeContrastGate(undefined, PASTEL, null)).toBe('block');
+    });
+
+    it('claims nothing about an older form whose live colours are not known: the server decides', () => {
+        expect(themeContrastGate(2, PASTEL, undefined)).toBe('server');
+        expect(themeContrastProblems(PASTEL, 'server')).toEqual([]);
+    });
+
+    it('words the advice, and lists it as a recommendation that does not block', () => {
+        const problems = themeContrastProblems(PASTEL, 'advisory');
+        expect(problems).toHaveLength(1);
+        expect(problems[0]).toMatchObject({ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, advisory: true, contrastIssues: ['text', 'answer', 'border'] });
+        expect(problems[0].message).toContain('can still be published as it is');
+        expect(splitPublishProblems(problems, 2)).toEqual({ blocking: [], recommended: problems });
+        // a blocking problem is not marked
+        expect(themeContrastProblems(PASTEL)[0].advisory).toBeUndefined();
+    });
+
+    it('has nothing to say about a theme that reads, whatever the gate', () => {
+        for (const gate of ['block', 'advisory', 'server'] as const) expect(themeContrastProblems(ThemeColors[0], gate)).toEqual([]);
+    });
+
+    it('names an outlined button in its own words', () => {
+        const [problem] = themeContrastProblems({ ...PASTEL, secondary: '#F5C242', buttonStyle: 'outlined' } as any);
+        expect(problem.message).toContain('text and edges of outlined buttons');
+        expect(problem.message).not.toContain('white text on buttons');
     });
 });

@@ -22,7 +22,7 @@ from backend.app.services.publish_checks import (
     THEME_CONTRAST,
     theme_contrast_problems,
 )
-from backend.app.services.theme_contrast import theme_contrast_guard
+from backend.app.services.theme_contrast import contrast_key, theme_contrast_guard
 
 ERROR_CODE = "theme_not_allowed"
 
@@ -82,27 +82,6 @@ def refuse_theme_problems(problems: List[str]) -> None:
                 "errors": problems,
             },
         )
-
-
-def _colour(value: Any) -> Any:
-    return value.upper() if isinstance(value, str) else value
-
-
-def contrast_key(theme: Any) -> Tuple[Any, ...]:
-    """Everything the contrast check reads from a theme: its four colours
-    and what its background puts behind the text."""
-    bg = _get(theme, "background")
-    return (
-        *(
-            _colour(_get(theme, role))
-            for role in ("primary", "secondary", "tertiary", "accent")
-        ),
-        _get(bg, "type"),
-        _colour(_get(bg, "gradientFrom")),
-        _colour(_get(bg, "gradientTo")),
-        _get(bg, "pattern"),
-        bool(_get(bg, "imageUrl")),
-    )
 
 
 def ensure_readable_saved_themes(

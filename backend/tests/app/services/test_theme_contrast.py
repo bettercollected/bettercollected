@@ -100,7 +100,7 @@ def test_the_ratio_is_shown_rounded_down():
 
 
 def test_the_shared_cases_list_every_preset_as_it_is():
-    guarded = ("primary", "secondary", "tertiary", "accent", "background")
+    guarded = ("primary", "secondary", "tertiary", "accent", "background", "buttonStyle")
     for name, preset in theme_dict.items():
         shared = next(c for c in CASES["themes"] if c["name"] == f"preset {name}")
         assert shared["theme"] == {k: preset[k] for k in guarded if k in preset}
@@ -189,8 +189,9 @@ def test_a_theme_without_its_four_colours_is_not_checked(theme):
     assert theme_contrast_problems(theme) == []
 
 
-def test_it_blocks_every_form_old_or_new():
-    for checks_version in (None, 1):
+def test_it_blocks_a_form_that_was_never_published_old_or_new():
+    # (which older forms it holds back, and which it doesn't: test_theme_contrast_gate.py)
+    for checks_version in (None, 1, 2, 3):
         with pytest.raises(HTTPException) as raised:
             ensure_publishable(_form(PASTEL), checks_version=checks_version)
         assert raised.value.status_code == 422

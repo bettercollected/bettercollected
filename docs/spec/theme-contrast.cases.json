@@ -1,5 +1,5 @@
 {
-  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes.",
+  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it.",
   "pairs": [
     {
       "name": "black on white",
@@ -368,7 +368,8 @@
           "type": "pattern",
           "pattern": "margin",
           "artwork": "marble"
-        }
+        },
+        "buttonStyle": "filled"
       },
       "issues": [],
       "fix": null,
@@ -384,7 +385,8 @@
         "background": {
           "type": "pattern",
           "pattern": "columns"
-        }
+        },
+        "buttonStyle": "outlined"
       },
       "issues": [],
       "fix": null,
@@ -786,6 +788,172 @@
       },
       "issues": [],
       "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "mid-tone button, filled: white text on it fails",
+      "theme": {
+        "primary": "#101828",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "secondary": "#D9730D"
+      },
+      "issues": [
+        {
+          "key": "button",
+          "ratio": 3.276924,
+          "display": "3.2",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "secondary": "#B5600B"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "mid-tone button, outlined: its ink is the dark text colour, so it reads",
+      "theme": {
+        "primary": "#101828",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "secondary": "#D9730D",
+        "buttonStyle": "outlined"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "mid-tone button, pill: still white text on it",
+      "theme": {
+        "primary": "#101828",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "secondary": "#D9730D",
+        "buttonStyle": "pill"
+      },
+      "issues": [
+        {
+          "key": "button",
+          "ratio": 3.276924,
+          "display": "3.2",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "secondary": "#B5600B"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "outlined: only the yellow chosen-answer colour fails",
+      "theme": {
+        "primary": "#101828",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "secondary": "#F5C242",
+        "buttonStyle": "outlined"
+      },
+      "issues": [
+        {
+          "key": "action",
+          "ratio": 1.656428,
+          "display": "1.6",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "secondary": "#BA880A"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "outlined: pale ink fails its text and edge",
+      "theme": {
+        "primary": "#9CA3AF",
+        "secondary": "#F5C242",
+        "tertiary": "#E5E7EB",
+        "accent": "#FFFFFF",
+        "buttonStyle": "outlined"
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "answer",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "outlined",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        },
+        {
+          "key": "border",
+          "ratio": 1.238091,
+          "display": "1.2",
+          "minimum": 3.0
+        },
+        {
+          "key": "action",
+          "ratio": 1.656428,
+          "display": "1.6",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "primary": "#6C7586",
+        "secondary": "#BA880A",
+        "tertiary": "#8791A3"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "outlined: the edge against a darker gradient stop",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1E4D8C",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "buttonStyle": "outlined",
+        "background": {
+          "type": "gradient",
+          "gradientFrom": "#FFFFFF",
+          "gradientTo": "#7A8CB8"
+        }
+      },
+      "issues": [
+        {
+          "key": "outlined",
+          "ratio": 2.512934,
+          "display": "2.5",
+          "minimum": 3.0
+        },
+        {
+          "key": "border",
+          "ratio": 1.443645,
+          "display": "1.4",
+          "minimum": 3.0
+        },
+        {
+          "key": "action",
+          "ratio": 2.512934,
+          "display": "2.5",
+          "minimum": 3.0
+        }
+      ],
+      "fix": {
+        "secondary": "#1A4177",
+        "tertiary": "#3D4148"
+      },
       "imageGround": false
     }
   ]

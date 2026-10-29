@@ -1341,9 +1341,14 @@ class WorkspaceFormService:
             if workspace_form.settings
             else None
         )
+        # The live version, if any: a form made before the contrast rule is
+        # held to it only when its colours differ from the live ones.
+        previous = await self._form_repo.get_latest_version_of_form(form_id)
         ensure_publishable(
             await self.form_service.get_form_document_by_id(str(form_id)),
             checks_version=checks_version,
+            published_theme=getattr(previous, "theme", None),
+            was_published=previous is not None,
             review=await self._pending_import_review(workspace_id, workspace_form),
             # Only a form created under the workspace-title rule is held to it
             # (an older form never reads the workspace here).
@@ -1354,7 +1359,6 @@ class WorkspaceFormService:
             ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
-        previous = await self._form_repo.get_latest_version_of_form(form_id)
         published = await self.form_service.publish_form(form_id=form_id)
         # The logo the live form showed until now, if nothing shows it any more.
         if previous is not None and previous.logo != getattr(published, "logo", None):
