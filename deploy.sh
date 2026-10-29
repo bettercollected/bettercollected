@@ -218,7 +218,9 @@ service_env_file() {
   fi
   tmp=$(mktemp .env.XXXXXX) || return 1
   guard_arm "$tmp" || { rm -f "$tmp"; return 1; }
-  printf '%s' "$content" > "$tmp" && chmod 600 "$tmp" && mv "$tmp" "$file"
+  # chmod may fail on some bind mounts (vfat, CIFS); the file is already 600 from the umask, so
+  # only a failed write or rename stops the deploy
+  printf '%s' "$content" > "$tmp" && { chmod 600 "$tmp" 2>/dev/null || true; } && mv "$tmp" "$file"
   rc=$?  # guard_disarm's own status is not the step's
   guard_disarm
   if [ "$rc" -ne 0 ]; then
