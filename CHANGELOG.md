@@ -13,6 +13,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-29
+
+4.1.0 runs on PostgreSQL only. MongoDB is no longer a store: on upgrade it is read once to import what a 4.0 stack still holds, then switched off with its volume kept for a rollback. The backend, auth and the Google Forms integration refuse to start while MongoDB still holds data that Postgres lacks. Background jobs run on the Postgres job queue, and Temporal leaves the compose stack. Anonymous responses are tied to their respondent with a keyed hash, which needs a new secret. Typeform and the Brevo marketing tracker are gone, and the Google Forms import gets an `on`/`readonly`/`off` switch. The release also adds the Open Formulieren import, export and registration, behind switches that are off by default, plus a long list of security and accessibility fixes.
+
+**Upgrading from 4.0.x: read [Upgrading from 4.0.x to 4.1](docs/upgrade-4.1.md) first, and back up before you start.** The changes that need your attention:
+
+- **A new required secret, `RESPONDENT_IDENTITY_KEY`, on the backend.** The 4.1 backend refuses to start without it. On a compose stack `./deploy.sh` generates it once. On an orchestrated stack you set it in the backend's environment before the upgrade.
+- **The MongoDB import on upgrade.** `./deploy.sh` runs it before the services start, and a verify difference stops the deploy. An orchestrated stack already on dual writes follows the runbook's cutover.
+- **Retired settings:**
+  - `DB_READ_SOURCE` and `DB_WRITE_MODE` with any value other than `postgres` stop the start.
+  - `MONGO_*`, the shadow and mirror settings, `TYPEFORM_*` and the Brevo tracker settings are ignored.
+
+  Remove them as the upgrade notes describe.
+
 ### Added
 
 - Single sign-on: a deleted workspace's connections that the identity bridge (Polis) could not delete
@@ -45,6 +59,367 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   other call to Google with a Google Forms credential (403 `google_forms_readonly`); `off` answers 410
   `google_forms_off` and never calls the Google Forms service. `GET /providers` reports the mode
   (`importMode`). See `docs/RUNNING_INTEGRATIONS.md`.
+- `deploy.sh` now gives a compose stack that upgrades from 4.0 its respondent identity key. The 4.1
+  backend refuses to start without `RESPONDENT_IDENTITY_KEY`, and `bootstrap-keys` only runs on a new
+  stack, so `deploy.sh` generates it once before any service starts, into the settings store and into
+  `.env` (like the other keys of an upgrade, so `SETTINGS_STORE=off` still has it). It never overwrites a
+  key, uses one set in the shell or `.env` as it is (one only in `.env.deployment` is copied into `.env`,
+  because compose does not pass it to the backend from there), never prints it, and stops before any
+  service starts when the database was already used with a key and none is configured, when `.env` and
+  the store hold keys that cannot be shown to be the same (`BC_IDENTITY_KEY_SOURCE=env` says the `.env` one
+  is intended), or when `SETTINGS_STORE=off` and the key is only in the store. After the new backend is up it runs
+  the one-time conversion of the stored identities (`python -m backend.identity_rekey`) and prints the
+  key's 8-digit fingerprint (write it down with the key backup); a missing or wrong key fails the deploy.
+- The admin portal's Health page shows the background job queue: jobs waiting, scheduled for later,
+  running and failed, and how long the longest-waiting job has waited, as counts only. The line turns
+  amber when a job has waited more than 15 minutes or any job has failed. It needs the roles script
+  (`postgres/ensure-admin-roles.sh`, run by `deploy.sh`) to have run once after the upgrade; until then
+  the page says it is not available.
+- Admin portal Health: the backend's jobs worker shows as its own component with a status line, the
+  page says whether any running instance still writes MongoDB, and each heartbeat shows the stores it
+  writes. The Configuration page shows how many `ADMIN_ALLOWED_IPS` entries there are and which one lets
+  the signed-in admin in (the other entries are not shown).
+- **The backend refuses to start while Mongo holds data of a Postgres-only group that was never
+  imported** (`refdata`, `analytics`, `ai`, `actions`): the API, the job worker and
+  `python -m backend.scim` check every collection of those groups, and a collection with documents
+  in Mongo, no row in Postgres and no finished backfill stops the start, naming the group, the
+  collection, its count and the command (`python -m backend.migrate --group <g> backfill`). The
+  check is an existence probe per table; Mongo is asked only about empty, never imported tables, and
+  not at all without `MONGO_URI`. A `MONGO_URI` that is set but cannot be read refuses the start too.
+  `python -m backend.seed_refdata` runs the same check before seeding. Override, for data known to be
+  worthless: `DB_DISCARD_UNIMPORTED_MONGO_DATA=all` (or a list of groups), logged as a warning on
+  every start. See "Upgrading to 4.1" in `docs/postgres-cutover-runbook.md`.
+- `python -m backend.admin settings-clear` (and `./deploy.sh settings-clear`) clears a
+  setting from the host. The setting's versions are kept.
+- Deletion requests on imported (Google Forms) forms can be closed from the dashboard: staff with
+  the privacy permission see "Mark as deleted" (deletes the copy stored here; the response stays
+  in Google Forms) and "Decline" with one of the fixed reasons, instead of only a link to Google
+  Forms. Declined requests show as Declined with their reason and "Not deleted", never as deleted
+  (English and Dutch).
+- Ten new templates in the gallery: a rental home application, a school enrolment, a request to an
+  organisation, a new colleague's details and an event registration, each in Dutch (plain B1
+  language) and in English. One question per page, every question says why it is asked, only
+  the essentials are required, nothing is pre-selected, and follow-up questions appear only after
+  a yes. Forms made from them keep the template's language. They are added on the next backend
+  start, like the other gallery templates.
+- Templates can carry a retention period (days) that forms made from them keep, enforced like any
+  form's retention setting and stated to respondents by the form page. The period is checked when a
+  template is created or updated (a malformed one is refused like on a form), an update that leaves
+  the settings out keeps them, and a form saved as a template carries its period. The five Dutch-first
+  templates and their English twins delete answers after a fixed number of days (90 to 365); on the
+  next backend start a template seeded earlier gets its period when it has none.
+- The dashboard follows the Google Forms import switch (`importMode` from `GET /providers`).
+  In `readonly` the New form page no longer offers "Import Google Form" and says why, and the
+  import dialog and the forms list (when it shows imported Google forms) explain that forms and
+  responses imported earlier stay while new imports and re-syncs are no longer possible. In
+  `off` Google Forms is not offered; the forms list says imported forms stay, and the Google
+  Sheets action explains that it cannot be connected. A 403 `google_forms_readonly` or 410
+  `google_forms_off` from the backend shows the same explanation (English and Dutch).
+- The dashboard asks for its mails in a language: the sign-in code mail follows the browser's
+  language (Dutch or English), and the invite dialog has an "Invitation language" choice
+  (English or Dutch, starting from the inviter's browser language), since the invitee may have no
+  account yet. Re-sending a pending invitation from the invitations list uses the browser's
+  language too.
+- The Members page says, while a single sign-on connection is on, that removing a member does
+  not keep them out (single sign-on adds them again at their next sign-in): disable their
+  account at the identity provider, or let directory sync (SCIM) deactivate them.
+- A form can be downloaded as an Open Formulieren import archive, behind the new switch
+  `OPEN_FORMULIEREN_EXPORT` (`off` by default; `on` enables
+  `GET /workspaces/{id}/forms/{form_id}/open-formulieren-export` for members who may read the form and
+  adds `exportMode` to the providers entry). The archive holds the form's structure only: pages, questions,
+  choices, answer rules, simple show/hide rules and the retention days. Responses, staff-only questions,
+  secrets and scripts are never in it; what has no equivalent (calculated fields, page jumps, ratings and
+  more) is left out and listed in a `README.txt` inside the archive, with the count in the
+  `X-Open-Formulieren-Unmapped` header. See `docs/open-formulieren.md`.
+- Forms exported from Open Formulieren can be imported as drafts, behind the new switch
+  `OPEN_FORMULIEREN_IMPORT` (`off` by default; `on` offers it in the providers list and enables
+  `POST /workspaces/{id}/open-formulieren-imports`). The import reads the 4.0 series' export archive
+  with hard limits (it is untrusted: nothing in it is run, rendered or fetched), builds the draft through
+  the form edit operations, never publishes it, marks it "needs review" and reports everything that was
+  dropped, converted or flagged (sign-in, prefill, payment, appointments, custom scripts and translations
+  are not carried; an address question becomes five text questions, its address lookup is not carried; a
+  national identity number question is flagged; a user-defined variable that one always-applying rule sets
+  with plain arithmetic on number answers becomes a hidden calculated question, any other variable is not
+  carried and the report says why). Imports have a
+  per-workspace daily limit of their own (`OPEN_FORMULIEREN_IMPORTS_PER_WORKSPACE_PER_DAY`, default 50, and
+  `OPEN_FORMULIEREN_ATTEMPTS_PER_WORKSPACE_PER_DAY`, default 100, refused archives included). See
+  `docs/open-formulieren.md`.
+- The Open Formulieren import also reads exports from the 3.x series (3.2 to 3.5, next to 4.0). The same limits and
+  the same rule apply: nothing in the file is run, rendered or fetched. An appointment form of a 3.x export is
+  reported as such, and a rule that only starts from a given step (an option of the old logic evaluation) is dropped
+  and reported instead of acting earlier than the original. Exports of 3.0, 3.1 and releases after 4.0 are still
+  refused with the release named. See `docs/open-formulieren.md`.
+- New Form page: an "Import from Open Formulieren" card, shown only when the server has the
+  import switched on. Upload the zip exported from an Open Formulieren form; every refusal has
+  an English and a Dutch message. The import report lists what was left out, changed or needs a
+  check, with a prominent national identity number flag, and offers "Open in editor" and
+  "Mark as reviewed". Imported forms that still need review show a "Needs review" badge in the
+  forms list and a banner in the builder that links to the report.
+- `python -m <service>.migrate [--group g] resolve-outbox [--apply]`: after a group rolls back
+  from `postgres_primary_dual` to `dual`, it resolves the Postgres-side outbox entries whose
+  write Mongo provably holds (the same checksum for every row the entry names and every row of
+  the group, in both stores), so `reconcile` and `verify` can get clean again. Rows where Mongo
+  only has a later-stamped, different version (`superseded`) are kept unless the operator adds
+  `--accept-superseded` after confirming Mongo's version should win. A dry run by default, it
+  prints counts only; `--ids-file` writes ids to a new local file. The runbook's "stuck case"
+  uses it instead of manual SQL.
+  Entries left by the repositories of groups served from Postgres only count apart
+  (`postgres_only_leftover`) and are cleared only with `--clear-postgres-only-leftovers`.
+- A production smoke test (`scripts/smoke/`, `docs/smoke-test.md`): a browser and the public API check
+  sign-in by emailed code, creating, publishing, answering and reading back a form, the standing
+  responses still decrypting, a declined deletion request as the respondent sees it, a form on a
+  custom domain, the Google Forms import mode and the public endpoints, against one dedicated test
+  workspace. It runs by hand in GitHub Actions (`Production smoke test`) with secrets from the
+  protected `production-smoke` environment, and reports pass/fail, timings and test-workspace ids
+  only.
+- Publishing: a `theme_contrast` publish check holds the form theme's own colours to
+  WCAG 2.2 AA contrast (text 4.5:1, controls 3:1) on every publish path, so forms
+  published through the public API, the MCP server or after an AI assistant edit are
+  guarded like the builder. The refusal names each failing colour pair with its ratio
+  and the nearest colours that pass; text over an image background is advisory only.
+  The rules are shared with the builder through `docs/spec/theme-contrast.cases.json`.
+- Registration of submissions in a case system, behind `OPEN_FORMULIEREN_REGISTRATION` (off by default): workspace
+  admins add services (https address, encrypted write-only secret) and choose per form which variables are sent as a
+  Generic JSON body (the format Open Formulieren sends). Delivery runs as a background job with retries, a visible
+  failure and a retry button; the respondent's privacy panel names the destination. Not yet tested against a live
+  environment. See `docs/open-formulieren-registration.md`.
+- Screens for sending submissions to a case system, in English and Dutch, shown only while the server has
+  `OPEN_FORMULIEREN_REGISTRATION` on: a "Case system" page in the workspace settings (add, edit, test and delete
+  services; the secret is write-only), a form setting to choose the service, path and answers to send, a list of
+  failed deliveries with a Retry button on the Responses tab, and a line in the respondent's privacy panel that
+  names the organisation whose case system also receives the answers.
+- Forms can create an object in an Objects API for each submission (behind `OPEN_FORMULIEREN_REGISTRATION`, off
+  by default). A service is an Objects API address, an object types address that fences each form's object type
+  URL, and a read-and-write token; a form maps answers to paths in the object and gets a "check connection".
+  A retry looks for the object it may already have created, and never counts a lookup hit as delivered unless
+  the object carries the delivery's reference.
+  Registration service addresses (Generic JSON too) with a `..` or `.` path segment, or an
+  encoded slash or backslash, are now refused (`invalid_url`).
+- Workspace admins can add an Objects API as a place to send submissions, next to Generic JSON: its address,
+  the object types address and a write-only token. On a form, the settings take the object type address
+  (checked against the service's object types address), its version, a reference path and, per answer, the
+  place it goes in the object's data (`a.b.c`); file questions are shown as not supported. A "Check
+  connection" button asks the Objects API whether the saved settings work, without reading or creating a
+  record. The results page names every reason a submission was not sent, in plain words with what to do
+  next, and shows the id of the created object. The respondent's privacy panel now also says that deleting
+  answers there does not delete the copy at the organisation, and that they should contact it for that.
+- Google Sheets action: the backend can run the action's Google authorization and create the
+  spreadsheet itself, with the Google sign-in client and only the `drive.file` scope (access to the
+  files the app creates), without the Google Forms service. Off by default: set
+  `GOOGLE_SHEETS_OAUTH=backend` after registering the redirect address and the scope on the sign-in
+  client (docs/RUNNING_INTEGRATIONS.md). Stored credentials keep their format.
+- **Reconnect notice for Google Sheets actions**: when a form's Google Sheets action still holds a
+  grant from before the `drive.file` flow, the form's integrations list marks it "Reconnect needed"
+  and explains, in English and Dutch, that new responses are held back until it is reconnected. The
+  "Reconnect Google Sheets" button opens the usual connect flow (keeping the sheet title); the
+  builder asks `GET .../actions/{action_id}/reconsent` when the action is listed. Nothing changes
+  for actions that do not need it.
+- Form builder: themes are picked from a gallery of thumbnails that show the form's
+  own first question in each saved theme and preset, with arrow-key selection and a
+  live preview on the canvas. A contrast guard checks the theme's own colours against
+  WCAG AA (text 4.5:1, controls 3:1), names each failing pair with its ratio and
+  offers the nearest passing colours in one click. A theme that fails can't be saved
+  on the Themes page or published from the builder; saved themes that fail are marked
+  "Hard to read".
+
+### Changed
+
+- `python -m backend.migrate jobs-sweep` (and the same command of `auth.migrate` and
+  `googleform.migrate`) no longer needs a `MONGO_URI`: the migration tooling opens MongoDB only
+  for the commands that read it (`preflight`, `backfill`, `verify`, `reconcile`, `status`,
+  `resolve-outbox`), and those say so and exit 2 when none is set. `deploy.sh` no longer gives the
+  sweep it runs after the 4.1 roll a placeholder `MONGO_URI`.
+- The AI assistant and the MCP server now treat a form's free-text retention wording
+  (`retentionText`) as an internal note that respondents never see, instead of the retention
+  period; the assistant's change report calls it "internal retention note". The API
+  and SDK documentation say the same: respondents see only the period the form enforces.
+- The admin task runner is no longer handed `DB_WRITE_MODE__RESPONSES` (a per-group write mode of the
+  retired dual-run cutover); an operator value for it is ignored.
+- Admin portal tasks: the confirmation page before a real run now says that it changes data and shows
+  the counters of the latest dry run with exactly the same parameters (who asked, when it finished, and
+  a note when it is more than 24 hours old).
+- The backend keeps its AI data in Postgres only: AI preference memories, AI chat sessions and
+  insights, workspace AI profiles, the MCP audit log, AI form prompts and the public API's
+  `Idempotency-Key` records. A `DB_READ_SOURCE__ai` or `DB_WRITE_MODE__ai` setting other than
+  `postgres` now stops the backend from starting and names the setting: remove it.
+- The backend keeps form actions in Postgres only: the actions and each workspace's copy of an
+  action with its credentials. A `DB_READ_SOURCE__actions` or `DB_WRITE_MODE__actions` setting
+  other than `postgres` now stops the backend from starting and names the setting: remove it.
+- The backend and the admin task runner treat the Google Forms integration's data as Postgres only,
+  as the integration itself does. In `GOOGLE_FORMS_IMPORT=off` the credential purge of a deleted
+  account runs in the database whatever `DB_WRITE_MODE` says. The keyset tasks and
+  `scripts/rotate_response_keyset.py` take Postgres as the store the integration writes and no
+  longer read `DB_WRITE_MODE__GOOGLE`; the task runner's compose entry for it is gone, and
+  `keyset.drop_old` with `mongo_retired` needs only `DB_WRITE_MODE` and
+  `DB_WRITE_MODE__RESPONSES` on `postgres`.
+- The settings inventory lists `DB_SHADOW_READ_SAMPLE` as read by the backend only, and notes that
+  the auth service and the Google Forms integration accept `DB_READ_SOURCE` / `DB_WRITE_MODE` set to
+  `postgres` only.
+- Template listings read the title of the workspace a template was imported from through the
+  workspace repository instead of a Mongo join, so `DB_WRITE_MODE__identity=postgres` no longer
+  requires the forms group to have left Mongo first.
+- The backend keeps its identity data in Postgres only: workspaces, members, invitations, API keys,
+  email domains, single sign-on connections, SCIM directory sync, sessions and user tags. A
+  `DB_READ_SOURCE__identity` or `DB_WRITE_MODE__identity` setting other than `postgres` now stops
+  the backend from starting and names the setting: remove it. The backend no longer creates the
+  Mongo index on `workspace_users`, and `python -m backend.membership_duplicates` checks Postgres
+  only (`python -m backend.migrate preflight` reports duplicates in a 4.0 database).
+- Response and deletion-request listings read a form's title and the user who imported it through
+  the forms repositories instead of a Mongo join, so `DB_WRITE_MODE__forms=postgres` no longer
+  requires the responses group to have left Mongo first. The reverse join is now declared: while
+  the forms group still reads from Mongo, the responses group must keep writing Mongo.
+- The backend keeps its forms data in Postgres only: forms and their published versions, the links
+  of forms to workspaces, templates, media libraries, workspace consents and PDF imports. A
+  `DB_READ_SOURCE__forms` or `DB_WRITE_MODE__forms` setting other than `postgres` now stops the
+  backend from starting and names the setting: remove it. The backend no longer creates the Mongo
+  index on `workspace_forms`; a 4.0 database's forms are imported with
+  `python -m backend.migrate --group forms backfill`.
+- The response tools (admin tasks and scripts) read the forms' workspace links from Postgres. Until
+  the forms import is complete (a finished `workspace_forms` backfill that skipped nothing, with no
+  newer link in Mongo; or every Mongo link in Postgres) their writing runs refuse with
+  `forms_import_incomplete`, and so does `auth.resolve_case_duplicate_accounts`; read-only runs only
+  warn. The task runner's data role now reads `collection`, `state`, `last_id` and `skipped` of
+  `app.migration_progress` (`postgres/ensure-admin-roles.sh`).
+- Form and media search and the response filters match the typed text literally, ignoring case,
+  instead of as a regular expression.
+- The backend keeps its responses data in Postgres only: form responses and their deletion
+  requests, responders and tags, and responder groups. Every backend group is now served from
+  Postgres, so the backend and its job worker no longer use Mongo. A
+  `DB_READ_SOURCE__responses` or `DB_WRITE_MODE__responses` setting other than `postgres` now stops
+  the backend from starting and names the setting: remove it (`DB_WRITE_MODE__RESPONSES` left empty
+  is fine). A 4.0 database's responses are imported with
+  `python -m backend.migrate --group responses backfill`, and the backend refuses to start while a
+  responses collection in Mongo has documents that were never imported. Answers stay encrypted as
+  stored; nothing about them is decrypted, logged or queried by the repository.
+- The auth service keeps accounts in Postgres only and no longer connects to MongoDB; it needs
+  `DATABASE_URL` and refuses to start without it. A `DB_READ_SOURCE`, `DB_WRITE_MODE`,
+  `DB_READ_SOURCE__auth` or `DB_WRITE_MODE__auth` setting other than `postgres` now stops it from
+  starting and names the setting: remove it. `MONGO_URI` and `MONGO_DB` are read only by the
+  import from 4.0 (`python -m auth.migrate`).
+- The Google Forms integration stores its data in Postgres only: the Mongo credential store and the
+  routing between the two stores are gone, and the service never connects to Mongo (`MONGO_URI` and
+  `MONGO_DB` are read only by `python -m googleform.migrate`, which imports the 4.0 data). It needs
+  `DATABASE_URL`, and refuses to start while `DB_READ_SOURCE`, `DB_WRITE_MODE` or their `__google`
+  overrides name anything but `postgres`; remove them or set them to `postgres`. The Google Forms
+  routes now read the signed-in user's credential through the same Postgres store as the rest of
+  the service.
+- Background jobs run on the Postgres job queue by default (`JOBS_BACKEND` is now `postgres`): account
+  deletion, scheduled response deletion, action runs, form imports, and the credential purge and Google
+  grant revocation that exist on the queue only. Set `JOBS_BACKEND=temporal` (or
+  `JOBS_BACKEND__<job>=temporal`) to keep a job kind on the Temporal workflows. Upgrading: a stack that
+  never set `JOBS_BACKEND` (the deployment compose file does not) switches to the queue at once, so the
+  `jobs-worker` service must be running; run `python -m backend.migrate jobs-sweep --backend postgres` at
+  the upgrade so that every scheduled response deletion is on the queue, and keep the Temporal worker until
+  the Temporal schedules and workflows already in flight have run.
+- The actions executor follows the same default: without `JOBS_BACKEND` it consumes the Postgres queue and
+  needs `DATABASE_URL` (the jobs role's URL); it now exits at start naming that setting when it is empty,
+  instead of failing on the first connection. Before updating its image, set its `DATABASE_URL` or
+  `JOBS_BACKEND=temporal`. A response whose deletion cannot be queued is logged and left to
+  `jobs-sweep`, no longer a failed submission.
+- The admin tasks and the break-glass scripts (`responses.check_undecryptable`, `responses.backfill_workspaces`,
+  `google.purge_unencrypted_credentials`, the `keyset.*` tasks, `scripts/rotate_response_keyset.py`,
+  `scripts/check_undecryptable_values.py`, `scripts/backfill_response_workspaces.py`) cover Postgres alone and
+  never connect to Mongo. `stores: postgres` is the default (`auto` means the same); `mongo` and `both`
+  are refused with `store_retired`. No write mode is read any more. `keyset.drop_old` and
+  `rotate_response_keyset.py drop-old` need the signed `mongo_retired` statement (`--mongo-retired`)
+  and refuse with `store_retired` without it; they also refuse with `import_incomplete` until the import
+  from 4.0 is over (no `MONGO_URI` on the runner, no unfinished backfill in `migration_progress`), so a
+  later backfill cannot bring in a value on a key that was dropped. `google.purge_unencrypted_credentials`
+  applies the same rule: it refuses an apply until the import is over, since running it again would copy
+  the rows still held in Mongo back. A data role that cannot read `migration_progress` refuses
+  (`import_state_unreadable`): re-run `postgres/ensure-admin-roles.sh`, which now grants the task
+  runner's Google role a column `SELECT` on `google.migration_progress`. A store with no record at all
+  cannot be told apart from one never imported, so confirm that the 4.0 import ran (or that the stack
+  never had Mongo) before the purge or the key drop; `drop_old` checks again right before it writes.
+  The task runner connects to Mongo never; it reads `MONGO_URI` only to refuse in these cases.
+- `python -m backend.scim` and `python -m scripts.seed_flow_templates` connect no Mongo; the Google Forms
+  integration keeps its credentials as plain records and no longer sets up Beanie at startup.
+- **`verify` and `reconcile` leave the Postgres-only groups alone**: without `--group` they skip
+  `refdata`, `analytics`, `ai` and `actions` and say so; `--group` (or `--collections`) naming one
+  exits with code 2 and names it. The verified marker covers the other groups. `reconcile
+  --direction postgres->mongo` checks each group's effective write mode (the backend's own flags,
+  where a Postgres-only group is always `postgres`) instead of the global `DB_WRITE_MODE`.
+- The `mongo-seed` job (deployment and local compose) no longer writes the allowed origins or the
+  Google Forms provider to Mongo; it only removes the old `seeduser` account. Collections an earlier
+  release seeded are left for the import. Local development seeds Postgres instead
+  (docs/DEVELOPERS_GUIDE.md).
+- `python -m backend.seed_refdata` refuses an `--origin` that is not an origin
+  (`http(s)://host[:port]`) and stores it the way browsers send it. Without `--origin` it seeds the
+  localhost ports only while `API_CLIENT_URL` is a local address, else that URL's origin.
+- The compose stack runs without MongoDB. A new install never starts it and stores no
+  `MONGO_URI`; the backend and the jobs worker default to Postgres for every group.
+  MongoDB starts only under the new `legacy-mongo` compose profile.
+- `./deploy.sh` upgrades a 4.0 stack whose data is still in MongoDB by importing it first.
+  It stops the services, runs preflight, backfill and verify for auth, the Google
+  integration and the backend, and stops before any service starts if a check fails,
+  printing the counts. On success it clears `MONGO_URI`, records
+  `BC_LEGACY_MONGO_IMPORTED` in `.env`, and stops MongoDB. The Mongo volume is kept.
+  Stacks that were already imported skip this step.
+- MCP clients now see why a publish was refused: the `publish_form` tool lists each
+  problem as `code: message`, one per line, instead of an empty error.
+- A template can no longer be made from a form imported from Open Formulieren while its import still
+  "needs review": the request is refused with the same explanation and link to the import report as
+  publishing, and works once the import is marked as reviewed. Duplicating such a form as a draft is
+  unchanged.
+- A form imported from Open Formulieren can no longer be published while its import still "needs
+  review". Publishing from the builder, the API and the MCP server is refused with a clear message
+  and a link to the import report; once the import is marked as reviewed, publishing works. Copies of
+  such a form carry the mark too, and the mark can be cleared whether or not the import is switched on and
+  whether or not its report still exists. The report's note and the builder's Publish button say so, in
+  English and Dutch.
+- The Open Formulieren import report now says what became of an address question: it became five short
+  text questions and is not looked up from the postcode and house number (English and Dutch).
+- A new form is no longer published while its workspace has no title, because respondents see that
+  title as who receives their answers. Publishing from the builder, the API and the MCP server is
+  refused with a clear message; workspace admins get a way to set the title right there, others are
+  told to ask one. Forms that already exist (and forms that are already live) publish and republish
+  as before.
+- **Upgrade note:** the backend refuses to start without `RESPONDENT_IDENTITY_KEY`, a new secret of at
+  least 32 random bytes (`openssl rand -hex 32`; hex or base64). A new compose stack gets one from
+  `bootstrap-keys`; a stack that upgrades sets it once and keeps it, because a different key makes every
+  stored anonymous identity unmatchable. See `docs/respondent-identity.md`.
+- Respondent forms: star ratings and number scales are now radio groups, named by their question. Arrow keys,
+  Home and End choose a value, and so does a digit key (while focus is in the scale), without moving on to the
+  next question. The chosen number carries a check mark and a star rating shows its value in words ("4 of 5"),
+  so a choice never shows in colour alone. Choosing in any option list or scale grows its mark in gently, and
+  not at all when the respondent prefers reduced motion.
+- Google Sheets action: with `GOOGLE_SHEETS_OAUTH=backend`, a stored credential granted before
+  `drive.file` (full Drive access) is no longer used. On its next use the action's run is skipped
+  and counted, the action is marked `needs_reconsent`, and the workspace's billing owner gets one
+  mail (English or Dutch) asking to reconnect Google Sheets. `python -m backend.sheets_legacy`
+  counts the actions concerned (read-only).
+- Google Sheets action: with `GOOGLE_SHEETS_OAUTH=backend`, reconnecting an action that held a
+  grant from before `drive.file` stores the new credential and clears its reconnect marks in one
+  write, removes every stored copy of the old credential, and revokes the old grant at Google. A
+  failed revocation never blocks the new grant; a `revoke_google_grant` job retries it hourly for
+  two days (`JOBS_BACKEND__revoke_google_grant=postgres`) and shows in the integrity monitor when
+  still pending after a day. An old grant issued to the sign-in client itself is deleted but not
+  revoked, since revoking it would end the new grant too.
+- auth allows one account per email address ignoring case (database revision `0005`). An
+  instance that already holds accounts whose emails differ only in case refuses the migration,
+  naming only the counts, and nothing is merged automatically: check and resolve them before
+  upgrading (docs/postgres-cutover-runbook.md, "Accounts whose emails differ only in case").
+  `python -m auth.migrate preflight` counts them too.
+- `deploy.sh` now prints the names (never the values) of the settings it copies into the
+  webapp's and the Temporal worker's env files and of the worker's two keys in `.env`,
+  so an operator can see what moved.
+- **Upgrade note (mail):** mails no longer show the workspace as sender or in the subject. The
+  sign-in code, invitation and submission-update mails ("Update on your submission" included) are
+  sent in the instance's name (`ORGANIZATION_NAME`) with fixed subjects; the workspace, form and
+  inviter appear in the body only. Tell your users if they filter or search their mail by workspace
+  name. The one exception is a respondent's copy sent by an action through the workspace's own SMTP
+  server, where the workspace really is the sender.
+- **Upgrade note (self-hosting, mail images):** a workspace's logo in the sign-in code mail (and an
+  inviter's avatar from your storage in the invitation) is shown only when its address starts with
+  one of `MAIL_IMAGE_URL_PREFIXES` (auth; admin portal settings, mail section; comma-separated).
+  The default is the hosted Wasabi bucket's `public/` prefix, so a stack on other storage must set
+  it to its own public storage, `<AWS_PUBLIC_URL or AWS_ENDPOINT_URL>/<bucket>/public/`; otherwise
+  those mails show the workspace's initial instead of its logo.
+- **`auth.migrate preflight` names the size of the case-variant email problem.** Besides counting
+  them as duplicate keys (preflight fails), it reports `case_variant_keys` (distinct emails held
+  by more than one account, ignoring letter case) and `case_variant_documents` (the accounts
+  involved), with a warning that backfill stops `users` on the first one. Counts only, never an
+  email or an id.
 
 ### Removed
 
@@ -62,6 +437,320 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   without Typeform (with Google Forms for `both`); `settings-prune` ignores `--typeform` and
   `--no-typeform`. `deploy.sh` warns when an `integrations-typeform` container from an earlier
   release still exists and never removes it; existing `.env.typeform` files are left alone.
+- The compose file no longer sets `DB_READ_SOURCE` or `DB_WRITE_MODE` on the backend, the jobs
+  worker or the task runner: Postgres is the only store, and the task runner reads no write mode.
+  A line for either (or a `__<group>` override) left in `.env.deployment` now reaches the
+  services, which refuse any value but `postgres`; `./deploy.sh` refuses such a line before it
+  starts or changes any container or data, naming the setting and never its value. Remove the line
+  or set it to `postgres`.
+- The Brevo marketing tracker is gone: sign-ups, upgrades and other platform events no longer send
+  an email address to a marketing tool, and account deletion no longer calls Brevo to erase a
+  contact (the one-off `python -m auth.brevo_contacts` command is removed too). The optional event
+  webhook (`EVENT_WEBHOOK_URL`) stays and carries the event type and user id only.
+  `BREVO_TRACKER_KEY`, `BREVO_TRACKER_API_URL` and `BREVO_CONTACTS_API_KEY` can be dropped from
+  deployments; leaving them set is harmless (they are ignored, as are stored rows for them).
+- The Sentry error reporter is gone from the backend and auth services (and its unused setting
+  from the Google Forms service): no error report leaves for a third party any more.
+  `SENTRY_DSN` and `SENTRY_DEBUG` can be dropped from deployments; leaving them set is harmless
+  (they are ignored, as are stored rows for them).
+- Temporal is no longer part of the compose stack: `docker-compose.deployment.yml` has no `temporal`,
+  Temporal database (`postgresql`) or Temporal `worker` service, `deploy.sh` no longer starts them,
+  generates `BC_TEMPORAL_DB_PASSWORD`, writes the worker's `API_KEY` / `AES_HEX_KEY` copies to `.env` or
+  creates `.env.worker`, and `.env.deployment.example` no longer lists the worker's settings. Background
+  work runs on the Postgres job queue (`jobs-worker`). On a stack from before 4.1, `deploy.sh` retires
+  Temporal after the new release is up: it puts every scheduled response deletion on the job queue
+  (`backend.migrate jobs-sweep`), waits up to `BC_TEMPORAL_DRAIN_SECONDS` (default 300) until Temporal runs
+  no workflow, then removes the three containers and keeps the `temporal-postgres-data` volume (a rollback
+  to 4.0 uses it; remove it with `docker volume rm` once 4.1 has run well). With workflows still running,
+  or Temporal unreachable, the deploy stops with the stack on 4.1 and the old containers untouched; run it
+  again later, or `BC_TEMPORAL_DRAIN=skip ./deploy.sh` to remove Temporal without waiting. A
+  `JOBS_BACKEND` or `JOBS_BACKEND__<job>` set to `temporal` in `.env.deployment` is refused before anything
+  changes. A leftover `.env.worker` is no longer read and is kept.
+- `./deploy.sh typeform` and `./deploy.sh both` are refused (exit code 2) before anything
+  changes. Use `./deploy.sh` or `./deploy.sh googleform`.
+- The code that ran 4.0 on two stores is gone. The services have no routing between Mongo and
+  Postgres, no mirror writes, no shadow reads and no Mongo connection of their own, and Beanie is
+  no longer a dependency of the images (it remains a test-only dependency of the import's
+  tests). `DB_SHADOW_READ_SAMPLE` and `DB_MIRROR_TIMEOUT_MS` are read by nothing now;
+  `DB_READ_SOURCE` and `DB_WRITE_MODE` (and their `__<group>` overrides) are read only to refuse a
+  value other than `postgres`, as before. `GET /persistence/status` (admin) no longer reports
+  routing counters or an outbox backlog: it shows the jobs backends in effect, whether Postgres
+  answers, and that Mongo is not used. The import from 4.0 (`python -m backend.migrate`,
+  `auth.migrate`, `googleform.migrate`: backfill, verify, reconcile, status, resolve-outbox,
+  jobs-sweep) and the startup check for unimported Mongo data are unchanged.
+
+### Fixed
+
+- Account deletion no longer fails, or leaves the user's stored Google credentials behind, when the Google
+  Forms service is off, unreachable, slow or failing. The account, its sessions and its workspace data are
+  erased first. Then the service deletes the stored credentials, and in `GOOGLE_FORMS_IMPORT=on` and
+  `readonly` it revokes the grant at Google first. When that fails, or in `off`, a retryable
+  `purge_provider_credentials` job is queued (procrastinate, `JOBS_BACKEND__purge_provider_credentials=postgres`;
+  hourly for two days, the email encrypted in its arguments). In `off` the job erases the rows through
+  `google.purge_user_credentials(user_id, email)` (google revision 0005): a `SECURITY DEFINER` function owned by
+  the Google schema's role, which deletes only the rows matching both the user id and the email, records
+  tombstones and returns a count. EXECUTE is granted to the backend's role only. Mongo and dual stacks rely on
+  the service. A purge that is still pending a day after it was queued, or failed (or a deletion job in that
+  state), is shown by the admin portal's integrity monitor and mailed to the admins once
+  (`CREDENTIAL_PURGE` / `overdue`, through `admin.credential_purges_overdue()` from
+  `postgres/ensure-admin-roles.sh`). If the purge can't be queued at all, the deletion job fails after the
+  erasure and is retried: on procrastinate the integrity monitor reports it, on Temporal (the default) it
+  shows in the Temporal UI and the backend's error log only. A disabled Google provider is purged too. The
+  Google Forms service's erase is now `POST /google/oauth/credentials/erase` with the user id and email in the
+  JSON body (the `DELETE /google/oauth/credentials` query-string form is removed), so no URL or access log
+  carries the email. The auth service's account delete uses a 30 s timeout
+  instead of 20000 s.
+- The admin task runner no longer refuses its tasks with `write_mode_unknown` on a fresh stack that
+  sets no `DB_WRITE_MODE`: an unset write mode is now the services' own default, as for the
+  services themselves. A value that is not a write mode is still refused.
+- Two edits of one response made at the same time, two filings of the same deletion request, two
+  staff members closing one request, and two saves of one responder group, one tag title or one
+  responder now apply one after the other instead of overwriting each other: a repeated filing is
+  refused as "already exists", and a request closed by someone else meanwhile answers 409.
+  Completing a deletion request while another staff member declines it deletes nothing and
+  answers 409. A wait for a record another write is holding, past the lock timeout, answers 409
+  `busy` instead of a server error.
+- A new stack deployed with `deploy.sh` gets its reference data in Postgres, where the API reads it:
+  the allowed origins (CORS and the post-sign-in redirect) and the Google Forms provider are seeded
+  once by `python -m backend.seed_refdata`, after the migrations and before the services start.
+  Until now a new stack had no allowed origins. The origins are the web app's public addresses
+  (`HTTP_SCHEME` with `DASHBOARD_DOMAIN` / `FORM_DOMAIN`); a stack without them is taken for a
+  local one and gets the localhost ports. An upgraded stack is never seeded: it imports its
+  reference data from Mongo.
+- The respondent progress bar now fills as much as "Page x of y" says: the welcome and ending pages no longer
+  count as steps (the first of three pages read 40%, and the last page never filled the bar). A page
+  that ends the form early, where the header says "Last page", now fills it.
+- With `GOOGLE_FORMS_IMPORT=readonly` or `off`, the New Form page no longer opens the Google import
+  dialog for a `?modal=true` link, and the "authorize Google" view says why the connection is not
+  offered instead of sending the user to an authorization the backend refuses.
+- An email address is one account whatever its case: signing in with a code or with Google as
+  `Jane@Example.com` reaches the existing `jane@example.com` account instead of creating a
+  second one (single sign-on and directory sync already matched this way, with one lookup
+  less now). The account keeps the address as it was first written.
+- Admin task `auth.resolve_case_duplicate_accounts` no longer refuses every run with
+  `backend_unreachable`: the runner requested the API's routes with a trailing slash, which the
+  API answers with a redirect the runner does not follow. It now requests their exact paths.
+- Admin task `auth.resolve_case_duplicate_accounts`: a refused run now says why. The runner
+  refuses with `backend_unreachable` (connection or timeout only), `backend_route_missing`
+  (404), `backend_redirect` (3xx, never followed), `backend_error` (5xx or another status) or
+  `backend_bad_reply` (not the expected JSON), and logs the HTTP status. When the API's call to
+  the auth service fails, the internal admin-task routes answer 502 with a stable code instead
+  of passing auth's status through, and the run refuses with `auth_unreachable`,
+  `auth_key_refused` (the backend's `AUTH_INTERNAL_NOTIFY_KEY` does not match auth's),
+  `auth_misconfigured` or `auth_error`; an account deletion that cannot be started (Temporal or
+  the jobs worker down) refuses with `deletion_unavailable` instead of `backend_key_missing`.
+  The admin service guide has a troubleshooting table for these codes.
+- Dutch dashboard: the whole dashboard and the form builder now address people with "u" and "uw"
+  (the large majority already did; the remaining "je" and "jouw" strings are changed). The respondent
+  forms keep "je". The form menu and the forms toolbar are translated (Dupliceer formulier, Maak
+  QR-code, Nieuw formulier, Formulieren zoeken), "Openen" has its capital, and the forms count and
+  the Open Formulieren download note use proper singular and plural forms instead of "item(s)". A
+  workspace without a title no longer shows its internal id on the form's privacy strip, in the
+  builder and on the response pages: it shows "Uw werkruimte" / "Your workspace" for the team and
+  "de eigenaar van dit formulier" / "the owner of this form" for respondents. The Dutch dashboard
+  texts for a few settings keys that were named differently from the English ones now match.
+- The dashboard's "more" (three dots) menu on group members, a group's forms, groups and a form's integrations
+  is now a button that can be reached and opened with the keyboard (Enter, Space or Arrow Down; Escape closes it
+  and returns focus), and screen readers announce it as "More actions for <item>". A form's integration on/off
+  switches are named "Turn <integration> on or off", and the switches in a form's settings are named and
+  described by their row. The members table and response menus name what they act on, the form card's actions
+  show on keyboard focus as well as on hover, and the custom domain menu no longer nests a button in a button.
+- `deploy.sh` no longer leaves a copy of your secrets in the system temporary directory when it is
+  interrupted (Ctrl-C, `kill`, a closed terminal). `settings-prune` copies `.env` and `.env.deployment` there
+  for its container, and `settings-env-export` writes the exported values there. Both, and the other steps
+  that edit a copy of `.env` or `.env.deployment`, now remove their scratch files on every way out, and
+  stop their container first. A `kill` sent to the script alone now ends it at once instead of after the
+  container.
+- `deploy.sh` no longer stores the stack's own local MongoDB address in the settings
+  store when the operator set a `MONGO_URI` of their own in `.env` or `.env.deployment`
+  (an external MongoDB). A `MONGO_URI` that only the root `.env` holds, which no
+  service reads, now stops the upgrade before any service is stopped, with the line to
+  move to `.env.deployment`.
+- Dutch wording: form menu and import report buttons are infinitives with the object first ("Formulier vastzetten", "Openen in de editor"), the registration answers list and the relative time on form cards ("4 uur geleden") are no longer English in Dutch, and the Open Formulieren import report explains why a variable was or was not carried over as a calculated question.
+- Request validation errors no longer mangle ordinary words: a short submitted value (3 to 7
+  characters) that only occurs inside a longer word of a validator's message ("mat" in "format") is
+  left alone. Longer values, and any value in quotes, are still removed wherever they occur, and the
+  removal now costs little on very large inputs.
+- The actions executor starts again with `JOBS_BACKEND=postgres` (the default from 4.1). It crashed at start with
+  `ImportError: no pq wrapper available`: its slim image has no libpq, so the Postgres queue driver
+  (`psycopg`) now ships its bundled copy (`psycopg[binary]`).
+- Respondent forms in another language than the page now mark more of the
+  creator's own text with the form's language, so screen readers pronounce it
+  correctly: the start button's wording, a repeating group's item heading and
+  a picture's description.
+- Re-sending a pending invitation from a member's menu asks for the mail in the browser's
+  language (Dutch or English), like the resend on the invitations list; `POST
+  /workspaces/{id}/members/invitations/{token}/resend` takes the same optional `locale` as a new
+  invitation.
+- "Verify email" on a workspace's My submissions page keeps the respondent's language, so the
+  sign-in code mail comes in Dutch when the portal is in Dutch.
+- Form builder plain-language tips: a dismissed tip stays dismissed when another tip is dismissed
+  later, even if its text was not on screen at the time. A dismissed long-sentence tip no longer
+  hides a different long sentence that takes its place. Dismissed tips are remembered by a short
+  fingerprint instead of the question's own words, and entries stored in the old format (which held
+  question text) are removed from the browser's storage on the next visit. A question title no
+  longer points screen readers at tips that are not on the page.
+- The privacy panel and the ending page now state one retention period, the one
+  the form actually enforces. A creator's own retention note is no longer shown
+  beside it, where it could contradict it ("No fixed period" next to "kept for 6
+  months"). The builder's trust settings drop the free-text note field.
+- `GET /providers` gives a platform admin each provider's `importMode` too (it was left out for
+  them only), so the dashboard offers Google Forms imports to a platform admin the same way as to
+  everyone else in read-only mode.
+- Responder portal: a deletion request for a response submitted without sharing an email address
+  (the default) now shows on that respondent's Deletion requests page, with its status. It was
+  filed and handled, but the list matched requests by address only, so the respondent never saw
+  it. Such requests are matched by the same one-way identity hash the response carries; no address
+  is stored, other respondents never see them, and My submissions still does not list anonymous
+  responses.
+- A respondent's own submissions and deletion requests lists no longer carry the id of the staff
+  member who imported the form (`formImportedBy`).
+- Respondent forms: moving to another page (Start, Continue, Back, submitting) now takes keyboard
+  focus to the new page ("Page x of y" on a question page, the title on the welcome and ending
+  pages), so keyboard users carry on from there and screen readers announce the new page. Before,
+  focus fell back to the top of the document. After choosing an answer, the move to the next
+  question no longer takes focus once the respondent has moved on, so it can't pull focus onto
+  a page that is closing.
+- Respondents get their sign-in code mail in their own language: the sign-in page asks for the
+  code (and a resent code) in the respondent's language, the one the form or portal is shown in
+  (`?lang=`, their choice, else the browser's), and the respondent sign-in links from forms and the
+  portal carry it.
+- Responder portal: a submission's own pages ("My response", "Privacy & deletion", the deletion
+  request dialog), the form cards and the My submissions and Deletion requests lists are now in
+  Dutch for Dutch respondents, dates included, and keep `?lang` on their links. Each portal page
+  has one main heading with the others in order below it, and every part of the page is in a
+  landmark. A submission's page now shows a declined deletion request as "Not deleted" instead of
+  "Deletion requested · Pending", and a deletion request that fails is no longer reported as sent.
+- Google Sheets action (`GOOGLE_SHEETS_OAUTH=backend`): saving an action that still holds a grant from
+  before `drive.file` is refused with 409 `sheets_reconsent_required` instead of refreshing and using
+  that grant. The reconnect mail to the billing owner is sent in the background, so submissions no
+  longer wait for the auth service; a 422 from auth is final (marked and logged once, never retried),
+  transient failures are retried, and long form and workspace titles are cut to auth's limits. The auth
+  service no longer builds a reconnect link for the `.` and `..` workspace handles.
+- A respondent's submission page shows the real reason a deletion request was declined (the
+  single-submission endpoint now returns it, as the submission lists already did) instead of
+  "other".
+- Single sign-on: when it is switched on but not fully set up, the workspace
+  single sign-on and directory sync pages now ask workspace admins to contact
+  the instance's administrator or support team, with the setup guide as a
+  secondary link for people running their own instance (English and Dutch).
+- Admin portal: the Health page and the overview read a stored `SSO_ENABLED`
+  text value ("true", "1", "yes", "on" in any case) the same way the services
+  do, so they no longer show single sign-on as off while it is on.
+- Saving a workspace theme through the API now runs the same contrast check as publishing:
+  a theme whose colours fail WCAG 2.2 AA is refused with a 422 (`theme_contrast`) naming
+  each failing pairing and the nearest colours that pass, so a saved theme can no longer
+  make every form that uses it fail at publish. Themes already saved are kept as they are.
+- `VERIFIED_DOMAINS_NAMESERVERS` takes IP addresses only (IPv4 or IPv6, comma-separated, spaces
+  around them tolerated). A host name or another separator such as `;` used to make every domain
+  lookup, and so every hourly re-check, fail. Now the admin portal refuses such a value, and in a
+  service's environment it stops the backend and the jobs worker at start with an error naming the
+  setting. A value stored earlier that isn't a list of addresses is ignored with an error in the
+  log, and the system resolver is used until it is corrected.
+- **Migration `verify` counts expired TTL copies when it counts.** Mongo's raw and expired
+  counts are now taken together, on Mongo's own clock, and that same instant decides which copies
+  the scan treats as expired in both stores, so copies Mongo's TTL monitor deletes while a run is
+  in progress no longer make a clean group look different, and a host clock that is off cannot
+  turn a live copy into an expired one. Counts the TTL monitor keeps changing are retried and, if
+  they never settle, reported as `count_unstable` (not clean) instead of being recorded.
+  `reconcile` uses the same clock.
+- **Migration `verify` agrees with `reconcile`.** In collections Mongo expires by a TTL index,
+  `verify` now treats an expired copy in either store as absent, as `reconcile` already did, so
+  copies Mongo's TTL monitor dropped are no longer reported as `missing_in_mongo` on every run;
+  the report counts them under `expired`. Only a date expires, as in Mongo: an ISO-string expiry
+  is a live copy. And `reconcile` (Mongo → Postgres) no longer skips a Postgres row the
+  application wrote after Mongo's copy without a trace: it keeps it and counts it as
+  `newer_in_postgres`. The new `reconcile --mongo-wins` copies Mongo's version over such rows
+  instead, only in the groups whose `DB_WRITE_MODE`/`DB_WRITE_MODE__<group>` is explicitly
+  `mongo` or `dual`. While the Postgres-side outbox has unresolved entries (writes from a time
+  Postgres was primary), no row the application wrote is replaced at all; a `mongo->postgres` run
+  no longer resolves those entries (`postgres->mongo` or a clean full `verify` does).
+- The workspace switcher opens a disabled workspace (one whose plan was downgraded) for its
+  owners, marked read-only, so they reach its read-only dashboard without typing the URL.
+  Other members still cannot switch into it.
+
+### Security
+
+- Admin service: the portal's database role can delete a service heartbeat only when it is older than
+  7 days and its service has reported nothing newer, which is exactly what the retention loop removes
+  (a database trigger, admin migration 0019). A stolen portal credential can no longer erase live
+  heartbeats, which the keyset checks and the integrity monitor read.
+- Workspace settings changed field by field (AI consent, single sign-on enforcement and default role,
+  custom-domain status) are written atomically in Postgres: two changes made at the same time both
+  stay, so a concurrent save can no longer switch AI back on without consent or turn off required
+  single sign-on. Removing an invitation and disabling the other SSO connections of a workspace are
+  atomic too.
+- **Auth and the Google Forms integration refuse to start while Mongo holds data that was never
+  imported into Postgres.** The backend already did; an upgraded stack whose import had not finished
+  would have started auth on an empty or partial `auth.users` and created new accounts for emails
+  that already have one, and the Google integration on empty credential and form tables. Each
+  service now checks its own collections at startup, after the schema check: a collection with
+  documents in Mongo whose import is not finished stops the start (a recorded backfill that is not
+  `done`, whatever rows it copied; or no backfill recorded and no row in Postgres), naming the
+  collection, its count and the command (`python -m auth.migrate --group auth backfill`,
+  `python -m googleform.migrate --group google backfill`), never a value. Mongo is not contacted
+  without `MONGO_URI`; a `MONGO_URI` that is set but cannot be read refuses the start. The shared
+  escape `DB_DISCARD_UNIMPORTED_MONGO_DATA` (`all`, or the service's group; other services' groups are
+  ignored, so one environment file serves the stack) starts anyway, logged as a warning on every
+  start. Mongo is asked with bounded waits, and a stalled or unreadable Mongo refuses the start
+  without putting its address in the log. The backend gets the same stricter check: an interrupted
+  import with some rows already copied no longer passes for a finished one. The Google integration's `MONGO_URI` is now also read from the settings
+  store, as the other services'. See "Upgrading to 4.1" in `docs/postgres-cutover-runbook.md`.
+- The API's key-only internal routes (the data task runner's admin-task routes and the Temporal
+  worker's and actions executor's job routes) are no longer reachable through the public
+  ingress. The backend serves them on a second, never-published listener (`API_INTERNAL_PORT`,
+  8001) and answers 404, before any key is checked, to a request that carries proxy headers. The
+  admin-task routes answer on the internal listener only; the worker routes still accept direct
+  requests from private addresses on port 8000 until `API_INTERNAL_ROUTES=internal_port` is set.
+  Operators: point the worker's `SERVER_URL` (and, outside `deploy.sh`, the task runner's
+  `ADMIN_TASKS_BACKEND_URL`) at `http://backend:8001/api/v1`, never publish port 8001, and make
+  your proxy add `X-Forwarded-For`. Then set `API_INTERNAL_ROUTES=internal_port`: a Swarm or
+  ingress-mesh stack, and any stack whose port 8000 is reachable from outside, must, because
+  `direct` lets through outside callers whose address a proxy, Docker's userland-proxy or the
+  ingress mesh rewrites to a private one (the backend warns at startup while it is `direct`).
+  TODO for 4.1: make `internal_port` the default (docs/admin-service.md, "Internal routes").
+- The identity that ties an anonymous response to its respondent is now a keyed hash
+  (`v2:` + HMAC-SHA256 under a new `RESPONDENT_IDENTITY_KEY`) instead of an unsalted MD5 of the email
+  address, so knowing an address no longer lets anyone link its "anonymous" responses. Stored values
+  convert in one idempotent, resumable pass that needs no address (run at every API start, or by hand
+  with `python -m backend.identity_rekey`); matching refuses any value that is not `v2:`.
+- A workspace API key revoked while a request using it was in flight stays revoked: recording the
+  key's last use now changes only that field, and only while the key is not revoked, instead of
+  saving the request's copy of the whole key (which could set it back to not revoked). Such a request
+  is refused.
+- Actions and Google Forms: Google access tokens are refreshed only at Google's token endpoint
+  (the configured `GOOGLE_TOKEN_URI` in the Google Forms service; in the actions executor,
+  Google's documented endpoints). The token address stored inside a credential is no longer
+  trusted, so a forged credential cannot make either service send its client secret and refresh
+  token to another host. Stored credentials are unchanged.
+- Answer patterns are no longer evaluated by the respondent's browser. The server
+  matches them with RE2 in linear time, but the form also tested them in the browser
+  with a backtracking engine, where a pattern such as `^(a+)+$` could freeze a tab on
+  one unlucky answer. The browser now checks only the built-in formats and "whole
+  numbers only"; a custom pattern is checked when the answer is submitted, and the
+  respondent is taken back to the question with the message. A pattern RE2 cannot
+  use (a lookaround, a backreference, a mistake) is now refused when a form is saved,
+  through the builder, the API, the AI assistant and the Open Formulieren import
+  (the import lists it as not carried); patterns already stored are kept.
+- Actions: the respondent's copy of a response keeps the workspace's title as the sender's name and
+  the form's title in the subject only when it goes through the workspace's own SMTP server, from
+  the address the workspace configured (both set on the workspace or the form). Through the
+  action's defaults, which the instance's administrators set, it no longer carries a workspace's
+  name. Every From name and subject an action mail gets, custom actions' included, is folded to one
+  line (line breaks and control characters become spaces, invisible formatting characters are
+  dropped) and capped at 78 and 120 characters, so a title can no longer add mail headers.
+- Someone else's submission is "not found" to a signed-in respondent: `GET` and `DELETE`
+  `/workspaces/{id}/submissions/{submission_id}` answer 404, as for a submission that does not
+  exist, to a caller who neither submitted it nor holds any permission in the workspace (it was
+  403, which told them the id was real). Workspace members keep their answers.
+- Single sign-on: Polis no longer shares one network with all its callers. The SSO overlay gives
+  the backend, the jobs worker and auth each an internal network of their own with Polis, and
+  Polis's internet egress goes over a network of its own with a pinned subnet
+  (`POLIS_EGRESS_SUBNET`, default `172.30.78.0/29`). Local development runs Polis with its own
+  Postgres instead of joining the local stack's network (the old `polis` database in
+  `app-postgres` is no longer used). Before enabling SSO on a hosted stack, filtering Polis's
+  egress to private, link-local and loopback addresses is now a required step: see "Polis egress"
+  in `docs/sso.md`; `deploy.sh` reminds you when SSO is on.
 
 ## [4.0.14] - 2026-10-26
 
@@ -1623,7 +2312,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...v4.1.0
 [4.0.14]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...v4.0.14
 [4.0.13]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...v4.0.13
 [4.0.12]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...v4.0.12
