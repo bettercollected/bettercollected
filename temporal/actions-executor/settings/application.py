@@ -10,6 +10,8 @@ from settings.shipped_secrets import require_secrets
 
 load_dotenv()
 
+DEFAULT_ORGANIZATION_NAME = "Better Collected"
+
 # Published defaults of earlier versions: treated as not configured.
 PLACEHOLDER_API_KEYS = frozenset({"random_api_key"})
 
@@ -31,9 +33,18 @@ class ApplicationSettings(BaseSettings):
     cookie_domain: str = "localhost"
     # this instance's name: the sender of a respondent's copy is
     # "<workspace> via <organization_name>" (the auth service's ORGANIZATION_NAME)
-    organization_name: str = "Better Collected"
+    organization_name: str = DEFAULT_ORGANIZATION_NAME
     max_thread_pool_executors: int = 20
     apm_settings: APMSettings = APMSettings()
+
+    @field_validator("organization_name", mode="before")
+    @classmethod
+    def _organization_name_unset_is_the_default(cls, value):
+        # an empty variable (``ORGANIZATION_NAME=`` in an env file) is unset,
+        # not a blank sender name
+        if value is None or not str(value).strip():
+            return DEFAULT_ORGANIZATION_NAME
+        return str(value).strip()
 
     @field_validator("api_key")
     @classmethod

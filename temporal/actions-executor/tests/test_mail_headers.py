@@ -30,7 +30,7 @@ from utilities.mail_headers import (  # noqa: E402
     respondent_from_name,
 )
 
-INJECTION = "Acme\r\nBcc: victim@example.net\r\nX-Evil: 1"
+INJECTION = "Acme\r\nBcc: victim\r\nX-Evil: 1"
 
 
 # ------------------------------------------------------------------ one_line
@@ -72,7 +72,7 @@ def test_one_line_caps_with_an_ellipsis():
     [
         ("Acme Corp", "BetterCollected", "Acme Corp via BetterCollected"),
         ("  Acme   Corp ", "Better Collected", "Acme Corp via Better Collected"),
-        ("Acme\r\nBcc: x@example.net", "BC", "Acme Bcc: x@example.net via BC"),
+        ("Acme\r\nBcc: x\r\nX-Evil: 1", "BC", "Acme Bcc: x X-Evil: 1 via BC"),
         # no workspace, or the instance's own name: the instance alone
         (None, "BetterCollected", "BetterCollected"),
         ("", "BetterCollected", "BetterCollected"),
@@ -81,10 +81,39 @@ def test_one_line_caps_with_an_ellipsis():
         ("Acme", "", "Acme via BetterCollected"),
         ("Acme", None, "Acme via BetterCollected"),
         ("Acme", "\r\n", "Acme via BetterCollected"),
+        # U+2028 / U+2029 are line breaks too
+        ("Acme\u2028Bcc: x\u2029Corp", "BC", "Acme Bcc: x Corp via BC"),
+        # an encoded-word start is removed, however it is nested
+        ("=?utf-8?b?QWNtZQ==?=", "BC", "utf-8?b?QWNtZQ== via BC"),
+        ("=?=?x?q?y?=", "BC", "x?q?y?= via BC"),
+        ("=\u200b?Acme", "BC", "Acme via BC"),
+        ("Acme ==??Corp", "BC", "Acme Corp via BC"),
+        # looks like an address or a link: the instance alone
+        ("billing@bank.example", "BC", "BC"),
+        ("Acme <ceo@acme.example>", "BC", "BC"),
+        ("https://bank.example/login", "BC", "BC"),
+        ("go to bank.example://x", "BC", "BC"),
+        ("Acme B.V.", "BC", "Acme B.V. via BC"),
     ],
 )
 def test_the_respondent_from_name(workspace, instance, expected):
     assert respondent_from_name(workspace, instance) == expected
+
+
+@pytest.mark.parametrize("own", [True, False])
+@pytest.mark.parametrize(
+    "title", ["=?utf-8?b?QmFuaw==?= <x@y.example>", "support@bank.example", "https://a.example"]
+)
+def test_a_title_posing_as_an_address_or_encoded_name_is_not_in_from(
+    monkeypatch, own, title
+):
+    _, raw = _send(
+        monkeypatch, title, "Survey", workspace_values=OWN_FULL_SMTP if own else None
+    )
+    _, parsed = _headers(raw)
+    (name, address), = getaddresses([str(parsed["From"])])
+    assert name == "BetterCollected"
+    assert "=?" not in raw.split("\n\n", 1)[0].split("Subject:")[0]
 
 
 @pytest.mark.parametrize("workspace", ["W" * 300, "w " * 200, "東" * 90])
@@ -254,7 +283,7 @@ def test_titles_cannot_inject_headers(monkeypatch, own):
     assert subject == "Copy of your response to Survey Bcc: other@example.net X-Evil: 2"
     # the From header is one address, the instance's tail intact
     (name, address), = getaddresses([str(parsed["From"])])
-    assert " ".join(name.split()) == "Acme Bcc: victim@example.net X-Evil: 1 via BetterCollected"
+    assert " ".join(name.split()) == "Acme Bcc: victim X-Evil: 1 via BetterCollected"
     assert address == ("forms@acme.example" if own else "noreply@instance.example")
     assert parseaddr(parsed["To"])[1] == "respondent@example.org"
 
@@ -263,7 +292,7 @@ def test_titles_cannot_inject_headers(monkeypatch, own):
 def test_quotes_and_specials_in_a_title_stay_inside_the_display_name(monkeypatch, own):
     _, raw = _send(
         monkeypatch,
-        'Acme "Best, Inc" <evil@example.net>',
+        'Acme "Best, Inc" <evil>',
         "Survey",
         workspace_values=OWN_FULL_SMTP if own else None,
     )
@@ -272,8 +301,8 @@ def test_quotes_and_specials_in_a_title_stay_inside_the_display_name(monkeypatch
     assert len(addresses) == 1
     name, address = addresses[0]
     assert address in ("forms@acme.example", "noreply@instance.example")
-    assert name == 'Acme "Best, Inc" <evil@example.net> via BetterCollected'
-    assert "evil@example.net" not in address
+    assert name == 'Acme "Best, Inc" <evil> via BetterCollected'
+    assert "evil" not in address
     assert parsed["Bcc"] is None
 
 
@@ -303,3 +332,25 @@ def test_a_sender_that_is_not_one_address_is_refused(monkeypatch):
                 "Sender": "forms@acme.example\r\nBcc: victim@example.net",
             },
         )
+
+
+# ------------------------------------------------------ the setting
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (None, "Better Collected"),
+        ("", "Better Collected"),
+        ("   ", "Better Collected"),
+        ("  Formulieren NL ", "Formulieren NL"),
+    ],
+)
+def test_the_instance_name_setting_reads_the_environment(monkeypatch, value, expected):
+    from settings.application import ApplicationSettings
+
+    if value is None:
+        monkeypatch.delenv("ORGANIZATION_NAME", raising=False)
+    else:
+        monkeypatch.setenv("ORGANIZATION_NAME", value)
+    assert ApplicationSettings().organization_name == expected

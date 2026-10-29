@@ -51,10 +51,20 @@ def respondent_from_name(
     the sender (its ``ORGANIZATION_NAME``); the workspace title is free text a
     member typed, so it is folded to one line and cut to fit ``FROM_NAME_MAX``
     with the tail. A workspace that is no one, or just the instance's own
-    name, leaves the instance alone."""
+    name, leaves the instance alone.
+
+    A title cannot pose as something else in the sender line either: an
+    encoded-word start ("=?", RFC 2047) is removed, and a title that looks like
+    an address or a link ("@", "://") is dropped, so a mail client never shows
+    a workspace-chosen "billing@bank.example" or URL as the sender."""
     instance = one_line(instance_name, INSTANCE_NAME_MAX) or FALLBACK_INSTANCE_NAME
     tail = f" via {instance}"
-    title = one_line(workspace_title, FROM_NAME_MAX - len(tail))
+    title = one_line(workspace_title, FROM_NAME_MAX * 4)
+    while "=?" in title:  # "==??" becomes "=?" after one pass
+        title = title.replace("=?", "")
+    if "@" in title or "://" in title:
+        title = ""
+    title = one_line(title, FROM_NAME_MAX - len(tail))
     if not title or _squashed(title) == _squashed(instance):
         return instance
     return title + tail

@@ -107,7 +107,7 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "sheets_intro": "De koppeling met Google Sheets van dit formulier moet opnieuw worden gemaakt:",
         "sheets_in_workspace": "in de werkruimte",
         "sheets_why": "De koppeling had toegang tot alle bestanden in uw Google Drive. We vragen nu alleen toegang tot de spreadsheets die {product} voor u maakt.",
-        "sheets_paused": "Zolang u niet opnieuw koppelt, komen nieuwe inzendingen niet in de spreadsheet. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
+        "sheets_paused": "Zolang u niet opnieuw koppelt, worden nieuwe inzendingen niet aan de spreadsheet toegevoegd. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
         "sheets_button": "Google Sheets opnieuw koppelen",
         "sheets_why_you": "U ontvangt deze e-mail omdat het abonnement van deze werkruimte op uw naam staat. Werkt de knop niet? Open dan",
     },
