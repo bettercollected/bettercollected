@@ -31,7 +31,7 @@ from utilities.mail_headers import (
     FROM_NAME_MAX,
     SUBJECT_MAX,
     one_line,
-    uses_own_smtp,
+    respondent_from_name,
 )
 from settings.application import settings
 
@@ -365,12 +365,11 @@ async def run_action(
             username, password, sender, port, server = smtp_settings(
                 get_parameters(), get_secrets()
             )
-            # Through the workspace's own SMTP server and from its own address,
-            # the workspace really is the sender: its title is the From name.
-            # Otherwise (the action's defaults, the instance's server) a mail is
-            # never sent in a workspace's name.
-            own_smtp = uses_own_smtp(action, workspace, form)
-            from_name = workspace.get("title", "") if own_smtp else ""
+            # "<workspace> via <instance>", whichever SMTP server sends it: the
+            # instance is named as the sender, the workspace as on whose behalf
+            from_name = respondent_from_name(
+                workspace.get("title"), settings.organization_name
+            )
 
             mail_config = config_mail(
                 username, password, sender, port, server, from_name

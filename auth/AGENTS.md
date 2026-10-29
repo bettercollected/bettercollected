@@ -144,7 +144,11 @@ google `services/migration_service.py`. Never put the key on a shared HTTP clien
   An inviter's avatar may also come from `MAIL_AVATAR_URL_PREFIXES` (default `https://lh3.googleusercontent.com/`,
   where Google sign-in's `picture` is served); images load on open, so any other host would learn the recipient's IP.
   The code mail's body names the workspace as "<workspace> via <ORGANIZATION_NAME>". `/auth/otp/send` never refuses
-  over-long values (a refusal makes the backend answer the respondent 502): titles are capped, bad images dropped. The mails are English only; there is no locale support yet.
+  over-long values (a refusal makes the backend answer the respondent 502): titles are capped, bad images dropped. Mails are English or Dutch (`locale`, table in `services/mail_text.py`). Dutch register follows the audience: creators
+  and team members (creator sign-in code, invitation, Sheets reconnect) get the formal "u"/"uw" like the dashboard;
+  respondents (submission update, a respondent's sign-in code via `texts(locale, respondent=True)`) get "je". Keep new
+  texts in the right register; `tests/integration/app/test_mail_templates.py` pins it. (The actions executor's respondent
+  copy is the one mail sent as "<workspace> via <`ORGANIZATION_NAME`>", built in `temporal/actions-executor/utilities/mail_headers.py`.)
 - **Notifications** (`controllers/notifications_router.py`, `services/notification_service.py`):
   `POST /notifications/submission-update` mails a respondent (fixed subject "Update on your submission") that staff responded to their submission. Not a
   relay: **only the backend may call it** — the internal key, like every route (see "Internal-only API"),

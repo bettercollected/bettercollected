@@ -29,6 +29,9 @@ class ApplicationSettings(BaseSettings):
     backend_url: str = "http://localhost:8000/api/v1"
     workers: int = 10
     cookie_domain: str = "localhost"
+    # this instance's name: the sender of a respondent's copy is
+    # "<workspace> via <organization_name>" (the auth service's ORGANIZATION_NAME)
+    organization_name: str = "Better Collected"
     max_thread_pool_executors: int = 20
     apm_settings: APMSettings = APMSettings()
 

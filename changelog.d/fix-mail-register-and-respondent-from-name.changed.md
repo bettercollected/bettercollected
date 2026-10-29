@@ -1,0 +1,2 @@
+- Dutch mails to creators and team members (sign-in code, invitation, Google Sheets reconnect) now address them formally ("u", "uw"), like the dashboard; mails to respondents keep the informal "je".
+- A respondent's copy of their response is sent as "<workspace> via <instance name>" (the actions executor reads `ORGANIZATION_NAME`), also when a workspace uses its own SMTP server.

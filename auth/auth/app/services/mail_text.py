@@ -5,6 +5,12 @@ anything that is not Dutch gets English. Values chosen by people (workspace
 and form titles, an inviter's name) are never part of these strings: the
 templates place them next to the words, autoescaped.
 
+Dutch register follows the audience, as on the pages: mails to creators and team
+members (sign-in code for a creator, invitation, Google Sheets reconnect) use the
+formal "u"/"uw", matching the dashboard; mails to respondents (submission updates,
+and the sign-in code a respondent asks for) use the informal "je", matching the
+respondent pages. English has one register.
+
 Attribution is honest: the sender is always this instance (``product``); a
 workspace appears as "<workspace> via <product>", and an inviter's name is
 what they call themselves, shown as such.
@@ -73,20 +79,20 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "footer_more": "voor meer informatie",
         "footer_product_of": "Een product van Sireto B.V.",
         "footer_trademark": "is een geregistreerd handelsmerk van Sireto B.V.",
-        "code_subject": "Je verificatiecode voor {product}",
+        "code_subject": "Uw verificatiecode voor {product}",
         "code_heading": "verificatiecode",
-        "code_intro": "Gebruik de code hieronder om te bevestigen dat jij het bent.",
+        "code_intro": "Gebruik de code hieronder om te bevestigen dat u het bent.",
         "code_expiry": "Deze code is 5 minuten geldig",
-        "code_not_you": "Heb je geen code aangevraagd?",
+        "code_not_you": "Heeft u geen code aangevraagd?",
         "code_report": "Meld het dan bij",
-        "invite_subject": "Je bent uitgenodigd voor een werkruimte op {product}",
+        "invite_subject": "U bent uitgenodigd voor een werkruimte op {product}",
         "invite_heading_via": "via",
-        "invite_line": "nodigt je uit voor deze werkruimte",
-        "invite_line_role": "nodigt je uit voor deze werkruimte als",
+        "invite_line": "nodigt u uit voor deze werkruimte",
+        "invite_line_role": "nodigt u uit voor deze werkruimte als",
         "invite_name_note": "Dit is de naam die deze persoon zelf op {product} heeft opgegeven.",
         "invite_button": "Naar de werkruimte",
         "invite_expiry": "Deze link is 7 dagen geldig",
-        "invite_pitch": "Organiseer en beheer je formulierreacties, en bouw vertrouwen op.",
+        "invite_pitch": "Organiseer en beheer uw formulierreacties, en bouw vertrouwen op.",
         "invite_learn_more": "Meer weten",
         "invite_unknown_workspace": "een werkruimte",
         "update_subject": "Nieuws over je inzending",
@@ -96,14 +102,25 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "update_sign_in": "Log in om die te lezen.",
         "update_button": "Bekijk je inzending",
         "update_why": "Je krijgt deze e-mail omdat je dit formulier hebt ingevuld met je bevestigde e-mailadres. Werkt de knop niet? Open dan",
-        "sheets_subject": "Koppel Google Sheets opnieuw voor een van je formulieren",
+        "sheets_subject": "Koppel Google Sheets opnieuw voor een van uw formulieren",
         "sheets_heading": "Koppel Google Sheets opnieuw",
         "sheets_intro": "De koppeling met Google Sheets van dit formulier moet opnieuw worden gemaakt:",
         "sheets_in_workspace": "in de werkruimte",
-        "sheets_why": "De koppeling had toegang tot alle bestanden in je Google Drive. We vragen nu alleen toegang tot de spreadsheets die {product} voor je maakt.",
-        "sheets_paused": "Tot je opnieuw koppelt, komen nieuwe inzendingen niet in de spreadsheet. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
+        "sheets_why": "De koppeling had toegang tot alle bestanden in uw Google Drive. We vragen nu alleen toegang tot de spreadsheets die {product} voor u maakt.",
+        "sheets_paused": "Zolang u niet opnieuw koppelt, komen nieuwe inzendingen niet in de spreadsheet. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
         "sheets_button": "Google Sheets opnieuw koppelen",
-        "sheets_why_you": "Je krijgt deze e-mail omdat het abonnement van deze werkruimte op jouw naam staat. Werkt de knop niet? Open dan",
+        "sheets_why_you": "U ontvangt deze e-mail omdat het abonnement van deze werkruimte op uw naam staat. Werkt de knop niet? Open dan",
+    },
+}
+
+
+# The sign-in code mail goes to creators and to respondents alike; the table
+# above is the creators' (formal) text, a respondent gets the informal one.
+RESPONDENT_TEXTS: Dict[str, Dict[str, str]] = {
+    "nl": {
+        "code_subject": "Je verificatiecode voor {product}",
+        "code_intro": "Gebruik de code hieronder om te bevestigen dat jij het bent.",
+        "code_not_you": "Heb je geen code aangevraagd?",
     },
 }
 
@@ -114,8 +131,15 @@ def mail_locale(value: Optional[str]) -> str:
     return "nl" if tag == "nl" or tag.startswith("nl-") else DEFAULT_LOCALE
 
 
-def texts(locale: Optional[str]) -> Dict[str, str]:
-    return TEXTS[mail_locale(locale)]
+def texts(locale: Optional[str], respondent: bool = False) -> Dict[str, str]:
+    """The words in the mail's language. ``respondent``: the recipient is a
+    respondent, not a creator or team member (only matters in Dutch, which
+    addresses them informally)."""
+    language = mail_locale(locale)
+    table = TEXTS[language]
+    if respondent and language in RESPONDENT_TEXTS:
+        table = {**table, **RESPONDENT_TEXTS[language]}
+    return table
 
 
 def role_name(role: Optional[str], locale: Optional[str]) -> Optional[str]:
