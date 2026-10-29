@@ -3158,7 +3158,7 @@
       "checks": [
         "server"
       ],
-      "clientDiffers": "The browser enforces it (JavaScript supports the construct); the server matches with RE2, which does not, so it accepts rather than guess.",
+      "clientDiffers": "The server matches with RE2, which has no lookarounds or backreferences, so it accepts rather than guess (such a pattern is refused when a form is saved now; this is a form stored earlier). The browser tests no custom pattern.",
       "form": [
         {
           "id": "p1",
@@ -3190,7 +3190,7 @@
       "checks": [
         "server"
       ],
-      "clientDiffers": "The browser enforces it (JavaScript supports the construct); the server matches with RE2, which does not, so it accepts rather than guess.",
+      "clientDiffers": "The server matches with RE2, which has no lookarounds or backreferences, so it accepts rather than guess (such a pattern is refused when a form is saved now; this is a form stored earlier). The browser tests no custom pattern.",
       "form": [
         {
           "id": "p1",
@@ -3222,7 +3222,7 @@
       "checks": [
         "server"
       ],
-      "clientDiffers": "The builder and the form spec accept at most 200 characters (the builder flags a longer stored pattern); the browser still checks one, the server does not.",
+      "clientDiffers": "The builder and the form spec accept at most 200 characters (the builder flags a longer stored pattern); the server does not check a longer one. The browser tests no custom pattern.",
       "form": [
         {
           "id": "p1",
