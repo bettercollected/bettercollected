@@ -419,8 +419,23 @@ async def internal_client(_initialized_app):
         yield ac
 
 
+# A workspace needs a title before a form in it is published (services/
+# publish_checks.py ``workspace_title_problem``); a new default workspace has
+# none, so the shared fixtures name theirs. A test of the check starts from
+# ``untitled_workspace`` instead.
+TEST_WORKSPACE_TITLE = "Test workspace"
+
+
+async def _name(workspace):
+    await container.workspace_repo().set_fields(
+        workspace, {"title": TEST_WORKSPACE_TITLE}
+    )
+    return workspace
+
+
 @pytest.fixture()
-async def workspace():
+async def untitled_workspace():
+    """The default workspace as a new account has it: no title."""
     await workspace_service.create_workspace(testUser)
     workspace = await container.workspace_repo().get_default_workspace_by_owner_id(
         testUser.id
@@ -436,11 +451,18 @@ async def workspace():
 
 
 @pytest.fixture()
+async def workspace(untitled_workspace):
+    return await _name(untitled_workspace)
+
+
+@pytest.fixture()
 async def workspace_1():
     await workspace_service.create_workspace(testUser)
     await workspace_service.create_workspace(testUser1)
-    return await container.workspace_repo().get_default_workspace_by_owner_id(
-        testUser1.id
+    return await _name(
+        await container.workspace_repo().get_default_workspace_by_owner_id(
+            testUser1.id
+        )
     )
 
 

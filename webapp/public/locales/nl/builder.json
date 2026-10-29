@@ -10,6 +10,11 @@
   "PUBLISH": {
     "DEFAULT": "Publiceren"
   },
+  "PUBLISH_WORKSPACE_TITLE": {
+    "TEXT_MANAGE": "Uw werkruimte heeft een naam nodig voordat een formulier kan worden gepubliceerd. Respondenten zien die naam als de partij die hun antwoorden ontvangt.",
+    "TEXT_MEMBER": "Uw werkruimte heeft een naam nodig voordat een formulier kan worden gepubliceerd. Respondenten zien die naam als de partij die hun antwoorden ontvangt. Vraag een beheerder van de werkruimte om de naam in te stellen: alleen beheerders kunnen dat.",
+    "ACTION": "Werkruimtenaam instellen"
+  },
   "FORM_TITLE": {
     "PLACEHOLDER": "Formulier Titel"
   },

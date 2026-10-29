@@ -8,6 +8,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
+from backend.app.services.publish_checks import PUBLISH_CHECKS_VERSION
 from tests.app.response_helpers import deletion_request_of, unlinked_scope
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
@@ -482,7 +483,7 @@ class TestWorkspaceForm:
                 **workspace_settings,
                 "embedUrl": None,
                 "provider": "self",
-                "publishChecksVersion": 1,
+                "publishChecksVersion": PUBLISH_CHECKS_VERSION,
                 "needsReview": None,
                 "importSource": None,
                 "importId": None,

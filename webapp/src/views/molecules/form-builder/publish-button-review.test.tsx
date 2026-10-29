@@ -67,7 +67,8 @@ function renderButton() {
 }
 
 const setUp = (settings: Record<string, unknown>) => {
-    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+    // a titled workspace: without a title nothing here would be published (publish-button-workspace-title.test.tsx)
+    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', title: 'Acme Foundation' } as any));
     store.dispatch(setForm({ formId: 'form-1', title: 'Imported form', settings, thankyouPage: [{ id: 'end-1', name: 'Thanks' }] } as any));
 };
 
