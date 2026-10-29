@@ -657,7 +657,7 @@ A few API routes are only ever called by services inside the stack, with a share
 |---|---|---|
 | `GET /internal/admin-tasks/case-duplicate-accounts`, `POST .../{id}/drop` | `task-runner` (`ADMIN_TASKS_BACKEND_URL`) | `ADMIN_TASKS_API_KEY` in `X-Admin-Tasks-Key` |
 | `POST /temporal/delete/submissions/{id}`, `PATCH /template/{id}/preview`, `DELETE /auth/user` | Temporal worker (`SERVER_URL`) | `TEMPORAL_API_KEY` in `api-key` (the worker's `API_KEY`) |
-| `PATCH /temporal/forms/{form}/actions/{action}/secrets`, `PATCH /workspaces/{ws}/forms/{form}/action/{action}/update` | actions executor (`SERVER_URL`) | the same |
+| `PATCH /temporal/forms/{form}/actions/{action}/secrets`, `PATCH /workspaces/{ws}/forms/{form}/action/{action}/update`, `POST /temporal/workspaces/{ws}/forms/{form}/copy-recipient` | actions executor (`SERVER_URL`) | the same |
 
 The key is not their only guard. The backend also listens on `API_INTERNAL_PORT` (8001), which
 is never published or proxied, and refuses these routes with a plain 404, before it looks at any

@@ -146,6 +146,7 @@ from backend.app.services.scim.webhook_service import ScimWebhookService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
+from backend.app.services.copy_recipient import CopyRecipientService
 from backend.app.services.form_actions_service import FormActionsService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
@@ -414,6 +415,13 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
     )
 
+    copy_recipient_service: CopyRecipientService = providers.Singleton(
+        CopyRecipientService,
+        workspace_user_service=workspace_user_service,
+        workspace_form_repository=workspace_form_repo,
+        http_client=http_client,
+    )
+
     form_import_service: FormImportService = providers.Singleton(
         FormImportService,
         form_service=form_service,
@@ -471,6 +479,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         aws_service=aws_service,
         action_service=action_service,
+        copy_recipient_service=copy_recipient_service,
         crypto=crypto,
         form_template_repo=LazyRepository(lambda: container.form_template_repo()),
         pdf_import_repo=form_import_repo,

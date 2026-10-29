@@ -18,6 +18,11 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.app.services.copy_recipient import (
+    CREATOR_COPY_ACTION,
+    not_allowed,
+    recipient_values,
+)
 
 
 class ActionService:
@@ -126,6 +131,10 @@ class ActionService:
         )
 
     async def create_global_action(self, action: ActionDto, user: User):
+        if action.name == CREATOR_COPY_ACTION and recipient_values(action.parameters):
+            # an instance-wide default would mail every workspace's responses
+            # to one address; a form's copies go to its own members only
+            raise not_allowed()
         return await self.action_repository.create_global_action(
             action=action, user=user
         )

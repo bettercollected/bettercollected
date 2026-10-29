@@ -23,6 +23,11 @@ OID = "65a000000000000000000001"
 WORKER_ROUTES = [
     ("POST", "/api/v1/temporal/delete/submissions/s1", {}),
     ("PATCH", f"/api/v1/temporal/forms/{OID}/actions/{OID}/secrets", {"json": {}}),
+    (
+        "POST",
+        f"/api/v1/temporal/workspaces/{OID}/forms/{OID}/copy-recipient",
+        {"json": {"address": "a@example.test"}},
+    ),
     ("PATCH", f"/api/v1/workspaces/{OID}/forms/{OID}/action/{OID}/update", {}),
     ("PATCH", f"/api/v1/template/{OID}/preview", {}),
     ("DELETE", "/api/v1/auth/user", {}),
