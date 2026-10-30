@@ -66,6 +66,7 @@ from backend.app.services.form_logo import (
     read_logo_upload,
 )
 from backend.app.services.form_concurrency import ensure_not_changed_since
+from backend.app.services.form_availability import ensure_accepting_responses
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.answer_validation import (
@@ -1138,6 +1139,7 @@ class WorkspaceFormService:
         form_files: list[FormFileResponse] = None,
         ai_notice_token: Optional[str] = None,
         client_today: Optional[str] = None,
+        received_at: Optional[dt.datetime] = None,
     ):
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
@@ -1161,13 +1163,30 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-        # "Require verified identity" was enforced only by the webapp; a form
-        # that asks for it refuses submissions without a signed-in respondent.
         workspace_form = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
                 workspace_id=workspace_id, query=str(form_id)
             )
         )
+        # A closed form takes no new responses: 409 form_closed before
+        # anything is stored, uploaded or started. The close date is checked
+        # against the time the request arrived, within a bound
+        # (services/form_availability.py decision_time).
+        ensure_accepting_responses(
+            workspace_form.settings if workspace_form else None,
+            received_at=received_at,
+        )
+        # Respondents fill the published version: a form never published has
+        # none, and takes no responses (as its read answers 404).
+        latest_version_of_form = await self.form_service.get_latest_version_of_form(
+            form_id=form_id
+        )
+        if latest_version_of_form is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        # "Require verified identity" was enforced only by the webapp; a form
+        # that asks for it refuses submissions without a signed-in respondent.
         if (
             workspace_form
             and workspace_form.settings
@@ -1191,12 +1210,9 @@ class WorkspaceFormService:
         # against the form's current setting. Never what the body claims.
         stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
-        latest_version_of_form = await self.form_service.get_latest_version_of_form(
-            form_id=form_id
-        )
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(
-            latest_version_of_form or form, response.answers
+            latest_version_of_form, response.answers
         )
         # Calculated fields are the server's to compute: what the client sent
         # for them is replaced, before logic, jumps and Required use them
@@ -1204,7 +1220,7 @@ class WorkspaceFormService:
         # it is a plausible one (within a day of the UTC date), as their
         # browser computed with it; else the server's.
         today = respondent_today(client_today)
-        filled = latest_version_of_form or form
+        filled = latest_version_of_form
         response.answers = drop_draft_calculations(
             response.answers, form, latest_version_of_form
         )

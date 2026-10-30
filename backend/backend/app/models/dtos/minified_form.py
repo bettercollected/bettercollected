@@ -63,6 +63,9 @@ class FormDtoCamelModel(CamelModel):
     welcome_page: Optional[WelcomePageField] = None
     thankyou_page: Optional[EndingPages] = None
     unauthorized: Optional[bool] = None
+    # Why a respondent gets the welcome page alone, without the questions:
+    # "closed" once the form's close date has passed (form_availability.py).
+    unavailable: Optional[str] = None
     # Signed proof that this page shows the AI insights notice (#752): only on
     # the published form while the form allows AI insights. The form page
     # sends it back with the submission.

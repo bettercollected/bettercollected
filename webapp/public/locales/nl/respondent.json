@@ -43,7 +43,8 @@
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
         "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
-        "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd."
+        "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd.",
+        "SUBMIT_CLOSED": "Dit formulier is gesloten voordat je antwoorden zijn verstuurd. Je antwoorden zijn niet verstuurd."
     },
     "CONSENT": {
         "SHARE_EMAIL": "Mijn e-mailadres delen met wie dit formulier verzamelt",
@@ -59,7 +60,9 @@
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
         "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
-        "CONTENTS": "In dit formulier"
+        "CONTENTS": "In dit formulier",
+        "CLOSED": "Dit formulier is gesloten en neemt geen antwoorden meer aan.",
+        "CLOSED_STAFF": "Dit formulier is gesloten: respondenten kunnen geen antwoorden meer versturen."
     },
     "ACCOUNT": {
         "LABEL": "Account",
