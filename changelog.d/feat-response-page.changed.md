@@ -1,4 +1,0 @@
-- Responses open on their own page that looks like the form (its theme, its pages as
-  sections, every question with the answer marked), instead of a side panel. A form of
-  several pages gets a contents list with a link to each page. The responses table opens
-  it by click, Enter or link, and the old side-panel link now goes to the page.
