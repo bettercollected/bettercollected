@@ -489,6 +489,7 @@ class WorkspaceFormsRouter(Routable):
         if dropped_rules:
             # field rules the save left out because they were broken
             # (services/field_rules.py); the draft no longer has them
+            # (FormDtoCamelModel.dropped_field_rules carries it out)
             saved.droppedFieldRules = dropped_rules
         return saved
 

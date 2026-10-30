@@ -1669,6 +1669,12 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
         if repeat is not None and repeat.item_title:
             for old_id, new_id in id_map.items():
                 repeat.item_title = repeat.item_title.replace(old_id, new_id)
+    # Field rules are not copied (rule ids are unique per form, and their
+    # references point at the original page), as in the builder
+    # (webapp utils/field-rule-copies.ts).
+    for field in _subtree(clone):
+        if field.properties is not None:
+            field.properties.rules = None
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None

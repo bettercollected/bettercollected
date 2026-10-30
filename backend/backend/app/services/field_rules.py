@@ -766,6 +766,23 @@ def rule_keys_reading(form: Any, keys: Iterable[str]) -> Set[str]:
     return found
 
 
+def rule_keys_affected(form: Any, keys: Iterable[str]) -> Set[str]:
+    """``rule_keys_reading`` through set values: when a question whose value
+    a rule sets reads one of ``keys``, its value may change, so the rules
+    that read it are affected too (and so on, at most once per question).
+    What an edit of ``keys`` must check again."""
+    wanted = {str(key) for key in keys}
+    value_ids = set(server_value_ids(form))
+    found: Set[str] = set()
+    while True:
+        reached = rule_keys_reading(form, wanted)
+        more = (reached & value_ids) - wanted
+        found |= reached
+        if not more:
+            return found
+        wanted |= more
+
+
 def _sibling_ids(target: _Target) -> Set[str]:
     return {str(_get(c, "id")) for c in _children(target.group) if _get(c, "id")}
 
@@ -1319,6 +1336,24 @@ def prune_field_rules(form: Any) -> List[FieldRuleProblem]:
     return dropped
 
 
+def strip_field_rules(form: Any) -> int:
+    """Remove every field rule from ``form``, in place; how many there were.
+    For writers that never bring rules (provider imports): whatever such a
+    payload holds, no rule comes in through them."""
+    removed = 0
+    for field in _walk(form):
+        rules = _rules(field)
+        if not rules:
+            continue
+        removed += len(rules)
+        properties = _get(field, "properties")
+        if isinstance(properties, dict):
+            properties["rules"] = None
+        else:
+            properties.rules = None
+    return removed
+
+
 def _refuse(problems: List[FieldRuleProblem]) -> None:
     raise HTTPException(
         status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -1369,13 +1404,35 @@ def _dropped_rule_id(
 
 def new_or_changed_rules(form: Any, existing: Any = None) -> List[Tuple[str, str]]:
     """``(field id, rule id)`` of the rules ``form`` has that ``existing``
-    (the stored version, or None) does not have exactly as they are."""
+    (the stored version, or None) does not have exactly as they are, in the
+    same order on their question (the last active rule wins, so an order
+    change is a change: every rule of that question counts)."""
     stored = _stored_rules(existing) if existing is not None else {}
-    return [
+    changed = [
         key
         for key, signature in _stored_rules(form).items()
         if stored.get(key) != signature
     ]
+    before = _rule_orders(existing) if existing is not None else {}
+    for field_id, ids in _rule_orders(form).items():
+        old = before.get(field_id, [])
+        kept_now = [rule_id for rule_id in ids if rule_id in old]
+        kept_then = [rule_id for rule_id in old if rule_id in ids]
+        if kept_now != kept_then:
+            changed.extend(
+                (field_id, rule_id)
+                for rule_id in ids
+                if (field_id, rule_id) not in changed
+            )
+    return changed
+
+
+def _rule_orders(form: Any) -> Dict[str, List[str]]:
+    return {
+        str(_get(field, "id")): [str(_get(rule, "id")) for rule in _rules(field)]
+        for field in _walk(form)
+        if _rules(field)
+    }
 
 
 def ensure_rules_allowed(form: Any, existing: Any = None) -> None:

@@ -6,6 +6,8 @@ from classy_fastapi import Routable, post, get, patch, delete
 from http import HTTPStatus
 
 from fastapi import Depends, UploadFile, Form
+from starlette.concurrency import run_in_threadpool
+from common.models.standard_form import FORM_FIELD_RULES_MAX, raw_rule_count
 from pydantic import ValidationError
 from common.models.user import User
 from typing import Optional
@@ -37,7 +39,16 @@ def template_from_form_body(body: str) -> StandardFormTemplateCamelModel:
     """The template a multipart ``template_body`` describes; a 422 naming the
     invalid fields (never their values) when it doesn't fit the model."""
     try:
-        return StandardFormTemplateCamelModel(**json.loads(body))
+        data = json.loads(body)
+        # far too many field rules: refused before each one is parsed
+        rules = raw_rule_count(data.get("fields")) if isinstance(data, dict) else 0
+        if rules > FORM_FIELD_RULES_MAX:
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                content=f"A template can have at most {FORM_FIELD_RULES_MAX} rules; "
+                f"this one has {rules}.",
+            )
+        return StandardFormTemplateCamelModel(**data)
     except (ValidationError, ValueError, TypeError) as error:
         places = (
             sorted({".".join(str(p) for p in e["loc"]) for e in error.errors()})
@@ -145,7 +156,7 @@ class FormTemplateRouter(Routable):
         cover_image: UploadFile = None,
         user: User = Depends(get_full_user),
     ):
-        template = template_from_form_body(template_body)
+        template = await run_in_threadpool(template_from_form_body, template_body)
         response = await self.form_template_service.create_new_template(
             workspace_id=workspace_id,
             user=user,
@@ -200,7 +211,7 @@ class FormTemplateRouter(Routable):
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
     ):
-        template = template_from_form_body(template_body)
+        template = await run_in_threadpool(template_from_form_body, template_body)
         response = await self.form_template_service.update_template(
             workspace_id=workspace_id,
             template_id=template_id,

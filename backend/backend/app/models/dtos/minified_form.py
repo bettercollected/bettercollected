@@ -67,6 +67,10 @@ class FormDtoCamelModel(CamelModel):
     # the published form while the form allows AI insights. The form page
     # sends it back with the submission.
     ai_notice_token: Optional[str] = None
+    # Only in the answer to a builder save: the field rules that save left
+    # out because they were broken (``fieldId``, ``ruleId``, ``message``;
+    # services/field_rules.py). Never stored.
+    dropped_field_rules: Optional[List[Dict[str, Optional[str]]]] = None
     # Where a submission is also sent (registration): ``{"organisation": name}``,
     # only on the published form while the switch is on and its registration
     # is enabled. The privacy panel names it. Derived, never stored here.

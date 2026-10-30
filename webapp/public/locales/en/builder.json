@@ -735,5 +735,9 @@
     "UNAVAILABLE": "The pattern could not be checked right now. Try again.",
     "SYNTAX": "Patterns use RE2 syntax: there are no lookarounds and no backreferences.",
     "KEPT": "The pattern the question already has stays in use until this one is valid."
+  },
+  "FIELD_RULES": {
+    "DROPPED_one": "A rule on {{count}} question could not be kept: it read a question or value this form no longer has. The form was saved without it.",
+    "DROPPED_other": "Rules on {{count}} questions could not be kept: they read questions or values this form no longer has. The form was saved without them."
   }
 }

@@ -2,11 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import i18n from 'i18next';
 import { useStore } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
+import { toast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
@@ -23,6 +25,18 @@ import { reloadPage } from '@app/utils/reload-page';
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
 
 /** How the server's answer to a save maps onto the queue. */
+/**
+ * The notice for field rules a save left out because they were broken
+ * (the server lists them as `droppedFieldRules`), or null. Counted per
+ * question; the builder cannot show or edit rules yet.
+ */
+export function droppedRulesNotice(data: any): string | null {
+    const dropped = Array.isArray(data?.droppedFieldRules) ? data.droppedFieldRules : [];
+    if (!dropped.length) return null;
+    const questions = new Set(dropped.map((item: any) => item?.fieldId)).size;
+    return i18n.t('builder:FIELD_RULES.DROPPED', { count: questions });
+}
+
 export function saveOutcomeOf(response: any): SaveOutcome {
     if (response?.data) return { kind: 'saved', version: response.data.updatedAt ?? null };
     const status = response?.error?.status;
@@ -119,6 +133,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         const outcome = saveOutcomeOf(response);
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                            const notice = droppedRulesNotice(response.data);
+                            if (notice) toast({ description: notice });
                             // The language the server stored: it keeps its own
                             // for a tag that cannot be set (after an undo back to
                             // an imported "en-GB", say), and the builder shows that.

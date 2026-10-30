@@ -85,7 +85,7 @@ from backend.app.services.calculated_fields import (
 from backend.app.services.field_rules import (
     ensure_rules_allowed,
     ensure_valid_field_rules,
-    rule_keys_reading,
+    rule_keys_affected,
 )
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
@@ -1108,7 +1108,9 @@ class WorkspaceFormService:
         # or locks (calculate_and_check adds those): the edit may now
         # require it or give it a value.
         changed_keys = list((response.answers or {}).keys())
-        rule_keys = sorted(rule_keys_reading(form, changed_keys + calc_ids))
+        # (through set values: a question whose rule reads a set value is
+        # affected when what sets that value changes)
+        rule_keys = sorted(rule_keys_affected(form, changed_keys + calc_ids))
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
         # CPU-bound (creator patterns, formulas): off the event loop.

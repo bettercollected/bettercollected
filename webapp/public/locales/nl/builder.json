@@ -735,5 +735,9 @@
     "UNAVAILABLE": "Het patroon kon nu niet worden gecontroleerd. Probeer het opnieuw.",
     "SYNTAX": "Patronen gebruiken RE2-syntaxis: er zijn geen lookarounds en geen terugverwijzingen.",
     "KEPT": "Het patroon dat de vraag al heeft, blijft gelden tot dit patroon geldig is."
+  },
+  "FIELD_RULES": {
+    "DROPPED_one": "Een regel op {{count}} vraag kon niet blijven staan: hij gebruikte een vraag of waarde die dit formulier niet meer heeft. Het formulier is zonder die regel opgeslagen.",
+    "DROPPED_other": "Regels op {{count}} vragen konden niet blijven staan: ze gebruikten vragen of waarden die dit formulier niet meer heeft. Het formulier is zonder die regels opgeslagen."
   }
 }

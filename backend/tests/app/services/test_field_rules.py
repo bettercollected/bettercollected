@@ -1974,3 +1974,107 @@ def test_a_builder_payload_far_over_the_rule_cap_is_refused_before_parsing():
     assert time.perf_counter() - start < 1.0
     assert error.value.status_code == 422
     assert "at most 100 rules" in error.value.content
+
+
+# --- delta review fixes -------------------------------------------------------
+
+# a: input; s: set to "x" while a == "yes"; q: required while s == "x".
+CHAIN = [
+    _q("a"),
+    _q("s", rules=[_rule("rs", {"setValue": {"const": "x"}}, [_is("a", "yes")])]),
+    _q("q", rules=[_rule("rq", {"required": True}, [_is("s", "x")])]),
+]
+
+
+async def test_an_edit_rechecks_rules_reading_a_value_it_changed(workspace, rules_on):
+    form = await _published(workspace, CHAIN, edit=True)
+    service = container.workspace_form_service()
+    submitted = await service.submit_response(
+        workspace.id,
+        form.form_id,
+        StandardFormResponseCamelModel(answers={"a": _text("no")}),
+        testUser,
+    )
+
+    async def edit(answers):
+        await service.patch_response(
+            workspace.id,
+            form.form_id,
+            submitted.response_id,
+            None,
+            StandardFormResponseCamelModel(answers=answers),
+            testUser,
+        )
+        return await _stored(workspace, submitted.response_id)
+
+    # a -> s ("x") -> q now required: the edit is refused, nothing stored
+    with pytest.raises(HTTPException) as error:
+        await edit({"a": _text("yes")})
+    assert error.value.content["errors"] == [{"fieldId": "q", "rule": "required"}]
+    assert "s" not in await _stored(workspace, submitted.response_id)
+    answers = await edit({"a": _text("yes"), "q": _text("done")})
+    assert answers["s"]["text"] == "x" and answers["q"]["text"] == "done"
+
+
+def test_affected_keys_follow_set_values():
+    from backend.app.services.field_rules import rule_keys_affected
+
+    form = _form(CHAIN + [_q("other")])
+    assert rule_keys_reading(form, ["a"]) == {"s"}
+    assert rule_keys_affected(form, ["a"]) == {"s", "q"}
+    # an untouched value question whose inputs did not change stays out
+    assert rule_keys_affected(form, ["other"]) == set()
+
+
+def test_duplicate_page_does_not_copy_rules():
+    form = _form(
+        [_q("a"), _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])])]
+    )
+    done, results = apply_form_ops(
+        form, parse_ops([{"op": "duplicate_page", "pageId": "p0", "index": 0}])
+    )
+    assert results[0].ok, results[0].message
+    copy, original = done.fields
+    assert all(
+        f.properties is None or f.properties.rules is None
+        for f in copy.properties.fields
+    )
+    # the original keeps its rule, unchanged
+    rules = original.properties.fields[1].properties.rules
+    assert [(r.id, r.when.conditions[0].field_id) for r in rules] == [("r1", "a")]
+    assert field_rule_problems(done) == []
+
+
+def test_reordering_rules_is_a_change(rules_off):
+    from backend.app.services.field_rules import (
+        ensure_rules_allowed,
+        new_or_changed_rules,
+    )
+
+    r1 = _rule("r1", {"required": True}, [_is("a", "x")])
+    r2 = _rule("r2", {"required": False}, [_is("a", "x")])
+    stored = _form([_q("a"), _q("b", rules=[r1, r2])])
+    assert new_or_changed_rules(_form([_q("a"), _q("b", rules=[r1, r2])]), stored) == []
+    reordered = _form([_q("a"), _q("b", rules=[r2, r1])])
+    assert sorted(new_or_changed_rules(reordered, stored)) == [("b", "r1"), ("b", "r2")]
+    with pytest.raises(HTTPException) as error:
+        ensure_rules_allowed(reordered, stored)
+    assert error.value.content["code"] == "field_rules_disabled"
+    # removing a rule keeps the others' order: not a change of the rest
+    assert new_or_changed_rules(_form([_q("a"), _q("b", rules=[r2])]), stored) == []
+
+
+async def test_a_provider_import_never_brings_rules(workspace):
+    from backend.app.services.field_rules import strip_field_rules
+
+    form = _form(RULED)
+    assert strip_field_rules(form) == 1
+    assert form.fields[0].properties.fields[1].properties.rules is None
+    service = container.form_import_service()
+    data = {
+        "form": {**_form(RULED).model_dump(mode="json"), "form_id": "provider-form-1"},
+        "responses": [],
+    }
+    saved = await service.save_converted_form_and_responses(data, "owner", workspace.id)
+    stored = await container.form_service().get_form_document_by_id(saved.form_id)
+    assert stored.fields[0].properties.fields[1].properties.rules is None

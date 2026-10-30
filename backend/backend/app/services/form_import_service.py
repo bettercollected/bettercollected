@@ -3,6 +3,7 @@ import json
 from typing import Any, Dict
 
 from common.ids import RecordId
+from loguru import logger
 
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.workspace import WorkspaceResponseDto
@@ -13,6 +14,7 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDocument,
 )
+from backend.app.services.field_rules import strip_field_rules
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -47,6 +49,10 @@ class FormImportService:
         if not workspace_id:
             # responses belong to the workspace they are imported into (#768)
             raise ValueError("An import needs the workspace it goes into.")
+        # A provider import never brings field rules (services/field_rules.py):
+        # none come in this way, whatever the payload holds.
+        if form_data.form is not None and strip_field_rules(form_data.form):
+            logger.warning("A form import carried field rules; they were dropped")
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.
