@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
-import { Shield as ShieldIcon } from 'lucide-react';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
@@ -19,6 +18,7 @@ import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
+import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
 
@@ -27,7 +27,7 @@ import { ExpandIcon } from '@Components/icons/expanded-icon';
  * columns with two independent DataTables side by side — their row heights
  * were never guaranteed equal (the identifier cell is two lines, answers are
  * one), so rows drifted out of alignment within a screenful. Here the leading
- * columns (checkbox · expand · Responder ID) are frozen with position:sticky
+ * columns (open button · Responder ID) are frozen with position:sticky
  * inside the single scroll container (see .responders-frozen-table in
  * globals.css), so alignment holds by construction and the whole row shares
  * one hover + click behaviour.
@@ -96,16 +96,11 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
-        <div aria-hidden className="flex w-fit flex-col gap-1 ">
+        <div className="flex w-fit flex-col gap-1 ">
             {response?.dataOwnerIdentifier ? (
                 <p className={cn('text-black-800! p2-new w-fit max-w-[200px] truncate')}>{response.dataOwnerIdentifier}</p>
             ) : (
-                // Anonymity is the product's promise — show it as a state, not
-                // as missing data ("- -").
-                <span className="flex w-fit items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-success-700">
-                    <ShieldIcon className="h-3 w-3" strokeWidth={2} />
-                    Anonymous
-                </span>
+                <AnonymousBadge />
             )}
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
         </div>
@@ -159,14 +154,20 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
         {
             name: '',
             cell: (response: StandardFormResponseDto) => (
-                <ExpandIcon
-                    onClick={(event: any) => {
+                // A real button: reachable with Tab, announced, opens with Enter/Space.
+                <button
+                    type="button"
+                    aria-label="Open response"
+                    className="hover:bg-black-200 focus-visible:ring-brand-500 flex h-8 w-8 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
+                    onClick={(event) => {
                         event.stopPropagation();
                         openResponse(response);
                     }}
-                />
+                >
+                    <ExpandIcon aria-hidden="true" />
+                </button>
             ),
-            style: { ...cellStyle, cursor: 'pointer' },
+            style: { ...cellStyle, paddingLeft: '4px', paddingRight: '4px', cursor: 'pointer' },
             width: '40px',
             minWidth: '0px'
         },
@@ -204,7 +205,7 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
         <>
             {Array.isArray(data?.items) && (
                 <div className="responders-frozen-table border-black-300 overflow-hidden rounded-lg border">
-                    <DataTable onRowClicked={openResponse} columns={columns} selectableRows customStyles={customTableStyles} data={data?.items || []} fixedHeader fixedHeaderScrollHeight="65vh" />
+                    <DataTable onRowClicked={openResponse} pointerOnHover columns={columns} customStyles={customTableStyles} data={data?.items || []} fixedHeader fixedHeaderScrollHeight="65vh" />
                 </div>
             )}
             {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (

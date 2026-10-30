@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The "server": one list of responses, filtered like the backend does for
 // `dataOwnerIdentifier`. Every call the component makes is recorded.
 type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: any; createdAt: string };
-const server: { items: Item[]; error: boolean; calls: any[]; refetch: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetch: vi.fn() };
+const server: { items: Item[]; error: boolean; calls: any[]; refetch: ReturnType<typeof vi.fn>; openResponse: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetch: vi.fn(), openResponse: vi.fn() };
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -24,7 +24,7 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             return { data: { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size }, isLoading: false, isFetching: false, isError: false, refetch: server.refetch };
         },
         useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
-        useLazyGetWorkspaceSubmissionQuery: () => [vi.fn()],
+        useLazyGetWorkspaceSubmissionQuery: () => [(arg: any) => server.openResponse(arg)],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
         useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
     };
@@ -68,6 +68,7 @@ describe('responses table: search and honest states', () => {
         server.error = false;
         server.calls = [];
         server.refetch = vi.fn();
+        server.openResponse = vi.fn(() => Promise.resolve({ data: undefined }));
         server.items = [item('r1', 'known.a@example.com', 'blue'), item('r2', 'known.b@example.com', 'green'), item('r3', 'other@example.com', 'red'), item('r4', null, 'pink')];
         store.dispatch(setWorkspace({ id: 'workspace-1' } as any));
         store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 4, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
@@ -154,5 +155,48 @@ describe('responses table: search and honest states', () => {
         renderTable({ requestForDeletion: true, isSubmission: false });
         search('zzz');
         expect(screen.getByText('No deletion requests match')).toBeInTheDocument();
+    });
+
+    describe('keyboard and screen reader basics', () => {
+        it('labels the search box', () => {
+            renderTable();
+            expect(screen.getByRole('textbox', { name: 'Search responses by responder email' })).toBeInTheDocument();
+        });
+
+        it('opens a response from a real button named "Open response"', () => {
+            renderTable();
+            const buttons = screen.getAllByRole('button', { name: 'Open response' });
+            expect(buttons).toHaveLength(4);
+            fireEvent.click(buttons[0]);
+            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+        });
+
+        it('has no checkbox column (there is nothing to do with a selection)', () => {
+            renderTable();
+            expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+        });
+
+        it('lets a screen reader hear who answered and when (the responder cell is not hidden)', () => {
+            renderTable();
+            const email = screen.getByText('known.a@example.com');
+            expect(email.closest('[aria-hidden="true"]')).toBeNull();
+            expect(screen.getByText('Anonymous').closest('[aria-hidden="true"]')).toBeNull();
+        });
+
+        it('makes rows focusable and opens the response with Enter', () => {
+            renderTable();
+            const rows = screen.getAllByRole('row').filter((row) => row.id.startsWith('row-'));
+            expect(rows).toHaveLength(4);
+            rows.forEach((row) => expect(row).toHaveAttribute('tabindex', '0'));
+            fireEvent.keyDown(rows[1], { key: 'Enter' });
+            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r2' });
+        });
+
+        it('does not open twice when Enter is pressed on the button inside the row', () => {
+            renderTable();
+            const [button] = screen.getAllByRole('button', { name: 'Open response' });
+            fireEvent.keyDown(button, { key: 'Enter' });
+            expect(server.openResponse).not.toHaveBeenCalled();
+        });
     });
 });

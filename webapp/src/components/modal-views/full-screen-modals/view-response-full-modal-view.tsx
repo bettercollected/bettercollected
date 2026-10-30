@@ -9,20 +9,22 @@ import { localesCommon } from '@app/constants/locales/common';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
-import { MoreVertical } from 'lucide-react';
+import { Check, Copy, MoreVertical } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFullScreenModal } from '../full-screen-modal-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
@@ -58,11 +60,8 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
                 className: 'h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl bg-white! md:w-[420px]'
             } as any)}
         >
-            <div className="flex flex-row justify-between p-4">
-                <div className="flex flex-col">
-                    <span className="p3-new text-black-800">Response</span>
-                    <span className="text-black-600 text-[10px]">{utcToLocalDateTIme(response?.createdAt)}</span>
-                </div>
+            <div className="flex flex-row justify-between gap-2 p-4">
+                <ResponseHeader response={response} />
                 <div className="flex items-center gap-1">
                     <EllipsisSection formId={formId} workspaceId={workspaceId} responseId={response.responseId} />
                     <ModalCloseButton onClick={closeModal} className="h-8 w-8" iconClassName="h-6 w-6" />
@@ -94,6 +93,58 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
     );
 };
 
+/** The stored parts of a response that could not be decrypted, in words. */
+const UNREADABLE_LABELS: Record<string, string> = { answers: 'answers', hidden_fields: 'hidden fields', internal_answers: 'staff fields' };
+export const UNREADABLE_MESSAGE = 'This response could not be decrypted';
+
+/**
+ * Who answered, when (full local time with the zone) and the submission number
+ * (the receipt number the responder holds), with a copy button. The title is the
+ * same words as the dialog's accessible name (see FullScreenModalContainer).
+ */
+export const responseDialogLabel = (response?: StandardFormResponseDto) => (response?.dataOwnerIdentifier ? `${response.dataOwnerIdentifier} response` : 'Anonymous response');
+
+const ResponseHeader = ({ response }: { response: StandardFormResponseDto }) => {
+    const { toast } = useToast();
+    const [copied, setCopied] = useState(false);
+    const number = response?.submissionUuid;
+
+    const copyNumber = async () => {
+        try {
+            await navigator.clipboard.writeText(number ?? '');
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            toast({ description: 'Could not copy the number', variant: 'destructive' });
+        }
+    };
+
+    return (
+        <div className="flex min-w-0 flex-col gap-1">
+            <h2 aria-label={responseDialogLabel(response)} className="p3-new text-black-800 flex min-w-0 items-center">
+                {response?.dataOwnerIdentifier ? <span className="truncate">{response.dataOwnerIdentifier}</span> : <AnonymousBadge />}
+            </h2>
+            <span className="text-black-600 text-xs">{utcToLocalDateTimeWithZone(response?.createdAt)}</span>
+            {number && (
+                <span className="flex items-center gap-1">
+                    <span className="text-black-600 font-mono text-xs">#{number}</span>
+                    <button
+                        type="button"
+                        onClick={copyNumber}
+                        aria-label="Copy submission number"
+                        className="text-black-600 hover:bg-black-200 focus-visible:ring-brand-500 flex h-6 w-6 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
+                    >
+                        {copied ? <Check width={14} height={14} aria-hidden="true" /> : <Copy width={14} height={14} aria-hidden="true" />}
+                    </button>
+                    <span role="status" className="sr-only">
+                        {copied ? 'Submission number copied' : ''}
+                    </span>
+                </span>
+            )}
+        </div>
+    );
+};
+
 export const IndividualFormResponse = ({ formFields, response, form, className }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto; className?: string }) => {
 
     const { toast } = useToast();
@@ -108,6 +159,11 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
         answers: response?.answers ?? {},
         hiddenValues: (response as any)?.hiddenFields ?? {}
     };
+    // The server empties what it cannot decrypt and names it here; a blank
+    // answer then means "could not be read", never "no answer".
+    const unreadable = response?.unreadableFields ?? [];
+    const answersUnreadable = unreadable.includes('answers');
+    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? UNREADABLE_MESSAGE : 'No answer'}</span>;
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const resolvedField = titleHasPipes(field?.title) ? ({ ...field, title: resolvePipesInTitle(field.title, pipeContext) } as StandardFormFieldDto) : field;
         const title = getTitleForHeader(resolvedField, standardForm);
@@ -126,6 +182,12 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     };
     return (
         <div className={cn('flex w-full flex-col gap-8 p-4 pt-6', className)}>
+            {unreadable.length > 0 && (
+                <div role="status" className="rounded border border-[#E8C7C7] bg-[#FBEFEF] p-3 text-sm text-[#8A2D2D]">
+                    <p className="font-medium">{answersUnreadable ? UNREADABLE_MESSAGE : 'Some data in this response could not be decrypted'}</p>
+                    <p className="mt-1">The stored data is not readable ({unreadable.map((name) => UNREADABLE_LABELS[name] ?? name).join(', ')}). It is not shown as empty answers.</p>
+                </div>
+            )}
             {formFields.map((field) => {
                 const ans = response.answers[field.id];
 
@@ -136,7 +198,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                     return (
                         <div className="flex flex-col gap-2" key={field.id}>
                             {getTitleForHeaderForTable(field)}
-                            {items.length === 0 && <span className="text-black-600 text-sm italic">No answer</span>}
+                            {items.length === 0 && noAnswer}
                             {items.map((item, index) => {
                                 const itemContext = { ...pipeContext, answers: itemScopeAnswers(response.answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }) };
                                 return (
@@ -148,7 +210,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                             return (
                                                 <div className="flex flex-col gap-1" key={child.id}>
                                                     <span className="text-black-600 text-[13px] font-medium leading-snug">{childTitle}</span>
-                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
+                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : noAnswer}
                                                 </div>
                                             );
                                         })}
@@ -206,7 +268,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                     {getAnswerForField(response, field)}
                                 </div>
                             ) : (
-                                <span className="text-black-600 text-sm italic">No answer</span>
+                                noAnswer
                             )}
                         </div>
                     );
@@ -215,7 +277,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}
-                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
+                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : noAnswer}
                     </div>
                 );
             })}

@@ -6,6 +6,17 @@ export const utcToLocalTime = (dateStr: any) => moment.utc(dateStr).local().form
 
 export const utcToLocalDateTIme = (dateStr: any) => moment.utc(dateStr).local().format('Do MMMM, YYYY hh:mm A');
 
+/**
+ * A UTC date as a full local date and time with the time zone, for places that
+ * must be unambiguous: "30 October 2026, 11:10:05 CET". `timeZone` defaults to
+ * the viewer's own zone.
+ */
+export function utcToLocalDateTimeWithZone(dateStr: any, timeZone?: string): string {
+    const date = moment.utc(dateStr);
+    if (!dateStr || !date.isValid()) return '';
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZoneName: 'short', timeZone }).format(date.toDate());
+}
+
 const intlLocale = (language: string) => (language === 'nl' ? 'nl-NL' : 'en-GB');
 
 /** A UTC date as a local date in a language: "24 October 2026" / "24 oktober 2026". */

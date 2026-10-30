@@ -13,9 +13,11 @@ interface ISearchInputProps {
     handleSearch: (event: any) => void;
     className?: string;
     placeholder?: string;
+    /** Accessible name; defaults to the placeholder (a placeholder alone is not a label). */
+    ariaLabel?: string;
 }
 
-export default function SearchInput({ handleSearch, className, placeholder }: ISearchInputProps) {
+export default function SearchInput({ handleSearch, className, placeholder, ariaLabel }: ISearchInputProps) {
     const { t } = useTranslation();
     const debouncedResults = useMemo(() => {
         return debounce(handleSearch, 500);
@@ -23,11 +25,13 @@ export default function SearchInput({ handleSearch, className, placeholder }: IS
     // a search typed just before leaving the page must not fire afterwards
     useEffect(() => () => debouncedResults.cancel(), [debouncedResults]);
 
+    const placeholderText = placeholder ? placeholder : t(placeHolder.search);
     return (
         <AppInput
             id='search-input'
+            aria-label={ariaLabel ?? placeholderText}
             name="search-input"
-            placeholder={placeholder ? placeholder : t(placeHolder.search)}
+            placeholder={placeholderText}
             onChange={debouncedResults}
             className={cn('w-full bg-white h-[40px] rounded', className)}
             icon={<SearchIcon />}
