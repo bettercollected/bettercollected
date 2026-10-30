@@ -7,18 +7,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The "server": one list of responses, filtered like the backend does for
 // `dataOwnerIdentifier`. Every call the component makes is recorded.
 type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: any; createdAt: string };
-// `pending`: the server has not answered yet. Like RTK Query, the hook then
-// reports isFetching with the data of the last answer it got (none after an
-// error): isLoading is only true for a first load that never failed.
-const server: { items: Item[]; error: boolean; pending: boolean; lastData: any; calls: any[]; refetchCalls: any[]; openResponse: ReturnType<typeof vi.fn> } = {
-    items: [],
-    error: false,
-    pending: false,
-    lastData: undefined,
-    calls: [],
-    refetchCalls: [],
-    openResponse: vi.fn()
-};
+// The hook answers like RTK Query does:
+// - `data` is the last answer it got, whatever it asked for (kept while a new
+//   page or search loads, and after an error); `currentData` is the answer
+//   for this very argument (kept while the same argument is fetched again).
+// - `pending` (or `pendingPages`): the server has not answered yet, so the hook
+//   reports isFetching. isLoading is only true for a first load that never failed.
+// - `stale`: like pending, with this as the earlier answer in `data`.
+const server: {
+    items: Item[];
+    error: boolean;
+    pending: boolean;
+    pendingPages: Set<number>;
+    stale: any;
+    lastData: any;
+    answered: Map<string, any>;
+    calls: any[];
+    refetchCalls: any[];
+    push: ReturnType<typeof vi.fn>;
+} = { items: [], error: false, pending: false, pendingPages: new Set(), stale: null, lastData: undefined, answered: new Map(), calls: [], refetchCalls: [], push: vi.fn() };
+
+// a response opens on its own page: the table navigates to it
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: (url: string) => server.push(url) }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -33,20 +43,20 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             };
             server.calls.push({ arg, options });
             if (options?.skip) return { data: undefined, isLoading: false, isFetching: false, isError: false, refetch };
-            if (server.pending) return { data: server.lastData, isLoading: false, isFetching: true, isError: false, refetch };
-            if (server.error) {
-                server.lastData = undefined;
-                return { data: undefined, isLoading: false, isFetching: false, isError: true, refetch };
-            }
+            const key = JSON.stringify(arg);
+            const cached = server.answered.get(key);
+            if (server.stale || server.pending || server.pendingPages.has(arg.page)) return { data: server.stale ?? server.lastData, currentData: server.stale ? undefined : cached, isLoading: false, isFetching: true, isError: false, refetch };
+            if (server.error) return { data: server.lastData, currentData: cached, isLoading: false, isFetching: false, isError: true, refetch };
             const term = arg.dataOwnerIdentifier;
             const items = term ? server.items.filter((item) => (item.dataOwnerIdentifier ?? '').includes(term)) : server.items;
             // pages of `arg.size` rows, like the backend
             const pages = Math.max(1, Math.ceil(items.length / arg.size));
-            server.lastData = { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size };
-            return { data: server.lastData, isLoading: false, isFetching: false, isError: false, refetch };
+            const data = { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size };
+            server.answered.set(key, data);
+            server.lastData = data;
+            return { data, currentData: data, isLoading: false, isFetching: false, isError: false, refetch };
         },
         useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
-        useLazyGetWorkspaceSubmissionQuery: () => [(arg: any) => server.openResponse(arg)],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
         useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
     };
@@ -57,6 +67,7 @@ import I18nProvider from '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { forgetResponseList, rememberedNeighbours } from '@app/utils/response-list-memory';
 
 import FormResponsesTable from './form-responses';
 
@@ -89,12 +100,17 @@ describe('responses table: search and honest states', () => {
         vi.useFakeTimers();
         server.error = false;
         server.pending = false;
+        server.pendingPages = new Set();
+        server.stale = null;
         server.lastData = undefined;
+        server.answered = new Map();
         server.calls = [];
         server.refetchCalls = [];
-        server.openResponse = vi.fn(() => Promise.resolve({ data: undefined }));
+        server.push = vi.fn();
+        // the list memory outlives a render (as it outlives a page): every test starts without one
+        forgetResponseList();
         server.items = [item('r1', 'known.a@example.com', 'blue'), item('r2', 'known.b@example.com', 'green'), item('r3', 'other@example.com', 'red'), item('r4', null, 'pink')];
-        store.dispatch(setWorkspace({ id: 'workspace-1' } as any));
+        store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
         store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 4, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
     });
     afterEach(() => {
@@ -229,6 +245,113 @@ describe('responses table: search and honest states', () => {
         expect(screen.queryByText('Could not load responses')).toBeNull();
     });
 
+    describe('back from a response', () => {
+        it('opens again on the page it was left on', () => {
+            server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(2);
+            // the response's page replaces the list, then "Responses" (or the browser's Back) brings it back
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ page: 2 });
+        });
+
+        it('goes to the last page with responses when the page it was left on is now empty (its only response was deleted)', () => {
+            // 16 responses, 15 a page: page 2 holds one
+            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            // its page is opened and the response deleted; "Responses" brings the list back
+            unmount();
+            server.items = server.items.slice(0, 15);
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 1 });
+            expect(screen.getByText('person0@example.com')).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            // and the memory keeps the page it is on now
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ page: 1 });
+        });
+
+        it('steps back to the last page that has responses when several pages emptied', () => {
+            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(4);
+            unmount();
+            // someone else deleted 30 of them
+            server.items = server.items.slice(0, 16);
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 2 });
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+        });
+
+        it("never steps back on the previous page's answer while the page asked for still loads", () => {
+            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(3);
+            // page 4 is asked for; until it answers, the hook still holds an empty earlier answer
+            server.stale = { items: [], total: 16, page: 3, pages: 2, size: 15 };
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(4);
+        });
+
+        it('says "No responses yet" on page 1 when every response is gone', () => {
+            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            unmount();
+            server.items = [];
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 1 });
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+        });
+
+        it('opens again with the search it was left with, shown in the search box', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ dataOwnerIdentifier: 'known', page: 1 });
+            expect((screen.getByPlaceholderText('Search by responder email') as HTMLInputElement).value).toBe('known');
+            expect(screen.queryByText('other@example.com')).toBeNull();
+        });
+
+        it('starts on page 1 with no search for another form', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            store.dispatch(setForm({ ...store.getState().form, formId: 'form-2' } as any));
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ formId: 'form-2', page: 1 });
+            expect(lastQuery()).not.toHaveProperty('dataOwnerIdentifier');
+        });
+
+        it('keeps the deletion requests list out of it', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            store.dispatch(setForm({ ...store.getState().form, deletionRequests: 2 } as any));
+            server.calls = [];
+            renderTable({ requestForDeletion: true, isSubmission: false });
+            expect(lastQuery()).not.toHaveProperty('dataOwnerIdentifier');
+        });
+    });
+
     it('uses the deletion-request wording on the deletion requests page', () => {
         store.dispatch(setForm({ ...store.getState().form, deletionRequests: 2 } as any));
         server.items = [item('r1', 'known.a@example.com', 'blue')];
@@ -266,6 +389,8 @@ describe('responses table: search and honest states', () => {
             const { rerender } = renderTable();
             search('nobody');
             expect(screen.getByText('No responses match')).toBeInTheDocument();
+            // the full list's earlier answer is no longer cached (RTK Query drops unused answers after a minute)
+            server.answered.clear();
             server.pending = true;
             search('');
             expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
@@ -371,12 +496,34 @@ describe('responses table: search and honest states', () => {
             expect(screen.queryByRole('textbox', { name: 'Search responses by responder email' })).toBeNull();
         });
 
-        it('opens a response from a real button named "Open response"', () => {
+        it('opens a response from a real link named "Open response", to its own page', () => {
             renderTable();
-            const buttons = screen.getAllByRole('button', { name: 'Open response' });
-            expect(buttons).toHaveLength(4);
-            fireEvent.click(buttons[0]);
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+            const links = screen.getAllByRole('link', { name: 'Open response' });
+            expect(links).toHaveLength(4);
+            // a real href: cmd/ctrl-click and "open in new tab" work
+            expect(links[0]).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r1');
+            expect(links[3]).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r4');
+        });
+
+        it('opens the page when a row is clicked, and in a new tab with ctrl/cmd', () => {
+            renderTable();
+            // the table reacts to a click on a cell of the row
+            const cell = (text: string) => screen.getByText(text).closest('[data-tag="allowRowEvents"]') as HTMLElement;
+            fireEvent.click(cell('other@example.com'));
+            expect(server.push).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r3');
+            const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+            fireEvent.click(cell('known.a@example.com'), { ctrlKey: true });
+            expect(open).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r1', '_blank', 'noopener');
+            expect(server.push).toHaveBeenCalledTimes(1);
+            open.mockRestore();
+        });
+
+        it('remembers the order on screen (ids only) for previous/next on a response page', () => {
+            forgetResponseList();
+            renderTable();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'r2')).toMatchObject({ previousId: 'r1', nextId: 'r3', position: 2, total: 4 });
+            // another workspace's form with the same id is another list
+            expect(rememberedNeighbours('workspace-2', 'form-1', 'r2')).toEqual({});
         });
 
         it('has no checkbox column (there is nothing to do with a selection)', () => {
@@ -397,27 +544,28 @@ describe('responses table: search and honest states', () => {
             expect(rows).toHaveLength(4);
             rows.forEach((row) => expect(row).toHaveAttribute('tabindex', '0'));
             fireEvent.keyDown(rows[1], { key: 'Enter' });
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r2' });
+            expect(server.push).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r2');
         });
 
-        it('opens exactly once when the button inside the row is clicked (the click does not also hit the row)', () => {
+        it('goes to the page once when the link inside the row is clicked (the click does not also hit the row)', () => {
             renderTable();
-            const [button] = screen.getAllByRole('button', { name: 'Open response' });
-            fireEvent.click(button);
-            expect(server.openResponse).toHaveBeenCalledTimes(1);
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+            const [link] = screen.getAllByRole('link', { name: 'Open response' });
+            // the link navigates by itself; the row's own handler must not push a second time
+            link.addEventListener('click', (event) => event.preventDefault());
+            fireEvent.click(link);
+            expect(server.push).not.toHaveBeenCalled();
         });
 
-        it('Enter on the "Open response" button is not also taken by the row: one open, from the button', () => {
+        it('Enter on the "Open response" link is not also taken by the row: the link opens the page, the row does not push it again', () => {
             renderTable();
-            const [button] = screen.getAllByRole('button', { name: 'Open response' });
-            // the row only acts on keys pressed on the row itself
-            fireEvent.keyDown(button, { key: 'Enter' });
-            expect(server.openResponse).not.toHaveBeenCalled();
-            // the browser then turns Enter on a button into a click
-            fireEvent.click(button);
-            expect(server.openResponse).toHaveBeenCalledTimes(1);
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+            const [link] = screen.getAllByRole('link', { name: 'Open response' });
+            // the row only acts on keys pressed on the row itself; the browser follows the link
+            fireEvent.keyDown(link, { key: 'Enter' });
+            expect(server.push).not.toHaveBeenCalled();
+            // the same key on the row opens it once
+            fireEvent.keyDown(link.closest('[role="row"]') as HTMLElement, { key: 'Enter' });
+            expect(server.push).toHaveBeenCalledTimes(1);
+            expect(server.push).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r1');
         });
 
         it('gives the button column a header for screen readers', () => {

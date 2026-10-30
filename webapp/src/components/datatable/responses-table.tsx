@@ -16,7 +16,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
-import { Button } from '@app/shadcn/components/ui/button';
+import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -49,15 +49,15 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
-import { getFormFields } from '@app/utils/form-builder-block-utils';
+import { responsePageUrl } from '@app/utils/response-page';
 
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
-    const { openModal } = useFullScreenModal();
+    const router = useRouter();
     const { openModal: openConfirmModal } = useModal();
-    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
 
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
@@ -73,17 +73,9 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         setPage(page);
     };
     const { t } = useTranslation();
+    // A response is read on its own page.
     const onRowClicked = (response: StandardFormResponseDto) => {
-        if (!requestForDeletion) {
-            triggerSingleResponse({
-                workspace_id: workspace?.id ?? '',
-                submission_id: response.responseId
-            }).then((result: any) => {
-                // refused (403) or gone: nothing to open
-                if (!result?.data?.response) return;
-                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
-            });
-        }
+        if (!requestForDeletion) router.push(responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId));
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
@@ -93,8 +85,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             </div>
             {/* The receipt number is the only handle a responder (especially an
                 anonymous one) has on their submission — its start lets the
-                owner match a request against what the responder quotes. It is a
-                bearer token, so the full value is never in the DOM (no title). */}
+                owner match a request against what the responder quotes. Never
+                in full (not in a tooltip either): it is a bearer token. */}
             {requestForDeletion && response?.submissionUuid && <div className="text-black-600 mt-0.5 font-mono text-[11px]">{shortReceiptNumber(response.submissionUuid)}</div>}
         </div>
     );
@@ -111,7 +103,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             case 'google':
                 return `${googleFormHostUrl}forms/d/${response.formId}/edit?pli=1#response=${response.responseId}`;
             default:
-                return `/${workspace.workspaceName}/dashboard/forms/${response.formId}?view=Responses&sub_id=${response.responseId}`;
+                return responsePageUrl(workspace.workspaceName, response.formId ?? formId ?? '', response.responseId);
         }
     };
 
@@ -158,21 +150,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             return (
                 <div className="flex items-center gap-1">
                     {canReadResponses && (
-                    <Button
-                        variant="ghost"
-                        className="px-2!"
-                        onClick={() => {
-                            triggerSingleResponse({
-                                workspace_id: workspace?.id ?? '',
-                                submission_id: response.responseId
-                            }).then((result: any) => {
-                                if (!result?.data?.response) return;
-                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
-                            });
-                        }}
-                    >
-                        View
-                    </Button>
+                        // a real link: opens the response's page, also in a new tab; the page goes back
+                        // (and, after a delete, returns) to this list: the workspace's or the form's
+                        <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId, formId ? 'form-deletion-requests' : 'deletion-requests')} className={buttonClassName({ variant: 'ghost', className: 'px-2!' })}>
+                            View
+                        </Link>
                     )}
                     {canDeleteResponses && (
                     <Button variant="dangerGhost" className="px-2!" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
