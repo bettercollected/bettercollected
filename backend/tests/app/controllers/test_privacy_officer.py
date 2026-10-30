@@ -8,7 +8,9 @@ from common.models.user import User
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import DeletionRequestStatus
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from tests.app.auth_helpers import access_token
@@ -139,3 +141,169 @@ async def test_a_privacy_officer_deletes_nothing_else(client: AsyncClient, reque
 
     assert refused.status_code == 403
     assert await container.form_response_repo().get_response(other.response_id)
+
+
+DELETION_LISTS = [
+    "/api/v1/workspaces/{ws}/forms/{form}/submissions?request_for_deletion=true",
+    "/api/v1/workspaces/{ws}/all-submissions?request_for_deletion=true",
+]
+
+
+async def _receipt_number(requested) -> str:
+    stored = await container.form_response_repo().get_response(requested["response"])
+    assert stored.submission_uuid
+    return stored.submission_uuid
+
+
+@pytest.mark.parametrize("path", DELETION_LISTS)
+async def test_a_privacy_officer_is_not_handed_the_receipt_number(
+    client: AsyncClient, requested, path
+):
+    """The receipt number opens the answers without a sign-in, so the list a
+    role that never reads answers works from does not carry it."""
+    receipt = await _receipt_number(requested)
+
+    listed = await client.get(path.format(**requested), cookies=_cookies(officer))
+
+    assert listed.status_code == 200, listed.text
+    (item,) = listed.json()["items"]
+    assert item["responseId"] == requested["response"]
+    assert "submissionUuid" not in item
+    assert receipt not in listed.text
+
+
+@pytest.mark.parametrize("path", DELETION_LISTS)
+async def test_a_member_who_reads_responses_still_gets_the_receipt_number(
+    client: AsyncClient, requested, test_user_cookies, path
+):
+    receipt = await _receipt_number(requested)
+
+    listed = await client.get(path.format(**requested), cookies=test_user_cookies)
+
+    assert listed.status_code == 200, listed.text
+    (item,) = listed.json()["items"]
+    assert item["submissionUuid"] == receipt
+
+
+async def _receipt(client: AsyncClient, requested, response_id: str = None):
+    stored = await container.form_response_repo().get_response(
+        response_id or requested["response"]
+    )
+    receipt = await client.get(
+        "/api/v1/workspaces/{ws}/submissions/by-uuid/".format(**requested)
+        + stored.submission_uuid
+    )
+    assert receipt.status_code == 200, receipt.text
+    return receipt
+
+
+async def test_the_receipt_has_the_answers_and_no_identity_of_the_respondent(
+    client: AsyncClient, requested
+):
+    """Whoever holds the number (no sign-in) reads the answers, and not the
+    respondent's email."""
+    receipt = await _receipt(client, requested)
+
+    response = receipt.json()["response"]
+    assert response["answers"]["q-feedback"]["text"] == SECRET
+    for field in ("dataOwnerIdentifier", "respondentEmail", "anonymousIdentity"):
+        assert field not in response
+    assert testUser2.sub not in receipt.text
+    # a known respondent: the page must not show the "Anonymous" mark
+    assert response["anonymize"] is False
+
+
+async def test_an_anonymous_receipt_says_so_without_the_pseudonym(
+    client: AsyncClient, requested, workspace_form
+):
+    anonymous = await container.workspace_form_service().submit_response(
+        RecordId(requested["ws"]),
+        requested["form"],
+        StandardFormResponseCamelModel(
+            answers={"q-feedback": {"type": "text", "text": "x"}}, anonymize=True
+        ),
+        testUser1,
+    )
+    stored = await container.form_response_repo().get_response(anonymous.response_id)
+    assert stored.anonymous_identity  # kept on the server, for the owner's own lookups
+
+    receipt = await _receipt(client, requested, anonymous.response_id)
+
+    response = receipt.json()["response"]
+    assert response["anonymize"] is True
+    assert response["answers"]["q-feedback"]["text"] == "x"
+    assert stored.anonymous_identity not in receipt.text
+    for field in ("dataOwnerIdentifier", "respondentEmail", "anonymousIdentity"):
+        assert field not in response
+
+
+async def test_the_respondents_own_view_by_id_keeps_their_identity(
+    client: AsyncClient, requested
+):
+    """Signed in, the respondent still reads their own response by id, with
+    who they are (the receipt by number is the one that drops it)."""
+    own = await client.get(
+        "/api/v1/workspaces/{ws}/submissions/{response}".format(**requested),
+        cookies=_cookies(testUser2),
+    )
+
+    assert own.status_code == 200, own.text
+    assert own.json()["response"]["dataOwnerIdentifier"] == testUser2.sub
+
+
+async def test_a_response_without_a_login_is_marked_anonymous_on_the_receipt(
+    client: AsyncClient, requested
+):
+    """Nobody signed in (no owner recorded, no pseudonym either): the page
+    showed its Anonymous mark before, and keeps doing so."""
+    nobody = await container.workspace_form_service().submit_response(
+        RecordId(requested["ws"]),
+        requested["form"],
+        StandardFormResponse(answers={"q-feedback": {"type": "text", "text": "y"}}),
+        None,
+    )
+    stored = await container.form_response_repo().get_response(nobody.response_id)
+    assert not stored.dataOwnerIdentifier and not stored.anonymous_identity
+
+    receipt = await _receipt(client, requested, nobody.response_id)
+
+    assert receipt.json()["response"]["anonymize"] is True
+    assert receipt.json()["response"]["answers"]["q-feedback"]["text"] == "y"
+
+
+async def test_a_provider_response_with_only_an_email_reads_as_before(
+    client: AsyncClient, workspace, requested
+):
+    """An imported response that carries ``respondent_email`` but no owner: the
+    email is left out of the receipt, and the mark is what the page showed
+    before (no owner recorded, so Anonymous)."""
+    from tests.app.controllers.test_responses_per_workspace import FORM_ID, _converted
+
+    converted = _converted(["rp1"])
+    (imported,) = converted["responses"]
+    imported.pop("dataOwnerIdentifier")
+    imported["respondent_email"] = "provider.respondent@example.test"
+    await container.form_import_service().save_converted_form_and_responses(
+        converted, None, workspace_id=workspace.id
+    )
+    await container.workspace_form_repo().save_workspace_form(
+        workspace_id=workspace.id,
+        form_id=FORM_ID,
+        user_id=testUser.id,
+        workspace_form_settings=WorkspaceFormSettings(
+            custom_url="provider-form", provider="google", private=False
+        ),
+    )
+    stored = await container.form_response_repo().get_response("rp1")
+    assert stored.respondent_email and not stored.dataOwnerIdentifier
+
+    receipt = await client.get(
+        "/api/v1/workspaces/{ws}/submissions/by-uuid/".format(**requested)
+        + stored.submission_uuid
+    )
+
+    assert receipt.status_code == 200, receipt.text
+    response = receipt.json()["response"]
+    assert response["anonymize"] is True
+    assert "respondentEmail" not in response
+    assert "provider.respondent@example.test" not in receipt.text
