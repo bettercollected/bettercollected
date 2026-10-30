@@ -23,7 +23,8 @@ vi.mock('@app/store/workspaces/api', async (original) => ({
     useGetWorkspaceFormQuery: () => query
 }));
 vi.mock('@app/lib/analytics/umami', () => ({ trackCanonicalFormView: vi.fn() }));
-vi.mock('next/navigation', () => ({ usePathname: () => '/acme/forms/f1', useRouter: () => ({ push: vi.fn() }) }));
+const push = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({ usePathname: () => '/acme/forms/f1', useRouter: () => ({ push }) }));
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({ RenderImage: () => null, default: () => null }));
 vi.mock('framer-motion', async (importOriginal) => ({
     ...(await importOriginal<typeof import('framer-motion')>()),
@@ -189,6 +190,57 @@ describe('the respondent page when a refetch brings the form back closed', { tim
 
         expect((await screen.findByRole('status', undefined, { timeout: 5000 })).textContent).toBe(CLOSED);
         expect(screen.getByRole('heading', { name: 'Survey' })).toBeInTheDocument();
+        expect(document.querySelector('iframe')).toBeNull();
+    });
+});
+
+describe('an imported form set to show the original', { timeout: 20000 }, () => {
+    const upload: StandardFormFieldDto = { id: 'u1', index: 1, type: FieldTypes.FILE_UPLOAD, title: 'Attachment', properties: { fields: [] }, validations: { required: false } };
+    const imported = (embedUrl: string, fields: StandardFormFieldDto[]) => ({
+        formId: `imported-${Math.random()}`,
+        importedFormId: 'provider-form',
+        builderVersion: 'v1',
+        title: 'Survey',
+        settings: { showOriginalForm: true, embedUrl } as any,
+        fields
+    });
+
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+        Element.prototype.scrollIntoView = vi.fn();
+        window.matchMedia = vi.fn().mockImplementation((q: string) => ({ matches: true, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+        store.dispatch(setWorkspace({ id: 'w1', workspaceName: 'acme' } as any));
+        push.mockReset();
+    });
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('opens an http(s) original', async () => {
+        query = { data: imported('https://docs.example.com/form', [text('q1', 'Name'), upload]), isLoading: false };
+        await show();
+
+        expect(push).toHaveBeenCalledWith('https://docs.example.com/form');
+    });
+
+    it('frames an http(s) original', async () => {
+        query = { data: imported('https://docs.example.com/form', [text('q1', 'Name')]), isLoading: false };
+        await show();
+
+        expect(document.querySelector('iframe')?.getAttribute('src')).toBe('https://docs.example.com/form?embedded=true');
+    });
+
+    it.each(['javascript:alert(1)', 'data:text/html,<p>x</p>', '/elsewhere'])('never opens %s', async (embedUrl) => {
+        query = { data: imported(embedUrl, [text('q1', 'Name'), upload]), isLoading: false };
+        await show();
+        await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    it.each(['javascript:alert(1)', 'data:text/html,<p>x</p>'])('never frames %s', async (embedUrl) => {
+        query = { data: imported(embedUrl, [text('q1', 'Name')]), isLoading: false };
+        await show();
+
         expect(document.querySelector('iframe')).toBeNull();
     });
 });
