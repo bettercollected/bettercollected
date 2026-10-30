@@ -286,6 +286,8 @@ export interface StandardFormResponseDto {
     submissionUuid?: string;
     /** Set (instead of dataOwnerIdentifier) when submitted anonymously. */
     anonymousIdentity?: string;
+    /** On the receipt by number only (no sign-in, no identity fields): whether the response was submitted anonymously. */
+    anonymize?: boolean;
     requestForDeletion?: boolean;
     expiration?: string;
     expirationType?: any;
