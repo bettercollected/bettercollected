@@ -8,6 +8,7 @@ from common.models.user import User
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form_response import DeletionRequestStatus
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -181,3 +182,69 @@ async def test_a_member_who_reads_responses_still_gets_the_receipt_number(
     assert listed.status_code == 200, listed.text
     (item,) = listed.json()["items"]
     assert item["submissionUuid"] == receipt
+
+
+async def _receipt(client: AsyncClient, requested, response_id: str = None):
+    stored = await container.form_response_repo().get_response(
+        response_id or requested["response"]
+    )
+    receipt = await client.get(
+        "/api/v1/workspaces/{ws}/submissions/by-uuid/".format(**requested)
+        + stored.submission_uuid
+    )
+    assert receipt.status_code == 200, receipt.text
+    return receipt
+
+
+async def test_the_receipt_has_the_answers_and_no_identity_of_the_respondent(
+    client: AsyncClient, requested
+):
+    """Whoever holds the number (no sign-in) reads the answers, and not the
+    respondent's email."""
+    receipt = await _receipt(client, requested)
+
+    response = receipt.json()["response"]
+    assert response["answers"]["q-feedback"]["text"] == SECRET
+    for field in ("dataOwnerIdentifier", "respondentEmail", "anonymousIdentity"):
+        assert field not in response
+    assert testUser2.sub not in receipt.text
+    # a known respondent: the page must not show the "Anonymous" mark
+    assert response["anonymize"] is False
+
+
+async def test_an_anonymous_receipt_says_so_without_the_pseudonym(
+    client: AsyncClient, requested, workspace_form
+):
+    anonymous = await container.workspace_form_service().submit_response(
+        RecordId(requested["ws"]),
+        requested["form"],
+        StandardFormResponseCamelModel(
+            answers={"q-feedback": {"type": "text", "text": "x"}}, anonymize=True
+        ),
+        testUser1,
+    )
+    stored = await container.form_response_repo().get_response(anonymous.response_id)
+    assert stored.anonymous_identity  # kept on the server, for the owner's own lookups
+
+    receipt = await _receipt(client, requested, anonymous.response_id)
+
+    response = receipt.json()["response"]
+    assert response["anonymize"] is True
+    assert response["answers"]["q-feedback"]["text"] == "x"
+    assert stored.anonymous_identity not in receipt.text
+    for field in ("dataOwnerIdentifier", "respondentEmail", "anonymousIdentity"):
+        assert field not in response
+
+
+async def test_the_respondents_own_view_by_id_keeps_their_identity(
+    client: AsyncClient, requested
+):
+    """Signed in, the respondent still reads their own response by id, with
+    who they are (the receipt by number is the one that drops it)."""
+    own = await client.get(
+        "/api/v1/workspaces/{ws}/submissions/{response}".format(**requested),
+        cookies=_cookies(testUser2),
+    )
+
+    assert own.status_code == 200, own.text
+    assert own.json()["response"]["dataOwnerIdentifier"] == testUser2.sub

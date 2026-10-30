@@ -87,6 +87,13 @@ from backend.app.utils.respondent_identity import matches as identity_matches
 # another workspace's object.
 _PLAIN_FILE_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
 
+# Who gave a response: what the receipt by number (no sign-in) leaves out.
+RECEIPT_IDENTITY_FIELDS = {
+    "dataOwnerIdentifier",
+    "respondent_email",
+    "anonymous_identity",
+}
+
 
 def is_plain_file_id(value) -> bool:
     return (
@@ -916,11 +923,20 @@ class FormResponseService:
             enabled=bool(workspace_form.settings.respondent_feedback_enabled),
         )
 
+        # Whoever holds the number reads the answers, not who gave them: no
+        # email and no pseudonym of the respondent. The receipt page still
+        # needs to know whether to show its "Anonymous" mark, so that is the
+        # one fact kept (``anonymize``).
+        receipt_response = respondent_response.model_dump(
+            mode="json", by_alias=True, exclude=RECEIPT_IDENTITY_FIELDS
+        )
+        receipt_response["anonymize"] = bool(response.anonymous_identity)
+
         return {
             "form": strip_hidden_calculations(
                 respondent_view(StandardFormCamelModel(**form.model_dump(mode="json")))
             ),
-            "response": respondent_response,
+            "response": receipt_response,
         }
 
     async def request_for_response_deletion_by_uuid(

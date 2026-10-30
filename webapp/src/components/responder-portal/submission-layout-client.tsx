@@ -85,7 +85,9 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     }
 
     const response = form?.response ?? {};
-    const isAnonymous = !response?.dataOwnerIdentifier;
+    // The receipt by number carries no identity at all, only whether it was
+    // anonymous (`anonymize`); the signed-in view has the email instead.
+    const isAnonymous = typeof response?.anonymize === 'boolean' ? response.anonymize : !response?.dataOwnerIdentifier;
 
     return (
         // This page belongs to the WORKSPACE's branded space (possibly their
