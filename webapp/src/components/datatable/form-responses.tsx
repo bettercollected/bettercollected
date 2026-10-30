@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 
 import SearchInput from '@Components/common/search-input';
@@ -16,7 +16,6 @@ import { DownloadIcon } from 'lucide-react';
 import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { selectAuth } from '@app/store/auth/slice';
 import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -35,35 +34,35 @@ function downloadCsv(csv: string, fileName: string) {
 
 export default function FormResponsesTable({ props }: any) {
     const form = useAppSelector(selectForm);
-    const auth = useAppSelector(selectAuth);
 
     const { workspace, requestForDeletion, isSubmission = false } = props;
     const [page, setPage] = useState(1);
-    const [query, setQuery] = useState<IGetFormSubmissionsQuery>({
-        formId: form.formId,
-        workspaceId: workspace?.id,
-        requestedForDeletionOly: requestForDeletion,
-        page: page,
-        size: globalConstants.pageSize
-    });
-    useEffect(() => {
-        setTimeout(() => {
-            setQuery({ ...query, page });
-        }, 0);
-    }, [page]);
+    // The search text lives here, next to the one query it drives; the table
+    // below only displays what this query returns.
+    const [searchText, setSearchText] = useState('');
 
-    const { data, isLoading } = useGetFormsSubmissionsQuery(query);
+    const query = useMemo<IGetFormSubmissionsQuery>(
+        () => ({
+            formId: form.formId,
+            workspaceId: workspace?.id,
+            requestedForDeletionOly: !!requestForDeletion,
+            page,
+            size: globalConstants.pageSize,
+            ...(searchText ? { dataOwnerIdentifier: searchText } : {})
+        }),
+        [form.formId, workspace?.id, requestForDeletion, page, searchText]
+    );
+
+    const { data, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
     const { can } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
     const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
 
-    const handleSearch = (event: any) => {
-        if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
-        else {
-            const { dataOwnerIdentifier, ...removedQuery } = query;
-            setQuery(removedQuery);
-        }
-    };
+    const handleSearch = useCallback((event: any) => {
+        // a new search starts on the first page
+        setSearchText(String(event?.target?.value ?? '').trim());
+        setPage(1);
+    }, []);
 
     const handleClickExportCSV = () => {
         trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
@@ -78,12 +77,35 @@ export default function FormResponsesTable({ props }: any) {
         });
     };
 
-    if (isLoading)
-        return (
-            <div className=" flex w-full justify-center py-10">
+    const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
+
+    let results;
+    // no workspace yet: the query is skipped, which is not "no responses"
+    if (isLoading || !workspace?.id) {
+        results = (
+            <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );
+    } else if (isError) {
+        // A refused or failed request is not an empty form: say so, and let
+        // the person try again.
+        results = <ResponsesErrorComponent onRetry={refetch} />;
+    } else if (hasItems) {
+        results = (
+            <div aria-busy={isFetching} className={isFetching ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
+                {requestForDeletion ? (
+                    <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data!} />
+                ) : (
+                    <TabularResponses form={form} data={data} page={page} onPageChange={setPage} />
+                )}
+            </div>
+        );
+    } else if (searchText) {
+        results = <NoMatchComponent searchText={searchText} requestForDeletion={requestForDeletion} />;
+    } else {
+        results = <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} />;
+    }
 
     return (
         <div>
@@ -91,7 +113,7 @@ export default function FormResponsesTable({ props }: any) {
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} placeholder={'Search responses'} className="md:w-[282px]" />
+                            <SearchInput handleSearch={handleSearch} placeholder={'Search by responder email'} className="md:w-[282px]" />
                         </div>
                     ) : (
                         <></>
@@ -103,14 +125,31 @@ export default function FormResponsesTable({ props }: any) {
                     )}
                 </div>
             </div>
-            {data && Array.isArray(data.items) && data.items.length ? (
-                <>{data && requestForDeletion ? <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} /> : <TabularResponses form={form} />}</>
-            ) : (
-                <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} />
-            )}
+            {results}
         </div>
     );
 }
+
+const ResponsesErrorComponent = ({ onRetry }: { onRetry: () => void }) => (
+    <div role="alert" className={'flex flex-col items-center gap-2 py-10'}>
+        <EmptyResponseIcon />
+        <span className={'p3-new text-black'}>Could not load responses</span>
+        <span className={'p4-new text-black-600 max-w-[420px] text-center'}>Something went wrong, or you may not have access. Your responses are not affected.</span>
+        <Button type="button" variant="v2Button" onClick={() => onRetry()} className="mt-2">
+            Retry
+        </Button>
+    </div>
+);
+
+const NoMatchComponent = ({ searchText, requestForDeletion }: { searchText: string; requestForDeletion?: boolean }) => (
+    <div role="status" className={'flex flex-col items-center gap-2 py-10'}>
+        <EmptyResponseIcon />
+        <span className={'p3-new text-black'}>{requestForDeletion ? 'No deletion requests match' : 'No responses match'}</span>
+        <span className={'p4-new text-black-600 max-w-[420px] break-words text-center'}>
+            Nothing matches &ldquo;{searchText}&rdquo;. The search looks at the responder&apos;s email address; anonymous responses cannot be found by it.
+        </span>
+    </div>
+);
 
 const EmptyTabularResponseComponent = ({ requestForDeletion }: { requestForDeletion?: boolean }) => {
     // Deletion requests are a GDPR feature — the empty state should teach that,
