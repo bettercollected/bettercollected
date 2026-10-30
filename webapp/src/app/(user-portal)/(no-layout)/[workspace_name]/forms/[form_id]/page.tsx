@@ -13,6 +13,7 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
 import { isClosedForm } from '@app/utils/closed-form';
+import { httpUrl } from '@app/utils/http-url';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
 import RespondentPageShell from '@app/views/organism/form/respondent-page-shell';
@@ -145,22 +146,27 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         data.theme && updateFormTheme(data.theme, { undoable: false });
     }, [data, keepEnding]);
 
+    // The original form is opened or framed only at an http(s) address;
+    // without one the form is shown here.
+    const originalUrl = httpUrl(data?.settings?.embedUrl);
+    const showOriginal = !!(data?.importedFormId && data.settings?.showOriginalForm && originalUrl);
+
     useEffect(() => {
-        if (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || [])) {
-            router.push(data?.settings?.embedUrl || '');
+        if (showOriginal && originalUrl && hasFileUpload(data?.fields || [])) {
+            router.push(originalUrl);
         }
     }, [data]);
 
-    if (isLoading || error || (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || []))) {
+    if (isLoading || error || (showOriginal && hasFileUpload(data?.fields || []))) {
         return <FullScreenLoader />;
     }
 
-    if (data?.importedFormId && data.settings?.showOriginalForm) {
+    if (showOriginal) {
         return (
             <>
                 <div className="relative min-h-screen!">
                     <div className="m-0!' absolute bottom-0 left-0 right-0 top-0 p-0!">
-                        <iframe ref={iframeRef} src={`${data?.settings?.embedUrl}?embedded=true`} width="100%" height="100%">
+                        <iframe ref={iframeRef} src={`${originalUrl}?embedded=true`} width="100%" height="100%">
                             <Loader />
                         </iframe>
                     </div>
