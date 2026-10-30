@@ -15,6 +15,15 @@ describe('shortReceiptNumber', () => {
         expect(shortReceiptNumber('0a1b2c3d4e5f-1111')).toBe('#0a1b2c3d…');
     });
 
+    it('never shows a short number whole: at most half of it', () => {
+        expect(shortReceiptNumber('0a1b2c3d')).toBe('#0a1b…');
+        expect(shortReceiptNumber('AB12')).toBe('#AB…');
+        expect(shortReceiptNumber('0a1b2c3d4e')).toBe('#0a1b2…');
+        expect(shortReceiptNumber('X')).toBe('#…');
+        // 16 characters or more: the usual 8
+        expect(shortReceiptNumber('0a1b2c3d4e5f6a7b')).toBe('#0a1b2c3d…');
+    });
+
     it('is empty when there is no number', () => {
         expect(shortReceiptNumber(undefined)).toBe('');
         expect(shortReceiptNumber(null)).toBe('');

@@ -92,6 +92,8 @@ const search = (text: string) => {
 };
 
 const lastQuery = () => server.calls.filter((call) => !call.options?.skip).at(-1)?.arg;
+// the cache key of another page of the list last asked for
+const pageKey = (page: number) => JSON.stringify({ ...lastQuery(), page });
 
 describe('responses table: search and honest states', () => {
     beforeEach(() => {
@@ -417,6 +419,55 @@ describe('responses table: search and honest states', () => {
             search('known');
             expect(screen.getByText('other@example.com').closest('[aria-busy="true"]')).not.toBeNull();
         });
+
+        it('a refetch of the same empty list (tab focus) keeps "No responses yet" on screen, without the loader', () => {
+            server.items = [];
+            const { rerender } = renderTable();
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+            // the same list is asked for again: its answer stays in currentData
+            server.pending = true;
+            rerender(tree());
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+            expect(screen.queryByRole('status', { name: 'Loading responses' })).toBeNull();
+        });
+
+        it('a refetch of the same no-match search keeps "No responses match" on screen, without the loader', () => {
+            const { rerender } = renderTable();
+            search('nobody');
+            expect(screen.getByText('No responses match')).toBeInTheDocument();
+            server.pending = true;
+            rerender(tree());
+            expect(screen.getByText('No responses match')).toBeInTheDocument();
+            expect(screen.queryByRole('status', { name: 'Loading responses' })).toBeNull();
+        });
+
+        it('a refetch of the same deletion requests keeps "No deletion requests" on screen', () => {
+            server.items = [];
+            const { rerender } = renderTable({ requestForDeletion: true, isSubmission: false });
+            expect(screen.getByText('No deletion requests')).toBeInTheDocument();
+            server.pending = true;
+            rerender(tree({ requestForDeletion: true, isSubmission: false }));
+            expect(screen.getByText('No deletion requests')).toBeInTheDocument();
+            expect(screen.queryByRole('status', { name: 'Loading responses' })).toBeNull();
+        });
+
+        it("Retry shows the loader until the server answers, not the previous page's rows the hook still holds", () => {
+            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { rerender } = renderTable();
+            server.error = true;
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(screen.getByText('Could not load responses')).toBeInTheDocument();
+            server.error = false;
+            server.pending = true;
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+            expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
+            expect(screen.queryByText('person0@example.com')).toBeNull();
+            // the server answers: page 2's row, and the loader is gone
+            server.pending = false;
+            rerender(tree());
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            expect(screen.queryByRole('status', { name: 'Loading responses' })).toBeNull();
+        });
     });
 
     describe('a later page that empties', () => {
@@ -430,8 +481,17 @@ describe('responses table: search and honest states', () => {
             fireEvent.click(screen.getByLabelText(/next/i));
             expect(lastQuery().page).toBe(3);
             expect(screen.getByText('person30@example.com')).toBeInTheDocument();
-            // the last row on page 3 is deleted
+            // the last row on page 3 is deleted; page 2's earlier answer is no longer cached
             server.items = many(30);
+            server.answered.delete(pageKey(2));
+            server.pendingPages = new Set([2]);
+            rerender(tree());
+            expect(lastQuery().page).toBe(2);
+            // while page 2 is asked for, the hook still holds the empty page 3: the loader, never "No responses yet"
+            expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            // page 2 answers
+            server.pendingPages = new Set();
             rerender(tree());
             expect(lastQuery().page).toBe(2);
             expect(screen.getByText('person15@example.com')).toBeInTheDocument();
@@ -467,6 +527,17 @@ describe('responses table: search and honest states', () => {
         it('a failed later page stays an error instead of stepping back', () => {
             server.items = many(16);
             renderTable();
+            server.error = true;
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(screen.getByText('Could not load responses')).toBeInTheDocument();
+            expect(lastQuery().page).toBe(2);
+        });
+
+        it('a failed refetch of a page whose last answer was empty stays an error instead of stepping back', () => {
+            server.items = many(16);
+            renderTable();
+            // the cache still holds an empty answer for page 2 (RTK Query keeps it when its refetch fails)
+            server.answered.set(pageKey(2), { items: [], total: 16, page: 2, pages: 2, size: 15 });
             server.error = true;
             fireEvent.click(screen.getByLabelText(/next/i));
             expect(screen.getByText('Could not load responses')).toBeInTheDocument();
@@ -516,6 +587,30 @@ describe('responses table: search and honest states', () => {
             expect(open).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r1', '_blank', 'noopener');
             expect(server.push).toHaveBeenCalledTimes(1);
             open.mockRestore();
+        });
+
+        it('remembers previous/next only from the answer for the page shown, never the previous rows while the next page loads', () => {
+            server.items = Array.from({ length: 31 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { rerender } = renderTable();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14')).toMatchObject({ previousId: 'p13', position: 15 });
+            // page 2 is asked for: the table still shows page 1's rows, marked busy
+            server.pending = true;
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(2);
+            expect(screen.getByText('person0@example.com').closest('[aria-busy="true"]')).not.toBeNull();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14').nextId).toBeUndefined();
+            // and it fails: page 1's ids are still not page 2
+            server.pending = false;
+            server.error = true;
+            rerender(tree());
+            expect(screen.getByText('Could not load responses')).toBeInTheDocument();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14').nextId).toBeUndefined();
+            // Retry answers: now page 2 is known
+            server.error = false;
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14')).toMatchObject({ nextId: 'p15' });
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p15')).toMatchObject({ previousId: 'p14', position: 16, total: 31 });
         });
 
         it('remembers the order on screen (ids only) for previous/next on a response page', () => {

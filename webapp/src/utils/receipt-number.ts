@@ -10,9 +10,10 @@ export const RECEIPT_NUMBER_SHOWN = 8;
  * enough to match a request against the number a responder quotes.
  *
  * A fixed length rather than "up to the first dash", so a number without
- * dashes is shortened too.
+ * dashes is shortened too; and never more than half of a short number, so
+ * "…" never stands behind a number shown whole.
  */
 export function shortReceiptNumber(number?: string | null): string {
     if (!number) return '';
-    return `#${number.slice(0, RECEIPT_NUMBER_SHOWN)}…`;
+    return `#${number.slice(0, Math.min(RECEIPT_NUMBER_SHOWN, Math.floor(number.length / 2)))}…`;
 }
