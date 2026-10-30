@@ -9,10 +9,14 @@ each as a single-address network.
 
 Failure never widens trust. A name that does not resolve contributes nothing;
 after a failed lookup its last good addresses stay for ``STALE_GRACE_SECONDS``
-and are then dropped. An answer that is not a private-network address
-(public, loopback, link-local, unspecified, multicast, reserved) is ignored.
-The set is an immutable snapshot swapped in one assignment, so a request that
-reads it once sees one consistent set.
+and are then dropped; should the refresh itself stop working, the addresses
+that came from names expire on their own (``ProxySnapshot.expires_at``). Only
+an address of a private network (RFC 1918, unique local) is accepted from a
+name; anything else is ignored. A lookup that has not finished is never
+started a second time (a stuck resolver costs one thread per name, not one per
+refresh), on a small executor of its own. The set is an immutable snapshot
+swapped in one assignment, so a request that reads it once sees one
+consistent set.
 """
 
 import asyncio
@@ -21,7 +25,9 @@ import logging
 import re
 import socket
 import time
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from functools import partial
 from typing import (
     Awaitable,
     Callable,
@@ -69,17 +75,21 @@ def valid_host_name(value: str) -> bool:
     return not _NUMERIC_LABEL.match(labels[-1])
 
 
+# the only places a proxy of ours can be found: the private ranges. An allowlist,
+# not "whatever is not global": what Python calls global moves between versions
+# (6to4, Teredo, documentation and benchmarking ranges, 3fff::/20), and carrier-grade
+# NAT (100.64.0.0/10) is not a network we run.
+PRIVATE_RANGES = tuple(
+    ipaddress.ip_network(n)
+    for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+)
+
+
 def proxy_address_ok(address: Address) -> bool:
-    """Whether a resolved address may be a proxy of ours: an address of a
-    private network, never a public, loopback, link-local, unspecified,
-    multicast or reserved one."""
-    return not (
-        address.is_loopback
-        or address.is_link_local
-        or address.is_unspecified
-        or address.is_multicast
-        or address.is_reserved
-        or address.is_global
+    """Whether a resolved address may be a proxy of ours: an address in
+    10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 or fc00::/7, nothing else."""
+    return any(
+        address.version == net.version and address in net for net in PRIVATE_RANGES
     )
 
 
@@ -89,11 +99,16 @@ class ProxySnapshot:
 
     networks: Tuple[Network, ...] = ()
     spec: str = ""  # comma-separated, for common.utils.client_ip.resolve_client_ip
+    # clock time after which the addresses that came from names are no longer
+    # believed (None: there are none); the configured networks never expire
+    expires_at: Optional[float] = field(default=None, compare=False)
 
     @classmethod
-    def of(cls, networks: Iterable[Network]) -> "ProxySnapshot":
+    def of(
+        cls, networks: Iterable[Network], expires_at: Optional[float] = None
+    ) -> "ProxySnapshot":
         unique = tuple(dict.fromkeys(networks))
-        return cls(unique, ",".join(str(n) for n in unique))
+        return cls(unique, ",".join(str(n) for n in unique), expires_at)
 
     def trusts(self, address: Optional[Address]) -> bool:
         return address is not None and any(
@@ -101,12 +116,25 @@ class ProxySnapshot:
         )
 
 
+_executor: Optional[ThreadPoolExecutor] = None
+
+
+def _dns_executor() -> ThreadPoolExecutor:
+    """A small pool of its own: a resolver that hangs can hold these threads,
+    never the loop's default executor that the rest of the service uses."""
+    global _executor
+    if _executor is None:
+        _executor = ThreadPoolExecutor(2, thread_name_prefix="admin-proxy-dns")
+    return _executor
+
+
 async def system_resolver(name: str) -> Sequence[str]:
-    """The addresses (A and AAAA) the system resolver gives ``name``, off the
-    event loop, within ``LOOKUP_TIMEOUT_SECONDS``."""
-    loop = asyncio.get_running_loop()
-    infos = await asyncio.wait_for(
-        loop.getaddrinfo(name, None, type=socket.SOCK_STREAM), LOOKUP_TIMEOUT_SECONDS
+    """The addresses (A and AAAA) the system resolver gives ``name``, looked up
+    on the DNS executor. It has no timeout of its own: the caller stops waiting
+    (``TrustedProxies``) but must not start another lookup while this one runs,
+    because a thread in ``getaddrinfo`` cannot be cancelled."""
+    infos = await asyncio.get_running_loop().run_in_executor(
+        _dns_executor(), partial(socket.getaddrinfo, name, None, type=socket.SOCK_STREAM)
     )
     return [str(info[4][0]) for info in infos]
 
@@ -156,6 +184,7 @@ class TrustedProxies:
         self._timeout = timeout
         self._good: Dict[str, _Good] = {}
         self._status: Dict[str, str] = {}  # last logged state per name
+        self._inflight: Dict[str, "asyncio.Future"] = {}  # one lookup per name at most
         self._task: Optional["asyncio.Task[None]"] = None
         self._snapshot = ProxySnapshot.of(self._static)
 
@@ -175,8 +204,17 @@ class TrustedProxies:
 
     @property
     def snapshot(self) -> ProxySnapshot:
-        """The current set; read it once per request."""
-        return self._snapshot
+        """The current set; read it once per request. Addresses that came
+        from names are dropped here once they are too old, whether or not the
+        refresh is still running."""
+        snapshot = self._snapshot
+        if snapshot.expires_at is not None and self._clock() > snapshot.expires_at:
+            snapshot = self._snapshot = ProxySnapshot.of(self._static)
+            log.warning(
+                "admin gate: the proxy names were not refreshed in time; "
+                "only the configured addresses are trusted"
+            )
+        return snapshot
 
     @property
     def configured(self) -> bool:
@@ -184,13 +222,26 @@ class TrustedProxies:
         return bool(self._static or self.names)
 
     async def _lookup(self, name: str) -> Optional[Sequence[str]]:
-        try:
-            answer = await asyncio.wait_for(self._resolver(name), self._timeout)
-        except asyncio.CancelledError:
-            raise
-        except Exception:  # timeout, NXDOMAIN, a resolver bug: all "no answer"
+        """The answer for ``name``, or None: no answer in time, an error, or a
+        lookup of an earlier refresh that is still running (never a second one
+        beside it)."""
+        pending = self._inflight.get(name)
+        if pending is not None:
+            if not pending.done():
+                return None  # still stuck: wait for it, do not add a thread
+            del self._inflight[name]
+            if not pending.cancelled():
+                pending.exception()  # an old answer is not used; mark it read
+        lookup = asyncio.ensure_future(self._resolver(name))
+        self._inflight[name] = lookup
+        lookup.add_done_callback(lambda f: f.cancelled() or f.exception())  # mark read
+        await asyncio.wait({lookup}, timeout=self._timeout)  # does not cancel it
+        if not lookup.done():
             return None
-        return answer or None
+        del self._inflight[name]
+        if lookup.cancelled() or lookup.exception() is not None:
+            return None  # NXDOMAIN, a refused query, a resolver bug: "no answer"
+        return lookup.result() or None
 
     def _note(self, name: str, state: str, count: int) -> None:
         """One WARNING per change of a name's state, not one per refresh."""
@@ -230,10 +281,11 @@ class TrustedProxies:
         lookup; a name that fails keeps its last good addresses only until the
         grace period ends."""
         if not self.names:
-            return self._snapshot
+            return self.snapshot
         answers = await asyncio.gather(*(self._lookup(n) for n in self.names))
         now = self._clock()
         resolved = set()
+        oldest = None  # the oldest good answer a trusted address comes from
         for name, raw in zip(self.names, answers):
             if raw is None:
                 previous = self._good.get(name)
@@ -255,12 +307,16 @@ class TrustedProxies:
                     self._note(name, "ignored", ignored)
                 else:
                     self._note(name, "ok", len(addresses))
-            resolved.update(addresses)
+            if addresses:
+                resolved.update(addresses)
+                at = self._good[name].at
+                oldest = at if oldest is None else min(oldest, at)
         found = sorted(resolved, key=lambda a: (a.version, int(a)))  # v4 and v6 mix
+        expires = None if oldest is None else oldest + self.interval + self._grace
         new = ProxySnapshot.of(
-            (*self._static, *(ipaddress.ip_network(a) for a in found))
+            (*self._static, *(ipaddress.ip_network(a) for a in found)), expires
         )
-        if new != self._snapshot:
+        if new != self._snapshot or new.expires_at != self._snapshot.expires_at:
             self._snapshot = new  # one assignment: readers see the old set or the new
         return new
 
@@ -288,6 +344,9 @@ class TrustedProxies:
                 log.error("admin gate: proxy name refresh failed: %s", type(exc).__name__)
 
     async def stop(self) -> None:
+        for lookup in self._inflight.values():
+            lookup.cancel()
+        self._inflight.clear()
         task, self._task = self._task, None
         if task is not None:
             task.cancel()

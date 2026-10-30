@@ -4,6 +4,7 @@ import asyncio
 import ipaddress
 import logging
 import socket
+import threading
 
 import pytest
 from fastapi import Request
@@ -162,7 +163,20 @@ def test_refresh_seconds_out_of_bounds_stop_startup(value):
 # ------------------------------------------------------------ which answers
 
 
-@pytest.mark.parametrize("address", ["10.0.0.5", "172.18.0.3", "192.168.1.1", "fd00::5", "100.64.0.1"])
+@pytest.mark.parametrize(
+    "address",
+    [
+        "10.0.0.5",
+        "10.255.255.255",
+        "172.16.0.1",
+        "172.18.0.3",
+        "172.31.255.255",
+        "192.168.1.1",
+        "fc00::1",
+        "fd00::5",
+        "fdff:ffff::1",
+    ],
+)
 def test_private_addresses_are_usable(address):
     assert proxy_address_ok(ipaddress.ip_address(address))
 
@@ -170,8 +184,10 @@ def test_private_addresses_are_usable(address):
 @pytest.mark.parametrize(
     "address",
     [
+        # public
         "8.8.8.8",
         "2001:4860:4860::8888",
+        # loopback, link-local, unspecified, multicast, reserved, broadcast
         "127.0.0.1",
         "::1",
         "169.254.1.1",
@@ -181,6 +197,35 @@ def test_private_addresses_are_usable(address):
         "224.0.0.1",
         "ff02::1",
         "240.0.0.1",
+        "255.255.255.255",
+        # carrier-grade NAT
+        "100.64.0.1",
+        "100.127.255.255",
+        # transition mechanisms
+        "2002:a00:1::1",  # 6to4 around a private IPv4 address
+        "2002::1",
+        "2001::1",  # Teredo
+        "64:ff9b::a00:1",  # NAT64
+        # documentation
+        "192.0.2.1",
+        "198.51.100.1",
+        "203.0.113.1",
+        "2001:db8::1",
+        "3fff::1",
+        # benchmarking, protocol assignments, 6to4 relay
+        "198.18.0.1",
+        "198.19.255.255",
+        "192.0.0.1",
+        "192.88.99.1",
+        # just outside the private ranges
+        "9.255.255.255",
+        "11.0.0.1",
+        "172.15.255.255",
+        "172.32.0.1",
+        "192.167.255.255",
+        "192.169.0.1",
+        "fbff::1",
+        "fe00::1",
     ],
 )
 def test_other_addresses_are_not(address):
@@ -336,13 +381,14 @@ async def test_a_hanging_lookup_is_cut_off_and_trusts_nobody():
     await asyncio.wait_for(p.start(), 2)  # start does not hang on DNS
     assert specs(p.snapshot) == []
     await p.stop()
+    assert not p._inflight  # and stopping leaves nothing running
 
 
-async def test_the_system_resolver_asks_for_both_families_off_the_loop(monkeypatch):
+async def test_the_system_resolver_asks_for_both_families_on_its_own_threads(monkeypatch):
     seen = {}
 
     def fake(host, port, *args, **kw):
-        seen["thread"] = __import__("threading").current_thread()
+        seen["thread"] = threading.current_thread()
         seen["args"] = (host, kw)
         return [
             (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0)),
@@ -351,18 +397,74 @@ async def test_the_system_resolver_asks_for_both_families_off_the_loop(monkeypat
 
     monkeypatch.setattr(socket, "getaddrinfo", fake)
     assert await system_resolver("edge-proxy") == ["10.0.0.5", "fd00::5"]
-    assert seen["thread"] is not __import__("threading").main_thread()
+    assert seen["thread"] is not threading.main_thread()
+    assert seen["thread"].name.startswith("admin-proxy-dns")  # not the default executor
     assert seen["args"][0] == "edge-proxy"
     assert "family" not in seen["args"][1]  # unspecified: A and AAAA
 
 
-async def test_the_system_resolver_times_out(monkeypatch):
-    monkeypatch.setattr(proxies_module, "LOOKUP_TIMEOUT_SECONDS", 0.05)
+async def test_a_lookup_that_has_not_finished_is_never_started_again():
+    gate, calls = asyncio.Event(), []
+
+    async def blocked(name):
+        calls.append(name)
+        await gate.wait()
+        return [PROXY]
+
+    p = TrustedProxies([], ["edge-proxy"], resolver=blocked, timeout=0.02)
+    for _ in range(4):
+        await p.refresh()
+    assert calls == ["edge-proxy"]  # one lookup, however many refreshes
+    assert specs(p.snapshot) == []
+    gate.set()
+    await asyncio.sleep(0.01)
+    await p.refresh()  # the finished one is dropped (too old to believe), a new one asked
+    assert calls == ["edge-proxy", "edge-proxy"]
+    assert specs(p.snapshot) == [f"{PROXY}/32"]
+    await p.stop()
+
+
+async def test_a_blocked_system_lookup_costs_one_thread_not_one_per_refresh(monkeypatch):
+    release, started = threading.Event(), []
+
+    def blocking(host, port, *args, **kw):
+        started.append(threading.current_thread().name)
+        release.wait(10)
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (PROXY, 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", blocking)
+    p = TrustedProxies([], ["edge-proxy"], resolver=system_resolver, timeout=0.02)
+    try:
+        for _ in range(5):
+            await p.refresh()
+        assert len(started) == 1 and started[0].startswith("admin-proxy-dns")
+        assert specs(p.snapshot) == []
+    finally:
+        release.set()
+    for _ in range(200):  # the thread finishes; the next refresh asks again
+        if p._inflight["edge-proxy"].done():
+            break
+        await asyncio.sleep(0.01)
+    await p.refresh()
+    assert len(started) == 2 and specs(p.snapshot) == [f"{PROXY}/32"]
+    await p.stop()
+
+
+async def test_a_blocked_lookup_does_not_starve_the_loops_own_executor(monkeypatch):
+    release = threading.Event()
     monkeypatch.setattr(
-        socket, "getaddrinfo", lambda *a, **k: __import__("time").sleep(0.5) or []
+        socket, "getaddrinfo", lambda *a, **k: release.wait(10) and []
     )
-    with pytest.raises(asyncio.TimeoutError):
-        await system_resolver("edge-proxy")
+    p = TrustedProxies(
+        [], [f"proxy{i}" for i in range(6)], resolver=system_resolver, timeout=0.02
+    )
+    try:
+        await p.refresh()
+        # the loop's default executor is free for everyone else
+        assert await asyncio.wait_for(asyncio.to_thread(lambda: "free"), 2) == "free"
+    finally:
+        release.set()
+        await p.stop()
 
 
 # -------------------------------------------------------------- the loop
@@ -408,6 +510,63 @@ async def test_the_loop_survives_a_failing_refresh(monkeypatch):
         await asyncio.sleep(0.01)
     assert count["n"] >= 3 and not p._task.done()
     await p.stop()
+
+
+async def test_names_expire_on_their_own_when_every_refresh_fails():
+    clock, dns = Clock(), FakeDns(edge_proxy=[PROXY])
+    p = proxies(dns, "10.1.0.0/16", clock=clock, interval=0.01)
+    await p.start()  # the first resolution works
+    assert specs(p.snapshot) == ["10.0.0.5/32", "10.1.0.0/16"]
+
+    async def broken():
+        raise RuntimeError("boom")
+
+    p.refresh = broken  # from now on every refresh raises
+    for _ in range(5):  # the loop keeps running and failing
+        await asyncio.sleep(0.02)
+    assert p._task is not None and not p._task.done()
+    clock.now += 0.01 + STALE_GRACE_SECONDS  # the last good answer is old, within the allowance
+    assert specs(p.snapshot) == ["10.0.0.5/32", "10.1.0.0/16"]
+    clock.now += 1
+    assert specs(p.snapshot) == ["10.1.0.0/16"]  # only what is configured is left
+    assert p.snapshot.spec == "10.1.0.0/16"
+    await p.stop()
+
+
+async def test_expiry_counts_from_the_oldest_answer_a_trusted_address_comes_from():
+    clock, dns = Clock(), FakeDns(edge_proxy=[PROXY], other=[MOVED])
+    p = proxies(dns, clock=clock, names=("edge-proxy", "other"), interval=60)
+    await p.refresh()
+    first = clock.now
+    clock.now += 100
+    dns.answers["other"] = OSError()  # edge-proxy stays fresh, other keeps its old answer
+    await p.refresh()
+    assert p.snapshot.expires_at == first + 60 + STALE_GRACE_SECONDS
+
+
+async def test_a_refresh_moves_the_expiry_and_a_set_without_names_has_none():
+    clock, dns = Clock(), FakeDns(edge_proxy=[PROXY])
+    p = proxies(dns, "10.1.0.0/16", clock=clock, interval=60)
+    assert p.snapshot.expires_at is None  # nothing from names yet
+    await p.refresh()
+    first = p.snapshot.expires_at
+    clock.now += 60
+    await p.refresh()  # same addresses, newer answer
+    assert p.snapshot.expires_at == first + 60
+    dns.answers["edge_proxy"] = ["8.8.8.8"]
+    await p.refresh()
+    assert p.snapshot.expires_at is None and specs(p.snapshot) == ["10.1.0.0/16"]
+
+
+async def test_an_expired_set_is_dropped_for_the_gate_too():
+    app = gate()
+    clock = Clock()
+    app.proxies._clock = clock
+    app.proxies._resolver = FakeDns(edge_proxy=[PROXY])
+    await app.proxies.refresh()
+    assert (await call(app, peer=PROXY, headers=XFF))[0] == 200
+    clock.now += 60 + STALE_GRACE_SECONDS + 1  # no refresh happened since
+    assert (await call(app, peer=PROXY, headers=XFF))[0] == 404
 
 
 async def test_without_names_there_is_no_loop():
@@ -489,6 +648,9 @@ async def test_configured_addresses_and_names_work_together():
     assert (await call(app, peer=PROXY, headers=XFF))[0] == 200
 
 
+HTTPS = [("x-forwarded-proto", "https")]
+
+
 def scope_from(peer, headers=(), scheme="http"):
     return {
         "type": "http",
@@ -526,6 +688,9 @@ async def test_a_request_keeps_one_set_even_when_it_changes_meanwhile():
         holder["dns"].answers["edge_proxy"] = [MOVED]
         await app.proxies.refresh()  # the set changes while this request is served
         seen["after"] = app.proxies.snapshot
+        # the decisions the gate takes for this request still use the set it started with
+        seen["https_now"] = app._is_https(request.scope)
+        seen["https_new_request"] = app._is_https(scope_from(PROXY, HTTPS))
         return {}
 
     app = holder["app"] = get_admin_application(
@@ -535,8 +700,11 @@ async def test_a_request_keeps_one_set_even_when_it_changes_meanwhile():
     app.proxies._resolver = dns
     await app.proxies.refresh()
     first = app.proxies.snapshot
-    assert (await call(app, peer=PROXY, headers=XFF))[0] == 200
+    status, _, _ = await call(app, peer=PROXY, headers=[*XFF, *HTTPS])
+    assert status == 200  # the address decision used the set before the swap
     assert seen["during"] is first and seen["after"] is not first
+    assert seen["https_now"] is True  # the proto decision of the request: the old set
+    assert seen["https_new_request"] is False  # a request that starts now sees the new one
 
 
 async def test_the_lifespan_resolves_at_start_and_stops_the_loop_at_the_end():

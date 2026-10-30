@@ -68,16 +68,26 @@ mode instead of failing.
   rather than a stack-prefixed name). The service resolves each name (A and AAAA) when
   it starts and again every `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` (default 60, 10 to
   3600), and trusts exactly the addresses it gets, each as a single address, next to the
-  configured addresses and CIDRs. A name that does not resolve trusts nobody: after a
-  failed lookup its last good addresses are kept for 5 minutes and then dropped, and the
-  service starts and keeps checking even when a name does not resolve yet. Answers that
-  are not private-network addresses (public, loopback, link-local, unspecified,
-  multicast, reserved) are ignored, and so is a name with more than 32 addresses. The
-  log says, once per change, which name did not resolve or had addresses ignored (names
-  and counts, never addresses). A host name is only as trustworthy as the DNS of the
-  network it is resolved on: use it only for a network whose members you control, and
-  keep the proxy's network free of containers that should not be able to register that
-  name (the admin address allowlist and the sign-in checks still apply to every request).
+  configured addresses and CIDRs. A name that does not resolve trusts nobody. Any
+  failed lookup, "name does not exist" included, counts as transient: the name's last
+  good addresses stay trusted for up to 5 minutes and are then dropped, because
+  container DNS answers "does not exist" for a moment while a container is being
+  recreated, and that must not lock the proxy out. Should the refresh itself stop
+  working, the addresses that came from names expire on their own (the refresh interval
+  plus 5 minutes after the last good answer) and only the configured ones remain. The
+  service starts and keeps checking even when a name does not resolve yet. Only
+  addresses in `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` and `fc00::/7` are
+  accepted from a name; every other answer (public, loopback, link-local, carrier-grade
+  NAT, documentation, transition ranges and so on) is ignored, and so is a name with
+  more than 32 addresses. A lookup that has not finished is never started again, so a
+  stuck resolver holds one thread per name, on a small pool of its own. The log says,
+  once per change, which name did not resolve or had addresses ignored (names and
+  counts, never addresses). A host name is only as trustworthy as the DNS of the
+  network it is resolved on: whoever can register the proxy's name (or an alias of it)
+  on that network, or answer its DNS queries, gets an address of their own trusted for
+  `X-Forwarded-For`. Use a name only on a network whose members you control. Behind the
+  address gate the sign-in, second-factor and step-up checks still apply to every
+  request.
 - **Cookies and ports.** The `__Host-` cookies carry no port, so a browser sends
   `__Host-bcadmin` to every service on the same host name, whatever the port
   (`localhost:3000`, another tunnel, a second environment's portal tunnelled to

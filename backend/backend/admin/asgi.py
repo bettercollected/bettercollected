@@ -53,8 +53,6 @@ async def lifespan(app: FastAPI):
     portal = getattr(app.state, "portal", None)
     warn_shared_gateway(getattr(app.state, "gate_settings", None))
     proxies = getattr(app.state, "trusted_proxies", None)
-    if proxies is not None:
-        await proxies.start()  # resolves the proxy names, then refreshes them
     cleanup = None
     if portal is not None:
         from backend.admin.db import ensure_schema
@@ -64,6 +62,8 @@ async def lifespan(app: FastAPI):
         if not await portal.start_loops():
             cleanup = asyncio.create_task(portal.cleanup_loop())
     try:
+        if proxies is not None:
+            await proxies.start()  # resolves the proxy names, then refreshes them
         yield
     finally:
         if proxies is not None:
