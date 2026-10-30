@@ -19,6 +19,16 @@ export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 const SUBMISSION_TAG = 'SUBMISSION_TAG';
+
+/**
+ * One id as exactly one path segment: encoded (no "/", "?" or "#" gets
+ * through), and never "." or "..", which a URL resolves as a step up the path.
+ */
+export function pathSegment(value: unknown): string {
+    const text = encodeURIComponent(String(value ?? ''));
+    return text === '.' || text === '..' ? text.replace(/\./g, '%252E') : text;
+}
+
 const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 const GROUP_TAG = 'GROUP_TAG';
 const RESPONDER_TAG = 'RESPONDER_TAG';
@@ -64,7 +74,8 @@ export const workspacesApi = createApi({
     endpoints: (builder) => ({
         deleteResponse: builder.mutation<any, any>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response/${request.responseId}`,
+                // ids from a page's URL or a list: encoded, so one can never reach another path
+                url: `/workspaces/${pathSegment(request.workspaceId)}/forms/${pathSegment(request.formId)}/response/${pathSegment(request.responseId)}`,
                 method: 'DELETE'
             }),
             // The deletion-requests table (getWorkspaceAllSubmissions) and the
@@ -228,7 +239,8 @@ export const workspacesApi = createApi({
         }),
         getWorkspaceSubmission: builder.query<any, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
-                url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
+                // the response id comes from the page's URL: encoded, so it can never reach another path
+                url: `/workspaces/${pathSegment(query.workspace_id)}/submissions/${pathSegment(query.submission_id)}`,
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]

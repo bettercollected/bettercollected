@@ -87,6 +87,13 @@ from backend.app.utils.respondent_identity import matches as identity_matches
 # another workspace's object.
 _PLAIN_FILE_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
 
+# Who gave a response: what the receipt by number (no sign-in) leaves out.
+RECEIPT_IDENTITY_FIELDS = {
+    "dataOwnerIdentifier",
+    "respondent_email",
+    "anonymous_identity",
+}
+
 
 def is_plain_file_id(value) -> bool:
     return (
@@ -173,6 +180,8 @@ class FormResponseService:
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=responses_page
             )
+        if request_for_deletion:
+            await self._withhold_receipt_numbers(responses_page, user, workspace_id)
         return responses_page
 
     async def get_user_submissions(
@@ -264,7 +273,27 @@ class FormResponseService:
                         file_fields, response, workspace_id
                     )
             return response_page
+        if request_for_deletion:
+            await self._withhold_receipt_numbers(form_responses, user, workspace_id)
         return form_responses
+
+    async def _withhold_receipt_numbers(
+        self, page: Any, user: User, workspace_id: RecordId
+    ) -> None:
+        """The deletion-request listing without receipt numbers for a caller
+        who cannot read responses. The receipt number is a bearer handle on
+        the answers (``GET .../submissions/by-uuid/{number}`` needs no
+        sign-in), so a Privacy officer, who runs deletion requests but never
+        reads answers, must not be handed it."""
+        if await self._authorization.has_permission(
+            user, Permission.RESPONSE_READ, workspace_id
+        ):
+            return
+        for item in page.items:
+            if isinstance(item, dict):
+                item.pop("submission_uuid", None)
+            else:
+                item.submission_uuid = None
 
     async def check_member_and_form_in_workspace(
         self, workspace_id: RecordId, form_id: str, user: User
@@ -894,11 +923,23 @@ class FormResponseService:
             enabled=bool(workspace_form.settings.respondent_feedback_enabled),
         )
 
+        # Whoever holds the number reads the answers, not who gave them: no
+        # email and no pseudonym of the respondent. The receipt page still
+        # needs to know whether to show its "Anonymous" mark, so that is the
+        # one fact kept (``anonymize``), by the rule the page used while the
+        # email was in the payload: no signed-in owner recorded (an anonymous
+        # submission, one without a login, a provider response that carries
+        # only an email address).
+        receipt_response = respondent_response.model_dump(
+            mode="json", by_alias=True, exclude=RECEIPT_IDENTITY_FIELDS
+        )
+        receipt_response["anonymize"] = not response.dataOwnerIdentifier
+
         return {
             "form": strip_hidden_calculations(
                 respondent_view(StandardFormCamelModel(**form.model_dump(mode="json")))
             ),
-            "response": respondent_response,
+            "response": receipt_response,
         }
 
     async def request_for_response_deletion_by_uuid(

@@ -26,7 +26,10 @@ def main():
     services inside the stack reach (``app/services/internal_routes.py``)."""
     app = get_application()
     public = int(os.getenv("PORT", 8000))
-    config = uvicorn.Config(app, host=HOST, port=public)
+    # no uvicorn access log: it prints the full request line, query string and
+    # receipt number included; the app's request logger keeps method, redacted
+    # path and status (app/middlewares/request_privacy.py)
+    config = uvicorn.Config(app, host=HOST, port=public, access_log=False)
     server = uvicorn.Server(config)
     log_internal_routes_setup()
     sockets = [_listening_socket(public)]

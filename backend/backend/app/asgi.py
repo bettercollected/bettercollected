@@ -21,6 +21,8 @@ from backend.db.startup import check_postgres_at_startup, dispose_postgres
 from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
+from backend.app.middlewares.apm_privacy import PrivateAPMClient
+from backend.app.middlewares.request_privacy import redact_receipts
 from backend.app.public_api.app import PUBLIC_API_PATH, build_public_api_asgi
 from backend.app.router import root_api_router
 from backend.app.services.internal_auth import log_if_internal_key_missing
@@ -230,10 +232,18 @@ def get_application(is_test_mode: bool = False):
 
     logger.info("Register application middlewares.")
     include_middlewares(app)
-    add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+    # the timing line names the route (and, for an unmatched one, the raw path)
+    add_timing_middleware(
+        app,
+        record=lambda line: logger.info("{}", redact_receipts(line)),
+        prefix="app",
+        exclude="untimed",
+    )
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
-        apm = make_apm_client()
+        # a client that drops query strings and receipt numbers from what it
+        # records (middlewares/apm_privacy.py)
+        apm = make_apm_client(client_cls=PrivateAPMClient)
         app.add_middleware(ElasticAPM, client=apm)
     # verified domains are SSO trust grants: name what a hosted stack misses
     for warning in settings.verified_domains.warnings(settings.sso.is_configured):

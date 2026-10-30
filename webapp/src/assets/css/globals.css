@@ -197,10 +197,10 @@ div::-webkit-scrollbar-thumb:hover {
 
 /* Frozen leading columns for the responders table (tabular-responses.tsx).
    One table + position:sticky — the old two-tables-side-by-side approach let
-   row heights drift out of alignment. Offsets: checkbox 48px (react-data-table
-   built-in), expand 40px, so Responder ID starts at 88px. */
-.responders-frozen-table .rdt_TableCol:nth-child(-n + 3),
-.responders-frozen-table .rdt_TableCell:nth-child(-n + 3) {
+   row heights drift out of alignment. Two frozen columns: the open button
+   (40px), then Responder ID, which starts at 40px. */
+.responders-frozen-table .rdt_TableCol:nth-child(-n + 2),
+.responders-frozen-table .rdt_TableCell:nth-child(-n + 2) {
     /* !important: react-data-table's own stylesheet positions head cells
        relative, which would turn the left offsets below into a plain
        relative shift instead of a sticky constraint. */
@@ -214,11 +214,7 @@ div::-webkit-scrollbar-thumb:hover {
 }
 .responders-frozen-table .rdt_TableCol:nth-child(2),
 .responders-frozen-table .rdt_TableCell:nth-child(2) {
-    left: 48px;
-}
-.responders-frozen-table .rdt_TableCol:nth-child(3),
-.responders-frozen-table .rdt_TableCell:nth-child(3) {
-    left: 88px;
+    left: 40px;
     /* A hairline marks the frozen edge (DESIGN.md: hairlines, not shadows). */
     border-right: 1px solid var(--color-black-400);
 }
@@ -230,7 +226,7 @@ div::-webkit-scrollbar-thumb:hover {
 .responders-frozen-table .rdt_TableHead {
     z-index: 4;
 }
-.responders-frozen-table .rdt_TableCol:nth-child(-n + 3) {
+.responders-frozen-table .rdt_TableCol:nth-child(-n + 2) {
     background-color: var(--color-black-200); /* matches headRow background */
     z-index: 5;
 }
@@ -240,6 +236,25 @@ div::-webkit-scrollbar-thumb:hover {
 .responders-frozen-table .rdt_TableRow,
 .responders-frozen-table .rdt_TableHeadRow {
     min-width: max-content;
+}
+
+/* Keyboard focus on a row (Tab to it, Enter opens the response) must be visible.
+   The cells paint over a row outline, so mark the cells: tinted like hover, with
+   a brand line above and below and at the left edge. */
+.responders-frozen-table .rdt_TableRow:focus-visible {
+    outline: none;
+}
+.responders-frozen-table .rdt_TableRow:focus-visible .rdt_TableCell {
+    background-color: var(--color-black-100);
+    box-shadow:
+        inset 0 2px 0 var(--color-brand-500),
+        inset 0 -2px 0 var(--color-brand-500);
+}
+.responders-frozen-table .rdt_TableRow:focus-visible .rdt_TableCell:nth-child(1) {
+    box-shadow:
+        inset 2px 0 0 var(--color-brand-500),
+        inset 0 2px 0 var(--color-brand-500),
+        inset 0 -2px 0 var(--color-brand-500);
 }
 
 /* Cohesive hover: colour every cell so the frozen (opaque) cells match. */

@@ -98,7 +98,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
 
     const downloadFormFile = async () => {
         try {
-            ans?.file_metadata?.url && downloadFile(ans?.file_metadata?.url, fileMetaData.name ?? fileMetaData.id);
+            if (ans?.file_metadata?.url) await downloadFile(ans.file_metadata.url, fileMetaData.name ?? fileMetaData.id);
         } catch (err) {
             toast({ description: t('FILE.DOWNLOAD_ERROR'), variant: 'destructive' });
         }

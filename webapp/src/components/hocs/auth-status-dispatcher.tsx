@@ -1,9 +1,11 @@
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useGetStatusQuery, useRefreshTokenMutation } from '@app/store/auth/api';
+import { resetIfUserChanged } from '@app/store/actions/reset-after-sign-out';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { isAdminDomain } from '@app/utils/domain-utils';
+import { isSignedOutError } from '@app/utils/session-answer';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -18,17 +20,24 @@ export default function AuthStatusDispatcher({ workspace, children }: IAuthStatu
     const dispatch = useAppDispatch();
     const [is401, setIs401] = useState(false);
 
-    const { data, isLoading } = useGetStatusQuery(undefined, {
+    // Only an explicit 401 ends the session here. A server error (a deploy's
+    // 502/503, 429) or a network failure leaves the user signed in with their
+    // caches (a respondent's half-filled form stays mounted), and the poll
+    // asks again on its next round.
+    const { data, isLoading, signedOut } = useGetStatusQuery(undefined, {
         pollingInterval: 30000,
-        selectFromResult: ({ data, isLoading, isError }) => {
-            if (isError) setIs401(true);
+        selectFromResult: ({ data, isLoading, isError, error }) => {
+            const signedOut = isError && isSignedOutError(error);
             if (data) {
-                return { data: { ...data, isLoading }, isLoading };
+                return { data: { ...data, isLoading }, isLoading, signedOut };
             }
-            return { data, isLoading };
+            return { data, isLoading, signedOut };
         },
         skip: is401
     });
+    // once, while rendering (React's "adjust state on a change" pattern): the
+    // poll is then skipped, so a 401 cannot loop
+    if (signedOut && !is401) setIs401(true);
 
     // The plan claim lives inside the (httpOnly) access token, so an upgrade
     // that happens outside this tab — another session, an admin action, the
@@ -56,10 +65,13 @@ export default function AuthStatusDispatcher({ workspace, children }: IAuthStatu
 
         if (data) {
             const user: UserStatus = { ...data, isLoading: false };
+            dispatch(resetIfUserChanged(user.id));
             dispatch(setAuth(user));
         }
 
         if (is401) {
+            // the session ended: the next person at this browser must not see what this user saw
+            dispatch(resetIfUserChanged(undefined));
             dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
 
             // Only redirect if not on invitation page or admin domain
@@ -67,8 +79,9 @@ export default function AuthStatusDispatcher({ workspace, children }: IAuthStatu
                 router.replace(window.location.href);
             }
         }
-
-    }, [isLoading, is401, workspace]);
+        // data?.id: another tab signing in as someone else shows up on the
+        // next poll, not only on the next load
+    }, [isLoading, is401, workspace, data?.id]);
 
     return <>{children}</>;
 }

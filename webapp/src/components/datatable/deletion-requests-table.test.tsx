@@ -21,7 +21,8 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
 const openModal = vi.fn();
 const closeModal = vi.fn();
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal, closeModal }) }));
-vi.mock('@app/components/modal-views/full-screen-modal-context', () => ({ useFullScreenModal: () => ({ openModal: vi.fn() }) }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
 vi.mock('@Components/modals/modal-wrapper/header-modal-wrapper', () => ({ default: ({ children }: any) => <div>{children}</div> }));
 
 const toast = vi.fn();
@@ -32,7 +33,6 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
-        useLazyGetWorkspaceSubmissionQuery: () => [vi.fn()],
         useCloseDeletionRequestMutation: () => [closeRequest, { isLoading: false }]
     };
 });
@@ -56,10 +56,10 @@ const request = (id: string, extra: Record<string, unknown> = {}) => ({
 });
 const page = (items: any[]) => ({ items, total: items.length, page: 1, size: 50, pages: 1 }) as any;
 
-const renderTable = (items: any[]) =>
+const renderTable = (items: any[], formId?: string) =>
     render(
         <ReduxProvider store={store}>
-            <ResponsesTable requestForDeletion={true} page={1} setPage={vi.fn()} submissions={page(items)} />
+            <ResponsesTable requestForDeletion={true} formId={formId} page={1} setPage={vi.fn()} submissions={page(items)} />
         </ReduxProvider>
     );
 
@@ -106,6 +106,35 @@ describe('deletion requests of imported forms', () => {
         expect(openModal).toHaveBeenLastCalledWith('CLOSE_DELETION_REQUEST', expect.objectContaining({ responseId: 'r1', outcome: 'declined' }));
     });
 
+    it('opens the response on its own page from "View" (a real link), for staff who may read responses', () => {
+        access.permissions = ['response.read', 'response.delete'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
+        const link = within(rowOf('r1@example.com')).getByRole('link', { name: 'View' });
+        // the page goes back (and, after a delete, returns) to the workspace's deletion requests
+        expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=deletion-requests');
+        expect(link.getAttribute('href')).not.toContain('sub_id');
+    });
+
+    it('from a form\'s own deletion requests, the page goes back to that list', () => {
+        access.permissions = ['response.read'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })], 'form-s');
+        expect(within(rowOf('r1@example.com')).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=form-deletion-requests');
+    });
+
+    it('never puts the full receipt number (a bearer token) in a tooltip', () => {
+        access.permissions = ['response.read'];
+        const { container } = renderTable([request('r1', { provider: 'self', formId: 'form-s', submissionUuid: '0a1b2c3d-1111-4222-8333-444455556666' })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeInTheDocument();
+        expect(container.innerHTML).not.toContain('0a1b2c3d-1111');
+        expect(container.querySelector('[title*="0a1b2c3d"]')).toBeNull();
+    });
+
+    it('offers no "View" without response.read (a Privacy officer completes the request without reading it)', () => {
+        access.permissions = ['privacy.manage', 'response.delete'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
+        expect(within(rowOf('r1@example.com')).queryByRole('link', { name: 'View' })).toBeNull();
+    });
+
     it('offers nothing to close without privacy.manage', () => {
         access.permissions = ['response.read'];
         renderTable([request('r1')]);
@@ -132,6 +161,39 @@ describe('deletion requests of imported forms', () => {
         access.permissions = ['privacy.manage'];
         renderTable([request('r4', { status: 'declined', declineReason: 'made_up' })]);
         expect(within(rowOf('r4@example.com')).getByText('DELETION_REQUEST.REASON.OTHER')).toBeTruthy();
+    });
+});
+
+describe('the receipt number on a deletion request', () => {
+    const NUMBER = '0a1b2c3d-1111-4222-8333-444455556666';
+    // every attribute value and the text of the whole table
+    const everythingInTheDom = (container: HTMLElement) =>
+        [container.textContent ?? '', ...Array.from(container.querySelectorAll('*')).flatMap((element) => Array.from(element.attributes).map((attribute) => attribute.value))].join('\n');
+
+    beforeEach(() => {
+        access.permissions = ['privacy.manage'];
+        store.dispatch(setWorkspace(WORKSPACE));
+        store.dispatch(setAuth({ id: 'me', email: 'me@example.com', roles: [] } as any));
+    });
+
+    it('shows only the start of the number, like the response drawer', () => {
+        renderTable([request('r1', { submissionUuid: NUMBER })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeTruthy();
+    });
+
+    it('never puts the full number in the DOM: not as text, title, aria-* or data-*', () => {
+        const { container } = renderTable([request('r1', { submissionUuid: NUMBER })]);
+        const dom = everythingInTheDom(container);
+        expect(dom).not.toContain(NUMBER);
+        expect(dom).not.toContain('4222');
+        expect(dom).not.toContain('444455556666');
+        expect(container.querySelector('[title*="0a1b2c3d"]')).toBeNull();
+    });
+
+    it('shortens a number without dashes too', () => {
+        const { container } = renderTable([request('r1', { submissionUuid: '0a1b2c3d111142228333444455556666' })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeTruthy();
+        expect(everythingInTheDom(container)).not.toContain('0a1b2c3d1111');
     });
 });
 

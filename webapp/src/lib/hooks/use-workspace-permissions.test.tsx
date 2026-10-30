@@ -54,6 +54,24 @@ describe('useWorkspacePermissions', () => {
         expect(result.current.can(WorkspacePermission.MEMBERS_MANAGE)).toBe(false);
     });
 
+    it('is answered only by a successful request: a failed one is settled (ready) but not an answer', () => {
+        query.result = { isSuccess: true, data: { permissions: [] } };
+        let { result } = renderHook(() => useWorkspacePermissions(), { wrapper });
+        expect(result.current.ready).toBe(true);
+        expect(result.current.answered).toBe(true);
+
+        query.result = { isError: true, isSuccess: false, data: undefined };
+        ({ result } = renderHook(() => useWorkspacePermissions(), { wrapper }));
+        expect(result.current.ready).toBe(true);
+        expect(result.current.answered).toBe(false);
+
+        // still loading
+        query.result = { isLoading: true };
+        ({ result } = renderHook(() => useWorkspacePermissions(), { wrapper }));
+        expect(result.current.ready).toBe(false);
+        expect(result.current.answered).toBe(false);
+    });
+
     it('does not ask while signed out', () => {
         store.dispatch(setAuth({ id: '' }));
         query.result = { data: { permissions: [WorkspacePermission.FORM_READ] } };

@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { FileMetadata } from '@app/models/types/file-types';
 
-
 export const generateFileUrl = (file: File) => {
     const fileUrl = URL.createObjectURL(file);
     return fileUrl;
@@ -14,16 +13,27 @@ export const generateFileMetaData = (file: File, fileId?: string): FileMetadata 
     return { id: fileId ?? uuidv4(), name: file.name, size: fileSizeInMB, type: file.type, url: fileUrl };
 };
 
+/**
+ * Fetches a file (the server's short-lived signed link) and saves it. Throws
+ * when the link answers with an error (an expired link, a refused one), so
+ * the caller says so instead of saving the error page as the file.
+ */
 export async function downloadFile(fileUrl: string, fileName: string) {
     const response = await fetch(fileUrl);
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
     const blob = await response.blob();
     const url = window.URL.createObjectURL(new Blob([blob]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode!.removeChild(link);
+    try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+    } finally {
+        // the click has started the save; the object URL is not needed after it
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    }
     return true;
 }
 

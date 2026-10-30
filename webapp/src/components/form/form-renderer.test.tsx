@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import FormRenderer from '@app/components/form/form-renderer';
 
 const seen: { ids?: string[] } = {};
-vi.mock('@app/components/modal-views/full-screen-modals/view-response-full-modal-view', () => ({
+vi.mock('@app/components/form/individual-form-response', () => ({
     IndividualFormResponse: ({ formFields }: { formFields: Array<{ id: string }> }) => {
         seen.ids = formFields.map((field) => field.id);
         return null;
