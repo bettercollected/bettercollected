@@ -60,6 +60,24 @@ mode instead of failing.
   If a proxy is unavoidable, set `ADMIN_TRUSTED_PROXIES`, `ADMIN_ALLOWED_IPS` and
   `ADMIN_ALLOWED_HOSTS` / `ADMIN_PUBLIC_ORIGINS` for it; `deploy.sh` prints a reminder when
   any of those is set in the root `.env`. An SSH tunnel is the supported way in.
+- **`ADMIN_TRUSTED_PROXIES` takes addresses, CIDRs and host names**, comma-separated and
+  mixed. Name the proxy by host name when its address can change (a container that is
+  recreated gets a new one): use the name it has on the network it shares with the admin
+  service, written as a plain host name (letters, digits and hyphens; no scheme, port,
+  path or wildcard, and no underscores, so use the short service name or a network alias
+  rather than a stack-prefixed name). The service resolves each name (A and AAAA) when
+  it starts and again every `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` (default 60, 10 to
+  3600), and trusts exactly the addresses it gets, each as a single address, next to the
+  configured addresses and CIDRs. A name that does not resolve trusts nobody: after a
+  failed lookup its last good addresses are kept for 5 minutes and then dropped, and the
+  service starts and keeps checking even when a name does not resolve yet. Answers that
+  are not private-network addresses (public, loopback, link-local, unspecified,
+  multicast, reserved) are ignored, and so is a name with more than 32 addresses. The
+  log says, once per change, which name did not resolve or had addresses ignored (names
+  and counts, never addresses). A host name is only as trustworthy as the DNS of the
+  network it is resolved on: use it only for a network whose members you control, and
+  keep the proxy's network free of containers that should not be able to register that
+  name (the admin address allowlist and the sign-in checks still apply to every request).
 - **Cookies and ports.** The `__Host-` cookies carry no port, so a browser sends
   `__Host-bcadmin` to every service on the same host name, whatever the port
   (`localhost:3000`, another tunnel, a second environment's portal tunnelled to
@@ -1451,7 +1469,8 @@ check), `(setting, reason)` pairs and the time of the check; `Portal.mail_status
 | `ADMIN_PORT` | `8100` | host port (loopback) |
 | `ADMIN_ALLOWED_IPS` | `127.0.0.1/32` | allowed client CIDRs; invalid entries stop startup |
 | `ADMIN_ALLOWED_HOSTS` | `localhost:<port>,127.0.0.1:<port>` | allowed `Host` values |
-| `ADMIN_TRUSTED_PROXIES` | empty | proxies whose `X-Forwarded-For` is believed |
+| `ADMIN_TRUSTED_PROXIES` | empty | proxies whose `X-Forwarded-For` is believed: addresses, CIDRs and host names (resolved at start and refreshed; see "Network") |
+| `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` | `60` | how often host names in `ADMIN_TRUSTED_PROXIES` are resolved again (10 to 3600) |
 | `ADMIN_EDGE_SUBNET` / `ADMIN_EDGE_GATEWAY` | `172.30.77.0/29` / `172.30.77.1` | the admin network |
 | `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins the browser uses; state-changing requests must come from one of them (scheme, host, port) |
 | `PLATFORM_ADMIN_EMAILS` | empty (portal off) | the super admin addresses |

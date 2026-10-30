@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.admin.gate.csrf import CsrfMiddleware
 from backend.admin.gate.levels import Level, RouteRegistry
 from backend.admin.gate.middleware import Checker, GateMiddleware
+from backend.admin.gate.proxies import TrustedProxies
 from backend.admin.gate.settings import GateSettings
 from backend.admin.gate.stepup import StepUpRefused
 from backend.admin.portal import Portal
@@ -28,7 +29,12 @@ registry = RouteRegistry()
 def warn_shared_gateway(settings: Optional[GateSettings]) -> bool:
     """Log a startup WARNING when every client will arrive as the edge gateway
     address (no trusted proxy reports the real one). Returns whether it warned."""
-    if settings is None or settings.edge_gateway is None or settings.trusted_proxies:
+    if (
+        settings is None
+        or settings.edge_gateway is None
+        or settings.trusted_proxies
+        or settings.trusted_proxy_names
+    ):
         return False
     log.warning(
         "admin gate: clients are seen as the edge gateway address %s (ADMIN_TRUSTED_PROXIES "
@@ -46,6 +52,9 @@ async def lifespan(app: FastAPI):
     log.info("admin service starting")
     portal = getattr(app.state, "portal", None)
     warn_shared_gateway(getattr(app.state, "gate_settings", None))
+    proxies = getattr(app.state, "trusted_proxies", None)
+    if proxies is not None:
+        await proxies.start()  # resolves the proxy names, then refreshes them
     cleanup = None
     if portal is not None:
         from backend.admin.db import ensure_schema
@@ -57,6 +66,8 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        if proxies is not None:
+            await proxies.stop()
         if cleanup is not None:
             cleanup.cancel()
         if portal is not None:
@@ -114,6 +125,8 @@ def get_admin_application(
     inner.add_exception_handler(Exception, _failure)
     app = inner
     inner.state.gate_settings = settings
+    proxies = TrustedProxies.from_settings(settings)
+    inner.state.trusted_proxies = proxies
     if portal is not None:
         inner.state.portal = portal
         if settings.edge_gateway is not None:
@@ -124,6 +137,7 @@ def get_admin_application(
     gated = GateMiddleware(
         app, settings, checkers, routes=lambda: inner.router.routes,
         setup_checker=portal.setup_checker() if portal is not None else None,
+        proxies=proxies,
     )
     gated.inner = inner
     return gated

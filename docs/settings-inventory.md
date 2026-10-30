@@ -235,6 +235,7 @@ environment, whatever the tier.
 | `ADMIN_TASKS_MAX_REQUEST_AGE_HOURS` | admin | admin | int 1..24 |  | R | T5 | `24` |
 | `ADMIN_TASKS_SELFTEST` | admin | admin | bool |  | R | T5 | `false` |
 | `ADMIN_TRUSTED_PROXIES` | admin | admin | str |  | R | T5 |  |
+| `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` | admin | admin | int 10..3600 |  | R | T5 | `60` |
 | `TASKS_DATABASE_URL` | admin | admin | str | yes | R | T5 |  |
 | `DOCS_URL` | bootstrap | google | str |  | R | T5 | `/docs` |
 | `DOTENV_PATH` | bootstrap | backend, auth, google | str |  | R | T5 |  |
