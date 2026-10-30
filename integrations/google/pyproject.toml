@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Google Form integration"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "no" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }
 ]
