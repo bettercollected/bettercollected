@@ -4,7 +4,7 @@ from typing import List, Optional
 from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
-from fastapi import Depends, Form, Query, UploadFile
+from fastapi import Depends, Form, Query, Response, UploadFile
 from pydantic import EmailStr
 
 from backend.app.container import container
@@ -31,6 +31,7 @@ from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_full_user
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.workspace_selection_service import WorkspaceSelectionDto
 from backend.app.services.workspace_service import WorkspaceService
 
 
@@ -100,6 +101,25 @@ class WorkspaceRouter(Routable):
     ) -> List[WorkspaceResponseDto]:
         workspaces = await self.workspace_service.get_mine_workspaces(user)
         return workspaces
+
+    @get(
+        "/mine/selection",
+        response_model=WorkspaceSelectionDto,
+    )
+    async def _get_workspace_selection(
+        self,
+        response: Response,
+        next_path: Optional[str] = Query(None, alias="next", max_length=4096),
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceSelectionDto:
+        """The workspace selection screen after sign-in: the workspaces the
+        caller may open, and where a sign-in that started from ``next`` (a
+        workspace dashboard page) goes. One user's list: never kept in a
+        shared or browser cache (the next person at the browser)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        return await container.workspace_selection_service().selection(
+            user, next_path
+        )
 
     @get(
         "/{workspace_id}",

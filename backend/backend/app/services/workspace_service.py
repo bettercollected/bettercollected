@@ -486,15 +486,21 @@ class WorkspaceService:
         workspaces = await self._workspace_repo.get_workspace_by_ids(
             workspace_ids=[m.workspace_id for m in memberships.values()]
         )
-        return [
-            WorkspaceResponseDto(
-                **workspace.model_dump(mode="json"),
-                is_owner=is_owner_membership(
-                    workspace, memberships.get(str(workspace.id))
-                ),
+        listed = []
+        for workspace in workspaces:
+            is_owner = is_owner_membership(
+                workspace, memberships.get(str(workspace.id))
             )
-            for workspace in workspaces
-        ]
+            if workspace.disabled and not is_owner:
+                # a downgraded workspace is its owners' alone: a member whose
+                # membership was left enabled doesn't see it either
+                continue
+            listed.append(
+                WorkspaceResponseDto(
+                    **workspace.model_dump(mode="json"), is_owner=is_owner
+                )
+            )
+        return listed
 
     async def send_otp_for_workspace(
         self,

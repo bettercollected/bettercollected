@@ -131,6 +131,9 @@ from backend.app.services.open_formulieren_import_service import (
 )
 from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
+from backend.app.services.workspace_selection_service import (
+    WorkspaceSelectionService,
+)
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
@@ -566,6 +569,14 @@ class AppContainer(containers.DeclarativeContainer):
         connection_repo=sso_connection_repo,
         http_client=http_client,
         workspace_user_repo=workspace_user_repo,
+    )
+
+    # the workspace selection screen after sign-in
+    workspace_selection_service: WorkspaceSelectionService = providers.Singleton(
+        WorkspaceSelectionService,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        sso_policy=sso_policy_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
