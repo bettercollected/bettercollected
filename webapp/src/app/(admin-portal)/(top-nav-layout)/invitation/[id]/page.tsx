@@ -10,10 +10,12 @@ import ExpiredInvitation from '@app/components/invitation/expired';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
+import { resetAfterSignOut } from '@app/store/actions/reset-after-sign-out';
 import { initialAuthState, selectAuth, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceInvitationQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { useGetWorkspaceByNameQuery } from '@app/store/workspaces/api';
+import { reloadPage } from '@app/utils/reload-page';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import MainValidUser from '@Components/invitation/main-valid-user';
 
@@ -63,7 +65,8 @@ export default function InvitationPage() {
         await logout().then(async () => {
             await authTrigger();
             dispatch(setAuth(initialAuthState));
-            window.location.reload();
+            resetAfterSignOut(dispatch);
+            reloadPage();
         });
     };
 

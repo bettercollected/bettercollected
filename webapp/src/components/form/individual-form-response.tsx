@@ -1,96 +1,30 @@
-import ModalCloseButton from '@app/components/modal-views/modal-close-button';
-import { FieldTypes, StaffFeedback, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import { Separator } from '@app/shadcn/components/ui/separator';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
-import { useModal } from '@app/components/modal-views/context';
-import { localesCommon } from '@app/constants/locales/common';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
-import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
-import { getInternalFields } from '@app/utils/internal-fields';
-import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
-import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import InternalFieldsPanel from '@Components/form/internal-fields-panel';
-import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
-import DeleteIcon from '@Components/icons/delete';
-import { motion } from 'framer-motion';
-import { MoreVertical } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useFullScreenModal } from '../full-screen-modal-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 
-interface IViewResponseFullModalView {
-    response: StandardFormResponseDto;
-    formFields: StandardFormFieldDto[];
-    // The form the response belongs to. Without it the body falls back to the
-    // redux form — empty or stale outside a form page (e.g. the workspace
-    // deletion-requests table), which blanked question titles and pipes.
-    form?: StandardFormDto;
-    formId: string;
-    workspaceId: string;
-    // The form's current internal ("office use") fields, from the submission
-    // endpoint (members only). Falls back to the ones on `form`.
-    internalFields?: StandardFormFieldDto[];
-    // The team's updates to the respondent (members only), from the same
-    // endpoint; the form's settings say whether posting is on.
-    feedback?: StaffFeedback | null;
-}
+/** The stored parts of a response that could not be decrypted, in words. */
+export const UNREADABLE_LABELS: Record<string, string> = { answers: 'answers', hidden_fields: 'hidden fields', internal_answers: 'staff fields' };
+export const UNREADABLE_MESSAGE = 'This response could not be decrypted';
+// per question, when the notice above already says why
+export const UNREADABLE_SHORT = 'Could not be decrypted';
 
-const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId, internalFields, feedback }: IViewResponseFullModalView) => {
-    const staffFields = internalFields ?? getInternalFields(form);
-    const { toast } = useToast();
-    const { closeModal } = useFullScreenModal();
-
+/** Said once at the top of a response whose stored data did not decrypt; per question the text stays short. */
+export const UnreadableNotice = ({ unreadable }: { unreadable: string[] }) => {
+    if (unreadable.length === 0) return null;
+    const answersUnreadable = unreadable.includes('answers');
     return (
-        <motion.div
-            {...({
-                initial: { x: '100%', opacity: 0 },
-                animate: { x: 0, opacity: 1 },
-                transition: { ease: 'easeInOut', duration: 0.5 },
-                className: 'h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl bg-white! md:w-[420px]'
-            } as any)}
-        >
-            <div className="flex flex-row justify-between p-4">
-                <div className="flex flex-col">
-                    <span className="p3-new text-black-800">Response</span>
-                    <span className="text-black-600 text-[10px]">{utcToLocalDateTIme(response?.createdAt)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <EllipsisSection formId={formId} workspaceId={workspaceId} responseId={response.responseId} />
-                    <ModalCloseButton onClick={closeModal} className="h-8 w-8" iconClassName="h-6 w-6" />
-                </div>
-            </div>
-            <Separator />
-            <div className="h-[90vh] overflow-y-auto">
-                <IndividualFormResponse formFields={formFields} response={response} form={form} />
-                {feedback && (
-                    <div className="px-4 pb-4">
-                        <RespondentFeedbackPanel
-                            key={response.responseId}
-                            workspaceId={workspaceId}
-                            formId={formId}
-                            responseId={response.responseId}
-                            feedback={feedback}
-                            enabled={!!form?.settings?.respondentFeedbackEnabled}
-                            statuses={form?.settings?.feedbackStatuses ?? []}
-                        />
-                    </div>
-                )}
-                {staffFields.length > 0 && (
-                    <div className="px-4 pb-8">
-                        <InternalFieldsPanel key={response.responseId} fields={staffFields} response={response} formId={formId} workspaceId={workspaceId} />
-                    </div>
-                )}
-            </div>
-        </motion.div>
+        <div className="rounded border border-[#E8C7C7] bg-[#FBEFEF] p-3 text-sm text-[#8A2D2D]" data-unreadable-notice>
+            <p className="font-medium">{answersUnreadable ? UNREADABLE_MESSAGE : 'Some data in this response could not be decrypted'}</p>
+            <p className="mt-1">The stored data is not readable ({unreadable.map((name) => UNREADABLE_LABELS[name] ?? name).join(', ')}). It is not shown as empty answers.</p>
+        </div>
     );
 };
 
@@ -108,6 +42,11 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
         answers: response?.answers ?? {},
         hiddenValues: (response as any)?.hiddenFields ?? {}
     };
+    // The server empties what it cannot decrypt and names it here; a blank
+    // answer then means "could not be read", never "no answer".
+    const unreadable = response?.unreadableFields ?? [];
+    const answersUnreadable = unreadable.includes('answers');
+    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? UNREADABLE_SHORT : 'No answer'}</span>;
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const resolvedField = titleHasPipes(field?.title) ? ({ ...field, title: resolvePipesInTitle(field.title, pipeContext) } as StandardFormFieldDto) : field;
         const title = getTitleForHeader(resolvedField, standardForm);
@@ -119,13 +58,14 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     const downloadFormFile = async (ans: any) => {
         try {
             if (!ans?.file_metadata?.url) return;
-            downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
+            await downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
             toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
     return (
         <div className={cn('flex w-full flex-col gap-8 p-4 pt-6', className)}>
+            <UnreadableNotice unreadable={unreadable} />
             {formFields.map((field) => {
                 const ans = response.answers[field.id];
 
@@ -136,19 +76,19 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                     return (
                         <div className="flex flex-col gap-2" key={field.id}>
                             {getTitleForHeaderForTable(field)}
-                            {items.length === 0 && <span className="text-black-600 text-sm italic">No answer</span>}
+                            {items.length === 0 && noAnswer}
                             {items.map((item, index) => {
                                 const itemContext = { ...pipeContext, answers: itemScopeAnswers(response.answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }) };
                                 return (
                                     <section key={index} className="border-black-300 flex flex-col gap-3 rounded border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
                                         <span className="text-black-800 text-[13px] font-semibold">{getItemHeader(field, index, pipeContext)}</span>
                                         {children.map((child) => {
-                                            const answerText = getItemAnswer(item, child);
+                                            const answerText = getItemAnswer(item, child, DISPLAY_LIST_SEPARATOR);
                                             const childTitle = getTitleForHeader(titleHasPipes(child.title) ? ({ ...child, title: resolvePipesInTitle(child.title, itemContext) } as StandardFormFieldDto) : child, standardForm);
                                             return (
                                                 <div className="flex flex-col gap-1" key={child.id}>
                                                     <span className="text-black-600 text-[13px] font-medium leading-snug">{childTitle}</span>
-                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
+                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : noAnswer}
                                                 </div>
                                             );
                                         })}
@@ -203,19 +143,19 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                             {getTitleForHeaderForTable(field)}
                             {ans?.file_metadata ? (
                                 <div onClick={() => downloadFormFile(ans)} className={cn('text-black-600! p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
-                                    {getAnswerForField(response, field)}
+                                    {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                                 </div>
                             ) : (
-                                <span className="text-black-600 text-sm italic">No answer</span>
+                                noAnswer
                             )}
                         </div>
                     );
                 }
-                const answerText = getAnswerForField(response, field);
+                const answerText = getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}
-                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-600 text-sm italic">No answer</span>}
+                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : noAnswer}
                     </div>
                 );
             })}
@@ -233,38 +173,3 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
         </div>
     );
 };
-
-const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; workspaceId: string; responseId: string }) => {
-    const { closeModal } = useFullScreenModal();
-    const { openModal: openConfirmModal } = useModal();
-    const workspace = useAppSelector(selectWorkspace);
-    const { can } = useWorkspacePermissions();
-    const { t } = useTranslation();
-
-    // Deleting is permanent, so it goes through the DELETE_RESPONSE confirm.
-    // Only one modal layer renders at a time (full-screen wins), so the drawer
-    // closes before the confirmation opens.
-    const handleDelete = () => {
-        closeModal();
-        openConfirmModal('DELETE_RESPONSE', { workspace, formId, responseId });
-    };
-    // the menu's only action is response.delete (Editors and up)
-    if (!can(WorkspacePermission.RESPONSE_DELETE)) return null;
-    return (
-        <Popover>
-            <PopoverTrigger aria-label={t(localesCommon.moreActions)}>
-                <div className="hover:bg-black-200 flex h-fit w-fit items-center justify-center rounded-md p-2">
-                    <MoreVertical className={cn('cursor-pointer')} width={16} height={16} aria-hidden="true" />
-                </div>
-            </PopoverTrigger>
-            <PopoverContent side="left" align="start" className="w-[180px] bg-white p-0 shadow-large">
-                <button type="button" className=" p2 my-2!  flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[#C43D3D]! hover:bg-[#FBEFEF]" onClick={handleDelete}>
-                    <DeleteIcon className="text-[#C43D3D]" aria-hidden="true" />
-                    Delete response
-                </button>
-            </PopoverContent>
-        </Popover>
-    );
-};
-
-export default ViewResponseFullModalView;

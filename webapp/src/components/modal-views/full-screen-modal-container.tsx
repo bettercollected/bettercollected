@@ -13,14 +13,11 @@ import { Dialog, DialogBackdrop } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import { PreviewFullModalView } from './full-screen-modals/v2-preview-modal';
-import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal {...modalProps} />;
-        case 'VIEW_RESPONSE':
-            return <ViewResponseFullModalView {...modalProps} />;
         case 'PREVIEW_MODAL':
             return <PreviewFullModalView {...modalProps} />;
         default:

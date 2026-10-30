@@ -7,7 +7,15 @@ import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
 
 
-export function getAnswerForField(response: StandardFormResponseDto, field: StandardFormFieldDto) {
+/** Joins the options of a multi-select answer on screen (the responses table, the response page, the respondent's view): "Reading, Cycling". */
+export const DISPLAY_LIST_SEPARATOR = ', ';
+
+/**
+ * `listSeparator` joins the selected options of a multi-select answer. The
+ * screens pass DISPLAY_LIST_SEPARATOR; the CSV export passes '; '
+ * so the options do not split on the comma that separates the columns.
+ */
+export function getAnswerForField(response: StandardFormResponseDto, field: StandardFormFieldDto, listSeparator?: string) {
     const answer = response.answers[field.id];
 
     switch (field.type) {
@@ -36,7 +44,7 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
 
         case FieldTypes.MULTIPLE_CHOICE:
         case FieldTypes.DROP_DOWN:
-            return getChoicesValue(field, answer);
+            return getChoicesValue(field, answer, listSeparator ?? ',');
 
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
@@ -50,10 +58,10 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
             const compareIds = Array.isArray(choicesAnswers) && choicesAnswers.length > 0 && choicesAnswers?.every((choice: any) => choice.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'));
             if (!compareIds) {
                 const choices = field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.value));
-                return choices?.map((choice: any) => choice.value)?.join(', ');
+                return choices?.map((choice: any) => choice.value)?.join(listSeparator ?? ', ');
             }
             const choices = field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
-            return choices?.map((choice: any) => choice.value)?.join(', ');
+            return choices?.map((choice: any) => choice.value)?.join(listSeparator ?? ', ');
         case FieldTypes.PHONE_NUMBER:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return answer?.phone_number;
@@ -64,7 +72,7 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
             }
             return '';
         case FormBuilderTagNames.INPUT_RANKING:
-            return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(', ');
+            return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(listSeparator ?? ', ');
         case FormBuilderTagNames.INPUT_FILE_UPLOAD:
         case FieldTypes.FILE_UPLOAD:
             return answer?.file_metadata?.name;
@@ -89,7 +97,7 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
     }
 }
 
-function getChoicesValue(field: StandardFormFieldDto, answer: any) {
+function getChoicesValue(field: StandardFormFieldDto, answer: any, separator: string) {
     const choices = field.properties?.allowMultipleSelection
         ? field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id))
         : field?.properties?.choices?.filter((choice: any) => answer?.choice?.value?.includes(choice.id));
@@ -103,9 +111,9 @@ function getChoicesValue(field: StandardFormFieldDto, answer: any) {
         }
     });
     if (otherValue && choicesValue) {
-        return [...choicesValue, otherValue]?.join(',');
+        return [...choicesValue, otherValue]?.join(separator);
     }
-    return choicesValue?.join(',');
+    return choicesValue?.join(separator);
 }
 
 function getMultipleChoiceOtherValue(answer: any, multipleSelection: boolean = false): string {
