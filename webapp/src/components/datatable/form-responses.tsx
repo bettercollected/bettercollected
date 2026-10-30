@@ -113,7 +113,7 @@ export default function FormResponsesTable({ props }: any) {
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} placeholder={'Search by responder email'} className="md:w-[282px]" />
+                            <SearchInput handleSearch={handleSearch} placeholder={'Search by responder email'} ariaLabel="Search responses by responder email" className="md:w-[282px]" />
                         </div>
                     ) : (
                         <></>

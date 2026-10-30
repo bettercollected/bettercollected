@@ -282,6 +282,12 @@ export interface StandardFormResponseDto {
     deletionStatus?: string | null;
     /** Why a declined deletion request was declined (a fixed code, e.g. legal_obligation); on the lists and on a single submission. */
     declineReason?: string | null;
+    /**
+     * Parts of this response that were stored but could not be decrypted
+     * ("answers", "hidden_fields", "internal_answers"). The server empties them
+     * and names them here, so a blank is never mistaken for "no answer".
+     */
+    unreadableFields?: string[] | null;
     /** The receipt number responders use to find/delete this response. */
     submissionUuid?: string;
     /** Set (instead of dataOwnerIdentifier) when submitted anonymously. */

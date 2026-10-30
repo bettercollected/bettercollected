@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { utcToRelativeIn } from '@app/utils/date-utils';
+import { utcToLocalDateTimeWithZone, utcToRelativeIn } from '@app/utils/date-utils';
 
 const NOW = Date.parse('2026-10-29T12:00:00Z');
 const ago = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
@@ -35,5 +35,17 @@ describe('utcToRelativeIn', () => {
     it('is empty for a missing or invalid date', () => {
         expect(utcToRelativeIn(undefined, 'nl', NOW)).toBe('');
         expect(utcToRelativeIn('not a date', 'en', NOW)).toBe('');
+    });
+});
+
+describe('utcToLocalDateTimeWithZone', () => {
+    it('shows the full date and time with the zone, in the zone asked for', () => {
+        expect(utcToLocalDateTimeWithZone('2026-10-30T09:10:05Z', 'UTC')).toMatch(/^30 October 2026(,| at) 09:10:05 UTC$/);
+        expect(utcToLocalDateTimeWithZone('2026-10-30T09:10:05Z', 'Europe/Amsterdam')).toMatch(/^30 October 2026(,| at) 10:10:05 (CET|GMT\+1)$/);
+    });
+
+    it('is empty for a missing or invalid date', () => {
+        expect(utcToLocalDateTimeWithZone(undefined)).toBe('');
+        expect(utcToLocalDateTimeWithZone('not a date')).toBe('');
     });
 });
