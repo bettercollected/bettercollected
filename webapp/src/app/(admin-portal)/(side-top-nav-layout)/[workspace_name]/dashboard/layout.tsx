@@ -1,5 +1,6 @@
 import environments from '@app/configs/environments';
 import { getUser, getWorkspaceByName as getWorkspace } from '@app/lib/server/api';
+import { workspaceDashboardPath } from '@app/lib/workspace-selection';
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ workspace
     };
 }
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children, params }: { children: React.ReactNode; params: Promise<{ workspace_name: string }> }) {
     const headerList = await headers();
 
     // Check for admin domain
@@ -38,7 +39,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const user = await getUser();
 
     if (!user) {
-        redirect('/login');
+        // back to this workspace after the sign-in (if the user is a member there)
+        const { workspace_name } = await params;
+        redirect(`/login?${new URLSearchParams({ redirect_to: workspaceDashboardPath(workspace_name) }).toString()}`);
     }
 
     return <WorkspaceDashboardLayout>{children}</WorkspaceDashboardLayout>;

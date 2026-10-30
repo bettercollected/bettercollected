@@ -157,17 +157,37 @@ class SsoPolicyService:
             return RESPONDENT_SCOPE
         raise sso_required_error(domain_of(email) or "")
 
+    async def unmet_requirement(
+        self,
+        email: Optional[str],
+        method: Optional[str],
+        scope: Optional[str],
+        user_id: Optional[str],
+    ) -> Optional[WorkspaceDocument]:
+        """The workspace whose SSO requirement a session signed in with
+        ``method`` (and ``scope``) does not meet, if any: the one requiring
+        SSO for the address's domain, unless the session came from SSO, is
+        respondent-scoped, or is an owner's email-code session
+        (break-glass). The one rule behind ``session_must_end`` and the
+        workspace selection screen."""
+        if method == SSO_METHOD or scope == RESPONDENT_SCOPE:
+            return None
+        workspace = await self.requiring_workspace(email or "")
+        if workspace is None:
+            return None
+        if method == OTP_METHOD and await self._is_owner(workspace, user_id):
+            return None
+        return workspace
+
     async def session_must_end(self, email: str, session, user_id: str) -> bool:
         """Whether a session has to end at refresh because its address's
         domain requires single sign-on: any session that did not sign in
         with SSO, except the owners' email-code sessions (break-glass) and
         respondent-scoped sessions."""
-        if session.method == SSO_METHOD or session.scope == RESPONDENT_SCOPE:
-            return False
-        workspace = await self.requiring_workspace(email or "")
+        workspace = await self.unmet_requirement(
+            email, session.method, session.scope, user_id
+        )
         if workspace is None:
-            return False
-        if session.method == OTP_METHOD and await self._is_owner(workspace, user_id):
             return False
         logger.info(
             "SSO required in workspace {}: a {} session of user {} ended at refresh",

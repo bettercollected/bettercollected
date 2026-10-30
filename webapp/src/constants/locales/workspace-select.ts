@@ -1,0 +1,25 @@
+// The workspace selection screen after sign-in: keys into public/locales/*/common.json.
+export const workspaceSelect = {
+    title: 'WORKSPACE_SELECT.TITLE',
+    description: 'WORKSPACE_SELECT.DESCRIPTION',
+    noAccess: 'WORKSPACE_SELECT.NO_ACCESS',
+    listLabel: 'WORKSPACE_SELECT.LIST_LABEL',
+    count: 'WORKSPACE_SELECT.COUNT',
+    searchLabel: 'WORKSPACE_SELECT.SEARCH_LABEL',
+    searchPlaceholder: 'WORKSPACE_SELECT.SEARCH_PLACEHOLDER',
+    noMatch: 'WORKSPACE_SELECT.NO_MATCH',
+    lastUsed: 'WORKSPACE_SELECT.LAST_USED',
+    readOnly: 'WORKSPACE_SELECT.READ_ONLY',
+    ssoRequired: 'WORKSPACE_SELECT.SSO_REQUIRED',
+    ssoAction: 'WORKSPACE_SELECT.SSO_ACTION',
+    emptyTitle: 'WORKSPACE_SELECT.EMPTY_TITLE',
+    emptyRespondent: 'WORKSPACE_SELECT.EMPTY_RESPONDENT',
+    emptyCreate: 'WORKSPACE_SELECT.EMPTY_CREATE',
+    emptyAsk: 'WORKSPACE_SELECT.EMPTY_ASK',
+    create: 'WORKSPACE_SELECT.CREATE',
+    signedInAs: 'WORKSPACE_SELECT.SIGNED_IN_AS',
+    signOut: 'WORKSPACE_SELECT.SIGN_OUT',
+    loadFailed: 'WORKSPACE_SELECT.LOAD_FAILED',
+    retry: 'WORKSPACE_SELECT.RETRY',
+    choose: 'WORKSPACE_SELECT.CHOOSE'
+};

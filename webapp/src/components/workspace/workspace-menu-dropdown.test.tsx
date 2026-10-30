@@ -57,6 +57,21 @@ describe('WorkspaceMenuDropdown', () => {
         expect(push).toHaveBeenCalledWith('/space-downgraded/dashboard/forms');
     });
 
+    it('opens the workspace selection screen from "Choose workspace"', () => {
+        mine.data = [space('current', { isOwner: true }), space('other')];
+        openMenu();
+        const entry = screen.getByText(/WORKSPACE_SELECT\.CHOOSE|Choose workspace/).closest('a');
+        expect(entry?.getAttribute('href')).toBe('/workspace/select');
+    });
+
+    it('remembers the workspace switched to (its id only)', () => {
+        window.localStorage.clear();
+        mine.data = [space('current', { isOwner: true }), space('other')];
+        openMenu();
+        fireEvent.click(screen.getByText('Space other'));
+        expect(window.localStorage.getItem('bc.lastWorkspaceId')).toBe('other');
+    });
+
     it('does not switch a member into a disabled workspace', () => {
         mine.data = [space('current', { isOwner: true }), space('downgraded', { disabled: true, isOwner: false })];
         openMenu();

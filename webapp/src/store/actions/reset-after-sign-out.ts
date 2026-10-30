@@ -1,5 +1,6 @@
 import { API_SLICES } from '@app/store/api-slices';
 import { authApi } from '@app/store/auth/api';
+import { forgetLastWorkspace } from '@app/lib/workspace-selection';
 import { resetSingleForm } from '@app/store/forms/slice';
 import { forgetResponseList } from '@app/utils/response-list-memory';
 
@@ -7,8 +8,9 @@ import { forgetResponseList } from '@app/utils/response-list-memory';
  * Forget what the signed-out user saw, so the next person at this browser
  * does not get it back (on the page Back returns to, or from a cache): every
  * RTK Query cache (workspaces, forms, responses, permissions, members and
- * invitations, analytics, imports, …), the form last opened, and the
- * responses list memory (whose search may be a responder's email). Only
+ * invitations, analytics, imports, …), the form last opened, the
+ * responses list memory (whose search may be a responder's email) and the
+ * last-used workspace id of the selection screen. Only
  * `authApi` stays: it reads who is signed in now.
  *
  * The one reset for every way out: the logout dialog, the invitation page's
@@ -23,6 +25,7 @@ export function resetAfterSignOut(dispatch: (action: any) => unknown) {
     }
     dispatch(resetSingleForm());
     forgetResponseList();
+    forgetLastWorkspace();
 }
 
 /**
