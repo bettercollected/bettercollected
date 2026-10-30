@@ -13,6 +13,89 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-10-30
+
+4.1.1 is about reading responses. A response opens on its own page that looks like the form, the search on the responses page works, the CSV export gains the response id, submission time and hidden fields, and receipt numbers and searched emails stay out of logs, caches and the hands of roles that must not read answers. The admin portal can also trust its reverse proxy by host name.
+
+**Upgrading from 4.1.0:** no new settings and no migration. To name the admin portal's reverse proxy in `ADMIN_TRUSTED_PROXIES`, add the name after 4.1.1 is running: 4.1.0's admin service does not start with a host name in that list. In Docker Swarm use `tasks.<stack>_<service>`, which resolves to the proxy's own address rather than the service's virtual one.
+
+### Changed
+
+- Responses open on their own page that looks like the form (its theme, its pages as
+  sections, every question with the answer marked), instead of a side panel. A form of
+  several pages gets a contents list with a link to each page. The page says who
+  answered (the responder's email or the Anonymous mark), the full time with its time
+  zone and the start of the receipt number, and when a stored response cannot be
+  decrypted it says so once instead of showing "No answer" for every question. The
+  responses table opens it by click, Enter or link, and the old side-panel link now
+  goes to the page.
+- The responses table can be used with the keyboard and a screen reader: each row has a
+  real "Open response" link, rows are focusable and open with Enter, the responder's
+  email and time are read out, the search box has a name, and the row checkboxes that
+  did nothing are gone.
+
+### Fixed
+
+- The admin portal can now trust its reverse proxy by host name: `ADMIN_TRUSTED_PROXIES`
+  accepts host names next to addresses and CIDRs. The names are resolved at start and
+  again every minute (`ADMIN_TRUSTED_PROXY_REFRESH_SECONDS`), so the portal keeps
+  trusting a proxy whose address changed when it was recreated, instead of refusing every
+  request. A name that cannot be resolved trusts nobody, and answers outside private
+  networks are ignored.
+- The CSV export of responses now has the response id, the submission time (UTC, ISO 8601)
+  and one column per hidden field at the end of each row, so existing columns keep their
+  place (a form without repeating groups gains a Response ID column). Responders without an
+  email show as "Anonymous" instead of "- -", and multi-select answers, staff fields
+  included, are joined with "; ". Text a spreadsheet could run as a formula still gets a
+  leading apostrophe: only plain negative decimals such as -12.5 are left as they are,
+  and phone numbers starting with "+" keep a visible apostrophe, because a spreadsheet
+  would otherwise evaluate them (+31-6-1234-5678 is a subtraction). Leading spaces and
+  line breaks before = + - @ are guarded too.
+- The responses list no longer shows "No responses yet" or "Nothing matches" while
+  it is still waiting for the server, for example right after Retry or after
+  clearing a search, and no longer swaps them for a loader when the same list is
+  checked again. When the last rows of a later page are deleted, the list now goes
+  back a page instead of saying the form has no responses. After Retry the
+  keyboard focus stays in the list.
+- Answers with several selected options now read "Reading, Cycling" in the
+  responses table, on the response page and on the respondent's own view of their
+  response, instead of "Reading,Cycling". The CSV export is unchanged.
+- The deletion requests table no longer puts the full receipt number in a tooltip.
+  It shows the first 8 characters, like the response page, also for numbers
+  without dashes. A staff member who opens someone else's response on the
+  submission page sees the number shortened too. The search box on the deletion
+  requests tab is labelled for deletion requests.
+- Signing out, through the logout button, "switch account" on an invitation, or
+  when the session has ended, now forgets everything the app had cached for that
+  user: responses, forms, members and invitations, analytics and imports, the
+  form last opened, and the remembered responses list and search. When another
+  tab signs in as someone else, the app notices on its next session check.
+- A short server error or a lost connection (for example during an update, or
+  after waking a laptop) no longer signs you out or reloads the page you are on.
+  Only the server saying that the session has ended does.
+- The search box on the responses page now filters the table. A search with no
+  match says "No responses match" instead of "No responses yet", and a failed or
+  refused request says "Could not load responses" with a Retry button instead of
+  looking like an empty form. The box is now labelled "Search by responder email",
+  which is what it matches.
+
+### Security
+
+- The deletion-request list no longer shows a response's receipt number to a member who
+  cannot read responses (the Privacy officer). The number opens the answers without a
+  sign-in, so handing it to a role that is meant to never read answers broke that
+  separation of duties. Members who can read responses still see it.
+- The backend's request log and APM traces no longer record query strings (the responses search sends a
+  respondent's email there) or receipt numbers: it keeps the method, the path with the
+  number replaced, and the status, and the server's own access log is off.
+- Responses that carry decrypted answers (the submission lists, responders, AI insights, one submission, the
+  export, the submission paths and the receipt by number) are now sent with
+  `Cache-Control: no-store` and `Pragma: no-cache`, so a browser on a shared computer
+  does not keep them or show them again on back/forward.
+- The receipt opened by its submission number (no sign-in) still shows the answers but no
+  longer returns the respondent's email or their anonymous identity, only whether the
+  response was anonymous.
+
 ## [4.1.0] - 2026-10-30
 
 4.1.0 runs on PostgreSQL only. MongoDB is no longer a store: on upgrade it is read once to import what a 4.0 stack still holds, then switched off with its volume kept for a rollback. The backend, auth and the Google Forms integration refuse to start while MongoDB still holds data that Postgres lacks. Background jobs run on the Postgres job queue, and Temporal leaves the compose stack. Anonymous responses are tied to their respondent with a keyed hash, which needs a new secret. Typeform and the Brevo marketing tracker are gone, and the Google Forms import gets an `on`/`readonly`/`off` switch. The release also adds the Open Formulieren import, export and registration, behind switches that are off by default, plus a long list of security and accessibility fixes.
@@ -2313,7 +2396,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...HEAD
+[4.1.1]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...v4.1.0
 [4.0.14]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...v4.0.14
 [4.0.13]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...v4.0.13
