@@ -145,8 +145,8 @@ export function buildInternalAnswer(field: StandardFormFieldDto, value: Internal
 }
 
 /** Display text of a submission's internal answer (same formatting as respondent answers). */
-export function getInternalAnswerText(response: StandardFormResponseDto, field: StandardFormFieldDto): any {
-    return getAnswerForField({ ...response, answers: response?.internalAnswers ?? {} }, field);
+export function getInternalAnswerText(response: StandardFormResponseDto, field: StandardFormFieldDto, listSeparator?: string): any {
+    return getAnswerForField({ ...response, answers: response?.internalAnswers ?? {} }, field, listSeparator);
 }
 
 /** Header for an internal field's column in the responses table / CSV. */
