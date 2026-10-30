@@ -13,15 +13,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
-## [4.1.2] - 2026-10-30
+## [4.1.2] - 2026-10-31
 
-4.1.2 is a security release. The server now enforces a form's close date, the public receipt routes are rate limited, and the sign-in page on the form host and custom domains only follows links to this site. The auth service keeps only a keyed hash of each email sign-in code and no longer hands pending codes to the backend, its access log or Elastic APM. The Python and TypeScript SDKs can now be published from this repository.
+4.1.2 is a security release. The server now enforces a form's close date, the public receipt routes are rate limited, and the sign-in page on the form host and custom domains only follows links to this site. The auth service keeps only a keyed hash of each email sign-in code and no longer hands pending codes to the backend, its access log or Elastic APM. Connecting Google Sheets to a form hands the consent result only to the dashboard, and an imported form's link to its original must be an http(s) address. The Python and TypeScript SDKs can now be published from this repository.
 
-**Upgrading from 4.1.1:** no migration and no required setting. Check three things:
+**Upgrading from 4.1.1:** no migration and no required setting. Check four things:
 
 - **Closed forms:** forms whose close date has already passed stop accepting responses as soon as this version runs.
 - **Receipt limits count per client address:** check that `TRUSTED_PROXIES` covers your reverse proxy's current address. Prefer the CIDR of the network between the proxy and the backend over a single container address, which changes when the container is recreated (host names are not accepted here). The backend logs a warning, once per process, when a proxy at a private address sends `X-Forwarded-For` but is not in `TRUSTED_PROXIES`. The limits are live settings: if receipts start answering 429 for everyone, set them to 0 in the admin portal.
 - **Sign-in codes sent before the upgrade are refused:** they were stored in plain text and expire within 5 minutes anyway, so anyone signing in at that moment asks for a new code. An account whose last code was sent before the upgrade keeps that expired value until its next code is sent or checked. Rotating `AUTH_AES_HEX_KEY` likewise voids the codes pending at that moment.
+- **Google Sheets connections in progress during the upgrade** are refused once: start the connection again.
 
 ### Added
 
@@ -94,6 +95,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   Postgres detail line or key values in an error message. The backend's APM guard now covers
   spans too: its calls to the auth service are recorded without their query strings. Both
   guards are built into the APM client, and no `ELASTIC_APM_*` setting switches them off.
+- Connecting Google Sheets to a form: the consent popup now hands its result only to the
+  dashboard origin, and only the code, the state or Google's error. The dashboard accepts
+  it only from the popup it opened, on the dashboard origin. The connection's state is
+  tied to the session that started it, expires after an hour (also when the Google Forms
+  service runs the connection) and is accepted once. A connection started before the
+  upgrade and finished after it is refused: start it again.
+- An imported form's link to its original (opened or framed when the form is set to show
+  the original) is kept only when it is an http(s) address, and the respondent page opens
+  or frames nothing else.
 
 ## [4.1.1] - 2026-10-30
 
