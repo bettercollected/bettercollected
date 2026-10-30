@@ -2,7 +2,7 @@
 (the 4.0 Mongo collection is read only by ``python -m auth.migrate``)."""
 
 import datetime
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from pydantic import EmailStr
 from sqlalchemy import and_, func, select
@@ -12,10 +12,28 @@ from auth.app.schemas.user import UserDocument
 from auth.db.base import SCHEMA
 from auth.db.models import UserRow
 from common.ids import RecordId
+from common.records.codec import decode, row_values
 from common.records.repository import RecordRepository
 from common.enums.plan import Plans
 from common.enums.roles import Roles
 from common.clock import utcnow
+
+
+def clear_otp(user: UserDocument) -> None:
+    """Drop the account's pending sign-in code (unused)."""
+    user.otp_code = user.otp_expiry = user.otp_code_for = None
+
+
+def consume_otp(user: UserDocument) -> None:
+    """A sign-in code was used: the roles it was asked for are added (once
+    each) and the code is cleared."""
+    wanted = [Roles.FORM_RESPONDER]
+    if user.otp_code_for == Roles.FORM_CREATOR:
+        wanted.append(Roles.FORM_CREATOR)
+    for role in wanted:
+        if role not in (user.roles or []):
+            user.roles = [*(user.roles or []), role]
+    clear_otp(user)
 
 
 class UserRepository(RecordRepository):
@@ -64,7 +82,7 @@ class UserRepository(RecordRepository):
             otp_code_for = Roles.FORM_RESPONDER
             if creator:
                 otp_code_for = Roles.FORM_CREATOR
-            user_document = await self.save_document(
+            return await self.save_document(
                 UserDocument(
                     email=email,
                     otp_code=otp_code,
@@ -72,7 +90,16 @@ class UserRepository(RecordRepository):
                     otp_code_for=otp_code_for,
                 )
             )
-        if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
+        # the account appeared since the caller looked: the newest code wins,
+        # with the purpose it was hashed for (signin_code binds them)
+        if otp_code is not None:
+            user_document.otp_code = otp_code
+            user_document.otp_expiry = otp_expiry
+            user_document.otp_code_for = (
+                Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER
+            )
+            await self.save_document(user_document)
+        elif creator and Roles.FORM_CREATOR not in (user_document.otp_code_for or ""):
             user_document.otp_code_for = Roles.FORM_CREATOR
             await self.save_document(user_document)
         return user_document
@@ -162,17 +189,40 @@ class UserRepository(RecordRepository):
         return await self.save_document(user_document)
 
     async def clear_user_otp(self, user: UserDocument):
-        user_roles = [Roles.FORM_RESPONDER]
-        if user.otp_code_for == Roles.FORM_CREATOR:
-            user_roles.append(Roles.FORM_CREATOR)
+        """Consume ``user``'s code (``consume_otp``), updated_at left as it is."""
         stored = await self.one(UserRow.id == str(user.id))
         if stored is None:
             return
-        for role in user_roles:  # added once each, updated_at left as it is
-            if role not in (stored.roles or []):
-                stored.roles = [*(stored.roles or []), role]
-        stored.otp_code = stored.otp_expiry = stored.otp_code_for = None
+        stored.otp_code_for = user.otp_code_for
+        consume_otp(stored)
         await self.upsert(stored)
+
+    async def change_otp_locked(
+        self, email: str, change: Callable[[UserDocument], bool]
+    ) -> Optional[UserDocument]:
+        """The account for ``email`` (ignoring case) loaded with its row locked
+        (``FOR UPDATE``); ``change`` edits it and returns whether to store it,
+        in the same transaction (updated_at left as it is). Sign-in attempts on
+        one account so run one after another: parallel guesses can't share a
+        try. ``None`` when there is no such account."""
+        if not email:
+            return None
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(UserRow.doc)
+                    .where(func.lower(UserRow.email) == func.lower(email))
+                    .order_by(UserRow.created_at, UserRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            user = decode(UserDocument, doc)
+            if change(user):
+                await session.execute(self._upsert_statement(row_values(user)))
+            return user
 
     async def delete_user(self, user_id: RecordId):
         return await self.delete_by_id(user_id)

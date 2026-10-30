@@ -21,19 +21,34 @@ from auth.app.services.stripe_service import StripeService
 from auth.config import settings
 
 
+def without_sign_in_codes(users: List[UserDocument]) -> List[UserDocument]:
+    """``users`` as listed to the backend: a pending sign-in code (its hash,
+    expiry and purpose) never leaves this service; the fields stay, empty."""
+    return [
+        user.model_copy(
+            update={"otp_code": None, "otp_expiry": None, "otp_code_for": None}
+        )
+        for user in users
+    ]
+
+
 class UserService:
     def __init__(self, user_repo: UserRepository, stripe_service: StripeService):
         self.user_repo = user_repo
         self.stripe_service: StripeService = stripe_service
 
     async def get_user_info_from_user_ids(self, user_ids: List[RecordId]):
-        return await self.user_repo.get_users_by_ids(user_ids=user_ids)
+        return without_sign_in_codes(
+            await self.user_repo.get_users_by_ids(user_ids=user_ids)
+        )
 
     async def case_duplicate_groups(self) -> List[List[str]]:
         return await self.user_repo.case_duplicate_groups()
 
     async def get_users_info_from_emails(self, emails: List[EmailStr]):
-        return await self.user_repo.get_users_by_emails(emails=emails)
+        return without_sign_in_codes(
+            await self.user_repo.get_users_by_emails(emails=emails)
+        )
 
     async def send_mail_to_user_for_invitation(
         self,

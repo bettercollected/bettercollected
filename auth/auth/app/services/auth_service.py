@@ -14,7 +14,13 @@ from fastapi_mail import MessageSchema
 from pydantic import EmailStr
 
 from auth.app.exceptions import HTTPException
-from auth.app.repositories.user_repository import UserRepository
+from auth.app.repositories.user_repository import (
+    UserRepository,
+    clear_otp,
+    consume_otp,
+)
+from auth.app.schemas.user import UserDocument
+from auth.app.services import signin_code
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import (
     MailService,
@@ -111,33 +117,48 @@ class AuthService:
         )
         return {"auth_url": url}
 
-    async def validate_otp(self, email, otp_code):
-        try:
-            user = await self.user_repository.get_user_by_email(email)
-            if user and user.otp_code and user.otp_expiry:
-                if user.otp_code != otp_code:
-                    raise HTTPException(
-                        status_code=400, content="Error Invalid Verification code."
-                    )
-                if user.otp_expiry < self.get_expiry_epoch_after():
-                    raise HTTPException(
-                        status_code=400,
-                        content="Error Verification code is expired. "
-                        + "Please request for new code.",
-                    )
-                await self.user_repository.clear_user_otp(user)
-                user = await self.user_repository.get_user_by_email(email)
-                return User(
-                    id=str(user.id),
-                    sub=user.email,
-                    plan=user.plan,
-                    roles=roles_for(user.email, user.roles, verified=True),
-                    email_verified=True,
-                )
+    async def validate_otp(self, email, otp_code) -> Optional[User]:
+        """The signed-in user when ``otp_code`` is the account's pending code,
+        else ``None``. Under the account's row lock: an expired code is cleared
+        without comparing; a stored value that is not a hash (a plain code from
+        before codes were hashed) is cleared; a match consumes the code; a
+        wrong code counts a try and the last allowed one clears it."""
+        now = self.get_expiry_epoch_after()
+        accepted = []
+
+        def judge(user: UserDocument) -> bool:
+            if not user.otp_code or not user.otp_expiry:
+                return False
+            if user.otp_expiry < now:
+                clear_otp(user)
+                return True
+            expected = signin_code.parse(user.otp_code)
+            if expected is None or expected.wrong_tries >= signin_code.MAX_WRONG_TRIES:
+                clear_otp(user)
+                return True
+            if signin_code.matches(
+                expected, otp_code, user.email, user.otp_code_for, user.otp_expiry
+            ):
+                consume_otp(user)
+                accepted.append(True)
+                return True
+            wrong_tries = expected.wrong_tries + 1
+            if wrong_tries >= signin_code.MAX_WRONG_TRIES:
+                clear_otp(user)
             else:
-                raise HTTPException(status_code=404, content="Error user not found.")
-        except HTTPException:
+                user.otp_code = signin_code.stored(expected.digest, wrong_tries)
+            return True
+
+        user = await self.user_repository.change_otp_locked(email, judge)
+        if user is None or not accepted:
             return None
+        return User(
+            id=str(user.id),
+            sub=user.email,
+            plan=user.plan,
+            roles=roles_for(user.email, user.roles, verified=True),
+            email_verified=True,
+        )
 
     async def basic_auth_callback(
         self, provider: str, code: str, state: str, *args, **kwargs
@@ -157,19 +178,24 @@ class AuthService:
     ):
         otp = self.generate_otp()
         otp_expiry = self.get_expiry_epoch_after(timedelta(minutes=5))
+        purpose = Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER
+        # only a keyed hash is stored (signin_code); the code goes to the mail
+        stored_code = signin_code.stored(
+            signin_code.digest(otp, receiver_mail, purpose, otp_expiry)
+        )
 
         existing_user = await self.user_repository.get_user_by_email(receiver_mail)
         if existing_user:
             await self.user_repository.set_user_otp(
                 existing_user.id,
-                otp_code=otp,
+                otp_code=stored_code,
                 otp_expiry=otp_expiry,
-                otp_code_for=Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER,
+                otp_code_for=purpose,
             )
         else:
             await self.user_repository.save_otp_user(
                 email=receiver_mail,
-                otp_code=otp,
+                otp_code=stored_code,
                 otp_expiry=otp_expiry,
                 creator=creator,
             )
@@ -202,6 +228,7 @@ class AuthService:
         await MailService().send_message(message)
 
     def generate_otp(self):
+        # secrets, never random: 36^6 codes, shaped "ABC-123"
         alphabets = string.ascii_uppercase + string.digits
         return "".join("-" if i == 3 else secrets.choice(alphabets) for i in range(7))
 

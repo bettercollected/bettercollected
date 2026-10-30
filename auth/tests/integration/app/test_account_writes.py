@@ -59,13 +59,15 @@ async def test_otp_sign_in_of_an_existing_user_in_the_service(repo, no_mail):
     await repo.save_user(email)  # an existing account
     service = AuthService(None, repo, None)
 
-    await service.send_otp_to_mail(email, None, None, creator=True)
+    with patch.object(AuthService, "generate_otp", return_value="ABC-123"):
+        await service.send_otp_to_mail(email, None, None, creator=True)
 
     stored = await repo.get_user_by_email(email)
     assert stored.otp_code and stored.otp_expiry
+    assert "ABC-123" not in stored.otp_code  # a keyed hash, never the code
     assert stored.otp_code_for == "FORM_CREATOR"
 
-    signed_in = await service.validate_otp(email, stored.otp_code)
+    signed_in = await service.validate_otp(email, "ABC-123")
     assert signed_in is not None and signed_in.sub == email
     assert (await repo.get_user_by_email(email)).otp_code is None
 
@@ -145,12 +147,14 @@ def test_otp_sign_in_of_an_existing_user_over_http(app_runner, no_mail):
     repo = container.user_repository()
     app_runner.portal.call(repo.save_user, email)
 
-    sent = app_runner.get(
-        "auth/otp/send", params={"receiver_email": email, "creator": True}
-    )
+    code = "XYZ-789"
+    with patch.object(AuthService, "generate_otp", return_value=code):
+        sent = app_runner.get(
+            "auth/otp/send", params={"receiver_email": email, "creator": True}
+        )
     assert sent.status_code == 200, sent.text
-    code = app_runner.portal.call(repo.get_user_by_email, email).otp_code
-    assert code
+    stored = app_runner.portal.call(repo.get_user_by_email, email).otp_code
+    assert stored and code not in stored
 
     validated = app_runner.get(
         "auth/otp/validate", params={"email": email, "otp_code": code}
