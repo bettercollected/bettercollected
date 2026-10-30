@@ -38,12 +38,12 @@ const CLIENT_CODES: Record<string, string> = {
 
 export const isServerProblem = (code: unknown): code is ServerProblem => typeof code === 'string' && SERVER_PROBLEMS.includes(code);
 
-/** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 /** The server refused the submission because the form is closed (409 form_closed). */
 export function isFormClosedError(error: any): boolean {
     return error?.status === 409 && error?.data?.code === 'form_closed';
 }
 
+/** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 export function serverAnswerErrors(error: any): ServerAnswerError[] | null {
     const data = error?.data;
     if (error?.status !== 422 || data?.code !== 'invalid_answers' || !Array.isArray(data.errors)) return null;
