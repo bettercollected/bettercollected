@@ -7,9 +7,16 @@ from classy_fastapi import Routable, get, patch, post, put, delete
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormSettings, Trigger
+from common.models.standard_form import (
+    FORM_FIELD_RULES_MAX,
+    StandardForm,
+    StandardFormSettings,
+    Trigger,
+    raw_rule_count,
+)
 from common.models.user import User
 from fastapi import Depends, UploadFile, Form, BackgroundTasks, Query, Response
+from starlette.concurrency import run_in_threadpool
 from fastapi_pagination import Page
 from loguru import logger
 from pydantic import ValidationError
@@ -103,6 +110,13 @@ def _parse_form_body(form_body: str) -> StandardForm:
     client's fault: answer 422 with the reason instead of a 500."""
     try:
         body = json.loads(form_body)
+        rules = raw_rule_count(body.get("fields")) if isinstance(body, dict) else 0
+        if rules > FORM_FIELD_RULES_MAX:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content=f"A form can have at most {FORM_FIELD_RULES_MAX} rules; "
+                f"this one has {rules}.",
+            )
         minified_form = FormDtoCamelModel(**body)
         form = StandardForm(**minified_form.model_dump(mode="json"))
         _only_sent_settings(form, body)
@@ -181,7 +195,7 @@ class WorkspaceFormsRouter(Routable):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-        form = _parse_form_body(form_body)
+        form = await run_in_threadpool(_parse_form_body, form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
@@ -458,8 +472,9 @@ class WorkspaceFormsRouter(Routable):
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
         expected = parse_expected_updated_at(expected_updated_at)
-        form = _parse_form_body(form_body)
+        form = await run_in_threadpool(_parse_form_body, form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
+        dropped_rules: list = []
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -468,8 +483,15 @@ class WorkspaceFormsRouter(Routable):
             logo=logo,
             cover_image=cover_image,
             expected_updated_at=expected,
+            dropped_rules=dropped_rules,
         )
-        return StandardFormCamelModel(**response.model_dump(mode="json"))
+        saved = StandardFormCamelModel(**response.model_dump(mode="json"))
+        if dropped_rules:
+            # field rules the save left out because they were broken
+            # (services/field_rules.py); the draft no longer has them
+            # (FormDtoCamelModel.dropped_field_rules carries it out)
+            saved.droppedFieldRules = dropped_rules
+        return saved
 
     @put("/{form_id}/logo", response_model=StandardFormCamelModel)
     async def upload_form_logo(

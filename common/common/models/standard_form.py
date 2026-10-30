@@ -754,6 +754,165 @@ class CalculationFormat(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+# Field rules ("logic actions", ``properties.rules``): caps and text limits.
+FIELD_RULES_MAX = 8  # rules on one field
+FORM_FIELD_RULES_MAX = 100  # rules in one form
+RULE_CONDITIONS_MAX = 20  # conditions in one rule's trigger
+RULE_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
+RULE_TITLE_MAX_LENGTH = 300
+RULE_DESCRIPTION_MAX_LENGTH = 1000
+RULE_CONST_MAX_LENGTH = 1000
+# The keys a rule's ``then`` may hold (spec and builder names).
+RULE_EFFECT_KEYS = ("required", "readOnly", "title", "description", "setValue")
+
+
+def _rule_expression_problem(ast: Any) -> Optional[str]:
+    """A readable problem with an expressions-v1 AST's shape, or None (its
+    variables are checked against the whole form when it is saved)."""
+    from common.expressions import validate_expression
+
+    problems = validate_expression(ast)
+    if not problems:
+        return None
+    where = f" (at '{problems[0].path}')" if problems[0].path else ""
+    return f"{problems[0].message}{where}"
+
+
+class _RuleModel(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True, alias_generator=to_camel, extra="forbid"
+    )
+
+
+class RuleTrigger(_RuleModel):
+    """When a field rule is active: either ``conditions`` (folded with
+    ``operator``, AND when absent; the conditions of ``properties.logic``)
+    or an expressions-v1 ``expression``, active when its value is truthy."""
+
+    operator: Optional[Literal["AND", "OR"]] = None
+    conditions: Optional[List[FieldLogicCondition]] = Field(
+        None, max_length=RULE_CONDITIONS_MAX
+    )
+    expression: Optional[Any] = None
+
+    @model_validator(mode="after")
+    def _one_kind(self):
+        has_conditions = self.conditions is not None
+        has_expression = self.expression is not None
+        if has_conditions == has_expression:
+            raise ValueError(
+                "A rule's 'when' needs either conditions or an expression (not both)."
+            )
+        if has_conditions and not self.conditions:
+            raise ValueError("A rule's 'when' needs at least one condition.")
+        if has_expression:
+            if self.operator is not None:
+                raise ValueError(
+                    "A rule's 'operator' only combines conditions, not an expression."
+                )
+            problem = _rule_expression_problem(self.expression)
+            if problem:
+                raise ValueError(f"A rule's 'when' expression: {problem}")
+        return self
+
+
+class RuleSetValue(_RuleModel):
+    """The value a rule sets: a fixed ``const`` (text, number, yes/no, a
+    date or a choice's option id) or an expressions-v1 ``expression``."""
+
+    const: Optional[Union[bool, int, float, str]] = None
+    expression: Optional[Any] = None
+
+    @model_validator(mode="after")
+    def _one_kind(self):
+        if (self.const is None) == (self.expression is None):
+            raise ValueError("'setValue' needs either 'const' or 'expression'.")
+        if isinstance(self.const, float) and self.const != self.const:
+            raise ValueError("'setValue' cannot be NaN.")
+        if isinstance(self.const, float) and self.const in (
+            float("inf"),
+            float("-inf"),
+        ):
+            raise ValueError("'setValue' must be a finite number.")
+        if isinstance(self.const, str) and len(self.const) > RULE_CONST_MAX_LENGTH:
+            raise ValueError(
+                f"A 'setValue' text can be at most {RULE_CONST_MAX_LENGTH} characters."
+            )
+        if self.expression is not None:
+            problem = _rule_expression_problem(self.expression)
+            if problem:
+                raise ValueError(f"A 'setValue' expression: {problem}")
+        return self
+
+
+class RuleEffect(_RuleModel):
+    """What a rule does while it is active (at least one key): make the
+    field required or optional, read-only, set its value, or change its
+    title or description (presentation only)."""
+
+    required: Optional[bool] = None
+    read_only: Optional[Literal[True]] = None
+    title: Optional[str] = Field(None, max_length=RULE_TITLE_MAX_LENGTH)
+    description: Optional[str] = Field(None, max_length=RULE_DESCRIPTION_MAX_LENGTH)
+    set_value: Optional[RuleSetValue] = None
+
+    @model_validator(mode="after")
+    def _something(self):
+        if all(
+            value is None
+            for value in (
+                self.required,
+                self.read_only,
+                self.title,
+                self.description,
+                self.set_value,
+            )
+        ):
+            raise ValueError(
+                "A rule's 'then' needs at least one of: "
+                + ", ".join(RULE_EFFECT_KEYS)
+                + "."
+            )
+        if self.title is not None and not self.title.strip():
+            raise ValueError("A rule's title cannot be empty.")
+        return self
+
+
+class FieldRule(BaseModel):
+    """One rule of a field (``properties.rules``, in order): while ``when``
+    holds, ``then`` applies. For each property the last active rule wins;
+    ``required`` starts from ``validations.required``. Rules never change
+    visibility (that is ``properties.logic``). The server replays them on
+    every submission and edit (backend ``services/field_rules.py``)."""
+
+    id: str = Field(..., pattern=RULE_ID_PATTERN)
+    when: RuleTrigger
+    then: RuleEffect
+
+    model_config = ConfigDict(
+        populate_by_name=True, alias_generator=to_camel, extra="forbid"
+    )
+
+
+def raw_rule_count(fields: Any) -> int:
+    """Rules in a form's raw (JSON) fields, counted before anything is
+    parsed: a payload far over FORM_FIELD_RULES_MAX is refused without
+    validating each rule. Walks fields only, never into rules."""
+    total, pending = 0, list(fields) if isinstance(fields, list) else []
+    while pending:
+        field = pending.pop()
+        properties = field.get("properties") if isinstance(field, dict) else None
+        if not isinstance(properties, dict):
+            continue
+        rules = properties.get("rules")
+        if isinstance(rules, list):
+            total += len(rules)
+        children = properties.get("fields")
+        if isinstance(children, list):
+            pending.extend(children)
+    return total
+
+
 def is_iso_date(value: Any) -> bool:
     """Is ``value`` a calendar date written exactly as ``YYYY-MM-DD``?"""
     if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
@@ -828,6 +987,11 @@ class StandardFieldProperty(BaseModel):
     # Unanswered questions (and empty calculations) a calculated field
     # reads count as 0. None = the default: on, unless the format is text.
     unanswered_as_zero: Optional[bool] = None
+    # Field rules (see FieldRule): require, lock, set the value or change
+    # the text of this question while a condition or expression holds.
+    # Checked on every form save and replayed by the server on submit and
+    # edit (backend services/field_rules.py), never trusted from clients.
+    rules: Optional[List[FieldRule]] = Field(None, max_length=FIELD_RULES_MAX)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

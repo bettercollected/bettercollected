@@ -2,27 +2,65 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import i18n from 'i18next';
 import { useStore } from 'jotai';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
+import { toastWhenFree } from '@app/shadcn/components/ui/use-toast';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { builderHydratedFormIdAtom, useBuilderHydration } from '@app/store/jotai/builder-hydration';
 import { IFormState, formStateAtom } from '@app/store/jotai/form';
-import { builderFieldsAtom } from '@app/store/jotai/form-document';
+import { builderFieldsAtom, commitBuilderFieldsAtom } from '@app/store/jotai/form-document';
 import { adoptSavedLanguageAtom, formLanguageAtom } from '@app/store/jotai/form-language';
 import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
+import { DroppedRule, withoutFieldRules } from '@app/utils/field-rule-copies';
 import { reloadPage } from '@app/utils/reload-page';
 
 /** Quiet time after the last edit before it is saved. */
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
 
 /** How the server's answer to a save maps onto the queue. */
+/** The field rules a save left out because they no longer fit the form (`droppedFieldRules`). */
+export function droppedRulesOf(data: any): DroppedRule[] {
+    return Array.isArray(data?.droppedFieldRules) ? data.droppedFieldRules.filter((item: any) => item?.fieldId && item?.ruleId) : [];
+}
+
+// Rules already told about in this session ("<form>/<question>/<rule>").
+const noticedRules = new Set<string>();
+
+/** Forget which dropped rules were told about (tests). */
+export function resetDroppedRuleNotices() {
+    noticedRules.clear();
+}
+
+/**
+ * How many questions lost rules not told about yet (once per rule per
+ * session). The builder cannot show or edit rules yet.
+ */
+export function newlyDroppedQuestions(formId: string, dropped: DroppedRule[]): number {
+    const fresh = dropped.filter(({ fieldId, ruleId }) => !noticedRules.has(`${formId}/${fieldId}/${ruleId}`));
+    fresh.forEach(({ fieldId, ruleId }) => noticedRules.add(`${formId}/${fieldId}/${ruleId}`));
+    return new Set(fresh.map(({ fieldId }) => fieldId)).size;
+}
+
+/** The notice for `count` questions that lost a rule. */
+export function droppedRulesText(count: number): string {
+    return i18n.t('builder:FIELD_RULES.DROPPED', { count });
+}
+
+/** A sent body as the server stored it: without the rules it dropped. */
+function storedBodyOf(body: string, dropped: DroppedRule[]): string {
+    const parsed = JSON.parse(body);
+    if (Array.isArray(parsed?.fields)) parsed.fields = withoutFieldRules(parsed.fields, dropped);
+    return JSON.stringify(parsed);
+}
+
 export function saveOutcomeOf(response: any): SaveOutcome {
     if (response?.data) return { kind: 'saved', version: response.data.updatedAt ?? null };
     const status = response?.error?.status;
@@ -105,6 +143,17 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         contextRef.current = { workspaceId: workspace?.id, settings: form?.settings, patchV2Form, dispatch };
     });
 
+    // On while the builder applies what the server stored (not an edit).
+    const [quiet] = useState(() => ({ on: false }));
+    // Notices still waiting for an Undo toast to close: cancelled when the editor goes away.
+    const [waitingNotices] = useState(() => new Set<() => void>());
+    useEffect(
+        () => () => {
+            waitingNotices.forEach((cancel) => cancel());
+            waitingNotices.clear();
+        },
+        [waitingNotices]
+    );
     const [queue] = useState(
         () =>
             new SaveQueue(
@@ -125,6 +174,27 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                             const saved = response.data?.settings;
                             if (saved && typeof saved === 'object' && 'language' in saved) {
                                 store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
+                            }
+                            const dropped = droppedRulesOf(response.data);
+                            if (dropped.length) {
+                                // The server left these rules out: the builder lets go of
+                                // them too (no undo step, not an edit), and neither the
+                                // save waiting in the queue (rewritePending) nor later
+                                // ones send them again.
+                                const fields = store.get(builderFieldsAtom);
+                                const pruned = withoutFieldRules(fields, dropped);
+                                if (pruned !== fields) {
+                                    quiet.on = true;
+                                    store.set(commitBuilderFieldsAtom, pruned, { undoable: false });
+                                    quiet.on = false;
+                                }
+                                const questions = newlyDroppedQuestions(formId, dropped);
+                                // never in place of an open Undo toast; two waiting notices become one
+                                if (questions) {
+                                    const cancel = toastWhenFree({}, { key: `field-rules:${formId}`, count: questions, describe: droppedRulesText });
+                                    waitingNotices.add(cancel);
+                                }
+                                return { ...outcome, savedBody: storedBodyOf(body, dropped), rewritePending: (waiting: string) => storedBodyOf(waiting, dropped) } as SaveOutcome;
                             }
                         }
                         return outcome;
@@ -199,6 +269,11 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             const now = currentParts(store);
             if (sameParts(now, last)) return;
             last = now;
+            // The builder letting go of rules a save dropped: what the server has, not an edit.
+            if (quiet.on) {
+                latestRef.current = savedFormOf(now);
+                return;
+            }
             // Before hydrating (and taking the server's state) a change only updates what is latest.
             if (!baselineTakenRef.current) latestRef.current = savedFormOf(now);
             else takeStateRef.current(now);

@@ -100,6 +100,12 @@ from backend.app.constants.themes import (
 )
 from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.services.calculated_fields import calculated_field_problems
+from backend.app.services.field_rules import (
+    DISABLED_MESSAGE,
+    field_rule_problems,
+    new_or_changed_rules,
+    prune_field_rules,
+)
 from backend.app.services.image_urls import (
     IMAGE_URL_ERROR,
     checked_image_url,
@@ -1346,7 +1352,10 @@ def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
 
 def _dropped_rules_note(form: StandardForm) -> str:
     dropped = prune_date_rules(form.fields)
-    return f" (and {dropped} date rule(s) that used it)" if dropped else ""
+    note = f" (and {dropped} date rule(s) that used it)" if dropped else ""
+    # field rules that read it (or sat on it) go too
+    dropped = len(prune_field_rules(form))
+    return note + (f" (and {dropped} field rule(s) that used it)" if dropped else "")
 
 
 def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
@@ -1660,6 +1669,12 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
         if repeat is not None and repeat.item_title:
             for old_id, new_id in id_map.items():
                 repeat.item_title = repeat.item_title.replace(old_id, new_id)
+    # Field rules are not copied (rule ids are unique per form, and their
+    # references point at the original page), as in the builder
+    # (webapp utils/field-rule-copies.ts).
+    for field in _subtree(clone):
+        if field.properties is not None:
+            field.properties.rules = None
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None
@@ -2367,6 +2382,17 @@ def _editor_theme(theme: Optional[Theme], keep: "_KeptImages", path: str = "prop
         theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
 
 
+def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
+    """While FIELD_RULES_ENABLED is off, an editor op may carry a field's
+    rules only as the form already has them (services/field_rules.py)."""
+    from backend.config import settings
+
+    if getattr(settings, "FIELD_RULES_ENABLED", False):
+        return
+    if new_or_changed_rules(StandardForm(fields=[item]), form):
+        raise OpError(DISABLED_MESSAGE)
+
+
 def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> StandardFormField:
     """A question or page as the editor sends it, read the way a whole-form
     save reads it and checked like one: the stored model (its group and date
@@ -2386,6 +2412,7 @@ def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> Standar
         )
     except ValueError as error:
         raise OpError(_validation_message(error))
+    _check_rules_allowed(item, form)
     is_page = item.type == StandardFormFieldType.SLIDE
     if page and not is_page:
         raise OpError("insert_page needs a page: a field of type 'slide'.")
@@ -2416,10 +2443,16 @@ def _calculation_messages(form: StandardForm) -> List[str]:
     return [_calculation_message(p) for p in calculated_field_problems(form)]
 
 
-def _new_problems(form: StandardForm, before: Tuple[Set[str], Set[str], Set[str]]) -> Optional[str]:
+def _field_rule_messages(form: StandardForm) -> List[str]:
+    return [p.message for p in field_rule_problems(form)]
+
+
+def _new_problems(
+    form: StandardForm, before: Tuple[Set[str], Set[str], Set[str], Set[str]]
+) -> Optional[str]:
     """The first problem of ``form`` a whole-form save would refuse (logic
-    on an internal field, a date rule, a calculation) that was not there
-    ``before``."""
+    on an internal field, a date rule, a calculation, a field rule) that was
+    not there ``before``."""
     for problem in internal_logic_violations(form):
         if problem not in before[0]:
             return problem
@@ -2429,14 +2462,18 @@ def _new_problems(form: StandardForm, before: Tuple[Set[str], Set[str], Set[str]
     for problem in _calculation_messages(form):
         if problem not in before[2]:
             return problem
+    for problem in _field_rule_messages(form):
+        if problem not in before[3]:
+            return problem
     return None
 
 
-def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str]]:
+def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str], Set[str]]:
     return (
         set(internal_logic_violations(form)),
         set(date_rule_problems(form.fields)),
         set(_calculation_messages(form)),
+        set(_field_rule_messages(form)),
     )
 
 
@@ -3087,8 +3124,10 @@ def finished_form(working: StandardForm) -> StandardForm:
     would accept pruned, and validated as a whole (on a copy)."""
     working = working.model_copy(deep=True)
     _renumber(working)
-    # Nothing may leave with a date rule the save path would refuse.
+    # Nothing may leave with a date rule or a field rule the save path would
+    # refuse (a structural edit can break them; no op writes field rules).
     prune_date_rules(working.fields)
+    prune_field_rules(working)
     # The schema is the final arbiter — a structurally invalid result must
     # never leave this function.
     return StandardForm.model_validate(working.model_dump())

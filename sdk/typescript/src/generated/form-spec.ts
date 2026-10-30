@@ -336,6 +336,10 @@ export interface FormField {
   dateRules?: DateRule[] | null;
   whyWeAsk?: string | null;
   logic?: Logic | null;
+  /**
+   * At most 8 rules per question and 100 per form (see Rule).
+   */
+  rules?: Rule[] | null;
   expression?: unknown;
   format?: CalculationFormat | null;
   /**
@@ -422,6 +426,78 @@ export interface Logic {
   action?: ("SHOW" | "HIDE") | null;
   operator?: ("AND" | "OR") | null;
   conditions?: Condition[] | null;
+}
+/**
+ * A field rule: while ``when`` holds, ``then`` applies. A field's rules
+ * apply in order; for each property the last active rule wins
+ * (``required`` starts from ``validations.required``). Rules never show or
+ * hide a question (that is ``logic``).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "Rule".
+ */
+export interface Rule {
+  /**
+   * Unique within the form.
+   */
+  id: string;
+  when: RuleWhen;
+  then: RuleThen;
+}
+/**
+ * When a rule is active: ``conditions`` (as in ``logic``; operator AND
+ * when absent) or an expressions-v1 ``expression`` (active when its value
+ * is truthy), never both.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "RuleWhen".
+ */
+export interface RuleWhen {
+  operator?: ("AND" | "OR") | null;
+  conditions?: [Condition, ...Condition[]] | null;
+  expression?: unknown;
+}
+/**
+ * What a rule does while it is active (at least one key). The server
+ * enforces ``required``, ``readOnly`` and ``setValue``; ``title`` and
+ * ``description`` only change what respondents read.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "RuleThen".
+ */
+export interface RuleThen {
+  /**
+   * true: the question must be answered; false: it is optional.
+   */
+  required?: boolean | null;
+  /**
+   * Respondents cannot change the value: a submitted value is discarded (replaced by an active setValue, else removed).
+   */
+  readOnly?: true | null;
+  /**
+   * Plain text; may pipe answers ({{field:<id>}}).
+   */
+  title?: string | null;
+  description?: string | null;
+  /**
+   * The server computes the value and stores it, whatever a client sent; an empty result leaves the question unanswered. Implies readOnly.
+   */
+  setValue?: RuleSetValue | null;
+}
+/**
+ * The value a rule gives the question: a fixed ``const`` (a text, a
+ * number, true/false for yes/no, a YYYY-MM-DD date, or the ``id`` of one of
+ * a choice question's options) or an ``expression``, never both.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "RuleSetValue".
+ */
+export interface RuleSetValue {
+  /**
+   * A choice question is set by the id of one of its options.
+   */
+  const?: boolean | number | string | null;
+  expression?: unknown;
 }
 /**
  * How a calculated field shows its value (display only; the stored

@@ -311,6 +311,29 @@ every calculated field with the Python evaluator, in dependency order, and store
 (`number`, `boolean` or `text` slot); client values are dropped, and answer validation replays logic and
 jumps with the server values. "today" is the server's UTC date on submit, the submission day on an edit.
 
+**Field rules** (`services/field_rules.py`; spec section "Field rules" in
+[../docs/spec/README.md](../docs/spec/README.md)): ordered rules at a question's `properties.rules`
+(common `FieldRule`: `when` conditions or an expressions-v1 expression, `then` `required`, `readOnly`,
+`title`, `description`, `setValue`). `calculate_and_check` runs `resolve_field_rules`, so submit and
+respondent edit both replay them: calculated fields and set-value questions in one dependency order (each
+written into the answers and variables before the next), a locked question's client value discarded (set
+value, else removed), and `FieldRuleStates` handed to `check_answers`, whose Required uses the effective
+flag (last active rule wins, per item in a group; locked questions are never required and skip answer
+rules). `repeating_groups.validate_group_answers` leaves a rule-driven Required to answer validation. On an
+edit, set-value questions are overwritten like calculations and questions whose rules read a changed key are
+re-checked (an active value rule's question too). Every save path checks them: spec `_check_rules` refuses
+(paths into the rules); create/update form and templates run `ensure_valid_field_rules(drop=True)` off the
+event loop, dropping broken rules (the builder PATCH lists them as `droppedFieldRules`; caps, circles and
+cost still 422 `invalid_field_rules`); editor ops via `_new_problems`; `finished_form` prunes after ops.
+`FIELD_RULES_ENABLED` (default off) gates every write that brings new or changed rules (`ensure_rules_allowed`,
+422 `field_rules_disabled`; editor ops fail with the same message); stored rules are kept and enforced.
+Bounds: 8 per question, 100 per form (counted before parsing a builder body or spec), 50 variables per
+expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`: forms that
+could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`). Date rules do
+not apply to a question a rule sets or locks. No editor, op, MCP tool or importer writes rules yet.
+Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner skips them
+until its evaluator exists).
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:

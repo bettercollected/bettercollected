@@ -323,6 +323,7 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "format",
         "hidden_from_respondents",
         "unanswered_as_zero",
+        "rules",
     }
     assert (
         set(StandardFieldProperty.model_fields)
@@ -387,7 +388,9 @@ def test_spec_to_form_does_not_share_state_with_the_spec():
 
 def test_the_readme_example_is_a_valid_document():
     readme = (SCHEMA_PATH.parent / "README.md").read_text()
-    example = readme.split("```json", 1)[1].split("```", 1)[0]
+    # the block under "## Example" (other fragments are not whole documents)
+    example = readme.split("## Example", 1)[1].split("```json\n", 1)[1]
+    example = example.split("```", 1)[0]
     spec = FormSpec.model_validate(json.loads(example))
     form = spec_to_form(spec)
     assert form.fields[0].properties.fields[2].properties.logic.action == "SHOW"

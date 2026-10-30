@@ -248,3 +248,57 @@ describe('date rules', () => {
         expect(result.current.formFields[0].properties!.fields![0].properties!.dateRules).toBeUndefined();
     });
 });
+
+describe('duplicating leaves field rules behind', () => {
+    const rule = (id: string) => ({ id, when: { conditions: [{ fieldId: 'a', comparison: 'IS_NOT_EMPTY' }] }, then: { required: true } });
+    const ruledPage = (): StandardFormFieldDto[] => [
+        {
+            id: 'page',
+            index: 0,
+            type: FieldTypes.SLIDE,
+            properties: {
+                fields: [
+                    q('a', 0),
+                    { ...q('b', 1), properties: { rules: [rule('r1')] } as any },
+                    {
+                        ...q('g', 2, FieldTypes.GROUP),
+                        properties: { repeat: { minItems: 1, maxItems: 3 }, fields: [{ ...q('c', 0), properties: { rules: [rule('r2')] } as any }] } as any
+                    }
+                ]
+            }
+        }
+    ];
+    const rulesOf = (field: StandardFormFieldDto) => (field.properties as any)?.rules;
+
+    it('duplicateField copies the question without its rules', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(ruledPage()));
+        act(() => result.current.duplicateField(0, 1));
+        const fields = result.current.formFields[0].properties!.fields!;
+        expect(fields[2].id).not.toBe('b');
+        expect(rulesOf(fields[2])).toBeUndefined();
+        // the original keeps them
+        expect(rulesOf(fields[1])).toEqual([rule('r1')]);
+    });
+
+    it("duplicateField of a repeating group drops its questions' rules", () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(ruledPage()));
+        act(() => result.current.duplicateField(0, 2));
+        const copy = result.current.formFields[0].properties!.fields![3];
+        expect(rulesOf(copy.properties!.fields![0])).toBeUndefined();
+        expect(rulesOf(result.current.formFields[0].properties!.fields![2].properties!.fields![0])).toEqual([rule('r2')]);
+    });
+
+    it('duplicateSlide copies the page without any rules', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(ruledPage()));
+        act(() => {
+            result.current.duplicateSlide(0);
+        });
+        const copied = result.current.formFields[1].properties!.fields!;
+        expect(copied.map(rulesOf)).toEqual([undefined, undefined, undefined]);
+        expect(rulesOf(copied[2].properties!.fields![0])).toBeUndefined();
+        expect(rulesOf(result.current.formFields[0].properties!.fields![1])).toEqual([rule('r1')]);
+    });
+});

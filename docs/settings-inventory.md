@@ -85,6 +85,7 @@ environment, whatever the tier.
 | `API_ENABLE_GOOGLE_PICKER_API` | features | backend | bool |  | R | T1 | `false` |
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
+| `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `AUTH_CALLBACK_URI` | google | backend | url |  | R | T3 |  |
 | `GOOGLE_API_SERVICE_NAME` | google | google | str max 64 |  | R | T1 | `drive` |

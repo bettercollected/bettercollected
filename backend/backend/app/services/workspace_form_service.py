@@ -82,6 +82,11 @@ from backend.app.services.calculated_fields import (
     respondent_today,
     today_iso,
 )
+from backend.app.services.field_rules import (
+    ensure_rules_allowed,
+    ensure_valid_field_rules,
+    rule_keys_affected,
+)
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -131,16 +136,18 @@ def _calculated_checked_ending(
     """The server's calculated values, a check of the answers with them
     (422 on problems, see check_answers), then the id of the ending their
     path reaches, also with them. CPU-bound: run it off the event loop.
-    Returns ``(answers, ending_id)``."""
-    answers = calculate_and_check(
+    Returns ``(answers, ending_id, locked)``: ``locked``, the questions whose
+    value a field rule set or locked (their date rules do not apply)."""
+    answers, locked = calculate_and_check(
         form,
         answers,
         form_id,
         hidden_values=hidden_values,
         today=today,
         known_ids=known_ids,
+        with_locked=True,
     )
-    return answers, reached_ending_id(form, answers)
+    return answers, reached_ending_id(form, answers), locked
 
 
 def _check_ending_links(form, drop_unusable: bool, keep_as_is=()) -> None:
@@ -692,6 +699,12 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         ensure_valid_calculations(form)
+        # Field rules (services/field_rules.py): broken ones are dropped (the
+        # spec API refused them before this); new ones need
+        # FIELD_RULES_ENABLED, except in a copy of a form or template.
+        await run_in_threadpool(ensure_valid_field_rules, form, True)
+        if not drop_unusable_settings:
+            ensure_rules_allowed(form)
         ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
@@ -776,10 +789,14 @@ class WorkspaceFormService:
         logo: UploadFile = None,
         cover_image: UploadFile = None,
         expected_updated_at: Optional[dt.datetime] = None,
+        dropped_rules: Optional[List[Dict[str, Any]]] = None,
     ):
         """``expected_updated_at``: the draft's ``updated_at`` as the caller
         last saw it; when the stored draft is newer the save is refused with
         409 (form_concurrency.py). None skips the check.
+
+        ``dropped_rules``: receives the field rules the save dropped because
+        they were broken (``fieldId``, ``ruleId``, ``message``).
 
         With it, the form is written conditionally, and the settings only
         after that write succeeded: a save refused at the write (another save
@@ -804,6 +821,14 @@ class WorkspaceFormService:
         ensure_not_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
+        # Field rules (services/field_rules.py): every broken rule is dropped
+        # and reported, never stored and never a refusal (the builder cannot
+        # edit rules, and it re-sends what it holds); then, while
+        # FIELD_RULES_ENABLED is off, new or changed rules are refused.
+        dropped = await run_in_threadpool(ensure_valid_field_rules, form, True)
+        if dropped_rules is not None:
+            dropped_rules.extend(dropped)
+        ensure_rules_allowed(form, existing_form)
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
@@ -1077,10 +1102,19 @@ class WorkspaceFormService:
         # edit (services/calculated_fields.py), never the client's; an empty
         # result overwrites a stored value. "today" is the submission day.
         calc_ids = [str(field.id) for field in calculated_fields(form) if field.id]
+        # Values field rules set or lock are the server's too (overwritten
+        # like calculations). A question whose rules read what changed (or a
+        # calculation) is checked again, and so is one an active rule sets
+        # or locks (calculate_and_check adds those): the edit may now
+        # require it or give it a value.
+        changed_keys = list((response.answers or {}).keys())
+        # (through set values: a question whose rule reads a set value is
+        # affected when what sets that value changes)
+        rule_keys = sorted(rule_keys_affected(form, changed_keys + calc_ids))
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
         # CPU-bound (creator patterns, formulas): off the event loop.
-        merged = await run_in_threadpool(
+        merged, locked = await run_in_threadpool(
             calculate_and_check,
             form,
             merged,
@@ -1092,11 +1126,13 @@ class WorkspaceFormService:
                 existing.created_at.date() if existing.created_at else None
             ),
             keep_empty=True,
-            only=list((response.answers or {}).keys()) + calc_ids,
+            only=changed_keys + calc_ids + rule_keys,
+            with_locked=True,
         )
-        if calc_ids:
+        server_ids = calc_ids + sorted(locked)
+        if server_ids:
             response.answers = dict(response.answers or {})
-            for field_id in calc_ids:
+            for field_id in server_ids:
                 if field_id in merged:
                     response.answers[field_id] = merged[field_id]
         _check_date_rules(
@@ -1106,6 +1142,7 @@ class WorkspaceFormService:
                 existing.created_at.date() if existing.created_at else None
             ),
             changed=list((response.answers or {}).keys()),
+            skip=locked,
         )
 
         if form_files:
@@ -1219,7 +1256,7 @@ class WorkspaceFormService:
         # Which ending the respondent saw is replayed from the answers, with
         # the server's calculated values, in the same call; never taken
         # from the request.
-        response.answers, response.ending_id = await run_in_threadpool(
+        response.answers, response.ending_id, locked = await run_in_threadpool(
             _calculated_checked_ending,
             filled,
             response.answers,
@@ -1236,6 +1273,7 @@ class WorkspaceFormService:
             filled,
             response.answers,
             today=(today, today) if client_today == today else None,
+            skip=locked,
         )
         # The anonymous identity is computed before anything is stored: a refusal
         # (the key is not verified, see respondent_identity) must not leave
@@ -1768,12 +1806,16 @@ def ensure_valid_date_rules(form) -> None:
         )
 
 
-def _check_date_rules(form, answers, today=None, changed=None) -> None:
+def _check_date_rules(form, answers, today=None, changed=None, skip=()) -> None:
     """Enforce the form's date rules on submitted answers (422 otherwise),
-    the same way the webapp does while the form is filled."""
+    the same way the webapp does while the form is filled. ``skip``: the
+    questions whose value a field rule set or locked (the server's value:
+    answer rules, date rules included, do not apply to it)."""
     if form is None:
         return
-    problems = validate_date_rule_answers(form, answers, today=today, changed=changed)
+    problems = validate_date_rule_answers(
+        form, answers, today=today, changed=changed, skip=skip
+    )
     if problems:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=" ".join(problems)

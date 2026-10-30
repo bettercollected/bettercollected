@@ -44,6 +44,8 @@ from common.expressions import (
 )
 from common.models.standard_form import _find_cycle, is_iso_date
 
+from loguru import logger
+
 from backend.app.exceptions import HTTPException
 from backend.app.services.repeating_groups import (
     comparable_answer_value,
@@ -457,22 +459,33 @@ def compute_calculated_values(
     question_keys = _question_keys(form)
     for field in evaluation_order(calcs):
         field_id = str(_get(field, "id"))
-        ast = _expression(field)
-        value = None
-        if ast is not None:
-            reading = variables
-            if unanswered_as_zero(field):
-                reading = dict(variables)
-                for key in expression_variables(ast):
-                    if key in question_keys and reading.get(key) in (None, ""):
-                        reading[key] = 0
-            try:
-                value = evaluate_expression(ast, reading, context)
-            except (ExpressionError, RecursionError):
-                value = None
+        value = _calculated_value(field, variables, question_keys, context)
         variables[field_id] = value
         values[field_id] = value
     return values
+
+
+def _calculated_value(
+    field: Any,
+    variables: Mapping[str, Any],
+    question_keys: Set[str],
+    context: Mapping[str, Any],
+) -> Any:
+    """One calculated field's value from the variables (None when it has
+    no formula or the formula fails)."""
+    ast = _expression(field)
+    if ast is None:
+        return None
+    reading = variables
+    if unanswered_as_zero(field):
+        reading = dict(variables)
+        for key in expression_variables(ast):
+            if key in question_keys and reading.get(key) in (None, ""):
+                reading[key] = 0
+    try:
+        return evaluate_expression(ast, reading, context)
+    except (ExpressionError, RecursionError):
+        return None
 
 
 def calculated_answer(field_id: str, value: Any) -> Dict[str, Any]:
@@ -622,14 +635,42 @@ def calculate_and_check(
     keep_empty: bool = False,
     known_ids: Optional[Set[str]] = None,
     only: Optional[Iterable[str]] = None,
+    with_locked: bool = False,
 ) -> Any:
-    """The server's calculated values, then answer validation with them
-    (Required, rules, types, logic and jumps): one call, run off the event
-    loop by the caller. Returns the answers with the calculated values."""
-    from backend.app.services.answer_validation import check_answers
+    """The server's values (calculated fields, and what field rules set or
+    lock: services/field_rules.py), then answer validation with them
+    (Required with the rules applied, answer rules, types, logic and jumps):
+    one call, run off the event loop by the caller. Returns the answers with
+    the server's values; ``with_locked``: ``(answers, locked ids)``, the
+    questions whose value a rule set or locked (``only`` then includes
+    them: an edit reports what an active rule now decides).
 
-    answers = apply_calculated_fields(
-        form, answers, hidden_values, today=today, keep_empty=keep_empty
+    A replay over its evaluation budget (data no save accepted) refuses the
+    response, 422 ``field_rules_too_costly``: nothing goes unchecked."""
+    from backend.app.services.answer_validation import check_answers
+    from backend.app.services.field_rules import (
+        COSTLY_CODE,
+        FieldRulesTooCostly,
+        resolve_field_rules,
     )
-    check_answers(form, answers, form_id, known_ids=known_ids, only=only)
-    return answers
+
+    try:
+        answers, states = resolve_field_rules(
+            form, answers, hidden_values, today=today, keep_empty=keep_empty
+        )
+    except FieldRulesTooCostly:
+        logger.warning("Form {}: field rules over their evaluation budget", form_id)
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": COSTLY_CODE,
+                "message": "This form's rules are too costly to check; the "
+                "response was not stored.",
+            },
+        )
+    if with_locked and only is not None:
+        only = list(only) + sorted(states.locked)
+    check_answers(
+        form, answers, form_id, known_ids=known_ids, only=only, rule_states=states
+    )
+    return (answers, set(states.locked)) if with_locked else answers

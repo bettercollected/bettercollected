@@ -188,12 +188,15 @@ def validate_date_rule_answers(
     answers: Any,
     today: Optional[TodayRange] = None,
     changed: Optional[Iterable[str]] = None,
+    skip: Iterable[str] = (),
 ) -> List[str]:
     """Human-readable problems with the submitted date answers.
 
     ``changed`` (a response edit): only rules whose question, referenced
     question or repeating group is among these answer keys are checked, so
     an answer that was valid when submitted never blocks an unrelated edit.
+    ``skip``: page questions whose value a field rule set or locked: the
+    server's value, so their own date rules are not checked.
     """
     if form is None or not isinstance(answers, dict):
         return []
@@ -212,7 +215,10 @@ def validate_date_rule_answers(
     sources = logic_sources(form.fields)
     questions = _page_questions(form)
     top_level = {q.id: q for q in questions if q.id}
+    skipped = {str(key) for key in skip}
     for question in questions:
+        if str(question.id) in skipped:
+            continue
         if _rules(question) and relevant(question):
             problems.extend(_check_field(question, answers, top_level, today, sources))
 

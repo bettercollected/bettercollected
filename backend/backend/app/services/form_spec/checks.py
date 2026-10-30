@@ -20,6 +20,7 @@ from common.models.standard_form import date_rule_problems
 from pydantic import ValidationError
 
 from backend.app.services.calculated_fields import calculated_field_problems
+from backend.app.services.field_rules import field_rule_problems
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.publish_checks import (
@@ -372,6 +373,17 @@ def _check_calculations(form: Any, index: "_Index") -> List[Dict[str, str]]:
     return problems
 
 
+def _check_rules(form: Any, index: "_Index") -> List[Dict[str, str]]:
+    """Field rules, as a save checks them: the path points into the
+    field's rules (``/pages/0/fields/2/rules/0/when/conditions/1/fieldId``)."""
+    problems = []
+    for problem in field_rule_problems(form):
+        entry = index.questions.get(problem.field_id)
+        base = f"{entry[0]}/rules" if entry else ""
+        problems.append(_problem(f"{base}{problem.path}", problem.message))
+    return problems
+
+
 def check_spec_document(raw: Any) -> Dict[str, Any]:
     """Check a spec document; see the module docstring for the result."""
     result: Dict[str, Any] = {
@@ -402,6 +414,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors += _check_links_and_images(spec, index)
     errors += _check_hidden_fields(spec)
     errors += _check_calculations(form, index)
+    errors += _check_rules(form, index)
     result["errors"] = errors
     result["valid"] = not errors
     result["warnings"] = _warnings(spec, form, index)

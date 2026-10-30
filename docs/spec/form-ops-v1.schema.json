@@ -1554,6 +1554,30 @@
       "title": "FieldPosition",
       "type": "object"
     },
+    "FieldRule": {
+      "additionalProperties": false,
+      "description": "One rule of a field (``properties.rules``, in order): while ``when``\nholds, ``then`` applies. For each property the last active rule wins;\n``required`` starts from ``validations.required``. Rules never change\nvisibility (that is ``properties.logic``). The server replays them on\nevery submission and edit (backend ``services/field_rules.py``).",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/RuleTrigger"
+        },
+        "then": {
+          "$ref": "#/$defs/RuleEffect"
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "then"
+      ],
+      "title": "FieldRule",
+      "type": "object"
+    },
     "FieldType": {
       "enum": [
         "single",
@@ -2650,6 +2674,165 @@
       "type": "object",
       "x-editorOnly": true
     },
+    "RuleEffect": {
+      "additionalProperties": false,
+      "description": "What a rule does while it is active (at least one key): make the\nfield required or optional, read-only, set its value, or change its\ntitle or description (presentation only).",
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "readOnly": {
+          "anyOf": [
+            {
+              "const": true,
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readonly"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "setValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSetValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "RuleEffect",
+      "type": "object"
+    },
+    "RuleSetValue": {
+      "additionalProperties": false,
+      "description": "The value a rule sets: a fixed ``const`` (text, number, yes/no, a\ndate or a choice's option id) or an expressions-v1 ``expression``.",
+      "properties": {
+        "const": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Const"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        }
+      },
+      "title": "RuleSetValue",
+      "type": "object"
+    },
+    "RuleTrigger": {
+      "additionalProperties": false,
+      "description": "When a field rule is active: either ``conditions`` (folded with\n``operator``, AND when absent; the conditions of ``properties.logic``)\nor an expressions-v1 ``expression``, active when its value is truthy.",
+      "properties": {
+        "operator": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldLogicCondition"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        }
+      },
+      "title": "RuleTrigger",
+      "type": "object"
+    },
     "SetChoiceOp": {
       "properties": {
         "op": {
@@ -3615,6 +3798,22 @@
           ],
           "default": null,
           "title": "Unansweredaszero"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldRule"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rules"
         }
       },
       "title": "StandardFieldProperty",
@@ -4110,6 +4309,22 @@
           ],
           "default": null,
           "title": "Unansweredaszero"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldRule"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rules"
         }
       },
       "title": "StandardFieldPropertyCamelModel",

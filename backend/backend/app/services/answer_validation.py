@@ -19,6 +19,10 @@ submission and the respondent's edit of it). Shared cases with the webapp:
 - **Required:** a counted required question needs an answer with a value. A
   required matrix needs every row answered. In a repeating group, every
   displayed item (at least the group's minimum) is checked like the form does.
+  "Required" is the effective flag: field rules (``services/field_rules.py``)
+  may require a question or make it optional while they are active, per item
+  in a group. A question whose value a rule sets or locks is the server's:
+  neither Required nor the answer rules apply to it.
 - **Answer rules,** only on a counted question that has an answer: length and
   format (pattern) on short and long text, lowest/highest value and pattern on
   numbers, number of options on multiple choice with multiple selection.
@@ -67,6 +71,11 @@ from common.models.standard_form import default_ending, ending_by_id
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.field_rules import (
+    NO_RULES,
+    FieldRuleStates,
+    field_rule_states,
+)
 from backend.app.services.repeating_groups import (
     evaluate_conditions,
     group_items,
@@ -778,14 +787,18 @@ def _check_question(
     key: str,
     budget: PatternBudget,
     item: Optional[int] = None,
+    required: Optional[bool] = None,
 ) -> None:
+    """``required``: the effective flag (field rules applied); the static
+    one when None."""
     field_id = str(field.id)
+    required = _required(field) if required is None else required
     if _type(field) == MATRIX:
-        if _required(field) and _matrix_unanswered(field, scope):
+        if required and _matrix_unanswered(field, scope):
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
     if not has_answer_value(answer):
-        if _required(field):
+        if required:
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
     for rule in answer_rule_problems(field, answer, budget):
@@ -798,6 +811,7 @@ def _check_group(
     out: List[AnswerProblem],
     budget: PatternBudget,
     sources: Optional[Dict[str, Any]] = None,
+    states: FieldRuleStates = NO_RULES,
 ) -> None:
     """Required and answer rules per displayed item (limits and structure
     are ``repeating_groups.validate_group_answers``'s)."""
@@ -812,7 +826,16 @@ def _check_group(
             if is_hidden_by_logic(child, scope, sources):
                 continue
             _check_question(
-                child, item.get(str(child.id)), scope, out, str(group.id), budget, index
+                child,
+                item.get(str(child.id)),
+                scope,
+                out,
+                str(group.id),
+                budget,
+                index,
+                required=states.is_required(
+                    child, _required(child), str(group.id), index
+                ),
             )
 
 
@@ -860,15 +883,22 @@ def validate_answers(
     answers: Any,
     known_ids: Optional[Set[str]] = None,
     only: Optional[Iterable[str]] = None,
+    rule_states: Optional[FieldRuleStates] = None,
 ) -> List[AnswerProblem]:
     """Every problem with ``answers`` against ``form`` (the version the
     respondent filled). ``known_ids``: the ids answers may use, others are
     refused (None: not checked). ``only``: report only problems of these
-    answer keys (a respondent's edit checks what it changes)."""
+    answer keys (a respondent's edit checks what it changes).
+    ``rule_states``: what the form's field rules decided for these answers
+    (``field_rules.resolve_field_rules``); worked out from the answers as
+    they are when None."""
     slides = _slides(form)
     if slides is None:
         return []
     answers = _plain(answers)
+    states = (
+        rule_states if rule_states is not None else field_rule_states(form, answers)
+    )
     by_id: Dict[str, Any] = {}
     matrix_of: Dict[str, Any] = {}
     for slide in slides:
@@ -890,7 +920,11 @@ def validate_answers(
             if not _counts(field) or is_hidden_by_logic(field, answers, sources):
                 continue
             if is_repeating_group(field):
-                _check_group(field, answers, problems, budget, sources)
+                _check_group(field, answers, problems, budget, sources, states)
+            elif states.is_locked(field):
+                # the server's value (field rules): never required, and not
+                # the respondent's to correct
+                continue
             else:
                 _check_question(
                     field,
@@ -899,6 +933,7 @@ def validate_answers(
                     problems,
                     str(field.id),
                     budget,
+                    required=states.is_required(field, _required(field)),
                 )
     budget.log()
     if only is not None:
@@ -914,13 +949,16 @@ def check_answers(
     known_ids: Optional[Set[str]] = None,
     only: Optional[Iterable[str]] = None,
     enforce: Optional[bool] = None,
+    rule_states: Optional[FieldRuleStates] = None,
 ) -> None:
     """Validate and refuse (422) a response with problems, or only log them
     when ``RESPONSE_VALIDATION_ENFORCE`` is off. Logs carry the form id, the
     number of problems and their rule codes, never a value."""
     if form is None:
         return
-    problems = validate_answers(form, answers, known_ids=known_ids, only=only)
+    problems = validate_answers(
+        form, answers, known_ids=known_ids, only=only, rule_states=rule_states
+    )
     if not problems:
         return
     if enforce is None:

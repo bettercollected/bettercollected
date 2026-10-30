@@ -18,6 +18,7 @@ from backend.app.controllers.workspace_forms import _parse_form_body
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.services import answer_validation
+from backend.app.services.field_rules import resolve_field_rules
 from backend.app.services.answer_validation import (
     answer_ids,
     check_answers,
@@ -58,6 +59,26 @@ def _problems(pages, answers, **kwargs):
     return sorted((_key(p.as_json()) for p in found), key=str)
 
 
+def _replayed(pages, answers):
+    """What the server does on submit: the field rules' (and calculations')
+    values first, then validation with the rules' states."""
+    form = _form(pages)
+    resolved, states = resolve_field_rules(form, _answers(answers))
+    found = validate_answers(
+        form, resolved, known_ids=answer_ids(form), rule_states=states
+    )
+    problems = sorted((_key(p.as_json()) for p in found), key=str)
+    plain = {
+        key: (
+            value.model_dump(exclude_none=True)
+            if hasattr(value, "model_dump")
+            else value
+        )
+        for key, value in resolved.items()
+    }
+    return problems, plain
+
+
 # ---------------------------------------------------------------------------
 # Shared cases
 # ---------------------------------------------------------------------------
@@ -72,7 +93,21 @@ def test_the_shared_cases_are_uniquely_named():
 @pytest.mark.parametrize("case", CASES, ids=[case["name"] for case in CASES])
 def test_shared_case(case):
     expected = sorted((_key(e) for e in case["errors"]), key=str)
-    assert _problems(case["form"], case["answers"]) == expected
+    if "fieldRules" not in case["checks"]:
+        assert _problems(case["form"], case["answers"]) == expected
+        return
+    problems, stored = _replayed(case["form"], case["answers"])
+    assert problems == expected
+    for key, answer in (case.get("answersAfter") or {}).items():
+        assert stored.get(key) == answer, key
+
+
+def test_rule_cases_are_left_out_of_the_respondent_runner():
+    # the webapp runner takes 'required' and 'rules' cases only; the field
+    # rule cases wait for the respondent page's own evaluator
+    rule_cases = [c for c in CASES if "fieldRules" in c["checks"]]
+    assert len(rule_cases) >= 20
+    assert all(c["checks"] == ["fieldRules"] for c in rule_cases)
 
 
 # ---------------------------------------------------------------------------

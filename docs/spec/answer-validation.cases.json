@@ -1,5 +1,5 @@
 {
-  "description": "Submitted answers checked against their form: Required on the pages a respondent goes through (visibility rules and page jumps), answer rules and answer types. Run by backend/tests/app/services/test_answer_validation.py (every case) and webapp src/utils/answer-validation-cases.test.ts (the cases whose checks include 'required' or 'rules'). Checks 'server' are the server's alone: answer types and unknown ids (the respondent page builds its answers itself), and the cases in 'clientDiffers', which says why the browser differs on purpose. 'form' is the list of pages as the respondent page receives it; 'errors' lists every problem, in any order.",
+  "description": "Submitted answers checked against their form: Required on the pages a respondent goes through (visibility rules and page jumps), answer rules and answer types. Run by backend/tests/app/services/test_answer_validation.py (every case) and webapp src/utils/answer-validation-cases.test.ts (the cases whose checks include 'required' or 'rules'). Checks 'server' are the server's alone: answer types and unknown ids (the respondent page builds its answers itself), and the cases in 'clientDiffers', which says why the browser differs on purpose. 'form' is the list of pages as the respondent page receives it; 'errors' lists every problem, in any order. Checks 'fieldRules' are field rules (properties.rules): the server replays them before validating (the values they set or lock, then Required with the rules applied); 'answersAfter' lists answers as the server stores them after the replay (null: none stored). The respondent page does not evaluate rules yet, so its runner leaves these cases out.",
   "cases": [
     {
       "name": "required question unanswered",
@@ -6601,6 +6601,1657 @@
           "rule": "required"
         }
       ]
+    },
+    {
+      "name": "rule: required while its condition holds",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "postcode",
+                "type": "short_text",
+                "title": "postcode",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "nl"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "postcode",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "rule: not required while its condition fails",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "postcode",
+                "type": "short_text",
+                "title": "postcode",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "be"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: makes a required question optional",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "employed",
+                "type": "yes_no",
+                "title": "employed"
+              },
+              {
+                "id": "employer",
+                "type": "short_text",
+                "title": "employer",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "employed",
+                            "fieldType": "yes_no",
+                            "comparison": "IS_EQUAL",
+                            "value": "No"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": false
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "employed": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: the last active rule wins",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_NOT_EMPTY"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "skip"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": false
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "skip"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: an earlier active rule holds when a later one is not active",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_NOT_EMPTY"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "skip"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": false
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "go"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "b",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "rule: an expression trigger requires a question",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "reason",
+                "type": "short_text",
+                "title": "reason",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "var": "qty"
+                            },
+                            10
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 12
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "reason",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "rule: an OR of conditions",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b"
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "operator": "OR",
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          },
+                          {
+                            "fieldId": "b",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "no"
+        },
+        "b": {
+          "type": "text",
+          "text": "y"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "rule: a read-only question loses its submitted value and is not required",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "locked",
+                "type": "short_text",
+                "title": "locked",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "locked": {
+          "type": "text",
+          "text": "typed by the respondent"
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "locked": null
+      }
+    },
+    {
+      "name": "rule: a set value replaces the submitted one",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "total",
+                "type": "number",
+                "title": "total",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "qty"
+                              },
+                              5
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 2
+        },
+        "total": {
+          "type": "number",
+          "number": 999
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "total": {
+          "field": {
+            "id": "total"
+          },
+          "type": "number",
+          "number": 10
+        }
+      }
+    },
+    {
+      "name": "rule: an empty set value removes the submitted one",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "total",
+                "type": "number",
+                "title": "total",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "qty"
+                              },
+                              5
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "total": {
+          "type": "number",
+          "number": 999
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "total": null
+      }
+    },
+    {
+      "name": "rule: a set value is not held to the answer rules",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "total",
+                "type": "number",
+                "title": "total",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "qty"
+                              },
+                              100
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "validations": {
+                  "maxValue": 10
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "total": {
+          "field": {
+            "id": "total"
+          },
+          "type": "number",
+          "number": 300
+        }
+      }
+    },
+    {
+      "name": "rule: the respondent's answer stands while the set value's rule is not active",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "auto",
+                "type": "yes_no",
+                "title": "auto"
+              },
+              {
+                "id": "amount",
+                "type": "number",
+                "title": "amount",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "auto",
+                            "fieldType": "yes_no",
+                            "comparison": "IS_EQUAL",
+                            "value": "Yes"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 25
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "auto": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "amount": {
+          "type": "number",
+          "number": 7
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "amount": {
+          "type": "number",
+          "number": 7
+        }
+      }
+    },
+    {
+      "name": "rule: a set choice is one of its options",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "member",
+                "type": "yes_no",
+                "title": "member"
+              },
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "member",
+                            "fieldType": "yes_no",
+                            "comparison": "IS_EQUAL",
+                            "value": "Yes"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "nl"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "member": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "be"
+          }
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "country": {
+          "field": {
+            "id": "country"
+          },
+          "type": "choice",
+          "choice": {
+            "value": "nl"
+          }
+        }
+      }
+    },
+    {
+      "name": "rule: a trigger reads a calculated value",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "price",
+                "type": "number",
+                "title": "price"
+              },
+              {
+                "id": "sum",
+                "type": "calculated",
+                "title": "sum",
+                "properties": {
+                  "expression": {
+                    "*": [
+                      {
+                        "var": "qty"
+                      },
+                      {
+                        "var": "price"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "approval",
+                "type": "short_text",
+                "title": "approval",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "var": "sum"
+                            },
+                            100
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 3
+        },
+        "price": {
+          "type": "number",
+          "number": 40
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "approval",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "rule: a calculation reads a set value",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "fee",
+                "type": "calculated",
+                "title": "fee",
+                "properties": {
+                  "expression": {
+                    "+": [
+                      {
+                        "var": "base"
+                      },
+                      1
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "base",
+                "type": "number",
+                "title": "base",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "qty"
+                              },
+                              2
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 4
+        },
+        "base": {
+          "type": "number",
+          "number": 100
+        }
+      },
+      "errors": [],
+      "answersAfter": {
+        "base": {
+          "field": {
+            "id": "base"
+          },
+          "type": "number",
+          "number": 8
+        },
+        "fee": {
+          "field": {
+            "id": "fee"
+          },
+          "type": "number",
+          "number": 9
+        }
+      }
+    },
+    {
+      "name": "rule: a condition reads a set value",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "big",
+                "type": "yes_no",
+                "title": "big",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            ">": [
+                              {
+                                "var": "qty"
+                              },
+                              10
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "why",
+                "type": "short_text",
+                "title": "why",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1b",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "big",
+                            "fieldType": "yes_no",
+                            "comparison": "IS_EQUAL",
+                            "value": "Yes"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "qty": {
+          "type": "number",
+          "number": 20
+        },
+        "big": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "why",
+          "rule": "required"
+        }
+      ],
+      "answersAfter": {
+        "big": {
+          "field": {
+            "id": "big"
+          },
+          "type": "boolean",
+          "boolean": true
+        }
+      }
+    },
+    {
+      "name": "rule: inside a repeating group a rule reads its own item",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3
+                  },
+                  "fields": [
+                    {
+                      "id": "role",
+                      "type": "short_text",
+                      "title": "role"
+                    },
+                    {
+                      "id": "detail",
+                      "type": "short_text",
+                      "title": "detail",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "conditions": [
+                                {
+                                  "fieldId": "role",
+                                  "fieldType": "short_text",
+                                  "comparison": "IS_EQUAL",
+                                  "value": "other"
+                                }
+                              ]
+                            },
+                            "then": {
+                              "required": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "role": {
+                "type": "text",
+                "text": "other"
+              }
+            },
+            {
+              "role": {
+                "type": "text",
+                "text": "staff"
+              }
+            },
+            {
+              "role": {
+                "type": "text",
+                "text": "other"
+              },
+              "detail": {
+                "type": "text",
+                "text": "x"
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "detail",
+          "rule": "required",
+          "item": 0
+        }
+      ]
+    },
+    {
+      "name": "rule: inside a repeating group a rule makes a required question optional",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "simple",
+                "type": "yes_no",
+                "title": "simple"
+              },
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3
+                  },
+                  "fields": [
+                    {
+                      "id": "name",
+                      "type": "short_text",
+                      "title": "name",
+                      "validations": {
+                        "required": true
+                      },
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "conditions": [
+                                {
+                                  "fieldId": "simple",
+                                  "fieldType": "yes_no",
+                                  "comparison": "IS_EQUAL",
+                                  "value": "Yes"
+                                }
+                              ]
+                            },
+                            "then": {
+                              "required": false
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "simple": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "g": {
+          "type": "group",
+          "items": [
+            {}
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: inside a repeating group an expression reads a sibling",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 0,
+                    "maxItems": 3
+                  },
+                  "fields": [
+                    {
+                      "id": "hours",
+                      "type": "number",
+                      "title": "hours"
+                    },
+                    {
+                      "id": "why",
+                      "type": "short_text",
+                      "title": "why",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "expression": {
+                                ">": [
+                                  {
+                                    "var": "hours"
+                                  },
+                                  40
+                                ]
+                              }
+                            },
+                            "then": {
+                              "required": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "hours": {
+                "type": "number",
+                "number": 50
+              }
+            },
+            {
+              "hours": {
+                "type": "number",
+                "number": 10
+              }
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "why",
+          "rule": "required",
+          "item": 0
+        }
+      ]
+    },
+    {
+      "name": "rule: a question hidden by logic is never required by a rule",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "a",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "show"
+                      }
+                    ]
+                  },
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "no"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: a question on a skipped page is never required by a rule",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              }
+            ],
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "a",
+                    "fieldType": "short_text",
+                    "comparison": "IS_EQUAL",
+                    "value": "skip"
+                  }
+                ],
+                "target": "p3"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "skip"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "rule: a rule that reads a question the form does not have is not active",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "gone",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EMPTY"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "rule: an expression reading an unknown variable is not active",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "gone"
+                            },
+                            null
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "rule: title and description change nothing that is checked",
+      "checks": [
+        "fieldRules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": true
+                      },
+                      "then": {
+                        "title": "Other title",
+                        "description": "More text"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
     }
   ]
 }

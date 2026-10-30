@@ -510,6 +510,11 @@ export interface components {
             whyWeAsk?: string | null;
             logic?: components["schemas"]["Logic"] | null;
             /**
+             * Rules
+             * @description At most 8 rules per question and 100 per form (see Rule).
+             */
+            rules?: components["schemas"]["Rule"][] | null;
+            /**
              * Expression
              * @description A calculated field's formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {"+": [{"var": "<field id>"}, 1]}. Variables are question ids, '<group id>.<question id>' for a repeating group's question, and hidden-field names.
              */
@@ -823,6 +828,81 @@ export interface components {
             type: "days" | "date" | "forever";
             /** Value */
             value?: number | string | null;
+        };
+        /**
+         * Rule
+         * @description A field rule: while ``when`` holds, ``then`` applies. A field's rules
+         *     apply in order; for each property the last active rule wins
+         *     (``required`` starts from ``validations.required``). Rules never show or
+         *     hide a question (that is ``logic``).
+         */
+        Rule: {
+            /**
+             * Id
+             * @description Unique within the form.
+             */
+            id: string;
+            when: components["schemas"]["RuleWhen"];
+            then: components["schemas"]["RuleThen"];
+        };
+        /**
+         * RuleSetValue
+         * @description The value a rule gives the question: a fixed ``const`` (a text, a
+         *     number, true/false for yes/no, a YYYY-MM-DD date, or the ``id`` of one of
+         *     a choice question's options) or an ``expression``, never both.
+         */
+        RuleSetValue: {
+            /**
+             * Const
+             * @description A choice question is set by the id of one of its options.
+             */
+            const?: boolean | number | string | null;
+            /** Expression */
+            expression?: unknown | null;
+        };
+        /**
+         * RuleThen
+         * @description What a rule does while it is active (at least one key). The server
+         *     enforces ``required``, ``readOnly`` and ``setValue``; ``title`` and
+         *     ``description`` only change what respondents read.
+         */
+        RuleThen: {
+            /**
+             * Required
+             * @description true: the question must be answered; false: it is optional.
+             */
+            required?: boolean | null;
+            /**
+             * Readonly
+             * @description Respondents cannot change the value: a submitted value is discarded (replaced by an active setValue, else removed).
+             */
+            readOnly?: true | null;
+            /**
+             * Title
+             * @description Plain text; may pipe answers ({{field:<id>}}).
+             */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** @description The server computes the value and stores it, whatever a client sent; an empty result leaves the question unanswered. Implies readOnly. */
+            setValue?: components["schemas"]["RuleSetValue"] | null;
+        };
+        /**
+         * RuleWhen
+         * @description When a rule is active: ``conditions`` (as in ``logic``; operator AND
+         *     when absent) or an expressions-v1 ``expression`` (active when its value
+         *     is truthy), never both.
+         */
+        RuleWhen: {
+            /** Operator */
+            operator?: ("AND" | "OR") | null;
+            /** Conditions */
+            conditions?: components["schemas"]["Condition"][] | null;
+            /**
+             * Expression
+             * @description An expressions-v1 syntax tree (docs/spec/expressions-v1.md) over the form's variables; inside a repeating group a sibling question's id reads that item's answer.
+             */
+            expression?: unknown | null;
         };
         /**
          * Theme

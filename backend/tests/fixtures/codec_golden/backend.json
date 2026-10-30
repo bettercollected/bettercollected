@@ -2983,7 +2983,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:bb8d40e781b5d8fb2c62c9f334004444c4066ebd1432d19569ff4738c948eb51",
+  "checksum": "sha256:2485c4d5548a132af20b986ce777fefe666063e658a7abc308a5d21f2e7f989e",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3041,6 +3041,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -3112,6 +3113,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -3255,7 +3257,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:79bc6453aa58bd4cd6349a2d2df71c189b17e8769d06e3ff1d691249c07c00d6",
+  "checksum": "sha256:da3b00fad821e8579dbe1fc626c836f3abb8213bd32ca0b6c88c31ed210e541c",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3313,6 +3315,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -3384,6 +3387,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -3522,7 +3526,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:ff40731e4918039a7f667ed9323174215e03d0df313e314f09d39235a90431cc",
+  "checksum": "sha256:486b6795419d33c05a86a553065b4b3e5b70c3d954d5a73880444b504691b03b",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3616,6 +3620,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -3687,6 +3692,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -4057,7 +4063,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:6ad2d4b697389b4639147544fa58e267928bdcdb87e0f44bf8f2939f9f8d72a3",
+  "checksum": "sha256:cf86bc96ff0d24774ba14c669b9b9ea2cba4e34349f3172cba97cdbfa074ff25",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4151,6 +4157,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -4222,6 +4229,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -4573,7 +4581,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:77cfad6a89350a9e10b7a8e65901304b3e1b0ae1e5b0559c5e98b5d22e878aee",
+  "checksum": "sha256:ef9d458e7fff4793ce77b4f22122a47ff1a21054ec304ed43179f2bb8d930b41",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4667,6 +4675,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -4738,6 +4747,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -5106,7 +5116,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:7f1a87b772ee55a5264abca761dd2838a3b5fdae1a270acd6991c31a4a866035",
+  "checksum": "sha256:7f2e8a9421e39313ca08109e10685b50daac038ccac6663069f05f2adaa2ae9e",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5200,6 +5210,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
@@ -5271,6 +5282,7 @@
       "ratingShape": null,
       "repeat": null,
       "rowTitles": null,
+      "rules": null,
       "sectionTitle": null,
       "showQuestionNumbers": null,
       "startFrom": null,
