@@ -86,7 +86,12 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   `account_for_provider_sign_in`, matching emails case-insensitively (like every lookup), `email_verified`
   true, and never the platform-admin role (`roles_for(..., verified=False)`).
 - **Routes** (`controllers/auth_router.py`):
-  - `GET /otp/send`, `GET /otp/validate` — email OTP login.
+  - `GET /otp/send`, `GET /otp/validate` — email OTP login. The code is never stored: `otp_code` holds
+    `otp1$<wrong tries>$<HMAC>` (`services/signin_code.py`; key derived from `AUTH_AES_HEX_KEY`, bound to
+    email, purpose and expiry, `compare_digest`). `validate_otp` runs under the account's row lock
+    (`UserRepository.change_otp_locked`): expired codes are cleared before any comparison, anything not in
+    that format is refused, a match consumes the code, 5 wrong tries clear it. Listings (`GET /users`)
+    blank the `otp_*` fields; the access log drops query strings (`auth/__main__.py`).
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.
   - `GET /callback` — JWT exchange. `GET /status` — session/user status.
 - **Stripe billing** (`controllers/stripe_router.py`, logic in `services/stripe_service.py`):

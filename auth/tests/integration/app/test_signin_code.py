@@ -100,7 +100,9 @@ class TestHelper:
     def test_a_purpose_enum_and_its_value_hash_alike(self):
         assert signin_code.digest(
             CODE, "a@example.com", Roles.FORM_CREATOR, 99, secret=SECRET
-        ) == signin_code.digest(CODE, "a@example.com", "FORM_CREATOR", 99, secret=SECRET)
+        ) == signin_code.digest(
+            CODE, "a@example.com", "FORM_CREATOR", 99, secret=SECRET
+        )
 
     def test_the_comparison_is_constant_time(self):
         expected = signin_code.parse(
@@ -111,7 +113,9 @@ class TestHelper:
         with patch.object(
             signin_code.hmac, "compare_digest", wraps=hmac.compare_digest
         ) as compare:
-            assert signin_code.matches(expected, CODE, "a@example.com", "X", 99, secret=SECRET)
+            assert signin_code.matches(
+                expected, CODE, "a@example.com", "X", 99, secret=SECRET
+            )
             assert not signin_code.matches(
                 expected, "WRONG-1", "a@example.com", "X", 99, secret=SECRET
             )
@@ -119,8 +123,17 @@ class TestHelper:
 
     @pytest.mark.parametrize(
         "value",
-        [None, "", CODE, "482913", "otp1$0$" + "z" * 64, "otp1$0$" + "a" * 63,
-         "otp2$0$" + "a" * 64, "otp1$x$" + "a" * 64, " otp1$0$" + "a" * 64],
+        [
+            None,
+            "",
+            CODE,
+            "482913",
+            "otp1$0$" + "z" * 64,
+            "otp1$0$" + "a" * 63,
+            "otp2$0$" + "a" * 64,
+            "otp1$x$" + "a" * 64,
+            " otp1$0$" + "a" * 64,
+        ],
     )
     def test_anything_but_the_hash_format_is_not_a_code(self, value):
         assert signin_code.parse(value) is None
@@ -237,7 +250,9 @@ async def test_a_hash_moved_to_another_account_never_matches(repo, pending):
 async def test_a_code_asked_as_respondent_does_not_sign_in_as_creator(repo, pending):
     stored = await repo.get_user_by_email(pending)
     # the purpose changed in storage: the hash was made for the other one
-    await repo.set_user_otp(stored.id, stored.otp_code, stored.otp_expiry, "FORM_RESPONDER")
+    await repo.set_user_otp(
+        stored.id, stored.otp_code, stored.otp_expiry, "FORM_RESPONDER"
+    )
     assert await service(repo).validate_otp(pending, CODE) is None
 
 
@@ -300,9 +315,13 @@ def test_the_code_is_refused_over_http_after_use(app_runner, no_mail):
     listed = app_runner.get("users", params={"emails": [email]}).json()["users_info"]
     assert listed[0]["otp_code"] is None and CODE not in str(listed)
 
-    first = app_runner.get("auth/otp/validate", params={"email": email, "otp_code": CODE})
+    first = app_runner.get(
+        "auth/otp/validate", params={"email": email, "otp_code": CODE}
+    )
     assert first.status_code == 200 and first.json()["user"]["sub"] == email
-    again = app_runner.get("auth/otp/validate", params={"email": email, "otp_code": CODE})
+    again = app_runner.get(
+        "auth/otp/validate", params={"email": email, "otp_code": CODE}
+    )
     assert again.status_code == 200 and again.json()["user"] is None
 
 
