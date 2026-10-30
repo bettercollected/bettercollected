@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from typing import Tuple
 
@@ -50,12 +49,9 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
     async def get_basic_integration_oauth_url(
         self, client_referer_url: str, *args, **kwargs
     ) -> str:
-        # Bound to the user who starts the flow; checked on the callback.
-        state = {
-            "client_referer_uri": client_referer_url,
-            "user_id": kwargs.get("user_id"),
-        }
-        state = self.crypto.encrypt(json.dumps(state))
+        # Minted by IntegrationService (services/integration_oauth_state.py):
+        # bound to the session that starts the flow, checked on the callback.
+        state = kwargs["state"]
         if backend_runs_sheets_oauth():
             return self.sheets_oauth.authorization_url(state)
         provider_url = await self.form_provider_service.get_provider_url(

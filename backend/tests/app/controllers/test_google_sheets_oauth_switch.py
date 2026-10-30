@@ -4,6 +4,7 @@ runs it with the sign-in client and never calls that service. Google itself
 is faked (tests/app/sheets_helpers.py)."""
 
 import json
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -16,8 +17,13 @@ from backend.app.models.enum.form_integration import (
     FormActionType,
     FormIntegrationType,
 )
-from backend.app.services.google_sheets_oauth import DRIVE_FILE_SCOPE
+from backend.app.services.google_sheets_oauth import (
+    DRIVE_FILE_SCOPE,
+    STATE_MAX_AGE_SECONDS,
+)
+from backend.app.services.session_service import user_from_access_token
 from backend.config import settings
+from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1
 from tests.app.sheets_helpers import (
     AUTH_URI,
@@ -25,6 +31,8 @@ from tests.app.sheets_helpers import (
     SPREADSHEET_ID,
     backend_sheets_oauth,  # noqa: F401 (fixture)
     credential_dict,
+    oauth_state,
+    session_oauth_state,
     fake_google,  # noqa: F401 (fixture)
     sheets_client,  # noqa: F401 (fixture)
 )
@@ -72,18 +80,12 @@ def google_service():
         p.stop()
 
 
-def _state_for(user) -> str:
-    return container.crypto().encrypt(
-        json.dumps({"client_referer_uri": None, "user_id": user.id})
-    )
-
-
-async def _connect(client, cookies, form_id, action_id, user=testUser):
+async def _connect(client, cookies, form_id, action_id, user=None):
     return await client.post(
         f"{OAUTH_URL}/callback",
         cookies=cookies,
         json={
-            "state": _state_for(user),
+            "state": session_oauth_state(cookies) if user is None else oauth_state(user),
             "code": "the-code",
             "form_id": form_id,
             "action_id": action_id,
@@ -338,3 +340,192 @@ class TestCallerSuppliedSecrets:
             },
         )
         assert response.status_code == 200, response.text
+
+
+@pytest.fixture(params=["google_service", "backend"])
+def mode(request, monkeypatch, sheets_client, google_service, fake_google):  # noqa: F811
+    """Both ways the flow runs; the state is checked the same in each."""
+    monkeypatch.setattr(sheets_client, "SHEETS_OAUTH", request.param)
+    return request.param
+
+
+async def _started_state(client, cookies, mode, google_service) -> str:
+    """The state ``GET .../oauth`` handed to this session."""
+    response = await client.get(OAUTH_URL, cookies=cookies)
+    assert response.status_code == 200, response.text
+    if mode == "backend":
+        return parse_qs(urlparse(response.json()).query)["state"][0]
+    return google_service.get.call_args.kwargs["params"]["state"]
+
+
+async def _callback(client, cookies, state, form_id, action_id):
+    return await client.post(
+        f"{OAUTH_URL}/callback",
+        cookies=cookies,
+        json={
+            "state": state,
+            "code": "the-code",
+            "form_id": form_id,
+            "action_id": action_id,
+        },
+    )
+
+
+def _exchanges(mode, google_service, fake_google) -> int:
+    """How many codes went on to be exchanged."""
+    if mode == "backend":
+        return len(fake_google.token_requests())
+    return google_service.post.await_count
+
+
+class TestStateBinding:
+    """The state is bound to the session that started the connection, expires,
+    and is accepted once."""
+
+    async def test_the_started_connection_completes(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        state = await _started_state(client, test_user_cookies, mode, google_service)
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 200, response.text
+        assert _exchanges(mode, google_service, fake_google) == 1
+        assert (await _form(workspace_form.form_id)).secrets[str(sheets_action.id)]
+
+    async def test_a_state_started_in_another_session_is_refused(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        # a state handed out to another session, completed in this one
+        other_session = access_token(testUser)
+        state = await _started_state(
+            client,
+            {"Authorization": other_session, "RefreshToken": other_session},
+            mode,
+            google_service,
+        )
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 403
+        assert _exchanges(mode, google_service, fake_google) == 0
+        assert not (await _form(workspace_form.form_id)).secrets
+
+    async def test_another_users_state_with_this_sessions_code_is_refused(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        test_user_cookies_1,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        state = await _started_state(client, test_user_cookies_1, mode, google_service)
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 403
+        assert _exchanges(mode, google_service, fake_google) == 0
+        assert not (await _form(workspace_form.form_id)).secrets
+
+    async def test_a_state_is_accepted_once(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        state = await _started_state(client, test_user_cookies, mode, google_service)
+        first = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+        assert first.status_code == 200, first.text
+        stored = (await _form(workspace_form.form_id)).secrets
+
+        again = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert again.status_code == 400
+        assert _exchanges(mode, google_service, fake_google) == 1
+        assert (await _form(workspace_form.form_id)).secrets == stored
+
+    async def test_an_expired_state_is_refused(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        state = await _started_state(client, test_user_cookies, mode, google_service)
+        content = container.crypto().decrypt(state).encode()
+        expired = (
+            container.crypto()
+            .encrypt_at_time(content, int(time.time()) - STATE_MAX_AGE_SECONDS - 60)
+            .decode()
+        )
+
+        response = await _callback(
+            client, test_user_cookies, expired, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 400
+        assert _exchanges(mode, google_service, fake_google) == 0
+        assert not (await _form(workspace_form.form_id)).secrets
+
+    async def test_a_state_without_a_nonce_is_refused(
+        self,
+        client: AsyncClient,
+        workspace,
+        workspace_form,
+        sheets_action,
+        test_user_cookies,
+        google_service,
+        fake_google,  # noqa: F811
+        mode,
+    ):
+        # the shape handed out before states were bound to a session
+        user = user_from_access_token(test_user_cookies["Authorization"])
+        state = container.crypto().encrypt(
+            json.dumps({"client_referer_uri": None, "user_id": user.id})
+        )
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 400
+        assert _exchanges(mode, google_service, fake_google) == 0
