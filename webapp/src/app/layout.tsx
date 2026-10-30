@@ -66,13 +66,18 @@ export const viewport: Viewport = {
 // would freeze them into the image again.
 export const dynamic = 'force-dynamic';
 
+// The product's public description (search results, link previews). Every page
+// that sets no description of its own inherits it, respondent pages on custom
+// domains included.
+const SITE_DESCRIPTION = 'Open-source, privacy-first form and data collection platform. Purpose, consent and data rights built in; self-hostable, with a REST API, MCP server and SDKs.';
+
 export const metadata: Metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://bettercollected.com'),
     title: {
         default: 'BetterCollected',
         template: '%s | BetterCollected'
     },
-    description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+    description: SITE_DESCRIPTION,
     keywords: ['Form Builder', 'Survey', 'Data Collection', 'BetterCollected'],
     authors: [{ name: 'BetterCollected Team' }],
     creator: 'BetterCollected',
@@ -82,7 +87,7 @@ export const metadata: Metadata = {
         locale: 'en_US',
         url: 'https://bettercollected.com',
         title: 'BetterCollected',
-        description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+        description: SITE_DESCRIPTION,
         siteName: 'BetterCollected',
         images: [
             {
@@ -96,7 +101,7 @@ export const metadata: Metadata = {
     twitter: {
         card: 'summary_large_image',
         title: 'BetterCollected',
-        description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+        description: SITE_DESCRIPTION,
         images: ['/images/image.png'],
         creator: '@bettercollected'
     },

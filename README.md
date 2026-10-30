@@ -1,9 +1,9 @@
 <p align="center">
-<img width="300" src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/bettercollected_logo.png">
+<img width="300" alt="bettercollected" src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/bettercollected_logo.png">
 </p>
 
 <p align="center">
-<b>Privacy-Friendly Form Builder For Conscious Companies</b>
+<b>Open-source, privacy-first form and data collection platform</b>
 </p>
 
 <p align="center">
@@ -14,28 +14,77 @@
 
 ---
 
-## What is bettercollected? [🔗](https://bettercollected.com)
+## What is bettercollected?
 
-**bettercollected** is an open-source, privacy-friendly form builder. It lets
-you show responders that you care about their data: creators declare the
-**purpose** of the data they collect, responders **consent** before submitting,
-and they can later **view their submission and request its deletion** (a
-GDPR-style flow baked into the product).
+**bettercollected** is an open-source ([Apache 2.0](LICENSE)), privacy-first
+platform for building forms and collecting data. Privacy is built into the
+form flow: the creator declares the **purpose** of the data they collect, respondents
+**consent** before they submit, and they can later **view their submission and
+request its deletion**.
 
-It provides a **workspace** to host all your forms in one place — forms built
-with the native drag-and-drop builder, or **imported from Google Forms**.
-
-More at [bettercollected.com](https://bettercollected.com).
+Run it on your own infrastructure (the whole stack, analytics included) or use
+the hosted version at [bettercollected.com](https://bettercollected.com). Forms
+are also available as code: a **REST API**, an **MCP server** for AI clients, and
+**Python and TypeScript SDKs** work on the same forms as the builder.
 
 ## Features
 
-- 🧩 Drag-and-drop form builder with a rich set of field types
-- 🔐 Consent + purpose declaration, response viewing, and deletion requests
-- 🔗 Import forms and responses from **Google Forms**
-- 🏢 Multi-tenant **workspaces** with members and custom domains
-- 📊 Form analytics powered by **self-hosted [Umami](https://umami.is)** — no
-  responder data leaves your infrastructure — plus CSV export
-- 🤖 AI-assisted form generation
+**Build and collect**
+
+- Drag-and-drop form builder with a rich set of field types, show/hide rules,
+  page jumps and multiple endings
+- Import forms and their responses from **Google Forms**. Access to Google
+  Forms is read-only: forms and responses are imported, nothing is written back
+  to Google Forms. The operator can set the
+  import to `readonly` (imported data stays, no new imports) or `off`
+  ([docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md))
+
+**Privacy and data rights**
+
+- Forms declare the purpose of the data they collect and ask respondents for
+  consent, with an optional retention period after which answers are deleted
+- Respondents can view what they submitted and request its deletion; staff
+  close a request as deleted, or as declined with a stated reason
+
+**Responses**
+
+- Each response opens on its own full page that looks like the form
+- Search responses by respondent email
+- CSV export
+- Form analytics with self-hosted **[Umami](https://umami.is)**: no third-party
+  analytics service sees respondent data
+
+**Teams**
+
+- Workspaces with members and roles (Owner, Admin, Editor, Reviewer, Viewer,
+  Privacy officer)
+- Custom domains for a workspace's forms, once the operator connects the
+  custom-domain service ([docs/custom-domain.md](docs/custom-domain.md))
+- Single sign-on (SAML and OpenID Connect) and SCIM directory sync, for
+  instances that enable it ([docs/sso.md](docs/sso.md))
+
+**For developers**
+
+- **REST API** for forms as code: create, edit, validate and publish forms, read
+  responses ([docs/api/README.md](docs/api/README.md), with an OpenAPI document)
+- **MCP server** at `/api/v1/mcp` on the backend, so AI clients can work with
+  forms through the same operations as the API
+  ([docs/api/README.md](docs/api/README.md), [docs/spec/README.md](docs/spec/README.md))
+- **SDKs:** [Python](sdk/python) (with the `bettercollected` command line tool)
+  and [TypeScript](sdk/typescript)
+- **Workspace API keys** with scopes, created by a workspace admin. A key never
+  does more than its creator may do at that moment, and every call is recorded
+  in the workspace's API audit log
+- **Form spec v1:** a form as a JSON document, changed by edit operations with
+  a JSON Schema ([docs/spec/README.md](docs/spec/README.md))
+
+**AI form assistant (available to enable)**
+
+- Off by default. It needs an AI provider configured on the instance (OpenAI,
+  Google Gemini, or an OpenAI-compatible endpoint such as a self-hosted model),
+  and a workspace admin has to turn it on for the workspace. Until then the
+  server refuses every AI request for that workspace and sends no form content,
+  prompts or responses to any provider.
 
 ## Try it
 
@@ -45,19 +94,23 @@ More at [bettercollected.com](https://bettercollected.com).
 
 ## Architecture
 
-bettercollected is a polyglot microservices monorepo:
+bettercollected is a monorepo of a few services:
 
 | Service | Stack | Role |
 |---|---|---|
-| [`webapp/`](webapp) | Next.js + TypeScript | Frontend (builder, dashboards, responder portal) |
-| [`backend/`](backend) | FastAPI + PostgreSQL | Core API |
-| [`auth/`](auth) | FastAPI + Stripe | Identity (OAuth / OTP / JWT) + billing |
-| [`integrations/`](integrations) | FastAPI + Google APIs | Form-provider integration (Google Forms) |
-| [`temporal/`](temporal) | Temporal workers | Background jobs (imports, deletion, CSV, previews) |
+| [`webapp/`](webapp) | Next.js + TypeScript | Frontend (builder, dashboards, respondent pages) |
+| [`backend/`](backend) | FastAPI + PostgreSQL | Core API, public REST API and MCP server; the same image runs the jobs worker (background jobs on the Postgres job queue), the internal admin portal and the document sandbox |
+| [`auth/`](auth) | FastAPI + PostgreSQL + Stripe | Identity (OAuth / OTP / JWT) + billing |
+| [`integrations/google/`](integrations/google) | FastAPI + Google APIs | Google Forms import |
+| [`temporal/actions-executor/`](temporal/actions-executor) | Python | Optional runner for form actions, fed by the Postgres job queue (the directory keeps its old name) |
 | [`common/`](common) | Shared Python package | Models, enums, crypto, JWT |
+| [`sdk/`](sdk) | Python + TypeScript | Clients for the public API, and the CLI |
 
-Infra: MongoDB, Redis, PostgreSQL + Temporal, nginx, and Umami (self-hosted
-analytics, with its own PostgreSQL). A deep dive lives in
+Infra: PostgreSQL (one database, one schema and role per service), nginx,
+S3-compatible object storage for uploads, and Umami (self-hosted analytics, with
+its own PostgreSQL). Since 4.1 MongoDB is no longer a store: it starts only
+under the `legacy-mongo` compose profile, to import a 4.0 stack's data once on
+upgrade. Temporal is not part of the stack since 4.1. A deep dive lives in
 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## Quick start (local development)
@@ -66,30 +119,64 @@ analytics, with its own PostgreSQL). A deep dive lives in
 [`.nvmrc`](.nvmrc)), Yarn 1.x, and Docker.
 
 ```bash
-# 1. Start infra (MongoDB + seed data, nginx, Mailpit email inbox)
+# 1. Start infra: PostgreSQL, nginx, Mailpit (email inbox), S3-compatible
+#    storage (RustFS) and Umami. The first run also builds the document
+#    sandbox image (PDF import), which takes a while.
 docker compose -f docker-compose.local.yml up --build -d
 
-# 2. Copy and fill env files (see the developers guide for required secrets)
+# 2. Copy the env files, then fill them in (see below)
 cp backend/.env.example backend/.env
 cp auth/.env.example auth/.env
 cp webapp/.env.example webapp/.env
-# the .env.example files set DEBUG=true (HTML tracebacks); the code default is off
 
-# 3. Install & run
+# 3. Install & run, each in its own terminal
 (cd backend && uv sync && uv run python -m uvicorn backend.app:get_application --port 8000 --reload)
 (cd auth && uv sync && uv run python -m uvicorn auth.app:get_application --port 8001)
 (cd webapp && yarn install && yarn dev)   # http://localhost:3000
+
+# 4. Once the backend has started: seed the allowed origins and the
+#    Google Forms provider into Postgres (each table only while it is empty)
+(cd backend && uv run python -m backend.seed_refdata \
+  --origin http://localhost:3000 --origin http://localhost:3001 --origin http://localhost:3002 \
+  --origin http://localhost:4000 --origin http://localhost:4001 \
+  --google-enabled true --google-url http://localhost:8003/api/v1)
 ```
 
-The full walkthrough — env vars, shared secrets, provider OAuth, Temporal, and
-common gotchas — is in **[docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md)**.
-Integration setup (the Google app) is in
-[docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
+In the env files:
+
+- `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `AUTH_INTERNAL_NOTIFY_KEY` must be
+  the same in `backend` and `auth` (and the Google Forms integration, if you run
+  it). `backend` also needs `MASTER_ENCRYPTION_KEYSET` and
+  `RESPONDENT_IDENTITY_KEY` (`openssl rand -hex 32`). The guide below shows how
+  to generate them. The services refuse to start when `AUTH_JWT_SECRET` or
+  `AUTH_AES_HEX_KEY` is empty or a value that was ever published in this
+  repository, and sign-in fails while `AUTH_INTERNAL_NOTIFY_KEY` is unset.
+- Leave `MONGO_URI` empty: a fresh install has no MongoDB data, and a set but
+  unreachable `MONGO_URI` stops the start. (The local compose file still starts
+  a MongoDB container; nothing uses it then.)
+- Set `DB_AUTO_MIGRATE=true` in `backend/.env` and `auth/.env` so each service
+  migrates its Postgres schema when it starts. Without it a service refuses to
+  start while its schema is behind.
+- Point `auth` at Mailpit: `MAIL_SMTP_SERVER=localhost`, `MAIL_SMTP_PORT=1026`,
+  `MAIL_STARTTLS=false`, `MAIL_SSL_TLS=false`, `MAIL_USE_CREDENTIALS=false`,
+  `MAIL_VALIDATE_CERTS=false` and a plain `MAIL_SENDER` address (the example
+  points at Gmail; see "Email (Mailpit)" in the guide).
+- The `.env.example` files set `DEBUG=true` (HTML tracebacks); the code default
+  is off.
+
+Sign-in uses an emailed code: read it in the Mailpit inbox at
+http://localhost:8026. Background jobs (account and response deletion,
+imports, scheduled checks) run in the jobs worker: `cd backend && uv run python -m backend.jobs.worker`.
+
+The full walkthrough (generating the shared secrets, env vars, the Google Forms
+integration and common gotchas) is in
+**[docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md)**. Integration setup (the
+Google app) is in [docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
 
 ## Self-hosting
 
 The entire stack — including analytics — runs on your own machine, so no
-third-party service ever sees responder data:
+third-party analytics service sees respondent data:
 
 ```bash
 ./deploy.sh                # everything except form-provider integrations
