@@ -30,6 +30,7 @@ from backend.db.startup import (
 from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
+from backend.app.middlewares.received_at import ReceivedAtMiddleware
 from backend.app.public_api.app import PUBLIC_API_PATH, build_public_api_asgi
 from backend.app.router import root_api_router
 from backend.app.services.internal_auth import log_if_internal_key_missing
@@ -233,6 +234,8 @@ def get_application(is_test_mode: bool = False):
 
     logger.info("Register application middlewares.")
     include_middlewares(app)
+    # a submission's arrival time, for the close-date gate (submit route only)
+    app.add_middleware(ReceivedAtMiddleware)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:

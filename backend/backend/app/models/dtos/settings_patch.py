@@ -5,6 +5,7 @@ from fastapi_camelcase import CamelModel
 from pydantic import field_validator, model_validator
 
 from backend.app.models.workspace import normalize_feedback_statuses
+from backend.app.services.form_availability import normalized_close_date
 from backend.app.services.policy_url import checked_policy_url
 from backend.app.services.retention import checked_retention
 from common.models.consent import ResponseRetentionType
@@ -17,7 +18,9 @@ class SettingsPatchDto(CamelModel):
     response_data_owner_field: Optional[str] = None
     disable_branding: Optional[bool] = None
     hidden: Optional[bool] = False
-    form_close_date: Optional[datetime.datetime | str] = None
+    # None leaves it, "" removes it, else an ISO 8601 instant stored in UTC
+    # (no offset = UTC): services/form_availability.py reads it.
+    form_close_date: Optional[str] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
@@ -37,6 +40,11 @@ class SettingsPatchDto(CamelModel):
     @classmethod
     def _valid_statuses(cls, statuses: Optional[List[str]]) -> Optional[List[str]]:
         return None if statuses is None else normalize_feedback_statuses(statuses)
+
+    @field_validator("form_close_date", mode="before")
+    @classmethod
+    def _valid_close_date(cls, value):
+        return normalized_close_date(value)
 
     @field_validator("privacy_policy_url")
     @classmethod

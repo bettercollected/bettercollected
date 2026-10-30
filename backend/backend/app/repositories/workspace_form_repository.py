@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +21,7 @@ from backend.app.repositories.metric_periods import (
     object_id_at,
 )
 from backend.app.schemas.form_versions import FormVersionsDocument
+from backend.app.services import form_availability
 from backend.app.schemas.responder_group import (
     ResponderGroupDocument,
     ResponderGroupMemberDocument,
@@ -166,23 +167,6 @@ class WorkspaceFormRepository:
                 )
             aggregation_pipeline = []
 
-            if filter_closed:
-                aggregation_pipeline.append(
-                    {
-                        "$match": {
-                            "$or": [
-                                {"settings.form_close_date": {"$exists": False}},
-                                {"settings.form_close_date": ""},
-                                {"settings.form_close_date": None},
-                                {
-                                    "settings.form_close_date": {
-                                        "$gte": datetime.now(timezone.utc).isoformat()
-                                    }
-                                },
-                            ]
-                        }
-                    }
-                )
             if is_not_admin and user:
                 admitting = await self._groups_admitting(workspace_id, user.sub)
                 aggregation_pipeline.extend(
@@ -220,10 +204,13 @@ class WorkspaceFormRepository:
                     ]
                 )
             if id_only:
-                aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
+                projection = {"form_id": 1, "_id": 0}
+                if filter_closed:
+                    projection["settings.form_close_date"] = 1
+                aggregation_pipeline.extend([{"$project": projection}])
             else:
                 aggregation_pipeline.append({"$unset": ["groups_form"]})
-            return (
+            workspace_forms = (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
                 .to_list()
@@ -233,6 +220,21 @@ class WorkspaceFormRepository:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
+        if filter_closed:
+            # Closed forms leave the listing on the instant the submit gate
+            # starts refusing them: the same reader of the stored close date
+            # (services/form_availability.py), whatever its offset or spelling.
+            # Not in the query: the stored text is the client's, and comparing
+            # it as text got every offset other than UTC wrong.
+            now = form_availability.now()
+            workspace_forms = [
+                wf
+                for wf in workspace_forms
+                if not form_availability.is_closed(wf.get("settings"), now)
+            ]
+            if id_only:
+                workspace_forms = [{"form_id": wf["form_id"]} for wf in workspace_forms]
+        return workspace_forms
 
     @staticmethod
     async def _groups_admitting(

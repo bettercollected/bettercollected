@@ -47,13 +47,19 @@ const fadeVariants = {
 const slideTransition = { duration: 0.35, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
 const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
-    const { currentSlide, prevActiveSlide: previousSlide, endingId } = useResponderState();
+    const { currentSlide: slideInState, prevActiveSlide: previousSlide, endingId } = useResponderState();
     const prefersReducedMotion = useReducedMotion();
     // The form is in the respondent's language; on the public pages <html lang>
     // says so too, and this also marks it inside the builder's preview.
     const { language } = useRespondentLanguage();
 
     const standardForm = useAppSelector(selectResponderForm);
+    // A closed form comes without its questions, also when a refetch replaces
+    // the form someone is filling in: every page then shows the welcome page's
+    // closed notice. Their answers and place stay in memory; an ending already
+    // reached stays on screen.
+    const closed = standardForm?.unavailable === 'closed';
+    const currentSlide = closed && slideInState !== -2 ? -1 : slideInState;
     // Leaflet pages start with a full-width bar at the top edge.
     const topAligned = styleTokens(standardForm?.theme?.style).key === 'leaflet';
     // Popovers and toasts on the respondent page wear the theme's body face too.

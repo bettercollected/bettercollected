@@ -301,6 +301,67 @@ async def _assert_counted_once(ws, mongo, postgres):
 
 
 # ----------------------------------------------------------------- workspace forms
+async def test_open_only_listing_agrees_with_the_submit_gate(sessions, monkeypatch):
+    """``filter_closed`` reads the close date as the submit gate does
+    (services/form_availability.py), in both stores: the same instant
+    whatever its offset or spelling, closed on the instant itself,
+    unreadable values left open. Both stores used to compare the stored text
+    with the current time as text, which put a ``+02:00`` value two hours
+    late and a ``-05:00`` one five hours early."""
+    from backend.app.services.form_availability import is_closed
+
+    ws = PydanticObjectId()
+    groups = ResponderGroupsRepository()
+    mongo, postgres = WorkspaceFormRepository(), PostgresWorkspaceFormRepository(
+        sessions, groups
+    )
+    now = dt.datetime(2026, 10, 30, 12, 0, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr("common.clock.utcnow", lambda: now)
+    values = {
+        # closed one hour ago, spelled in another zone: text order said open
+        "plus2_closed": "2026-10-30T13:00:00+02:00",
+        "minus5_open": "2026-10-30T08:00:00-05:00",
+        "z_ms_closed": "2026-10-30T11:59:59.999Z",
+        "exact_closed": "2026-10-30T12:00:00Z",
+        "naive_open": "2026-10-30T12:00:01",
+        "naive_closed": "2026-10-30T11:00:00",
+        "datetime_closed": now,
+        "empty_open": "",
+        "none_open": None,
+        "garbage_open": "banana",
+    }
+    await seed_both(
+        (mongo, postgres),
+        "save",
+        *[
+            workspace_form(ws, form_id, "u1", minutes, form_close_date=value)
+            for minutes, (form_id, value) in enumerate(values.items())
+        ],
+    )
+    expected = {form_id for form_id in values if form_id.endswith("_open")}
+    for form_id, value in values.items():
+        assert (form_id in expected) == (
+            not is_closed({"form_close_date": value}, now)
+        ), form_id
+    for repo in (mongo, postgres):
+        listed = {
+            wf["form_id"]
+            for wf in await repo.get_workspace_forms_in_workspace(
+                ws, filter_closed=True
+            )
+        }
+        assert listed == expected, type(repo).__name__
+        assert set(await repo.get_form_ids_in_workspace(ws, filter_closed=True)) == (
+            expected
+        )
+        # anonymous respondents: the id-only path, with its projection
+        assert (
+            set(await repo.get_form_ids_in_workspace(ws, True, None, filter_closed=True))
+            == expected
+        )
+        assert len(await repo.get_workspace_forms_in_workspace(ws)) == len(values)
+
+
 async def test_workspace_form_visibility(sessions):
     ws, other = PydanticObjectId(), PydanticObjectId()
     groups = ResponderGroupsRepository()
