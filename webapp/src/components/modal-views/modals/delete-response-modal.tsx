@@ -7,20 +7,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
-
-/**
- * Whether `navigateTo` is a path of this site: a relative path, no "//" or
- * "\" (browsers read "/\evil.example" as another host), and resolving to this
- * origin. Anything else is never followed.
- */
-export function isSameSitePath(navigateTo: unknown): navigateTo is string {
-    if (typeof navigateTo !== 'string' || !navigateTo.startsWith('/') || navigateTo.startsWith('//') || navigateTo.includes('\\')) return false;
-    try {
-        return new URL(navigateTo, window.location.origin).origin === window.location.origin;
-    } catch {
-        return false;
-    }
-}
+import { isSameSitePath } from '@app/utils/same-site-path';
 
 interface DeleteResponseModalProps {
     workspace: { id: string };

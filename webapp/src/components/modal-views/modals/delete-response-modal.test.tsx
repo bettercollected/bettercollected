@@ -3,7 +3,9 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import DeleteResponseModal, { isSameSitePath } from './delete-response-modal';
+import { isSameSitePath } from '@app/utils/same-site-path';
+
+import DeleteResponseModal from './delete-response-modal';
 
 const push = vi.fn();
 const replace = vi.fn();

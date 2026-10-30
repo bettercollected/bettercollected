@@ -32,6 +32,7 @@ import DashboardDrawer from '@Components/sidebar/dashboard-drawer';
 import { workspaceNavItems } from '@Components/sidebar/workspace-nav-items';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { navItemForPath } from '@app/lib/nav-items';
+import { rememberWorkspace } from '@app/lib/workspace-selection';
 import { useRegistrationEnabled } from '@app/components/registration/use-registration-enabled';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -53,6 +54,10 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
     const pathname = usePathname();
 
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
+    // the selection screen lists the workspace last worked in first (its id only)
+    React.useEffect(() => {
+        rememberWorkspace(workspace?.id);
+    }, [workspace?.id]);
     const { t } = useTranslation();
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 

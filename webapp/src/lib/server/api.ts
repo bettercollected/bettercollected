@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 
 import environments from '@app/configs/environments';
+import type { WorkspaceSelection } from '@app/lib/workspace-selection';
 
 async function getCookieHeader() {
     const cookieStore = await cookies();
@@ -123,6 +124,30 @@ export async function getUser() {
         return await response.json();
     } catch (error) {
         console.error('Error fetching user', error);
+        return null;
+    }
+}
+
+/**
+ * The workspace selection after sign-in (GET /workspaces/mine/selection):
+ * the workspaces the signed-in user may open and, for a sign-in that
+ * started from `next` (a workspace dashboard page), whether to go there.
+ * `null` when the server couldn't answer (signed out, or unreachable).
+ */
+export async function getWorkspaceSelection(next?: string | null): Promise<WorkspaceSelection | null> {
+    try {
+        const cookieHeader = await getCookieHeader();
+        const query = next ? `?${new URLSearchParams({ next }).toString()}` : '';
+        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine/selection${query}`, {
+            headers: {
+                cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+        if (!response.ok) return null;
+        return (await response.json()) as WorkspaceSelection;
+    } catch (error) {
+        console.error('Error fetching the workspace selection', error);
         return null;
     }
 }

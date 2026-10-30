@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
+import type { WorkspaceSelection } from '@app/lib/workspace-selection';
 import { AnswerDto, InternalAnswerMeta, StaffFeedback, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
@@ -131,6 +132,15 @@ export const workspacesApi = createApi({
         getAllMineWorkspaces: builder.query<any, void>({
             query: () => ({
                 url: '/workspaces/mine',
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS]
+        }),
+        // the workspace selection screen: what the signed-in user may open
+        // (the server's list; dropped with every other cache at sign-out)
+        getWorkspaceSelection: builder.query<WorkspaceSelection, void>({
+            query: () => ({
+                url: '/workspaces/mine/selection',
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS]
@@ -769,6 +779,7 @@ export const {
     useDuplicateFormMutation,
     useExportFormForOpenFormulierenMutation,
     useGetAllMineWorkspacesQuery,
+    useGetWorkspaceSelectionQuery,
     useRequestWorkspaceSubmissionDeletionMutation,
     useCreateRespondersGroupMutation,
     useGetRespondersGroupQuery,

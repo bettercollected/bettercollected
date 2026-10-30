@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
@@ -13,6 +14,8 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
+import { workspaceSelect } from '@app/constants/locales/workspace-select';
+import { rememberWorkspace, SELECT_WORKSPACE_PATH } from '@app/lib/workspace-selection';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectAuthStatus } from '@app/store/auth/selectors';
@@ -22,7 +25,7 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/background-colors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/string-utils';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LayoutGrid } from 'lucide-react';
 
 
 /**
@@ -51,6 +54,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
         if (canOpenWorkspace(space)) {
+            rememberWorkspace(space.id);
             router.push(`/${space.workspaceName}/dashboard/forms`);
             setOpen(false);
         }
@@ -187,6 +191,18 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 {!isLoading && (
                     <div>
                         <Divider className="my-2" />
+                        {/* the full selection screen: every workspace, searchable */}
+                        <Link
+                            href={SELECT_WORKSPACE_PATH}
+                            className="text-black-800! flex items-center gap-3 px-5 py-3 hover:bg-black-100"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setOpen(false);
+                            }}
+                        >
+                            <LayoutGrid className="h-5 w-5" aria-hidden="true" />
+                            <span className="body3 not-italic!">{t(workspaceSelect.choose)}</span>
+                        </Link>
                         <div
                             className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-600! cursor-not-allowed' : 'text-black-800!'
                                 }`}
