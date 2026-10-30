@@ -9,12 +9,12 @@ import { Shield as ShieldIcon } from 'lucide-react';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
+import { Page } from '@app/models/dtos/page';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery, useLazyGetWorkspaceFormVersionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useLazyGetWorkspaceFormVersionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
@@ -50,13 +50,16 @@ const customTableStyles = {
 
 interface TabularResponsesProps {
     form: StandardFormDto;
+    /** The listed responses: the one query (search text and page included) is made by the parent. */
+    data?: Page<StandardFormResponseDto>;
+    page: number;
+    onPageChange: (page: number) => void;
 }
 
-export default function TabularResponses({ form }: TabularResponsesProps) {
+export default function TabularResponses({ form, data, page, onPageChange }: TabularResponsesProps) {
     const { toast } = useToast();
     const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
-    const [page, setPage] = useState(1);
 
     const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
     const [triggerFormVersion] = useLazyGetWorkspaceFormVersionQuery();
@@ -64,18 +67,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const [versionForms, setVersionForms] = useState<Record<number, StandardFormDto>>({});
 
     const { t } = useTranslation();
-
-    const [query, setQuery] = useState<IGetFormSubmissionsQuery>({
-        formId: form.formId,
-        workspaceId: workspace?.id,
-        requestedForDeletionOly: false,
-        page: page,
-        size: globalConstants.pageSize
-    });
-
-    useEffect(() => {
-        setTimeout(() => setQuery({ ...query, page: page }), 0);
-    }, [page]);
 
     const downloadFormFile = async (ans: any) => {
         try {
@@ -148,8 +139,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         overflow: 'hidden'
     };
 
-    const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
-
     useEffect(() => {
         const missing = Array.from(new Set((data?.items ?? []).map((r) => r.formVersion).filter((v): v is number => typeof v === 'number' && v !== form.version && !versionForms[v])));
         if (!workspace?.id || missing.length === 0) return;
@@ -207,8 +196,8 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         }))
     ];
 
-    const handlePageChange = (e: any, page: number) => {
-        setPage(page);
+    const handlePageChange = (e: any, nextPage: number) => {
+        onPageChange(nextPage);
     };
 
     return (

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -20,6 +20,8 @@ export default function SearchInput({ handleSearch, className, placeholder }: IS
     const debouncedResults = useMemo(() => {
         return debounce(handleSearch, 500);
     }, [handleSearch]);
+    // a search typed just before leaving the page must not fire afterwards
+    useEffect(() => () => debouncedResults.cancel(), [debouncedResults]);
 
     return (
         <AppInput
