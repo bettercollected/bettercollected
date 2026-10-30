@@ -31,7 +31,10 @@ from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_full_user
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
-from backend.app.services.workspace_selection_service import WorkspaceSelectionDto
+from backend.app.services.workspace_selection_service import (
+    WorkspaceSelectionDto,
+    WorkspaceTargetDto,
+)
 from backend.app.services.workspace_service import WorkspaceService
 
 
@@ -120,6 +123,21 @@ class WorkspaceRouter(Routable):
         return await container.workspace_selection_service().selection(
             user, next_path
         )
+
+    @get(
+        "/mine/selection/target",
+        response_model=WorkspaceTargetDto,
+    )
+    async def _get_workspace_target(
+        self,
+        response: Response,
+        next_path: Optional[str] = Query(None, alias="next", max_length=4096),
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceTargetDto:
+        """Only where ``next`` goes (the dashboard's check on each workspace
+        page): the selection's answer without the list."""
+        response.headers["Cache-Control"] = "private, no-store"
+        return await container.workspace_selection_service().target(user, next_path)
 
     @get(
         "/{workspace_id}",

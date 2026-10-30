@@ -15,6 +15,12 @@ export interface WorkspaceChoice {
     ssoRequired: boolean;
 }
 
+/** Where a visit or sign-in that names a workspace page goes (the server's answer). */
+export interface WorkspaceTarget {
+    next?: string | null;
+    notice?: string | null;
+}
+
 export interface WorkspaceSelection {
     workspaces: WorkspaceChoice[];
     canCreateWorkspace: boolean;
@@ -109,5 +115,14 @@ export function rememberWorkspace(id: string | null | undefined): void {
         window.localStorage.setItem(LAST_USED_KEY, id);
     } catch {
         // storage blocked (private window): the order just isn't remembered
+    }
+}
+
+/** At sign-out: the next person at this browser starts without it. */
+export function forgetLastWorkspace(): void {
+    try {
+        window.localStorage.removeItem(LAST_USED_KEY);
+    } catch {
+        // storage blocked: nothing was kept
     }
 }

@@ -5,6 +5,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AuthDispatcher from '@app/app/_dispatcher/auth-dispatcher';
+import { readLastWorkspaceId, rememberWorkspace } from '@app/lib/workspace-selection';
 import { API_SLICES } from '@app/store/api-slices';
 import { authApi } from '@app/store/auth/api';
 import { setAuth } from '@app/store/auth/slice';
@@ -52,6 +53,25 @@ describe('the one reset after a sign-out', () => {
         forgotten();
     });
 
+    it("forgets the selection screen's last-used workspace id", () => {
+        rememberWorkspace('workspace-1');
+        resetAfterSignOut(store.dispatch);
+        expect(readLastWorkspaceId()).toBeNull();
+    });
+
+    it('still resets when the browser blocks storage', async () => {
+        await leaveSomethingBehind();
+        const blocked = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+            throw new Error('blocked');
+        });
+        try {
+            expect(() => resetAfterSignOut(store.dispatch)).not.toThrow();
+        } finally {
+            blocked.mockRestore();
+        }
+        expect(store.getState().workspacesApi.queries).toEqual({});
+    });
+
     it('covers every RTK Query API slice the store holds (a new slice must be added to API_SLICES)', () => {
         // an RTK Query slice's state has queries, mutations, provided and config
         const apiSlicesInTheStore = Object.entries(store.getState())
@@ -80,7 +100,7 @@ describe('the one reset after a sign-out', () => {
         expect(dispatched).not.toContain(authApi.util.resetApiState().type);
     });
 
-    it("empties the members and invitations cache and the form last opened, and keeps the auth status", async () => {
+    it('empties the members and invitations cache and the form last opened, and keeps the auth status', async () => {
         await store.dispatch(membersNInvitationsApi.util.upsertQueryData('getWorkspaceMembers' as any, { workspaceId: 'workspace-1' } as any, [{ email: 'member@example.com' }] as any) as any);
         await store.dispatch(authApi.util.upsertQueryData('getStatus', undefined, { id: 'me', email: 'staff@example.com', roles: [] } as any) as any);
         store.dispatch(setForm({ ...initFormState, formId: 'form-1', title: 'Intake' }));

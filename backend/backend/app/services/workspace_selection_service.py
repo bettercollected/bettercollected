@@ -64,6 +64,16 @@ class WorkspaceSelectionDto(CamelModel):
     notice: Optional[str] = None
 
 
+class WorkspaceTargetDto(CamelModel):
+    """Where a sign-in (or a visit) that names ``next`` goes: ``next`` when
+    the user may open that workspace page, else ``notice`` (``no_access``
+    for a workspace they can't open or that doesn't exist), or neither (no
+    workspace named, or one that needs its single sign-on first)."""
+
+    next: Optional[str] = None
+    notice: Optional[str] = None
+
+
 def app_path(value: Optional[str]) -> Optional[str]:
     """``value`` as a path of this app (path and query, the fragment
     dropped), or None for anything else: an absolute or scheme-relative URL,
@@ -161,24 +171,40 @@ class WorkspaceSelectionService:
         is_creator = user.session_scope != RESPONDENT_SCOPE and Roles.FORM_CREATOR in (
             user.roles or []
         )
-        selection = WorkspaceSelectionDto(
+        target = self._resolve(workspaces, next_path)
+        return WorkspaceSelectionDto(
             workspaces=workspaces,
             is_creator=is_creator,
             can_create_workspace=is_creator and await self._may_create(user),
+            next=target.next,
+            notice=target.notice,
         )
+
+    async def target(
+        self, user: User, next_path: Optional[str] = None
+    ) -> WorkspaceTargetDto:
+        """Only where ``next`` goes, for the dashboard's own check on every
+        workspace page: the same answer as ``selection`` without the parts
+        the check doesn't need (whether the user may create a workspace)."""
+        return self._resolve(await self.choices(user), next_path)
+
+    @staticmethod
+    def _resolve(
+        workspaces: List[WorkspaceChoiceDto], next_path: Optional[str]
+    ) -> WorkspaceTargetDto:
         path = app_path(next_path)
         handle = target_workspace_name(path) if path else None
         if handle is None:
             # no target, an unusable one, or one that names no workspace:
             # the plain sign-in
-            return selection
+            return WorkspaceTargetDto()
         target = next((w for w in workspaces if w.workspace_name == handle), None)
         if target is None:
-            selection.notice = NO_ACCESS
-        elif not target.sso_required:
-            selection.next = path
-        # an SSO-required target: the screen, whose row starts that sign-in
-        return selection
+            return WorkspaceTargetDto(notice=NO_ACCESS)
+        if target.sso_required:
+            # the screen, whose row starts that workspace's sign-in
+            return WorkspaceTargetDto()
+        return WorkspaceTargetDto(next=path)
 
     async def _may_create(self, user: User) -> bool:
         """The rule ``create_non_default_workspace`` applies: Pro, and fewer

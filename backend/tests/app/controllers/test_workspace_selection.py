@@ -379,3 +379,73 @@ async def test_an_address_off_the_sso_domains_is_not_marked(
     await _join(acme, member, [WorkspaceRoles.EDITOR])
     (row,) = (await _select(client, member))["workspaces"]
     assert row["ssoRequired"] is False
+
+
+# -- the dashboard's check: where ``next`` goes, without the list -------------
+
+TARGET = SELECTION + "/target"
+
+
+async def _target(client: AsyncClient, user: User, next_path):
+    reply = await client.get(TARGET, params={"next": next_path}, cookies=_cookies(user))
+    assert reply.status_code == 200, reply.text
+    assert "no-store" in reply.headers["cache-control"]
+    return reply.json()
+
+
+async def test_the_target_check_needs_a_sign_in(client: AsyncClient):
+    reply = await client.get(TARGET, params={"next": "/acme/dashboard"})
+    assert reply.status_code == 401
+
+
+async def test_the_target_check_answers_like_the_selection(client: AsyncClient):
+    await _owned("acme", "Acme")
+    await _owned("secret", "Secret", user=stranger)
+
+    for path in (
+        "/acme/dashboard",
+        "/secret/dashboard",
+        "/no-such-workspace/dashboard",
+        "https://evil.example.com/acme/dashboard",
+        "/",
+    ):
+        full = await _select(client, owner, path)
+        assert await _target(client, owner, path) == {
+            "next": full["next"],
+            "notice": full["notice"],
+        }, path
+    assert await _target(client, owner, "/acme/dashboard") == {
+        "next": "/acme/dashboard",
+        "notice": None,
+    }
+    # the same for a non-member and a workspace that doesn't exist
+    assert await _target(client, owner, "/secret/dashboard") == await _target(
+        client, owner, "/no-such-workspace/dashboard"
+    )
+
+
+async def test_the_target_check_never_asks_about_creating(
+    client: AsyncClient, monkeypatch
+):
+    await _owned("acme", "Acme")
+    service = container.workspace_selection_service()
+
+    async def refuse(*args, **kwargs):
+        raise AssertionError("not needed for the check")
+
+    monkeypatch.setattr(service, "_may_create", refuse)
+    assert (await _target(client, owner, "/acme/dashboard"))["next"] == (
+        "/acme/dashboard"
+    )
+
+
+async def test_the_target_check_sends_an_sso_required_workspace_to_the_screen(
+    client: AsyncClient, sso_required
+):
+    acme, _ = sso_required
+    jane = _sso_user("otp")
+    await _join(acme, jane, [WorkspaceRoles.VIEWER])
+    assert await _target(client, jane, "/acme/dashboard") == {
+        "next": None,
+        "notice": None,
+    }
