@@ -28,3 +28,15 @@ export function responseOriginListUrl(workspaceName: string, formId: string, ori
     if (origin === 'form-deletion-requests') return `/${workspaceName}/dashboard/forms/${formId}/deletion-requests`;
     return responsesListUrl(workspaceName, formId);
 }
+
+/**
+ * The tab title of a response's page: "Response · <form title>" for the
+ * form the URL names, else plain "Response" (an error body, another form, a
+ * failed read). What the page is, never who answered: it lands in browser history.
+ */
+export function responsePageTitle(form: unknown, formId: string): string {
+    const known = !!form && typeof form === 'object' && (form as { formId?: unknown }).formId === formId;
+    if (!known) return 'Response';
+    const title = (form as { title?: unknown }).title;
+    return `Response · ${(typeof title === 'string' && title.trim()) || 'Untitled form'}`;
+}

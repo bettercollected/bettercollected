@@ -47,7 +47,9 @@ const JUMPING = {
             : slide
     )
 };
-const PAGE_TWO_IDS = ['rating', 'scale', 'm1', 'm2', 'table', 'cv', 'guests', 'total', 'why'];
+// The server computes and stores every calculated field on every submission,
+// whatever the path: the calculation ('total') keeps its value on a skipped page.
+const PAGE_TWO_IDS = ['rating', 'scale', 'm1', 'm2', 'table', 'cv', 'guests', 'why'];
 const WITHOUT_PAGE_TWO = Object.fromEntries(Object.entries(ANSWERS).filter(([id]) => !PAGE_TWO_IDS.includes(id)));
 
 beforeEach(() => {
@@ -60,10 +62,10 @@ describe('the response, drawn like the form', () => {
     it('is the form title as the page heading, then a section with a heading for every page of the form', () => {
         renderForm();
         expect(screen.getByRole('heading', { level: 1, name: 'Summer meeting registration' })).toBeInTheDocument();
-        // each named as in the respondent's contents list: here by its first question
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 1 of 3 · What is your name?' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Rate the service' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 3 of 3 · Anything else?' })).toBeInTheDocument();
+        // these pages have no name of their own: the heading does not repeat the first question right above it
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 1 of 3' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 3 of 3' })).toBeInTheDocument();
         expect(screen.getAllByRole('region').length).toBeGreaterThanOrEqual(3);
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
@@ -340,11 +342,17 @@ describe('what has no answer', () => {
     it('collapses a page the respondent was sent past, and says so', () => {
         const { container } = renderForm({ ...RESPONSE, answers: WITHOUT_PAGE_TWO }, JUMPING);
         const skipped = container.querySelector('[data-page="2"]') as HTMLElement;
-        expect(within(skipped).getByText(/Skipped: this respondent/)).toBeInTheDocument();
+        expect(within(skipped).getByText("Skipped: this respondent's answers sent them past this page.")).toBeInTheDocument();
+        expect(within(skipped).queryByText(/still stored/)).toBeNull();
         const details = skipped.querySelector('details') as HTMLDetailsElement;
         expect(details.open).toBe(false);
-        expect(details).toHaveTextContent('Show the 8 questions on this page');
-        expect(details.querySelectorAll('[data-not-shown]')).toHaveLength(8);
+        // the stored calculation is no answer of the respondent's: plain "Skipped", nothing counted
+        expect(details.querySelector('summary')!.textContent).toBe('Show the 8 questions on this page');
+        expect(details.querySelectorAll('[data-not-shown]')).toHaveLength(7);
+        // it is still listed, with its value and why it is there
+        const total = within(skipped).getByRole('group', { name: 'Total' });
+        expect(within(total).getByText('Calculated, on a page the respondent skipped')).toBeInTheDocument();
+        expect(within(total).queryByText('Answered, then skipped')).toBeNull();
         // the visited pages are drawn in full
         expect(container.querySelector('[data-page="1"] [data-page-skipped]')).toBeNull();
         expect(container.querySelector('[data-page="3"] [data-page-skipped]')).toBeNull();
@@ -356,7 +364,8 @@ describe('what has no answer', () => {
         const skipped = container.querySelector('[data-page="2"]') as HTMLElement;
         const details = skipped.querySelector('details') as HTMLDetailsElement;
         expect(details.open).toBe(true);
-        expect(details).toHaveTextContent('Show the 8 questions on this page (7 answered)');
+        // the calculation is not counted: the server stores it whatever the path
+        expect(details).toHaveTextContent('Show the 8 questions on this page (6 answered)');
         expect(within(skipped).getByText(/Answers given here before they changed course are still stored/)).toBeInTheDocument();
         const rating = within(skipped).getByRole('group', { name: 'Rate the service' });
         expect(within(rating).getByText('Answered, then skipped')).toBeInTheDocument();
@@ -503,6 +512,41 @@ describe('the contents list', () => {
         expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Your visit' })).toBeInTheDocument();
     });
 
+    it("names a page by its opening heading once: in the list and its heading, not again in the text block below", () => {
+        const heading = (text: string) => ({ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text }] });
+        const paragraph = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+        const opening = (id: string, ...content: any[]) => ({ id, index: -1, type: FieldTypes.TEXT, title: { type: 'doc', content }, properties: { fields: [] } });
+        const withHeadings = {
+            ...FORM,
+            fields: FORM.fields.map((slide) =>
+                slide.id === 'p2'
+                    ? { ...slide, properties: { ...slide.properties, fields: [opening('open2', heading('Your visit'), paragraph('Tell us how it went.')), ...slide.properties!.fields!] } }
+                    : slide.id === 'p3'
+                      ? { ...slide, properties: { ...slide.properties, fields: [opening('open3', heading('Last words')), ...slide.properties!.fields!] } }
+                      : slide
+            )
+        };
+        const { container } = renderForm(RESPONSE, withHeadings);
+        expect(entries()[1]).toHaveTextContent('Page 2 Your visit');
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Your visit' })).toBeInTheDocument();
+        const two = container.querySelector('[data-page="2"]') as HTMLElement;
+        // the heading's words once on the page; the rest of the text block still opens it
+        expect(within(two).getAllByText(/Your visit/)).toHaveLength(1);
+        expect(within(two).getByText('Tell us how it went.')).toBeInTheDocument();
+        // a text block that was only the heading leaves nothing behind
+        expect(entries()[2]).toHaveTextContent('Page 3 Last words');
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 3 of 3 · Last words' })).toBeInTheDocument();
+        expect(within(container.querySelector('[data-page="3"]') as HTMLElement).getAllByText(/Last words/)).toHaveLength(1);
+    });
+
+    it("keeps the opening text whole under a page's own section title", () => {
+        const opening = { id: 'open2', index: -1, type: FieldTypes.TEXT, title: { type: 'doc', content: [{ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Before we start' }] }] }, properties: { fields: [] } };
+        const titled = { ...FORM, fields: FORM.fields.map((slide) => (slide.id === 'p2' ? { ...slide, properties: { ...slide.properties, sectionTitle: 'Your visit', fields: [opening, ...slide.properties!.fields!] } } : slide)) };
+        const { container } = renderForm(RESPONSE, titled);
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Your visit' })).toBeInTheDocument();
+        expect(within(container.querySelector('[data-page="2"]') as HTMLElement).getByText('Before we start')).toBeInTheDocument();
+    });
+
     it('puts only page numbers in the links, never a title or an answer', () => {
         renderForm();
         entries().forEach((link) => expect(link.getAttribute('href')).toMatch(/^#page-\d+$/));
@@ -515,10 +559,49 @@ describe('the contents list', () => {
         expect(document.getElementById('page-2')!.className).toContain('scroll-mt-28');
     });
 
+    it('follows a link in place: no new Back step, the router state kept, the address given the page number', () => {
+        const scroll = vi.fn();
+        // jsdom has no scrolling
+        (Element.prototype as any).scrollIntoView = scroll;
+        try {
+            window.history.replaceState({ __NA: true, router: 'state' }, '', '/acme/dashboard/forms/form-1/responses/resp-1');
+            renderForm();
+            const steps = window.history.length;
+            // false: the browser's own jump (a history entry without the router's state) does not happen
+            expect(fireEvent.click(entries()[1])).toBe(false);
+            expect(window.history.length).toBe(steps);
+            expect(window.history.state).toEqual({ __NA: true, router: 'state' });
+            expect(window.location.pathname).toBe('/acme/dashboard/forms/form-1/responses/resp-1');
+            expect(window.location.hash).toBe('#page-2');
+            expect(scroll).toHaveBeenCalledTimes(1);
+            expect(scroll.mock.instances[0]).toBe(document.getElementById('page-2'));
+            expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: /^Page 2 of 3/ }));
+            // again: still no new step
+            fireEvent.click(entries()[2]);
+            expect(window.history.length).toBe(steps);
+            expect(window.location.hash).toBe('#page-3');
+        } finally {
+            delete (Element.prototype as any).scrollIntoView;
+            window.history.replaceState(null, '', '/');
+        }
+    });
+
+    it('leaves a click that opens a new tab or window to the browser', () => {
+        renderForm();
+        const before = document.activeElement;
+        expect(fireEvent.click(entries()[1], { ctrlKey: true })).toBe(true);
+        expect(fireEvent.click(entries()[1], { metaKey: true })).toBe(true);
+        expect(fireEvent.click(entries()[1], { shiftKey: true })).toBe(true);
+        expect(fireEvent.click(entries()[1], { button: 1 })).toBe(true);
+        expect(document.activeElement).toBe(before);
+    });
+
     it('marks a skipped page, and one that still holds answers differently', () => {
         renderForm({ ...RESPONSE, answers: WITHOUT_PAGE_TWO }, JUMPING);
         expect(entries()[1]).toHaveTextContent('Page 2 Rate the service Skipped');
         expect(entries()[1].querySelector('[data-skipped="empty"]')).not.toBeNull();
+        // the calculation the server stored on it is no answer kept
+        expect(entries()[1]).not.toHaveTextContent('answers kept');
         expect(entries()[0]).not.toHaveTextContent('Skipped');
         cleanup();
         renderForm(RESPONSE, JUMPING);

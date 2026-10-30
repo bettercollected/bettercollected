@@ -58,8 +58,14 @@ export function rememberResponseListPage(key: ResponseListKey, { page, size, tot
     current.pages.set(page, ids);
 }
 
+/** Forget the list: on logout (the search may be a responder's email, and the next person must not get it back). */
 export function forgetResponseList() {
     list = null;
+}
+
+/** Called when a workspace opens: a list remembered in another workspace is forgotten. */
+export function forgetResponseListOutside(workspaceId: string) {
+    if (list && list.workspaceId !== workspaceId) list = null;
 }
 
 /** The page and search the form's responses list was left on, to open it there again. */

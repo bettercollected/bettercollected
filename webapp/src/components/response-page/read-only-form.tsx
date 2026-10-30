@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties } from 'react';
+import { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { FormTheme } from '@app/constants/theme';
@@ -13,6 +13,7 @@ import { contrast } from '@app/utils/color-contrast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isShownToRespondents } from '@app/utils/calculated-fields';
+import { resolvePipesInTitle } from '@app/utils/answer-piping';
 import { logicSourcesById } from '@app/utils/conditional-logic';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolveFormLogo } from '@app/utils/form-logo';
@@ -31,11 +32,27 @@ export const CONTENTS_HEADING_ID = 'rp-contents-heading';
 const pageHeadingId = (number: number) => `rp-page-heading-${number}`;
 
 /**
- * Following an in-page link: the browser scrolls to the target (the
- * section's `scroll-margin-top` keeps it clear of the sticky toolbar); focus
- * goes to its heading, so the keyboard and a screen reader carry on from there.
+ * Following an in-page link (the contents list, the toolbar's "Contents"):
+ * scroll to the target (its `scroll-margin-top` keeps it clear of the sticky
+ * toolbar) and move focus to its heading, so the keyboard and a screen reader
+ * carry on from there.
+ *
+ * Done here rather than by the browser: a plain `#hash` link adds a history
+ * entry without the router's state, and the router ignores Back onto such an
+ * entry, so after "Next response" the browser's Back would show the address
+ * of one response and the page of another (and every contents click would
+ * add a Back step). The address gets the hash in place, with the router's
+ * state kept. A click that opens a new tab or window is left to the browser.
  */
-export function focusInPageTarget(headingId: string) {
+export function followInPageLink(event: ReactMouseEvent<HTMLAnchorElement>, targetId: string, headingId: string) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    document.getElementById(targetId)?.scrollIntoView?.({ block: 'start' });
+    try {
+        window.history.replaceState(window.history.state, '', `#${targetId}`);
+    } catch {
+        // the address is a convenience; the scroll and focus are what matter
+    }
     document.getElementById(headingId)?.focus({ preventScroll: true });
 }
 
@@ -66,7 +83,7 @@ function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[
                     <li key={section.number} className="border-b" style={{ borderColor: rule }}>
                         <a
                             href={`#page-${section.number}`}
-                            onClick={() => focusInPageTarget(pageHeadingId(section.number))}
+                            onClick={(event) => followInPageLink(event, `page-${section.number}`, pageHeadingId(section.number))}
                             className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-baseline gap-x-2 rounded-sm py-2.5 text-base underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
                             style={{ color: theme.primary }}
                         >
@@ -138,21 +155,38 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
     const unreadable = (response.unreadableFields ?? []).includes('answers');
     const root = themeRootProps(theme);
     const logo = resolveFormLogo(form, workspace);
+    const slides = form.fields ?? [];
+    const hiddenFields = response.hiddenFields ?? {};
+    const pipe = { slides, answers, hiddenValues: hiddenFields };
     // Each page with the name the respondent's contents list gives it (its
     // section title, else its opening heading, else its first question), and
     // whether this respondent was sent past it (and left answers on it first).
     const sections = responsePageSections(form, answers).map((section) => {
         // staff-only (internal) fields are the team's, shown in their own panel below, never in the form's look
-        const fields = ((section.page.properties?.fields ?? []) as StandardFormFieldDto[]).filter((field) => !field.internal);
-        const name = leafletSection(fields, '', section.page.properties?.sectionTitle);
+        const own = ((section.page.properties?.fields ?? []) as StandardFormFieldDto[]).filter((field) => !field.internal);
+        // as on the respondent's page: an opening text block's pipes are resolved before its heading names the page
+        const named = own.map((field, position) => (position === 0 && field.type === FieldTypes.TEXT ? ({ ...field, title: resolvePipesInTitle(field.title, pipe) } as StandardFormFieldDto) : field));
+        const name = leafletSection(named, '', section.page.properties?.sectionTitle);
+        // An opening heading that names the page is said once, in the page's
+        // heading: the rest of that text block (if any) opens the page, as the
+        // respondent's Leaflet page does with its intro band.
+        const fields = name.openingTextId ? named.flatMap((field) => (field.id !== name.openingTextId ? [field] : name.intro ? [name.intro] : [])) : own;
         const skipped = !section.visited && !unreadable;
-        return { ...section, fields, title: name.title, shortTitle: name.shortTitle, skipped, skippedWithAnswers: skipped && fields.some((field) => !isContent(field) && fieldHasAnswer(field, answers)) };
+        return {
+            ...section,
+            fields,
+            title: name.title,
+            shortTitle: name.shortTitle,
+            // Only a name the page gives itself (its section title or opening heading) goes into its heading. A name
+            // taken from its first question is not repeated right above that question; the contents list keeps it.
+            headingTitle: name.titleFromPage ? name.title : '',
+            skipped,
+            skippedWithAnswers: skipped && fields.some((field) => answeredBeforeSkipping(field, answers))
+        };
     });
-    const slides = form.fields ?? [];
     const leaflet = tokens.key === 'leaflet';
     const several = hasSeveralPages(slides);
     const sources = logicSourcesById(slides);
-    const hiddenFields = response.hiddenFields ?? {};
     const lang = formContentLanguage(form.settings?.language, 'en');
 
     const vars = {
@@ -166,7 +200,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
     const baseContext: ReadOnlyContext = {
         form,
         theme,
-        pipe: { slides, answers, hiddenValues: hiddenFields },
+        pipe,
         sources,
         unreadable,
         lang,
@@ -189,7 +223,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                         {form.title?.trim() || 'Untitled form'}
                     </h1>
                     {sections.length > 1 && <ContentsList sections={sections} theme={theme} leaflet={leaflet} />}
-                    {sections.map(({ page, number, fields, title, skipped }) => {
+                    {sections.map(({ page, number, fields, headingTitle, skipped }) => {
                         // unreadable answers say nothing about what the rules showed or skipped: every question is listed
                         const rows = unreadable ? fields.map((field) => ({ field, notShown: false })) : pageQuestions(fields, answers, sources);
                         // the numbers the respondent saw: only what the form showed them
@@ -202,7 +236,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                             <section key={page.id} id={`page-${number}`} aria-labelledby={headingId} data-page={number} className="flex scroll-mt-28 flex-col gap-8">
                                 <h2 id={headingId} tabIndex={-1} className={cn('border-b pb-2 text-[13px] font-medium tabular-nums focus:outline-hidden', sections.length === 1 && 'sr-only')} style={{ color: softInk(theme), borderColor: leafletColours(theme).rule }}>
                                     {`Page ${number} of ${sections.length}`}
-                                    {title ? ` · ${title}` : ''}
+                                    {headingTitle ? ` · ${headingTitle}` : ''}
                                 </h2>
                                 {skipped ? (
                                     <SkippedPage fields={fields} answers={answers} ctx={ctx} />
@@ -242,14 +276,26 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
 }
 
 /**
+ * Whether a question on a skipped page holds an answer the respondent gave
+ * before changing course. A calculated value never does: the server works out
+ * and stores every calculation on every submission, whatever the path (a sum
+ * of nothing is 0), so its value says nothing about a visit.
+ */
+function answeredBeforeSkipping(field: StandardFormFieldDto, answers: Record<string, any>): boolean {
+    return !isContent(field) && field.type !== FieldTypes.CALCULATED && fieldHasAnswer(field, answers);
+}
+
+/**
  * A page the respondent's answers sent them past: said once, its questions
  * kept in a collapsed list. An answer given on it before the respondent went
  * back and changed course is still stored (and in the table and the export):
  * it is shown, marked "Answered, then skipped", and the list opens for it.
+ * A calculated value is listed with its own note, but neither counts as an
+ * answer nor opens the list (see answeredBeforeSkipping).
  */
 function SkippedPage({ fields, answers, ctx }: { fields: StandardFormFieldDto[]; answers: Record<string, any>; ctx: ReadOnlyContext }) {
     const questions = fields.filter((field) => !isContent(field));
-    const answeredCount = questions.filter((field) => fieldHasAnswer(field, answers)).length;
+    const answeredCount = questions.filter((field) => answeredBeforeSkipping(field, answers)).length;
     const summary = `Show the ${questions.length} ${questions.length === 1 ? 'question' : 'questions'} on this page` + (answeredCount > 0 ? ` (${answeredCount} answered)` : '');
     return (
         <div className="flex flex-col gap-3" data-page-skipped>

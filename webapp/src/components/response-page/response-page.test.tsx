@@ -101,11 +101,13 @@ describe('the response page', () => {
         expect(within(details).queryByText('anna@example.com')).toBeNull();
     });
 
-    it('titles the tab "Response · <form title>", never the responder email or an answer', () => {
+    it('leaves the tab title to the route metadata (one writer: page.test.ts), so nothing races it', () => {
+        document.title = 'Response · Summer meeting registration';
         renderPage();
         expect(document.title).toBe('Response · Summer meeting registration');
-        expect(document.title).not.toContain('anna@example.com');
-        expect(document.title).not.toContain('Anna');
+        server.result = loaded({ ...RESPONSE, responseId: 'x3' });
+        renderPage('x3');
+        expect(document.title).toBe('Response · Summer meeting registration');
     });
 
     it('goes back to the list with a real link', () => {
@@ -251,6 +253,53 @@ describe('the response page', () => {
             expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Response details, response 3 of 3' }));
         });
 
+        // (no router here: each link's own navigation is stopped, its click handler still runs)
+        const clickNext = (init: Record<string, unknown> = {}) => {
+            const next = screen.getByRole('link', { name: 'Next response' });
+            next.addEventListener('click', (event) => event.preventDefault());
+            fireEvent.click(next, init);
+        };
+
+        it.each([
+            ['ctrl', { ctrlKey: true }],
+            ['cmd', { metaKey: true }],
+            ['shift', { shiftKey: true }],
+            ['middle button', { button: 1 }]
+        ])('leaves focus alone after a %s-click (a new tab), also when that response opens here later', (_name, init) => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+            const { rerender } = renderPage();
+            clickNext(init);
+            server.result = loaded({ ...RESPONSE, responseId: 'x3' });
+            rerender(page('x3'));
+            expect(document.activeElement).toBe(document.body);
+        });
+
+        it('forgets the focus move when that response fails to load', () => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+            const { rerender } = renderPage();
+            clickNext();
+            server.result = { currentData: undefined, isError: true, error: { status: 500 } };
+            rerender(page('x3'));
+            expect(screen.getByRole('alert')).toHaveTextContent('Could not load this response');
+            // it loads after all (Retry): a first look at it, focus where it was
+            server.result = loaded({ ...RESPONSE, responseId: 'x3' });
+            rerender(page('x3'));
+            expect(document.activeElement).toBe(document.body);
+        });
+
+        it('moves focus only for the response the link went to, never for another one opened later', () => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+            const { rerender } = renderPage();
+            clickNext();
+            // the navigation to x3 never happened; another response opens instead
+            server.result = loaded({ ...RESPONSE, responseId: 'x9' });
+            rerender(page('x9'));
+            expect(document.activeElement).toBe(document.body);
+            server.result = loaded({ ...RESPONSE, responseId: 'x3' });
+            rerender(page('x3'));
+            expect(document.activeElement).toBe(document.body);
+        });
+
         it('disables the one that does not exist (the first or last response of the list)', () => {
             neighbours.value = { nextId: 'x3' };
             renderPage();
@@ -275,7 +324,6 @@ describe('the response page', () => {
             expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
             expect(screen.getByRole('link', { name: 'Back to responses' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses');
             expect(screen.queryByText('No answer')).toBeNull();
-            expect(document.title).toBe('Response');
         });
 
         it('says it was not found for a 404, without a Retry', () => {
@@ -336,8 +384,15 @@ describe('the response page', () => {
         const back = within(screen.getByRole('navigation', { name: 'Response actions' })).getByRole('link', { name: 'Contents' });
         expect(back).toHaveAttribute('href', '#contents');
         expect(document.getElementById('contents')).toBe(screen.getByRole('navigation', { name: 'Contents' }));
-        fireEvent.click(back);
+        const steps = window.history.length;
+        const state = window.history.state;
+        // in place: no history entry without the router's state, so Back after "Next response" still shows the response its address names
+        expect(fireEvent.click(back)).toBe(false);
+        expect(window.history.length).toBe(steps);
+        expect(window.history.state).toBe(state);
+        expect(window.location.hash).toBe('#contents');
         expect(document.activeElement).toBe(within(screen.getByRole('navigation', { name: 'Contents' })).getByRole('heading', { name: 'Contents' }));
+        window.history.replaceState(null, '', '/');
     });
 
     it('offers no contents link for a form of one page', () => {
@@ -353,6 +408,34 @@ describe('the response page', () => {
         expect(screen.getByRole('navigation', { name: 'Contents' })).toBeInTheDocument();
         expect(screen.getAllByRole('main')).toHaveLength(1);
         expect(screen.queryByRole('navigation', { name: 'Response' })).toBeNull();
+    });
+
+    it('fits the toolbar on a phone: short labels below sm (full names kept for screen readers), and the actions wrap', () => {
+        access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
+        neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+        renderPage();
+        const actions = screen.getByTestId('response-actions');
+        expect(actions.className).toContain('flex-wrap');
+        // the names stay whole
+        const contents = within(actions).getByRole('link', { name: 'Contents' });
+        const print = within(actions).getByRole('button', { name: 'Print' });
+        const remove = within(actions).getByRole('button', { name: 'Delete response' });
+        // Contents and Print are icons below sm, "Delete response" says "Delete"
+        expect(within(contents).getByText('Contents').className).toContain('sr-only sm:not-sr-only');
+        expect(within(print).getByText('Print').className).toContain('sr-only sm:not-sr-only');
+        expect(within(remove).getByText('response').className).toBe('hidden sm:inline');
+        expect(remove).toHaveTextContent(/^Delete response$/);
+        expect(contents).toHaveAttribute('title', 'Contents');
+        expect(print).toHaveAttribute('title', 'Print');
+    });
+
+    it('keeps the response count on one line, and the sticky toolbar opaque over the page scrolling under it', () => {
+        neighbours.value = { previousId: 'x1', nextId: 'x3', position: 17, total: 18 };
+        const { container } = renderPage();
+        expect(screen.getByTestId('response-position').className).toContain('whitespace-nowrap');
+        const header = container.querySelector('header')!;
+        expect(header.className).toMatch(/(^|\s)bg-white(\s|$)/);
+        expect(header.className).not.toMatch(/bg-white\/|backdrop-blur/);
     });
 
     it('prints without the toolbar and the staff panels', () => {

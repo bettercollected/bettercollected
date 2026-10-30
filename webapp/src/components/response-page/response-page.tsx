@@ -24,7 +24,7 @@ import { rememberedNeighbours } from '@app/utils/response-list-memory';
 import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@app/utils/response-page';
 import { ResponseOrigin } from '@app/utils/response-urls';
 
-import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, focusInPageTarget } from './read-only-form';
+import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, followInPageLink } from './read-only-form';
 
 /** The words for a failed load. A 403 and a 404 are answers, not faults: no Retry for them. */
 function failureOf(error: any): { kind: 'forbidden' | 'missing' | 'error'; title: string; detail: string } {
@@ -36,10 +36,12 @@ function failureOf(error: any): { kind: 'forbidden' | 'missing' | 'error'; title
 
 const pageGutter = 'px-4 md:px-10 lg:px-28';
 
-// Set by a previous/next link: the next response's page moves focus to its
-// details once loaded, so a screen reader hears that the response changed
-// (the tab title stays the same). Not on a first open: focus starts at the top.
-let focusDetailsOnLoad = false;
+// Set by a previous/next link to the response it goes to: that response's
+// page moves focus to its details once loaded, so a screen reader hears that
+// the response changed (the tab title stays the same). Not on a first open
+// (focus starts at the top), not for a click that opens a new tab, and
+// forgotten when that response fails to load or another one opens instead.
+let focusDetailsOf: string | null = null;
 
 /**
  * One response on its own page, for staff: a toolbar (back to the list,
@@ -75,11 +77,8 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
     // a response of another form is not found here
     const wrongForm = !!response && !!form?.formId && form.formId !== formId;
 
-    // The title says what this is, never who answered: it lands in browser history.
+    // (The tab title, "Response · <form title>", is the route's metadata: page.tsx. Not set here as well.)
     const formTitle = form?.title?.trim() || 'Untitled form';
-    useEffect(() => {
-        document.title = form && !wrongForm ? `Response · ${formTitle}` : 'Response';
-    }, [form, wrongForm, formTitle]);
 
     // back to the list the page was opened from (a fixed path for each origin, never an address from the URL)
     const listUrl = responseOriginListUrl(workspace?.workspaceName ?? '', formId, origin);
@@ -94,55 +93,72 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
     const hasContents = loaded && responsePageSections(form, response.answers ?? {}).length > 1;
 
     const detailsRef = useRef<HTMLElement>(null);
+    const failed = !!failure;
     useEffect(() => {
-        if (!loaded || !focusDetailsOnLoad) return;
-        focusDetailsOnLoad = false;
+        if (focusDetailsOf === null) return;
+        // meant for another response (its navigation never happened), or this one failed to load
+        if (focusDetailsOf !== responseId || failed) {
+            focusDetailsOf = null;
+            return;
+        }
+        if (!loaded) return;
+        focusDetailsOf = null;
         detailsRef.current?.focus();
-    }, [loaded, responseId]);
+    }, [loaded, failed, responseId]);
 
     return (
         <div className="min-h-dvh bg-white text-black-900 print:min-h-0">
-            <header className={`backdrop-blur sticky top-0 z-30 border-b border-black-300 bg-white/95 print:hidden ${pageGutter}`}>
+            {/* opaque: the page scrolls under it */}
+            <header className={`sticky top-0 z-30 border-b border-black-300 bg-white print:hidden ${pageGutter}`}>
                 <nav aria-label="Response actions" className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
                     <Link href={listUrl} className="flex min-w-0 items-center gap-2 rounded text-sm font-medium text-black-700 hover:text-black-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
                         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{listName}</span>
                         {form && !wrongForm && <span className="max-w-[40vw] truncate font-normal text-black-600 sm:max-w-[320px]">· {formTitle}</span>}
                     </Link>
-                    <div className="flex items-center gap-1">
+                    {/* At phone width the labels of Contents and Print go (their icons stay, the names are kept for screen
+                        readers) and "Delete response" says "Delete"; anything still too wide wraps onto a second row. */}
+                    <div className="flex min-w-0 flex-wrap items-center gap-1" data-testid="response-actions">
                         {/* only when the list the staff member came from is known (see responseNeighbours) */}
                         {(neighbours.previousId || neighbours.nextId) && (
                             <>
-                                <NeighbourLink href={neighbours.previousId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.previousId)} label="Previous response" icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />} />
+                                <NeighbourLink targetId={neighbours.previousId} href={neighbours.previousId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.previousId)} label="Previous response" icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />} />
                                 {neighbours.position && neighbours.total && (
-                                    <span className="px-1 text-sm text-black-700 tabular-nums" data-testid="response-position">
+                                    <span className="px-1 text-sm whitespace-nowrap text-black-700 tabular-nums" data-testid="response-position">
                                         <span className="sr-only">Response </span>
                                         {`${neighbours.position} of ${neighbours.total}`}
                                     </span>
                                 )}
-                                <NeighbourLink href={neighbours.nextId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.nextId)} label="Next response" icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />} />
+                                <NeighbourLink targetId={neighbours.nextId} href={neighbours.nextId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.nextId)} label="Next response" icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />} />
                             </>
                         )}
                         {hasContents && (
                             <a
                                 href={`#${CONTENTS_ID}`}
-                                onClick={() => focusInPageTarget(CONTENTS_HEADING_ID)}
-                                className="flex h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-black-700 hover:bg-black-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                                onClick={(event) => followInPageLink(event, CONTENTS_ID, CONTENTS_HEADING_ID)}
+                                title="Contents"
+                                className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium text-black-700 hover:bg-black-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                             >
-                                <ListOrdered className="h-4 w-4" aria-hidden="true" />
-                                Contents
+                                <ListOrdered className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                <span className="sr-only sm:not-sr-only">Contents</span>
                             </a>
                         )}
                         {loaded && (
-                            <Button variant="ghost" className="px-2!" onClick={() => window.print()}>
-                                <Printer className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                                Print
+                            <Button variant="ghost" className="min-w-9 px-2!" title="Print" onClick={() => window.print()}>
+                                <Printer className="h-4 w-4 shrink-0 sm:mr-1.5" aria-hidden="true" />
+                                <span className="sr-only sm:not-sr-only">Print</span>
                             </Button>
                         )}
                         {loaded && canDelete && (
-                            <Button variant="dangerGhost" className="px-2!" onClick={() => openModal('DELETE_RESPONSE', { workspace, formId, responseId: response.responseId, navigateTo: listUrl, onDeleting: (active: boolean) => setFrozen(active ? fetched : null) })}>
-                                <DeleteIcon className="mr-1.5 h-4 w-4 text-[#C43D3D]" aria-hidden="true" />
-                                Delete response
+                            <Button variant="dangerGhost" className="px-2!" aria-label="Delete response" onClick={() => openModal('DELETE_RESPONSE', { workspace, formId, responseId: response.responseId, navigateTo: listUrl, onDeleting: (active: boolean) => setFrozen(active ? fetched : null) })}>
+                                <DeleteIcon className="mr-1.5 h-4 w-4 shrink-0 text-[#C43D3D]" aria-hidden="true" />
+                                {/* "Delete" at phone width; the name is always the whole "Delete response" (it starts with what is seen) */}
+                                <span>
+                                    Delete
+                                    <span aria-hidden="true" className="hidden sm:inline">
+                                        {' response'}
+                                    </span>
+                                </span>
                             </Button>
                         )}
                     </div>
@@ -189,9 +205,11 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
 }
 
 /** A previous/next arrow: a real link when the cached list knows the neighbour, else a disabled button. */
-function NeighbourLink({ href, label, icon }: { href?: string | false | null; label: string; icon: React.ReactNode }) {
-    const announce = () => {
-        focusDetailsOnLoad = true;
+function NeighbourLink({ targetId, href, label, icon }: { targetId?: string; href?: string | false | null; label: string; icon: React.ReactNode }) {
+    const announce = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        // a new tab or window (ctrl/cmd/shift/alt, or not the main button) leaves this page as it is
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        focusDetailsOf = targetId ?? null;
     };
     const classes = 'focus-visible:ring-brand-500 flex h-9 w-9 items-center justify-center rounded-md focus:outline-hidden focus-visible:ring-2';
     if (!href) {

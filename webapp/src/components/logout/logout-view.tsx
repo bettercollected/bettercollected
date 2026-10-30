@@ -6,7 +6,9 @@ import { useModal } from '@app/components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
-import { WORKSPACE_PERMISSIONS_TAG, workspacesApi } from '@app/store/workspaces/api';
+import { formsApi } from '@app/store/redux/form-api';
+import { workspacesApi } from '@app/store/workspaces/api';
+import { forgetResponseList } from '@app/utils/response-list-memory';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
@@ -30,8 +32,12 @@ export default function LogoutView(props: any) {
                 else router.push('/login');
             }
             dispatch(setAuth(initialAuthState));
-            // the next user must not see this user's permissions
-            dispatch(workspacesApi.util.invalidateTags([WORKSPACE_PERMISSIONS_TAG]));
+            // The next person at this browser must not see what this user saw (on the page Back
+            // returns to, or from a cache): the cached workspaces, forms, responses and permissions,
+            // and the responses list memory (whose search may be a responder's email).
+            dispatch(workspacesApi.util.resetApiState());
+            dispatch(formsApi.util.resetApiState());
+            forgetResponseList();
             closeModal();
         });
     };

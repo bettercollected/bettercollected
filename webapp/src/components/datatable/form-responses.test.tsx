@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The "server": one list of responses, filtered like the backend does for
 // `dataOwnerIdentifier`. Every call the component makes is recorded.
 type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: any; createdAt: string };
-const server: { items: Item[]; error: boolean; calls: any[]; refetchCalls: any[]; push: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetchCalls: [], push: vi.fn() };
+const server: { items: Item[]; error: boolean; stale: any; calls: any[]; refetchCalls: any[]; push: ReturnType<typeof vi.fn> } = { items: [], error: false, stale: null, calls: [], refetchCalls: [], push: vi.fn() };
 
 // a response opens on its own page: the table navigates to it
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: (url: string) => server.push(url) }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
@@ -26,11 +26,15 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             server.calls.push({ arg, options });
             if (options?.skip) return { data: undefined, isLoading: false, isFetching: false, isError: false, refetch };
             if (server.error) return { data: undefined, isLoading: false, isFetching: false, isError: true, refetch };
+            // still loading this page: RTK Query keeps the previous answer in `data`, `currentData` is empty
+            if (server.stale) return { data: server.stale, currentData: undefined, isLoading: false, isFetching: true, isError: false, refetch };
             const term = arg.dataOwnerIdentifier;
             const items = term ? server.items.filter((item) => (item.dataOwnerIdentifier ?? '').includes(term)) : server.items;
             // pages of `arg.size` rows, like the backend
             const pages = Math.max(1, Math.ceil(items.length / arg.size));
-            return { data: { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size }, isLoading: false, isFetching: false, isError: false, refetch };
+            const data = { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size };
+            // currentData: the answer for this very argument (here always at once)
+            return { data, currentData: data, isLoading: false, isFetching: false, isError: false, refetch };
         },
         useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
@@ -75,6 +79,7 @@ describe('responses table: search and honest states', () => {
         window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false, onchange: null })) as any;
         vi.useFakeTimers();
         server.error = false;
+        server.stale = null;
         server.calls = [];
         server.refetchCalls = [];
         server.push = vi.fn();
@@ -227,6 +232,67 @@ describe('responses table: search and honest states', () => {
             server.calls = [];
             renderTable();
             expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ page: 2 });
+        });
+
+        it('goes to the last page with responses when the page it was left on is now empty (its only response was deleted)', () => {
+            // 16 responses, 15 a page: page 2 holds one
+            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            // its page is opened and the response deleted; "Responses" brings the list back
+            unmount();
+            server.items = server.items.slice(0, 15);
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 1 });
+            expect(screen.getByText('person0@example.com')).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            // and the memory keeps the page it is on now
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ page: 1 });
+        });
+
+        it('steps back to the last page that has responses when several pages emptied', () => {
+            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(4);
+            unmount();
+            // someone else deleted 30 of them
+            server.items = server.items.slice(0, 16);
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 2 });
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+        });
+
+        it("never steps back on the previous page's answer while the page asked for still loads", () => {
+            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(3);
+            // page 4 is asked for; until it answers, the hook still holds an empty earlier answer
+            server.stale = { items: [], total: 16, page: 3, pages: 2, size: 15 };
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(4);
+        });
+
+        it('says "No responses yet" on page 1 when every response is gone', () => {
+            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            unmount();
+            server.items = [];
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ page: 1 });
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
         });
 
         it('opens again with the search it was left with, shown in the search box', () => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { forgetResponseList, rememberResponseListPage, rememberResponseListView, rememberedListView, rememberedNeighbours } from './response-list-memory';
+import { forgetResponseList, forgetResponseListOutside, rememberResponseListPage, rememberResponseListView, rememberedListView, rememberedNeighbours } from './response-list-memory';
 
 const page = (n: number, ids: string[], extra: Partial<{ size: number; total: number }> = {}) => ({ page: n, size: 3, total: 9, ids, ...extra });
 const key = (formId = 'f1', searchText = '', workspaceId = 'w1') => ({ workspaceId, formId, searchText });
@@ -79,6 +79,17 @@ describe('remembered response list', () => {
         expect(rememberedListView('w1', 'f1')).toEqual({ page: 2, searchText: 'anna' });
         expect(rememberedListView('w2', 'f1')).toBeNull();
         expect(rememberedListView('w1', 'f2')).toBeNull();
+    });
+
+    it('forgets the list when another workspace opens, and keeps it in the same one', () => {
+        rememberResponseListView(key('f1', 'anna@example.com'), 2);
+        rememberResponseListPage(key('f1', 'anna@example.com'), page(2, ['r4', 'r5', 'r6']));
+        forgetResponseListOutside('w1');
+        expect(rememberedListView('w1', 'f1')).toEqual({ page: 2, searchText: 'anna@example.com' });
+        forgetResponseListOutside('w2');
+        // back in the first workspace: nothing of that list (or its search) is left
+        expect(rememberedListView('w1', 'f1')).toBeNull();
+        expect(rememberedNeighbours('w1', 'f1', 'r5')).toEqual({});
     });
 
     it('keeps only ids and counts for the page: no answers, no search text', () => {

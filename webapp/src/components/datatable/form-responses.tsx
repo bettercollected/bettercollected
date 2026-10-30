@@ -63,7 +63,7 @@ export default function FormResponsesTable({ props }: any) {
         [form.formId, workspace?.id, requestForDeletion, page, searchText]
     );
 
-    const { data, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
+    const { data, currentData, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
     const { can } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
     const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
@@ -88,10 +88,22 @@ export default function FormResponsesTable({ props }: any) {
     };
 
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
+    // A page past the end of the list (the last response on it was deleted,
+    // here or by someone else, while a response's page was open, and the
+    // list came back on it): go to the last page that has responses. Each
+    // step goes at least one page back, so this ends.
+    // Only the answer for this very page counts (`currentData`, never the
+    // previous page's rows while this one loads). Set while rendering, as
+    // React advises for state that follows from other state.
+    const pastTheEnd = !!currentData && Array.isArray(currentData.items) && currentData.items.length === 0 && page > 1 && !isError;
+    if (pastTheEnd) {
+        const last = Math.max(1, Math.ceil((currentData.total ?? 0) / (currentData.size || globalConstants.pageSize)));
+        setPage(Math.max(1, Math.min(page - 1, last)));
+    }
 
     let results;
     // no workspace yet: the query is skipped, which is not "no responses"
-    if (isLoading || !workspace?.id) {
+    if (isLoading || !workspace?.id || pastTheEnd) {
         results = (
             <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />
