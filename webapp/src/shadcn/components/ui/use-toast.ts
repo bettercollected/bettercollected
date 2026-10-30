@@ -130,7 +130,8 @@ let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
     memoryState = reducer(memoryState, action);
-    listeners.forEach((listener) => {
+    // a copy: a listener may unsubscribe while this runs
+    [...listeners].forEach((listener) => {
         listener(memoryState);
     });
 }
@@ -166,24 +167,68 @@ function toast({ ...props }: Toast) {
     };
 }
 
+/** How notices waiting for the same thing merge: their counts add up. */
+export interface ToastMerge {
+    key: string;
+    count: number;
+    describe: (count: number) => React.ReactNode;
+}
+
+interface WaitingNotice {
+    props: Toast;
+    merge?: ToastMerge;
+}
+
+// Notices waiting for an action toast (an Undo) to close.
+let waitingNotices: WaitingNotice[] = [];
+const offersAction = (state: State) => state.toasts.some((item) => item.open && !!item.action);
+const describe = ({ props, merge }: WaitingNotice): Toast => (merge ? { ...props, description: merge.describe(merge.count) } : props);
+
+function showWaiting() {
+    // checked again: another action toast may have opened meanwhile
+    if (offersAction(memoryState) || !waitingNotices.length) return;
+    const due = waitingNotices;
+    waitingNotices = [];
+    stopWatching();
+    due.forEach((notice) => toast(describe(notice)));
+}
+
+const watchToasts = (state: State) => {
+    if (!offersAction(state)) setTimeout(showWaiting, 0);
+};
+
+function stopWatching() {
+    const index = listeners.indexOf(watchToasts);
+    if (index > -1) listeners.splice(index, 1);
+}
+
 /**
  * A plain notice that never replaces a toast offering an action (an Undo,
  * say; only one toast shows at a time): shown now, or once no open toast
- * has an action.
+ * has an action. Waiting notices with the same `merge.key` become one, their
+ * counts added up. Returns a cancel for a notice still waiting (call it when
+ * the page that asked goes away).
  */
-function toastWhenFree(props: Toast) {
-    const busy = (state: State) => state.toasts.some((item) => item.open && !!item.action);
-    if (!busy(memoryState)) {
-        toast(props);
-        return;
+function toastWhenFree(props: Toast, merge?: ToastMerge): () => void {
+    if (!offersAction(memoryState) && !waitingNotices.length) {
+        toast(describe({ props, merge }));
+        return () => undefined;
     }
-    const waiting = (state: State) => {
-        if (busy(state)) return;
-        const index = listeners.indexOf(waiting);
-        if (index > -1) listeners.splice(index, 1);
-        setTimeout(() => toast(props), 0);
+    const same = merge ? waitingNotices.find((notice) => notice.merge?.key === merge.key) : undefined;
+    let entry: WaitingNotice;
+    if (same?.merge && merge) {
+        same.merge = { ...same.merge, count: same.merge.count + merge.count };
+        entry = same;
+    } else {
+        entry = { props, merge: merge ? { ...merge } : undefined };
+        waitingNotices.push(entry);
+    }
+    if (!listeners.includes(watchToasts)) listeners.push(watchToasts);
+    if (!offersAction(memoryState)) setTimeout(showWaiting, 0);
+    return () => {
+        waitingNotices = waitingNotices.filter((notice) => notice !== entry);
+        if (!waitingNotices.length) stopWatching();
     };
-    listeners.push(waiting);
 }
 
 function useToast() {

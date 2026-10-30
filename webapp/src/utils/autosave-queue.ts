@@ -12,8 +12,9 @@
 
 export type SaveOutcome =
     // ``savedBody``: what the server stored when it differs from what was
-    // sent (it left out broken field rules), so that state is not re-sent.
-    | { kind: 'saved'; version?: string | null; savedBody?: string }
+    // sent (it left out broken field rules), so that state is not re-sent;
+    // ``rewritePending``: the same change for a save queued meanwhile.
+    | { kind: 'saved'; version?: string | null; savedBody?: string; rewritePending?: (body: string) => string }
     /** The stored form is newer than the version sent: nothing was written. */
     | { kind: 'conflict' }
     /** The request did not reach the server, or a gateway failed: retry. */
@@ -105,6 +106,11 @@ export class SaveQueue {
         this.pump();
     }
 
+    /** Rewrite what waits to be sent (not what is in flight): e.g. without rules the server dropped. */
+    rewritePending(rewrite: (body: string) => string) {
+        if (this.pending !== null) this.pending = rewrite(this.pending);
+    }
+
     /** Send a retry now (e.g. the browser came back online). */
     retryNow() {
         if (!this.retryTimer) return;
@@ -164,6 +170,7 @@ export class SaveQueue {
 
         if (outcome.kind === 'saved') {
             this.lastSavedBody = outcome.savedBody ?? body;
+            if (outcome.rewritePending) this.rewritePending(outcome.rewritePending);
             this.attempt = 0;
             this.adoptVersion(outcome.version);
             if (this.pending !== null && this.pending !== body && this.pending !== this.lastSavedBody) {

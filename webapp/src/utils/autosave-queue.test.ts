@@ -179,3 +179,23 @@ describe('versions', () => {
         expect(laterVersion('2026-10-17T09:00:01Z', undefined)).toBe('2026-10-17T09:00:01Z');
     });
 });
+
+describe('a saved outcome that rewrites what waits', () => {
+    it('applies savedBody and rewrites the queued body, which is then not re-sent when equal', async () => {
+        const sent: string[] = [];
+        let answer: (outcome: any) => void = () => undefined;
+        const queue = new SaveQueue({
+            send: async (body) => {
+                sent.push(body);
+                if (sent.length === 1) return new Promise((resolve) => (answer = resolve));
+                return { kind: 'saved' };
+            }
+        });
+        queue.enqueue('A+rule');
+        queue.enqueue('B+rule');
+        answer({ kind: 'saved', savedBody: 'A', rewritePending: (body: string) => body.replace('+rule', '') });
+        await queue.flush();
+        expect(sent).toEqual(['A+rule', 'B']);
+        expect(queue.knownBody()).toBe('B');
+    });
+});

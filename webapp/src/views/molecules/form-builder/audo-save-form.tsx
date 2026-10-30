@@ -40,15 +40,18 @@ export function resetDroppedRuleNotices() {
 }
 
 /**
- * The notice for rules a save left out, or null: once per rule per session,
- * counted per question. The builder cannot show or edit rules yet.
+ * How many questions lost rules not told about yet (once per rule per
+ * session). The builder cannot show or edit rules yet.
  */
-export function droppedRulesNotice(formId: string, dropped: DroppedRule[]): string | null {
+export function newlyDroppedQuestions(formId: string, dropped: DroppedRule[]): number {
     const fresh = dropped.filter(({ fieldId, ruleId }) => !noticedRules.has(`${formId}/${fieldId}/${ruleId}`));
     fresh.forEach(({ fieldId, ruleId }) => noticedRules.add(`${formId}/${fieldId}/${ruleId}`));
-    if (!fresh.length) return null;
-    const questions = new Set(fresh.map(({ fieldId }) => fieldId)).size;
-    return i18n.t('builder:FIELD_RULES.DROPPED', { count: questions });
+    return new Set(fresh.map(({ fieldId }) => fieldId)).size;
+}
+
+/** The notice for `count` questions that lost a rule. */
+export function droppedRulesText(count: number): string {
+    return i18n.t('builder:FIELD_RULES.DROPPED', { count });
 }
 
 /** A sent body as the server stored it: without the rules it dropped. */
@@ -142,6 +145,15 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
 
     // On while the builder applies what the server stored (not an edit).
     const [quiet] = useState(() => ({ on: false }));
+    // Notices still waiting for an Undo toast to close: cancelled when the editor goes away.
+    const [waitingNotices] = useState(() => new Set<() => void>());
+    useEffect(
+        () => () => {
+            waitingNotices.forEach((cancel) => cancel());
+            waitingNotices.clear();
+        },
+        [waitingNotices]
+    );
     const [queue] = useState(
         () =>
             new SaveQueue(
@@ -156,11 +168,19 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         const outcome = saveOutcomeOf(response);
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
+                            // The language the server stored: it keeps its own
+                            // for a tag that cannot be set (after an undo back to
+                            // an imported "en-GB", say), and the builder shows that.
+                            const saved = response.data?.settings;
+                            if (saved && typeof saved === 'object' && 'language' in saved) {
+                                store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
+                            }
                             const dropped = droppedRulesOf(response.data);
                             if (dropped.length) {
                                 // The server left these rules out: the builder lets go of
-                                // them too (no undo step, not an edit), and the next saves
-                                // don't send them again.
+                                // them too (no undo step, not an edit), and neither the
+                                // save waiting in the queue (rewritePending) nor later
+                                // ones send them again.
                                 const fields = store.get(builderFieldsAtom);
                                 const pruned = withoutFieldRules(fields, dropped);
                                 if (pruned !== fields) {
@@ -168,17 +188,13 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                                     store.set(commitBuilderFieldsAtom, pruned, { undoable: false });
                                     quiet.on = false;
                                 }
-                                const notice = droppedRulesNotice(formId, dropped);
-                                // never in place of an open Undo toast
-                                if (notice) toastWhenFree({ description: notice });
-                                return { ...outcome, savedBody: storedBodyOf(body, dropped) } as SaveOutcome;
-                            }
-                            // The language the server stored: it keeps its own
-                            // for a tag that cannot be set (after an undo back to
-                            // an imported "en-GB", say), and the builder shows that.
-                            const saved = response.data?.settings;
-                            if (saved && typeof saved === 'object' && 'language' in saved) {
-                                store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
+                                const questions = newlyDroppedQuestions(formId, dropped);
+                                // never in place of an open Undo toast; two waiting notices become one
+                                if (questions) {
+                                    const cancel = toastWhenFree({}, { key: `field-rules:${formId}`, count: questions, describe: droppedRulesText });
+                                    waitingNotices.add(cancel);
+                                }
+                                return { ...outcome, savedBody: storedBodyOf(body, dropped), rewritePending: (waiting: string) => storedBodyOf(waiting, dropped) } as SaveOutcome;
                             }
                         }
                         return outcome;
