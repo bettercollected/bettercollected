@@ -55,13 +55,13 @@ def _future_epoch(minutes=10):
 
 def test_otp_sign_in_proves_the_email(app_runner, platform_admin):
     expiry = _future_epoch()
+    repo = container.user_repository()
+    user = app_runner.portal.call(repo.save_user, platform_admin)
     hashed = signin_code.stored(
-        signin_code.digest("ABC-123", platform_admin, None, expiry)
+        signin_code.digest("ABC-123", str(user.id), "FORM_CREATOR", expiry)
     )
     app_runner.portal.call(
-        lambda: container.user_repository().save_user(
-            platform_admin, otp_code=hashed, otp_expiry=expiry
-        )
+        lambda: repo.set_user_otp(user.id, hashed, expiry, "FORM_CREATOR")
     )
     response = app_runner.get(
         "auth/otp/validate", params={"email": platform_admin, "otp_code": "ABC-123"}

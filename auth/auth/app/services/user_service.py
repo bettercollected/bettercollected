@@ -22,8 +22,9 @@ from auth.config import settings
 
 
 def without_sign_in_codes(users: List[UserDocument]) -> List[UserDocument]:
-    """``users`` as listed to the backend: a pending sign-in code (its hash,
-    expiry and purpose) never leaves this service; the fields stay, empty."""
+    """``users`` as returned to the backend (listings, the upgrade): a pending
+    sign-in code (its hash, expiry and purpose) never leaves this service; the
+    fields stay, empty."""
     return [
         user.model_copy(
             update={"otp_code": None, "otp_expiry": None, "otp_code_for": None}
@@ -102,7 +103,10 @@ class UserService:
         return await self.user_repo.delete_user(user_id=user_id)
 
     async def upgrade_user_to_pro(self, user_id):
-        return await self.user_repo.set_user_plan(user_id, Plans.PRO)
+        (upgraded,) = without_sign_in_codes(
+            [await self.user_repo.set_user_plan(user_id, Plans.PRO)]
+        )
+        return upgraded
 
 
 def run_sync(func, *args, **kwargs):

@@ -5,7 +5,8 @@ The account's ``otp_code`` holds ``otp1$<wrong tries>$<hex HMAC-SHA256>``:
 * the key is a sub-key of ``AUTH_AES_HEX_KEY``, HMAC(key, ``SUBKEY_LABEL``),
   so the raw key is never reused as an HMAC key. Rotating that key
   invalidates the codes pending at that moment (they live 5 minutes);
-* the hashed message binds the code to the account's email (lower case), the
+* the hashed message binds the code to the account's id (immutable, and never
+  case-folded: Python's and Postgres' ``lower`` may disagree on an email), the
   purpose (``otp_code_for``: creator or respondent) and the expiry, so a stored
   value copied to another account, purpose or expiry never matches;
 * the number of wrong tries travels with the hash: a new code starts at 0 and
@@ -49,17 +50,19 @@ def _key(secret: Optional[str]) -> bytes:
 
 def digest(
     code: str,
-    email: str,
+    account_id: str,
     purpose: Optional[str],
     expiry: int,
     *,
     secret: Optional[str] = None,
 ) -> str:
-    """The hex HMAC of ``code`` for this account, purpose and expiry."""
+    """The hex HMAC of ``code`` for this account (its id), purpose and expiry."""
+    if not account_id:
+        raise ValueError("a sign-in code is bound to an account id")
     message = json.dumps(
         [
             "v1",
-            (email or "").strip().lower(),
+            str(account_id),
             str(getattr(purpose, "value", purpose) or ""),
             int(expiry),
             code or "",
@@ -87,7 +90,7 @@ def parse(value: Optional[str]) -> Optional[StoredCode]:
 def matches(
     expected: StoredCode,
     code: str,
-    email: str,
+    account_id: str,
     purpose: Optional[str],
     expiry: int,
     *,
@@ -96,5 +99,5 @@ def matches(
     """Whether ``code`` is the one hashed into ``expected`` (constant time)."""
     if not isinstance(code, str) or not code:
         return False
-    candidate = digest(code, email, purpose, expiry, secret=secret)
+    candidate = digest(code, account_id, purpose, expiry, secret=secret)
     return hmac.compare_digest(candidate, expected.digest)

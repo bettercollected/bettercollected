@@ -4,6 +4,7 @@ import json
 import logging
 
 import auth
+from auth.app import access_log
 from auth.app.apm_privacy import PrivateAPMClient
 from auth.app.container import container
 from auth.app.controllers.internal_key import log_if_internal_key_missing
@@ -87,6 +88,7 @@ def get_application():
 
     """
     log.debug("Initialize FastAPI application node.")
+    access_log.install()  # no query strings (emails, sign-in codes) in it
     container.wire(packages=[auth.app])
     app = FastAPI(
         title=settings.API_TITLE,
@@ -105,8 +107,9 @@ def get_application():
     app.add_exception_handler(NotFoundError, not_found_error_handler)
     app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
-        # a client that sends no query string, header, body or frame variable
-        # (app/apm_privacy.py): the sign-in code travels in the query string
+        # a client that sends no query string, header, body, frame variable or
+        # database parameter (app/apm_privacy.py): the sign-in code travels in
+        # the query string
         apm = make_apm_client(client_cls=PrivateAPMClient)
         app.add_middleware(ElasticAPM, client=apm)
     return app

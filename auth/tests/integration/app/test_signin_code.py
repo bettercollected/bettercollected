@@ -14,16 +14,19 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import pytest_asyncio
 
-from auth.__main__ import AccessLogWithoutQuery
+from auth.app import access_log
+from auth.app.access_log import AccessLogWithoutQuery
 from auth.app.container import container
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services import signin_code
 from auth.app.services.auth_service import AuthService
 from auth.app.services.user_service import UserService
+from common.enums.plan import Plans
 from common.enums.roles import Roles
 
 CODE = "ABC-123"
 SECRET = "a-test-key"
+ACCOUNT = "6a0000000000000000000001"
 
 
 def unique_email() -> str:
@@ -67,57 +70,54 @@ def service(repo) -> AuthService:
 class TestHelper:
     def test_the_stored_value_is_a_keyed_hash_not_the_code(self):
         value = signin_code.stored(
-            signin_code.digest(CODE, "a@example.com", "FORM_CREATOR", 99, secret=SECRET)
+            signin_code.digest(CODE, ACCOUNT, "FORM_CREATOR", 99, secret=SECRET)
         )
         assert CODE not in value and CODE.replace("-", "") not in value
         parsed = signin_code.parse(value)
         assert parsed.wrong_tries == 0 and len(parsed.digest) == 64
         # keyed: another key gives another hash
         assert parsed.digest != signin_code.digest(
-            CODE, "a@example.com", "FORM_CREATOR", 99, secret="another-key"
+            CODE, ACCOUNT, "FORM_CREATOR", 99, secret="another-key"
         )
 
-    def test_the_hash_is_bound_to_email_purpose_and_expiry(self):
-        base = ("a@example.com", "FORM_CREATOR", 99)
+    def test_the_hash_is_bound_to_account_purpose_and_expiry(self):
+        base = (ACCOUNT, "FORM_CREATOR", 99)
         expected = signin_code.parse(
             signin_code.stored(signin_code.digest(CODE, *base, secret=SECRET))
         )
         assert signin_code.matches(expected, CODE, *base, secret=SECRET)
-        # the email ignores case and surrounding blanks
-        assert signin_code.matches(
-            expected, CODE, " A@Example.com ", "FORM_CREATOR", 99, secret=SECRET
-        )
         for other in (
-            ("b@example.com", "FORM_CREATOR", 99),
-            ("a@example.com", "FORM_RESPONDER", 99),
-            ("a@example.com", "FORM_CREATOR", 100),
+            ("6a0000000000000000000002", "FORM_CREATOR", 99),
+            (ACCOUNT, "FORM_RESPONDER", 99),
+            (ACCOUNT, "FORM_CREATOR", 100),
         ):
             assert not signin_code.matches(expected, CODE, *other, secret=SECRET)
         assert not signin_code.matches(expected, "ABC-124", *base, secret=SECRET)
         assert not signin_code.matches(expected, "", *base, secret=SECRET)
         assert not signin_code.matches(expected, None, *base, secret=SECRET)
 
+    def test_a_code_needs_an_account_id(self):
+        for missing in ("", None):
+            with pytest.raises(ValueError):
+                signin_code.digest(CODE, missing, "FORM_CREATOR", 99, secret=SECRET)
+
     def test_a_purpose_enum_and_its_value_hash_alike(self):
         assert signin_code.digest(
-            CODE, "a@example.com", Roles.FORM_CREATOR, 99, secret=SECRET
-        ) == signin_code.digest(
-            CODE, "a@example.com", "FORM_CREATOR", 99, secret=SECRET
-        )
+            CODE, ACCOUNT, Roles.FORM_CREATOR, 99, secret=SECRET
+        ) == signin_code.digest(CODE, ACCOUNT, "FORM_CREATOR", 99, secret=SECRET)
 
     def test_the_comparison_is_constant_time(self):
         expected = signin_code.parse(
             signin_code.stored(
-                signin_code.digest(CODE, "a@example.com", "X", 99, secret=SECRET)
+                signin_code.digest(CODE, ACCOUNT, "X", 99, secret=SECRET)
             )
         )
         with patch.object(
             signin_code.hmac, "compare_digest", wraps=hmac.compare_digest
         ) as compare:
-            assert signin_code.matches(
-                expected, CODE, "a@example.com", "X", 99, secret=SECRET
-            )
+            assert signin_code.matches(expected, CODE, ACCOUNT, "X", 99, secret=SECRET)
             assert not signin_code.matches(
-                expected, "WRONG-1", "a@example.com", "X", 99, secret=SECRET
+                expected, "WRONG-1", ACCOUNT, "X", 99, secret=SECRET
             )
         assert compare.call_count == 2
 
@@ -140,7 +140,7 @@ class TestHelper:
 
     def test_no_key_refuses_instead_of_hashing_with_an_empty_key(self):
         with pytest.raises(RuntimeError):
-            signin_code.digest(CODE, "a@example.com", "X", 99, secret="")
+            signin_code.digest(CODE, ACCOUNT, "X", 99, secret="")
 
 
 # -- sign-in --------------------------------------------------------------------------
@@ -197,12 +197,87 @@ async def test_parallel_guesses_share_the_same_five_tries(repo, pending):
     assert await service(repo).validate_otp(pending, CODE) is None
 
 
+@pytest.fixture
+def interleaved(monkeypatch):
+    """Every read of an account (a SELECT on auth.users) waits, after it
+    returns, until ``parties`` of them have returned or ``timeout`` passed.
+    Without the row lock all parties read the same state before any of them
+    writes; with it, the others' locked reads wait for the first commit and
+    each party times out instead."""
+    from sqlalchemy import Select
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from auth.db.models import UserRow
+
+    state = {"parties": 2, "timeout": 0.3, "arrived": 0}
+    everyone = asyncio.Event()
+    execute = AsyncSession.execute
+
+    async def paused_execute(self, statement, *args, **kwargs):
+        result = await execute(self, statement, *args, **kwargs)
+        if isinstance(statement, Select) and any(
+            source is UserRow.__table__ for source in statement.get_final_froms()
+        ):
+            state["arrived"] += 1
+            if state["arrived"] >= state["parties"]:
+                everyone.set()
+            try:
+                await asyncio.wait_for(everyone.wait(), state["timeout"])
+            except asyncio.TimeoutError:
+                pass
+        return result
+
+    monkeypatch.setattr(AsyncSession, "execute", paused_execute)
+    return state
+
+
 @pytest.mark.asyncio
-async def test_parallel_uses_of_the_right_code_sign_in_once(repo, pending):
+async def test_parallel_uses_of_the_right_code_sign_in_once(repo, pending, interleaved):
+    interleaved["parties"] = 3
     results = await asyncio.gather(
-        *(service(repo).validate_otp(pending, CODE) for _ in range(5))
+        *(service(repo).validate_otp(pending, CODE) for _ in range(3))
     )
     assert sum(r is not None for r in results) == 1
+
+
+@pytest.mark.asyncio
+async def test_other_account_writes_never_restore_an_older_code(
+    repo, pending, interleaved
+):
+    """Writes of other fields run while wrong tries are counted: each try
+    stays counted (a write that stored the document it read before a try
+    would reset the count)."""
+    stored = await repo.get_user_by_email(pending)
+    writes = [
+        repo.update_last_logged_in(stored.id),
+        repo.update_user_names(stored.id, "Ada", "Lovelace"),
+        repo.set_user_plan(stored.id, Plans.PRO),
+        repo.set_stripe_payment_id(stored.id, "cs_1"),
+        repo.save_user(pending, profile_image="https://example.test/a.png"),
+    ]
+    guesses = [service(repo).validate_otp(pending, f"BAD-00{n}") for n in range(3)]
+    interleaved["parties"] = len(writes) + len(guesses)
+    interleaved["timeout"] = 0.2
+    await asyncio.gather(*writes, *guesses)
+
+    after = await repo.get_user_by_email(pending)
+    assert signin_code.parse(after.otp_code).wrong_tries == 3
+    assert (after.first_name, after.plan, after.stripe_payment_id) == (
+        "Ada",
+        Plans.PRO,
+        "cs_1",
+    )
+    assert after.last_logged_in is not None
+
+
+@pytest.mark.asyncio
+async def test_a_used_code_stays_used_after_other_writes(repo, pending):
+    stale = await repo.get_user_by_email(pending)  # read before the sign-in
+    assert await service(repo).validate_otp(pending, CODE) is not None
+    await repo.update_last_logged_in(stale.id)
+    await repo.update_user_names(stale.id, "Ada", "Lovelace")
+    assert (await repo.get_user_by_email(pending)).otp_code is None
+    assert await service(repo).validate_otp(pending, CODE) is None
 
 
 @pytest.mark.asyncio
@@ -212,7 +287,9 @@ async def test_an_expired_code_is_refused_without_comparing(repo, no_mail):
     expiry = epoch(-1)
     await repo.set_user_otp(
         user.id,
-        signin_code.stored(signin_code.digest(CODE, email, "FORM_CREATOR", expiry)),
+        signin_code.stored(
+            signin_code.digest(CODE, str(user.id), "FORM_CREATOR", expiry)
+        ),
         expiry,
         "FORM_CREATOR",
     )
@@ -305,6 +382,45 @@ async def test_user_listings_never_carry_the_code(repo, pending):
     assert (await repo.get_user_by_email(pending)).otp_code == stored.otp_code
 
 
+@pytest.mark.asyncio
+async def test_the_stored_hash_is_bound_to_the_account_id(repo, pending):
+    stored = await repo.get_user_by_email(pending)
+    expected = signin_code.parse(stored.otp_code)
+    assert signin_code.matches(
+        expected, CODE, str(stored.id), stored.otp_code_for, stored.otp_expiry
+    )
+    # not to the email, in any case
+    assert not signin_code.matches(
+        expected, CODE, pending, stored.otp_code_for, stored.otp_expiry
+    )
+
+
+def test_the_upgrade_route_never_returns_the_code(app_runner, no_mail):
+    email = unique_email()
+    repo = container.user_repository()
+    with patch.object(AuthService, "generate_otp", return_value=CODE):
+        sent = app_runner.get(
+            "auth/otp/send", params={"receiver_email": email, "creator": True}
+        )
+    assert sent.status_code == 200, sent.text
+    user = app_runner.portal.call(repo.get_user_by_email, email)
+    assert user.otp_code
+
+    upgraded = app_runner.patch(f"users/{user.id}/upgrade")
+
+    assert upgraded.status_code == 200, upgraded.text
+    body = upgraded.json()
+    assert body["plan"] == "PRO"
+    assert (body["otp_code"], body["otp_expiry"], body["otp_code_for"]) == (
+        None,
+        None,
+        None,
+    )
+    # the code itself stays pending
+    stored = app_runner.portal.call(repo.get_user_by_email, email)
+    assert stored.otp_code == user.otp_code
+
+
 def test_the_code_is_refused_over_http_after_use(app_runner, no_mail):
     email = unique_email()
     with patch.object(AuthService, "generate_otp", return_value=CODE):
@@ -346,3 +462,47 @@ def test_the_access_log_leaves_out_the_query_string():
     line = record.getMessage()
     assert CODE not in line and "example.com" not in line
     assert '"GET /api/v1/auth/otp/validate HTTP/1.1" 200' in line
+
+
+def test_the_app_installs_the_access_log_filter_once_and_uvicorn_keeps_it():
+    import logging.config
+
+    from uvicorn.config import LOGGING_CONFIG
+
+    from auth.app import get_application
+
+    logger = logging.getLogger(access_log.ACCESS_LOGGER)
+    saved = list(logger.filters)
+    try:
+        for existing in list(logger.filters):
+            logger.removeFilter(existing)
+        get_application()
+        get_application()
+        access_log.install()
+        ours = [f for f in logger.filters if isinstance(f, AccessLogWithoutQuery)]
+        assert len(ours) == 1
+        # uvicorn configures its loggers after or before the app is built
+        # (python -m auth, or uvicorn auth.app:get_application)
+        logging.config.dictConfig(LOGGING_CONFIG)
+
+        lines = []
+        handler = logging.Handler()
+        handler.emit = lambda record: lines.append(record.getMessage())
+        logger.addHandler(handler)
+        try:
+            logger.info(
+                '%s - "%s %s HTTP/%s" %d',
+                "10.0.0.1:5000",
+                "GET",
+                f"/api/v1/auth/otp/send?receiver_email=a%40example.com&x={CODE}",
+                "1.1",
+                200,
+            )
+        finally:
+            logger.removeHandler(handler)
+        assert lines == ['10.0.0.1:5000 - "GET /api/v1/auth/otp/send HTTP/1.1" 200']
+    finally:
+        for existing in list(logger.filters):
+            logger.removeFilter(existing)
+        for existing in saved:
+            logger.addFilter(existing)

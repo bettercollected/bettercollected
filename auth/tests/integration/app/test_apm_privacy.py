@@ -1,9 +1,12 @@
-"""Elastic APM on the auth service records a request's method and path only:
-no query string (the backend sends the email and the sign-in code there), no
-headers (the internal key), no body and no frame variables, whatever the
-``ELASTIC_APM_*`` settings say (app/apm_privacy.py)."""
+"""Elastic APM on the auth service keeps what a request carries out of every
+event it sends (transactions, spans, errors): no query string (the backend
+sends the email and the sign-in code there), no headers (the internal key), no
+body, no frame variables (the code is a local while it is mailed or checked)
+and no database parameters, whatever the ``ELASTIC_APM_*`` settings say
+(app/apm_privacy.py)."""
 
 import json
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from elasticapm.contrib.starlette import ElasticAPM
@@ -12,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from auth.app.apm_privacy import PrivateAPMClient, redact_apm_event
 from auth.app.asgi import get_application
+from auth.app.services.auth_service import AuthService
 from auth.config import settings
 from tests.integration.conftest import INTERNAL_KEY
 
@@ -28,7 +32,7 @@ class RecordingTransport(Transport):
         self.events = []
 
     def queue(self, event_type, data, flush=False):
-        if event_type in ("transaction", "error"):
+        if event_type in ("transaction", "span", "error"):
             self.events.append((event_type, self._process_event(event_type, data)))
 
     def start_thread(self, pid=None):
@@ -59,6 +63,11 @@ def traced_app(monkeypatch, _postgres_schema):
         "SANITIZE_FIELD_NAMES": "nothing-matches-this",
         "PROCESSORS": "elasticapm.processors.sanitize_stacktrace_locals",
         "COLLECT_LOCAL_VARIABLES": "all",
+        # every span kept, each with its stack trace
+        "SPAN_STACK_TRACE_MIN_DURATION": "0ms",
+        "SPAN_FRAMES_MIN_DURATION": "0ms",
+        "EXIT_SPAN_MIN_DURATION": "0ms",
+        "SPAN_COMPRESSION_ENABLED": "false",
     }.items():
         monkeypatch.setenv(f"ELASTIC_APM_{name}", value)
 
@@ -79,29 +88,54 @@ def test_the_app_traces_with_the_private_client(traced_app):
     assert redact_apm_event in client._transport._processors
 
 
-def test_a_code_check_records_no_query_string_header_or_code(traced_app):
+def test_strict_mode_never_collects_local_variables(traced_app):
+    _, client, _ = traced_app
+    # ELASTIC_APM_COLLECT_LOCAL_VARIABLES=all is set: the client keeps "off"
+    assert client.config.collect_local_variables == "off"
+
+
+def test_a_code_sent_and_checked_leaves_no_trace_of_code_email_or_key(traced_app):
     app, _, events = traced_app
-    with TestClient(
-        app,
-        base_url=f"http://testserver{settings.API_ROOT_PATH}",
-        headers={"X-Internal-Key": INTERNAL_KEY},
-    ) as client:
-        response = client.get(
-            "auth/otp/validate", params={"email": EMAIL, "otp_code": CODE}
-        )
-    assert response.status_code == 200
+    with patch("auth.app.services.auth_service.MailService") as mail, patch.object(
+        AuthService, "generate_otp", return_value=CODE
+    ):
+        mail.return_value.send_message = AsyncMock()
+        with TestClient(
+            app,
+            base_url=f"http://testserver{settings.API_ROOT_PATH}",
+            headers={"X-Internal-Key": INTERNAL_KEY},
+        ) as client:
+            sent = client.get(
+                "auth/otp/send", params={"receiver_email": EMAIL, "creator": True}
+            )
+            checked = client.get(
+                "auth/otp/validate", params={"email": EMAIL, "otp_code": CODE}
+            )
+    assert sent.status_code == 200
+    assert checked.status_code == 200 and checked.json()["user"]["sub"] == EMAIL
+
+    kinds = {kind for kind, _ in events}
+    assert {"transaction", "span"} <= kinds, kinds
+    recorded = json.dumps([data for _, data in events], default=str)
+    secrets = (CODE, "otp_code", "apm-check", "example.com", INTERNAL_KEY, '"vars"')
+    # a list, not `x not in recorded`: pytest's diff of the whole dump is slow
+    assert [secret for secret in secrets if secret in recorded] == []
 
     transactions = [data for kind, data in events if kind == "transaction"]
-    assert transactions, "the request was not traced"
-    recorded = json.dumps(transactions, default=str)
-    for secret in (CODE, "otp_code", "apm-check", "example.com", INTERNAL_KEY):
-        assert secret not in recorded, secret
-    (transaction,) = transactions
-    request = transaction["context"]["request"]
-    assert request["url"]["full"].endswith("/api/v1/auth/otp/validate")
-    assert "?" not in request["url"]["full"] and "search" not in request["url"]
-    assert "?" not in transaction["name"]
-    assert not {"headers", "cookies", "body", "env"} & set(request)
+    paths = set()
+    for transaction in transactions:
+        request = transaction["context"]["request"]
+        assert "?" not in request["url"]["full"] and "search" not in request["url"]
+        assert "?" not in transaction["name"]
+        assert not {"headers", "cookies", "body", "env"} & set(request)
+        paths.add(request["url"]["pathname"])
+    assert paths == {"/api/v1/auth/otp/send", "/api/v1/auth/otp/validate"}
+
+
+def test_the_database_engine_hides_statement_parameters():
+    from auth.app.container import container
+
+    assert container.pg_engine().sync_engine.hide_parameters is True
 
 
 def test_an_error_records_no_frame_variables(traced_app):

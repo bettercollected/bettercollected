@@ -137,7 +137,7 @@ class AuthService:
                 clear_otp(user)
                 return True
             if signin_code.matches(
-                expected, otp_code, user.email, user.otp_code_for, user.otp_expiry
+                expected, otp_code, str(user.id), user.otp_code_for, user.otp_expiry
             ):
                 consume_otp(user)
                 accepted.append(True)
@@ -179,26 +179,22 @@ class AuthService:
         otp = self.generate_otp()
         otp_expiry = self.get_expiry_epoch_after(timedelta(minutes=5))
         purpose = Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER
-        # only a keyed hash is stored (signin_code); the code goes to the mail
-        stored_code = signin_code.stored(
-            signin_code.digest(otp, receiver_mail, purpose, otp_expiry)
-        )
 
-        existing_user = await self.user_repository.get_user_by_email(receiver_mail)
-        if existing_user:
-            await self.user_repository.set_user_otp(
-                existing_user.id,
-                otp_code=stored_code,
-                otp_expiry=otp_expiry,
-                otp_code_for=purpose,
+        account = await self.user_repository.get_user_by_email(receiver_mail)
+        if account is None:
+            account = await self.user_repository.save_otp_user(
+                email=receiver_mail, creator=creator
             )
-        else:
-            await self.user_repository.save_otp_user(
-                email=receiver_mail,
-                otp_code=stored_code,
-                otp_expiry=otp_expiry,
-                creator=creator,
-            )
+        # only a keyed hash is stored, bound to the account's id (signin_code);
+        # the code itself goes to the mail
+        await self.user_repository.set_user_otp(
+            account.id,
+            otp_code=signin_code.stored(
+                signin_code.digest(otp, str(account.id), purpose, otp_expiry)
+            ),
+            otp_expiry=otp_expiry,
+            otp_code_for=purpose,
+        )
 
         # From and subject are this instance's; the workspace title is
         # caller-supplied and only shown in the body (#761)

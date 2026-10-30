@@ -7,8 +7,9 @@ number in a by-uuid path. Two guards, both independent of the agent's
 configuration (an ``ELASTIC_APM_*`` variable cannot switch them off):
 
 * receipt routes (``/by-uuid/``) are not traced at all;
-* every transaction and error event is cleaned by :func:`redact_apm_event`
-  before it is sent: no query string anywhere, receipt numbers redacted.
+* every transaction, span and error event is cleaned by
+  :func:`redact_apm_event` before it is sent: no query string anywhere (an
+  outgoing call's URL included), receipt numbers redacted.
 
 The processor and the client class come from ``common.utils.apm_privacy``,
 shared with the auth service.
@@ -18,8 +19,10 @@ from common.utils.apm_privacy import make_processor, private_client_class
 
 from backend.app.middlewares.request_privacy import redact_receipts
 
-#: strips the query string and receipt numbers from the request URL, the
-#: transaction name and a referer header of every transaction and error event
+#: strips the query string and receipt numbers from the request URL, the event
+#: name, a referer header and an outgoing call's URL (span context.http.url,
+#: where the calls to the auth service carry emails and sign-in codes) of every
+#: transaction, span and error event
 redact_apm_event = make_processor(redact_receipts)
 
 #: the APM client with the guards above built in
