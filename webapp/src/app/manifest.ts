@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
     return {
         name: 'BetterCollected',
         short_name: 'BetterCollected',
-        description: 'Privacy-friendly form builder and data collection platform',
+        description: 'Open-source, privacy-first form and data collection platform',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

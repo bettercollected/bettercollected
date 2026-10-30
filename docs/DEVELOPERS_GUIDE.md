@@ -18,7 +18,8 @@ For a high-level tour of how the services fit together, read
 | `backend/` | Core FastAPI API |
 | `auth/` | Identity (OAuth / OTP / JWT) + Stripe billing |
 | `integrations/google/` | Google Forms integration service |
-| `temporal/worker/`, `temporal/actions-executor/` | Temporal background workers |
+| `temporal/actions-executor/` | Runner for form actions, fed by the Postgres job queue |
+| `temporal/worker/` | The old Temporal workflows, used only with `JOBS_BACKEND=temporal` (Temporal is not part of the stack since 4.1) |
 | `common/` | Shared Python package (models, enums, crypto, JWT) |
 
 ## Prerequisites
@@ -29,18 +30,20 @@ For a high-level tour of how the services fit together, read
 | Python | 3.11+ | uv can install it for you (`uv python install`); see [`.python-version`](../.python-version) |
 | Node.js | 20+ | see [`.nvmrc`](../.nvmrc) — `nvm use` |
 | Yarn | 1.x (Classic) | `corepack enable` or `npm i -g yarn` |
-| Docker + Compose | latest | for MongoDB, nginx, Mailpit |
+| Docker + Compose | latest | for PostgreSQL, nginx, Mailpit, RustFS, Umami |
 
 ## 1. Start infrastructure
 
-This brings up MongoDB (with seed data), nginx, and **Mailpit** (a local email
-inbox that captures OTP/invite emails):
+This brings up PostgreSQL (the application database), nginx, **Mailpit** (a
+local email inbox that captures OTP/invite emails), RustFS (S3-compatible
+storage) and Umami:
 
 ```bash
 docker compose -f docker-compose.local.yml up --build -d
 ```
 
-- MongoDB → `localhost:27017` (root/root)
+- PostgreSQL → `localhost:5432`; one role per service (`bc_app`, `bc_auth`,
+  `bc_google`, as in the `.env.example` files), created on the first start
 - nginx → serves the client host on `:3001` and custom-domain host on `:3002`
 - Mailpit → SMTP on `:1026`, web inbox at **http://localhost:8026**
 
@@ -58,7 +61,15 @@ for d in backend auth integrations/google webapp temporal/worker temporal/action
 done
 ```
 
-Set `MONGO_URI=mongodb://root:root@localhost:27017` in the Python services.
+Leave `MONGO_URI` empty in the Python services. Since 4.1 MongoDB is no
+longer a store: it is read only when a 4.0 stack is upgraded, and a set but
+unreachable `MONGO_URI` stops the start. (The local compose file still starts a
+MongoDB container; nothing uses it while `MONGO_URI` is empty.)
+
+Set `DB_AUTO_MIGRATE=true` in `backend/.env` and `auth/.env` (and
+`integrations/google/.env` if you run it): each service then migrates its
+Postgres schema when it starts. Without it a service refuses to start while its
+schema is behind the code.
 
 ### Shared secrets (must match across services)
 
@@ -154,8 +165,9 @@ done
 | google integration | `cd integrations/google && uv run python -m uvicorn googleform.app:get_application --port 8003` | http://localhost:8003 |
 | webapp | `cd webapp && yarn dev` | http://localhost:3000 |
 
-Before the first start, seed the reference data into Postgres (the allowed
-origins and the Google Forms provider; each table only while it is empty):
+Once the backend has started (and migrated its schema), seed the reference
+data into Postgres (the allowed origins and the Google Forms provider; each
+table only while it is empty):
 
 ```bash
 cd backend && uv run python -m backend.seed_refdata \
@@ -165,21 +177,23 @@ cd backend && uv run python -m backend.seed_refdata \
 ```
 
 Each service also has a `run.sh`. For the **minimal loop** (build/use a form),
-you only need MongoDB + backend + auth + webapp; the google integration is for
-imports and Temporal is for async jobs.
+you only need PostgreSQL + backend + auth + webapp; the google integration is
+for imports and the jobs worker for background jobs.
 
-### Temporal (optional)
+### Background jobs (optional)
 
-Import, deletion, CSV export, and preview features run as Temporal workflows.
-Start a Temporal dev server and the workers:
+Background jobs (account and response deletion) run on the Postgres job queue
+(`JOBS_BACKEND=postgres`, the default). Temporal is not part of the stack since
+4.1. Start the backend's jobs worker:
 
 ```bash
-temporal server start-dev            # serves on :7233
-(cd temporal/worker && uv sync && uv run python main.py)
+cd backend && uv run python -m backend.jobs.worker
 ```
 
-Set `TEMPORAL_SERVER_URL` in the relevant `.env` files, and one shared key for
-the backend's internal job routes: `TEMPORAL_API_KEY` in `backend/.env` and the
+Form actions run in `temporal/actions-executor` (`uv run python main.py`),
+which takes its jobs from the same queue and needs `DATABASE_URL` for its
+own jobs role (`bc_jobs_exec`). Set one
+shared key for the backend's internal job routes: `TEMPORAL_API_KEY` in `backend/.env` and the
 same value as `API_KEY` in `temporal/worker/.env` and
 `temporal/actions-executor/.env` (e.g. `openssl rand -hex 24`). Without it
 those routes answer 503 and the services log an error at startup.
@@ -187,8 +201,7 @@ those routes answer 503 and the services log an error at startup.
 ## Logging in locally
 
 Login uses an email OTP. With Mailpit running, request a code from the login
-page and read it from the **Mailpit inbox at http://localhost:8026**. (The code
-is also stored in Mongo under `bettercollected_auth.users.otp_code`.)
+page and read it from the **Mailpit inbox at http://localhost:8026**.
 
 ## Multi-host routing
 
