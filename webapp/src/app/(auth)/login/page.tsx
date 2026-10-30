@@ -3,10 +3,10 @@ import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { SERVER_PATH_ORIGIN, isSameSitePath } from '@app/utils/same-site-path';
 import LoginView from '../_components/login-view';
 
-export default async function LoginPage({ searchParams }: { searchParams: { redirect_to?: string; type?: string; workspace_id?: string } }) {
-
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ redirect_to?: string | string[]; type?: string; workspace_id?: string }> }) {
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
@@ -14,6 +14,11 @@ export default async function LoginPage({ searchParams }: { searchParams: { redi
     const authCookie = cookieStore.get('Authorization');
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;
+
+    // where the sign-in started: a path of this app only, never an address elsewhere
+    const { redirect_to } = await searchParams;
+    const requested = Array.isArray(redirect_to) ? redirect_to[0] : redirect_to;
+    const target = isSameSitePath(requested, SERVER_PATH_ORIGIN) ? requested : undefined;
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, {
@@ -50,9 +55,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { redi
                     }
                 }
             } else {
-                const { redirect_to } = await searchParams;
-                if (redirect_to)
-                    redirect(redirect_to);
+                if (target) redirect(target);
                 else notFound();
             }
         }
