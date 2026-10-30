@@ -48,7 +48,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     const router = useRouter();
     const trackedViewRef = useRef(false);
-    const { currentSlide, endingId } = useResponderState();
+    const { currentSlide, endingId, resetResponderState } = useResponderState();
     // The form on screen and the page of it shown (a closed form shows its
     // welcome page): the trust strip is laid out for the same page as the form.
     const shownForm = useAppSelector(selectResponderForm);
@@ -128,13 +128,20 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         return isUploadField;
     };
 
+    // A refetch of the form on screen, not another form: the respondent's
+    // place is kept in an app-wide atom, so it outlives a same-tab move from
+    // one form to the next.
+    const sameForm = !!data?.formId && shownForm?.formId === data.formId;
     // A respondent on an ending keeps it: a refetch (focus, reconnect) that
     // brings the form back closed has no endings, and an ending may pipe their
     // answers into its text. The closed form is shown once they leave it.
-    const keepEnding = isClosedForm(data) && currentSlide === -2;
+    const keepEnding = isClosedForm(data) && currentSlide === -2 && sameForm;
 
     useEffect(() => {
         if (!data?.formId || keepEnding) return;
+        // Another form starts at its welcome page, not at the place (or the
+        // ending) reached in the previous one.
+        if (!sameForm) resetResponderState();
         dispatch(setForm(data));
         data.theme && updateFormTheme(data.theme, { undoable: false });
     }, [data, keepEnding]);
@@ -163,8 +170,9 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         );
     }
 
-    // A closed form is served without its questions or the original's
-    // address, whichever builder made it: it shows the closed notice.
+    // A closed form is served without its questions or its imported id,
+    // whichever builder made it: it shows the closed notice, never the
+    // original.
     if (data?.builderVersion !== 'v2' && !isClosedForm(data)) return <div className="relative flex h-dvh w-screen flex-col" />;
 
     return (
