@@ -7,7 +7,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The "server": one list of responses, filtered like the backend does for
 // `dataOwnerIdentifier`. Every call the component makes is recorded.
 type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: any; createdAt: string };
-const server: { items: Item[]; error: boolean; calls: any[]; refetchCalls: any[]; openResponse: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetchCalls: [], openResponse: vi.fn() };
+// `pending`: the server has not answered yet. Like RTK Query, the hook then
+// reports isFetching with the data of the last answer it got (none after an
+// error): isLoading is only true for a first load that never failed.
+const server: { items: Item[]; error: boolean; pending: boolean; lastData: any; calls: any[]; refetchCalls: any[]; openResponse: ReturnType<typeof vi.fn> } = {
+    items: [],
+    error: false,
+    pending: false,
+    lastData: undefined,
+    calls: [],
+    refetchCalls: [],
+    openResponse: vi.fn()
+};
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -22,12 +33,17 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             };
             server.calls.push({ arg, options });
             if (options?.skip) return { data: undefined, isLoading: false, isFetching: false, isError: false, refetch };
-            if (server.error) return { data: undefined, isLoading: false, isFetching: false, isError: true, refetch };
+            if (server.pending) return { data: server.lastData, isLoading: false, isFetching: true, isError: false, refetch };
+            if (server.error) {
+                server.lastData = undefined;
+                return { data: undefined, isLoading: false, isFetching: false, isError: true, refetch };
+            }
             const term = arg.dataOwnerIdentifier;
             const items = term ? server.items.filter((item) => (item.dataOwnerIdentifier ?? '').includes(term)) : server.items;
             // pages of `arg.size` rows, like the backend
             const pages = Math.max(1, Math.ceil(items.length / arg.size));
-            return { data: { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size }, isLoading: false, isFetching: false, isError: false, refetch };
+            server.lastData = { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size };
+            return { data: server.lastData, isLoading: false, isFetching: false, isError: false, refetch };
         },
         useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
         useLazyGetWorkspaceSubmissionQuery: () => [(arg: any) => server.openResponse(arg)],
@@ -47,14 +63,14 @@ import FormResponsesTable from './form-responses';
 const FIELD = { id: 'q1', type: FieldTypes.SHORT_TEXT, title: 'Favourite colour' };
 const item = (id: string, owner: string | null, colour: string): Item => ({ responseId: id, dataOwnerIdentifier: owner, answers: { q1: { field: { id: 'q1' }, type: FieldTypes.SHORT_TEXT, text: colour } }, createdAt: '2026-01-02T03:04:05Z' });
 
-const renderTable = (props: any = {}) =>
-    render(
-        <ReduxProvider store={store}>
-            <I18nProvider>
-                <FormResponsesTable props={{ formId: 'form-1', workspace: { id: 'workspace-1' }, isSubmission: true, ...props }} />
-            </I18nProvider>
-        </ReduxProvider>
-    );
+const tree = (props: any = {}) => (
+    <ReduxProvider store={store}>
+        <I18nProvider>
+            <FormResponsesTable props={{ formId: 'form-1', workspace: { id: 'workspace-1' }, isSubmission: true, ...props }} />
+        </I18nProvider>
+    </ReduxProvider>
+);
+const renderTable = (props: any = {}) => render(tree(props));
 
 const search = (text: string) => {
     fireEvent.change(screen.getByPlaceholderText('Search by responder email'), { target: { value: text } });
@@ -72,6 +88,8 @@ describe('responses table: search and honest states', () => {
         window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false, onchange: null })) as any;
         vi.useFakeTimers();
         server.error = false;
+        server.pending = false;
+        server.lastData = undefined;
         server.calls = [];
         server.refetchCalls = [];
         server.openResponse = vi.fn(() => Promise.resolve({ data: undefined }));
@@ -219,10 +237,138 @@ describe('responses table: search and honest states', () => {
         expect(screen.getByText('No deletion requests match')).toBeInTheDocument();
     });
 
+    describe('nothing to show while the server is still answering', () => {
+        it('a Retry after a failed first load shows the loader, not "No responses yet"', () => {
+            server.error = true;
+            renderTable();
+            expect(screen.getByText('Could not load responses')).toBeInTheDocument();
+            server.error = false;
+            server.pending = true;
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+            expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            expect(screen.queryByText('Could not load responses')).toBeNull();
+        });
+
+        it('moves focus to the results after Retry instead of dropping it on <body>', () => {
+            server.error = true;
+            renderTable();
+            server.error = false;
+            server.pending = true;
+            const retry = screen.getByRole('button', { name: 'Retry' });
+            retry.focus();
+            fireEvent.click(retry);
+            expect(document.activeElement).not.toBe(document.body);
+            expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Responses' }));
+        });
+
+        it('clearing a no-match search shows the loader until the full list arrives, not "No responses yet"', () => {
+            const { rerender } = renderTable();
+            search('nobody');
+            expect(screen.getByText('No responses match')).toBeInTheDocument();
+            server.pending = true;
+            search('');
+            expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            expect(screen.queryByText('No responses match')).toBeNull();
+            // the server answers
+            server.pending = false;
+            rerender(tree());
+            expect(screen.getByText('other@example.com')).toBeInTheDocument();
+        });
+
+        it('a new search after a no-match one does not say "Nothing matches" the new text before the server answered', () => {
+            renderTable();
+            search('nobody');
+            server.pending = true;
+            search('known');
+            expect(screen.getByRole('status', { name: 'Loading responses' })).toBeInTheDocument();
+            expect(screen.queryByText(/Nothing matches/)).toBeNull();
+        });
+
+        it('keeps the rows on screen, marked busy, while a search with earlier rows is asking', () => {
+            renderTable();
+            server.pending = true;
+            search('known');
+            expect(screen.getByText('other@example.com').closest('[aria-busy="true"]')).not.toBeNull();
+        });
+    });
+
+    describe('a later page that empties', () => {
+        const many = (count: number) => Array.from({ length: count }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+
+        it('steps back to the last page that still has rows, keeping the pagination', () => {
+            // 31 rows: three pages of 15, 15 and 1
+            server.items = many(31);
+            const { rerender } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(3);
+            expect(screen.getByText('person30@example.com')).toBeInTheDocument();
+            // the last row on page 3 is deleted
+            server.items = many(30);
+            rerender(tree());
+            expect(lastQuery().page).toBe(2);
+            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            expect(screen.getByLabelText(/next/i)).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+        });
+
+        it('says "No responses yet" only once the whole form has none', () => {
+            server.items = many(16);
+            const { rerender } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(2);
+            server.items = [];
+            rerender(tree());
+            expect(lastQuery().page).toBe(1);
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+        });
+
+        it('steps back on the deletion-requests tab too, never "No deletion requests" while some remain', () => {
+            store.dispatch(setForm({ ...store.getState().form, deletionRequests: 16 } as any));
+            server.items = many(16);
+            const { rerender } = renderTable({ requestForDeletion: true, isSubmission: false });
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(2);
+            // the request on page 2 is closed
+            server.items = many(15);
+            rerender(tree({ requestForDeletion: true, isSubmission: false }));
+            expect(lastQuery()).toMatchObject({ page: 1, requestedForDeletionOly: true });
+            expect(screen.getByText('person0@example.com')).toBeInTheDocument();
+            expect(screen.queryByText('No deletion requests')).toBeNull();
+        });
+
+        it('a failed later page stays an error instead of stepping back', () => {
+            server.items = many(16);
+            renderTable();
+            server.error = true;
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(screen.getByText('Could not load responses')).toBeInTheDocument();
+            expect(lastQuery().page).toBe(2);
+        });
+    });
+
+    it('joins the options of a multi-select answer with ", "', () => {
+        const hobbies = { id: 'q2', type: FieldTypes.MULTIPLE_CHOICE, title: 'Hobbies', properties: { allowMultipleSelection: true, choices: [{ id: 'c1', value: 'Reading' }, { id: 'c2', value: 'Cycling' }] } };
+        store.dispatch(setForm({ ...store.getState().form, fields: [FIELD, hobbies] } as any));
+        server.items = [{ ...item('r1', 'known.a@example.com', 'blue'), answers: { q1: { field: { id: 'q1' }, type: FieldTypes.SHORT_TEXT, text: 'blue' }, q2: { field: { id: 'q2' }, type: FieldTypes.MULTIPLE_CHOICE, choices: { values: ['c1', 'c2'] } } } }];
+        renderTable();
+        expect(screen.getByText('Reading, Cycling')).toBeInTheDocument();
+        expect(screen.queryByText('Reading,Cycling')).toBeNull();
+    });
+
     describe('keyboard and screen reader basics', () => {
         it('labels the search box', () => {
             renderTable();
             expect(screen.getByRole('textbox', { name: 'Search responses by responder email' })).toBeInTheDocument();
+        });
+
+        it('labels the search box for deletion requests on that tab', () => {
+            store.dispatch(setForm({ ...store.getState().form, deletionRequests: 2 } as any));
+            renderTable({ requestForDeletion: true, isSubmission: false });
+            expect(screen.getByRole('textbox', { name: 'Search deletion requests by responder email' })).toBeInTheDocument();
+            expect(screen.queryByRole('textbox', { name: 'Search responses by responder email' })).toBeNull();
         });
 
         it('opens a response from a real button named "Open response"', () => {
@@ -257,6 +403,18 @@ describe('responses table: search and honest states', () => {
         it('opens exactly once when the button inside the row is clicked (the click does not also hit the row)', () => {
             renderTable();
             const [button] = screen.getAllByRole('button', { name: 'Open response' });
+            fireEvent.click(button);
+            expect(server.openResponse).toHaveBeenCalledTimes(1);
+            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+        });
+
+        it('Enter on the "Open response" button is not also taken by the row: one open, from the button', () => {
+            renderTable();
+            const [button] = screen.getAllByRole('button', { name: 'Open response' });
+            // the row only acts on keys pressed on the row itself
+            fireEvent.keyDown(button, { key: 'Enter' });
+            expect(server.openResponse).not.toHaveBeenCalled();
+            // the browser then turns Enter on a button into a click
             fireEvent.click(button);
             expect(server.openResponse).toHaveBeenCalledTimes(1);
             expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });

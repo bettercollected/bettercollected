@@ -16,7 +16,7 @@ import { useLazyGetWorkspaceFormVersionQuery, useLazyGetWorkspaceSubmissionQuery
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
-import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
@@ -88,11 +88,11 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
                     }}
                     className={cn('text-black-600! p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer!' : '')}
                 >
-                    {getAnswerForField(response, field)}
+                    {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                 </div>
             );
         }
-        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field)}</div>;
+        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
@@ -192,7 +192,7 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
                     {getInternalColumnTitle(field)}
                 </span>
             ),
-            selector: (response: StandardFormResponseDto) => <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field)}</div>,
+            selector: (response: StandardFormResponseDto) => <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field, DISPLAY_LIST_SEPARATOR)}</div>,
             style: cellStyle,
             width: '200px'
         }))

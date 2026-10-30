@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
 import SearchInput from '@Components/common/search-input';
@@ -78,10 +78,29 @@ export default function FormResponsesTable({ props }: any) {
     };
 
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
+    // A later page that came back empty (its last rows were deleted or their
+    // requests closed) is not "no responses": step back to the last page that
+    // still has rows (a failed request stays an error).
+    const lastPage = Math.max(1, data?.pages || 1);
+    const pageEmptied = !!data && !hasItems && page > 1 && !isError;
+    useEffect(() => {
+        if (pageEmptied && !isFetching) setPage((current) => Math.max(1, Math.min(current - 1, lastPage)));
+    }, [pageEmptied, isFetching, lastPage]);
+
+    // Retry replaces the error (and its button) with the loader; focus moves to
+    // the results region so it does not fall to <body>.
+    const resultsRef = useRef<HTMLDivElement>(null);
+    const handleRetry = useCallback(() => {
+        resultsRef.current?.focus();
+        refetch();
+    }, [refetch]);
 
     let results;
-    // no workspace yet: the query is skipped, which is not "no responses"
-    if (isLoading || !workspace?.id) {
+    // No workspace yet: the query is skipped, which is not "no responses".
+    // Asking with nothing to show yet (a retry after an error, a new or
+    // cleared search after a no-match one, a page that emptied) is loading
+    // too: never an empty or no-match state before the server has answered.
+    if (isLoading || !workspace?.id || (isFetching && !hasItems) || pageEmptied) {
         results = (
             <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />
@@ -90,7 +109,7 @@ export default function FormResponsesTable({ props }: any) {
     } else if (isError) {
         // A refused or failed request is not an empty form: say so, and let
         // the person try again.
-        results = <ResponsesErrorComponent onRetry={refetch} />;
+        results = <ResponsesErrorComponent onRetry={handleRetry} />;
     } else if (hasItems) {
         results = (
             <div aria-busy={isFetching} className={isFetching ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
@@ -113,7 +132,12 @@ export default function FormResponsesTable({ props }: any) {
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} placeholder={'Search by responder email'} ariaLabel="Search responses by responder email" className="md:w-[282px]" />
+                            <SearchInput
+                                handleSearch={handleSearch}
+                                placeholder={'Search by responder email'}
+                                ariaLabel={requestForDeletion ? 'Search deletion requests by responder email' : 'Search responses by responder email'}
+                                className="md:w-[282px]"
+                            />
                         </div>
                     ) : (
                         <></>
@@ -125,7 +149,9 @@ export default function FormResponsesTable({ props }: any) {
                     )}
                 </div>
             </div>
-            {results}
+            <div ref={resultsRef} tabIndex={-1} role="region" aria-label={requestForDeletion ? 'Deletion requests' : 'Responses'} className="focus:outline-hidden">
+                {results}
+            </div>
         </div>
     );
 }

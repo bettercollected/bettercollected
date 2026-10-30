@@ -12,7 +12,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
-import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { getInternalFields } from '@app/utils/internal-fields';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -116,7 +117,7 @@ const ResponseHeader = ({ response }: { response: StandardFormResponseDto }) => 
                 {response?.dataOwnerIdentifier ? <span className="truncate">{response.dataOwnerIdentifier}</span> : <AnonymousBadge />}
             </h2>
             <span className="text-black-600 text-xs">{utcToLocalDateTimeWithZone(response?.createdAt)}</span>
-            {number && <span className="text-black-600 font-mono text-xs">#{number.split('-')[0]}…</span>}
+            {number && <span className="text-black-600 font-mono text-xs">{shortReceiptNumber(number)}</span>}
         </div>
     );
 };
@@ -181,7 +182,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                     <section key={index} className="border-black-300 flex flex-col gap-3 rounded border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
                                         <span className="text-black-800 text-[13px] font-semibold">{getItemHeader(field, index, pipeContext)}</span>
                                         {children.map((child) => {
-                                            const answerText = getItemAnswer(item, child);
+                                            const answerText = getItemAnswer(item, child, DISPLAY_LIST_SEPARATOR);
                                             const childTitle = getTitleForHeader(titleHasPipes(child.title) ? ({ ...child, title: resolvePipesInTitle(child.title, itemContext) } as StandardFormFieldDto) : child, standardForm);
                                             return (
                                                 <div className="flex flex-col gap-1" key={child.id}>
@@ -241,7 +242,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                             {getTitleForHeaderForTable(field)}
                             {ans?.file_metadata ? (
                                 <div onClick={() => downloadFormFile(ans)} className={cn('text-black-600! p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
-                                    {getAnswerForField(response, field)}
+                                    {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                                 </div>
                             ) : (
                                 noAnswer
@@ -249,7 +250,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         </div>
                     );
                 }
-                const answerText = getAnswerForField(response, field);
+                const answerText = getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}

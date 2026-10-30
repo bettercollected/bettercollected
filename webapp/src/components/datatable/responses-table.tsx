@@ -21,6 +21,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { deletionRequestLocale } from '@app/constants/locales/deletion-request';
 import { isDeclineReason, isDeclinedRequest, isPendingRequest } from '@app/models/enums/deletion-request';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -91,14 +92,10 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </div>
             {/* The receipt number is the only handle a responder (especially an
-                anonymous one) has on their submission — showing it lets the
-                owner match a request against what the responder quotes. The
-                cell is too narrow for all 36 chars; the title carries the rest. */}
-            {requestForDeletion && response?.submissionUuid && (
-                <div title={response.submissionUuid} className="text-black-600 mt-0.5 font-mono text-[11px]">
-                    #{response.submissionUuid.split('-')[0]}…
-                </div>
-            )}
+                anonymous one) has on their submission — its start lets the
+                owner match a request against what the responder quotes. It is a
+                bearer token, so the full value is never in the DOM (no title). */}
+            {requestForDeletion && response?.submissionUuid && <div className="text-black-600 mt-0.5 font-mono text-[11px]">{shortReceiptNumber(response.submissionUuid)}</div>}
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (

@@ -82,9 +82,30 @@ describe('response drawer', () => {
         expect(screen.queryByText(/^#/)).toBeNull();
     });
 
-    it('leaves the multi-select display as the table shows it', () => {
+    it('joins the options of a multi-select answer with ", "', () => {
         renderDrawer(known);
-        expect(screen.getByText('Reading,Cycling,Cooking')).toBeInTheDocument();
+        expect(screen.getByText('Reading, Cycling, Cooking')).toBeInTheDocument();
+        expect(screen.queryByText('Reading,Cycling,Cooking')).toBeNull();
+    });
+
+    it('joins a multi-select answer inside a repeating group with ", " too (not the export\'s "; ")', () => {
+        const group = { id: 'g', type: FieldTypes.GROUP, title: 'Kids', properties: { repeat: { minItems: 1, maxItems: 3, itemLabel: 'Kid' }, fields: [{ ...formFields[1], id: 'k1' }] } };
+        const answers = { g: { items: [{ k1: { field: { id: 'k1' }, type: FieldTypes.MULTIPLE_CHOICE, choices: { values: ['c1', 'c3'] } } }] } };
+        render(
+            <ReduxProvider store={store}>
+                <I18nProvider>
+                    <ViewResponseFullModalView response={{ ...known, answers } as any} formFields={[group as any]} form={{ ...form, fields: [group] }} formId="form-1" workspaceId="workspace-1" internalFields={[]} />
+                </I18nProvider>
+            </ReduxProvider>
+        );
+        expect(screen.getByText('Reading, Cooking')).toBeInTheDocument();
+        expect(screen.queryByText('Reading; Cooking')).toBeNull();
+    });
+
+    it('shortens a receipt number without dashes too', () => {
+        const { container } = renderDrawer({ ...known, submissionUuid: '0a1b2c3d111142228333444455556666' });
+        expect(screen.getByText('#0a1b2c3d…')).toBeInTheDocument();
+        expect(container.textContent).not.toContain('0a1b2c3d1111');
     });
 
     it('says once that the response could not be decrypted, and keeps the per-question text short', () => {

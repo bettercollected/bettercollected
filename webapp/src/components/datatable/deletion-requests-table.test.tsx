@@ -135,6 +135,39 @@ describe('deletion requests of imported forms', () => {
     });
 });
 
+describe('the receipt number on a deletion request', () => {
+    const NUMBER = '0a1b2c3d-1111-4222-8333-444455556666';
+    // every attribute value and the text of the whole table
+    const everythingInTheDom = (container: HTMLElement) =>
+        [container.textContent ?? '', ...Array.from(container.querySelectorAll('*')).flatMap((element) => Array.from(element.attributes).map((attribute) => attribute.value))].join('\n');
+
+    beforeEach(() => {
+        access.permissions = ['privacy.manage'];
+        store.dispatch(setWorkspace(WORKSPACE));
+        store.dispatch(setAuth({ id: 'me', email: 'me@example.com', roles: [] } as any));
+    });
+
+    it('shows only the start of the number, like the response drawer', () => {
+        renderTable([request('r1', { submissionUuid: NUMBER })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeTruthy();
+    });
+
+    it('never puts the full number in the DOM: not as text, title, aria-* or data-*', () => {
+        const { container } = renderTable([request('r1', { submissionUuid: NUMBER })]);
+        const dom = everythingInTheDom(container);
+        expect(dom).not.toContain(NUMBER);
+        expect(dom).not.toContain('4222');
+        expect(dom).not.toContain('444455556666');
+        expect(container.querySelector('[title*="0a1b2c3d"]')).toBeNull();
+    });
+
+    it('shortens a number without dashes too', () => {
+        const { container } = renderTable([request('r1', { submissionUuid: '0a1b2c3d111142228333444455556666' })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeTruthy();
+        expect(everythingInTheDom(container)).not.toContain('0a1b2c3d1111');
+    });
+});
+
 describe('CloseDeletionRequestModal', () => {
     beforeEach(() => {
         closeRequest.mockReset();
