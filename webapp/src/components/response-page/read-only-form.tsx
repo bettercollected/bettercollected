@@ -2,17 +2,21 @@
 
 import { CSSProperties } from 'react';
 
+import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { FormTheme } from '@app/constants/theme';
+
 import { formContentLanguage } from '@app/lib/hooks/use-form-content-language';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
+import { contrast } from '@app/utils/color-contrast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isShownToRespondents } from '@app/utils/calculated-fields';
 import { logicSourcesById } from '@app/utils/conditional-logic';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolveFormLogo } from '@app/utils/form-logo';
-import { pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
+import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { fieldHasAnswer, formFormatLanguage, responsePageSections, themeWithDefaults } from '@app/utils/response-page';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
@@ -21,6 +25,88 @@ import { leafletColours, softInk, styleTokens, themeBackgroundStyle } from '@app
 import { FORM_COLUMN, FORM_GUTTER, clampSpan, fieldSpacingClass } from '@app/views/organism/layout/form-column';
 
 import { ANSWERED_THEN_SKIPPED, NotShownQuestion, ReadOnlyContext, ReadOnlyQuestion, isContent, pageQuestions } from './read-only-question';
+
+export const CONTENTS_ID = 'contents';
+export const CONTENTS_HEADING_ID = 'rp-contents-heading';
+const pageHeadingId = (number: number) => `rp-page-heading-${number}`;
+
+/**
+ * Following an in-page link: the browser scrolls to the target (the
+ * section's `scroll-margin-top` keeps it clear of the sticky toolbar); focus
+ * goes to its heading, so the keyboard and a screen reader carry on from there.
+ */
+export function focusInPageTarget(headingId: string) {
+    document.getElementById(headingId)?.focus({ preventScroll: true });
+}
+
+interface ContentsSection {
+    number: number;
+    title: string;
+    shortTitle: string;
+    skipped: boolean;
+    skippedWithAnswers: boolean;
+}
+
+/**
+ * The form's contents, as on the respondent's welcome page: every page's
+ * number and name, each a link to its section here. A page the respondent
+ * was sent past says so; one that still holds answers given before that says
+ * so differently. Kept in print, as a table of contents.
+ */
+function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[]; theme: FormTheme; leaflet: boolean }) {
+    const rule = leafletColours(theme).rule;
+    const numeralInk = theme.secondary && theme.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme.primary;
+    return (
+        <nav id={CONTENTS_ID} aria-labelledby={CONTENTS_HEADING_ID} className="scroll-mt-28" data-contents>
+            <h2 id={CONTENTS_HEADING_ID} tabIndex={-1} className="text-[15px] font-semibold focus:outline-hidden" style={{ color: theme.primary }}>
+                Contents
+            </h2>
+            <ol className="mt-2 border-t" style={{ borderColor: rule }}>
+                {sections.map((section) => (
+                    <li key={section.number} className="border-b" style={{ borderColor: rule }}>
+                        <a
+                            href={`#page-${section.number}`}
+                            onClick={() => focusInPageTarget(pageHeadingId(section.number))}
+                            className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-baseline gap-x-2 rounded-sm py-2.5 text-base underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
+                            style={{ color: theme.primary }}
+                        >
+                            <span className="tabular-nums" style={{ fontFamily: leaflet ? leafletSerif.style.fontFamily : undefined, fontWeight: 600, color: numeralInk }}>
+                                <span className="sr-only">Page </span>
+                                {section.number}
+                            </span>{' '}
+                            <span className="[overflow-wrap:anywhere]">
+                                {!section.title ? (
+                                    `Page ${section.number}`
+                                ) : section.shortTitle && section.shortTitle !== section.title ? (
+                                    <>
+                                        <span aria-hidden="true">{section.shortTitle}</span>
+                                        <span className="sr-only">{section.title}</span>
+                                    </>
+                                ) : (
+                                    section.title
+                                )}
+                            </span>
+                            {section.skipped && (
+                                <>
+                                    {' '}
+                                    {section.skippedWithAnswers ? (
+                                        <span className="rounded-full border px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ borderColor: theme.tertiary, color: theme.primary }} data-skipped="with-answers">
+                                            Skipped, answers kept
+                                        </span>
+                                    ) : (
+                                        <span className="text-[13px] whitespace-nowrap italic" style={{ color: softInk(theme) }} data-skipped="empty">
+                                            Skipped
+                                        </span>
+                                    )}
+                                </>
+                            )}
+                        </a>
+                    </li>
+                ))}
+            </ol>
+        </nav>
+    );
+}
 
 /** The "Error downloading file" path: the server's signed link, fetched and saved, as everywhere else. */
 function useDownload() {
@@ -52,7 +138,16 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
     const unreadable = (response.unreadableFields ?? []).includes('answers');
     const root = themeRootProps(theme);
     const logo = resolveFormLogo(form, workspace);
-    const sections = responsePageSections(form, answers);
+    // Each page with the name the respondent's contents list gives it (its
+    // section title, else its opening heading, else its first question), and
+    // whether this respondent was sent past it (and left answers on it first).
+    const sections = responsePageSections(form, answers).map((section) => {
+        // staff-only (internal) fields are the team's, shown in their own panel below, never in the form's look
+        const fields = ((section.page.properties?.fields ?? []) as StandardFormFieldDto[]).filter((field) => !field.internal);
+        const name = leafletSection(fields, '', section.page.properties?.sectionTitle);
+        const skipped = !section.visited && !unreadable;
+        return { ...section, fields, title: name.title, shortTitle: name.shortTitle, skipped, skippedWithAnswers: skipped && fields.some((field) => !isContent(field) && fieldHasAnswer(field, answers)) };
+    });
     const slides = form.fields ?? [];
     const leaflet = tokens.key === 'leaflet';
     const several = hasSeveralPages(slides);
@@ -93,24 +188,23 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                     <h1 className="form-title-face text-[28px] leading-tight font-bold" style={{ color: theme.primary }}>
                         {form.title?.trim() || 'Untitled form'}
                     </h1>
-                    {sections.map(({ page, number, visited }) => {
-                        // staff-only (internal) fields are the team's, shown in their own panel below, never in the form's look
-                        const fields = ((page.properties?.fields ?? []) as StandardFormFieldDto[]).filter((field) => !field.internal);
+                    {sections.length > 1 && <ContentsList sections={sections} theme={theme} leaflet={leaflet} />}
+                    {sections.map(({ page, number, fields, title, skipped }) => {
                         // unreadable answers say nothing about what the rules showed or skipped: every question is listed
                         const rows = unreadable ? fields.map((field) => ({ field, notShown: false })) : pageQuestions(fields, answers, sources);
                         // the numbers the respondent saw: only what the form showed them
                         const shown = rows.filter((row) => !row.notShown && isShownToRespondents(row.field)).map((row) => row.field);
                         const numbers = leaflet ? questionNumbers(shown, number) : page.properties?.showQuestionNumbers ? plainQuestionNumbers(shown, number, several) : undefined;
                         const ctx = { ...baseContext, numbers };
-                        const headingId = `rp-page-${page.id}`;
-                        const title = pageSectionTitle(page);
+                        const headingId = pageHeadingId(number);
                         return (
-                            <section key={page.id} aria-labelledby={headingId} data-page={number} className="flex flex-col gap-8">
-                                <h2 id={headingId} className={cn('border-b pb-2 text-[13px] font-medium tabular-nums', sections.length === 1 && 'sr-only')} style={{ color: softInk(theme), borderColor: leafletColours(theme).rule }}>
+                            // `page-<n>`: the page's number only, never its title (it lands in the URL as the contents link's hash)
+                            <section key={page.id} id={`page-${number}`} aria-labelledby={headingId} data-page={number} className="flex scroll-mt-28 flex-col gap-8">
+                                <h2 id={headingId} tabIndex={-1} className={cn('border-b pb-2 text-[13px] font-medium tabular-nums focus:outline-hidden', sections.length === 1 && 'sr-only')} style={{ color: softInk(theme), borderColor: leafletColours(theme).rule }}>
                                     {`Page ${number} of ${sections.length}`}
                                     {title ? ` · ${title}` : ''}
                                 </h2>
-                                {!visited && !unreadable ? (
+                                {skipped ? (
                                     <SkippedPage fields={fields} answers={answers} ctx={ctx} />
                                 ) : (
                                     <div className="flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6">

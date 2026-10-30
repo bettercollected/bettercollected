@@ -331,9 +331,26 @@ describe('the response page', () => {
         });
     });
 
-    it('names its landmarks apart: the actions bar and the response', () => {
+    it('links back to the contents from the toolbar (which stays in view), moving focus to them', () => {
+        renderPage();
+        const back = within(screen.getByRole('navigation', { name: 'Response actions' })).getByRole('link', { name: 'Contents' });
+        expect(back).toHaveAttribute('href', '#contents');
+        expect(document.getElementById('contents')).toBe(screen.getByRole('navigation', { name: 'Contents' }));
+        fireEvent.click(back);
+        expect(document.activeElement).toBe(within(screen.getByRole('navigation', { name: 'Contents' })).getByRole('heading', { name: 'Contents' }));
+    });
+
+    it('offers no contents link for a form of one page', () => {
+        server.result = loaded(RESPONSE, { form: { ...FORM, fields: [FORM.fields[0]] } });
+        renderPage();
+        expect(screen.queryByRole('link', { name: 'Contents' })).toBeNull();
+        expect(screen.queryByRole('navigation', { name: 'Contents' })).toBeNull();
+    });
+
+    it('names its landmarks apart: the actions bar, the contents and the response', () => {
         renderPage();
         expect(screen.getByRole('navigation', { name: 'Response actions' })).toBeInTheDocument();
+        expect(screen.getByRole('navigation', { name: 'Contents' })).toBeInTheDocument();
         expect(screen.getAllByRole('main')).toHaveLength(1);
         expect(screen.queryByRole('navigation', { name: 'Response' })).toBeNull();
     });

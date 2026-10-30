@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,9 +60,10 @@ describe('the response, drawn like the form', () => {
     it('is the form title as the page heading, then a section with a heading for every page of the form', () => {
         renderForm();
         expect(screen.getByRole('heading', { level: 1, name: 'Summer meeting registration' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 1 of 3' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { level: 2, name: 'Page 3 of 3' })).toBeInTheDocument();
+        // each named as in the respondent's contents list: here by its first question
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 1 of 3 · What is your name?' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Rate the service' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 3 of 3 · Anything else?' })).toBeInTheDocument();
         expect(screen.getAllByRole('region').length).toBeGreaterThanOrEqual(3);
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
@@ -85,10 +86,11 @@ describe('the response, drawn like the form', () => {
         expect(screen.getAllByTestId('question-number').map((node) => node.textContent)).toContain('2.1');
     });
 
-    it('draws no editable input anywhere: nothing to type in, nothing to tab to but the download and the scrolling tables', () => {
+    it('draws no editable input anywhere: nothing to type in, nothing to tab to but the contents, the download and the scrolling tables', () => {
         const { container } = renderForm();
         expect(container.querySelectorAll('input, textarea, select')).toHaveLength(0);
-        const tabStops = Array.from(container.querySelectorAll<HTMLElement>('[tabindex="0"], button, a[href]')).map((node) => node.getAttribute('role') ?? node.tagName.toLowerCase());
+        const tabStops = Array.from(container.querySelectorAll<HTMLElement>('[tabindex="0"], button, a[href]'))
+            .filter((node) => !node.closest('[data-contents]')).map((node) => node.getAttribute('role') ?? node.tagName.toLowerCase());
         expect(tabStops.every((stop) => ['button', 'region'].includes(stop))).toBe(true);
     });
 
@@ -476,6 +478,71 @@ describe('pipes and a form without a theme', () => {
         expect(within(screen.getByRole('group', { name: 'Your name' })).getByRole('textbox')).toHaveTextContent('Anna');
         expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
         expect((container.querySelector('[data-response-form]') as HTMLElement).style.backgroundColor).not.toBe('');
+    });
+});
+
+describe('the contents list', () => {
+    const contents = () => screen.getByRole('navigation', { name: 'Contents' });
+    const entries = () => within(contents()).getAllByRole('link');
+
+    it('lists every page with its number and the name its heading has, each a link to that page', () => {
+        renderForm();
+        expect(entries().map((link) => link.textContent)).toEqual(['Page 1 What is your name?', 'Page 2 Rate the service', 'Page 3 Anything else?']);
+        expect(entries().map((link) => link.getAttribute('href'))).toEqual(['#page-1', '#page-2', '#page-3']);
+        [1, 2, 3].forEach((n) => expect(document.getElementById(`page-${n}`)).toHaveAttribute('data-page', String(n)));
+        // under the form title, before page 1
+        const title = screen.getByRole('heading', { level: 1 });
+        expect(title.compareDocumentPosition(contents()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(contents().compareDocumentPosition(document.getElementById('page-1')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("uses a page's own section title, in the list and in its heading", () => {
+        const titled = { ...FORM, fields: FORM.fields.map((slide) => (slide.id === 'p2' ? { ...slide, properties: { ...slide.properties, sectionTitle: 'Your visit' } } : slide)) };
+        renderForm(RESPONSE, titled);
+        expect(entries()[1]).toHaveTextContent('Page 2 Your visit');
+        expect(screen.getByRole('heading', { level: 2, name: 'Page 2 of 3 · Your visit' })).toBeInTheDocument();
+    });
+
+    it('puts only page numbers in the links, never a title or an answer', () => {
+        renderForm();
+        entries().forEach((link) => expect(link.getAttribute('href')).toMatch(/^#page-\d+$/));
+    });
+
+    it('moves focus to the heading of the page a link goes to, clear of the sticky toolbar', () => {
+        renderForm();
+        fireEvent.click(entries()[1]);
+        expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: /^Page 2 of 3/ }));
+        expect(document.getElementById('page-2')!.className).toContain('scroll-mt-28');
+    });
+
+    it('marks a skipped page, and one that still holds answers differently', () => {
+        renderForm({ ...RESPONSE, answers: WITHOUT_PAGE_TWO }, JUMPING);
+        expect(entries()[1]).toHaveTextContent('Page 2 Rate the service Skipped');
+        expect(entries()[1].querySelector('[data-skipped="empty"]')).not.toBeNull();
+        expect(entries()[0]).not.toHaveTextContent('Skipped');
+        cleanup();
+        renderForm(RESPONSE, JUMPING);
+        expect(entries()[1]).toHaveTextContent('Skipped, answers kept');
+        expect(entries()[1].querySelector('[data-skipped="with-answers"]')).not.toBeNull();
+        // the link still lands on the (collapsed) section
+        fireEvent.click(entries()[1]);
+        expect(document.activeElement!.closest('section')).toBe(document.getElementById('page-2'));
+    });
+
+    it('is not there for a form of one page', () => {
+        renderForm(RESPONSE, { ...FORM, fields: [FORM.fields[0]] });
+        expect(screen.queryByRole('navigation', { name: 'Contents' })).toBeNull();
+    });
+
+    it('stays in print, as a table of contents', () => {
+        renderForm();
+        expect(contents().className).not.toContain('print:hidden');
+        expect(contents().closest('.print\\:hidden')).toBeNull();
+    });
+
+    it('has no WCAG A/AA violation with a skipped page', async () => {
+        renderForm(RESPONSE, JUMPING);
+        expect(await axeViolations(document, {})).toEqual([]);
     });
 });
 

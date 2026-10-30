@@ -8,7 +8,7 @@ import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import DeleteIcon from '@Components/icons/delete';
-import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ListOrdered, Printer } from 'lucide-react';
 
 import { UnreadableNotice } from '@app/components/form/individual-form-response';
 import { useModal } from '@app/components/modal-views/context';
@@ -21,10 +21,10 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
 import { rememberedNeighbours } from '@app/utils/response-list-memory';
-import { responseOriginListUrl, responsePageUrl } from '@app/utils/response-page';
+import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@app/utils/response-page';
 import { ResponseOrigin } from '@app/utils/response-urls';
 
-import ReadOnlyForm from './read-only-form';
+import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, focusInPageTarget } from './read-only-form';
 
 /** The words for a failed load. A 403 and a 404 are answers, not faults: no Retry for them. */
 function failureOf(error: any): { kind: 'forbidden' | 'missing' | 'error'; title: string; detail: string } {
@@ -90,6 +90,8 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
     const loaded = !!response && !!form && !wrongForm;
 
     const staffFields = loaded ? (currentData?.internalFields ?? getInternalFields(form)) : [];
+    // a form of several pages gets a contents list (ReadOnlyForm); the toolbar, which stays in view, links back to it
+    const hasContents = loaded && responsePageSections(form, response.answers ?? {}).length > 1;
 
     const detailsRef = useRef<HTMLElement>(null);
     useEffect(() => {
@@ -120,6 +122,16 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                                 )}
                                 <NeighbourLink href={neighbours.nextId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.nextId)} label="Next response" icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />} />
                             </>
+                        )}
+                        {hasContents && (
+                            <a
+                                href={`#${CONTENTS_ID}`}
+                                onClick={() => focusInPageTarget(CONTENTS_HEADING_ID)}
+                                className="flex h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-black-700 hover:bg-black-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                            >
+                                <ListOrdered className="h-4 w-4" aria-hidden="true" />
+                                Contents
+                            </a>
                         )}
                         {loaded && (
                             <Button variant="ghost" className="px-2!" onClick={() => window.print()}>
