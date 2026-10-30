@@ -209,7 +209,38 @@ def varied_form_data() -> dict:
                                         "target": "field",
                                         "field_id": "f-since",
                                     }
-                                ]
+                                ],
+                                "rules": [
+                                    {
+                                        "id": "r-until",
+                                        "when": {
+                                            "conditions": [
+                                                {
+                                                    "fieldId": "f-member",
+                                                    "fieldType": "yes_no",
+                                                    "comparison": "IS_EQUAL",
+                                                    "value": "Yes",
+                                                }
+                                            ]
+                                        },
+                                        "then": {
+                                            "required": True,
+                                            "description": "Needed for members",
+                                        },
+                                    },
+                                    {
+                                        "id": "r-until-fixed",
+                                        "when": {
+                                            "expression": {
+                                                ">": [{"var": "f-age"}, 100]
+                                            }
+                                        },
+                                        "then": {
+                                            "readOnly": True,
+                                            "setValue": {"const": "2099-12-31"},
+                                        },
+                                    },
+                                ],
                             },
                         },
                     ],

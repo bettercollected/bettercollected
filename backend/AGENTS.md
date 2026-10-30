@@ -311,6 +311,23 @@ every calculated field with the Python evaluator, in dependency order, and store
 (`number`, `boolean` or `text` slot); client values are dropped, and answer validation replays logic and
 jumps with the server values. "today" is the server's UTC date on submit, the submission day on an edit.
 
+**Field rules** (`services/field_rules.py`; spec section "Field rules" in
+[../docs/spec/README.md](../docs/spec/README.md)): ordered rules at a question's `properties.rules`
+(common `FieldRule`: `when` conditions or an expressions-v1 expression, `then` `required`, `readOnly`,
+`title`, `description`, `setValue`). `calculate_and_check` runs `resolve_field_rules`, so submit and
+respondent edit both replay them: calculated fields and set-value questions in one dependency order (each
+written into the answers and variables before the next), a locked question's client value discarded (set
+value, else removed), and `FieldRuleStates` handed to `check_answers`, whose Required uses the effective
+flag (last active rule wins, per item in a group; locked questions are never required and skip answer
+rules). `repeating_groups.validate_group_answers` leaves a rule-driven Required to answer validation. On an
+edit, set-value questions are overwritten like calculations and questions whose rules read a changed key are
+re-checked. Every save path checks them (`ensure_valid_field_rules` in create/update form, 422
+`invalid_field_rules` with `fieldId` and a JSON pointer into the rules; spec `_check_rules`; editor ops via
+`_new_problems`); a builder save drops an unchanged rule its edit broke, copies and templates drop broken
+rules, and `finished_form` prunes them after ops. No editor, op, MCP tool or importer writes rules yet.
+Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner skips them
+until its evaluator exists).
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:

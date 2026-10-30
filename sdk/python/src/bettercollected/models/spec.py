@@ -358,6 +358,97 @@ class Retention(BaseModel):
     value: int | str | None = Field(None, title="Value")
 
 
+class RuleSetValue(BaseModel):
+    """
+    The value a rule gives the question: a fixed ``const`` (a text, a
+    number, true/false for yes/no, a YYYY-MM-DD date, or the ``id`` of one of
+    a choice question's options) or an ``expression``, never both.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    const: bool | int | float | str | None = Field(
+        None,
+        description="A choice question is set by the id of one of its options.",
+        title="Const",
+    )
+    expression: Any = Field(None, title="Expression")
+
+
+class Title1(RootModel[str]):
+    root: str = Field(
+        None,
+        description="Plain text; may pipe answers ({{field:<id>}}).",
+        max_length=300,
+        title="Title",
+    )
+
+
+class Description(RootModel[str]):
+    root: str = Field(None, max_length=1000, title="Description")
+
+
+class RuleThen(BaseModel):
+    """
+    What a rule does while it is active (at least one key). The server
+    enforces ``required``, ``readOnly`` and ``setValue``; ``title`` and
+    ``description`` only change what respondents read.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    required: bool | None = Field(
+        None,
+        description="true: the question must be answered; false: it is optional.",
+        title="Required",
+    )
+    read_only: Literal[True] | None = Field(
+        None,
+        alias="readOnly",
+        description="Respondents cannot change the value: a submitted value is discarded (replaced by an active setValue, else removed).",
+        title="Readonly",
+    )
+    title: Title1 | None = Field(
+        None,
+        description="Plain text; may pipe answers ({{field:<id>}}).",
+        title="Title",
+    )
+    description: Description | None = Field(None, title="Description")
+    set_value: RuleSetValue | None = Field(
+        None,
+        alias="setValue",
+        description="The server computes the value and stores it, whatever a client sent; an empty result leaves the question unanswered. Implies readOnly.",
+    )
+
+
+class Conditions(RootModel[list[Condition]]):
+    root: list[Condition] = Field(None, max_length=20, min_length=1, title="Conditions")
+
+
+class RuleWhen(BaseModel):
+    """
+    When a rule is active: ``conditions`` (as in ``logic``; operator AND
+    when absent) or an expressions-v1 ``expression`` (active when its value
+    is truthy), never both.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    operator: Literal["AND", "OR"] | None = Field(None, title="Operator")
+    conditions: Conditions | None = Field(None, title="Conditions")
+    expression: Any = Field(
+        None,
+        description="An expressions-v1 syntax tree (docs/spec/expressions-v1.md) over the form's variables; inside a repeating group a sibling question's id reads that item's answer.",
+        title="Expression",
+    )
+
+
 class Highlight(RootModel[str]):
     root: str = Field(
         None,
@@ -538,6 +629,135 @@ class Ending(BaseModel):
     image_url: str | None = Field(None, alias="imageUrl", title="Imageurl")
 
 
+class Rule(BaseModel):
+    """
+    A field rule: while ``when`` holds, ``then`` applies. A field's rules
+    apply in order; for each property the last active rule wins
+    (``required`` starts from ``validations.required``). Rules never show or
+    hide a question (that is ``logic``).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str = Field(
+        ...,
+        description="Unique within the form.",
+        pattern="^[A-Za-z0-9_-]{1,64}$",
+        title="Id",
+    )
+    when: RuleWhen
+    then: RuleThen
+
+
+class Theme(BaseModel):
+    """
+    Colours and style of the form (or of one page, as an override).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    title: str = Field(..., title="Title")
+    primary: str = Field(..., title="Primary")
+    secondary: str = Field(..., title="Secondary")
+    tertiary: str = Field(..., title="Tertiary")
+    accent: str = Field(..., title="Accent")
+    background: ThemeBackground | None = None
+    style: str | None = Field(
+        None, description="e.g. classic, sheet, studio, leaflet", title="Style"
+    )
+    title_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="titleFont",
+        description="Face of titles and question labels. Absent: the text face (or the style's own title face).",
+        title="Titlefont",
+    )
+    body_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="bodyFont",
+        description="Face of everything else respondents read. Absent: public-sans.",
+        title="Bodyfont",
+    )
+    data_font: (
+        Literal[
+            "public-sans",
+            "atkinson-next",
+            "archivo",
+            "besley",
+            "rubik",
+            "atkinson-mono",
+        ]
+        | None
+    ) = Field(
+        None,
+        alias="dataFont",
+        description="Face of data such as the submission number. Absent: the app's mono face.",
+        title="Datafont",
+    )
+    title_width: Literal["normal", "expanded"] | None = Field(
+        None,
+        alias="titleWidth",
+        description="Width of display titles: expanded is 125% on a face with a width axis (archivo).",
+        title="Titlewidth",
+    )
+    radius: Literal["sharp", "soft", "round"] | None = Field(
+        None,
+        description="Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.",
+        title="Radius",
+    )
+    button_style: Literal["filled", "outlined", "pill"] | None = Field(
+        None, alias="buttonStyle", description="Absent: filled.", title="Buttonstyle"
+    )
+    highlight: Highlight | None = Field(
+        None,
+        description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
+        title="Highlight",
+    )
+    selection: Selection | None = Field(
+        None,
+        description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
+        title="Selection",
+    )
+
+
+class Endings(RootModel[list[Ending]]):
+    root: list[Ending] = Field(
+        None, description="At most 20 endings.", max_length=20, title="Endings"
+    )
+
+
+class Rules(RootModel[list[Rule]]):
+    root: list[Rule] = Field(
+        None,
+        description="At most 8 rules per question and 100 per form (see Rule).",
+        max_length=8,
+        title="Rules",
+    )
+
+
 class FormField(BaseModel):
     """
     A question or content block on a page (or inside a group).
@@ -671,6 +891,11 @@ class FormField(BaseModel):
     date_rules: DateRules | None = Field(None, alias="dateRules", title="Daterules")
     why_we_ask: WhyWeAsk | None = Field(None, alias="whyWeAsk", title="Whyweask")
     logic: Logic | None = None
+    rules: Rules | None = Field(
+        None,
+        description="At most 8 rules per question and 100 per form (see Rule).",
+        title="Rules",
+    )
     expression: Any = Field(
         None,
         description='A calculated field\'s formula as an expressions-v1 syntax tree (docs/spec/expressions-v1.md), e.g. {"+": [{"var": "<field id>"}, 1]}. Variables are question ids, \'<group id>.<question id>\' for a repeating group\'s question, and hidden-field names.',
@@ -692,104 +917,6 @@ class FormField(BaseModel):
     repeat: Repeat | None = None
     fields: list[FormField] | None = Field(
         None, description="The questions of a group.", title="Fields"
-    )
-
-
-class Theme(BaseModel):
-    """
-    Colours and style of the form (or of one page, as an override).
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    title: str = Field(..., title="Title")
-    primary: str = Field(..., title="Primary")
-    secondary: str = Field(..., title="Secondary")
-    tertiary: str = Field(..., title="Tertiary")
-    accent: str = Field(..., title="Accent")
-    background: ThemeBackground | None = None
-    style: str | None = Field(
-        None, description="e.g. classic, sheet, studio, leaflet", title="Style"
-    )
-    title_font: (
-        Literal[
-            "public-sans",
-            "atkinson-next",
-            "archivo",
-            "besley",
-            "rubik",
-            "atkinson-mono",
-        ]
-        | None
-    ) = Field(
-        None,
-        alias="titleFont",
-        description="Face of titles and question labels. Absent: the text face (or the style's own title face).",
-        title="Titlefont",
-    )
-    body_font: (
-        Literal[
-            "public-sans",
-            "atkinson-next",
-            "archivo",
-            "besley",
-            "rubik",
-            "atkinson-mono",
-        ]
-        | None
-    ) = Field(
-        None,
-        alias="bodyFont",
-        description="Face of everything else respondents read. Absent: public-sans.",
-        title="Bodyfont",
-    )
-    data_font: (
-        Literal[
-            "public-sans",
-            "atkinson-next",
-            "archivo",
-            "besley",
-            "rubik",
-            "atkinson-mono",
-        ]
-        | None
-    ) = Field(
-        None,
-        alias="dataFont",
-        description="Face of data such as the submission number. Absent: the app's mono face.",
-        title="Datafont",
-    )
-    title_width: Literal["normal", "expanded"] | None = Field(
-        None,
-        alias="titleWidth",
-        description="Width of display titles: expanded is 125% on a face with a width axis (archivo).",
-        title="Titlewidth",
-    )
-    radius: Literal["sharp", "soft", "round"] | None = Field(
-        None,
-        description="Corners of fields, option cards and buttons: sharp 0, soft 6px, round 16px. Absent: the style's own.",
-        title="Radius",
-    )
-    button_style: Literal["filled", "outlined", "pill"] | None = Field(
-        None, alias="buttonStyle", description="Absent: filled.", title="Buttonstyle"
-    )
-    highlight: Highlight | None = Field(
-        None,
-        description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",
-        title="Highlight",
-    )
-    selection: Selection | None = Field(
-        None,
-        description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
-        title="Selection",
-    )
-
-
-class Endings(RootModel[list[Ending]]):
-    root: list[Ending] = Field(
-        None, description="At most 20 endings.", max_length=20, title="Endings"
     )
 
 

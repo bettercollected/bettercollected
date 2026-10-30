@@ -31,8 +31,8 @@ A field has an `id`, a `type` and a `title` (plain text, or a rich-text
 document that can pipe answers). Depending on the type it also has `choices`,
 `validations` (`required`, `minLength`, `maxLength`, `minValue`, `maxValue`,
 `pattern`, `minChoices`, `maxChoices`), `colSpan` (1 to 12), `logic` (show or
-hide it), `dateRules`, `whyWeAsk`, `internal`, and for a repeating group
-`repeat` and its own `fields`. Unknown keys are refused. Types the builder
+hide it), `rules` (see [Field rules](#field-rules)), `dateRules`, `whyWeAsk`,
+`internal`, and for a repeating group `repeat` and its own `fields`. Unknown keys are refused. Types the builder
 no longer offers are marked `deprecated` in the schema: they are still
 accepted so that older forms can be read, and validation warns about them.
 
@@ -55,6 +55,96 @@ the message. A pattern a form already holds that RE2 cannot use is kept until
 it is changed (the server does not check it). When an operation, a form saved
 with the API or an Open Formulieren import brings such a pattern, it is
 refused (the import leaves it out and lists it as not carried).
+
+## Field rules
+
+A question may carry `rules`: ordered rules that require it or make it
+optional, make it read-only, set its value, or change its title or
+description while a condition holds. `logic` stays the only way to show or
+hide a question.
+
+```json
+"rules": [
+  { "id": "r1",
+    "when": { "conditions": [ { "fieldId": "country", "comparison": "IS_EQUAL", "value": "Netherlands" } ] },
+    "then": { "required": true, "description": "Needed for Dutch addresses" } },
+  { "id": "r2",
+    "when": { "expression": { ">": [ { "var": "qty" }, 10 ] } },
+    "then": { "setValue": { "expression": { "*": [ { "var": "qty" }, 5 ] } } } }
+]
+```
+
+- **`id`**: letters, digits, `-` and `_`, unique within the form.
+- **`when`**: either `conditions` (with `operator` `AND`, the default, or
+  `OR`; the same conditions as `logic`, at most 20) or an `expression` (an
+  [expressions-v1](expressions-v1.md) tree over the form's variables, active
+  when its value is truthy: not empty, not `false`, not 0). Never both.
+- **`then`**: at least one of
+  - `required`: `true` requires the question, `false` makes it optional;
+  - `readOnly`: `true` (respondents cannot change the value);
+  - `title` (at most 300 characters) and `description` (at most 1000):
+    plain text that replaces the question's own; it may pipe answers
+    (`{{field:<id>}}`, `{{hidden:<name>}}`);
+  - `setValue`: `{"const": <value>}` or `{"expression": <tree>}`.
+- At most 8 rules per question and 100 per form.
+
+**What the rules mean.** A question's rules apply in order, and for each
+property the last active rule wins; `required` starts from
+`validations.required`. The server replays the rules on every submission
+and every edit of a response, with the answers as submitted, and is the
+authority:
+
+| Effect | While its rule is active | On the server |
+|---|---|---|
+| `required` | the question must be answered (`true`) or may be left empty (`false`) | Required uses this flag, on the respondent's path, per item in a repeating group |
+| `readOnly` | respondents cannot change the value | a submitted value is discarded: replaced by an active `setValue`, else removed |
+| `setValue` | the question holds the computed value (and is read-only) | the server computes it and stores it, whatever a client sent; an empty result leaves the question unanswered |
+| `title`, `description` | the text respondents read | nothing (presentation only) |
+
+When a value rule is not active, the respondent's own answer stands. A
+question whose value a rule sets or locks is never required and its answer
+rules (lengths, values, pattern) do not apply: an empty or unusual result of
+the form's own rules is not the respondent's to fix. A question hidden by
+`logic` or on a page the respondent skips is never required either.
+
+**Where rules may sit, and what they may read.**
+
+- Rules sit on questions respondents answer with one answer: not on pages,
+  content blocks, calculated fields, groups themselves, matrices, file
+  uploads, tables, payments or internal fields.
+- `readOnly` and `setValue` apply to short and long text, number, date,
+  yes/no and single-choice questions on a page (not inside a repeating group).
+  A choice question is set with `const`: the `id` of one of its options. A
+  `const` must fit the question (a number, `true`/`false`, a `YYYY-MM-DD`
+  date, a text).
+- Conditions and expressions read what logic and calculations read: page
+  questions by id, a repeating group's question across its items as
+  `<group id>.<question id>`, declared hidden fields by name, calculated
+  fields. Inside a repeating group, conditions and expressions read the same
+  item's questions by their id (as `logic` does there). A rule never reads
+  its own question, an internal field, or a group's question from outside
+  the group (use `groupMode` on the group).
+- Values that rules set and calculated fields can read each other, but not
+  in a circle. The server evaluates them in dependency order, so a condition
+  on a calculated or set value sees the final one.
+
+A rule that reads something the form does not have (a question that was
+removed) is not active. Saving a form refuses rules that break these rules
+(`invalid_field_rules` from the builder save, `errors` with JSON pointers
+from validation). When a builder save removes or changes a question that an
+existing rule reads, that rule is dropped, as edit operations drop the logic
+that referred to a removed question.
+
+The form builder has no rule editor yet, and the AI assistant, the MCP
+server and the importers do not create rules. A rule comes in through a form
+spec document (the public API) or with a question or form the builder saves
+whole, and each of these paths checks it.
+
+**Hidden answers.** Rules do not hide anything and keep with the rest of
+the form: an answer to a question hidden by `logic` is kept, and a value a
+rule sets in a hidden question is stored. One exception exists, unchanged:
+the answers of a repeating group hidden by its own `logic` are dropped
+before the response is stored, so a hidden group stores no items.
 
 ## What is not in the document
 
@@ -191,7 +281,8 @@ should pass every case.
   in sorted order. Compare after replacing them the same way.
 - Removing a question or a page also removes what referred to it: logic and
   jump conditions on it (a rule or jump left with no conditions goes too),
-  answer pipes in titles and date rules. Jumps to a removed page stay, so the
+  answer pipes in titles, date rules and field rules that read it (the whole
+  field rule goes). Jumps to a removed page stay, so the
   builder can show them as broken.
 - A rich-text title holds only the node and mark types of the builder's
   title editor (`TITLE_NODES` and `TITLE_MARKS` in `ops.py`). Only the form

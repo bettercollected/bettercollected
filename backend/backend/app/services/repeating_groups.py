@@ -389,6 +389,11 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
             scope = {**answers, **item}
             for child in children:
                 required = bool(child.validations and child.validations.required)
+                # A question whose rules can require it or make it optional
+                # is checked by answer validation, with the rules replayed
+                # (services/field_rules.py).
+                if _required_by_rules(child):
+                    continue
                 if not required or is_hidden_by_logic(child, scope, sources):
                     continue
                 if not has_answer_value(item.get(child.id)):
@@ -398,10 +403,20 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
     return problems
 
 
+def _required_by_rules(field: Any) -> bool:
+    rules = (field.properties.rules if field.properties else None) or []
+    return any(rule.then.required is not None for rule in rules)
+
+
 def drop_hidden_group_answers(form: StandardForm, answers: Any) -> Any:
     """Remove the answers of repeating groups hidden by their own visibility
     rule, so nothing a hidden group submits is stored. Returns the answers
-    (a new dict when something was dropped)."""
+    (a new dict when something was dropped).
+
+    This is the one exception to "hidden answers are kept": a question
+    hidden by logic keeps its answer, and so does a value a field rule sets
+    in a hidden question (services/field_rules.py). Documented in
+    docs/spec/README.md ("Field rules", hidden answers)."""
     if not isinstance(answers, dict):
         return answers
     plain = {k: _as_dict(v) for k, v in answers.items()}

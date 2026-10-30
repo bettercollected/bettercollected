@@ -100,6 +100,40 @@ def _conditions_to_spec(conditions) -> Optional[List[Dict[str, Any]]]:
     ]
 
 
+def _rules_to_spec(rules) -> Optional[List[Dict[str, Any]]]:
+    if rules is None:
+        return None
+    out = []
+    for rule in rules:
+        when, then = rule.when, rule.then
+        set_value = then.set_value
+        out.append(
+            {
+                "id": rule.id,
+                "when": {
+                    "operator": when.operator,
+                    "conditions": _conditions_to_spec(when.conditions),
+                    "expression": copy.deepcopy(when.expression),
+                },
+                "then": {
+                    "required": then.required,
+                    "readOnly": then.read_only,
+                    "title": then.title,
+                    "description": then.description,
+                    "setValue": (
+                        {
+                            "const": set_value.const,
+                            "expression": copy.deepcopy(set_value.expression),
+                        }
+                        if set_value is not None
+                        else None
+                    ),
+                },
+            }
+        )
+    return out
+
+
 def _theme_to_spec(theme) -> Optional[Dict[str, Any]]:
     if theme is None:
         return None
@@ -189,6 +223,7 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                     if p.logic is not None
                     else None
                 ),
+                "rules": _rules_to_spec(p.rules),
                 "repeat": (
                     p.repeat.model_dump(by_alias=True) if p.repeat is not None else None
                 ),
@@ -374,6 +409,36 @@ def _conditions_from_spec(conditions) -> Optional[List[Dict[str, Any]]]:
     return [c.model_dump() for c in conditions]
 
 
+def _rules_from_spec(rules) -> Optional[List[Dict[str, Any]]]:
+    if rules is None:
+        return None
+    return [
+        {
+            "id": rule.id,
+            "when": {
+                "operator": rule.when.operator,
+                "conditions": _conditions_from_spec(rule.when.conditions),
+                "expression": copy.deepcopy(rule.when.expression),
+            },
+            "then": {
+                "required": rule.then.required,
+                "read_only": rule.then.read_only,
+                "title": rule.then.title,
+                "description": rule.then.description,
+                "set_value": (
+                    {
+                        "const": rule.then.set_value.const,
+                        "expression": copy.deepcopy(rule.then.set_value.expression),
+                    }
+                    if rule.then.set_value is not None
+                    else None
+                ),
+            },
+        }
+        for rule in rules
+    ]
+
+
 def _field_from_spec(field, index: int) -> Dict[str, Any]:
     v = field.validations
     properties: Dict[str, Any] = {
@@ -419,6 +484,7 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
             if field.logic is not None
             else None
         ),
+        "rules": _rules_from_spec(field.rules),
         "repeat": field.repeat.model_dump() if field.repeat is not None else None,
         "expression": copy.deepcopy(field.expression),
         "format": field.format.model_dump() if field.format is not None else None,

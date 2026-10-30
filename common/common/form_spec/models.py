@@ -23,16 +23,24 @@ from common.models.standard_form import (
     ENDING_MESSAGE_MAX_LENGTH,
     ENDING_NAME_MAX_LENGTH,
     ENDING_TITLE_MAX_LENGTH,
+    FIELD_RULES_MAX,
+    FORM_FIELD_RULES_MAX,
     FORM_LANGUAGES,
     MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
     REPEAT_MAX_ITEMS_LIMIT,
+    RULE_CONDITIONS_MAX,
+    RULE_CONST_MAX_LENGTH,
+    RULE_DESCRIPTION_MAX_LENGTH,
+    RULE_ID_PATTERN,
+    RULE_TITLE_MAX_LENGTH,
     SECTION_TITLE_MAX_LENGTH,
     WHY_WE_ASK_MAX_LENGTH,
     LayoutType,
     StandardFormFieldType,
 )
 from common.form_spec.re2_patterns import re2_problem
+from common.models.standard_form import _rule_expression_problem
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
@@ -315,6 +323,125 @@ class Logic(_Spec):
     conditions: Optional[List[Condition]] = None
 
 
+class RuleWhen(_Spec):
+    """When a rule is active: ``conditions`` (as in ``logic``; operator AND
+    when absent) or an expressions-v1 ``expression`` (active when its value
+    is truthy), never both."""
+
+    operator: Optional[Literal["AND", "OR"]] = None
+    conditions: Optional[List[Condition]] = Field(
+        None, min_length=1, max_length=RULE_CONDITIONS_MAX
+    )
+    expression: Optional[Any] = Field(
+        None,
+        description="An expressions-v1 syntax tree (docs/spec/expressions-v1.md) "
+        "over the form's variables; inside a repeating group a sibling "
+        "question's id reads that item's answer.",
+    )
+
+    @model_validator(mode="after")
+    def _one_kind(self):
+        if (self.conditions is None) == (self.expression is None):
+            raise ValueError(
+                "A rule's 'when' needs either conditions or an expression (not both)."
+            )
+        if self.expression is not None:
+            if self.operator is not None:
+                raise ValueError(
+                    "A rule's 'operator' only combines conditions, not an expression."
+                )
+            problem = _rule_expression_problem(self.expression)
+            if problem:
+                raise ValueError(f"A rule's 'when' expression: {problem}")
+        return self
+
+
+class RuleSetValue(_Spec):
+    """The value a rule gives the question: a fixed ``const`` (a text, a
+    number, true/false for yes/no, a YYYY-MM-DD date, or the ``id`` of one of
+    a choice question's options) or an ``expression``, never both."""
+
+    const: Optional[Union[bool, int, float, str]] = Field(
+        None, description="A choice question is set by the id of one of its options."
+    )
+    expression: Optional[Any] = None
+
+    @model_validator(mode="after")
+    def _one_kind(self):
+        if (self.const is None) == (self.expression is None):
+            raise ValueError("'setValue' needs either 'const' or 'expression'.")
+        if isinstance(self.const, float) and (
+            self.const != self.const or self.const in (float("inf"), float("-inf"))
+        ):
+            raise ValueError("'setValue' must be a finite number.")
+        if isinstance(self.const, str) and len(self.const) > RULE_CONST_MAX_LENGTH:
+            raise ValueError(
+                f"A 'setValue' text can be at most {RULE_CONST_MAX_LENGTH} characters."
+            )
+        if self.expression is not None:
+            problem = _rule_expression_problem(self.expression)
+            if problem:
+                raise ValueError(f"A 'setValue' expression: {problem}")
+        return self
+
+
+class RuleThen(_Spec):
+    """What a rule does while it is active (at least one key). The server
+    enforces ``required``, ``readOnly`` and ``setValue``; ``title`` and
+    ``description`` only change what respondents read."""
+
+    required: Optional[bool] = Field(
+        None,
+        description="true: the question must be answered; false: it is optional.",
+    )
+    read_only: Optional[Literal[True]] = Field(
+        None,
+        description="Respondents cannot change the value: a submitted value is "
+        "discarded (replaced by an active setValue, else removed).",
+    )
+    title: Optional[str] = Field(
+        None,
+        max_length=RULE_TITLE_MAX_LENGTH,
+        description="Plain text; may pipe answers ({{field:<id>}}).",
+    )
+    description: Optional[str] = Field(None, max_length=RULE_DESCRIPTION_MAX_LENGTH)
+    set_value: Optional[RuleSetValue] = Field(
+        None,
+        description="The server computes the value and stores it, whatever a "
+        "client sent; an empty result leaves the question unanswered. Implies "
+        "readOnly.",
+    )
+
+    @model_validator(mode="after")
+    def _something(self):
+        if all(
+            getattr(self, key) is None
+            for key in ("required", "read_only", "title", "description", "set_value")
+        ):
+            raise ValueError(
+                "A rule's 'then' needs at least one of: required, readOnly, "
+                "title, description, setValue."
+            )
+        if self.title is not None and not self.title.strip():
+            raise ValueError("A rule's title cannot be empty.")
+        return self
+
+
+class Rule(_Spec):
+    """A field rule: while ``when`` holds, ``then`` applies. A field's rules
+    apply in order; for each property the last active rule wins
+    (``required`` starts from ``validations.required``). Rules never show or
+    hide a question (that is ``logic``)."""
+
+    id: str = Field(
+        ...,
+        pattern=RULE_ID_PATTERN,
+        description="Unique within the form.",
+    )
+    when: RuleWhen
+    then: RuleThen
+
+
 class PageJump(_Spec):
     """After this page, go to ``target`` (a page id, or "__SUBMIT__" to
     end the form) when the conditions match. The first matching jump wins;
@@ -443,6 +570,12 @@ class FormField(_Spec):
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     logic: Optional[Logic] = None
+    rules: Optional[List[Rule]] = Field(
+        None,
+        max_length=FIELD_RULES_MAX,
+        description=f"At most {FIELD_RULES_MAX} rules per question and "
+        f"{FORM_FIELD_RULES_MAX} per form (see Rule).",
+    )
     expression: Optional[Any] = Field(
         None,
         description="A calculated field's formula as an expressions-v1 syntax "
@@ -599,7 +732,25 @@ class FormSpec(_Spec):
                 f"A form can have at most {MAX_FIELDS} fields in all; this one "
                 f"has {count}."
             )
+        rules = sum(
+            len(field.rules or [])
+            for page in self.pages
+            for field in _all_fields(page.fields)
+        )
+        if rules > FORM_FIELD_RULES_MAX:
+            raise ValueError(
+                f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this one "
+                f"has {rules}."
+            )
         return self
+
+
+def _all_fields(fields):
+    pending = list(fields or [])
+    while pending:
+        field = pending.pop()
+        yield field
+        pending.extend(field.fields or [])
 
 
 FormField.model_rebuild()

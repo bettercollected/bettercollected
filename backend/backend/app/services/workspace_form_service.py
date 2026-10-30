@@ -82,6 +82,11 @@ from backend.app.services.calculated_fields import (
     respondent_today,
     today_iso,
 )
+from backend.app.services.field_rules import (
+    ensure_valid_field_rules,
+    rule_keys_reading,
+    server_value_ids,
+)
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -692,6 +697,8 @@ class WorkspaceFormService:
         ensure_no_internal_logic(form)
         ensure_valid_date_rules(form)
         ensure_valid_calculations(form)
+        # field rules (services/field_rules.py): a copy drops broken ones
+        ensure_valid_field_rules(form, drop=drop_unusable_settings)
         ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
@@ -804,6 +811,10 @@ class WorkspaceFormService:
         ensure_not_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
+        # Field rules (services/field_rules.py) are checked; one the draft
+        # already had, unchanged, that this save broke (its question was
+        # removed or changed) is dropped: the builder cannot edit rules yet.
+        ensure_valid_field_rules(form, existing=existing_form)
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
@@ -1077,6 +1088,12 @@ class WorkspaceFormService:
         # edit (services/calculated_fields.py), never the client's; an empty
         # result overwrites a stored value. "today" is the submission day.
         calc_ids = [str(field.id) for field in calculated_fields(form) if field.id]
+        # Values field rules set or lock are the server's too (overwritten
+        # like calculations), and a question whose rules read what changed
+        # (or a server value) is checked again: the edit may now require it.
+        calc_ids += server_value_ids(form)
+        changed_keys = list((response.answers or {}).keys())
+        rule_keys = sorted(rule_keys_reading(form, changed_keys + calc_ids))
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
         # CPU-bound (creator patterns, formulas): off the event loop.
@@ -1092,7 +1109,7 @@ class WorkspaceFormService:
                 existing.created_at.date() if existing.created_at else None
             ),
             keep_empty=True,
-            only=list((response.answers or {}).keys()) + calc_ids,
+            only=changed_keys + calc_ids + rule_keys,
         )
         if calc_ids:
             response.answers = dict(response.answers or {})

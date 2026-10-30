@@ -15,6 +15,8 @@ from common.models.standard_form import (
     DateRule,
     FieldLogic,
     FieldPosition,
+    FieldRule,
+    FIELD_RULES_MAX,
     PageJump,
     LogicalOperator,
     LayoutType,
@@ -130,6 +132,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     format: Optional[CalculationFormat] = None
     hidden_from_respondents: Optional[bool] = None
     unanswered_as_zero: Optional[bool] = None
+    # Field rules (common StandardFieldProperty.rules), checked on every save.
+    rules: Optional[List[FieldRule]] = Field(None, max_length=FIELD_RULES_MAX)
 
 
 class StandardFormFieldCamelModel(CamelModel):

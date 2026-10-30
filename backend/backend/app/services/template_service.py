@@ -17,6 +17,7 @@ from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.field_rules import ensure_valid_field_rules
 from backend.app.services.form_logo import logo_key, read_logo_upload
 from backend.app.services.retention import checked_retention
 from backend.app.services.temporal_service import TemporalService
@@ -159,6 +160,8 @@ class FormTemplateService:
         )
         # before anything is stored or uploaded
         check_template_retention(template_body.settings)
+        # a template never runs its field rules; broken ones are not kept
+        ensure_valid_field_rules(template_body, drop=True)
         template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
@@ -202,6 +205,7 @@ class FormTemplateService:
                 HTTPStatus.FORBIDDEN, "You are not allowed to update this template."
             )
         check_template_retention(template_body.settings, template.settings)
+        ensure_valid_field_rules(template_body, drop=True)
         if logo:
             # The previous file stays: forms and imported copies made from this
             # template may still show it.

@@ -905,6 +905,23 @@
           ],
           "default": null
         },
+        "rules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Rule"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "At most 8 rules per question and 100 per form (see Rule).",
+          "title": "Rules"
+        },
         "expression": {
           "anyOf": [
             {},
@@ -1435,6 +1452,197 @@
         "type"
       ],
       "title": "Retention",
+      "type": "object"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "description": "A field rule: while ``when`` holds, ``then`` applies. A field's rules\napply in order; for each property the last active rule wins\n(``required`` starts from ``validations.required``). Rules never show or\nhide a question (that is ``logic``).",
+      "properties": {
+        "id": {
+          "description": "Unique within the form.",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/RuleWhen"
+        },
+        "then": {
+          "$ref": "#/$defs/RuleThen"
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "then"
+      ],
+      "title": "Rule",
+      "type": "object"
+    },
+    "RuleSetValue": {
+      "additionalProperties": false,
+      "description": "The value a rule gives the question: a fixed ``const`` (a text, a\nnumber, true/false for yes/no, a YYYY-MM-DD date, or the ``id`` of one of\na choice question's options) or an ``expression``, never both.",
+      "properties": {
+        "const": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A choice question is set by the id of one of its options.",
+          "title": "Const"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        }
+      },
+      "title": "RuleSetValue",
+      "type": "object"
+    },
+    "RuleThen": {
+      "additionalProperties": false,
+      "description": "What a rule does while it is active (at least one key). The server\nenforces ``required``, ``readOnly`` and ``setValue``; ``title`` and\n``description`` only change what respondents read.",
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "true: the question must be answered; false: it is optional.",
+          "title": "Required"
+        },
+        "readOnly": {
+          "anyOf": [
+            {
+              "const": true,
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Respondents cannot change the value: a submitted value is discarded (replaced by an active setValue, else removed).",
+          "title": "Readonly"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain text; may pipe answers ({{field:<id>}}).",
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "setValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSetValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The server computes the value and stores it, whatever a client sent; an empty result leaves the question unanswered. Implies readOnly."
+        }
+      },
+      "title": "RuleThen",
+      "type": "object"
+    },
+    "RuleWhen": {
+      "additionalProperties": false,
+      "description": "When a rule is active: ``conditions`` (as in ``logic``; operator AND\nwhen absent) or an expressions-v1 ``expression`` (active when its value\nis truthy), never both.",
+      "properties": {
+        "operator": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An expressions-v1 syntax tree (docs/spec/expressions-v1.md) over the form's variables; inside a repeating group a sibling question's id reads that item's answer.",
+          "title": "Expression"
+        }
+      },
+      "title": "RuleWhen",
       "type": "object"
     },
     "Theme": {
