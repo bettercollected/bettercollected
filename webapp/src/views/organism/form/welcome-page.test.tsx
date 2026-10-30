@@ -64,3 +64,20 @@ describe('WelcomePage as a preview of another form', () => {
         expect(screen.getByRole('button', { name: 'Get help' })).toBeDefined();
     });
 });
+
+describe('WelcomePage of a closed form', () => {
+    it('says the form is closed and offers no Start', () => {
+        // The server's stub of a closed form: the welcome page, no questions.
+        store.dispatch(setForm({ formId: 'closed', builderVersion: 'v2', title: 'Visit feedback', welcomePage: { description: 'Three minutes.' }, settings: {}, unavailable: 'closed' } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode={false} />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.getByRole('heading', { level: 1, name: 'Visit feedback' })).toBeDefined();
+        expect(screen.getByRole('status').textContent).toBe('This form is closed and no longer accepts responses.');
+        expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+    });
+});

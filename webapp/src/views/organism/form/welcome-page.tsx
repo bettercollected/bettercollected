@@ -82,8 +82,17 @@ export default function WelcomePage({
         </Link>
     );
 
+    // A closed form comes without its questions: no Start, only the notice.
+    const closed = standardForm?.unavailable === 'closed';
+
     // Notes and the start button: one group, set apart from the title block.
-    const actions = (
+    const actions = closed ? (
+        <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
+            <p role="status" className="text-base" style={{ color: softInk(formTheme) }}>
+                {t('WELCOME.CLOSED')}
+            </p>
+        </div>
+    ) : (
         <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
             {!standardForm?.settings?.private && !auth.id && (
                 <p className="text-base" style={{ color: softInk(formTheme) }}>

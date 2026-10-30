@@ -49,6 +49,7 @@ from backend.app.services.ai.notice_token import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.event_service import event_logger_service
+from backend.app.services.form_availability import UNAVAILABLE_CLOSED, is_closed
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
@@ -68,6 +69,22 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     settings = FormSettingsCamelModel(**workspace_form.settings.model_dump())
     settings.language = language
     return settings
+
+
+def _closed_stub(form: dict) -> dict:
+    """What a respondent gets of a closed form's published version: the
+    welcome page and its look, with ``unavailable`` and no questions. A
+    closed form takes no responses (services/form_availability.py), so its
+    questions are not served either."""
+    return {
+        "formId": form.get("form_id"),
+        "builderVersion": form.get("builder_version"),
+        "title": form.get("title"),
+        "welcomePage": form.get("welcome_page"),
+        "theme": form.get("theme"),
+        "settings": form.get("settings"),
+        "unavailable": UNAVAILABLE_CLOSED,
+    }
 
 
 def _declared_language(form) -> Optional[str]:
@@ -191,7 +208,11 @@ class FormService:
         # before any query: drafts are staff-only, as in the listing
         staff = await self._staff_view(user, workspace_id, published)
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id=workspace_id, is_not_admin=True, user=user
+            workspace_id=workspace_id,
+            is_not_admin=True,
+            user=user,
+            # as the public listing: closed forms are not offered to respondents
+            filter_closed=not staff,
         )
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id,
@@ -236,8 +257,17 @@ class FormService:
             published=published,
             draft=draft and is_admin,
         )
+        if is_admin:
+            return form
+        # A closed form's questions are not served to respondents: its
+        # welcome page says it is closed. Who may see the form at all is
+        # decided first: the stubs of private and hidden forms (camelCase
+        # keys, no questions) are served as they are.
+        if published and isinstance(form, dict) and "form_id" in form:
+            if is_closed(form.get("settings")):
+                return _closed_stub(form)
         # Respondents and the public never receive internal fields.
-        return form if is_admin else respondent_view(form)
+        return respondent_view(form)
 
     async def ai_notice_token(
         self, workspace_id: RecordId, form_id_or_slug: str

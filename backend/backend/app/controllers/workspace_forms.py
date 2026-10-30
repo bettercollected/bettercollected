@@ -565,6 +565,8 @@ class WorkspaceFormsRouter(Routable):
             user=user,
             ai_notice_token=ai_notice_token,
             client_today=today,
+            # a closed form is judged at the time the request arrived
+            received_at=getattr(request.state, "received_at", None),
         )
         # The stored response carries the form's retention (applied by the
         # service), not only what the client sent.

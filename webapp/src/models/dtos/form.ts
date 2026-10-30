@@ -247,6 +247,8 @@ export interface StandardFormDto {
     secrets?: Record<any, Array<Parameters>>;
     theme?: FormTheme;
     unauthorized?: boolean;
+    /** Served without its questions: "closed" once its close date has passed. */
+    unavailable?: 'closed';
     /**
      * Signed proof that this page shows the AI insights notice (#752): sent
      * with the published form while it allows AI insights, and sent back on

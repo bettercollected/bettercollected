@@ -59,7 +59,8 @@
         "PRIVATE": "Besloten formulier",
         "PRIVATE_TEXT": "Alleen bepaalde mensen kunnen dit formulier invullen. Bevestig wie je bent om verder te gaan.",
         "NO_ACCESS": "Je hebt geen toegang tot dit formulier. Gebruik een ander account dat wel toegang heeft. Klopt dit niet? Neem dan contact op met de eigenaar van het formulier.",
-        "CONTENTS": "In dit formulier"
+        "CONTENTS": "In dit formulier",
+        "CLOSED": "Dit formulier is gesloten en neemt geen antwoorden meer aan."
     },
     "ACCOUNT": {
         "LABEL": "Account",

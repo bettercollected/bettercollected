@@ -320,6 +320,47 @@ async def test_a_form_linked_twice_to_a_workspace_counts_once(sessions):
 
 
 # ----------------------------------------------------------------- workspace forms
+async def test_open_only_listing_agrees_with_the_submit_gate(sessions, monkeypatch):
+    """``filter_closed`` reads the close date as the submit gate does
+    (services/form_availability.py): the same instant whatever its offset or
+    spelling, closed on the instant itself, unreadable values left open. The
+    stored text used to be compared with the current time as text, which put
+    a ``+02:00`` value two hours late and a ``-05:00`` one five hours early."""
+    from backend.app.services.form_availability import is_closed
+
+    ws = oid(31)
+    _, _, links = form_repos(sessions)
+    now = dt.datetime(2026, 10, 30, 12, 0, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr("common.clock.utcnow", lambda: now)
+    values = {
+        # closed one hour ago, spelled in another zone: text order said open
+        "plus2_closed": "2026-10-30T13:00:00+02:00",
+        "minus5_open": "2026-10-30T08:00:00-05:00",
+        "z_ms_closed": "2026-10-30T11:59:59.999Z",
+        "exact_closed": "2026-10-30T12:00:00Z",
+        "naive_open": "2026-10-30T12:00:01",
+        "naive_closed": "2026-10-30T11:00:00",
+        "datetime_closed": now,
+        "empty_open": "",
+        "none_open": None,
+        "garbage_open": "banana",
+    }
+    for minutes, (form_id, value) in enumerate(values.items()):
+        await links.save(workspace_form(ws, form_id, "u1", minutes, form_close_date=value))
+
+    listed = {
+        wf["form_id"]
+        for wf in await links.get_workspace_forms_in_workspace(ws, filter_closed=True)
+    }
+    assert listed == {form_id for form_id in values if form_id.endswith("_open")}
+    for form_id, value in values.items():
+        gate_open = not is_closed({"form_close_date": value}, now)
+        assert (form_id in listed) == gate_open, form_id
+    assert set(await links.get_form_ids_in_workspace(ws, filter_closed=True)) == listed
+    # without the filter every form is listed
+    assert len(await links.get_workspace_forms_in_workspace(ws)) == len(values)
+
+
 async def test_workspace_form_visibility(sessions):
     ws, other = oid(1), oid(2)
     groups, _, links = form_repos(sessions)

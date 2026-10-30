@@ -11,6 +11,7 @@ from starlette.responses import Response
 __all__ = ("include_middlewares",)
 
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
+from backend.app.services import form_availability
 from backend.app.middlewares.request_privacy import (
     NO_STORE_HEADERS,
     carries_response_data,
@@ -49,6 +50,14 @@ def include_middlewares(app: "FastAPI"):
         response: Response = await call_next(request)
         logger.info(response.status_code)
         return response
+
+    @app.middleware("http")
+    async def stamp_received_at(request: "Request", call_next):
+        """When the request arrived, before its body was read: a response
+        submitted before a form's close date counts as on time even when its
+        upload ends after it (services/form_availability.py)."""
+        request.state.received_at = form_availability.now()
+        return await call_next(request)
 
     @app.middleware("http")
     async def no_store_response_data(request: "Request", call_next):
