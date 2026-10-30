@@ -12,3 +12,7 @@
 - The auth service's account lookups for the backend no longer include an account's pending
   code, and its access log no longer records query strings, where the backend sends the email
   and the code being checked.
+- Elastic APM on the auth service now records a request's method and path only: no query
+  string (the email and sign-in code), no request headers (the internal key), cookies or body,
+  and no local variables of an error's stack frames. Like the backend's guard, it is built into
+  the APM client, and no `ELASTIC_APM_*` setting can switch it off.

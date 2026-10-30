@@ -91,7 +91,9 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
     email, purpose and expiry, `compare_digest`). `validate_otp` runs under the account's row lock
     (`UserRepository.change_otp_locked`): expired codes are cleared before any comparison, anything not in
     that format is refused, a match consumes the code, 5 wrong tries clear it. Listings (`GET /users`)
-    blank the `otp_*` fields; the access log drops query strings (`auth/__main__.py`).
+    blank the `otp_*` fields; the access log drops query strings (`auth/__main__.py`), and Elastic APM
+    records method and path only (`app/apm_privacy.py`, strict `common.utils.apm_privacy`: no query string,
+    request headers, cookies, body or frame variables; built into the client, no setting turns it off).
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.
   - `GET /callback` — JWT exchange. `GET /status` — session/user status.
 - **Stripe billing** (`controllers/stripe_router.py`, logic in `services/stripe_service.py`):
