@@ -89,6 +89,65 @@ In CHANGELOG.md, the release branch's dated sections go under develop's `## [Unr
 and the entries and fragments on develop that those releases already list are removed. The
 `Changelog fragment` check treats such a branch as a branch sync, like `release/*`.
 
+## SDK releases
+
+The SDKs in [sdk/](sdk/) are versioned and released on their own, separately from
+the app, each with its own semver starting at `0.1.0`:
+
+| SDK | Package | Version in | Tag |
+|---|---|---|---|
+| Python | [`bettercollected`](https://pypi.org/project/bettercollected/) on PyPI | `sdk/python/pyproject.toml` | `sdk-py-vX.Y.Z` |
+| TypeScript | [`@bettercollected/sdk`](https://www.npmjs.com/package/@bettercollected/sdk) on npm | `sdk/typescript/package.json` | `sdk-ts-vX.Y.Z` |
+
+The tags never match the app's `vX.Y.Z` pattern, so they do not start the app's
+Build and Deploy (or any other workflow but the SDK one). Each README states the
+oldest bettercollected version whose API the SDK works with; raise it there when an
+SDK starts using a newer API.
+
+1. **Bump the version** in a pull request: `version` in `sdk/python/pyproject.toml`
+   (then `uvx uv@0.12.23 lock` in `sdk/python`), or `version` in
+   `sdk/typescript/package.json` (then `npm install --package-lock-only
+   --ignore-scripts` in `sdk/typescript`). Add a changelog fragment.
+2. **Merge** it (to `develop`, or to the `release/X.Y` branch the SDK release is cut
+   from).
+3. **Tag** the merge commit and push the tag. The tag's version must equal the
+   package's version, or the workflow fails before building:
+
+   ```bash
+   git checkout develop && git pull
+   git tag -a sdk-py-v0.1.0 -m "Python SDK 0.1.0"   # or sdk-ts-v0.1.0
+   git push origin sdk-py-v0.1.0
+   ```
+
+4. **Approve the environment.** The tag starts
+   [Publish SDK](.github/workflows/publish-sdk.yml): its build job runs the SDK's
+   tests, builds the package, checks it (`twine check`, or the `npm pack` file
+   list in the log) and keeps it as a run artifact. The publish job waits for a
+   reviewer of the `pypi` or `npm` environment. Check the build log, then approve.
+   The publish job runs no repository code: it downloads the built package, checks
+   its name and version, and uploads it with trusted publishing (GitHub OIDC, no
+   stored token). PyPI gets attestations, npm gets provenance.
+
+A published version cannot be replaced, on either registry. If a release is broken,
+release the next patch version.
+
+Setup, done once by the owner of the PyPI and npm accounts:
+
+- **PyPI:** a trusted publisher (a pending one until the first upload) for the
+  project `bettercollected`: owner `bettercollected`, repository
+  `bettercollected`, workflow `publish-sdk.yml`, environment `pypi`.
+- **npm:** the organisation `bettercollected` (2FA for every member). Trusted
+  publishing can only be set up on a package that exists, so the first release
+  uses a granular token that can publish only `@bettercollected/sdk` and expires
+  within days, stored as the secret `NPM_TOKEN` in the `npm` environment. The
+  workflow passes it to npm only when it is set. After the first release: on
+  npmjs.com, add the trusted publisher (repository
+  `bettercollected/bettercollected`, workflow `publish-sdk.yml`, environment
+  `npm`), set the package to require 2FA and disallow tokens, and delete the
+  secret and the token. From then on npm authenticates with GitHub OIDC only.
+- **GitHub:** the environments `pypi` and `npm`, each with a required reviewer
+  and a deployment rule that allows only tags matching `sdk-*`.
+
 ## Future automation
 
 Candidates when the cadence justifies it: `release-please` or

@@ -2,8 +2,28 @@
   "name": "@bettercollected/sdk",
   "version": "0.1.0",
   "description": "Typed client for the BetterCollected public API (forms as code).",
-  "license": "SEE LICENSE IN ../../LICENSE",
-  "private": true,
+  "license": "Apache-2.0",
+  "author": "Sireto B.V.",
+  "homepage": "https://bettercollected.com/developers/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bettercollected/bettercollected.git",
+    "directory": "sdk/typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/bettercollected/bettercollected/issues"
+  },
+  "keywords": [
+    "bettercollected",
+    "forms",
+    "forms-as-code",
+    "form-builder",
+    "privacy",
+    "gdpr",
+    "api-client",
+    "sdk",
+    "typescript"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,10 +34,16 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
-    "node": ">=22.18"
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "generate": "openapi-typescript ../../docs/api/public-v1.openapi.json -o src/generated/openapi.ts && node scripts/generate.mjs",
