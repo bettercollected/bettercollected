@@ -17,7 +17,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 4.1.1 is about reading responses. A response opens on its own page that looks like the form, the search on the responses page works, the CSV export gains the response id, submission time and hidden fields, and receipt numbers and searched emails stay out of logs, caches and the hands of roles that must not read answers. The admin portal can also trust its reverse proxy by host name.
 
-**Upgrading from 4.1.0:** no new settings and no migration. To name the admin portal's reverse proxy in `ADMIN_TRUSTED_PROXIES`, add the name after 4.1.1 is running: 4.1.0's admin service does not start with a host name in that list. In Docker Swarm use `tasks.<stack>_<service>`, which resolves to the proxy's own address rather than the service's virtual one.
+**Upgrading from 4.1.0:** no migration and no required setting; one optional setting, `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` (default 60), sets how often proxy host names are resolved again. The backend no longer writes uvicorn's access log: its own request log keeps the method, the path with any receipt number replaced, and the status, so point log collection there if you read the access log. To name the admin portal's reverse proxy in `ADMIN_TRUSTED_PROXIES`, add the name after 4.1.1 is running: 4.1.0's admin service does not start with a host name in that list. In Docker Swarm use `tasks.<stack>_<service>`, which resolves to the proxy's own address rather than the service's virtual one.
 
 ### Changed
 
