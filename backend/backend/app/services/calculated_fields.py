@@ -44,6 +44,8 @@ from common.expressions import (
 )
 from common.models.standard_form import _find_cycle, is_iso_date
 
+from loguru import logger
+
 from backend.app.exceptions import HTTPException
 from backend.app.services.repeating_groups import (
     comparable_answer_value,
@@ -633,19 +635,42 @@ def calculate_and_check(
     keep_empty: bool = False,
     known_ids: Optional[Set[str]] = None,
     only: Optional[Iterable[str]] = None,
+    with_locked: bool = False,
 ) -> Any:
     """The server's values (calculated fields, and what field rules set or
     lock: services/field_rules.py), then answer validation with them
     (Required with the rules applied, answer rules, types, logic and jumps):
     one call, run off the event loop by the caller. Returns the answers with
-    the server's values."""
-    from backend.app.services.answer_validation import check_answers
-    from backend.app.services.field_rules import resolve_field_rules
+    the server's values; ``with_locked``: ``(answers, locked ids)``, the
+    questions whose value a rule set or locked (``only`` then includes
+    them: an edit reports what an active rule now decides).
 
-    answers, states = resolve_field_rules(
-        form, answers, hidden_values, today=today, keep_empty=keep_empty
+    A replay over its evaluation budget (data no save accepted) refuses the
+    response, 422 ``field_rules_too_costly``: nothing goes unchecked."""
+    from backend.app.services.answer_validation import check_answers
+    from backend.app.services.field_rules import (
+        COSTLY_CODE,
+        FieldRulesTooCostly,
+        resolve_field_rules,
     )
+
+    try:
+        answers, states = resolve_field_rules(
+            form, answers, hidden_values, today=today, keep_empty=keep_empty
+        )
+    except FieldRulesTooCostly:
+        logger.warning("Form {}: field rules over their evaluation budget", form_id)
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": COSTLY_CODE,
+                "message": "This form's rules are too costly to check; the "
+                "response was not stored.",
+            },
+        )
+    if with_locked and only is not None:
+        only = list(only) + sorted(states.locked)
     check_answers(
         form, answers, form_id, known_ids=known_ids, only=only, rule_states=states
     )
-    return answers
+    return (answers, set(states.locked)) if with_locked else answers

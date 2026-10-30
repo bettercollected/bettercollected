@@ -1094,16 +1094,53 @@ def test_a_copy_drops_broken_rules():
     ]
 
 
-def test_an_edit_drops_an_unchanged_rule_it_broke_but_refuses_a_new_broken_one():
-    stored = _form(
-        [_q("a"), _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])])]
+def test_drop_reports_what_it_dropped_and_circles_still_refuse():
+    form = _form([_q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])])])
+    dropped = ensure_valid_field_rules(form, drop=True)
+    assert dropped == [
+        {"fieldId": "b", "ruleId": "r1", "message": dropped[0]["message"]}
+    ]
+    assert "'a'" in dropped[0]["message"]
+    assert form.fields[0].properties.fields[0].properties.rules is None
+    circle = _form(
+        [
+            _q(
+                "a",
+                "number",
+                rules=[
+                    _rule(
+                        "r1",
+                        {"setValue": {"expression": {"+": [V("c"), 1]}}},
+                        expression=True,
+                    )
+                ],
+            ),
+            _calc("c", {"+": [V("a"), 1]}),
+        ]
     )
-    edited = _form([_q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])])])
-    ensure_valid_field_rules(edited, existing=stored)
-    assert edited.fields[0].properties.fields[0].properties.rules is None
-    changed = _form([_q("b", rules=[_rule("r1", {"required": True}, [_is("a", "y")])])])
-    with pytest.raises(HTTPException):
-        ensure_valid_field_rules(changed, existing=stored)
+    with pytest.raises(HTTPException) as error:
+        ensure_valid_field_rules(circle, drop=True)
+    assert error.value.content["code"] == "invalid_field_rules"
+
+
+@pytest.fixture
+def rules_on(monkeypatch):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+
+
+@pytest.fixture
+def rules_off(monkeypatch):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+
+
+def test_the_flag_is_off_by_default():
+    from backend.config.application import Application
+
+    assert Application.model_fields["FIELD_RULES_ENABLED"].default is False
 
 
 # --- service paths ------------------------------------------------------------
@@ -1133,54 +1170,126 @@ async def _stored(workspace, response_id):
     )
 
 
-async def test_saving_a_bad_rule_is_422(workspace):
-    service = container.workspace_form_service()
-    with pytest.raises(HTTPException) as error:
-        await service.create_form(
-            workspace.id,
-            _form(
-                [_q("b", rules=[_rule("r1", {"required": True}, [_is("gone", "x")])])]
-            ),
-            testUser,
-        )
-    assert error.value.content["code"] == "invalid_field_rules"
-    form = await service.create_form(workspace.id, _form([_q("a"), _q("b")]), testUser)
-    with pytest.raises(HTTPException) as error:
-        await service.update_form(
-            workspace.id,
-            form.form_id,
-            _form(
-                [
-                    _q("a"),
-                    _q(
-                        "b",
-                        "number",
-                        rules=[
-                            _rule("r1", {"setValue": {"const": "x"}}, expression=True)
-                        ],
-                    ),
-                ]
-            ),
-            testUser,
-        )
-    assert error.value.content["code"] == "invalid_field_rules"
+RULED = [_q("a"), _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])])]
 
 
-async def test_a_builder_save_that_removes_a_question_drops_the_rules_reading_it(
-    workspace,
+async def test_a_builder_save_drops_and_reports_broken_rules_without_refusing(
+    workspace, rules_on
 ):
     service = container.workspace_form_service()
-    fields = [
-        _q("a"),
-        _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "x")])]),
-    ]
-    form = await service.create_form(workspace.id, _form(fields), testUser)
-    await service.update_form(workspace.id, form.form_id, _form([fields[1]]), testUser)
+    form = await service.create_form(workspace.id, _form(RULED), testUser)
+    # the question the rule reads is removed: the rule goes, the save does not fail
+    dropped = []
+    await service.update_form(
+        workspace.id, form.form_id, _form([RULED[1]]), testUser, dropped_rules=dropped
+    )
+    assert [(d["fieldId"], d["ruleId"]) for d in dropped] == [("b", "r1")]
     saved = await container.form_service().get_form_document_by_id(str(form.form_id))
     assert saved.fields[0].properties.fields[0].properties.rules is None
+    # the builder never reloads: it sends the same broken rule again, and
+    # the save still goes through
+    dropped = []
+    await service.update_form(
+        workspace.id, form.form_id, _form([RULED[1]]), testUser, dropped_rules=dropped
+    )
+    assert len(dropped) == 1
+    # a broken value rule written fresh is dropped the same way
+    bad = _q(
+        "b",
+        "number",
+        rules=[_rule("r2", {"setValue": {"const": "x"}}, expression=True)],
+    )
+    await service.update_form(
+        workspace.id, form.form_id, _form([_q("a"), bad]), testUser
+    )
+    saved = await container.form_service().get_form_document_by_id(str(form.form_id))
+    assert saved.fields[0].properties.fields[1].properties.rules is None
 
 
-async def test_submission_enforces_required_read_only_and_set_values(workspace):
+async def test_with_the_flag_off_new_or_changed_rules_are_refused(workspace, rules_off):
+    service = container.workspace_form_service()
+    with pytest.raises(HTTPException) as error:
+        await service.create_form(workspace.id, _form(RULED), testUser)
+    assert error.value.status_code == 422
+    assert error.value.content["code"] == "field_rules_disabled"
+    assert error.value.content["errors"] == [{"fieldId": "b", "ruleId": "r1"}]
+    form = await service.create_form(workspace.id, _form([_q("a"), _q("b")]), testUser)
+    with pytest.raises(HTTPException) as error:
+        await service.update_form(workspace.id, form.form_id, _form(RULED), testUser)
+    assert error.value.content["code"] == "field_rules_disabled"
+
+
+async def test_with_the_flag_off_stored_rules_are_kept_and_enforced(
+    workspace, monkeypatch
+):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    form = await _published(workspace, RULED)
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+    service = container.workspace_form_service()
+    # an unchanged rule may be saved again (the builder re-sends it) ...
+    await service.update_form(
+        workspace.id, form.form_id, _form([*RULED, _q("c")]), testUser
+    )
+    # ... a changed one may not
+    changed = [
+        _q("a"),
+        _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "y")])]),
+    ]
+    with pytest.raises(HTTPException) as error:
+        await service.update_form(workspace.id, form.form_id, _form(changed), testUser)
+    assert error.value.content["code"] == "field_rules_disabled"
+    # and the published rule is still enforced
+    with pytest.raises(HTTPException) as error:
+        await service.submit_response(
+            workspace.id,
+            form.form_id,
+            StandardFormResponseCamelModel(answers={"a": _text("x")}),
+            testUser,
+        )
+    assert error.value.content["errors"] == [{"fieldId": "b", "rule": "required"}]
+
+
+async def test_the_spec_api_follows_the_flag(workspace, monkeypatch):
+    from backend.config import settings
+
+    document = form_to_spec_dict(_form(RULED))
+    writer = container.form_spec_writer()
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+    with pytest.raises(HTTPException) as error:
+        await writer.create(workspace.id, document, testUser)
+    assert error.value.content["code"] == "field_rules_disabled"
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    form_id, created, etag = await writer.create(workspace.id, document, testUser)
+    assert created["pages"][0]["fields"][1]["rules"][0]["id"] == "r1"
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+    created["pages"][0]["fields"][1]["rules"][0]["then"]["required"] = False
+    with pytest.raises(HTTPException) as error:
+        await writer.replace(workspace.id, form_id, created, [etag], testUser)
+    assert error.value.content["code"] == "field_rules_disabled"
+
+
+async def test_templates_follow_the_flag(workspace, monkeypatch):
+    from backend.app.models.template import StandardFormTemplate
+    from backend.config import settings
+
+    body = StandardFormTemplate(title="T", fields=_form(RULED).fields)
+    templates = container.form_template_service()
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+    with pytest.raises(HTTPException) as error:
+        await templates.create_new_template(workspace.id, None, None, testUser, body)
+    assert error.value.content["code"] == "field_rules_disabled"
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    created = await templates.create_new_template(
+        workspace.id, None, None, testUser, body
+    )
+    assert created.fields[0].properties.fields[1].properties.rules[0].id == "r1"
+
+
+async def test_submission_enforces_required_read_only_and_set_values(
+    workspace, rules_on
+):
     form = await _published(
         workspace,
         [
@@ -1234,7 +1343,9 @@ async def test_submission_enforces_required_read_only_and_set_values(workspace):
     assert answers["postcode"]["text"] == "1234 AB"
 
 
-async def test_an_edit_recomputes_set_values_and_reports_newly_required(workspace):
+async def test_an_edit_recomputes_set_values_and_reports_newly_required(
+    workspace, rules_on
+):
     form = await _published(
         workspace,
         [
@@ -1458,7 +1569,7 @@ def test_finished_form_leaves_no_broken_rule():
     assert finished_form(form).fields[0].properties.fields[0].properties.rules is None
 
 
-def test_an_editor_op_cannot_bring_a_broken_rule():
+def test_an_editor_op_cannot_bring_a_broken_rule(rules_on):
     form = _form([_q("a")])
     payload = [
         {
@@ -1474,3 +1585,392 @@ def test_an_editor_op_cannot_bring_a_broken_rule():
     assert results[0].ok is False
     assert "no question" in results[0].message
     assert [f.id for f in after.fields[0].properties.fields] == ["a"]
+
+
+def test_editor_ops_follow_the_flag(rules_off):
+    form = _form(RULED)
+    new_rule = {
+        "op": "insert_field",
+        "pageId": "p0",
+        "index": 2,
+        "field": _q("c", rules=[_rule("r9", {"required": True}, [_is("a", "x")])]),
+    }
+    _, results = apply_form_ops(form, parse_ops([new_rule], allow_editor_ops=True))
+    assert results[0].ok is False
+    assert "FIELD_RULES_ENABLED" in results[0].message
+    # replacing a question with its rules as they are is fine
+    same = {"op": "replace_field", "field": RULED[1] | {"title": "B again"}}
+    _, results = apply_form_ops(form, parse_ops([same], allow_editor_ops=True))
+    assert results[0].ok is True, results[0].message
+    page = {
+        "op": "insert_page",
+        "index": 1,
+        "page": {
+            "id": "p9",
+            "type": "slide",
+            "properties": {"fields": [new_rule["field"]]},
+        },
+    }
+    _, results = apply_form_ops(form, parse_ops([page], allow_editor_ops=True))
+    assert results[0].ok is False
+
+
+# --- cost bounds ----------------------------------------------------------------
+
+
+def _wide(prefix, count):
+    """An expression of ``count + 1`` nodes reading ``count`` variables."""
+    return {"+": [V(f"{prefix}{i}") for i in range(count)]}
+
+
+def test_the_save_check_is_bounded_on_a_hostile_form():
+    import time
+
+    from backend.app.services.field_rules import PROBLEMS_MAX
+
+    # 100 rules (the cap), each a 500-node expression of unknown variables
+    fields = [
+        _q(
+            f"q{i}",
+            rules=[
+                _rule(
+                    f"r{i}-{j}", {"required": True}, expression=_wide(f"u{i}{j}x", 499)
+                )
+                for j in range(8)
+            ],
+        )
+        for i in range(12)
+    ] + [
+        _q(
+            "q99",
+            rules=[
+                _rule(f"r99-{j}", {"required": True}, expression=_wide("z", 49))
+                for j in range(4)
+            ],
+        )
+    ]
+    form = _form(fields)
+    start = time.perf_counter()
+    problems = field_rule_problems(form)
+    with pytest.raises(HTTPException) as error:
+        ensure_valid_field_rules(form)
+    dropped = ensure_valid_field_rules(form, drop=True)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 1.0, elapsed
+    assert len(problems) <= PROBLEMS_MAX
+    assert len(error.value.content["errors"]) <= PROBLEMS_MAX
+    assert len(dropped) == 100  # every rule reads unknown variables
+
+    # far over the cap: one problem, without looking at each rule
+    many = _form(
+        [
+            _q(
+                f"m{i}",
+                rules=[
+                    _rule(f"m{i}-{j}", {"required": True}, expression=_wide("y", 499))
+                    for j in range(8)
+                ],
+            )
+            for i in range(200)
+        ]
+    )
+    start = time.perf_counter()
+    problems = field_rule_problems(many)
+    assert time.perf_counter() - start < 0.5
+    assert [p.message for p in problems] == [
+        "A form can have at most 100 rules; this one has 1600."
+    ]
+
+
+def test_an_expression_may_read_at_most_fifty_variables():
+    form = _form(
+        [_q("b", rules=[_rule("r1", {"required": True}, expression=_wide("q", 51))])]
+        + [_q(f"q{i}") for i in range(51)]
+    )
+    assert any("at most 50" in m for m in _messages(form))
+
+
+def test_rules_too_costly_for_a_response_are_refused_when_saved():
+    group = {
+        "id": "g",
+        "type": "group",
+        "title": "Rows",
+        "properties": {
+            "repeat": {"minItems": 0, "maxItems": 50},
+            "fields": [_q(f"c{i}", "number") for i in range(5)]
+            + [
+                _q(
+                    f"d{k}",
+                    rules=[
+                        _rule(
+                            f"rd{k}-{j}",
+                            {"required": True},
+                            expression={"+": [V("g.c0")] * 400},
+                        )
+                        for j in range(8)
+                    ],
+                )
+                for k in range(12)
+            ],
+        },
+    }
+    form = _form([group])
+    assert any("too long to check" in m for m in _messages(form))
+
+
+def test_the_replay_has_a_budget_and_fails_closed():
+    import time
+
+    from backend.app.services import field_rules
+
+    # a form no save would accept (over the cost budget), stored anyway
+    group = {
+        "id": "g",
+        "type": "group",
+        "title": "Rows",
+        "properties": {
+            "repeat": {"minItems": 0, "maxItems": 50},
+            "fields": [_q("c0", "number")]
+            + [
+                _q(
+                    f"d{k}",
+                    rules=[
+                        _rule(
+                            f"rd{k}-{j}",
+                            {"required": True},
+                            expression={"+": [V("g.c0")] * 400},
+                        )
+                        for j in range(8)
+                    ],
+                )
+                for k in range(12)
+            ],
+        },
+    }
+    form = _form([group])
+    answers = {"g": {"type": "group", "items": [{"c0": _num(i)} for i in range(50)]}}
+    start = time.perf_counter()
+    with pytest.raises(field_rules.FieldRulesTooCostly):
+        resolve_field_rules(form, _answers(answers))
+    assert time.perf_counter() - start < 1.0
+    from backend.app.services.calculated_fields import calculate_and_check
+
+    with pytest.raises(HTTPException) as error:
+        calculate_and_check(form, _answers(answers), "form-id")
+    assert error.value.content["code"] == "field_rules_too_costly"
+
+
+def test_a_form_at_the_budget_replays_quickly():
+    import time
+
+    from backend.app.services.field_rules import (
+        RULE_COST_PER_RESPONSE,
+        worst_case_cost,
+    )
+
+    # the most expensive shape a save accepts: 100 rules of 500 nodes on a page
+    fields = (
+        [_q(f"x{i}", "number") for i in range(40)]
+        + [
+            _q(
+                f"q{i}",
+                rules=[
+                    _rule(
+                        f"r{i}-{j}",
+                        {"required": True},
+                        expression={
+                            "+": [V(f"x{(i + j + k) % 40}") for k in range(499)]
+                        },
+                    )
+                    for j in range(8)
+                ],
+            )
+            for i in range(12)
+        ]
+        + [
+            _q(
+                "q99",
+                rules=[
+                    _rule(f"r99-{j}", {"required": True}, expression=_wide("x", 40))
+                    for j in range(4)
+                ],
+            )
+        ]
+    )
+    form = _form(fields)
+    assert worst_case_cost(form) <= RULE_COST_PER_RESPONSE
+    assert field_rule_problems(form) == []
+    answers = _answers({f"x{i}": _num(i) for i in range(40)})
+    start = time.perf_counter()
+    resolve_field_rules(form, answers)
+    assert time.perf_counter() - start < 1.0
+
+
+# --- review fixes -------------------------------------------------------------------
+
+
+def test_a_self_referencing_calculation_still_has_no_value():
+    from backend.app.services.calculated_fields import apply_calculated_fields
+
+    form = _form([_q("a", "number"), _calc("c", {"+": [V("c"), V("a"), 1]})])
+    answers = _answers({"a": _num(1)})
+    resolved, _ = resolve_field_rules(form, answers)
+    assert resolved == apply_calculated_fields(form, answers)
+    assert "c" not in resolved
+
+
+@pytest.mark.parametrize("const", [10**15, -(10**15), 1e300])
+def test_a_number_const_must_be_one_formulas_can_hold(const):
+    form = _form(
+        [
+            _q(
+                "n",
+                "number",
+                rules=[_rule("r1", {"setValue": {"const": const}}, expression=True)],
+            )
+        ]
+    )
+    assert any("a number" in m for m in _messages(form))
+    ok = _form(
+        [
+            _q(
+                "n",
+                "number",
+                rules=[
+                    _rule("r1", {"setValue": {"const": 10**15 - 1}}, expression=True)
+                ],
+            )
+        ]
+    )
+    assert field_rule_problems(ok) == []
+
+
+DATED = [
+    _q("auto", "yes_no"),
+    {
+        **_q(
+            "start",
+            "date",
+            rules=[
+                _rule(
+                    "r1",
+                    {"setValue": {"const": "2000-01-01"}},
+                    [_is("auto", "Yes", "yes_no")],
+                )
+            ],
+        ),
+        "properties": {
+            "dateRules": [
+                {"comparison": "after", "target": "date", "date": "2020-01-01"}
+            ],
+            "rules": [
+                _rule(
+                    "r1",
+                    {"setValue": {"const": "2000-01-01"}},
+                    [_is("auto", "Yes", "yes_no")],
+                )
+            ],
+        },
+    },
+]
+
+
+async def test_date_rules_do_not_apply_to_a_set_date(workspace, rules_on):
+    form = await _published(workspace, DATED, edit=True)
+    service = container.workspace_form_service()
+    # set by the rule: its own date rule is not the respondent's to meet
+    submitted = await service.submit_response(
+        workspace.id,
+        form.form_id,
+        StandardFormResponseCamelModel(answers={"auto": _yes(True)}),
+        testUser,
+    )
+    answers = await _stored(workspace, submitted.response_id)
+    assert answers["start"]["date"] == "2000-01-01"
+    # the respondent's own date still has to meet it
+    with pytest.raises(HTTPException):
+        await service.submit_response(
+            workspace.id,
+            form.form_id,
+            StandardFormResponseCamelModel(
+                answers={
+                    "auto": _yes(False),
+                    "start": {"type": "date", "date": "2010-05-05"},
+                }
+            ),
+            testUser,
+        )
+    # an edit that keeps the rule active passes too
+    await service.patch_response(
+        workspace.id,
+        form.form_id,
+        submitted.response_id,
+        None,
+        StandardFormResponseCamelModel(answers={"auto": _yes(True)}),
+        testUser,
+    )
+    answers = await _stored(workspace, submitted.response_id)
+    assert answers["start"]["date"] == "2000-01-01"
+
+
+def test_an_edit_rechecks_a_value_question_only_when_its_rule_is_active_or_read():
+    from backend.app.services.calculated_fields import calculate_and_check
+
+    total = {
+        **_q(
+            "total",
+            "number",
+            rules=[
+                _rule("r1", {"setValue": {"const": 5}}, [_is("auto", "Yes", "yes_no")])
+            ],
+        ),
+        "validations": {"max_value": 100},
+    }
+    form = _form([_q("auto", "yes_no"), total, _q("note")])
+    # stored before the creator lowered the maximum: the respondent's own 500
+    stored = {"auto": _yes(False), "total": _num(500), "note": _text("x")}
+    # an edit of "note" alone: the inactive rule's question is not re-checked
+    answers, locked = calculate_and_check(
+        form, _answers(stored), "f", keep_empty=True, only=["note"], with_locked=True
+    )
+    assert locked == set()
+    # had it been listed (the old behaviour), the stale value would refuse it
+    with pytest.raises(HTTPException):
+        calculate_and_check(form, _answers(stored), "f", only=["note", "total"])
+    # an edit of what its rule reads re-checks it
+    assert rule_keys_reading(form, ["auto"]) == {"total"}
+    # an active rule's question is checked (and set): it joins ``only``
+    active = {**stored, "auto": _yes(True)}
+    answers, locked = calculate_and_check(
+        form, _answers(active), "f", keep_empty=True, only=["auto"], with_locked=True
+    )
+    assert locked == {"total"} and answers["total"]["number"] == 5
+
+
+def test_a_builder_payload_far_over_the_rule_cap_is_refused_before_parsing():
+    import json
+    import time
+
+    fields = [
+        _q(
+            f"m{i}",
+            rules=[
+                _rule(f"m{i}-{j}", {"required": True}, expression=_wide("y", 499))
+                for j in range(8)
+            ],
+        )
+        for i in range(200)
+    ]
+    body = json.dumps(
+        {
+            "title": "x",
+            "builderVersion": "v2",
+            "fields": [{"id": "p", "type": "slide", "properties": {"fields": fields}}],
+        }
+    )
+    start = time.perf_counter()
+    with pytest.raises(HTTPException) as error:
+        _parse_form_body(body)
+    assert time.perf_counter() - start < 1.0
+    assert error.value.status_code == 422
+    assert "at most 100 rules" in error.value.content

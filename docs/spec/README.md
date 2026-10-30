@@ -63,7 +63,7 @@ optional, make it read-only, set its value, or change its title or
 description while a condition holds. `logic` stays the only way to show or
 hide a question.
 
-```json
+```jsonc
 "rules": [
   { "id": "r1",
     "when": { "conditions": [ { "fieldId": "country", "comparison": "IS_EQUAL", "value": "Netherlands" } ] },
@@ -129,16 +129,24 @@ the form's own rules is not the respondent's to fix. A question hidden by
   on a calculated or set value sees the final one.
 
 A rule that reads something the form does not have (a question that was
-removed) is not active. Saving a form refuses rules that break these rules
-(`invalid_field_rules` from the builder save, `errors` with JSON pointers
-from validation). When a builder save removes or changes a question that an
-existing rule reads, that rule is dropped, as edit operations drop the logic
-that referred to a removed question.
+removed) is not active. A rule whose trigger reads a hidden field (a URL
+parameter) is controlled by whoever opens the link, as with `logic`: do not
+use one to require or lock something the respondent must not escape. Validation and the API refuse a document whose
+rules break these rules (`errors` with JSON pointers). The builder's
+whole-form save drops a broken rule instead (for example one that reads a
+question the save removes) and lists it in the response as
+`droppedFieldRules`, as edit operations drop the logic that referred to a
+removed question. A form whose rules are too costly to check for each
+response (long expressions inside large repeating groups) cannot be saved.
 
-The form builder has no rule editor yet, and the AI assistant, the MCP
-server and the importers do not create rules. A rule comes in through a form
-spec document (the public API) or with a question or form the builder saves
-whole, and each of these paths checks it.
+**Rollout.** The form builder has no rule editor yet, and the AI assistant,
+the MCP server and the importers do not create rules. Rules can come in
+through a form spec document (the public API create and replace), the
+builder's whole-form save, the builder's edit operations that carry whole
+questions or pages, and templates. Until the server setting
+`FIELD_RULES_ENABLED` is on, each of these refuses a save that brings new
+or changed rules (422 `field_rules_disabled`); rules already stored are kept
+and still enforced.
 
 **Hidden answers.** Rules do not hide anything and keep with the rest of
 the form: an answer to a question hidden by `logic` is kept, and a value a

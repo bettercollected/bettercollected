@@ -10,6 +10,7 @@ import { reorder } from '@app/utils/array-utils';
 import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules } from '@app/utils/date-rules';
+import { dropFieldRules } from '@app/utils/field-rule-copies';
 import { fieldAndChildIds, locateField, moveFieldInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
 import { newRepeatingGroup, remapGroupChildIds } from '@app/utils/repeating-groups';
 
@@ -144,6 +145,8 @@ export function fieldMutators(ctx: BuilderContext) {
         if (!source) return;
         const clone = JSON.parse(JSON.stringify(source));
         clone.id = v4();
+        // Field rules are not copied (their ids are unique per form).
+        dropFieldRules(clone);
         // A duplicated repeating group gets its own questions; rules and
         // pipes between siblings follow them into the copy.
         if (clone.type === FieldTypes.GROUP && clone.properties?.repeat) remapGroupChildIds(clone);

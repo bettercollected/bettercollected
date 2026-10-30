@@ -894,6 +894,25 @@ class FieldRule(BaseModel):
     )
 
 
+def raw_rule_count(fields: Any) -> int:
+    """Rules in a form's raw (JSON) fields, counted before anything is
+    parsed: a payload far over FORM_FIELD_RULES_MAX is refused without
+    validating each rule. Walks fields only, never into rules."""
+    total, pending = 0, list(fields) if isinstance(fields, list) else []
+    while pending:
+        field = pending.pop()
+        properties = field.get("properties") if isinstance(field, dict) else None
+        if not isinstance(properties, dict):
+            continue
+        rules = properties.get("rules")
+        if isinstance(rules, list):
+            total += len(rules)
+        children = properties.get("fields")
+        if isinstance(children, list):
+            pending.extend(children)
+    return total
+
+
 def is_iso_date(value: Any) -> bool:
     """Is ``value`` a calendar date written exactly as ``YYYY-MM-DD``?"""
     if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):

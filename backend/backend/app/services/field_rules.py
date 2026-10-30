@@ -41,14 +41,22 @@ semantics for it.
 Creator expressions are untrusted: the evaluator bounds them (depth 32, 500
 nodes, inputs over 10,000 characters or 1,000 items count as empty), at most
 ``FIELD_RULES_MAX`` rules per field and ``FORM_FIELD_RULES_MAX`` per form are
-read, and callers run the replay off the event loop.
+read, an expression may read at most ``RULE_VARIABLES_MAX`` variables, and
+callers run the replay and the save check off the event loop. Each response
+has an evaluation budget (``RULE_COST_PER_RESPONSE`` cost units: expression
+nodes, conditions, items of repeating groups read); a form whose rules could
+exceed it is refused when it is saved, and a replay that exceeds it anyway
+(data no save accepted) refuses the response (422 ``field_rules_too_costly``)
+rather than store unchecked answers. The save check stops after
+``PROBLEMS_MAX`` problems.
 """
 
 import re
+from collections import deque
 from dataclasses import dataclass, field as dataclass_field
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Any, Deque, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from common.expressions import (
     ExpressionError,
@@ -56,6 +64,7 @@ from common.expressions import (
     format_expression_value,
     validate_expression,
 )
+from common.expressions.decimal_num import Dec
 from common.models.standard_form import (
     FIELD_RULES_MAX,
     FORM_FIELD_RULES_MAX,
@@ -90,6 +99,19 @@ from backend.app.services.repeating_groups import (
 )
 
 ERROR_CODE = "invalid_field_rules"
+DISABLED_CODE = "field_rules_disabled"
+COSTLY_CODE = "field_rules_too_costly"
+# Problems one save check reports at most (the rest are not looked for).
+PROBLEMS_MAX = 50
+# Distinct variables one rule expression may read.
+RULE_VARIABLES_MAX = 50
+# Evaluation cost one response may spend on rules: an expression costs its
+# nodes, plus the items of a repeating group for each group list it reads; a
+# condition costs 1, plus the group's items for ANY / ALL. A form whose
+# worst case (every group at its maximum) is above it cannot be saved.
+RULE_COST_PER_RESPONSE = 200_000
+# Items a group list may hold when nothing better is known (the hard cap).
+_LIST_ITEMS_MAX = 50
 COMPARISONS = {
     "IS_EMPTY",
     "IS_NOT_EMPTY",
@@ -268,6 +290,85 @@ class _Scope:
     known: Set[str]
     sources: Dict[str, Any]
     context: Dict[str, Any]
+    budget: "_Budget"
+    costs: Dict[int, int]
+
+
+class FieldRulesTooCostly(Exception):
+    """The replay of one response went over ``RULE_COST_PER_RESPONSE``."""
+
+
+@dataclass
+class _Budget:
+    left: int = RULE_COST_PER_RESPONSE
+
+    def charge(self, cost: int) -> None:
+        self.left -= cost
+        if self.left < 0:
+            raise FieldRulesTooCostly()
+
+
+def _ast_cost(ast: Any, group_items: Mapping[str, int]) -> int:
+    """Nodes of an AST, plus the items of every group list it reads."""
+    cost, pending = 0, [ast]
+    while pending:
+        node = pending.pop()
+        cost += 1
+        if not isinstance(node, dict) or len(node) != 1:
+            continue
+        op, value = next(iter(node.items()))
+        if op == "var" and isinstance(value, str) and "." in value:
+            cost += group_items.get(_answer_key(value), _LIST_ITEMS_MAX)
+        elif isinstance(value, list):
+            pending.extend(value)
+    return cost
+
+
+def rule_cost(rule: Any, group_items: Mapping[str, int]) -> int:
+    """What one evaluation of a rule (trigger and set value) costs, with
+    every repeating group at ``group_items`` (its maximum)."""
+    when = _get(rule, "when")
+    cost = 0
+    if _get(when, "expression") is not None:
+        cost += _ast_cost(_get(when, "expression"), group_items)
+    for condition in _get(when, "conditions") or []:
+        cost += 1
+        if _get(condition, "group_mode") in ("ANY", "ALL"):
+            source = str(_get(condition, "field_id") or "")
+            cost += group_items.get(source, _LIST_ITEMS_MAX)
+    expression = _get(_effect(rule, "set_value"), "expression")
+    if expression is not None:
+        cost += _ast_cost(expression, group_items)
+    return cost
+
+
+def _group_maxima(form: Any) -> Dict[str, int]:
+    found: Dict[str, int] = {}
+    for target in _targets(form):
+        if _is_repeating_group(target.field):
+            repeat = _get(_get(target.field, "properties"), "repeat")
+            high = getattr(repeat, "effective_max", None)
+            found[target.id] = high if isinstance(high, int) else _LIST_ITEMS_MAX
+    return found
+
+
+def _has_state_effect(rule: Any) -> bool:
+    return any(
+        _effect(rule, key) is not None for key in ("required", "title", "description")
+    )
+
+
+def worst_case_cost(form: Any) -> int:
+    """The most a response's replay can cost: each rule at its worst, once
+    per pass that reads it (value, state), once per item in a group."""
+    maxima = _group_maxima(form)
+    total = 0
+    for target in _rule_targets(form):
+        times = maxima.get(target.group_id, 1) if target.group is not None else 1
+        for rule in _rules(target.field)[:FIELD_RULES_MAX]:
+            passes = int(_has_value_effect(rule)) + int(_has_state_effect(rule))
+            total += rule_cost(rule, maxima) * times * passes
+    return total
 
 
 def _dangling(rule: Any, owner: str, scope: _Scope) -> bool:
@@ -301,6 +402,7 @@ def _evaluate(ast: Any, scope: _Scope) -> Any:
 def _is_active(rule: Any, owner: str, scope: _Scope) -> bool:
     if _dangling(rule, owner, scope):
         return False
+    scope.budget.charge(scope.costs.get(id(rule), 1))
     when = _get(rule, "when")
     expression = _get(when, "expression")
     if expression is not None:
@@ -347,7 +449,8 @@ def value_answer(field: Any, value: Any) -> Optional[Dict[str, Any]]:
             stored = calculated_answer(field_id, value)
             return stored if stored.get("type") == "number" else None
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            if value != value or value in (float("inf"), float("-inf")):
+            # the numbers formulas can hold (15 significant digits, finite)
+            if Dec.from_python(value) is None:
                 return None
             return {**answer, "type": "number", "number": value}
         return None
@@ -443,8 +546,14 @@ def _value_order(nodes: List[_Target], calcs: List[Any]) -> Tuple[List[Any], Set
             if _has_value_effect(rule)
             for key in _rule_reads(rule)
         }
+    calc_ids = {str(_get(calc, "id")) for calc in calcs}
     for key in deps:
-        deps[key] = {ref for ref in deps[key] if ref in by_id and ref != key}
+        # a calculation that reads itself stays in a circle (no value), as
+        # calculated_fields.evaluation_order leaves it; a rule reading its
+        # own question is inactive anyway
+        deps[key] = {
+            ref for ref in deps[key] if ref in by_id and (ref != key or key in calc_ids)
+        }
     ordered: List[Any] = []
     done: Set[str] = set()
     progress = True
@@ -482,7 +591,7 @@ def _apply_states(
     required: Optional[bool] = None
     texts: Dict[str, str] = {}
     for rule in rules:
-        if not _is_active(rule, owner, scope):
+        if not _has_state_effect(rule) or not _is_active(rule, owner, scope):
             continue
         if _effect(rule, "required") is not None:
             required = bool(_effect(rule, "required"))
@@ -527,12 +636,17 @@ def resolve_field_rules(
     sources = logic_sources(slides or [])
     question_keys = _question_keys(form)
     states = FieldRuleStates()
-    budget = [FORM_FIELD_RULES_MAX]
+    allowance = [FORM_FIELD_RULES_MAX]
     read: Dict[int, List[Any]] = {
-        id(target.field): _read_rules(target.field, budget) for target in targets
+        id(target.field): _read_rules(target.field, allowance) for target in targets
     }
     nodes = [target for target in targets if _is_value_node(target)]
-    scope = _Scope(plain, variables, known, sources, context)
+    maxima = _group_maxima(form)
+    costs = {
+        id(rule): rule_cost(rule, maxima) for rules in read.values() for rule in rules
+    }
+    budget = _Budget()
+    scope = _Scope(plain, variables, known, sources, context, budget, costs)
 
     ordered, cyclic = _value_order(nodes, calcs)
     for item in ordered:
@@ -603,6 +717,8 @@ def resolve_field_rules(
                 known | sibling_ids,
                 sources,
                 context,
+                budget,
+                costs,
             )
             for child in children:
                 rules = read.get(id(child)) or []
@@ -686,11 +802,16 @@ def _pointer(*parts: Any) -> str:
     )
 
 
+class _Enough(Exception):
+    """The save check found as many problems as it reports."""
+
+
 class _Checker:
     """Checks the rules of one form; see :func:`field_rule_problems`."""
 
-    def __init__(self, form: Any):
+    def __init__(self, form: Any, limit: Optional[int] = PROBLEMS_MAX):
         self.form = form
+        self.limit = limit
         self.problems: List[FieldRuleProblem] = []
         self.targets = _targets(form)
         self.by_id: Dict[str, _Target] = {t.id: t for t in self.targets if t.id}
@@ -704,6 +825,8 @@ class _Checker:
 
     def add(self, field_id: str, path: str, message: str, rule: Optional[int]):
         self.problems.append(FieldRuleProblem(field_id, path, message, rule))
+        if self.limit is not None and len(self.problems) >= self.limit:
+            raise _Enough()
 
     def misplaced(self) -> None:
         """Rules on anything that is not a question of a page-based form."""
@@ -742,15 +865,17 @@ class _Checker:
                     )
                 seen.setdefault(rule_id, target.id)
                 self.rule(target, index, rule)
-        if total > FORM_FIELD_RULES_MAX:
+        self.cycles()
+        cost = worst_case_cost(self.form)
+        if cost > RULE_COST_PER_RESPONSE:
             self.add(
                 "",
                 "",
-                f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this one "
-                f"has {total}.",
+                "These rules would take too long to check for each response "
+                f"(cost {cost}, at most {RULE_COST_PER_RESPONSE}): use fewer or "
+                "shorter rules, or fewer items in the repeating groups they are in.",
                 None,
             )
-        self.cycles()
         return self.problems
 
     def target(self, target: _Target) -> None:
@@ -933,7 +1058,19 @@ class _Checker:
         if target.group is not None:
             # inside an item, a sibling's id reads that item's answer
             known |= _sibling_ids(target)
-        for key in expression_variables(ast):
+        keys = expression_variables(ast)
+        if len(keys) > RULE_VARIABLES_MAX:
+            self.add(
+                target.id,
+                _pointer(index, *where),
+                f"A rule of '{name}' reads {len(keys)} variables; an expression "
+                f"can read at most {RULE_VARIABLES_MAX}.",
+                index,
+            )
+            return
+        for key in keys:
+            if key in known and key != target.id and key not in self.internal:
+                continue
             path = _pointer(index, *where) + _var_pointer(ast, key)
             if key == target.id:
                 self.add(
@@ -1081,10 +1218,11 @@ def _cycle_through(start: str, edges: Dict[str, Set[str]]) -> Optional[List[str]
 
 
 def _var_pointer(ast: Any, key: str) -> str:
-    """The JSON pointer of the first ``{"var": key}`` in an AST."""
-    pending: List[Tuple[Any, str]] = [(ast, "")]
+    """The JSON pointer of the first ``{"var": key}`` in an AST (breadth
+    first). Only worked out for a problem that is reported."""
+    pending: Deque[Tuple[Any, str]] = deque([(ast, "")])
     while pending:
-        node, path = pending.pop(0)
+        node, path = pending.popleft()
         if not isinstance(node, dict) or len(node) != 1:
             continue
         op, value = next(iter(node.items()))
@@ -1096,11 +1234,35 @@ def _var_pointer(ast: Any, key: str) -> str:
     return ""
 
 
-def field_rule_problems(form: Any) -> List[FieldRuleProblem]:
-    """Problems with the rules of a form (see the module doc)."""
-    if not any(_rules(f) for f in _walk(form)):
+def field_rule_problems(
+    form: Any, limit: Optional[int] = PROBLEMS_MAX
+) -> List[FieldRuleProblem]:
+    """Problems with the rules of a form (see the module doc), at most
+    ``limit`` (None: all; only after the form-wide cap holds)."""
+    total = _total_rules(form)
+    if not total:
         return []
-    return _Checker(form).check()
+    if total > FORM_FIELD_RULES_MAX:
+        # Nothing else is looked at: the per-rule checks would be paid for
+        # every rule of an oversized form.
+        return [
+            FieldRuleProblem(
+                "",
+                "",
+                f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this one "
+                f"has {total}.",
+            )
+        ]
+    checker = _Checker(form, limit)
+    try:
+        checker.check()
+    except _Enough:
+        pass
+    return checker.problems
+
+
+def _total_rules(form: Any) -> int:
+    return sum(len(_rules(field)) for field in _walk(form))
 
 
 def _walk(form: Any) -> Iterable[Any]:
@@ -1123,65 +1285,123 @@ def _stored_rules(form: Any) -> Dict[Tuple[str, str], Any]:
     }
 
 
-def prune_field_rules(
-    form: Any, only: Optional[Mapping[Tuple[str, str], Any]] = None
-) -> int:
-    """Drop the rules with problems of their own (references, targets,
-    values), in place; with ``only``, just those among ``only`` (rules by
-    ``(field id, rule id)``, as stored) that are unchanged. Returns how many
-    were dropped. Form-wide problems (caps, circles) are left to the check."""
-    dropped = 0
-    for _ in range(FORM_FIELD_RULES_MAX + 1):
-        bad: Dict[str, Set[int]] = {}
-        for problem in field_rule_problems(form):
-            if problem.rule is not None:
-                bad.setdefault(problem.field_id, set()).add(problem.rule)
-        removed = 0
-        for field in _walk(form):
-            positions = bad.get(str(_get(field, "id")))
-            rules = _rules(field)
-            if not positions or not rules:
-                continue
-            kept = []
-            for index, rule in enumerate(rules):
-                key = (str(_get(field, "id")), str(_get(rule, "id")))
-                if index in positions and (
-                    only is None or only.get(key) == _rule_signature(rule)
-                ):
-                    removed += 1
-                    continue
+def prune_field_rules(form: Any) -> List[FieldRuleProblem]:
+    """Drop every rule with a problem of its own (references, targets,
+    values), in place, and return the first problem of each dropped rule.
+    Form-wide problems (caps, circles, cost) are left to the check."""
+    problems = field_rule_problems(form, limit=None)
+    first: Dict[Tuple[str, int], FieldRuleProblem] = {}
+    for problem in problems:
+        if problem.rule is not None:
+            first.setdefault((problem.field_id, problem.rule), problem)
+    if not first:
+        return []
+    dropped: List[FieldRuleProblem] = []
+    for field in _walk(form):
+        field_id = str(_get(field, "id"))
+        rules = _rules(field)
+        if not rules or not any(key[0] == field_id for key in first):
+            continue
+        kept = []
+        for index, rule in enumerate(rules):
+            problem = first.get((field_id, index))
+            if problem is None:
                 kept.append(rule)
-            if len(kept) != len(rules):
-                properties = _get(field, "properties")
-                if isinstance(properties, dict):
-                    properties["rules"] = kept or None
-                else:
-                    properties.rules = kept or None
-        dropped += removed
-        if not removed:
-            break
+                continue
+            dropped.append(
+                FieldRuleProblem(field_id, f"/{index}", problem.message, index)
+            )
+        properties = _get(field, "properties")
+        if isinstance(properties, dict):
+            properties["rules"] = kept or None
+        else:
+            properties.rules = kept or None
     return dropped
 
 
-def ensure_valid_field_rules(
-    form: Any, existing: Any = None, drop: bool = False
-) -> None:
-    """422 ``invalid_field_rules`` with every problem (field id, JSON
-    pointer into its rules, message). ``drop`` (a copy, a template) drops
-    broken rules instead; with ``existing`` (the stored draft), a rule it
-    already had, unchanged, that an edit elsewhere broke (its question was
-    removed, moved or changed type) is dropped too."""
-    if drop or existing is not None:
-        dropped = prune_field_rules(form, None if drop else _stored_rules(existing))
+def _refuse(problems: List[FieldRuleProblem]) -> None:
+    raise HTTPException(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content={
+            "code": ERROR_CODE,
+            "message": " ".join(p.message for p in problems),
+            "errors": [p.as_json() for p in problems],
+        },
+    )
+
+
+def ensure_valid_field_rules(form: Any, drop: bool = False) -> List[Dict[str, Any]]:
+    """422 ``invalid_field_rules`` with the problems (field id, JSON pointer
+    into its rules, message; at most ``PROBLEMS_MAX``). ``drop`` (the
+    builder's whole-form save, a copy, a template) drops every broken rule
+    instead and returns them (``fieldId``, ``ruleId``, ``message``); only
+    form-wide problems (caps, circles, cost) still refuse. Nothing broken is
+    stored either way. CPU-bound: run it off the event loop."""
+    dropped: List[Dict[str, Any]] = []
+    if drop and _total_rules(form) <= FORM_FIELD_RULES_MAX:
+        rules_by_field = {
+            str(_get(field, "id")): _rules(field) for field in _walk(form)
+        }
+        for problem in prune_field_rules(form):
+            dropped.append(
+                {
+                    "fieldId": problem.field_id,
+                    "ruleId": _dropped_rule_id(rules_by_field, problem),
+                    "message": problem.message,
+                }
+            )
         if dropped:
-            logger.info("Dropped {} field rule(s) a form change left broken", dropped)
+            logger.info("Dropped {} broken field rule(s) on save", len(dropped))
     problems = field_rule_problems(form)
     if problems:
+        _refuse(problems)
+    return dropped
+
+
+def _dropped_rule_id(
+    rules_by_field: Mapping[str, List[Any]], problem: FieldRuleProblem
+) -> Optional[str]:
+    rules = rules_by_field.get(problem.field_id) or []
+    if problem.rule is not None and problem.rule < len(rules):
+        return str(_get(rules[problem.rule], "id"))
+    return None
+
+
+def new_or_changed_rules(form: Any, existing: Any = None) -> List[Tuple[str, str]]:
+    """``(field id, rule id)`` of the rules ``form`` has that ``existing``
+    (the stored version, or None) does not have exactly as they are."""
+    stored = _stored_rules(existing) if existing is not None else {}
+    return [
+        key
+        for key, signature in _stored_rules(form).items()
+        if stored.get(key) != signature
+    ]
+
+
+def ensure_rules_allowed(form: Any, existing: Any = None) -> None:
+    """While ``FIELD_RULES_ENABLED`` is off, refuse (422
+    ``field_rules_disabled``) a save that brings new or changed rules. Rules
+    already stored, unchanged, pass (and are still enforced)."""
+    from backend.config import settings
+
+    if getattr(settings, "FIELD_RULES_ENABLED", False):
+        return
+    changed = new_or_changed_rules(form, existing)
+    if changed:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={
-                "code": ERROR_CODE,
-                "message": " ".join(p.message for p in problems),
-                "errors": [p.as_json() for p in problems],
+                "code": DISABLED_CODE,
+                "message": DISABLED_MESSAGE,
+                "errors": [
+                    {"fieldId": field_id, "ruleId": rule_id}
+                    for field_id, rule_id in changed[:PROBLEMS_MAX]
+                ],
             },
         )
+
+
+DISABLED_MESSAGE = (
+    "Field rules cannot be created or changed on this server yet "
+    "(FIELD_RULES_ENABLED is off). Rules already saved are kept."
+)

@@ -76,6 +76,11 @@ class Application(StoreBackedSettings):
     # types; services/answer_validation.py). False = "log only": problems are
     # logged (form id, count, rule codes) and the response is stored anyway.
     RESPONSE_VALIDATION_ENFORCE: bool = True
+    # Field rules (services/field_rules.py) may be created or changed through
+    # the API, the builder save, editor ops and templates. Off (the default
+    # until the respondent page evaluates rules): those saves are refused
+    # with 422 field_rules_disabled; stored rules are kept and still enforced.
+    FIELD_RULES_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

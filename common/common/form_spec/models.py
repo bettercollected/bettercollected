@@ -724,6 +724,23 @@ class FormSpec(_Spec):
     logo: Optional[Logo] = None
     trust: Optional[Trust] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _count_rules_first(cls, data):
+        # far too many rules: refused before each one is validated
+        if isinstance(data, dict) and isinstance(data.get("pages"), list):
+            total = sum(
+                _raw_spec_rules(page.get("fields"))
+                for page in data["pages"]
+                if isinstance(page, dict)
+            )
+            if total > FORM_FIELD_RULES_MAX:
+                raise ValueError(
+                    f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this "
+                    f"one has {total}."
+                )
+        return data
+
     @model_validator(mode="after")
     def _check_field_count(self):
         count = sum(count_fields(page.fields) for page in self.pages)
@@ -743,6 +760,20 @@ class FormSpec(_Spec):
                 f"has {rules}."
             )
         return self
+
+
+def _raw_spec_rules(fields) -> int:
+    """Rules of raw spec fields (``rules`` beside ``fields``), unparsed."""
+    total, pending = 0, list(fields) if isinstance(fields, list) else []
+    while pending:
+        field = pending.pop()
+        if not isinstance(field, dict):
+            continue
+        if isinstance(field.get("rules"), list):
+            total += len(field["rules"])
+        if isinstance(field.get("fields"), list):
+            pending.extend(field["fields"])
+    return total
 
 
 def _all_fields(fields):

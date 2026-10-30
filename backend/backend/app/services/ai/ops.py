@@ -100,7 +100,12 @@ from backend.app.constants.themes import (
 )
 from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.services.calculated_fields import calculated_field_problems
-from backend.app.services.field_rules import field_rule_problems, prune_field_rules
+from backend.app.services.field_rules import (
+    DISABLED_MESSAGE,
+    field_rule_problems,
+    new_or_changed_rules,
+    prune_field_rules,
+)
 from backend.app.services.image_urls import (
     IMAGE_URL_ERROR,
     checked_image_url,
@@ -1349,7 +1354,7 @@ def _dropped_rules_note(form: StandardForm) -> str:
     dropped = prune_date_rules(form.fields)
     note = f" (and {dropped} date rule(s) that used it)" if dropped else ""
     # field rules that read it (or sat on it) go too
-    dropped = prune_field_rules(form)
+    dropped = len(prune_field_rules(form))
     return note + (f" (and {dropped} field rule(s) that used it)" if dropped else "")
 
 
@@ -2371,6 +2376,17 @@ def _editor_theme(theme: Optional[Theme], keep: "_KeptImages", path: str = "prop
         theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
 
 
+def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
+    """While FIELD_RULES_ENABLED is off, an editor op may carry a field's
+    rules only as the form already has them (services/field_rules.py)."""
+    from backend.config import settings
+
+    if getattr(settings, "FIELD_RULES_ENABLED", False):
+        return
+    if new_or_changed_rules(StandardForm(fields=[item]), form):
+        raise OpError(DISABLED_MESSAGE)
+
+
 def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> StandardFormField:
     """A question or page as the editor sends it, read the way a whole-form
     save reads it and checked like one: the stored model (its group and date
@@ -2390,6 +2406,7 @@ def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> Standar
         )
     except ValueError as error:
         raise OpError(_validation_message(error))
+    _check_rules_allowed(item, form)
     is_page = item.type == StandardFormFieldType.SLIDE
     if page and not is_page:
         raise OpError("insert_page needs a page: a field of type 'slide'.")

@@ -321,10 +321,16 @@ value, else removed), and `FieldRuleStates` handed to `check_answers`, whose Req
 flag (last active rule wins, per item in a group; locked questions are never required and skip answer
 rules). `repeating_groups.validate_group_answers` leaves a rule-driven Required to answer validation. On an
 edit, set-value questions are overwritten like calculations and questions whose rules read a changed key are
-re-checked. Every save path checks them (`ensure_valid_field_rules` in create/update form, 422
-`invalid_field_rules` with `fieldId` and a JSON pointer into the rules; spec `_check_rules`; editor ops via
-`_new_problems`); a builder save drops an unchanged rule its edit broke, copies and templates drop broken
-rules, and `finished_form` prunes them after ops. No editor, op, MCP tool or importer writes rules yet.
+re-checked (an active value rule's question too). Every save path checks them: spec `_check_rules` refuses
+(paths into the rules); create/update form and templates run `ensure_valid_field_rules(drop=True)` off the
+event loop, dropping broken rules (the builder PATCH lists them as `droppedFieldRules`; caps, circles and
+cost still 422 `invalid_field_rules`); editor ops via `_new_problems`; `finished_form` prunes after ops.
+`FIELD_RULES_ENABLED` (default off) gates every write that brings new or changed rules (`ensure_rules_allowed`,
+422 `field_rules_disabled`; editor ops fail with the same message); stored rules are kept and enforced.
+Bounds: 8 per question, 100 per form (counted before parsing a builder body or spec), 50 variables per
+expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`: forms that
+could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`). Date rules do
+not apply to a question a rule sets or locks. No editor, op, MCP tool or importer writes rules yet.
 Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner skips them
 until its evaluator exists).
 
