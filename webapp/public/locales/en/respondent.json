@@ -181,7 +181,8 @@
         "LABEL": "Submission number",
         "PLACEHOLDER": "Enter submission number",
         "SEARCH": "Search",
-        "NOT_FOUND": "The submission number does not match with any form responses"
+        "NOT_FOUND": "The submission number does not match with any form responses",
+        "TOO_MANY": "Too many attempts. Try again in a few minutes."
     },
     "PORTAL": {
         "UNNAMED_WORKSPACE": "This workspace",

@@ -181,7 +181,8 @@
         "LABEL": "Inzendnummer",
         "PLACEHOLDER": "Vul het inzendnummer in",
         "SEARCH": "Zoeken",
-        "NOT_FOUND": "Er is geen inzending met dit nummer."
+        "NOT_FOUND": "Er is geen inzending met dit nummer.",
+        "TOO_MANY": "Te veel pogingen. Probeer het over een paar minuten opnieuw."
     },
     "PORTAL": {
         "UNNAMED_WORKSPACE": "Deze werkruimte",

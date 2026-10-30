@@ -105,6 +105,7 @@ from backend.app.services.integration_provider_factory import IntegrationProvide
 from backend.app.services.integration_service import IntegrationService
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
+from backend.app.services.receipt_limits import ReceiptLimits
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
@@ -293,6 +294,10 @@ class AppContainer(containers.DeclarativeContainer):
         FixedWindowRateLimiter,
         repo=rate_limit_repo,
         secret=settings.auth_settings.JWT_SECRET,
+    )
+    # the public receipt routes (by receipt number, no sign-in)
+    receipt_limits: ReceiptLimits = providers.Singleton(
+        ReceiptLimits, rate_limiter=rate_limiter
     )
     flow_event_service: FlowEventService = providers.Singleton(
         FlowEventService,

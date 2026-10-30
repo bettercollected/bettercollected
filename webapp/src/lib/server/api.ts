@@ -90,25 +90,6 @@ export async function getFormById(workspaceId: string, formId: string, { publish
     }
 }
 
-export async function getSubmissionByUuid(workspaceId: string, submissionUuid: string) {
-    if (!workspaceId || !submissionUuid) return null;
-    try {
-        const cookieHeader = await getCookieHeader();
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/submissions/by-uuid/${submissionUuid}`, {
-            headers: {
-                cookie: cookieHeader
-            },
-            cache: 'no-store'
-        });
-
-        if (!response.ok) return null;
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching submission', error);
-        return null;
-    }
-}
-
 export async function getUser() {
     try {
         const cookieHeader = await getCookieHeader();
