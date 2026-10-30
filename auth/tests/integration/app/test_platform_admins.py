@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from auth.app.container import container
-from auth.app.services import google_auth_provider
+from auth.app.services import google_auth_provider, signin_code
 from auth.app.services.google_auth_provider import GoogleAuthProvider
 from auth.app.services.platform_admins import platform_admin_emails, roles_for
 from auth.config import settings
@@ -54,10 +54,14 @@ def _future_epoch(minutes=10):
 
 
 def test_otp_sign_in_proves_the_email(app_runner, platform_admin):
+    expiry = _future_epoch()
+    repo = container.user_repository()
+    user = app_runner.portal.call(repo.save_user, platform_admin)
+    hashed = signin_code.stored(
+        signin_code.digest("ABC-123", str(user.id), "FORM_CREATOR", expiry)
+    )
     app_runner.portal.call(
-        lambda: container.user_repository().save_user(
-            platform_admin, otp_code="ABC-123", otp_expiry=_future_epoch()
-        )
+        lambda: repo.set_user_otp(user.id, hashed, expiry, "FORM_CREATOR")
     )
     response = app_runner.get(
         "auth/otp/validate", params={"email": platform_admin, "otp_code": "ABC-123"}
