@@ -7,7 +7,6 @@ A request that fails the first two gates gets a bare 404 and never reaches
 anything else: no routing, no application code, no database.
 """
 
-import ipaddress
 import logging
 import re
 import time
@@ -23,6 +22,7 @@ from backend.admin.gate.levels import (
     level_for_scope,
     setup_stage_for_scope,
 )
+from backend.admin.gate.proxies import ProxySnapshot, TrustedProxies
 from backend.admin.gate.settings import GateSettings
 from backend.admin.headers import with_security_headers
 
@@ -78,15 +78,16 @@ class GateMiddleware:
         checkers: Optional[Mapping[Level, Checker]] = None,
         routes=None,
         setup_checker: Optional[SetupChecker] = None,
+        proxies: Optional[TrustedProxies] = None,
     ) -> None:
         self.app = app
         self.settings = settings
         self.checkers = dict(checkers or {})
         self.setup_checker = setup_checker
         self._routes = routes  # a list of routes or a callable returning one
-        self._proxy_nets = tuple(
-            ipaddress.ip_network(part) for part in settings.trusted_proxies.split(",") if part
-        )
+        # the proxies the gate believes: configured addresses plus the names'
+        # current addresses (gate/proxies.py); read once per request
+        self.proxies = proxies or TrustedProxies.from_settings(settings)
         self._limiter = _LogLimiter()
 
     async def __call__(self, scope, receive, send):
@@ -99,7 +100,9 @@ class GateMiddleware:
             return
 
         request_id = uuid.uuid4().hex
-        scope.setdefault("state", {})["request_id"] = request_id
+        state = scope.setdefault("state", {})
+        state["request_id"] = request_id
+        state["trusted_proxies"] = self.proxies.snapshot  # one set for the whole request
         started = False
         https = self._is_https(scope)
 
@@ -141,16 +144,17 @@ class GateMiddleware:
         Anyone else's forwarded header is ignored."""
         if scope.get("scheme") == "https":
             return True
-        if not self.settings.trusted_proxies:
+        snapshot = self._snapshot(scope)
+        if not snapshot.networks:
             return False
         peer = parse_address(scope["client"][0] if scope.get("client") else None)
-        if peer is None or not any(
-            peer.version == net.version and peer in net
-            for net in self._proxy_nets
-        ):
+        if not snapshot.trusts(peer):
             return False
         values = _header_values(scope, b"x-forwarded-proto")
         return bool(values) and values[-1].split(",")[-1].strip().lower() == "https"
+
+    def _snapshot(self, scope) -> ProxySnapshot:
+        return scope.get("state", {}).get("trusted_proxies") or self.proxies.snapshot
 
     def _deny(self, scope, peer, client, reason, request_id):
         dropped = self._limiter.allow()
@@ -225,7 +229,7 @@ class GateMiddleware:
             peer,
             _header_values(scope, b"x-forwarded-for"),
             None,
-            self.settings.trusted_proxies,
+            self._snapshot(scope).spec,
             None,
         )
         scope["state"]["client_ip"] = client
