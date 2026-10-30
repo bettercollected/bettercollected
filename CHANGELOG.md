@@ -13,7 +13,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
-## [4.0.15] - 2026-10-30
+## [4.0.15] - 2026-10-31
 
 ### Upgrade notes
 
@@ -24,6 +24,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   ask to delete what they already sent.
 - **Custom answer patterns** are checked when the answer is submitted, not while typing; the
   respondent is taken back to the question with the message.
+- **Google Sheets connections in progress during the upgrade** are refused once: start the
+  connection again.
 - **Rollback:** 4.0.14 can run against a 4.0.15 database; nothing is stored differently.
 
 ### Fixed
@@ -70,6 +72,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   unlucky answer. The browser now checks only the built-in formats and "whole numbers
   only"; a custom pattern is checked when the answer is submitted, and the respondent is
   taken back to the question with the message next to it.
+- Connecting Google Sheets to a form: the consent popup now hands its result only to the
+  dashboard origin, and only the code, the state or Google's error. The dashboard accepts
+  it only from the popup it opened, on the dashboard origin. The connection's state is
+  tied to the session that started it, expires after an hour and is accepted once. A
+  connection started before the upgrade and finished after it is refused: start it again.
+- An imported form's link to its original (opened or framed when the form is set to show
+  the original) is kept only when it is an http(s) address, and the respondent page opens
+  or frames nothing else.
 
 ## [4.0.14] - 2026-10-26
 
