@@ -15,8 +15,9 @@ transaction, span and error event before it is sent:
   ``context.destination``; and whatever ``redact`` replaces in them (the
   backend's receipt numbers);
 * ``strict``: also no request headers, cookies, body or environment, no local
-  variables in any stack frame (errors and spans), and no ``[parameters: ...]``
-  in an exception or log message. For a service whose requests carry secrets
+  variables in any stack frame (errors and spans), and no data a database
+  error quotes (``[parameters: ...]``, Postgres' ``DETAIL:`` line, a key's
+  ``Key (...)=(...)``) in an exception or log message. For a service whose requests carry secrets
   in those places (auth: the internal key header, the sign-in code).
 
 :func:`private_client_class` builds the APM client class that always loads the
@@ -46,6 +47,13 @@ _SQL_PARAMETERS = re.compile(
     r"\[parameters: .*?(?=\n\(Background on this error|\Z)", re.DOTALL
 )
 _PARAMETERS_REDACTED = "[parameters: redacted]"
+# Postgres' detail line names the values of a violated key or a failing row
+# ("DETAIL:  Key (lower(email))=(a@b.test) already exists.", "Failing row
+# contains (...)"); hide_parameters does not touch it
+_SQL_DETAIL = re.compile(r"DETAIL:[^\n]*")
+_DETAIL_REDACTED = "DETAIL:  redacted"
+_SQL_KEY_VALUES = re.compile(r"Key \([^\n]*?\)=\([^\n]*")
+_KEY_VALUES_REDACTED = "Key (redacted)"
 
 
 def _same(text: str) -> str:
@@ -66,8 +74,12 @@ def _text_without_query(text: str, redact: Callable[[str], str]) -> str:
 
 
 def without_parameters(text: str) -> str:
-    """``text`` with a database error's ``[parameters: ...]`` replaced."""
-    return _SQL_PARAMETERS.sub(_PARAMETERS_REDACTED, text)
+    """``text`` with what a database error quotes of the data replaced: the
+    statement's ``[parameters: ...]``, Postgres' ``DETAIL:`` line and any
+    ``Key (...)=(...)`` (the values of a violated key)."""
+    text = _SQL_PARAMETERS.sub(_PARAMETERS_REDACTED, text)
+    text = _SQL_DETAIL.sub(_DETAIL_REDACTED, text)
+    return _SQL_KEY_VALUES.sub(_KEY_VALUES_REDACTED, text)
 
 
 def _drop_frame_variables(node: Any) -> None:

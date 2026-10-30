@@ -154,3 +154,43 @@ def test_an_error_records_no_frame_variables(traced_app):
     recorded = json.dumps(errors, default=str)
     assert CODE not in recorded
     assert '"vars"' not in recorded
+
+
+def test_a_duplicate_key_error_records_no_email(traced_app):
+    """A real unique violation: the email reaches the error text through
+    Postgres' DETAIL line, which hide_parameters does not cover."""
+    import asyncio
+    import uuid
+
+    from sqlalchemy.exc import IntegrityError
+
+    from auth.app.container import container
+    from auth.app.schemas.user import UserDocument
+
+    _, client, events = traced_app
+    email = f"dup-{uuid.uuid4().hex[:10]}@example.com"
+    repo = container.user_repository()
+
+    async def insert_twice():
+        try:
+            await repo.save_document(UserDocument(email=email))
+            await repo.save_document(UserDocument(email=email.upper()))
+        finally:
+            await container.pg_engine().dispose()
+
+    with pytest.raises(IntegrityError) as raised:
+        asyncio.run(insert_twice())
+    text = str(raised.value)
+    # the unscrubbed text does carry it (else this test proves nothing)
+    assert email in text.lower() and "DETAIL" in text
+
+    try:
+        raise raised.value
+    except IntegrityError:
+        client.capture_exception()
+
+    errors = [data for kind, data in events if kind == "error"]
+    assert errors, "the error was not captured"
+    recorded = json.dumps(errors, default=str).lower()
+    assert [s for s in (email, "dup-") if s in recorded] == []
+    assert "detail:  redacted" in recorded

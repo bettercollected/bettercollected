@@ -93,11 +93,11 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
     in that format is refused, a match consumes the code, 5 wrong tries clear it. **Every account write**
     re-reads the row `FOR UPDATE` and changes only its own fields (`UserRepository._change_locked`), so
     none can store an older code back; only `set_user_otp`, `save_otp_user` and `change_otp_locked` touch
-    `otp_*`. Responses to the backend (`GET /users`, the upgrade) blank the `otp_*` fields
+    `otp_*`. Responses to the backend (`GET /users`, the upgrade) blank the `otp_*` fields (the Stripe webhook reply names the account by `_id` only)
     (`without_sign_in_codes`); the access log drops query strings (`app/access_log.py`, installed by
     `get_application`); the engine hides SQL parameters in errors (`hide_parameters`); Elastic APM cleans
     every transaction, span and error (`app/apm_privacy.py`, strict `common.utils.apm_privacy`: no query
-    string in any URL or name, no request headers, cookies, body, frame variables or SQL parameters; local
+    string in any URL or name, no request headers, cookies, body, frame variables, SQL parameters, `DETAIL:` lines or key values; local
     variables never collected; built into the client, no `ELASTIC_APM_*` setting turns it off).
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.
   - `GET /callback` — JWT exchange. `GET /status` — session/user status.

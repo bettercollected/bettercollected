@@ -180,6 +180,33 @@ def test_database_parameters_leave_strict_error_messages():
     )
 
 
+# what SQLAlchemy over asyncpg reports for a duplicate email (auth.users)
+UNIQUE_ERROR = (
+    "(sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class "
+    "'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates "
+    'unique constraint "uq_users_email_lower"\n'
+    "DETAIL:  Key (lower(email))=(a@b.test) already exists.\n"
+    "[SQL: INSERT INTO auth.users (id, doc) VALUES ($1::VARCHAR, $2::JSONB)]\n"
+    "[SQL parameters hidden due to hide_parameters=True]\n"
+    "(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+)
+
+
+def test_a_violated_key_s_values_leave_strict_error_messages():
+    error = {
+        "exception": {"message": UNIQUE_ERROR, "cause": [{"message": UNIQUE_ERROR}]},
+        "log": {"message": f"save failed: Key (email)=(a@b.test) is not present"},
+    }
+    out = redact_event(error, strict=True)
+    assert "a@b.test" not in repr(out)
+    message = out["exception"]["message"]
+    assert "DETAIL:  redacted\n[SQL: INSERT INTO auth.users" in message
+    assert 'violates unique constraint "uq_users_email_lower"' in message
+    assert out["log"]["message"] == "save failed: Key (redacted)"
+    failing_row = "DETAIL:  Failing row contains (6a00, {\"email\": \"a@b.test\"})."
+    assert without_parameters(failing_row) == "DETAIL:  redacted"
+
+
 def test_without_parameters_keeps_other_text():
     assert without_parameters("no parameters here") == "no parameters here"
     assert without_parameters("x [parameters: (1, 2)]") == "x [parameters: redacted]"

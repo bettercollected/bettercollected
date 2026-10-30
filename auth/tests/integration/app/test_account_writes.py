@@ -101,23 +101,28 @@ async def test_stripe_ids_and_plan_are_stored(repo, monkeypatch):
         service,
         webhook_event("checkout.session.completed", id="cs_test_1", customer="cus_1"),
     )
-    assert result["upgrade"] is True
+    # the reply names the account by id only (what the backend reads), never
+    # the document with its pending sign-in code
+    assert result == {"user": {"_id": str(user.id)}, "upgrade": True}
     stored = await repo.get_user_by_id(user.id)
     assert (stored.plan, stored.stripe_customer_id) == (Plans.PRO, "cus_1")
 
-    await run_webhook(
+    result = await run_webhook(
         service, webhook_event("customer.subscription.deleted", customer="cus_1")
     )
+    assert result == {"user": {"_id": str(user.id)}, "downgrade": True}
     assert (await repo.get_user_by_id(user.id)).plan == Plans.FREE
 
-    await run_webhook(
+    result = await run_webhook(
         service, webhook_event("invoice.payment_succeeded", customer="cus_1")
     )
+    assert result == {"user": {"_id": str(user.id)}, "upgrade": True}
     assert (await repo.get_user_by_id(user.id)).plan == Plans.PRO
 
-    await run_webhook(
+    result = await run_webhook(
         service, webhook_event("invoice.payment_failed", customer="cus_1")
     )
+    assert result == {"user": {"_id": str(user.id)}, "downgrade": True}
     assert (await repo.get_user_by_id(user.id)).plan == Plans.FREE
 
 

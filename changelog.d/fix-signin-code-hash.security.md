@@ -11,14 +11,16 @@
   data migration is needed. An account whose last code was sent before the upgrade keeps that
   expired plain-text value in the database until its next code is sent or checked. Rotating
   `AUTH_AES_HEX_KEY` likewise voids the codes pending at that moment.
-- The auth service no longer returns an account's pending code to the backend (account lookups
-  and the plan upgrade), its access log no longer records query strings (where the backend
-  sends the email and the code), and its database errors no longer list a statement's
-  parameters.
+- The auth service no longer returns an account's pending code to the backend (account lookups,
+  the plan upgrade and the Stripe webhook reply, which now names the account by id only), and
+  its access log no longer records query strings (where the backend sends the email and the
+  code). Its database error messages leave out the statement's parameter values (SQLAlchemy's
+  `hide_parameters`); other parts of an error message, such as Postgres' detail line, are only
+  removed from what Elastic APM sends.
 - Elastic APM no longer records what a request to the auth service carries. Every transaction,
   span and error it sends has no query string in a URL or name (the email and the sign-in
   code), no request headers (the internal key), cookies or body, no local variables of stack
-  frames (which the auth service no longer collects at all) and no database parameters in an
-  error message. The backend's APM guard now covers spans too: its calls to the auth service
+  frames (which the auth service no longer collects at all), and no statement parameters,
+  Postgres detail line or key values in an error message. The backend's APM guard now covers spans too: its calls to the auth service
   are recorded without their query strings. Both guards are built into the APM client, and no
   `ELASTIC_APM_*` setting switches them off.
