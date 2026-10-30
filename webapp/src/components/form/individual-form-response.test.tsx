@@ -11,7 +11,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 import { IndividualFormResponse } from './individual-form-response';
 
-// the respondent's own receipt page draws the response with this component: what they see must not change
+// the respondent's own receipt page draws the response with this component
 const choices = [
     { id: 'c1', value: 'Reading' },
     { id: 'c2', value: 'Cycling' },
@@ -49,10 +49,25 @@ describe('the respondent receipt view of a response', () => {
         store.dispatch(setWorkspace({ id: 'workspace-1' } as any));
     });
 
-    it('leaves the multi-select display as it was', () => {
+    it('joins the options of a multi-select answer with ", "', () => {
         renderResponse(known);
         expect(screen.getByText('Anna Example')).toBeInTheDocument();
-        expect(screen.getByText('Reading,Cycling,Cooking')).toBeInTheDocument();
+        expect(screen.getByText('Reading, Cycling, Cooking')).toBeInTheDocument();
+        expect(screen.queryByText('Reading,Cycling,Cooking')).toBeNull();
+    });
+
+    it('joins a multi-select answer inside a repeating group with ", " too (not the export\'s "; ")', () => {
+        const group = { id: 'g', type: FieldTypes.GROUP, title: 'Kids', properties: { repeat: { minItems: 1, maxItems: 3, itemLabel: 'Kid' }, fields: [{ ...formFields[1], id: 'k1' }] } };
+        const answers = { g: { items: [{ k1: { field: { id: 'k1' }, type: FieldTypes.MULTIPLE_CHOICE, choices: { values: ['c1', 'c3'] } } }] } };
+        render(
+            <ReduxProvider store={store}>
+                <I18nProvider>
+                    <IndividualFormResponse formFields={[group as any]} response={{ ...known, answers } as any} form={{ ...form, fields: [group] }} />
+                </I18nProvider>
+            </ReduxProvider>
+        );
+        expect(screen.getByText('Reading, Cooking')).toBeInTheDocument();
+        expect(screen.queryByText('Reading; Cooking')).toBeNull();
     });
 
     it('says once that the response could not be decrypted, and keeps the per-question text short', () => {

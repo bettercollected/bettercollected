@@ -1,10 +1,11 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-export default async function fetchWithCookies(
-    input: string | URL | globalThis.Request,
-    init?: RequestInit
-) {
+/**
+ * A server-side fetch that carries the browser's session cookies. The raw
+ * response, for callers that need its status code.
+ */
+export async function fetchWithCookiesResponse(input: string | URL | globalThis.Request, init?: RequestInit) {
     const cookieStore = await cookies();
     const Authorization = cookieStore.get('Authorization')?.value;
     const RefreshToken = cookieStore.get('RefreshToken')?.value;
@@ -19,7 +20,14 @@ export default async function fetchWithCookies(
         ...(init || {})
     };
 
-    const response = await fetch(input, config);
+    return await fetch(input, config);
+}
+
+export default async function fetchWithCookies(
+    input: string | URL | globalThis.Request,
+    init?: RequestInit
+) {
+    const response = await fetchWithCookiesResponse(input, init);
     const contentType = response.headers.get('content-type');
 
     if (contentType?.includes('application/json')) {

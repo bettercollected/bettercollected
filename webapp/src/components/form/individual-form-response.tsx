@@ -5,7 +5,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
-import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
@@ -83,7 +83,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                     <section key={index} className="border-black-300 flex flex-col gap-3 rounded border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
                                         <span className="text-black-800 text-[13px] font-semibold">{getItemHeader(field, index, pipeContext)}</span>
                                         {children.map((child) => {
-                                            const answerText = getItemAnswer(item, child);
+                                            const answerText = getItemAnswer(item, child, DISPLAY_LIST_SEPARATOR);
                                             const childTitle = getTitleForHeader(titleHasPipes(child.title) ? ({ ...child, title: resolvePipesInTitle(child.title, itemContext) } as StandardFormFieldDto) : child, standardForm);
                                             return (
                                                 <div className="flex flex-col gap-1" key={child.id}>
@@ -143,7 +143,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                             {getTitleForHeaderForTable(field)}
                             {ans?.file_metadata ? (
                                 <div onClick={() => downloadFormFile(ans)} className={cn('text-black-600! p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
-                                    {getAnswerForField(response, field)}
+                                    {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                                 </div>
                             ) : (
                                 noAnswer
@@ -151,7 +151,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         </div>
                     );
                 }
-                const answerText = getAnswerForField(response, field);
+                const answerText = getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}

@@ -6,9 +6,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
-import { formsApi } from '@app/store/redux/form-api';
-import { workspacesApi } from '@app/store/workspaces/api';
-import { forgetResponseList } from '@app/utils/response-list-memory';
+import { resetAfterSignOut } from '@app/store/actions/reset-after-sign-out';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
@@ -32,12 +30,8 @@ export default function LogoutView(props: any) {
                 else router.push('/login');
             }
             dispatch(setAuth(initialAuthState));
-            // The next person at this browser must not see what this user saw (on the page Back
-            // returns to, or from a cache): the cached workspaces, forms, responses and permissions,
-            // and the responses list memory (whose search may be a responder's email).
-            dispatch(workspacesApi.util.resetApiState());
-            dispatch(formsApi.util.resetApiState());
-            forgetResponseList();
+            // the next person at this browser must not see what this user saw
+            resetAfterSignOut(dispatch);
             closeModal();
         });
     };

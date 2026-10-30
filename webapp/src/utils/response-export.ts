@@ -49,9 +49,9 @@ function exportableChildren(group: StandardFormFieldDto): StandardFormFieldDto[]
     return getGroupChildren(group).filter((child) => child?.type !== FieldTypes.TEXT && child?.type !== FieldTypes.IMAGE_CONTENT && child?.type !== FieldTypes.VIDEO_CONTENT);
 }
 
-/** Answer of one child question in one item, formatted like any other answer. */
-export function getItemAnswer(item: Record<string, any> | undefined, child: StandardFormFieldDto): ExportCell {
-    return cell(getAnswerForField({ answers: item ?? {} } as StandardFormResponseDto, child, LIST_SEPARATOR));
+/** Answer of one child question in one item, formatted like any other answer (multi-select joined with the export's '; ' unless the screen passes its own). */
+export function getItemAnswer(item: Record<string, any> | undefined, child: StandardFormFieldDto, listSeparator: string = LIST_SEPARATOR): ExportCell {
+    return cell(getAnswerForField({ answers: item ?? {} } as StandardFormResponseDto, child, listSeparator));
 }
 
 /** A captured hidden-field value: only the response's own string or number values, never an inherited property like "constructor". */

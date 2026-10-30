@@ -19,7 +19,7 @@ import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { isoToLocalDate } from '@app/utils/date-rules';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
-import { getAnswerForField } from '@app/utils/form-builder-block-utils';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField } from '@app/utils/form-builder-block-utils';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { getGroupChildren, getGroupItems, getItemHeader, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { answered, choiceRows, fieldHasAnswer } from '@app/utils/response-page';
@@ -325,7 +325,7 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
     const answer = answers[field.id];
     // the server emptied what it could not decrypt: say so, never list options or "No answer"
     if (ctx.unreadable) return <NoAnswer ctx={ctx} />;
-    const value = getAnswerForField({ answers } as any, field);
+    const value = getAnswerForField({ answers } as any, field, DISPLAY_LIST_SEPARATOR);
     switch (field.type) {
         case FieldTypes.MULTIPLE_CHOICE: {
             const multiple = !!field.properties?.allowMultipleSelection;

@@ -7,10 +7,13 @@ import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
 
 
+/** Joins the options of a multi-select answer on screen (the responses table, the response page, the respondent's view): "Reading, Cycling". */
+export const DISPLAY_LIST_SEPARATOR = ', ';
+
 /**
  * `listSeparator` joins the selected options of a multi-select answer. The
- * table and the drawer keep their own defaults; the CSV export passes '; ' so
- * the options do not split on the comma that separates the columns.
+ * screens pass DISPLAY_LIST_SEPARATOR; the CSV export passes '; '
+ * so the options do not split on the comma that separates the columns.
  */
 export function getAnswerForField(response: StandardFormResponseDto, field: StandardFormFieldDto, listSeparator?: string) {
     const answer = response.answers[field.id];

@@ -20,6 +20,7 @@ import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
+import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { rememberedNeighbours } from '@app/utils/response-list-memory';
 import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@app/utils/response-page';
 import { ResponseOrigin } from '@app/utils/response-urls';
@@ -252,7 +253,7 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; position?: stri
                 {number && (
                     <div className="flex flex-col gap-1">
                         <dt className="text-xs font-medium text-black-600">Receipt number</dt>
-                        <dd className="font-mono text-base text-black-700">#{number.slice(0, 8)}…</dd>
+                        <dd className="font-mono text-base text-black-700">{shortReceiptNumber(number)}</dd>
                     </div>
                 )}
                 {response?.deletionStatus === 'pending' && (

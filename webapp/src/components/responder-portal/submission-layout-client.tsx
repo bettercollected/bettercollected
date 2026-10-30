@@ -12,11 +12,15 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import RespondentDocumentLanguage from '@app/components/form/respondent-document-language';
 import SiretoFooter from '@app/components/layout/sireto-footer';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { utcToLocalDateIn, utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { portalPath } from '@app/utils/portal-path';
+import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { respondentLangQuery } from '@app/utils/respondent-lang-query';
 import { deletionStatusLabel } from '@Components/workspace-client/workspace-form-response-deletion-card';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
@@ -34,6 +38,8 @@ import { useSubmissionContext } from './submission-context';
 export default function SubmissionLayoutClient({ children }: { children: React.ReactNode }) {
     const { data, isLoading, isError, hasCustomDomain, workspaceName, submissionId, isUUID } = useSubmissionContext();
     const workspace = useAppSelector(selectWorkspace);
+    const auth = useAppSelector(selectAuth);
+    const { can, answered } = useWorkspacePermissions();
     const form: any = data ?? {};
     const pathname = usePathname();
     // The page is in the respondent's language (and <html lang> says so); a
@@ -88,6 +94,15 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     // The receipt by number carries no identity at all, only whether it was
     // anonymous (`anonymize`); the signed-in view has the email instead.
     const isAnonymous = typeof response?.anonymize === 'boolean' ? response.anonymize : !response?.dataOwnerIdentifier;
+    // The receipt number is a bearer token (anyone holding it can read the
+    // response without signing in). In full only for whoever already holds
+    // it or whose response it is: opened by its number, the respondent's own
+    // (their email), or a viewer who cannot read other people's responses
+    // (the server only returns their own; known from a successful
+    // permissions answer, never from a failed one). Staff who open someone
+    // else's response here by its id see the start, as on the staff screens.
+    const ownReceipt = isUUID || (!!auth?.email && response?.dataOwnerIdentifier === auth.email) || (answered && !can(WorkspacePermission.RESPONSE_READ));
+    const receiptNumber = ownReceipt ? `#${response?.submissionUuid}` : shortReceiptNumber(response?.submissionUuid);
 
     return (
         // This page belongs to the WORKSPACE's branded space (possibly their
@@ -123,7 +138,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                         )}
                         {response?.submissionUuid && (
                             <span className="bg-black-100 text-black-700 rounded px-2 py-0.5 font-mono text-xs" title={t('SUBMISSIONS.NUMBER_TITLE')}>
-                                #{response.submissionUuid}
+                                {receiptNumber}
                             </span>
                         )}
                     </div>

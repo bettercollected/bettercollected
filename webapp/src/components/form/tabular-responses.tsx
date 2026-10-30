@@ -18,9 +18,8 @@ import { useLazyGetWorkspaceFormVersionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
-import { rememberResponseListPage } from '@app/utils/response-list-memory';
 import { responsePageUrl } from '@app/utils/response-page';
-import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
+import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
@@ -58,11 +57,9 @@ interface TabularResponsesProps {
     data?: Page<StandardFormResponseDto>;
     page: number;
     onPageChange: (page: number) => void;
-    /** The search the listed responses answer, so previous/next never joins two searches. */
-    searchText?: string;
 }
 
-export default function TabularResponses({ form, data, page, onPageChange, searchText = '' }: TabularResponsesProps) {
+export default function TabularResponses({ form, data, page, onPageChange }: TabularResponsesProps) {
     const { toast } = useToast();
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -93,11 +90,11 @@ export default function TabularResponses({ form, data, page, onPageChange, searc
                     }}
                     className={cn('text-black-600! p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer!' : '')}
                 >
-                    {getAnswerForField(response, field)}
+                    {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                 </div>
             );
         }
-        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field)}</div>;
+        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
@@ -138,11 +135,6 @@ export default function TabularResponses({ form, data, page, onPageChange, searc
         height: 'auto',
         overflow: 'hidden'
     };
-
-    // the order of what is on screen, for "previous"/"next" on a response's page (ids only)
-    useEffect(() => {
-        if (Array.isArray(data?.items)) rememberResponseListPage({ workspaceId: workspace?.id ?? '', formId: form.formId, searchText }, { page, size: data.size ?? data.items.length, total: data.total ?? data.items.length, ids: data.items.map((item) => item.responseId) });
-    }, [data, page, form.formId, workspace?.id, searchText]);
 
     useEffect(() => {
         const missing = Array.from(new Set((data?.items ?? []).map((r) => r.formVersion).filter((v): v is number => typeof v === 'number' && v !== form.version && !versionForms[v])));
@@ -200,7 +192,7 @@ export default function TabularResponses({ form, data, page, onPageChange, searc
                     {getInternalColumnTitle(field)}
                 </span>
             ),
-            selector: (response: StandardFormResponseDto) => <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field)}</div>,
+            selector: (response: StandardFormResponseDto) => <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field, DISPLAY_LIST_SEPARATOR)}</div>,
             style: cellStyle,
             width: '200px'
         }))

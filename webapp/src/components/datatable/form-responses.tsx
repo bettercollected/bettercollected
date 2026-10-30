@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
 import SearchInput from '@Components/common/search-input';
@@ -19,7 +19,7 @@ import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import { rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
+import { rememberResponseListPage, rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
 
 function downloadCsv(csv: string, fileName: string) {
     // BOM so spreadsheet apps read UTF-8 names correctly.
@@ -88,22 +88,68 @@ export default function FormResponsesTable({ props }: any) {
     };
 
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
-    // A page past the end of the list (the last response on it was deleted,
-    // here or by someone else, while a response's page was open, and the
-    // list came back on it): go to the last page that has responses. Each
-    // step goes at least one page back, so this ends.
-    // Only the answer for this very page counts (`currentData`, never the
-    // previous page's rows while this one loads). Set while rendering, as
-    // React advises for state that follows from other state.
+    // A page past the end of the list (its last rows were deleted or their
+    // requests closed, here or by someone else, for example while a
+    // response's page was open): go to the last page that still has rows,
+    // keeping the pagination; "No responses yet" is only for a form that has
+    // none. Each step goes at least one page back, so this ends. Only the
+    // answer for this very page counts (`currentData`, never the previous
+    // page's rows while this one loads), and a failed request stays an error.
+    // Set while rendering, as React advises for state that follows from
+    // other state.
     const pastTheEnd = !!currentData && Array.isArray(currentData.items) && currentData.items.length === 0 && page > 1 && !isError;
     if (pastTheEnd) {
         const last = Math.max(1, Math.ceil((currentData.total ?? 0) / (currentData.size || globalConstants.pageSize)));
         setPage(Math.max(1, Math.min(page - 1, last)));
     }
 
+    // The order on screen (ids only), for "previous"/"next" on a response's
+    // page. Only from `currentData`: `data` still holds the previous page's
+    // rows while the next one loads, and a failed load would leave those ids
+    // under the new page number.
+    useEffect(() => {
+        if (requestForDeletion || pastTheEnd || !Array.isArray(currentData?.items)) return;
+        rememberResponseListPage(
+            { workspaceId: workspace?.id ?? '', formId: form.formId, searchText },
+            { page, size: currentData.size ?? currentData.items.length, total: currentData.total ?? currentData.items.length, ids: currentData.items.map((item: StandardFormResponseDto) => item.responseId) }
+        );
+    }, [requestForDeletion, pastTheEnd, currentData, page, form.formId, workspace?.id, searchText]);
+
+    // Retry replaces the error (and its button) with the loader until the
+    // server answers, even when older rows are still at hand; focus moves to
+    // the results region so it does not fall to <body>.
+    const resultsRef = useRef<HTMLDivElement>(null);
+    const [retrying, setRetrying] = useState(false);
+    const retryStarted = useRef(false);
+    useEffect(() => {
+        if (!retrying) return;
+        if (isFetching) retryStarted.current = true;
+        // the retry answered (an error again, or rows), or an answer is in anyway
+        else if (retryStarted.current || !isError) {
+            retryStarted.current = false;
+            setRetrying(false);
+        }
+    }, [retrying, isFetching, isError]);
+    const handleRetry = useCallback(() => {
+        retryStarted.current = false;
+        setRetrying(true);
+        resultsRef.current?.focus();
+        try {
+            refetch();
+        } catch {
+            setRetrying(false);
+        }
+    }, [refetch]);
+
     let results;
-    // no workspace yet: the query is skipped, which is not "no responses"
-    if (isLoading || !workspace?.id || pastTheEnd) {
+    // No workspace yet: the query is skipped, which is not "no responses".
+    // Asking with no answer for this list yet (a retry, a new or cleared
+    // search after a no-match one, a page stepped back to) is loading too:
+    // never an empty or no-match state before the server has answered. A
+    // refetch of the same list (tab focus, an invalidated cache) keeps its
+    // answer in `currentData`, so its state stays on screen.
+    const waiting = isFetching && currentData === undefined && !hasItems;
+    if (isLoading || !workspace?.id || pastTheEnd || retrying || waiting) {
         results = (
             <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />
@@ -112,14 +158,14 @@ export default function FormResponsesTable({ props }: any) {
     } else if (isError) {
         // A refused or failed request is not an empty form: say so, and let
         // the person try again.
-        results = <ResponsesErrorComponent onRetry={refetch} />;
+        results = <ResponsesErrorComponent onRetry={handleRetry} />;
     } else if (hasItems) {
         results = (
             <div aria-busy={isFetching} className={isFetching ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
                 {requestForDeletion ? (
                     <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data!} />
                 ) : (
-                    <TabularResponses form={form} data={data} page={page} onPageChange={setPage} searchText={searchText} />
+                    <TabularResponses form={form} data={data} page={page} onPageChange={setPage} />
                 )}
             </div>
         );
@@ -135,7 +181,13 @@ export default function FormResponsesTable({ props }: any) {
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} defaultValue={searchText} placeholder={'Search by responder email'} ariaLabel="Search responses by responder email" className="md:w-[282px]" />
+                            <SearchInput
+                                handleSearch={handleSearch}
+                                defaultValue={searchText}
+                                placeholder={'Search by responder email'}
+                                ariaLabel={requestForDeletion ? 'Search deletion requests by responder email' : 'Search responses by responder email'}
+                                className="md:w-[282px]"
+                            />
                         </div>
                     ) : (
                         <></>
@@ -147,7 +199,9 @@ export default function FormResponsesTable({ props }: any) {
                     )}
                 </div>
             </div>
-            {results}
+            <div ref={resultsRef} tabIndex={-1} role="region" aria-label={requestForDeletion ? 'Deletion requests' : 'Responses'} className="focus:outline-hidden">
+                {results}
+            </div>
         </div>
     );
 }

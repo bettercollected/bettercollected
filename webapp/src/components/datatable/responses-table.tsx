@@ -21,6 +21,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { deletionRequestLocale } from '@app/constants/locales/deletion-request';
 import { isDeclineReason, isDeclinedRequest, isPendingRequest } from '@app/models/enums/deletion-request';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -86,11 +87,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 anonymous one) has on their submission — its start lets the
                 owner match a request against what the responder quotes. Never
                 in full (not in a tooltip either): it is a bearer token. */}
-            {requestForDeletion && response?.submissionUuid && (
-                <div className="text-black-600 mt-0.5 font-mono text-[11px]">
-                    #{response.submissionUuid.split('-')[0]}…
-                </div>
-            )}
+            {requestForDeletion && response?.submissionUuid && <div className="text-black-600 mt-0.5 font-mono text-[11px]">{shortReceiptNumber(response.submissionUuid)}</div>}
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
