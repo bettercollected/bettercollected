@@ -89,6 +89,112 @@ In CHANGELOG.md, the release branch's dated sections go under develop's `## [Unr
 and the entries and fragments on develop that those releases already list are removed. The
 `Changelog fragment` check treats such a branch as a branch sync, like `release/*`.
 
+## SDK releases
+
+The SDKs in [sdk/](sdk/) are versioned and released on their own, separately from
+the app, each with its own semver starting at `0.1.0`:
+
+| SDK | Package | Version in | Tag |
+|---|---|---|---|
+| Python | [`bettercollected`](https://pypi.org/project/bettercollected/) on PyPI | `sdk/python/pyproject.toml` | `sdk-py-vX.Y.Z` |
+| TypeScript | [`@bettercollected/sdk`](https://www.npmjs.com/package/@bettercollected/sdk) on npm | `sdk/typescript/package.json` | `sdk-ts-vX.Y.Z` |
+
+The tags never match the app's `vX.Y.Z` pattern, so they do not start the app's
+Build and Deploy (or any other workflow but the SDK one). Each README states the
+oldest bettercollected version whose API the SDK works with; raise it there when an
+SDK starts using a newer API.
+
+### Setup, done once by the owner, before the first tag
+
+The environments must exist **with their protection rules** before any `sdk-*` tag
+is pushed: when a job names an environment that does not exist, GitHub creates it
+without any rules, and the publish job would then run without approval.
+
+- **GitHub environments** `pypi` and `npm` (Settings → Environments), each with:
+  - a required reviewer (optionally with "Prevent self-review", so the person who
+    pushed the tag cannot approve it; with a single maintainer that blocks releases);
+  - deployment branches and tags limited to "Selected branches and tags", with one
+    tag rule: `sdk-py-v*` for `pypi`, `sdk-ts-v*` for `npm`.
+- **GitHub tag ruleset** (Settings → Rules → Rulesets, recommended): a tag ruleset
+  targeting `sdk-*` and `v*` that restricts creations, updates and deletions, with
+  only maintainers or admins in the bypass list. A tag runs the workflow file of the
+  tagged commit, so this limits who can start a release at all.
+- **PyPI:** a trusted publisher (a pending one until the first upload) for the
+  project `bettercollected`: owner `bettercollected`, repository
+  `bettercollected`, workflow `publish-sdk.yml`, environment `pypi`.
+- **npm**, trusted publishing only (no npm token is ever stored). Trusted
+  publishing can only be set up on a package that exists, and a new trusted
+  publisher must complete its first publish within 2 days, so, in this order:
+  1. The organisation `bettercollected` exists on npmjs.com (2FA for every member).
+  2. Publish a placeholder `@bettercollected/sdk@0.0.1` by hand (a package that
+     only reserves the name and points to 0.1.0 and later), then deprecate it:
+     `npm deprecate @bettercollected/sdk@0.0.1 "Name reserved; use 0.1.0 or later"`.
+  3. In the package's settings on npmjs.com, Trusted publishing → GitHub Actions:
+     organisation or user `bettercollected`, repository `bettercollected`, workflow
+     `publish-sdk.yml`, environment `npm`. Allow it to run `npm publish` (not only
+     staged publishing).
+  4. Optionally, set the package's publishing access to "Require two-factor
+     authentication and disallow tokens". Trusted publishing keeps working.
+  5. Push the tag `sdk-ts-v0.1.0` (see below) within 2 days of step 3.
+
+  The `npm` environment's rules (required reviewer, `sdk-ts-v*` tag rule) are still
+  required: they decide which runs may ask for the OIDC token npm trusts. The
+  publish job checks that it runs Node 22.14.0 or later and npm 11.5.1 or later,
+  which trusted publishing needs.
+
+### Releasing an SDK
+
+The workflow exists only on the branches this setup was merged to (`develop`,
+`release/4.1` and later). A tag on a commit without it does nothing.
+
+1. **Bump the version** in a pull request: `version` in `sdk/python/pyproject.toml`
+   (then `uvx uv@0.12.23 lock` in `sdk/python`), or `version` in
+   `sdk/typescript/package.json` (then `npm install --package-lock-only
+   --ignore-scripts` in `sdk/typescript`). Add a changelog fragment.
+2. **Merge** it (to `develop`, or to the `release/X.Y` branch the SDK release is cut
+   from).
+3. **Tag the merge commit** and push the tag. Check out the branch you merged to,
+   take the merge commit's sha, and name it in the tag. The tag's version must equal
+   the package's version, or the workflow fails before building:
+
+   ```bash
+   git checkout develop && git pull            # or release/X.Y
+   git log --oneline -3                        # the merge commit of step 2
+   git tag -a sdk-py-v0.1.0 <merge-sha> -m "Python SDK 0.1.0"   # or sdk-ts-v0.1.0
+   git push origin sdk-py-v0.1.0
+   ```
+
+4. **Check, then approve the environment.** The tag starts
+   [Publish SDK](.github/workflows/publish-sdk.yml): its build job runs the SDK's
+   tests, builds the package, checks it (`twine check`, or the `npm pack` file
+   list in the log) and keeps it as a run artifact for 7 days. The publish job waits
+   for a reviewer of the `pypi` or `npm` environment. Before approving, confirm on
+   the run's commit (`<sha>`, shown on the run page) that:
+
+   - it is on `develop` or a `release/X.Y` branch:
+
+     ```bash
+     git fetch origin
+     git branch -r --contains <sha>   # lists origin/develop or origin/release/X.Y
+     # or: gh api repos/bettercollected/bettercollected/compare/develop...<sha> -q .status
+     #     ("identical" or "behind" means the commit is on develop)
+     ```
+
+   - its workflow file is the one on that branch (no output means equal):
+
+     ```bash
+     git diff --exit-code origin/develop <sha> -- .github/workflows/publish-sdk.yml   # or origin/release/X.Y
+     ```
+
+   Then check the build log and approve. The publish job runs no repository code: it
+   downloads the built package, checks its name, version and digest, and uploads it
+   with trusted publishing (GitHub OIDC, no stored token). PyPI gets attestations,
+   npm gets provenance. If more than 7 days pass before approval, the artifact is
+   gone: re-run all jobs of the run.
+
+A published version cannot be replaced, on either registry. If a release is broken,
+release the next patch version.
+
 ## Future automation
 
 Candidates when the cadence justifies it: `release-please` or

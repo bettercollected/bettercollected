@@ -1,0 +1,463 @@
+# publish-sdk.yml: publishes the SDKs in sdk/ (RELEASING.md, "SDK releases").
+#
+# - a tag sdk-py-vX.Y.Z publishes sdk/python to PyPI as `bettercollected`;
+# - a tag sdk-ts-vX.Y.Z publishes sdk/typescript to npm as `@bettercollected/sdk`.
+#
+# The tags never match the app's release tags (vX.Y.Z, in deploy.yml), and no
+# other workflow runs on a tag push, so an SDK release builds and deploys
+# nothing else.
+#
+# Building and publishing are separate jobs, so no repository code ever runs
+# where a registry token can be requested:
+# - `build-*` runs everything from the repository (the install, the tests,
+#   the build) with `contents: read` only and no id-token permission: nothing
+#   it runs can ask GitHub for an OIDC token. It checks that the tag's version
+#   is the package's, checks the built files, and keeps them as a run artifact
+#   (7 days) together with their digest in the job outputs.
+# - `publish-*` may request an OIDC token, and runs no repository code: no
+#   checkout, no install of the project. It downloads the artifact, confirms
+#   the files are the ones `build-*` checked, and uploads them with trusted
+#   publishing (no stored token): PyPI with attestations, npm with
+#   provenance. It runs in the `pypi` or `npm` environment, which waits for a
+#   reviewer and accepts only `sdk-*` tags.
+#
+# The artifacts are kept 7 days. If the environment is approved later than
+# that, re-run all jobs.
+#
+# The split keeps the publish tokens away from repository code. It does not
+# protect the built package itself: a compromised development dependency
+# running in `build-*` could change what gets built. The lockfiles, the
+# reviewer and the file checks are what stand against that.
+#
+# No dependency cache is used: a release must not be built from a cache that
+# another ref wrote.
+
+name: Publish SDK
+
+on:
+    push:
+        tags:
+            - "sdk-py-v*"
+            - "sdk-ts-v*"
+
+permissions:
+    contents: read
+
+# One release per tag at a time; nothing that has started is cancelled.
+concurrency:
+    group: publish-sdk-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    build-py:
+        name: Build the Python SDK
+        if: startsWith(github.ref, 'refs/tags/sdk-py-v')
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # No id-token: this job runs the repository's code.
+        permissions:
+            contents: read
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            digest: ${{ steps.digest.outputs.digest }}
+        defaults:
+            run:
+                working-directory: sdk/python
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Context values reach the shell through env, never by interpolation
+            # into the script, and every expansion is quoted.
+            - name: The tag's version is the package's
+              id: version
+              env:
+                  GIT_REF: ${{ github.ref }}
+              run: |
+                  set -euo pipefail
+                  if [[ ! "${GIT_REF}" =~ ^refs/tags/sdk-py-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+                    echo "Refusing to release: the tag is not sdk-py-vX.Y.Z" >&2
+                    exit 1
+                  fi
+                  tag_version="${BASH_REMATCH[1]}"
+                  package_version="$(python3 -I -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["project"]["version"])' pyproject.toml)"
+                  if [[ "${package_version}" != "${tag_version}" ]]; then
+                    echo "The tag's version ${tag_version} is not the version in sdk/python/pyproject.toml (${package_version})" >&2
+                    exit 1
+                  fi
+                  echo "version=${tag_version}" >> "${GITHUB_OUTPUT}"
+                  echo "Python SDK ${tag_version}"
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+              with:
+                  version: "0.12.23"
+                  python-version: 3.11.12
+                  enable-cache: false
+
+            - name: The lockfile is current
+              run: uv lock --check
+
+            - name: Install
+              run: uv sync --frozen
+
+            - name: Tests
+              run: uv run --frozen pytest -q
+
+            - name: Build the sdist and the wheel
+              run: |
+                  set -euo pipefail
+                  rm -rf dist
+                  uv build --no-sources --out-dir dist
+
+            - name: Check the distributions
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  wheel="bettercollected-${VERSION}-py3-none-any.whl"
+                  sdist="bettercollected-${VERSION}.tar.gz"
+                  # uv also writes dist/.gitignore; hidden files are not uploaded.
+                  mapfile -t files < <(find dist -mindepth 1 -not -name '.*' -printf '%P\n' | LC_ALL=C sort)
+                  if [[ "${#files[@]}" -ne 2 || "${files[0]}" != "${wheel}" || "${files[1]}" != "${sdist}" ]]; then
+                    echo "dist/ does not hold exactly ${wheel} and ${sdist}: ${files[*]}" >&2
+                    exit 1
+                  fi
+                  uvx twine@7.0.0 check --strict dist/*
+                  echo "::group::${wheel}"
+                  unzip -l "dist/${wheel}"
+                  echo "::endgroup::"
+                  echo "::group::${sdist}"
+                  tar -tzf "dist/${sdist}"
+                  echo "::endgroup::"
+                  unzip -Z1 "dist/${wheel}" | grep -x "bettercollected-${VERSION}.dist-info/licenses/LICENSE"
+                  unzip -Z1 "dist/${wheel}" | grep -x "bettercollected/py.typed"
+
+            - name: Digest of the checked files
+              id: digest
+              run: |
+                  set -euo pipefail
+                  cd dist
+                  sha256sum -- * | LC_ALL=C sort -k2
+                  digest="$(sha256sum -- * | LC_ALL=C sort -k2 | sha256sum | cut -d' ' -f1)"
+                  echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+            - name: Keep the distributions for the publish job
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: python-dist
+                  path: sdk/python/dist/
+                  retention-days: 7
+                  if-no-files-found: error
+                  overwrite: true
+
+    publish-py:
+        name: Publish the Python SDK to PyPI
+        needs: build-py
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        environment:
+            name: pypi
+            url: https://pypi.org/project/bettercollected/
+        # id-token: trusted publishing exchanges a GitHub OIDC token for a
+        # short-lived PyPI upload token, and the attestations are signed with
+        # the same identity. No repository code runs here: the only actions are
+        # the artifact download and the PyPI upload, both pinned.
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - name: Fetch the checked distributions
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: python-dist
+                  path: dist
+
+            - name: Confirm they are the files the build job checked
+              env:
+                  GIT_REF: ${{ github.ref }}
+                  VERSION: ${{ needs.build-py.outputs.version }}
+                  DIGEST: ${{ needs.build-py.outputs.digest }}
+              run: |
+                  set -euo pipefail
+                  if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "${GIT_REF}" != "refs/tags/sdk-py-v${VERSION}" ]]; then
+                    echo "Unexpected version from the build job" >&2
+                    exit 1
+                  fi
+                  if [[ ! "${DIGEST}" =~ ^[0-9a-f]{64}$ ]]; then
+                    echo "Unexpected digest from the build job" >&2
+                    exit 1
+                  fi
+                  wheel="bettercollected-${VERSION}-py3-none-any.whl"
+                  sdist="bettercollected-${VERSION}.tar.gz"
+                  mapfile -t files < <(find dist -mindepth 1 -printf '%P\n' | LC_ALL=C sort)
+                  if [[ "${#files[@]}" -ne 2 || "${files[0]}" != "${wheel}" || "${files[1]}" != "${sdist}" ]]; then
+                    echo "The artifact does not hold exactly ${wheel} and ${sdist}" >&2
+                    exit 1
+                  fi
+                  cd dist
+                  sha256sum -- * | LC_ALL=C sort -k2
+                  actual="$(sha256sum -- * | LC_ALL=C sort -k2 | sha256sum | cut -d' ' -f1)"
+                  if [[ "${actual}" != "${DIGEST}" ]]; then
+                    echo "The artifact is not what the build job checked" >&2
+                    exit 1
+                  fi
+
+            - name: Publish to PyPI (trusted publishing, with attestations)
+              uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+              with:
+                  packages-dir: dist/
+                  attestations: true
+                  print-hash: true
+
+    build-ts:
+        name: Build the TypeScript SDK
+        if: startsWith(github.ref, 'refs/tags/sdk-ts-v')
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # No id-token: this job runs the repository's code.
+        permissions:
+            contents: read
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            digest: ${{ steps.pack.outputs.digest }}
+            node-version: ${{ steps.node.outputs.node-version }}
+        defaults:
+            run:
+                working-directory: sdk/typescript
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: The tag's version is the package's
+              id: version
+              env:
+                  GIT_REF: ${{ github.ref }}
+              run: |
+                  set -euo pipefail
+                  if [[ ! "${GIT_REF}" =~ ^refs/tags/sdk-ts-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+                    echo "Refusing to release: the tag is not sdk-ts-vX.Y.Z" >&2
+                    exit 1
+                  fi
+                  tag_version="${BASH_REMATCH[1]}"
+                  package_version="$(jq -r .version package.json)"
+                  if [[ "${package_version}" != "${tag_version}" ]]; then
+                    echo "The tag's version ${tag_version} is not the version in sdk/typescript/package.json (${package_version})" >&2
+                    exit 1
+                  fi
+                  echo "version=${tag_version}" >> "${GITHUB_OUTPUT}"
+                  echo "TypeScript SDK ${tag_version}"
+
+            - name: Set up Node
+              id: node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version-file: .nvmrc
+                  package-manager-cache: false
+
+            - name: Install
+              run: npm ci --ignore-scripts --no-audit --no-fund
+
+            - name: Typecheck
+              run: npm run typecheck
+
+            - name: Tests
+              run: npm test
+
+            - name: Build
+              run: |
+                  set -euo pipefail
+                  rm -rf dist
+                  npm run build
+
+            # The tarball holds only the allowlisted files (package.json
+            # "files"): no sources, source maps, tests or fixtures.
+            - name: Pack and check the tarball
+              id: pack
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  out="${RUNNER_TEMP}/pack"
+                  rm -rf "${out}"
+                  mkdir -p "${out}"
+                  npm pack --ignore-scripts --pack-destination "${out}"
+                  tarball="bettercollected-sdk-${VERSION}.tgz"
+                  mapfile -t files < <(find "${out}" -mindepth 1 -printf '%P\n')
+                  if [[ "${#files[@]}" -ne 1 || "${files[0]}" != "${tarball}" ]]; then
+                    echo "npm pack did not write exactly ${tarball}: ${files[*]}" >&2
+                    exit 1
+                  fi
+                  echo "::group::${tarball}"
+                  tar -tzvf "${out}/${tarball}"
+                  echo "::endgroup::"
+                  unexpected="$(tar -tzf "${out}/${tarball}" | grep -Ev '^package/(LICENSE|README\.md|package\.json|dist/.+\.(js|d\.ts))$' || true)"
+                  if [[ -n "${unexpected}" ]]; then
+                    echo "The tarball holds files outside the allowlist:" >&2
+                    echo "${unexpected}" >&2
+                    exit 1
+                  fi
+                  manifest="$(tar -xzOf "${out}/${tarball}" package/package.json)"
+                  test "$(jq -r .name <<<"${manifest}")" = "@bettercollected/sdk"
+                  test "$(jq -r .version <<<"${manifest}")" = "${VERSION}"
+                  sha256sum -- "${out}/${tarball}"
+                  digest="$(sha256sum -- "${out}/${tarball}" | cut -d' ' -f1)"
+                  echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+            - name: Keep the tarball for the publish job
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: npm-tarball
+                  path: ${{ runner.temp }}/pack/
+                  retention-days: 7
+                  if-no-files-found: error
+                  overwrite: true
+
+    publish-ts:
+        name: Publish the TypeScript SDK to npm
+        needs: build-ts
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        environment:
+            name: npm
+            url: https://www.npmjs.com/package/@bettercollected/sdk
+        # id-token: npm trusted publishing exchanges a GitHub OIDC token for a
+        # short-lived publish token, and the provenance statement is signed
+        # with the same identity. There is no npm token anywhere: OIDC is the
+        # only way this job can publish, and npm accepts it only from a
+        # GitHub-hosted runner. No repository code runs here: no checkout, no
+        # npm ci. The only tools installed are Node and a pinned npm CLI.
+        permissions:
+            contents: read
+            id-token: write
+        env:
+            # Trusted publishing needs Node 22.14.0 or later and npm 11.5.1 or
+            # later; Node 22 ships npm 10. NPM_CLI_VERSION is the registry's npm
+            # CLI, installed from its tarball and checked against this integrity
+            # before it runs.
+            NODE_MIN_VERSION: "22.14.0"
+            NPM_MIN_VERSION: "11.5.1"
+            NPM_CLI_VERSION: "11.21.1"
+            NPM_CLI_INTEGRITY: "sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ=="
+        steps:
+            - name: Check the build job's outputs
+              env:
+                  GIT_REF: ${{ github.ref }}
+                  VERSION: ${{ needs.build-ts.outputs.version }}
+                  DIGEST: ${{ needs.build-ts.outputs.digest }}
+                  NODE_VERSION: ${{ needs.build-ts.outputs.node-version }}
+              run: |
+                  set -euo pipefail
+                  if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "${GIT_REF}" != "refs/tags/sdk-ts-v${VERSION}" ]]; then
+                    echo "Unexpected version from the build job" >&2
+                    exit 1
+                  fi
+                  if [[ ! "${DIGEST}" =~ ^[0-9a-f]{64}$ ]]; then
+                    echo "Unexpected digest from the build job" >&2
+                    exit 1
+                  fi
+                  if [[ ! "${NODE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "Unexpected Node version from the build job" >&2
+                    exit 1
+                  fi
+                  # The build job resolves .nvmrc; trusted publishing needs a newer Node.
+                  oldest="$(printf '%s\n%s\n' "${NODE_VERSION#v}" "${NODE_MIN_VERSION}" | sort -V | head -n1)"
+                  if [[ "${oldest}" != "${NODE_MIN_VERSION}" ]]; then
+                    echo "Node ${NODE_VERSION} is older than ${NODE_MIN_VERSION}, which npm trusted publishing needs; raise .nvmrc" >&2
+                    exit 1
+                  fi
+                  echo "Node ${NODE_VERSION}"
+
+            # The Node version the build job used. registry-url writes an
+            # .npmrc for registry.npmjs.org outside the workspace.
+            - name: Set up Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: ${{ needs.build-ts.outputs.node-version }}
+                  registry-url: "https://registry.npmjs.org"
+                  package-manager-cache: false
+
+            - name: Install the npm CLI (registry tool, not repository code)
+              run: |
+                  set -euo pipefail
+                  dir="${RUNNER_TEMP}/npm-cli"
+                  rm -rf "${dir}"
+                  mkdir -p "${dir}"
+                  curl -fsSL --proto '=https' --tlsv1.2 -o "${dir}/npm.tgz" \
+                    "https://registry.npmjs.org/npm/-/npm-${NPM_CLI_VERSION}.tgz"
+                  actual="sha512-$(openssl dgst -sha512 -binary "${dir}/npm.tgz" | base64 -w0)"
+                  if [[ "${actual}" != "${NPM_CLI_INTEGRITY}" ]]; then
+                    echo "npm ${NPM_CLI_VERSION} does not match the pinned integrity" >&2
+                    exit 1
+                  fi
+                  npm install --global --offline --ignore-scripts --no-audit --no-fund "${dir}/npm.tgz"
+
+            - name: Node and npm are new enough for trusted publishing
+              env:
+                  NODE_VERSION: ${{ needs.build-ts.outputs.node-version }}
+              run: |
+                  set -euo pipefail
+                  node="$(node --version)"
+                  npm="$(npm --version)"
+                  echo "Node ${node}, npm ${npm}"
+                  if [[ "${node}" != "${NODE_VERSION}" ]]; then
+                    echo "Node is ${node}, not the build job's ${NODE_VERSION}" >&2
+                    exit 1
+                  fi
+                  if [[ "$(printf '%s\n%s\n' "${node#v}" "${NODE_MIN_VERSION}" | sort -V | head -n1)" != "${NODE_MIN_VERSION}" ]]; then
+                    echo "Node ${node} is older than ${NODE_MIN_VERSION}, which npm trusted publishing needs" >&2
+                    exit 1
+                  fi
+                  if [[ "${npm}" != "${NPM_CLI_VERSION}" ]]; then
+                    echo "npm is ${npm}, not the pinned ${NPM_CLI_VERSION}" >&2
+                    exit 1
+                  fi
+                  if [[ "$(printf '%s\n%s\n' "${npm}" "${NPM_MIN_VERSION}" | sort -V | head -n1)" != "${NPM_MIN_VERSION}" ]]; then
+                    echo "npm ${npm} is older than ${NPM_MIN_VERSION}, which trusted publishing needs" >&2
+                    exit 1
+                  fi
+
+            - name: Fetch the checked tarball
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: npm-tarball
+                  path: ${{ runner.temp }}/pack
+
+            - name: Confirm it is the tarball the build job checked
+              env:
+                  VERSION: ${{ needs.build-ts.outputs.version }}
+                  DIGEST: ${{ needs.build-ts.outputs.digest }}
+              run: |
+                  set -euo pipefail
+                  out="${RUNNER_TEMP}/pack"
+                  tarball="bettercollected-sdk-${VERSION}.tgz"
+                  mapfile -t files < <(find "${out}" -mindepth 1 -printf '%P\n')
+                  if [[ "${#files[@]}" -ne 1 || "${files[0]}" != "${tarball}" ]]; then
+                    echo "The artifact does not hold exactly ${tarball}" >&2
+                    exit 1
+                  fi
+                  actual="$(sha256sum -- "${out}/${tarball}" | cut -d' ' -f1)"
+                  if [[ "${actual}" != "${DIGEST}" ]]; then
+                    echo "The artifact is not what the build job checked" >&2
+                    exit 1
+                  fi
+                  tar -tzf "${out}/${tarball}"
+                  manifest="$(tar -xzOf "${out}/${tarball}" package/package.json)"
+                  test "$(jq -r .name <<<"${manifest}")" = "@bettercollected/sdk"
+                  test "$(jq -r .version <<<"${manifest}")" = "${VERSION}"
+
+            # Trusted publishing only: npm exchanges the job's GitHub OIDC token
+            # for a publish token (the trusted publisher on npmjs.com names this
+            # workflow file and the `npm` environment). With trusted publishing
+            # npm adds provenance on its own; --provenance only states it.
+            - name: Publish to npm (trusted publishing, with provenance)
+              env:
+                  VERSION: ${{ needs.build-ts.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  cd "${RUNNER_TEMP}/pack"
+                  npm publish "./bettercollected-sdk-${VERSION}.tgz" --provenance --access public --ignore-scripts
