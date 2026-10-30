@@ -1,6 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
-from typing import Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
@@ -47,6 +47,7 @@ from backend.app.services.ai.notice_token import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.form_availability import UNAVAILABLE_CLOSED, is_closed
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
@@ -66,6 +67,41 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     settings = FormSettingsCamelModel(**workspace_form.settings.model_dump())
     settings.language = language
     return settings
+
+
+def _closed_stub(form: Any, settings: Any = None) -> dict:
+    """What a respondent gets of a closed form, on every read that would
+    serve its questions: the welcome page and its look, with ``unavailable``
+    and no questions. A closed form takes no responses
+    (services/form_availability.py), so its questions are not served either.
+    ``form`` is a stored dict or a document; ``settings`` the association's
+    (default: the form's folded ones)."""
+
+    def get(key):
+        if isinstance(form, dict):
+            return form.get(key)
+        return getattr(form, key, None)
+
+    form_id = get("form_id")
+    return {
+        "formId": str(form_id) if form_id is not None else None,
+        "builderVersion": get("builder_version"),
+        "title": get("title"),
+        "description": get("description"),
+        "coverImage": get("cover_image"),
+        "logo": get("logo"),
+        "logoPosition": get("logo_position"),
+        "logoAlt": get("logo_alt"),
+        "useWorkspaceLogo": get("use_workspace_logo"),
+        "welcomePage": get("welcome_page"),
+        "theme": get("theme"),
+        "settings": settings if settings is not None else get("settings"),
+        "unavailable": UNAVAILABLE_CLOSED,
+    }
+
+
+def _is_closed_stub(form: Any) -> bool:
+    return isinstance(form, dict) and form.get("unavailable") == UNAVAILABLE_CLOSED
 
 
 def _declared_language(form) -> Optional[str]:
@@ -189,7 +225,11 @@ class FormService:
         # before any query: drafts are staff-only, as in the listing
         staff = await self._staff_view(user, workspace_id, published)
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id=workspace_id, is_not_admin=True, user=user
+            workspace_id=workspace_id,
+            is_not_admin=True,
+            user=user,
+            # as the public listing: closed forms are not offered to respondents
+            filter_closed=not staff,
         )
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id,
@@ -234,8 +274,17 @@ class FormService:
             published=published,
             draft=draft and is_admin,
         )
+        if is_admin:
+            return form
+        # A closed form's questions are not served to respondents: its
+        # welcome page says it is closed. Who may see the form at all is
+        # decided first: the stubs of private and hidden forms (camelCase
+        # keys, no questions) are served as they are.
+        if published and isinstance(form, dict) and "form_id" in form:
+            if is_closed(form.get("settings")):
+                return _closed_stub(form)
         # Respondents and the public never receive internal fields.
-        return form if is_admin else respondent_view(form)
+        return respondent_view(form)
 
     async def ai_notice_token(
         self, workspace_id: PydanticObjectId, form_id_or_slug: str
@@ -572,7 +621,7 @@ class FormService:
         form = await self._get_form_by_version(
             workspace_id, form_id, version, user, is_admin
         )
-        if is_admin or isinstance(form, HTTPException):
+        if is_admin or isinstance(form, HTTPException) or _is_closed_stub(form):
             return form
         return respondent_view(form)
 
@@ -608,6 +657,13 @@ class FormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
         workspace_form = workspace_forms[0]
+        # A closed form's questions reach staff only, on this read as on the
+        # published one (services/form_availability.py).
+        closed_settings = (
+            workspace_form.get("settings")
+            if not is_admin and is_closed(workspace_form.get("settings"))
+            else None
+        )
         if workspace_form["settings"]["provider"] != "self":
             form = await self._form_repo.get_forms_in_workspace(
                 workspace_id=workspace_id,
@@ -619,6 +675,8 @@ class FormService:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                 )
+            if closed_settings is not None:
+                return _closed_stub(form[0], closed_settings)
             return form[0]
         else:
             form = await self._form_repo.get_form_by_by_version(
@@ -629,6 +687,8 @@ class FormService:
                     status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                 )
             form.form_id = str(form.form_id)
+            if closed_settings is not None:
+                return _closed_stub(form, closed_settings)
             return form
 
     async def add_action_form(

@@ -8,7 +8,7 @@ import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useResponderState, useShownSlide } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { endingToShow } from '@app/utils/endings';
 import { greetingCover, hasPictureSlot } from '@app/views/molecules/theme/theme-artwork';
@@ -47,7 +47,12 @@ const fadeVariants = {
 const slideTransition = { duration: 0.35, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
 
 const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
-    const { currentSlide, prevActiveSlide: previousSlide, endingId } = useResponderState();
+    const { prevActiveSlide: previousSlide, endingId } = useResponderState();
+    // A closed form comes without its questions, also when a refetch replaces
+    // the form someone is filling in: every page then shows the welcome page's
+    // closed notice. Their answers and place stay in memory; an ending already
+    // reached stays on screen (utils/closed-form.ts).
+    const currentSlide = useShownSlide();
     const prefersReducedMotion = useReducedMotion();
     // The form is in the respondent's language; on the public pages <html lang>
     // says so too, and this also marks it inside the builder's preview.

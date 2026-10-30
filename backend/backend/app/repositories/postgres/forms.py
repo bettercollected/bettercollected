@@ -15,7 +15,7 @@ Results keep the raw-document shape of the aggregations (``FormDtoCamelModel``
 and friends consume dicts), rebuilt from the row's canonical ``doc``.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
@@ -33,6 +33,7 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
+from backend.app.services import form_availability
 from backend.app.services.form_concurrency import (
     ensure_not_changed_since,
     form_changed,
@@ -809,7 +810,6 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
         id_only: bool = False,
         filter_closed=False,
     ) -> List[Dict[str, Any]]:
-        settings = self._settings()
         where = [WorkspaceFormRow.workspace_id == _oid(workspace_id)]
         if form_id is not None:
             where.append(WorkspaceFormRow.form_id == form_id)
@@ -821,16 +821,6 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
             where.append(or_(self._not_hidden(), WorkspaceFormRow.user_id == user.id))
         if is_not_admin and not user:
             where.extend([self._not_hidden(), WorkspaceFormRow.private.is_(False)])
-        if filter_closed:
-            close_date = settings["form_close_date"]
-            where.append(
-                or_(
-                    _missing(settings, "form_close_date"),
-                    func.jsonb_typeof(close_date) == "null",
-                    _text(close_date) == "",
-                    _text(close_date) >= datetime.now(timezone.utc).isoformat(),
-                )
-            )
         if is_not_admin and user:
             where.append(self._not_hidden())
         try:
@@ -852,6 +842,18 @@ class PostgresWorkspaceFormRepository(PostgresRepositoryBase):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
         workspace_forms = [from_canonical_document(doc) for doc in docs]
+        if filter_closed:
+            # Closed forms leave the listing on the instant the submit gate
+            # starts refusing them: the same reader of the stored close date
+            # (services/form_availability.py), whatever its offset or spelling.
+            # Not in SQL: the stored text is the client's, and comparing it
+            # as text got every offset other than UTC wrong.
+            now = form_availability.now()
+            workspace_forms = [
+                wf
+                for wf in workspace_forms
+                if not form_availability.is_closed(wf.get("settings"), now)
+            ]
         if is_not_admin and user:
             # private forms stay visible to responders their groups admit
             admitted = await self._groups.get_form_ids_accessible_to(

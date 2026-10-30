@@ -1,4 +1,6 @@
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom, useAtomValue } from 'jotai';
+
+import { shownSlide } from '@app/utils/closed-form';
 
 import { selectResponderForm } from '../forms/slice';
 import { useAppSelector } from '../hooks';
@@ -140,4 +142,15 @@ export const useResponderState = () => {
         setResponderState,
         setCurrentSlideToWelcomePage
     };
+};
+
+/**
+ * The page on screen for the respondent's place (utils/closed-form.ts): the
+ * welcome page while the form is closed, unless they are on an ending. The
+ * form and the trust strip below it read this, so they always agree.
+ */
+export const useShownSlide = () => {
+    const { currentSlide } = useAtomValue(responderFormStateAtom);
+    const standardForm = useAppSelector(selectResponderForm);
+    return shownSlide(standardForm, currentSlide);
 };

@@ -3,15 +3,16 @@
 import Loader from '@app/components/ui/loader';
 import { trackCanonicalFormView } from '@app/lib/analytics/umami';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { setForm } from '@app/store/forms/slice';
+import { selectResponderForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useResponderState, useShownSlide } from '@app/store/jotai/responder-form-state';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
+import { isClosedForm } from '@app/utils/closed-form';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
 import RespondentPageShell from '@app/views/organism/form/respondent-page-shell';
@@ -46,7 +47,11 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     const router = useRouter();
     const trackedViewRef = useRef(false);
-    const { currentSlide, endingId } = useResponderState();
+    const { currentSlide, endingId, resetResponderState } = useResponderState();
+    // The form on screen and the page of it shown (a closed form shows its
+    // welcome page): the trust strip is laid out for the same page as the form.
+    const shownForm = useAppSelector(selectResponderForm);
+    const shownSlide = useShownSlide();
     const roomy = useMinViewportSize(640);
 
     useEffect(() => {
@@ -122,12 +127,23 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         return isUploadField;
     };
 
+    // A refetch of the form on screen, not another form: the respondent's
+    // place is kept in an app-wide atom, so it outlives a same-tab move from
+    // one form to the next.
+    const sameForm = !!data?.formId && shownForm?.formId === data.formId;
+    // A respondent on an ending keeps it: a refetch (focus, reconnect) that
+    // brings the form back closed has no endings, and an ending may pipe their
+    // answers into its text. The closed form is shown once they leave it.
+    const keepEnding = isClosedForm(data) && currentSlide === -2 && sameForm;
+
     useEffect(() => {
-        if (data?.formId) {
-            dispatch(setForm(data));
-            data.theme && updateFormTheme(data.theme, { undoable: false });
-        }
-    }, [data]);
+        if (!data?.formId || keepEnding) return;
+        // Another form starts at its welcome page, not at the place (or the
+        // ending) reached in the previous one.
+        if (!sameForm) resetResponderState();
+        dispatch(setForm(data));
+        data.theme && updateFormTheme(data.theme, { undoable: false });
+    }, [data, keepEnding]);
 
     useEffect(() => {
         if (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || [])) {
@@ -153,7 +169,10 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         );
     }
 
-    if (data?.builderVersion !== 'v2') return <div className="relative flex h-dvh w-screen flex-col" />;
+    // A closed form is served without its questions or its imported id,
+    // whichever builder made it: it shows the closed notice, never the
+    // original.
+    if (data?.builderVersion !== 'v2' && !isClosedForm(data)) return <div className="relative flex h-dvh w-screen flex-col" />;
 
     return (
         // The form above, the trust strip (and its panel) below, in flow: the
@@ -167,11 +186,11 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     ownerImage={workspace?.profileImage}
                     settings={data?.settings}
                     portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
-                    layout={layoutOfPage(data, currentSlide, endingId)}
+                    layout={layoutOfPage(shownForm, shownSlide, endingId)}
                     // Open on the welcome page when the screen has room for
                     // both; a strip with the toggle elsewhere, and on phones,
                     // where the open panel would take half the screen.
-                    defaultExpanded={currentSlide === -1 && roomy}
+                    defaultExpanded={shownSlide === -1 && roomy}
                     // ...and only when Start stays in view with it open.
                     protectPrimaryAction
                 />
