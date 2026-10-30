@@ -2078,3 +2078,34 @@ async def test_a_provider_import_never_brings_rules(workspace):
     saved = await service.save_converted_form_and_responses(data, "owner", workspace.id)
     stored = await container.form_service().get_form_document_by_id(saved.form_id)
     assert stored.fields[0].properties.fields[1].properties.rules is None
+
+
+def test_affected_keys_are_linear_in_a_long_chain():
+    import time
+
+    from backend.app.services.field_rules import rule_keys_affected
+
+    n = 99
+    fields = [_q("s0", "number")]
+    for i in range(1, n + 1):
+        expression = {">": [{"+": [V(f"s{i - 1}")] + [1] * 490}, 0]}
+        fields.append(
+            _q(
+                f"s{i}",
+                "number",
+                rules=[
+                    _rule(f"r{i}", {"setValue": {"const": 1}}, expression=expression)
+                ],
+            )
+        )
+    fields.append(
+        _q(
+            "q",
+            rules=[_rule("rq", {"required": True}, expression={">": [V(f"s{n}"), 0]})],
+        )
+    )
+    form = _form(fields)
+    start = time.perf_counter()
+    keys = rule_keys_affected(form, ["s0"])
+    assert time.perf_counter() - start < 0.1
+    assert keys == {f"s{i}" for i in range(1, n + 1)} | {"q"}

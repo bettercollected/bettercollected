@@ -101,4 +101,6 @@ async def test_a_template_far_over_the_rule_cap_is_refused_before_parsing(
     )
     assert time.perf_counter() - start < 2.0
     assert response.status_code == 422, response.text
-    assert "at most 100 rules" in response.text
+    # the template router's own count, before any model is built (not the
+    # save check's later "A form can have at most ..." refusal)
+    assert "A template can have at most 100 rules; this one has 1600." in response.text

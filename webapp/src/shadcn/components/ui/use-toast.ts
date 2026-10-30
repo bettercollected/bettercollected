@@ -166,6 +166,26 @@ function toast({ ...props }: Toast) {
     };
 }
 
+/**
+ * A plain notice that never replaces a toast offering an action (an Undo,
+ * say; only one toast shows at a time): shown now, or once no open toast
+ * has an action.
+ */
+function toastWhenFree(props: Toast) {
+    const busy = (state: State) => state.toasts.some((item) => item.open && !!item.action);
+    if (!busy(memoryState)) {
+        toast(props);
+        return;
+    }
+    const waiting = (state: State) => {
+        if (busy(state)) return;
+        const index = listeners.indexOf(waiting);
+        if (index > -1) listeners.splice(index, 1);
+        setTimeout(() => toast(props), 0);
+    };
+    listeners.push(waiting);
+}
+
 function useToast() {
     const [state, setState] = React.useState<State>(memoryState);
 
@@ -186,4 +206,4 @@ function useToast() {
     };
 }
 
-export { useToast, toast };
+export { useToast, toast, toastWhenFree };

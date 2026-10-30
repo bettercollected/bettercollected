@@ -769,18 +769,33 @@ def rule_keys_reading(form: Any, keys: Iterable[str]) -> Set[str]:
 def rule_keys_affected(form: Any, keys: Iterable[str]) -> Set[str]:
     """``rule_keys_reading`` through set values: when a question whose value
     a rule sets reads one of ``keys``, its value may change, so the rules
-    that read it are affected too (and so on, at most once per question).
-    What an edit of ``keys`` must check again."""
-    wanted = {str(key) for key in keys}
+    that read it are affected too (and so on). What an edit of ``keys`` must
+    check again. Each rule's reads are worked out once (key -> readers), then
+    a breadth-first walk: linear in the rules, whatever the chain length."""
+    readers: Dict[str, Set[str]] = {}
+    for target in _rule_targets(form):
+        reads = {
+            _answer_key(key)
+            for rule in _rules(target.field)
+            for key in _rule_reads(rule)
+        }
+        if target.group is not None:
+            siblings = _sibling_ids(target)
+            reads = {target.group_id if r in siblings else r for r in reads}
+        owner = target.group_id or target.id
+        for key in reads:
+            readers.setdefault(key, set()).add(owner)
     value_ids = set(server_value_ids(form))
+    pending = deque({_answer_key(str(key)) for key in keys})
+    queued = set(pending)
     found: Set[str] = set()
-    while True:
-        reached = rule_keys_reading(form, wanted)
-        more = (reached & value_ids) - wanted
-        found |= reached
-        if not more:
-            return found
-        wanted |= more
+    while pending:
+        for owner in readers.get(pending.popleft(), ()):
+            found.add(owner)
+            if owner in value_ids and owner not in queued:
+                queued.add(owner)
+                pending.append(owner)
+    return found
 
 
 def _sibling_ids(target: _Target) -> Set[str]:

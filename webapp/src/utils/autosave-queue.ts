@@ -11,7 +11,9 @@
  */
 
 export type SaveOutcome =
-    | { kind: 'saved'; version?: string | null }
+    // ``savedBody``: what the server stored when it differs from what was
+    // sent (it left out broken field rules), so that state is not re-sent.
+    | { kind: 'saved'; version?: string | null; savedBody?: string }
     /** The stored form is newer than the version sent: nothing was written. */
     | { kind: 'conflict' }
     /** The request did not reach the server, or a gateway failed: retry. */
@@ -161,10 +163,10 @@ export class SaveQueue {
         if (this.disposed) return;
 
         if (outcome.kind === 'saved') {
-            this.lastSavedBody = body;
+            this.lastSavedBody = outcome.savedBody ?? body;
             this.attempt = 0;
             this.adoptVersion(outcome.version);
-            if (this.pending !== null && this.pending !== body) {
+            if (this.pending !== null && this.pending !== body && this.pending !== this.lastSavedBody) {
                 this.pump();
                 return;
             }
