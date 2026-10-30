@@ -13,13 +13,21 @@
 #   the build) with `contents: read` only and no id-token permission: nothing
 #   it runs can ask GitHub for an OIDC token. It checks that the tag's version
 #   is the package's, checks the built files, and keeps them as a run artifact
-#   (one day) together with their digest in the job outputs.
+#   (7 days) together with their digest in the job outputs.
 # - `publish-*` may request an OIDC token, and runs no repository code: no
 #   checkout, no install of the project. It downloads the artifact, confirms
 #   the files are the ones `build-*` checked, and uploads them with trusted
 #   publishing (no stored token): PyPI with attestations, npm with
 #   provenance. It runs in the `pypi` or `npm` environment, which waits for a
 #   reviewer and accepts only `sdk-*` tags.
+#
+# The artifacts are kept 7 days. If the environment is approved later than
+# that, re-run all jobs.
+#
+# The split keeps the publish tokens away from repository code. It does not
+# protect the built package itself: a compromised development dependency
+# running in `build-*` could change what gets built. The lockfiles, the
+# reviewer and the file checks are what stand against that.
 #
 # No dependency cache is used: a release must not be built from a cache that
 # another ref wrote.
@@ -141,7 +149,7 @@ jobs:
               with:
                   name: python-dist
                   path: sdk/python/dist/
-                  retention-days: 1
+                  retention-days: 7
                   if-no-files-found: error
                   overwrite: true
 
@@ -198,7 +206,7 @@ jobs:
                   fi
 
             - name: Publish to PyPI (trusted publishing, with attestations)
-              uses: pypa/gh-action-pypi-publish@aef6c9b6e301dc803e1bc9133e9ce67ae9b0906b # v1.14.3
+              uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
               with:
                   packages-dir: dist/
                   attestations: true
@@ -305,7 +313,7 @@ jobs:
               with:
                   name: npm-tarball
                   path: ${{ runner.temp }}/pack/
-                  retention-days: 1
+                  retention-days: 7
                   if-no-files-found: error
                   overwrite: true
 
@@ -374,7 +382,7 @@ jobs:
                     echo "npm ${NPM_CLI_VERSION} does not match the pinned integrity" >&2
                     exit 1
                   fi
-                  npm install --global --ignore-scripts --no-audit --no-fund "${dir}/npm.tgz"
+                  npm install --global --offline --ignore-scripts --no-audit --no-fund "${dir}/npm.tgz"
                   installed="$(npm --version)"
                   if [[ "${installed}" != "${NPM_CLI_VERSION}" ]]; then
                     echo "npm is ${installed}, not ${NPM_CLI_VERSION}" >&2

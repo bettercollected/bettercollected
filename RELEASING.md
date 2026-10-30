@@ -104,49 +104,90 @@ Build and Deploy (or any other workflow but the SDK one). Each README states the
 oldest bettercollected version whose API the SDK works with; raise it there when an
 SDK starts using a newer API.
 
+### Setup, done once by the owner, before the first tag
+
+The environments must exist **with their protection rules** before any `sdk-*` tag
+is pushed: when a job names an environment that does not exist, GitHub creates it
+without any rules, and the publish job would then run without approval.
+
+- **GitHub environments** `pypi` and `npm` (Settings → Environments), each with:
+  - a required reviewer (optionally with "Prevent self-review", so the person who
+    pushed the tag cannot approve it; with a single maintainer that blocks releases);
+  - deployment branches and tags limited to "Selected branches and tags", with one
+    tag rule: `sdk-py-v*` for `pypi`, `sdk-ts-v*` for `npm`.
+- **GitHub tag ruleset** (Settings → Rules → Rulesets, recommended): a tag ruleset
+  targeting `sdk-*` and `v*` that restricts creations, updates and deletions, with
+  only maintainers or admins in the bypass list. A tag runs the workflow file of the
+  tagged commit, so this limits who can start a release at all.
+- **PyPI:** a trusted publisher (a pending one until the first upload) for the
+  project `bettercollected`: owner `bettercollected`, repository
+  `bettercollected`, workflow `publish-sdk.yml`, environment `pypi`.
+- **npm:** the organisation `bettercollected` (2FA for every member). Trusted
+  publishing can only be set up on a package that exists, and a granular token
+  cannot be limited to a package that does not exist yet. So the first release uses
+  a granular access token with read and write access to the `@bettercollected`
+  scope (or the organisation), the shortest expiry, and "bypass two-factor
+  authentication" enabled if the organisation enforces 2FA for writes (otherwise
+  the publish from CI fails with `EOTP`). Store it as the secret `NPM_TOKEN` in the
+  `npm` environment; the workflow passes it to npm only when it is set. After the
+  first release: on npmjs.com, add the trusted publisher to the package
+  (repository `bettercollected/bettercollected`, workflow `publish-sdk.yml`,
+  environment `npm`), set its publishing access to require 2FA and disallow
+  tokens, then delete the secret and revoke the token. From then on npm
+  authenticates with GitHub OIDC only.
+
+### Releasing an SDK
+
+The workflow exists only on the branches this setup was merged to (`develop`,
+`release/4.1` and later). A tag on a commit without it does nothing.
+
 1. **Bump the version** in a pull request: `version` in `sdk/python/pyproject.toml`
    (then `uvx uv@0.12.23 lock` in `sdk/python`), or `version` in
    `sdk/typescript/package.json` (then `npm install --package-lock-only
    --ignore-scripts` in `sdk/typescript`). Add a changelog fragment.
 2. **Merge** it (to `develop`, or to the `release/X.Y` branch the SDK release is cut
    from).
-3. **Tag** the merge commit and push the tag. The tag's version must equal the
-   package's version, or the workflow fails before building:
+3. **Tag the merge commit** and push the tag. Check out the branch you merged to,
+   take the merge commit's sha, and name it in the tag. The tag's version must equal
+   the package's version, or the workflow fails before building:
 
    ```bash
-   git checkout develop && git pull
-   git tag -a sdk-py-v0.1.0 -m "Python SDK 0.1.0"   # or sdk-ts-v0.1.0
+   git checkout develop && git pull            # or release/X.Y
+   git log --oneline -3                        # the merge commit of step 2
+   git tag -a sdk-py-v0.1.0 <merge-sha> -m "Python SDK 0.1.0"   # or sdk-ts-v0.1.0
    git push origin sdk-py-v0.1.0
    ```
 
-4. **Approve the environment.** The tag starts
+4. **Check, then approve the environment.** The tag starts
    [Publish SDK](.github/workflows/publish-sdk.yml): its build job runs the SDK's
    tests, builds the package, checks it (`twine check`, or the `npm pack` file
-   list in the log) and keeps it as a run artifact. The publish job waits for a
-   reviewer of the `pypi` or `npm` environment. Check the build log, then approve.
-   The publish job runs no repository code: it downloads the built package, checks
-   its name and version, and uploads it with trusted publishing (GitHub OIDC, no
-   stored token). PyPI gets attestations, npm gets provenance.
+   list in the log) and keeps it as a run artifact for 7 days. The publish job waits
+   for a reviewer of the `pypi` or `npm` environment. Before approving, confirm on
+   the run's commit (`<sha>`, shown on the run page) that:
+
+   - it is on `develop` or a `release/X.Y` branch:
+
+     ```bash
+     git fetch origin
+     git branch -r --contains <sha>   # lists origin/develop or origin/release/X.Y
+     # or: gh api repos/bettercollected/bettercollected/compare/develop...<sha> -q .status
+     #     ("identical" or "behind" means the commit is on develop)
+     ```
+
+   - its workflow file is the one on that branch (no output means equal):
+
+     ```bash
+     git diff --exit-code origin/develop <sha> -- .github/workflows/publish-sdk.yml   # or origin/release/X.Y
+     ```
+
+   Then check the build log and approve. The publish job runs no repository code: it
+   downloads the built package, checks its name, version and digest, and uploads it
+   with trusted publishing (GitHub OIDC, no stored token). PyPI gets attestations,
+   npm gets provenance. If more than 7 days pass before approval, the artifact is
+   gone: re-run all jobs of the run.
 
 A published version cannot be replaced, on either registry. If a release is broken,
 release the next patch version.
-
-Setup, done once by the owner of the PyPI and npm accounts:
-
-- **PyPI:** a trusted publisher (a pending one until the first upload) for the
-  project `bettercollected`: owner `bettercollected`, repository
-  `bettercollected`, workflow `publish-sdk.yml`, environment `pypi`.
-- **npm:** the organisation `bettercollected` (2FA for every member). Trusted
-  publishing can only be set up on a package that exists, so the first release
-  uses a granular token that can publish only `@bettercollected/sdk` and expires
-  within days, stored as the secret `NPM_TOKEN` in the `npm` environment. The
-  workflow passes it to npm only when it is set. After the first release: on
-  npmjs.com, add the trusted publisher (repository
-  `bettercollected/bettercollected`, workflow `publish-sdk.yml`, environment
-  `npm`), set the package to require 2FA and disallow tokens, and delete the
-  secret and the token. From then on npm authenticates with GitHub OIDC only.
-- **GitHub:** the environments `pypi` and `npm`, each with a required reviewer
-  and a deployment rule that allows only tags matching `sdk-*`.
 
 ## Future automation
 
