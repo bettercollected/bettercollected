@@ -1,0 +1,1 @@
+Responses open on their own page that looks like the form (its theme, its pages as sections, every question with the answer marked), instead of a side panel. The responses table opens it by click, Enter or link, and the old side-panel link now goes to the page.

@@ -8,7 +8,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useModal } from '@app/components/modal-views/context';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
 
-export default function DeleteResponseModal({ workspace, formId, responseId, navigateToForm = false }: any) {
+export default function DeleteResponseModal({ workspace, formId, responseId, navigateTo }: any) {
     const { toast } = useToast();
     const { closeModal } = useModal();
     const router = useRouter();
@@ -22,7 +22,8 @@ export default function DeleteResponseModal({ workspace, formId, responseId, nav
         setIsDeleting(false);
         if (response?.data) {
             toast({ description: 'Response deleted' });
-            if (navigateToForm) router.push(`/${workspace.workspaceName}/dashboard/forms/${formId}`);
+            // from a response's own page, back to the list (a relative path of ours, never one from the URL)
+            if (typeof navigateTo === 'string' && navigateTo.startsWith('/') && !navigateTo.startsWith('//')) router.push(navigateTo);
             closeModal();
         } else {
             toast({ description: 'Could not delete the response. Try again.', variant: 'destructive' });

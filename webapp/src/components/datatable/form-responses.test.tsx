@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The "server": one list of responses, filtered like the backend does for
 // `dataOwnerIdentifier`. Every call the component makes is recorded.
 type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: any; createdAt: string };
-const server: { items: Item[]; error: boolean; calls: any[]; refetchCalls: any[]; openResponse: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetchCalls: [], openResponse: vi.fn() };
+const server: { items: Item[]; error: boolean; calls: any[]; refetchCalls: any[]; push: ReturnType<typeof vi.fn> } = { items: [], error: false, calls: [], refetchCalls: [], push: vi.fn() };
+
+// a response opens on its own page: the table navigates to it
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: (url: string) => server.push(url) }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -30,7 +33,6 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             return { data: { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size }, isLoading: false, isFetching: false, isError: false, refetch };
         },
         useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
-        useLazyGetWorkspaceSubmissionQuery: () => [(arg: any) => server.openResponse(arg)],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
         useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
     };
@@ -41,6 +43,7 @@ import I18nProvider from '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { forgetResponseList, rememberedNeighbours } from '@app/utils/response-list-memory';
 
 import FormResponsesTable from './form-responses';
 
@@ -74,9 +77,9 @@ describe('responses table: search and honest states', () => {
         server.error = false;
         server.calls = [];
         server.refetchCalls = [];
-        server.openResponse = vi.fn(() => Promise.resolve({ data: undefined }));
+        server.push = vi.fn();
         server.items = [item('r1', 'known.a@example.com', 'blue'), item('r2', 'known.b@example.com', 'green'), item('r3', 'other@example.com', 'red'), item('r4', null, 'pink')];
-        store.dispatch(setWorkspace({ id: 'workspace-1' } as any));
+        store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
         store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 4, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
     });
     afterEach(() => {
@@ -225,12 +228,32 @@ describe('responses table: search and honest states', () => {
             expect(screen.getByRole('textbox', { name: 'Search responses by responder email' })).toBeInTheDocument();
         });
 
-        it('opens a response from a real button named "Open response"', () => {
+        it('opens a response from a real link named "Open response", to its own page', () => {
             renderTable();
-            const buttons = screen.getAllByRole('button', { name: 'Open response' });
-            expect(buttons).toHaveLength(4);
-            fireEvent.click(buttons[0]);
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+            const links = screen.getAllByRole('link', { name: 'Open response' });
+            expect(links).toHaveLength(4);
+            // a real href: cmd/ctrl-click and "open in new tab" work
+            expect(links[0]).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r1');
+            expect(links[3]).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r4');
+        });
+
+        it('opens the page when a row is clicked, and in a new tab with ctrl/cmd', () => {
+            renderTable();
+            // the table reacts to a click on a cell of the row
+            const cell = (text: string) => screen.getByText(text).closest('[data-tag="allowRowEvents"]') as HTMLElement;
+            fireEvent.click(cell('other@example.com'));
+            expect(server.push).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r3');
+            const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+            fireEvent.click(cell('known.a@example.com'), { ctrlKey: true });
+            expect(open).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r1', '_blank', 'noopener');
+            expect(server.push).toHaveBeenCalledTimes(1);
+            open.mockRestore();
+        });
+
+        it('remembers the order on screen (ids only) for previous/next on a response page', () => {
+            forgetResponseList();
+            renderTable();
+            expect(rememberedNeighbours('form-1', 'r2')).toEqual({ previousId: 'r1', nextId: 'r3' });
         });
 
         it('has no checkbox column (there is nothing to do with a selection)', () => {
@@ -251,15 +274,16 @@ describe('responses table: search and honest states', () => {
             expect(rows).toHaveLength(4);
             rows.forEach((row) => expect(row).toHaveAttribute('tabindex', '0'));
             fireEvent.keyDown(rows[1], { key: 'Enter' });
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r2' });
+            expect(server.push).toHaveBeenCalledWith('/acme/dashboard/forms/form-1/responses/r2');
         });
 
-        it('opens exactly once when the button inside the row is clicked (the click does not also hit the row)', () => {
+        it('goes to the page once when the link inside the row is clicked (the click does not also hit the row)', () => {
             renderTable();
-            const [button] = screen.getAllByRole('button', { name: 'Open response' });
-            fireEvent.click(button);
-            expect(server.openResponse).toHaveBeenCalledTimes(1);
-            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+            const [link] = screen.getAllByRole('link', { name: 'Open response' });
+            // the link navigates by itself; the row's own handler must not push a second time
+            link.addEventListener('click', (event) => event.preventDefault());
+            fireEvent.click(link);
+            expect(server.push).not.toHaveBeenCalled();
         });
 
         it('gives the button column a header for screen readers', () => {

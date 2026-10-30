@@ -21,7 +21,8 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
 const openModal = vi.fn();
 const closeModal = vi.fn();
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal, closeModal }) }));
-vi.mock('@app/components/modal-views/full-screen-modal-context', () => ({ useFullScreenModal: () => ({ openModal: vi.fn() }) }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
 vi.mock('@Components/modals/modal-wrapper/header-modal-wrapper', () => ({ default: ({ children }: any) => <div>{children}</div> }));
 
 const toast = vi.fn();
@@ -32,7 +33,6 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
-        useLazyGetWorkspaceSubmissionQuery: () => [vi.fn()],
         useCloseDeletionRequestMutation: () => [closeRequest, { isLoading: false }]
     };
 });
@@ -104,6 +104,20 @@ describe('deletion requests of imported forms', () => {
         expect(openModal).toHaveBeenLastCalledWith('CLOSE_DELETION_REQUEST', { workspace: expect.objectContaining({ id: 'ws1' }), formId: 'form-g', responseId: 'r1', outcome: 'completed' });
         fireEvent.click(within(row).getByRole('button', { name: 'DELETION_REQUEST.DECLINE' }));
         expect(openModal).toHaveBeenLastCalledWith('CLOSE_DELETION_REQUEST', expect.objectContaining({ responseId: 'r1', outcome: 'declined' }));
+    });
+
+    it('opens the response on its own page from "View" (a real link), for staff who may read responses', () => {
+        access.permissions = ['response.read', 'response.delete'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
+        const link = within(rowOf('r1@example.com')).getByRole('link', { name: 'View' });
+        expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1');
+        expect(link.getAttribute('href')).not.toContain('sub_id');
+    });
+
+    it('offers no "View" without response.read (a Privacy officer completes the request without reading it)', () => {
+        access.permissions = ['privacy.manage', 'response.delete'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
+        expect(within(rowOf('r1@example.com')).queryByRole('link', { name: 'View' })).toBeNull();
     });
 
     it('offers nothing to close without privacy.manage', () => {

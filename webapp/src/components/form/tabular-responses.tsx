@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { useTranslation } from 'react-i18next';
 
 import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { Page } from '@app/models/dtos/page';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
-import { useLazyGetWorkspaceFormVersionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useLazyGetWorkspaceFormVersionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
+import { rememberResponseListPage } from '@app/utils/response-list-memory';
+import { responsePageUrl } from '@app/utils/response-page';
 import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
@@ -58,10 +62,9 @@ interface TabularResponsesProps {
 
 export default function TabularResponses({ form, data, page, onPageChange }: TabularResponsesProps) {
     const { toast } = useToast();
-    const { openModal } = useFullScreenModal();
+    const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
 
-    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
     const [triggerFormVersion] = useLazyGetWorkspaceFormVersionQuery();
     // other form versions the listed responses were submitted against
     const [versionForms, setVersionForms] = useState<Record<number, StandardFormDto>>({});
@@ -115,15 +118,15 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
         );
     }
 
-    const openResponse = (response: StandardFormResponseDto) => {
-        triggerSingleResponse({
-            workspace_id: workspace?.id ?? '',
-            submission_id: response.responseId
-        }).then((result: any) => {
-            // refused (403) or gone: nothing to open
-            if (!result?.data?.response) return;
-            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields, feedback: result.data.feedback });
-        });
+    // One response is one page (a real link, so it also opens in a new tab).
+    const responseUrl = (response: StandardFormResponseDto) => responsePageUrl(workspace?.workspaceName ?? '', form.formId, response.responseId);
+    const openResponse = (response: StandardFormResponseDto, event?: React.MouseEvent | React.KeyboardEvent) => {
+        // cmd/ctrl-click on the row opens a new tab, like a link
+        if (event && ('metaKey' in event && (event.metaKey || event.ctrlKey))) {
+            window.open(responseUrl(response), '_blank', 'noopener');
+            return;
+        }
+        router.push(responseUrl(response));
     };
 
     const cellStyle = {
@@ -133,6 +136,11 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
         height: 'auto',
         overflow: 'hidden'
     };
+
+    // the order of what is on screen, for "previous"/"next" on a response's page (ids only)
+    useEffect(() => {
+        if (Array.isArray(data?.items)) rememberResponseListPage(form.formId, { page, size: data.size ?? data.items.length, total: data.total ?? data.items.length, ids: data.items.map((item) => item.responseId) });
+    }, [data, page, form.formId]);
 
     useEffect(() => {
         const missing = Array.from(new Set((data?.items ?? []).map((r) => r.formVersion).filter((v): v is number => typeof v === 'number' && v !== form.version && !versionForms[v])));
@@ -155,18 +163,16 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
             // visually hidden header: the column holds the "Open response" buttons
             name: <span className="sr-only">Open</span>,
             cell: (response: StandardFormResponseDto) => (
-                // A real button: reachable with Tab, announced, opens with Enter/Space.
-                <button
-                    type="button"
+                // A real link: reachable with Tab, announced, opens with Enter, and
+                // cmd/ctrl-click opens it in a new tab.
+                <Link
+                    href={responseUrl(response)}
                     aria-label="Open response"
                     className="hover:bg-black-200 focus-visible:ring-brand-500 flex h-8 w-8 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        openResponse(response);
-                    }}
+                    onClick={(event) => event.stopPropagation()}
                 >
                     <ExpandIcon aria-hidden="true" />
-                </button>
+                </Link>
             ),
             style: { ...cellStyle, paddingLeft: '4px', paddingRight: '4px', cursor: 'pointer' },
             width: '40px',

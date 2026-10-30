@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { buttonConstant } from '@app/constants/locales/button';
-import { Fragment, useCallback, useRef } from 'react';
+import { Fragment, useCallback } from 'react';
 
 import { Button } from '@app/shadcn/components/ui/button';
 
@@ -13,14 +13,11 @@ import { Dialog, DialogBackdrop } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import { PreviewFullModalView } from './full-screen-modals/v2-preview-modal';
-import ViewResponseFullModalView, { responseDialogLabel } from './full-screen-modals/view-response-full-modal-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal {...modalProps} />;
-        case 'VIEW_RESPONSE':
-            return <ViewResponseFullModalView {...modalProps} />;
         case 'PREVIEW_MODAL':
             return <PreviewFullModalView {...modalProps} />;
         default:
@@ -32,14 +29,6 @@ export default function FullScreenModalContainer() {
     const { isOpen, closeModal, modalProps, view } = useFullScreenModal();
     const { t } = useTranslation();
 
-    // Closing clears the view and its props at once, while the dialog is still
-    // on screen for the leave transition: keep the last name until another view
-    // opens, so the dialog never loses its accessible name mid-leave.
-    const lastDialogLabel = useRef<string | undefined>(undefined);
-    if (view === 'VIEW_RESPONSE') lastDialogLabel.current = responseDialogLabel(modalProps?.response);
-    else if (view !== '') lastDialogLabel.current = undefined;
-    const dialogLabel = lastDialogLabel.current;
-
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal, modalProps]);
@@ -47,7 +36,7 @@ export default function FullScreenModalContainer() {
     return (
         <>
             <Transition appear show={isOpen} as={Fragment}>
-                <Dialog as="div" aria-label={dialogLabel} className="fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModalHandler}>
+                <Dialog as="div" className="fixed inset-0 z-modal h-full w-full overflow-y-auto overflow-x-hidden  text-center" onClose={closeModalHandler}>
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                         <DialogBackdrop className={`fixed inset-0 z-40  ${view === 'UPGRADE_TO_PRO' ? 'bg-white!' : 'bg-gray-700/60'}   cursor-pointer`} />
                     </Transition.Child>
