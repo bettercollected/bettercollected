@@ -120,7 +120,8 @@ upgrade. Temporal is not part of the stack since 4.1. A deep dive lives in
 
 ```bash
 # 1. Start infra: PostgreSQL, nginx, Mailpit (email inbox), S3-compatible
-#    storage (RustFS) and Umami
+#    storage (RustFS) and Umami. The first run also builds the document
+#    sandbox image (PDF import), which takes a while.
 docker compose -f docker-compose.local.yml up --build -d
 
 # 2. Copy the env files, then fill them in (see below)
@@ -143,23 +144,29 @@ cp webapp/.env.example webapp/.env
 
 In the env files:
 
-- `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `MASTER_ENCRYPTION_KEYSET` must be
-  the same in `backend` and `auth` (the guide below shows how to generate them).
-  The services refuse to start when `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` is
-  empty or a value that was ever published in this repository. `backend` also
-  needs `RESPONDENT_IDENTITY_KEY` (`openssl rand -hex 32`).
+- `AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY` and `AUTH_INTERNAL_NOTIFY_KEY` must be
+  the same in `backend` and `auth` (and the Google Forms integration, if you run
+  it). `backend` also needs `MASTER_ENCRYPTION_KEYSET` and
+  `RESPONDENT_IDENTITY_KEY` (`openssl rand -hex 32`). The guide below shows how
+  to generate them. The services refuse to start when `AUTH_JWT_SECRET` or
+  `AUTH_AES_HEX_KEY` is empty or a value that was ever published in this
+  repository, and sign-in fails while `AUTH_INTERNAL_NOTIFY_KEY` is unset.
 - Leave `MONGO_URI` empty: a fresh install has no MongoDB data, and a set but
   unreachable `MONGO_URI` stops the start. (The local compose file still starts
   a MongoDB container; nothing uses it then.)
 - Set `DB_AUTO_MIGRATE=true` in `backend/.env` and `auth/.env` so each service
   migrates its Postgres schema when it starts. Without it a service refuses to
   start while its schema is behind.
+- Point `auth` at Mailpit: `MAIL_SMTP_SERVER=localhost`, `MAIL_SMTP_PORT=1026`,
+  `MAIL_STARTTLS=false`, `MAIL_SSL_TLS=false`, `MAIL_USE_CREDENTIALS=false`,
+  `MAIL_VALIDATE_CERTS=false` and a plain `MAIL_SENDER` address (the example
+  points at Gmail; see "Email (Mailpit)" in the guide).
 - The `.env.example` files set `DEBUG=true` (HTML tracebacks); the code default
   is off.
 
 Sign-in uses an emailed code: read it in the Mailpit inbox at
-http://localhost:8026. Background jobs (account and response deletion) run in
-the jobs worker: `cd backend && uv run python -m backend.jobs.worker`.
+http://localhost:8026. Background jobs (account and response deletion,
+imports, scheduled checks) run in the jobs worker: `cd backend && uv run python -m backend.jobs.worker`.
 
 The full walkthrough (generating the shared secrets, env vars, the Google Forms
 integration and common gotchas) is in
@@ -169,7 +176,7 @@ Google app) is in [docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
 ## Self-hosting
 
 The entire stack — including analytics — runs on your own machine, so no
-third-party service ever sees responder data:
+third-party analytics service sees respondent data:
 
 ```bash
 ./deploy.sh                # everything except form-provider integrations

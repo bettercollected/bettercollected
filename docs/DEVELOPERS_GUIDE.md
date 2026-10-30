@@ -42,8 +42,12 @@ storage) and Umami:
 docker compose -f docker-compose.local.yml up --build -d
 ```
 
+The first run also builds the document sandbox image (PDF import), which takes
+a while.
+
 - PostgreSQL → `localhost:5432`; one role per service (`bc_app`, `bc_auth`,
-  `bc_google`, as in the `.env.example` files), created on the first start
+  `bc_google`, as in the `.env.example` files, and `bc_jobs_exec` for the
+  actions executor), created on the first start
 - nginx → serves the client host on `:3001` and custom-domain host on `:3002`
 - Mailpit → SMTP on `:1026`, web inbox at **http://localhost:8026**
 
@@ -73,10 +77,14 @@ schema is behind the code.
 
 ### Shared secrets (must match across services)
 
-`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, and `MASTER_ENCRYPTION_KEYSET` **must be
-identical** in `backend`, `auth`, and the integrations, or cross-service auth and
-encrypted data will break. Generate them once and paste the same values
-everywhere:
+`AUTH_JWT_SECRET` and `AUTH_AES_HEX_KEY` **must be identical** in `backend`,
+`auth` and the Google Forms integration, or cross-service auth and encrypted data
+will break. `MASTER_ENCRYPTION_KEYSET` is read by the backend (and the Google
+Forms integration), not by auth; the backend also needs
+`RESPONDENT_IDENTITY_KEY` (`openssl rand -hex 32`). `AUTH_INTERNAL_NOTIFY_KEY`
+(`openssl rand -hex 24`) must also be the same in `backend`, `auth` and the
+Google Forms integration: while it is unset, sign-in fails. Generate them once
+and paste the same values everywhere:
 
 ```bash
 # AUTH_AES_HEX_KEY — a Fernet key (despite the name)
@@ -182,9 +190,9 @@ for imports and the jobs worker for background jobs.
 
 ### Background jobs (optional)
 
-Background jobs (account and response deletion) run on the Postgres job queue
-(`JOBS_BACKEND=postgres`, the default). Temporal is not part of the stack since
-4.1. Start the backend's jobs worker:
+Background jobs (account and response deletion, imports, scheduled checks) run
+on the Postgres job queue (`JOBS_BACKEND=postgres`, the default). Temporal is
+not part of the stack since 4.1. Start the backend's jobs worker:
 
 ```bash
 cd backend && uv run python -m backend.jobs.worker
