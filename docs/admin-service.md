@@ -63,9 +63,9 @@ mode instead of failing.
 - **`ADMIN_TRUSTED_PROXIES` takes addresses, CIDRs and host names**, comma-separated and
   mixed. Name the proxy by host name when its address can change (a container that is
   recreated gets a new one): use the name it has on the network it shares with the admin
-  service, written as a plain host name (letters, digits and hyphens; no scheme, port,
-  path or wildcard, and no underscores, so use the short service name or a network alias
-  rather than a stack-prefixed name). The service resolves each name (A and AAAA) when
+  service, written as a plain host name (letters, digits, hyphens and underscores, so a
+  stack-prefixed service name such as `<stack>_<service>` works; no scheme, port, path or
+  wildcard). The service resolves each name (A and AAAA) when
   it starts and again every `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` (default 60, 10 to
   3600), and trusts exactly the addresses it gets, each as a single address, next to the
   configured addresses and CIDRs. A name that does not resolve trusts nobody. Any

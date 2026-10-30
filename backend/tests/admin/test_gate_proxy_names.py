@@ -106,8 +106,15 @@ def test_ip_only_settings_are_unchanged():
         "proxy..example",
         "a" * 64,
         ".".join(["a" * 60] * 5),
-        "_proxy",
-        "stack_proxy",
+        "proxy_nginx:80",
+        "proxy_nginx/path",
+        "*_proxy",
+        "proxy.-a",
+        "a-.proxy",
+        "-.proxy",
+        "proxy_-",
+        "-_proxy",
+        "stack_123.456",
         "pröxy",
         "10.0.0",  # an address missing a part
         "300.1.1.1",  # an address out of range
@@ -132,10 +139,30 @@ def test_invalid_entries_stop_startup(entry):
 
 
 @pytest.mark.parametrize(
-    "name", ["proxy", "edge-proxy", "a", "proxy.internal", "p1.example.com", "xn--bcher-kva.example"]
+    "name",
+    [
+        "proxy",
+        "edge-proxy",
+        "a",
+        "proxy.internal",
+        "p1.example.com",
+        "xn--bcher-kva.example",
+        "proxy_nginx",  # Swarm: <stack>_<service>
+        "tasks.proxy_nginx",
+        "stack_proxy_1",
+        "_proxy",
+        "proxy_",
+        "a_b-c",
+        "a" * 63,
+    ],
 )
 def test_valid_host_names(name):
     assert valid_host_name(name)
+
+
+def test_stack_prefixed_names_are_kept_as_written():
+    s = GateSettings.from_env({"ADMIN_TRUSTED_PROXIES": "Proxy_Nginx,tasks.proxy_nginx"})
+    assert s.trusted_proxy_names == ("proxy_nginx", "tasks.proxy_nginx")
 
 
 def test_too_many_names():
@@ -649,6 +676,14 @@ async def test_configured_addresses_and_names_work_together():
 
 
 HTTPS = [("x-forwarded-proto", "https")]
+
+
+async def test_a_stack_prefixed_name_is_trusted_like_any_other():
+    app = gate(env={**ENV, "ADMIN_TRUSTED_PROXIES": "proxy_nginx"})
+    app.proxies._resolver = FakeDns(proxy_nginx=[PROXY])
+    await app.proxies.refresh()
+    assert (await call(app, peer=PROXY, headers=XFF))[0] == 200
+    assert (await call(app, peer=MOVED, headers=XFF))[0] == 404
 
 
 def scope_from(peer, headers=(), scheme="http"):

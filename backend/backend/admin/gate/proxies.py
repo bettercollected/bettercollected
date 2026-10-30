@@ -57,16 +57,19 @@ MAX_NAMES = 16
 # more addresses than this behind one name are not believed (a proxy has a few)
 MAX_ADDRESSES_PER_NAME = 32
 
-_LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+# letters, digits, "-" and "_" (Docker names a stack's services <stack>_<service> and its
+# DNS resolves them), 1 to 63 characters, no "-" at either end
+_LABEL = re.compile(r"^([a-z0-9_]|[a-z0-9_][a-z0-9_-]{0,61}[a-z0-9_])$")
 _NUMERIC_LABEL = re.compile(r"^(\d+|0x[0-9a-f]*)$")  # inet_aton's number forms
 
 
 def valid_host_name(value: str) -> bool:
-    """A plain RFC 1123 host name, lower case: labels of letters, digits and
-    hyphens (not at either end), at most 63 characters each and 253 in all.
-    No trailing dot, port, scheme, path or wildcard. The last label must not
-    be numeric, so a mistyped address ("10.0.0", "300.1.1.1") is refused
-    instead of being handed to the resolver, which reads such forms as numbers."""
+    """A plain host name, lower case: labels of letters, digits, hyphens and
+    underscores (no hyphen at either end), at most 63 characters each and 253
+    in all. No trailing dot, port, scheme, path or wildcard. The last label
+    must not be numeric, so a mistyped address ("10.0.0", "300.1.1.1") is
+    refused instead of being handed to the resolver, which reads such forms as
+    numbers."""
     if not value or len(value) > 253 or not value.isascii():
         return False
     labels = value.split(".")
