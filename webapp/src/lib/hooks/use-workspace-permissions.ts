@@ -12,7 +12,10 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
  * permissions have loaded (and when the request fails), so admin controls
  * never flash for members. The cache is per user and is dropped when the
  * signed-in user changes or signs out. `ready` turns true once the answer has
- * arrived, for choices that must not be made on the empty set.
+ * arrived, for choices that must not be made on the empty set; `answered`
+ * only when it arrived successfully, for choices that must not be made on a
+ * failed request either (a failure grants nothing, but it does not prove that
+ * the user lacks a permission).
  */
 export function useWorkspacePermissions() {
     const dispatch = useAppDispatch();
@@ -39,5 +42,8 @@ export function useWorkspacePermissions() {
     // Settled: the answer for this workspace and user has arrived (or failed,
     // which grants nothing). False while the workspace or user is unknown.
     const ready = !!workspaceId && !!userId && (isSuccess || isError);
-    return { can, permissions, isLoading, ready };
+    // The server's answer, not a failure: only then does a missing
+    // permission mean the user does not have it.
+    const answered = !!workspaceId && !!userId && !!isSuccess && !isError;
+    return { can, permissions, isLoading, ready, answered };
 }

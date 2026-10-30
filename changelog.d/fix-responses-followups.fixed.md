@@ -12,6 +12,11 @@
   without dashes. A staff member who opens someone else's response on the
   submission page sees the number shortened too. The search box on the deletion
   requests tab is labelled for deletion requests.
-- Signing out through "switch account" on an invitation, or when the session has
-  ended, now also forgets the cached responses and the remembered responses list
-  and search, like the logout button does.
+- Signing out, through the logout button, "switch account" on an invitation, or
+  when the session has ended, now forgets everything the app had cached for that
+  user: responses, forms, members and invitations, analytics and imports, the
+  form last opened, and the remembered responses list and search. When another
+  tab signs in as someone else, the app notices on its next session check.
+- A short server error or a lost connection (for example during an update, or
+  after waking a laptop) no longer signs you out or reloads the page you are on.
+  Only the server saying that the session has ended does.

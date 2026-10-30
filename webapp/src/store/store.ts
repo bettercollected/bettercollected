@@ -3,6 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore } from 'redux-persist';
 
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/reset-state';
+import { API_SLICES } from '@app/store/api-slices';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
@@ -25,26 +26,8 @@ import { mediaLibraryApi } from './media-library/api';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
-// Add more middlewares here
-// const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, workspacesApi.middleware];
-const middlewares = [
-    priceSuggestionApi.middleware,
-    authApi.middleware,
-    membersNInvitationsApi.middleware,
-    plansApi.middleware,
-    workspacesApi.middleware,
-    templateApi.middleware,
-    apiActionsApi.middleware,
-    couponCodeApi.middleware,
-    formsApi.middleware,
-    templatesApi.middleware,
-    importApi.middleware,
-    pdfImportApi.middleware,
-    openFormulierenImportApi.middleware,
-    mediaLibraryApi.middleware,
-    analyticsApi.middleware,
-    integrationApi.middleware
-];
+// Every API slice's middleware, from the one list (store/api-slices.ts).
+const middlewares = API_SLICES.map((api) => api.middleware);
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -70,7 +53,8 @@ const reducers = {
     [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
     [integrationApi.reducerPath]: integrationApi.reducer
-    // Add more reducers here
+    // A new API slice also goes into API_SLICES (store/api-slices.ts), or
+    // the sign-out reset misses it (reset-after-sign-out.test.tsx fails).
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

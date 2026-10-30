@@ -39,7 +39,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     const { data, isLoading, isError, hasCustomDomain, workspaceName, submissionId, isUUID } = useSubmissionContext();
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const { can, ready } = useWorkspacePermissions();
+    const { can, answered } = useWorkspacePermissions();
     const form: any = data ?? {};
     const pathname = usePathname();
     // The page is in the respondent's language (and <html lang> says so); a
@@ -98,9 +98,10 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     // response without signing in). In full only for whoever already holds
     // it or whose response it is: opened by its number, the respondent's own
     // (their email), or a viewer who cannot read other people's responses
-    // (the server only returns their own). Staff who open someone else's
-    // response here by its id see the start, as on the staff screens.
-    const ownReceipt = isUUID || (!!auth?.email && response?.dataOwnerIdentifier === auth.email) || (ready && !can(WorkspacePermission.RESPONSE_READ));
+    // (the server only returns their own; known from a successful
+    // permissions answer, never from a failed one). Staff who open someone
+    // else's response here by its id see the start, as on the staff screens.
+    const ownReceipt = isUUID || (!!auth?.email && response?.dataOwnerIdentifier === auth.email) || (answered && !can(WorkspacePermission.RESPONSE_READ));
     const receiptNumber = ownReceipt ? `#${response?.submissionUuid}` : shortReceiptNumber(response?.submissionUuid);
 
     return (

@@ -18,9 +18,15 @@ import SubmissionLayoutClient from './submission-layout-client';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => '/x', useSearchParams: () => new URLSearchParams(window.location.search) }));
 
-// what the viewer may do in the workspace (staff read every response; a respondent only their own)
-const viewer: { permissions: string[]; ready: boolean } = { permissions: [], ready: true };
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ can: (permission: string) => viewer.permissions.includes(permission), permissions: new Set(viewer.permissions), isLoading: !viewer.ready, ready: viewer.ready }) }));
+// what the viewer may do in the workspace (staff read every response; a respondent only their own);
+// `failed`: the permissions request failed (settled, but no answer, so nothing is granted)
+const viewer: { permissions: string[]; ready: boolean; failed: boolean } = { permissions: [], ready: true, failed: false };
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
+    useWorkspacePermissions: () => {
+        const permissions = viewer.failed ? [] : viewer.permissions;
+        return { can: (permission: string) => permissions.includes(permission), permissions: new Set(permissions), isLoading: !viewer.ready, ready: viewer.ready, answered: viewer.ready && !viewer.failed };
+    }
+}));
 
 const receipt = (response: Record<string, unknown>, isUUID = true) => {
     store.dispatch(setWorkspace({ id: 'ws1', ownerId: 'o1', workspaceName: 'vereniging', title: 'Vereniging Voorbeeld' } as any));
@@ -40,6 +46,7 @@ afterEach(() => {
     window.history.replaceState(null, '', '/');
     viewer.permissions = [];
     viewer.ready = true;
+    viewer.failed = false;
     store.dispatch(setAuth(initialAuthState));
 });
 
@@ -107,5 +114,14 @@ describe('the receipt number on the submission page', () => {
         viewer.ready = false;
         receipt({ anonymize: true }, false);
         expect(screen.getByText('#0b1c2d3e…')).toBeInTheDocument();
+    });
+
+    it('is shortened for staff whose permissions request failed (no answer is not "cannot read others")', () => {
+        store.dispatch(setAuth({ id: 'staff', email: 'staff@example.test', roles: [] } as any));
+        viewer.permissions = [WorkspacePermission.RESPONSE_READ];
+        viewer.failed = true;
+        const { container } = receipt({ dataOwnerIdentifier: 'ada@example.test' }, false);
+        expect(screen.getByText('#0b1c2d3e…')).toBeInTheDocument();
+        expect(everythingInTheDom(container)).not.toContain(NUMBER);
     });
 });
