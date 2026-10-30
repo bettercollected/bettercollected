@@ -6,6 +6,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionByUUIDQuery, useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionByUUIDMutation, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { isRateLimited } from '@app/utils/rate-limited';
 import React from 'react';
 import { SubmissionProvider } from './submission-context';
 import SubmissionLayoutClient from './submission-layout-client';
@@ -45,7 +46,7 @@ export default function SharedSubmissionLayoutClient({
         skip: isUUID || !workspaceId || !submissionId
     });
 
-    const { data: dataByUUID, isLoading: isLoadingByUUID, isError: isErrorByUUID } = useGetWorkspaceSubmissionByUUIDQuery({
+    const { data: dataByUUID, isLoading: isLoadingByUUID, isError: isErrorByUUID, error: errorByUUID } = useGetWorkspaceSubmissionByUUIDQuery({
         workspace_id: workspaceId ?? '',
         submissionUUID: submissionId
     }, {
@@ -56,6 +57,8 @@ export default function SharedSubmissionLayoutClient({
     const data = isUUID ? dataByUUID : dataById;
     const isLoading = isUUID ? isLoadingByUUID : isLoadingById;
     const isError = isUUID ? isErrorByUUID : isErrorById;
+    // the receipt by number is rate limited (429 for a few minutes)
+    const rateLimited = isUUID && isRateLimited(errorByUUID);
 
     const handleRequestForDeletion = async () => {
         if (workspaceId && submissionId) {
@@ -75,13 +78,13 @@ export default function SharedSubmissionLayoutClient({
                 toast({ description: t('SUBMISSION.REQUEST_SENT') });
                 closeModal();
             } catch (e) {
-                toast({ description: t('SUBMISSION.REQUEST_FAILED'), variant: 'destructive' });
+                toast({ description: t(isRateLimited(e) ? 'LOOKUP.TOO_MANY' : 'SUBMISSION.REQUEST_FAILED'), variant: 'destructive' });
             }
         }
     };
 
     return (
-        <SubmissionProvider value={{ data, isLoading, isError, handleRequestForDeletion, hasCustomDomain, workspaceName, submissionId, isUUID }}>
+        <SubmissionProvider value={{ data, isLoading, isError, isRateLimited: rateLimited, handleRequestForDeletion, hasCustomDomain, workspaceName, submissionId, isUUID }}>
             <SubmissionLayoutClient>
                 {children}
             </SubmissionLayoutClient>

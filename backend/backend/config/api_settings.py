@@ -53,11 +53,14 @@ class ApiSettings(StoreBackedSettings):
     # services/receipt_limits.py): the number is the only credential, so per
     # client address and window: requests per route, and receipt numbers not
     # found (both routes together; once used up, every lookup answers 429
-    # until the window ends). The global limit counts the misses of all
-    # clients together. 429 with Retry-After; 0 turns a limit off.
+    # until the window ends). 429 with Retry-After; 0 turns a limit off.
     RECEIPT_REQUESTS_PER_WINDOW: int = 60
     RECEIPT_MISSES_PER_WINDOW: int = 10
-    RECEIPT_GLOBAL_MISSES_PER_WINDOW: int = 1000
+    # An emergency switch, off by default: the misses of all clients together.
+    # Once reached, receipts (and deletion requests by number) answer 429 for
+    # everyone until the window ends, so anyone with enough addresses could
+    # take them offline; receipt numbers (uuid4) can't be guessed anyway.
+    RECEIPT_GLOBAL_MISSES_PER_WINDOW: int = 0
     RECEIPT_WINDOW_SECONDS: int = 600
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.

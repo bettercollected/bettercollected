@@ -15,8 +15,12 @@ window of ``API_RECEIPT_WINDOW_SECONDS``:
   routes together. Once a client has used them up, every further lookup is
   refused until the window ends, found or not.
 
-And for everyone together, ``API_RECEIPT_GLOBAL_MISSES_PER_WINDOW`` misses: a
-backstop against guessing spread over many addresses. Each limit is off at 0.
+And for everyone together, ``API_RECEIPT_GLOBAL_MISSES_PER_WINDOW`` misses: an
+emergency switch against guessing spread over many addresses, off (0) by
+default. Once reached it refuses every receipt lookup, for everyone, until the
+window ends; receipt numbers are uuid4, so it is not needed against guessing
+one. While it is 0 its counter is never read or written (no shared row every
+lookup would wait on). Each limit is off at 0.
 
 A refused request answers 429 with ``Retry-After``. The limiter's keys are the
 route and the client address only, never the receipt number, and the counter

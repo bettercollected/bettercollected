@@ -1,7 +1,7 @@
 """The public receipt routes (GET and DELETE .../submissions/by-uuid/{number})
-are rate limited per client address, unknown numbers more strictly, with a
-limit on all clients' unknown numbers together; the number never reaches the
-limiter's keys, its stored counters or the logs."""
+are rate limited per client address, unknown numbers more strictly, with an
+emergency limit on all clients' unknown numbers together (off by default); the
+number never reaches the limiter's keys, its stored counters or the logs."""
 
 import logging
 import uuid
@@ -43,7 +43,7 @@ def limits(monkeypatch, clock):
     values = {
         "RECEIPT_REQUESTS_PER_WINDOW": 5,
         "RECEIPT_MISSES_PER_WINDOW": 2,
-        "RECEIPT_GLOBAL_MISSES_PER_WINDOW": 1000,
+        "RECEIPT_GLOBAL_MISSES_PER_WINDOW": 0,
         "RECEIPT_WINDOW_SECONDS": WINDOW,
     }
     for name, value in values.items():
@@ -158,7 +158,13 @@ async def test_a_deletion_request_by_number_still_works(
     assert sent.json() == {"message": "Request for deletion created successfully."}
 
 
-async def test_unknown_numbers_of_all_clients_together_are_capped(
+def test_the_global_cap_is_off_by_default():
+    assert type(settings.api_settings).model_fields[
+        "RECEIPT_GLOBAL_MISSES_PER_WINDOW"
+    ].default == 0
+
+
+async def test_unknown_numbers_of_all_clients_together_are_capped_when_switched_on(
     client: AsyncClient, receipt, limits, monkeypatch
 ):
     monkeypatch.setattr(settings.api_settings, "RECEIPT_GLOBAL_MISSES_PER_WINDOW", 3)
@@ -256,25 +262,46 @@ async def test_no_receipt_number_or_address_in_logs_or_counters(
     assert "203.0.113" not in stored
 
 
-async def test_a_lookup_counts_scopes_and_addresses_only():
-    from backend.app.services.rate_limiter import Verdict
+class _Recording:
+    def __init__(self):
+        self.calls = []
 
-    class Recording:
-        def __init__(self):
-            self.calls = []
+    async def hit(self, scope, client, limit, window_seconds, amount=1):
+        from backend.app.services.rate_limiter import Verdict
 
-        async def hit(self, scope, client, limit, window_seconds, amount=1):
-            self.calls.append((scope, client, amount))
-            return Verdict(True, 0, 1)
+        self.calls.append((scope, client, amount))
+        return Verdict(True, 0, 1)
 
+
+async def _a_miss(limiter, number):
     from backend.app.exceptions import HTTPException
 
-    limiter = Recording()
-    limits_ = receipt_limits.ReceiptLimits(limiter)
-    number = _unknown()
     with pytest.raises(HTTPException):
-        async with limits_.lookup(receipt_limits.READ, "2001:db8:1:2::5"):
+        async with receipt_limits.ReceiptLimits(limiter).lookup(
+            receipt_limits.READ, "2001:db8:1:2::5"
+        ):
             raise HTTPException(404, f"no receipt {number}")
+
+
+async def test_a_lookup_counts_scopes_and_addresses_only(monkeypatch):
+    # the defaults: the global counter is never read or written
+    monkeypatch.setattr(settings.api_settings, "RECEIPT_GLOBAL_MISSES_PER_WINDOW", 0)
+    limiter = _Recording()
+    number = _unknown()
+    await _a_miss(limiter, number)
+    assert limiter.calls == [
+        ("receipt-read", "2001:db8:1:2::/64", 1),
+        ("receipt-miss", "2001:db8:1:2::/64", 0),
+        ("receipt-miss", "2001:db8:1:2::/64", 1),
+    ]
+    assert all(number not in repr(call) for call in limiter.calls)
+
+
+async def test_the_global_counter_is_used_only_when_switched_on(monkeypatch):
+    monkeypatch.setattr(settings.api_settings, "RECEIPT_GLOBAL_MISSES_PER_WINDOW", 50)
+    limiter = _Recording()
+    number = _unknown()
+    await _a_miss(limiter, number)
     assert limiter.calls == [
         ("receipt-read", "2001:db8:1:2::/64", 1),
         ("receipt-miss", "2001:db8:1:2::/64", 0),

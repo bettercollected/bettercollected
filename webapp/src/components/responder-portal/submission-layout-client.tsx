@@ -36,7 +36,7 @@ import { useSubmissionContext } from './submission-context';
  * their data rights.
  */
 export default function SubmissionLayoutClient({ children }: { children: React.ReactNode }) {
-    const { data, isLoading, isError, hasCustomDomain, workspaceName, submissionId, isUUID } = useSubmissionContext();
+    const { data, isLoading, isError, isRateLimited, hasCustomDomain, workspaceName, submissionId, isUUID } = useSubmissionContext();
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const { can, answered } = useWorkspacePermissions();
@@ -79,12 +79,22 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                     </div>
                 </header>
                 <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
-                    <div className="bg-black-200 h-5 w-36 animate-pulse rounded" />
-                    <div className="w-full rounded bg-white p-6">
-                        <div className="bg-black-100 h-7 w-64 animate-pulse rounded" />
-                        <div className="bg-black-100 mt-3 h-4 w-80 animate-pulse rounded" />
-                        <div className="bg-black-100 mt-8 h-40 w-full animate-pulse rounded" />
-                    </div>
+                    {isRateLimited ? (
+                        // Too many lookups from here for now (429): say so,
+                        // never "not found" for a number that may be valid.
+                        <div role="alert" className="text-black-800 w-full rounded bg-white p-6 text-sm">
+                            {t('LOOKUP.TOO_MANY')}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="bg-black-200 h-5 w-36 animate-pulse rounded" />
+                            <div className="w-full rounded bg-white p-6">
+                                <div className="bg-black-100 h-7 w-64 animate-pulse rounded" />
+                                <div className="bg-black-100 mt-3 h-4 w-80 animate-pulse rounded" />
+                                <div className="bg-black-100 mt-8 h-40 w-full animate-pulse rounded" />
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         );
