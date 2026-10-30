@@ -252,7 +252,7 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; position?: stri
                 {number && (
                     <div className="flex flex-col gap-1">
                         <dt className="text-xs font-medium text-black-600">Receipt number</dt>
-                        <dd className="font-mono text-base text-black-700">#{number.split('-')[0]}…</dd>
+                        <dd className="font-mono text-base text-black-700">#{number.slice(0, 8)}…</dd>
                     </div>
                 )}
                 {response?.deletionStatus === 'pending' && (

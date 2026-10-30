@@ -92,6 +92,13 @@ describe('the response page', () => {
         container.querySelectorAll('a[href]').forEach((link) => expect(link.getAttribute('href')).not.toContain('0a1b2c3d'));
     });
 
+    it('shortens a receipt number without dashes too', () => {
+        server.result = loaded({ ...RESPONSE, submissionUuid: '0a1b2c3d11114222833344445555666' });
+        const { container } = renderPage();
+        expect(within(screen.getByRole('region', { name: 'Response details' })).getByText('#0a1b2c3d…')).toBeInTheDocument();
+        expect(container.innerHTML).not.toContain('0a1b2c3d1111');
+    });
+
     it('shows the Anonymous mark and no email for an anonymous response', () => {
         server.result = loaded(ANONYMOUS_RESPONSE);
         renderPage('resp-2');
