@@ -139,3 +139,45 @@ async def test_a_privacy_officer_deletes_nothing_else(client: AsyncClient, reque
 
     assert refused.status_code == 403
     assert await container.form_response_repo().get_response(other.response_id)
+
+
+DELETION_LISTS = [
+    "/api/v1/workspaces/{ws}/forms/{form}/submissions?request_for_deletion=true",
+    "/api/v1/workspaces/{ws}/all-submissions?request_for_deletion=true",
+]
+
+
+async def _receipt_number(requested) -> str:
+    stored = await container.form_response_repo().get_response(requested["response"])
+    assert stored.submission_uuid
+    return stored.submission_uuid
+
+
+@pytest.mark.parametrize("path", DELETION_LISTS)
+async def test_a_privacy_officer_is_not_handed_the_receipt_number(
+    client: AsyncClient, requested, path
+):
+    """The receipt number opens the answers without a sign-in, so the list a
+    role that never reads answers works from does not carry it."""
+    receipt = await _receipt_number(requested)
+
+    listed = await client.get(path.format(**requested), cookies=_cookies(officer))
+
+    assert listed.status_code == 200, listed.text
+    (item,) = listed.json()["items"]
+    assert item["responseId"] == requested["response"]
+    assert "submissionUuid" not in item
+    assert receipt not in listed.text
+
+
+@pytest.mark.parametrize("path", DELETION_LISTS)
+async def test_a_member_who_reads_responses_still_gets_the_receipt_number(
+    client: AsyncClient, requested, test_user_cookies, path
+):
+    receipt = await _receipt_number(requested)
+
+    listed = await client.get(path.format(**requested), cookies=test_user_cookies)
+
+    assert listed.status_code == 200, listed.text
+    (item,) = listed.json()["items"]
+    assert item["submissionUuid"] == receipt

@@ -173,6 +173,8 @@ class FormResponseService:
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=responses_page
             )
+        if request_for_deletion:
+            await self._withhold_receipt_numbers(responses_page, user, workspace_id)
         return responses_page
 
     async def get_user_submissions(
@@ -264,7 +266,27 @@ class FormResponseService:
                         file_fields, response, workspace_id
                     )
             return response_page
+        if request_for_deletion:
+            await self._withhold_receipt_numbers(form_responses, user, workspace_id)
         return form_responses
+
+    async def _withhold_receipt_numbers(
+        self, page: Any, user: User, workspace_id: RecordId
+    ) -> None:
+        """The deletion-request listing without receipt numbers for a caller
+        who cannot read responses. The receipt number is a bearer handle on
+        the answers (``GET .../submissions/by-uuid/{number}`` needs no
+        sign-in), so a Privacy officer, who runs deletion requests but never
+        reads answers, must not be handed it."""
+        if await self._authorization.has_permission(
+            user, Permission.RESPONSE_READ, workspace_id
+        ):
+            return
+        for item in page.items:
+            if isinstance(item, dict):
+                item.pop("submission_uuid", None)
+            else:
+                item.submission_uuid = None
 
     async def check_member_and_form_in_workspace(
         self, workspace_id: RecordId, form_id: str, user: User
