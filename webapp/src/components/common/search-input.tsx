@@ -15,9 +15,11 @@ interface ISearchInputProps {
     placeholder?: string;
     /** Accessible name; defaults to the placeholder (a placeholder alone is not a label). */
     ariaLabel?: string;
+    /** The search already in effect (a list opened again where it was left). */
+    defaultValue?: string;
 }
 
-export default function SearchInput({ handleSearch, className, placeholder, ariaLabel }: ISearchInputProps) {
+export default function SearchInput({ handleSearch, className, placeholder, ariaLabel, defaultValue }: ISearchInputProps) {
     const { t } = useTranslation();
     // The debounce is created once and calls the latest handler: callers pass a
     // fresh function on every render, and a re-render inside the 500 ms window
@@ -35,6 +37,7 @@ export default function SearchInput({ handleSearch, className, placeholder, aria
             aria-label={ariaLabel ?? placeholderText}
             name="search-input"
             placeholder={placeholderText}
+            defaultValue={defaultValue}
             onChange={debouncedResults}
             className={cn('w-full bg-white h-[40px] rounded', className)}
             icon={<SearchIcon />}

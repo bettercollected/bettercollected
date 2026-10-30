@@ -3,7 +3,7 @@ import React from 'react';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,19 +36,24 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
     useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false, ready: true })
 }));
 
-const neighbours: { value: { previousId?: string; nextId?: string } } = { value: {} };
-vi.mock('@app/utils/response-list-memory', () => ({ rememberedNeighbours: () => neighbours.value }));
+const neighbours: { value: { previousId?: string; nextId?: string; position?: number; total?: number }; asked: any[][] } = { value: {}, asked: [] };
+vi.mock('@app/utils/response-list-memory', () => ({
+    rememberedNeighbours: (...args: any[]) => {
+        neighbours.asked.push(args);
+        return neighbours.value;
+    }
+}));
 
 const openModal = vi.fn();
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal, closeModal: vi.fn() }) }));
 
 const loaded = (response: any = RESPONSE, extra: Record<string, unknown> = {}) => ({ currentData: { response, form: FORM, internalFields: [], feedback: null, ...extra }, isError: false });
-const renderPage = (responseId = 'resp-1', formId = 'form-1') =>
-    render(
-        <ReduxProvider store={store}>
-            <ResponsePage formId={formId} responseId={responseId} />
-        </ReduxProvider>
-    );
+const page = (responseId = 'resp-1', formId = 'form-1', origin?: any) => (
+    <ReduxProvider store={store}>
+        <ResponsePage formId={formId} responseId={responseId} origin={origin} />
+    </ReduxProvider>
+);
+const renderPage = (responseId = 'resp-1', formId = 'form-1', origin?: any) => render(page(responseId, formId, origin));
 
 beforeEach(() => {
     server.calls = [];
@@ -57,6 +62,7 @@ beforeEach(() => {
     access.permissions = [WorkspacePermission.RESPONSE_READ];
     openModal.mockReset();
     neighbours.value = {};
+    neighbours.asked = [];
     store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
     store.dispatch(setAuth({ id: 'me', email: 'staff@example.com', roles: [] } as any));
     document.title = '';
@@ -128,12 +134,77 @@ describe('the response page', () => {
             access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
             renderPage();
             fireEvent.click(screen.getByRole('button', { name: 'Delete response' }));
-            expect(openModal).toHaveBeenCalledWith('DELETE_RESPONSE', { workspace: expect.objectContaining({ id: 'workspace-1' }), formId: 'form-1', responseId: 'resp-1', navigateTo: '/acme/dashboard/forms/form-1/responses' });
+            expect(openModal).toHaveBeenCalledWith('DELETE_RESPONSE', { workspace: expect.objectContaining({ id: 'workspace-1' }), formId: 'form-1', responseId: 'resp-1', navigateTo: '/acme/dashboard/forms/form-1/responses', onDeleting: expect.any(Function) });
+        });
+
+        it('deletes the response the server returned, not the id as typed in the URL', () => {
+            access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
+            renderPage('resp-1%2F..');
+            fireEvent.click(screen.getByRole('button', { name: 'Delete response' }));
+            expect(openModal.mock.calls[0][1].responseId).toBe('resp-1');
         });
 
         it('is not offered without response.delete', () => {
             renderPage();
             expect(screen.queryByRole('button', { name: 'Delete response' })).toBeNull();
+        });
+
+        it('is offered with privacy.manage for a pending deletion request, as in the deletion-requests table', () => {
+            access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.PRIVACY_MANAGE];
+            server.result = loaded({ ...RESPONSE, deletionStatus: 'pending' });
+            renderPage();
+            expect(screen.getByRole('button', { name: 'Delete response' })).toBeInTheDocument();
+        });
+
+        it('is not offered with privacy.manage alone when nobody asked for the deletion', () => {
+            access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.PRIVACY_MANAGE];
+            renderPage();
+            expect(screen.queryByRole('button', { name: 'Delete response' })).toBeNull();
+        });
+
+        it('stops asking for the response while it is deleted, so "not found" never flashes before the page is left', () => {
+            access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
+            const { rerender } = renderPage();
+            fireEvent.click(screen.getByRole('button', { name: 'Delete response' }));
+            const { onDeleting } = openModal.mock.calls[0][1];
+            act(() => onDeleting(true));
+            expect(server.calls.at(-1).options.skip).toBe(true);
+            // the delete invalidated the response: asked again it would be a 404
+            server.result = { currentData: undefined, isError: true, error: { status: 404 } };
+            rerender(page());
+            expect(screen.queryByRole('alert')).toBeNull();
+            expect(screen.getByRole('heading', { level: 1, name: 'Summer meeting registration' })).toBeInTheDocument();
+            // a failed delete: the page asks again
+            server.result = loaded();
+            act(() => onDeleting(false));
+            expect(server.calls.at(-1).options.skip).toBe(false);
+        });
+    });
+
+    describe('opened from a deletion-requests list', () => {
+        it('goes back to the workspace deletion requests, and returns there after a delete', () => {
+            access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
+            renderPage('resp-1', 'form-1', 'deletion-requests');
+            expect(screen.getByRole('link', { name: /Deletion requests/ })).toHaveAttribute('href', '/acme/dashboard/deletion-requests');
+            fireEvent.click(screen.getByRole('button', { name: 'Delete response' }));
+            expect(openModal.mock.calls[0][1].navigateTo).toBe('/acme/dashboard/deletion-requests');
+        });
+
+        it("goes back to the form's own deletion requests", () => {
+            renderPage('resp-1', 'form-1', 'form-deletion-requests');
+            expect(screen.getByRole('link', { name: /Deletion requests/ })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/deletion-requests');
+        });
+
+        it('offers no previous/next from the responses list', () => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3' };
+            renderPage('resp-1', 'form-1', 'deletion-requests');
+            expect(screen.queryByRole('link', { name: 'Next response' })).toBeNull();
+        });
+
+        it('says where it goes back to in the failure states too', () => {
+            server.result = { currentData: undefined, isError: true, error: { status: 404 } };
+            renderPage('resp-1', 'form-1', 'deletion-requests');
+            expect(screen.getByRole('link', { name: 'Back to deletion requests' })).toHaveAttribute('href', '/acme/dashboard/deletion-requests');
         });
     });
 
@@ -146,11 +217,38 @@ describe('the response page', () => {
             expect(screen.queryByRole('link', { name: 'Next response' })).toBeNull();
         });
 
+        it('asks the list of this workspace and form', () => {
+            renderPage();
+            expect(neighbours.asked[0]).toEqual(['workspace-1', 'form-1', 'resp-1']);
+        });
+
         it('links to the neighbours the list gives', () => {
             neighbours.value = { previousId: 'x1', nextId: 'x3' };
             renderPage();
             expect(screen.getByRole('link', { name: 'Previous response' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/x1');
             expect(screen.getByRole('link', { name: 'Next response' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/x3');
+        });
+
+        it('says which response of the list this is', () => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3', position: 3, total: 40 };
+            renderPage();
+            expect(screen.getByTestId('response-position')).toHaveTextContent('Response 3 of 40');
+            expect(screen.getByRole('region', { name: 'Response details, response 3 of 40' })).toBeInTheDocument();
+        });
+
+        it('moves focus to the next response details once it is loaded, so a screen reader hears the change', () => {
+            neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+            const { rerender } = renderPage();
+            // a first open leaves focus where it is
+            expect(document.activeElement).toBe(document.body);
+            const next = screen.getByRole('link', { name: 'Next response' });
+            // (no router here: the link's own navigation is stopped, its click handler still runs)
+            next.addEventListener('click', (event) => event.preventDefault());
+            fireEvent.click(next);
+            neighbours.value = { previousId: 'resp-1', position: 3, total: 3 };
+            server.result = loaded({ ...RESPONSE, responseId: 'x3' });
+            rerender(page('x3'));
+            expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Response details, response 3 of 3' }));
         });
 
         it('disables the one that does not exist (the first or last response of the list)', () => {
@@ -165,14 +263,15 @@ describe('the response page', () => {
         it('shows a loading state, never "No answer"', () => {
             server.result = { currentData: undefined, isError: false, isFetching: true };
             renderPage();
-            expect(screen.getByRole('status')).toHaveTextContent('Loading response…');
+            expect(within(screen.getByRole('main')).getByRole('status')).toHaveTextContent('Loading response…');
             expect(screen.queryByText('No answer')).toBeNull();
         });
 
         it('says there is no permission for a 403, without a Retry', () => {
             server.result = { currentData: undefined, isError: true, error: { status: 403, data: 'Forbidden' } };
             renderPage();
-            expect(screen.getByRole('alert')).toHaveTextContent('You do not have access to this response');
+            // the state is the page's main content
+            expect(within(screen.getByRole('main')).getByRole('alert')).toHaveTextContent('You do not have access to this response');
             expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
             expect(screen.getByRole('link', { name: 'Back to responses' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses');
             expect(screen.queryByText('No answer')).toBeNull();
@@ -230,6 +329,13 @@ describe('the response page', () => {
             renderPage();
             expect(screen.queryByRole('region', { name: 'For the team only' })).toBeNull();
         });
+    });
+
+    it('names its landmarks apart: the actions bar and the response', () => {
+        renderPage();
+        expect(screen.getByRole('navigation', { name: 'Response actions' })).toBeInTheDocument();
+        expect(screen.getAllByRole('main')).toHaveLength(1);
+        expect(screen.queryByRole('navigation', { name: 'Response' })).toBeNull();
     });
 
     it('prints without the toolbar and the staff panels', () => {

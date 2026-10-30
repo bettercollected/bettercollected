@@ -58,7 +58,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     const downloadFormFile = async (ans: any) => {
         try {
             if (!ans?.file_metadata?.url) return;
-            downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
+            await downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
             toast({ description: 'Error downloading file', variant: 'destructive' });
         }

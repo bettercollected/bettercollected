@@ -83,11 +83,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </div>
             {/* The receipt number is the only handle a responder (especially an
-                anonymous one) has on their submission — showing it lets the
-                owner match a request against what the responder quotes. The
-                cell is too narrow for all 36 chars; the title carries the rest. */}
+                anonymous one) has on their submission — its start lets the
+                owner match a request against what the responder quotes. Never
+                in full (not in a tooltip either): it is a bearer token. */}
             {requestForDeletion && response?.submissionUuid && (
-                <div title={response.submissionUuid} className="text-black-600 mt-0.5 font-mono text-[11px]">
+                <div className="text-black-600 mt-0.5 font-mono text-[11px]">
                     #{response.submissionUuid.split('-')[0]}…
                 </div>
             )}
@@ -153,8 +153,9 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             return (
                 <div className="flex items-center gap-1">
                     {canReadResponses && (
-                        // a real link: opens the response's page, also in a new tab
-                        <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className={buttonClassName({ variant: 'ghost', className: 'px-2!' })}>
+                        // a real link: opens the response's page, also in a new tab; the page goes back
+                        // (and, after a delete, returns) to this list: the workspace's or the form's
+                        <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId, formId ? 'form-deletion-requests' : 'deletion-requests')} className={buttonClassName({ variant: 'ghost', className: 'px-2!' })}>
                             View
                         </Link>
                     )}

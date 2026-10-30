@@ -78,6 +78,8 @@ describe('responses table: search and honest states', () => {
         server.calls = [];
         server.refetchCalls = [];
         server.push = vi.fn();
+        // the list memory outlives a render (as it outlives a page): every test starts without one
+        forgetResponseList();
         server.items = [item('r1', 'known.a@example.com', 'blue'), item('r2', 'known.b@example.com', 'green'), item('r3', 'other@example.com', 'red'), item('r4', null, 'pink')];
         store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
         store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 4, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
@@ -214,6 +216,52 @@ describe('responses table: search and honest states', () => {
         expect(screen.queryByText('Could not load responses')).toBeNull();
     });
 
+    describe('back from a response', () => {
+        it('opens again on the page it was left on', () => {
+            server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { unmount } = renderTable();
+            fireEvent.click(screen.getByLabelText(/next/i));
+            expect(lastQuery().page).toBe(2);
+            // the response's page replaces the list, then "Responses" (or the browser's Back) brings it back
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ page: 2 });
+        });
+
+        it('opens again with the search it was left with, shown in the search box', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            server.calls = [];
+            renderTable();
+            expect(server.calls.filter((call) => !call.options?.skip)[0].arg).toMatchObject({ dataOwnerIdentifier: 'known', page: 1 });
+            expect((screen.getByPlaceholderText('Search by responder email') as HTMLInputElement).value).toBe('known');
+            expect(screen.queryByText('other@example.com')).toBeNull();
+        });
+
+        it('starts on page 1 with no search for another form', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            store.dispatch(setForm({ ...store.getState().form, formId: 'form-2' } as any));
+            server.calls = [];
+            renderTable();
+            expect(lastQuery()).toMatchObject({ formId: 'form-2', page: 1 });
+            expect(lastQuery()).not.toHaveProperty('dataOwnerIdentifier');
+        });
+
+        it('keeps the deletion requests list out of it', () => {
+            const { unmount } = renderTable();
+            search('known');
+            unmount();
+            store.dispatch(setForm({ ...store.getState().form, deletionRequests: 2 } as any));
+            server.calls = [];
+            renderTable({ requestForDeletion: true, isSubmission: false });
+            expect(lastQuery()).not.toHaveProperty('dataOwnerIdentifier');
+        });
+    });
+
     it('uses the deletion-request wording on the deletion requests page', () => {
         store.dispatch(setForm({ ...store.getState().form, deletionRequests: 2 } as any));
         server.items = [item('r1', 'known.a@example.com', 'blue')];
@@ -253,7 +301,9 @@ describe('responses table: search and honest states', () => {
         it('remembers the order on screen (ids only) for previous/next on a response page', () => {
             forgetResponseList();
             renderTable();
-            expect(rememberedNeighbours('form-1', 'r2')).toEqual({ previousId: 'r1', nextId: 'r3' });
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'r2')).toMatchObject({ previousId: 'r1', nextId: 'r3', position: 2, total: 4 });
+            // another workspace's form with the same id is another list
+            expect(rememberedNeighbours('workspace-2', 'form-1', 'r2')).toEqual({});
         });
 
         it('has no checkbox column (there is nothing to do with a selection)', () => {

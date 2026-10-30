@@ -15,6 +15,9 @@ import ReadOnlyForm from './read-only-form';
 
 const NOT_SHOWN = 'Not shown to the respondent';
 
+const toast = vi.fn();
+vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast }) }));
+
 const download = vi.fn();
 vi.mock('@app/utils/file-utils', async (importOriginal) => ({ ...(await importOriginal<typeof import('@app/utils/file-utils')>()), downloadFile: (...args: any[]) => download(...args) }));
 
@@ -35,7 +38,20 @@ const chosen = (group: HTMLElement) =>
         .filter((option) => option.getAttribute('aria-checked') === 'true')
         .map((option) => option.textContent);
 
+// p1 jumps straight to p3 for someone who agreed: p2 is skipped
+const JUMPING = {
+    ...FORM,
+    fields: FORM.fields.map((slide) =>
+        slide.id === 'p1'
+            ? { ...slide, properties: { ...slide.properties, jumps: [{ operator: LogicalOperator.AND, target: 'p3', conditions: [{ fieldId: 'agree', fieldType: FieldTypes.YES_NO, comparison: Comparison.IS_EQUAL, value: 'Yes' }] }] } }
+            : slide
+    )
+};
+const PAGE_TWO_IDS = ['rating', 'scale', 'm1', 'm2', 'table', 'cv', 'guests', 'total', 'why'];
+const WITHOUT_PAGE_TWO = Object.fromEntries(Object.entries(ANSWERS).filter(([id]) => !PAGE_TWO_IDS.includes(id)));
+
 beforeEach(() => {
+    toast.mockReset();
     download.mockReset();
     store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
 });
@@ -222,6 +238,45 @@ describe('every question type shows its answer, read-only', () => {
         expect(screen.queryByRole('group', { name: 'Welcome to the summer meeting' })).toBeNull();
     });
 
+    it('a group that does not repeat is a heading, as on the form: no "No answer"', () => {
+        const withGroup = { ...FORM, fields: [{ ...FORM.fields[0], properties: { ...FORM.fields[0].properties, fields: [{ id: 'gr', index: 0, type: FieldTypes.GROUP, title: 'About you', description: 'A few details', properties: { fields: [] } }] } }, ...FORM.fields.slice(1)] };
+        const { container } = renderForm(RESPONSE, withGroup);
+        const heading = container.querySelector('#rp-gr') as HTMLElement;
+        expect(heading).toHaveAttribute('data-content');
+        expect(heading).toHaveTextContent('About youA few details');
+        expect(screen.queryByRole('group', { name: 'About you' })).toBeNull();
+        expect(within(container.querySelector('[data-page="1"]') as HTMLElement).queryAllByText('No answer')).toHaveLength(0);
+    });
+
+    it('a file upload prints as its name and size (the button is screen-only)', () => {
+        renderForm();
+        const upload = question('Upload your CV');
+        expect(within(upload).getByRole('button', { name: /Download cv.pdf/ }).className).toContain('print:hidden');
+        const line = upload.querySelector('[data-print-file]') as HTMLElement;
+        expect(line).toHaveTextContent('File: cv.pdf (205 KB)');
+        expect(line.className).toContain('hidden');
+        expect(line.className).toContain('print:block');
+    });
+
+    it('says so when a file cannot be downloaded (an expired link), and saves nothing', async () => {
+        download.mockRejectedValue(new Error('Download failed (403)'));
+        renderForm();
+        fireEvent.click(within(question('Upload your CV')).getByRole('button', { name: /Download cv.pdf/ }));
+        await vi.waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'Error downloading file', variant: 'destructive' }));
+    });
+
+    it('writes dates and calculated values in the form language', () => {
+        const dutch = { ...FORM, settings: { ...FORM.settings, language: 'nl' } };
+        renderForm(RESPONSE, dutch);
+        expect(within(question('When do you arrive?')).getByRole('textbox')).toHaveTextContent('4 juli 2026');
+        expect(within(question('Total')).getByRole('textbox').textContent?.replace(/\s/g, ' ')).toBe('€ 42,50');
+    });
+
+    it('writes them in English for a form in English or with no language', () => {
+        renderForm();
+        expect(within(question('When do you arrive?')).getByRole('textbox')).toHaveTextContent('July 4th, 2026');
+    });
+
     it('hidden fields from the share link are listed with their values', () => {
         renderForm();
         const section = screen.getByRole('region', { name: 'Hidden fields (from the share link)' });
@@ -281,23 +336,65 @@ describe('what has no answer', () => {
     });
 
     it('collapses a page the respondent was sent past, and says so', () => {
-        const jumping = {
-            ...FORM,
-            fields: FORM.fields.map((slide) =>
-                slide.id === 'p1'
-                    ? { ...slide, properties: { ...slide.properties, jumps: [{ operator: LogicalOperator.AND, target: 'p3', conditions: [{ fieldId: 'agree', fieldType: FieldTypes.YES_NO, comparison: Comparison.IS_EQUAL, value: 'Yes' }] }] } }
-                    : slide
-            )
-        };
-        const { container } = renderForm(RESPONSE, jumping);
+        const { container } = renderForm({ ...RESPONSE, answers: WITHOUT_PAGE_TWO }, JUMPING);
         const skipped = container.querySelector('[data-page="2"]') as HTMLElement;
         expect(within(skipped).getByText(/Skipped: this respondent/)).toBeInTheDocument();
         const details = skipped.querySelector('details') as HTMLDetailsElement;
         expect(details.open).toBe(false);
         expect(details).toHaveTextContent('Show the 8 questions on this page');
+        expect(details.querySelectorAll('[data-not-shown]')).toHaveLength(8);
         // the visited pages are drawn in full
         expect(container.querySelector('[data-page="1"] [data-page-skipped]')).toBeNull();
         expect(container.querySelector('[data-page="3"] [data-page-skipped]')).toBeNull();
+    });
+
+    it('shows answers given on a page before the respondent went back and changed course: marked, with the list open', () => {
+        // page 1 said "yes" (jump past page 2) after page 2 had been filled in: the answers are stored, and in the table and the export
+        const { container } = renderForm(RESPONSE, JUMPING);
+        const skipped = container.querySelector('[data-page="2"]') as HTMLElement;
+        const details = skipped.querySelector('details') as HTMLDetailsElement;
+        expect(details.open).toBe(true);
+        expect(details).toHaveTextContent('Show the 8 questions on this page (7 answered)');
+        expect(within(skipped).getByText(/Answers given here before they changed course are still stored/)).toBeInTheDocument();
+        const rating = within(skipped).getByRole('group', { name: 'Rate the service' });
+        expect(within(rating).getByText('Answered, then skipped')).toBeInTheDocument();
+        expect(within(rating).getByText('Rated 4 of 5')).toBeInTheDocument();
+        // a matrix answers by row; a repeating group by item
+        expect(within(within(skipped).getAllByRole('group', { name: 'Rate each part' })[0]).getByText('Answered, then skipped')).toBeInTheDocument();
+        expect(within(within(skipped).getAllByRole('group', { name: 'Your guests' })[0]).getAllByRole('listitem')).toHaveLength(2);
+        // the one question without an answer stays "not shown"
+        expect(within(skipped).getByRole('group', { name: 'Why not?' })).toHaveTextContent('Not shown to the respondent');
+    });
+
+    it('opens the list for a single answer on a skipped page, and counts only that one', () => {
+        const { container } = renderForm({ ...RESPONSE, answers: { ...WITHOUT_PAGE_TWO, scale: ANSWERS.scale } }, JUMPING);
+        const details = container.querySelector('[data-page="2"] details') as HTMLDetailsElement;
+        expect(details.open).toBe(true);
+        expect(details).toHaveTextContent('Show the 8 questions on this page (1 answered)');
+    });
+
+    it('counts no statement, text or non-repeating group as a question of a skipped page', () => {
+        const withContent = {
+            ...JUMPING,
+            fields: JUMPING.fields.map((slide) =>
+                slide.id === 'p2'
+                    ? {
+                          ...slide,
+                          properties: {
+                              ...slide.properties,
+                              fields: [
+                                  { id: 'st', index: 20, type: FieldTypes.STATEMENT, title: 'A statement', properties: { fields: [] } },
+                                  { id: 'tx', index: 21, type: FieldTypes.TEXT, title: 'Some text', properties: { fields: [] } },
+                                  { id: 'gr', index: 22, type: FieldTypes.GROUP, title: 'About you', properties: { fields: [] } },
+                                  ...slide.properties!.fields!
+                              ]
+                          }
+                      }
+                    : slide
+            )
+        };
+        const { container } = renderForm({ ...RESPONSE, answers: WITHOUT_PAGE_TWO }, withContent);
+        expect(container.querySelector('[data-page="2"] details')).toHaveTextContent('Show the 8 questions on this page');
     });
 
     it('a jump to "submit" skips the pages after it', () => {

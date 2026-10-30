@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 
 import Link from 'next/link';
 
@@ -21,7 +21,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
 import { rememberedNeighbours } from '@app/utils/response-list-memory';
-import { responsePageUrl, responsesListUrl } from '@app/utils/response-page';
+import { responseOriginListUrl, responsePageUrl } from '@app/utils/response-page';
+import { ResponseOrigin } from '@app/utils/response-urls';
 
 import ReadOnlyForm from './read-only-form';
 
@@ -35,6 +36,11 @@ function failureOf(error: any): { kind: 'forbidden' | 'missing' | 'error'; title
 
 const pageGutter = 'px-4 md:px-10 lg:px-28';
 
+// Set by a previous/next link: the next response's page moves focus to its
+// details once loaded, so a screen reader hears that the response changed
+// (the tab title stays the same). Not on a first open: focus starts at the top.
+let focusDetailsOnLoad = false;
+
 /**
  * One response on its own page, for staff: a toolbar (back to the list,
  * previous and next, print, delete), who answered and when, then the response
@@ -45,16 +51,24 @@ const pageGutter = 'px-4 md:px-10 lg:px-28';
  * and this page shows its answer (403, 404) or an error with Retry; a failed
  * load is never drawn as "no answers". The URL holds the response id only.
  */
-export default function ResponsePage({ formId, responseId }: { formId: string; responseId: string }) {
+export default function ResponsePage({ formId, responseId, origin }: { formId: string; responseId: string; origin?: ResponseOrigin }) {
     const workspace = useAppSelector(selectWorkspace);
     const { can } = useWorkspacePermissions();
     const { openModal } = useModal();
     const workspaceId = workspace?.id ?? '';
+    // While the response is being deleted the page stops asking for it: the
+    // delete invalidates it, and a refetch would flash "not found" before the
+    // page is left. What is on screen stays (frozen) until then.
+    const [frozen, setFrozen] = useState<any>(null);
+    const deleting = frozen !== null;
     // currentData: never the previous response while the next one loads
-    const { currentData, error, isError, isFetching, refetch } = useGetWorkspaceSubmissionQuery({ workspace_id: workspaceId, submission_id: responseId }, { skip: !workspaceId, refetchOnMountOrArgChange: true });
+    const { currentData: fetched, error, isError: fetchFailed, refetch } = useGetWorkspaceSubmissionQuery({ workspace_id: workspaceId, submission_id: responseId }, { skip: !workspaceId || deleting, refetchOnMountOrArgChange: true });
+    const currentData = deleting ? frozen : fetched;
+    const isError = !deleting && fetchFailed;
 
-    // the list the staff member came from (ids only, in memory: utils/response-list-memory.ts)
-    const neighbours = useMemo(() => rememberedNeighbours(formId, responseId), [formId, responseId]);
+    // the responses list the staff member came from (ids only, in memory: utils/response-list-memory.ts);
+    // none when the page was opened from a deletion-requests list
+    const neighbours = useMemo(() => (origin ? {} : rememberedNeighbours(workspaceId, formId, responseId)), [origin, workspaceId, formId, responseId]);
 
     const response = currentData?.response;
     const form = currentData?.form;
@@ -67,20 +81,30 @@ export default function ResponsePage({ formId, responseId }: { formId: string; r
         document.title = form && !wrongForm ? `Response · ${formTitle}` : 'Response';
     }, [form, wrongForm, formTitle]);
 
-    const listUrl = responsesListUrl(workspace?.workspaceName ?? '', formId);
-    const canDelete = can(WorkspacePermission.RESPONSE_DELETE);
+    // back to the list the page was opened from (a fixed path for each origin, never an address from the URL)
+    const listUrl = responseOriginListUrl(workspace?.workspaceName ?? '', formId, origin);
+    const listName = origin ? 'Deletion requests' : 'Responses';
+    // As in the deletion-requests table: completing a pending deletion request is also privacy.manage.
+    const canDelete = can(WorkspacePermission.RESPONSE_DELETE) || (response?.deletionStatus === 'pending' && can(WorkspacePermission.PRIVACY_MANAGE));
     const failure = isError ? failureOf(error) : wrongForm ? failureOf({ status: 404 }) : null;
     const loaded = !!response && !!form && !wrongForm;
 
     const staffFields = loaded ? (currentData?.internalFields ?? getInternalFields(form)) : [];
 
+    const detailsRef = useRef<HTMLElement>(null);
+    useEffect(() => {
+        if (!loaded || !focusDetailsOnLoad) return;
+        focusDetailsOnLoad = false;
+        detailsRef.current?.focus();
+    }, [loaded, responseId]);
+
     return (
         <div className="min-h-dvh bg-white text-black-900 print:min-h-0">
             <header className={`backdrop-blur sticky top-0 z-30 border-b border-black-300 bg-white/95 print:hidden ${pageGutter}`}>
-                <nav aria-label="Response" className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
+                <nav aria-label="Response actions" className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
                     <Link href={listUrl} className="flex min-w-0 items-center gap-2 rounded text-sm font-medium text-black-700 hover:text-black-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
                         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>Responses</span>
+                        <span>{listName}</span>
                         {form && !wrongForm && <span className="max-w-[40vw] truncate font-normal text-black-600 sm:max-w-[320px]">· {formTitle}</span>}
                     </Link>
                     <div className="flex items-center gap-1">
@@ -88,6 +112,12 @@ export default function ResponsePage({ formId, responseId }: { formId: string; r
                         {(neighbours.previousId || neighbours.nextId) && (
                             <>
                                 <NeighbourLink href={neighbours.previousId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.previousId)} label="Previous response" icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />} />
+                                {neighbours.position && neighbours.total && (
+                                    <span className="px-1 text-sm text-black-700 tabular-nums" data-testid="response-position">
+                                        <span className="sr-only">Response </span>
+                                        {`${neighbours.position} of ${neighbours.total}`}
+                                    </span>
+                                )}
                                 <NeighbourLink href={neighbours.nextId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.nextId)} label="Next response" icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />} />
                             </>
                         )}
@@ -98,7 +128,7 @@ export default function ResponsePage({ formId, responseId }: { formId: string; r
                             </Button>
                         )}
                         {loaded && canDelete && (
-                            <Button variant="dangerGhost" className="px-2!" onClick={() => openModal('DELETE_RESPONSE', { workspace, formId, responseId, navigateTo: listUrl })}>
+                            <Button variant="dangerGhost" className="px-2!" onClick={() => openModal('DELETE_RESPONSE', { workspace, formId, responseId: response.responseId, navigateTo: listUrl, onDeleting: (active: boolean) => setFrozen(active ? fetched : null) })}>
                                 <DeleteIcon className="mr-1.5 h-4 w-4 text-[#C43D3D]" aria-hidden="true" />
                                 Delete response
                             </Button>
@@ -108,12 +138,16 @@ export default function ResponsePage({ formId, responseId }: { formId: string; r
             </header>
 
             {failure ? (
-                <FailureState failure={failure} listUrl={listUrl} onRetry={() => refetch()} />
+                <main>
+                    <FailureState failure={failure} listUrl={listUrl} listName={listName} onRetry={() => refetch()} />
+                </main>
             ) : !loaded ? (
-                <LoadingState />
+                <main>
+                    <LoadingState />
+                </main>
             ) : (
                 <>
-                    <ResponseSummary response={response} />
+                    <ResponseSummary ref={detailsRef} response={response} position={neighbours.position && neighbours.total ? `Response ${neighbours.position} of ${neighbours.total}` : undefined} />
                     {(response.unreadableFields ?? []).length > 0 && (
                         <div className={`${pageGutter} pb-5`}>
                             <UnreadableNotice unreadable={response.unreadableFields ?? []} />
@@ -144,6 +178,9 @@ export default function ResponsePage({ formId, responseId }: { formId: string; r
 
 /** A previous/next arrow: a real link when the cached list knows the neighbour, else a disabled button. */
 function NeighbourLink({ href, label, icon }: { href?: string | false | null; label: string; icon: React.ReactNode }) {
+    const announce = () => {
+        focusDetailsOnLoad = true;
+    };
     const classes = 'focus-visible:ring-brand-500 flex h-9 w-9 items-center justify-center rounded-md focus:outline-hidden focus-visible:ring-2';
     if (!href) {
         return (
@@ -153,20 +190,26 @@ function NeighbourLink({ href, label, icon }: { href?: string | false | null; la
         );
     }
     return (
-        <Link href={href} aria-label={label} title={label} className={`${classes} text-black-700 hover:bg-black-200`}>
+        <Link href={href} aria-label={label} title={label} onClick={announce} className={`${classes} text-black-700 hover:bg-black-200`}>
             {icon}
         </Link>
     );
 }
 
-/** Who answered, when (full local time with the zone) and the start of the receipt number. */
-function ResponseSummary({ response }: { response: any }) {
+/**
+ * Who answered, when (full local time with the zone) and the start of the
+ * receipt number. Focusable from script only: previous/next move focus here.
+ */
+const ResponseSummary = forwardRef<HTMLElement, { response: any; position?: string }>(function ResponseSummary({ response, position }, ref) {
     // The receipt number is a bearer token (anyone holding it can read the
     // response without signing in): shortened, never in full on screen,
     // in a tooltip, on the clipboard or in the URL.
     const number: string | undefined = response?.submissionUuid;
     return (
-        <section aria-label="Response details" className={`${pageGutter} py-6`}>
+        <section ref={ref} tabIndex={-1} aria-labelledby="rp-details-heading" className={`${pageGutter} py-6 focus:outline-hidden`}>
+            <h2 id="rp-details-heading" className="sr-only">
+                {position ? `Response details, ${position.charAt(0).toLowerCase()}${position.slice(1)}` : 'Response details'}
+            </h2>
             <dl className="flex flex-wrap items-start gap-x-10 gap-y-4">
                 <div className="flex min-w-0 flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">Responder</dt>
@@ -191,7 +234,7 @@ function ResponseSummary({ response }: { response: any }) {
             </dl>
         </section>
     );
-}
+});
 
 function LoadingState() {
     return (
@@ -209,7 +252,7 @@ function LoadingState() {
     );
 }
 
-function FailureState({ failure, listUrl, onRetry }: { failure: ReturnType<typeof failureOf>; listUrl: string; onRetry: () => void }) {
+function FailureState({ failure, listUrl, listName, onRetry }: { failure: ReturnType<typeof failureOf>; listUrl: string; listName: string; onRetry: () => void }) {
     return (
         <div role="alert" className={`${pageGutter} py-16`}>
             <div className="mx-auto flex max-w-xl flex-col gap-3 rounded-lg border border-black-300 p-6">
@@ -222,7 +265,7 @@ function FailureState({ failure, listUrl, onRetry }: { failure: ReturnType<typeo
                         </Button>
                     )}
                     <Link href={listUrl} className="inline-flex min-h-9 items-center rounded px-2 text-sm font-medium text-brand-500 underline underline-offset-2">
-                        Back to responses
+                        {`Back to ${listName.toLowerCase()}`}
                     </Link>
                 </div>
             </div>

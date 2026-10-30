@@ -56,10 +56,10 @@ const request = (id: string, extra: Record<string, unknown> = {}) => ({
 });
 const page = (items: any[]) => ({ items, total: items.length, page: 1, size: 50, pages: 1 }) as any;
 
-const renderTable = (items: any[]) =>
+const renderTable = (items: any[], formId?: string) =>
     render(
         <ReduxProvider store={store}>
-            <ResponsesTable requestForDeletion={true} page={1} setPage={vi.fn()} submissions={page(items)} />
+            <ResponsesTable requestForDeletion={true} formId={formId} page={1} setPage={vi.fn()} submissions={page(items)} />
         </ReduxProvider>
     );
 
@@ -110,8 +110,23 @@ describe('deletion requests of imported forms', () => {
         access.permissions = ['response.read', 'response.delete'];
         renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
         const link = within(rowOf('r1@example.com')).getByRole('link', { name: 'View' });
-        expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1');
+        // the page goes back (and, after a delete, returns) to the workspace's deletion requests
+        expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=deletion-requests');
         expect(link.getAttribute('href')).not.toContain('sub_id');
+    });
+
+    it('from a form\'s own deletion requests, the page goes back to that list', () => {
+        access.permissions = ['response.read'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })], 'form-s');
+        expect(within(rowOf('r1@example.com')).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=form-deletion-requests');
+    });
+
+    it('never puts the full receipt number (a bearer token) in a tooltip', () => {
+        access.permissions = ['response.read'];
+        const { container } = renderTable([request('r1', { provider: 'self', formId: 'form-s', submissionUuid: '0a1b2c3d-1111-4222-8333-444455556666' })]);
+        expect(within(rowOf('r1@example.com')).getByText('#0a1b2c3d…')).toBeInTheDocument();
+        expect(container.innerHTML).not.toContain('0a1b2c3d-1111');
+        expect(container.querySelector('[title*="0a1b2c3d"]')).toBeNull();
     });
 
     it('offers no "View" without response.read (a Privacy officer completes the request without reading it)', () => {

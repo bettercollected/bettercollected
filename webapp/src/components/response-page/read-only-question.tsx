@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 import { StarIcon } from '@Components/icons/start';
 import { format } from 'date-fns';
+import { nl as dutch } from 'date-fns/locale/nl';
 import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
 
@@ -21,7 +22,7 @@ import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { getGroupChildren, getGroupItems, getItemHeader, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
-import { answered, choiceRows } from '@app/utils/response-page';
+import { answered, choiceRows, fieldHasAnswer } from '@app/utils/response-page';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
@@ -32,6 +33,7 @@ import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 export const UNREADABLE_SHORT = 'Could not be decrypted';
 export const NO_ANSWER = 'No answer';
 export const NOT_SHOWN = 'Not shown to the respondent';
+export const ANSWERED_THEN_SKIPPED = 'Answered, then skipped';
 
 /** What every question of the page needs to draw itself, from the form and this response. */
 export interface ReadOnlyContext {
@@ -43,6 +45,8 @@ export interface ReadOnlyContext {
     unreadable: boolean;
     /** Marks the author's text with the form's language when it differs from the page's. */
     lang?: string;
+    /** The language dates and numbers are written in, as the respondent's form writes them. */
+    formatLanguage: 'en' | 'nl';
     /** The n.m numbers of the page's questions, when the form numbers them. */
     numbers?: Record<string, string>;
     onDownload: (file: { url?: string; name?: string; id?: string }) => void;
@@ -286,26 +290,32 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
         );
     }
     return (
-        <button
-            type="button"
-            aria-describedby={labelledBy}
-            onClick={() => ctx.onDownload({ url: file.url, name: file.name, id: file.id })}
-            className="flex min-h-12 w-fit max-w-full items-center gap-2 border px-4 py-3 text-left text-base font-medium print:hidden"
-            style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}
-        >
-            <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 [overflow-wrap:anywhere]">
-                Download <span className="font-semibold">{file.name ?? file.id}</span>
-            </span>
-            {size && <span className="shrink-0 text-sm opacity-70">{size}</span>}
-        </button>
+        <>
+            <button
+                type="button"
+                aria-describedby={labelledBy}
+                onClick={() => ctx.onDownload({ url: file.url, name: file.name, id: file.id })}
+                className="flex min-h-12 w-fit max-w-full items-center gap-2 border px-4 py-3 text-left text-base font-medium print:hidden"
+                style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}
+            >
+                <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                    Download <span className="font-semibold">{file.name ?? file.id}</span>
+                </span>
+                {size && <span className="shrink-0 text-sm opacity-70">{size}</span>}
+            </button>
+            {/* on paper the button is gone: the file's name (and size) stand in for it */}
+            <p className="hidden text-base print:block" data-print-file>
+                {`File: ${file.name ?? file.id}${size ? ` (${size})` : ''}`}
+            </p>
+        </>
     );
 }
 
-/** The date as the form shows it ("30 October 2026"), or the stored text when it is not a date. */
-function dateText(value: string): string {
+/** The date as the form shows it ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
+function dateText(value: string, language: 'en' | 'nl'): string {
     const date = isoToLocalDate(value);
-    return date ? format(date, 'PPP') : value;
+    return date ? format(date, 'PPP', { locale: language === 'nl' ? dutch : undefined }) : value;
 }
 
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
@@ -352,10 +362,10 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.CALCULATED: {
             const calculated = calculatedAnswerValue(answer);
             if (calculated === null) return <NoAnswer ctx={ctx} />;
-            return <ReadOnlyBox labelledBy={labelledBy}>{typeof calculated === 'boolean' ? (calculated ? 'Yes' : 'No') : formatCalculatedValue(calculated, field.properties?.format, 'en')}</ReadOnlyBox>;
+            return <ReadOnlyBox labelledBy={labelledBy}>{typeof calculated === 'boolean' ? (calculated ? 'Yes' : 'No') : formatCalculatedValue(calculated, field.properties?.format, ctx.formatLanguage)}</ReadOnlyBox>;
         }
         case FieldTypes.DATE:
-            return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{dateText(String(value))}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+            return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{dateText(String(value), ctx.formatLanguage)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
         case FieldTypes.LONG_TEXT:
             return present(value) ? (
                 <ReadOnlyBox labelledBy={labelledBy} multiline>
@@ -400,7 +410,7 @@ function ReadOnlyImage({ href, alt }: { href?: string; alt?: string }) {
  * option or the answer, marked. `answers` is the map the question's answer
  * lives in (the response's, or one repeating-group item's).
  */
-export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-' }: { field: StandardFormFieldDto; answers: Record<string, any>; ctx: ReadOnlyContext; idPrefix?: string }) {
+export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-', note }: { field: StandardFormFieldDto; answers: Record<string, any>; ctx: ReadOnlyContext; idPrefix?: string; note?: string }) {
     const tokens = styleTokens(ctx.theme.style);
     const html = titleHtml(field, ctx.pipe);
     const titleId = `${idPrefix}title-${field.id}`;
@@ -408,16 +418,21 @@ export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-' }: { fi
     const description = resolvePipesInText(field.description, ctx.pipe);
     const whyWeAsk = field.properties?.whyWeAsk?.trim();
 
-    // content, not a question: statements, headings, pictures
-    if (field.type === FieldTypes.TEXT || field.type === FieldTypes.STATEMENT) {
+    if (field.type === FieldTypes.IMAGE_CONTENT) return <ReadOnlyImage href={field.attachment?.href} alt={field.attachment?.properties?.description} />;
+    if (field.type === FieldTypes.VIDEO_CONTENT) return null;
+    // content, not a question: statements and headings, and a group that does not repeat (the form shows only its heading)
+    if (isContent(field)) {
         return (
-            <div className={cn(TEXT_BLOCK_BODY_CLASSES, 'form-text-block', HEADING_CLASSES)} style={{ color: ctx.theme.primary }} lang={ctx.lang} id={`${idPrefix}${field.id}`}>
+            <div className={cn(TEXT_BLOCK_BODY_CLASSES, 'form-text-block', HEADING_CLASSES)} style={{ color: ctx.theme.primary }} lang={ctx.lang} id={`${idPrefix}${field.id}`} data-content>
                 {parse(html)}
+                {field.type === FieldTypes.GROUP && description && (
+                    <p className="mt-1.5 text-[15px] leading-relaxed" style={{ color: softInk(ctx.theme) }}>
+                        {description}
+                    </p>
+                )}
             </div>
         );
     }
-    if (field.type === FieldTypes.IMAGE_CONTENT) return <ReadOnlyImage href={field.attachment?.href} alt={field.attachment?.properties?.description} />;
-    if (field.type === FieldTypes.VIDEO_CONTENT) return null;
 
     const isGroup = isRepeatingGroup(field);
     const number = ctx.numbers?.[field.id];
@@ -456,6 +471,11 @@ export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-' }: { fi
                     )}
                 </div>
             </div>
+            {note && (
+                <p className="text-[13px] font-medium italic" style={{ color: softInk(ctx.theme) }} data-question-note>
+                    {note}
+                </p>
+            )}
             {keptFromRespondents && (
                 <p className="text-[13px] italic" style={{ color: softInk(ctx.theme) }}>
                     Calculated for staff; kept from the respondent.
@@ -500,11 +520,16 @@ function RepeatingGroupAnswer({ field, answers, ctx, labelledBy, idPrefix }: { f
     );
 }
 
+/** Content the form shows, not a question: text and statements, pictures, videos, a group that does not repeat. */
+export function isContent(field: StandardFormFieldDto): boolean {
+    return field.type === FieldTypes.TEXT || field.type === FieldTypes.STATEMENT || field.type === FieldTypes.IMAGE_CONTENT || field.type === FieldTypes.VIDEO_CONTENT || (field.type === FieldTypes.GROUP && !isRepeatingGroup(field));
+}
+
 /** The fields of a page shown to the respondent and the ones a logic rule hid, in the form's order. */
 export function pageQuestions(fields: StandardFormFieldDto[], answers: Record<string, any>, sources: LogicSources) {
     const hidden = getHiddenFieldIds(fields, answers, sources);
     // a hidden question that still holds an answer is shown with it: the data was collected
-    const notShown = (field: StandardFormFieldDto) => hidden.has(field.id) && !answered(answers[field.id]);
+    const notShown = (field: StandardFormFieldDto) => hidden.has(field.id) && !fieldHasAnswer(field, answers);
     return fields.map((field) => ({ field, notShown: notShown(field) }));
 }
 

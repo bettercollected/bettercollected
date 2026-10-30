@@ -4,7 +4,7 @@ import { logicSourcesById, submissionPath } from '@app/utils/conditional-logic';
 import { getFormFields } from '@app/utils/form-builder-block-utils';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
 
-export { responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
+export { responseOriginListUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
 
 const DEFAULT_THEME: Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent'> = { primary: '#101828', secondary: '#1649E2', tertiary: '#818CA0', accent: '#FFFFFF' };
 
@@ -81,4 +81,15 @@ export function answered(answer: any): boolean {
     if (!answer || typeof answer !== 'object') return false;
     if (answer.items) return Array.isArray(answer.items) && answer.items.length > 0;
     return hasAnswerValue(answer);
+}
+
+/** Whether the response holds an answer to this question (a matrix answers row by row). */
+export function fieldHasAnswer(field: StandardFormFieldDto, answers: Record<string, any>): boolean {
+    if (field.type === FieldTypes.MATRIX) return (field.properties?.fields ?? []).some((row) => answered(answers[row.id]));
+    return answered(answers[field.id]);
+}
+
+/** The language a form's dates and numbers are written in: the form's own (Dutch or English). */
+export function formFormatLanguage(declared: string | null | undefined): 'en' | 'nl' {
+    return (declared ?? '').trim().toLowerCase().split('-')[0] === 'nl' ? 'nl' : 'en';
 }

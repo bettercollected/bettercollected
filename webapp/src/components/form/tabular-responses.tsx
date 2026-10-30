@@ -58,9 +58,11 @@ interface TabularResponsesProps {
     data?: Page<StandardFormResponseDto>;
     page: number;
     onPageChange: (page: number) => void;
+    /** The search the listed responses answer, so previous/next never joins two searches. */
+    searchText?: string;
 }
 
-export default function TabularResponses({ form, data, page, onPageChange }: TabularResponsesProps) {
+export default function TabularResponses({ form, data, page, onPageChange, searchText = '' }: TabularResponsesProps) {
     const { toast } = useToast();
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -74,7 +76,7 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
     const downloadFormFile = async (ans: any) => {
         try {
             if (!ans?.file_metadata?.url) return;
-            downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
+            await downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
             toast({ description: 'Error downloading file', variant: 'destructive' });
         }
@@ -139,8 +141,8 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
 
     // the order of what is on screen, for "previous"/"next" on a response's page (ids only)
     useEffect(() => {
-        if (Array.isArray(data?.items)) rememberResponseListPage(form.formId, { page, size: data.size ?? data.items.length, total: data.total ?? data.items.length, ids: data.items.map((item) => item.responseId) });
-    }, [data, page, form.formId]);
+        if (Array.isArray(data?.items)) rememberResponseListPage({ workspaceId: workspace?.id ?? '', formId: form.formId, searchText }, { page, size: data.size ?? data.items.length, total: data.total ?? data.items.length, ids: data.items.map((item) => item.responseId) });
+    }, [data, page, form.formId, workspace?.id, searchText]);
 
     useEffect(() => {
         const missing = Array.from(new Set((data?.items ?? []).map((r) => r.formVersion).filter((v): v is number => typeof v === 'number' && v !== form.version && !versionForms[v])));

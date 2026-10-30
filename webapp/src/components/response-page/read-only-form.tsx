@@ -14,13 +14,13 @@ import { downloadFile } from '@app/utils/file-utils';
 import { resolveFormLogo } from '@app/utils/form-logo';
 import { pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
-import { responsePageSections, themeWithDefaults } from '@app/utils/response-page';
+import { fieldHasAnswer, formFormatLanguage, responsePageSections, themeWithDefaults } from '@app/utils/response-page';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, softInk, styleTokens, themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, clampSpan, fieldSpacingClass } from '@app/views/organism/layout/form-column';
 
-import { NotShownQuestion, ReadOnlyContext, ReadOnlyQuestion, pageQuestions } from './read-only-question';
+import { ANSWERED_THEN_SKIPPED, NotShownQuestion, ReadOnlyContext, ReadOnlyQuestion, isContent, pageQuestions } from './read-only-question';
 
 /** The "Error downloading file" path: the server's signed link, fetched and saved, as everywhere else. */
 function useDownload() {
@@ -75,6 +75,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
         sources,
         unreadable,
         lang,
+        formatLanguage: formFormatLanguage(form.settings?.language),
         onDownload
     };
 
@@ -110,7 +111,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                                     {title ? ` · ${title}` : ''}
                                 </h2>
                                 {!visited && !unreadable ? (
-                                    <SkippedPage fields={fields} ctx={ctx} />
+                                    <SkippedPage fields={fields} answers={answers} ctx={ctx} />
                                 ) : (
                                     <div className="flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6">
                                         {rows.map(({ field, notShown }, position) => (
@@ -146,23 +147,36 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
     );
 }
 
-/** A page the respondent's answers sent them past: said once, its questions kept in a collapsed list. */
-function SkippedPage({ fields, ctx }: { fields: StandardFormFieldDto[]; ctx: ReadOnlyContext }) {
-    const questions = fields.filter((field) => field.type !== FieldTypes.TEXT && field.type !== FieldTypes.IMAGE_CONTENT && field.type !== FieldTypes.VIDEO_CONTENT);
+/**
+ * A page the respondent's answers sent them past: said once, its questions
+ * kept in a collapsed list. An answer given on it before the respondent went
+ * back and changed course is still stored (and in the table and the export):
+ * it is shown, marked "Answered, then skipped", and the list opens for it.
+ */
+function SkippedPage({ fields, answers, ctx }: { fields: StandardFormFieldDto[]; answers: Record<string, any>; ctx: ReadOnlyContext }) {
+    const questions = fields.filter((field) => !isContent(field));
+    const answeredCount = questions.filter((field) => fieldHasAnswer(field, answers)).length;
+    const summary = `Show the ${questions.length} ${questions.length === 1 ? 'question' : 'questions'} on this page` + (answeredCount > 0 ? ` (${answeredCount} answered)` : '');
     return (
         <div className="flex flex-col gap-3" data-page-skipped>
             <p className="text-[15px] italic" style={{ color: softInk(ctx.theme) }}>
-                Skipped: this respondent&apos;s answers sent them past this page.
+                {answeredCount > 0
+                    ? 'Skipped: this respondent\'s answers sent them past this page. Answers given here before they changed course are still stored, and shown below.'
+                    : 'Skipped: this respondent\'s answers sent them past this page.'}
             </p>
             {questions.length > 0 && (
-                <details className="text-[15px]">
+                <details className="text-[15px]" open={answeredCount > 0}>
                     <summary className="cursor-pointer font-medium" style={{ color: softInk(ctx.theme) }}>
-                        {`Show the ${questions.length} ${questions.length === 1 ? 'question' : 'questions'} on this page`}
+                        {summary}
                     </summary>
                     <div className="mt-4 flex flex-col gap-6">
-                        {questions.map((field) => (
-                            <NotShownQuestion key={field.id} field={field} ctx={ctx} idPrefix="rp-" />
-                        ))}
+                        {questions.map((field) =>
+                            fieldHasAnswer(field, answers) ? (
+                                <ReadOnlyQuestion key={field.id} field={field} answers={answers} ctx={ctx} note={field.type === FieldTypes.CALCULATED ? 'Calculated, on a page the respondent skipped' : ANSWERED_THEN_SKIPPED} />
+                            ) : (
+                                <NotShownQuestion key={field.id} field={field} ctx={ctx} idPrefix="rp-" />
+                            )
+                        )}
                     </div>
                 </details>
             )}
