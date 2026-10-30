@@ -80,7 +80,8 @@ export default function FormResponsesTable({ props }: any) {
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
 
     let results;
-    if (isLoading) {
+    // no workspace yet: the query is skipped, which is not "no responses"
+    if (isLoading || !workspace?.id) {
         results = (
             <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />

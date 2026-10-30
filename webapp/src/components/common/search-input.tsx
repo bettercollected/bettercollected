@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -19,9 +19,12 @@ interface ISearchInputProps {
 
 export default function SearchInput({ handleSearch, className, placeholder, ariaLabel }: ISearchInputProps) {
     const { t } = useTranslation();
-    const debouncedResults = useMemo(() => {
-        return debounce(handleSearch, 500);
-    }, [handleSearch]);
+    // The debounce is created once and calls the latest handler: callers pass a
+    // fresh function on every render, and a re-render inside the 500 ms window
+    // must neither drop the pending search nor restart the timer.
+    const latestHandler = useRef(handleSearch);
+    latestHandler.current = handleSearch;
+    const debouncedResults = useMemo(() => debounce((event: any) => latestHandler.current(event), 500), []);
     // a search typed just before leaving the page must not fire afterwards
     useEffect(() => () => debouncedResults.cancel(), [debouncedResults]);
 
