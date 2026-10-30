@@ -54,6 +54,13 @@ export function getItemAnswer(item: Record<string, any> | undefined, child: Stan
     return cell(getAnswerForField({ answers: item ?? {} } as StandardFormResponseDto, child, LIST_SEPARATOR));
 }
 
+/** A captured hidden-field value: only the response's own string or number values, never an inherited property like "constructor". */
+function hiddenValue(values: Record<string, string> | undefined, name: string): ExportCell {
+    if (!values || !Object.prototype.hasOwnProperty.call(values, name)) return '';
+    const value: unknown = values[name];
+    return typeof value === 'string' || typeof value === 'number' ? value : '';
+}
+
 /** UTC, ISO 8601, to the second: "2026-10-01T10:00:00Z". Sorts and joins in a spreadsheet. */
 export function submittedAtCell(value: string | Date | undefined | null): string {
     if (!value) return '';
@@ -86,11 +93,15 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
     const internalFields = getInternalFields(form);
     internalFields.forEach((field) => headers.push(getInternalColumnTitle(field)));
     // The response's own data goes at the END of the row, so the columns a
-    // script already reads by position do not move: submission time, response
-    // id (also the key of the group tables), then one column per declared
-    // hidden field. One place, so the order is easy to change.
+    // script already reads by position do not move: response id (also the key
+    // of the group tables, where it keeps its old place), submission time,
+    // then one column per declared hidden field. One place, so the order is
+    // easy to change. A new header that a question title already uses gets
+    // " (2)", so two columns never share a name.
     const hiddenNames = Array.from(new Set(form.hiddenFields ?? []));
-    headers.push(SUBMITTED_AT_COLUMN, RESPONSE_ID_COLUMN, ...hiddenNames.map((name) => HIDDEN_COLUMN_PREFIX + name));
+    const taken = new Set(headers);
+    const uniqueHeader = (header: string) => (taken.has(header) ? `${header} (2)` : header);
+    headers.push(uniqueHeader(RESPONSE_ID_COLUMN), uniqueHeader(SUBMITTED_AT_COLUMN), ...hiddenNames.map((name) => uniqueHeader(HIDDEN_COLUMN_PREFIX + name)));
 
     const rows = responses.map((response) => {
         const row: ExportCell[] = [response?.dataOwnerIdentifier || ANONYMOUS_LABEL];
@@ -116,9 +127,9 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
             const children = exportableChildren(field);
             for (let i = 0; i < maxItems; i++) children.forEach((child) => row.push(getItemAnswer(items[i], child)));
         });
-        internalFields.forEach((field) => row.push(cell(getInternalAnswerText(response, field))));
-        row.push(submittedAtCell(response.createdAt), response.responseId ?? '');
-        hiddenNames.forEach((name) => row.push(cell(response.hiddenFields?.[name])));
+        internalFields.forEach((field) => row.push(cell(getInternalAnswerText(response, field, LIST_SEPARATOR))));
+        row.push(cell(response.responseId), submittedAtCell(response.createdAt));
+        hiddenNames.forEach((name) => row.push(hiddenValue(response.hiddenFields, name)));
         return row;
     });
 
@@ -128,25 +139,22 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
     };
 }
 
-/**
- * A whole value that is only a number or a phone number: optional sign, then
- * digits, spaces, brackets, dots and hyphens ("+31 6 1234 5678", "-12.5",
- * "020-123-4567"). It holds no letter, "=", "|", quote or any other character a
- * formula needs to call anything, so a spreadsheet reads it as a number or
- * plain text. Anything else that starts with a formula character is guarded.
- */
-const PLAIN_NUMBER = /^[+-]?[0-9][0-9 ().-]*$/;
+/** A plain negative decimal ("-3", "-12.5"): the only value starting with a guard character that is left alone. */
+const NEGATIVE_NUMBER = /^-[0-9]+(\.[0-9]+)?$/;
 
 /**
- * Spreadsheet apps run cells starting with = + - @ (or tab / CR) as formulas.
- * Respondent text must never become one: such string cells get a leading `'`,
- * which spreadsheets treat as "this is text". Numbers (and values that are
- * only a number or phone number, see PLAIN_NUMBER) are left as they are.
+ * Spreadsheet apps run cells starting with = + - @ (also after leading
+ * whitespace) or a tab / CR as formulas. Respondent text must never become
+ * one: such string cells get a leading `'`, which spreadsheets treat as "this
+ * is text". Numbers, and plain negative decimals, are left as they are.
+ * Everything else is prefixed, phone numbers starting with "+" included: a
+ * visible apostrophe keeps the data intact, while a phone number a
+ * spreadsheet evaluates ("+31-6-1234-5678" is a subtraction) is corrupted.
  */
 export function formulaSafeCell(value: ExportCell): ExportCell {
     if (typeof value !== 'string') return value;
-    if (!/^[=+\-@\t\r]/.test(value)) return value;
-    return PLAIN_NUMBER.test(value) ? value : `'${value}`;
+    if (NEGATIVE_NUMBER.test(value)) return value;
+    return /^[\t\r]|^\s*[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 /** RFC 4180 CSV text of a table, with formula-like cells neutralised. */

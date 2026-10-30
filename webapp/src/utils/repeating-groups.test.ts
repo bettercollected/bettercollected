@@ -306,18 +306,18 @@ describe('exports', () => {
 
     it('columns per item keep one row per submission', () => {
         const { main, groupTables } = buildResponsesExport(form(group({ maxItems: 2 })), responses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicant 1 – Name', 'Applicant 1 – Income', 'Applicant 2 – Name', 'Applicant 2 – Income', 'Submitted at (UTC, ISO 8601)', 'Response ID']);
+        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicant 1 – Name', 'Applicant 1 – Income', 'Applicant 2 – Name', 'Applicant 2 – Income', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
         expect(main.rows).toEqual([
-            ['a@x.org', 'Sharma', 'Sita', 10, 'Ram', '', '', 'r1'],
-            ['Anonymous', 'Rai', '', '', '', '', '', 'r2']
+            ['a@x.org', 'Sharma', 'Sita', 10, 'Ram', '', 'r1', ''],
+            ['Anonymous', 'Rai', '', '', '', '', 'r2', '']
         ]);
         expect(groupTables).toEqual([]);
     });
 
     it('large groups get their own table keyed by response id and item number', () => {
         const { main, groupTables } = buildResponsesExport(form(group({ maxItems: 10 })), responses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Submitted at (UTC, ISO 8601)', 'Response ID']);
-        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, '', 'r1']);
+        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
+        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'r1', '']);
         expect(groupTables).toEqual([
             {
                 name: 'Applicants',
@@ -336,8 +336,8 @@ describe('exports', () => {
         withStaff.fields[0].properties!.fields!.push(staff);
         const staffResponses = [{ ...responses[0], internalAnswers: { ref: text('R-1') } }] as unknown as StandardFormResponseDto[];
         const { main } = buildResponsesExport(withStaff, staffResponses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Internal: Reference', 'Submitted at (UTC, ISO 8601)', 'Response ID']);
-        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'R-1', '', 'r1']);
+        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Internal: Reference', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
+        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'R-1', 'r1', '']);
     });
 
     it('the creator can override the layout', () => {
