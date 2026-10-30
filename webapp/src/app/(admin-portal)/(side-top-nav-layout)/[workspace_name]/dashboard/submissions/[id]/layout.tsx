@@ -1,10 +1,13 @@
-import { getSubmissionByUuid, getWorkspaceByName } from '@app/lib/server/api';
+import { getWorkspaceByName } from '@app/lib/server/api';
 import { Metadata } from 'next';
 import React from 'react';
 import SubmissionDashboardLayoutClient from './_components/submission-dashboard-layout-client';
 
+// The id here is a response id, not a receipt number: the title never looks
+// the submission up through the public receipt route (rate limited per client
+// address, and a lookup from this server would count for every visitor).
 export async function generateMetadata({ params }: { params: Promise<{ workspace_name: string; id: string }> }): Promise<Metadata> {
-    const { workspace_name, id } = await params;
+    const { workspace_name } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
 
     if (!workspace) {
@@ -12,17 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<{ workspace
             title: 'Workspace Not Found'
         };
     }
-
-    try {
-        const submission = await getSubmissionByUuid(workspace.id, id);
-        return {
-            title: submission?.fileName ? `Submission ${submission.fileName}` : 'Submission Details'
-        };
-    } catch (e) {
-         return {
-            title: 'Submission Details'
-        };
-    }
+    return {
+        title: 'Submission Details'
+    };
 }
 
 export default async function SubmissionLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
