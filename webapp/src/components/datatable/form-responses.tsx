@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 
 import SearchInput from '@Components/common/search-input';
@@ -19,6 +19,7 @@ import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
 
 function downloadCsv(csv: string, fileName: string) {
     // BOM so spreadsheet apps read UTF-8 names correctly.
@@ -36,10 +37,19 @@ export default function FormResponsesTable({ props }: any) {
     const form = useAppSelector(selectForm);
 
     const { workspace, requestForDeletion, isSubmission = false } = props;
-    const [page, setPage] = useState(1);
+    // Back from a response's page (its link, or the browser's Back), the
+    // responses list opens on the page and search it was left on. Both are
+    // kept in memory only (utils/response-list-memory.ts), never in the URL:
+    // the search is often a responder's email.
+    const [restored] = useState(() => (requestForDeletion ? null : rememberedListView(workspace?.id, form.formId)));
+    const [page, setPage] = useState(restored?.page ?? 1);
     // The search text lives here, next to the one query it drives; the table
     // below only displays what this query returns.
-    const [searchText, setSearchText] = useState('');
+    const [searchText, setSearchText] = useState(restored?.searchText ?? '');
+
+    useEffect(() => {
+        if (!requestForDeletion) rememberResponseListView({ workspaceId: workspace?.id ?? '', formId: form.formId, searchText }, page);
+    }, [requestForDeletion, workspace?.id, form.formId, searchText, page]);
 
     const query = useMemo<IGetFormSubmissionsQuery>(
         () => ({
@@ -53,7 +63,7 @@ export default function FormResponsesTable({ props }: any) {
         [form.formId, workspace?.id, requestForDeletion, page, searchText]
     );
 
-    const { data, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
+    const { data, currentData, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
     const { can } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
     const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
@@ -78,10 +88,22 @@ export default function FormResponsesTable({ props }: any) {
     };
 
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
+    // A page past the end of the list (the last response on it was deleted,
+    // here or by someone else, while a response's page was open, and the
+    // list came back on it): go to the last page that has responses. Each
+    // step goes at least one page back, so this ends.
+    // Only the answer for this very page counts (`currentData`, never the
+    // previous page's rows while this one loads). Set while rendering, as
+    // React advises for state that follows from other state.
+    const pastTheEnd = !!currentData && Array.isArray(currentData.items) && currentData.items.length === 0 && page > 1 && !isError;
+    if (pastTheEnd) {
+        const last = Math.max(1, Math.ceil((currentData.total ?? 0) / (currentData.size || globalConstants.pageSize)));
+        setPage(Math.max(1, Math.min(page - 1, last)));
+    }
 
     let results;
     // no workspace yet: the query is skipped, which is not "no responses"
-    if (isLoading || !workspace?.id) {
+    if (isLoading || !workspace?.id || pastTheEnd) {
         results = (
             <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
                 <Loader />
@@ -97,7 +119,7 @@ export default function FormResponsesTable({ props }: any) {
                 {requestForDeletion ? (
                     <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data!} />
                 ) : (
-                    <TabularResponses form={form} data={data} page={page} onPageChange={setPage} />
+                    <TabularResponses form={form} data={data} page={page} onPageChange={setPage} searchText={searchText} />
                 )}
             </div>
         );
@@ -113,7 +135,7 @@ export default function FormResponsesTable({ props }: any) {
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} placeholder={'Search by responder email'} ariaLabel="Search responses by responder email" className="md:w-[282px]" />
+                            <SearchInput handleSearch={handleSearch} defaultValue={searchText} placeholder={'Search by responder email'} ariaLabel="Search responses by responder email" className="md:w-[282px]" />
                         </div>
                     ) : (
                         <></>

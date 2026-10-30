@@ -1,6 +1,6 @@
 'use client';
 
-import { IndividualFormResponse } from "@app/components/modal-views/full-screen-modals/view-response-full-modal-view";
+import { IndividualFormResponse } from "@app/components/form/individual-form-response";
 import { isShownToRespondents } from '@app/utils/calculated-fields';
 import { getFieldsFromV2Form } from '@app/utils/form-utils';
 
