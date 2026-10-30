@@ -1,6 +1,7 @@
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useGetStatusQuery, useRefreshTokenMutation } from '@app/store/auth/api';
+import { resetIfUserChanged } from '@app/store/actions/reset-after-sign-out';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { isAdminDomain } from '@app/utils/domain-utils';
@@ -56,10 +57,13 @@ export default function AuthStatusDispatcher({ workspace, children }: IAuthStatu
 
         if (data) {
             const user: UserStatus = { ...data, isLoading: false };
+            dispatch(resetIfUserChanged(user.id));
             dispatch(setAuth(user));
         }
 
         if (is401) {
+            // the session ended: the next person at this browser must not see what this user saw
+            dispatch(resetIfUserChanged(undefined));
             dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
 
             // Only redirect if not on invitation page or admin domain
