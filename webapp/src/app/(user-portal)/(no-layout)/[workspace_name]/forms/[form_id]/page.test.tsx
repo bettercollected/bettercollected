@@ -115,6 +115,38 @@ describe('the respondent page when a refetch brings the form back closed', { tim
         expect(screen.getByText('Your next step is X')).toBeInTheDocument();
         expect(screen.queryByText('Your answers have been sent.')).toBeNull();
         expect(screen.queryByText(CLOSED)).toBeNull();
+
+        // leaving the ending: the closed form is shown
+        act(() => responder!.setResponderState({ ...responder!.responderState, currentSlide: -1 }));
+        expect((await screen.findByRole('status')).textContent).toBe(CLOSED);
+        expect(screen.queryByText('Your next step is X')).toBeNull();
+    });
+
+    const withEnding = (formId: string) => ({ formId, builderVersion: 'v2', title: 'Survey X', fields: [page('s1', 0, [text('a', 'Your name')])], thankyouPage: [{ id: 'e1', title: 'Custom thanks', message: 'Your next step is X', isDefault: true }] }) as any;
+
+    it("does not carry an ending over to another form that is closed: that form's closed notice", async () => {
+        // a same-tab move from form X (on its ending) to form Y, which is closed
+        const view = await open(withEnding(`x-${Math.random()}`), -2);
+        await screen.findByText('Your next step is X', undefined, { timeout: 5000 });
+
+        await refetch(view, closedStub(`y-${Math.random()}`, { title: 'Survey Y' }));
+
+        expect((await screen.findByRole('status')).textContent).toBe(CLOSED);
+        expect(screen.getByRole('heading', { name: 'Survey Y' })).toBeInTheDocument();
+        expect(screen.queryByText('Your next step is X')).toBeNull();
+        expect(responder!.responderState.currentSlide).toBe(-1);
+    });
+
+    it('starts another, open form at its welcome page, not at the ending of the previous one', async () => {
+        const view = await open(withEnding(`x-${Math.random()}`), -2);
+        await screen.findByText('Your next step is X', undefined, { timeout: 5000 });
+
+        await refetch(view, { formId: `y-${Math.random()}`, builderVersion: 'v2', title: 'Survey Y', fields: [page('s1', 0, [text('b', 'Your town')])] } as any);
+
+        expect(await screen.findByRole('button', { name: 'Start' })).toBeInTheDocument();
+        expect(screen.queryByText('Your next step is X')).toBeNull();
+        expect(screen.queryByText('Custom thanks')).toBeNull();
+        expect(responder!.responderState.currentSlide).toBe(-1);
     });
 
     it('shows the closed notice to a respondent still filling it in', async () => {
