@@ -9,3 +9,6 @@
   export, the submission paths and the receipt by number) are now sent with
   `Cache-Control: no-store` and `Pragma: no-cache`, so a browser on a shared computer
   does not keep them or show them again on back/forward.
+- The receipt opened by its submission number (no sign-in) still shows the answers but no
+  longer returns the respondent's email or their anonymous identity, only whether the
+  response was anonymous.
