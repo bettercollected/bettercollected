@@ -434,3 +434,132 @@ class TestReadsAgreeWithTheGate:
         assert form_id in await self._searched(
             client, workspace, title, test_user_cookies
         )
+
+
+class TestArrivalWindow:
+    async def _submit(self, workspace, form_id, received_at):
+        return await container.workspace_form_service().submit_response(
+            workspace.id,
+            form_id,
+            StandardFormResponse(**formResponse),
+            testUser,
+            received_at=received_at,
+        )
+
+    async def test_arrival_counts_for_at_most_the_window(
+        self,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        published_form: Coroutine[Any, Any, FormDocument],
+        monkeypatch,
+    ):
+        """Arrived before the close: judged at the arrival while it is within
+        MAX_ARRIVAL_WINDOW of now, at now after that."""
+        from backend.app.exceptions import HTTPException
+        from backend.app.services.form_availability import MAX_ARRIVAL_WINDOW
+
+        form_id = published_form.form_id
+        close = _close_at()
+        await _store_close_date(workspace, form_id, close.isoformat())
+        _freeze(monkeypatch, close + SECOND)
+        arrived = close + SECOND - MAX_ARRIVAL_WINDOW
+        assert (await self._submit(workspace, form_id, arrived)).response_id
+        with pytest.raises(HTTPException) as refused:
+            await self._submit(workspace, form_id, arrived - SECOND)
+        assert refused.value.status_code == 409
+
+
+class TestReceivedAtMiddleware:
+    async def _scope_after(self, method, path):
+        from backend.app.middlewares.received_at import ReceivedAtMiddleware
+
+        seen = {}
+
+        async def app(scope, receive, send):
+            seen.update(scope)
+
+        await ReceivedAtMiddleware(app)(
+            {"type": "http", "method": method, "path": path}, None, None
+        )
+        return seen
+
+    async def test_only_a_submission_is_stamped(self, monkeypatch):
+        at = dt.datetime(2026, 10, 30, 12, tzinfo=UTC)
+        _freeze(monkeypatch, at)
+        submit = "/api/v1/workspaces/w1/forms/f1/response"
+        assert (await self._scope_after("POST", submit))["state"]["received_at"] == at
+        for method, path in (
+            ("PATCH", f"{submit}/r1"),
+            ("GET", "/api/v1/workspaces/w1/forms/f1"),
+            ("POST", "/api/v1/workspaces/w1/forms/f1/publish"),
+        ):
+            assert "state" not in await self._scope_after(method, path)
+
+
+class TestStubsCarryNoExtras:
+    async def test_a_closed_stub_has_no_ai_token_nor_destination_and_keeps_the_look(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        published_form: Coroutine[Any, Any, FormDocument],
+        monkeypatch,
+    ):
+        from backend.app.services.form_service import FormService
+        from backend.app.services.registration.service import RegistrationService
+
+        monkeypatch.setattr(
+            FormService, "ai_notice_token", AsyncMock(return_value="v1.token.sig")
+        )
+        monkeypatch.setattr(
+            RegistrationService,
+            "destination_for",
+            AsyncMock(return_value={"organisation": "Elsewhere"}),
+        )
+        form_id = published_form.form_id
+        url = f"{_url(workspace)}/forms/{form_id}"
+        page = (await client.get(url, params={"published": "true"})).json()
+        # the patches are live: an open form carries both
+        assert page["aiNoticeToken"] == "v1.token.sig"
+        assert page["registrationDestination"] == {"organisation": "Elsewhere"}
+
+        await _store_close_date(workspace, form_id, "2020-01-01T00:00:00Z")
+        stub = (await client.get(url, params={"published": "true"})).json()
+        assert stub["unavailable"] == "closed"
+        assert stub.get("aiNoticeToken") is None
+        assert stub.get("registrationDestination") is None
+        assert stub.get("fields") is None
+        for key in ("title", "description", "welcomePage", "theme"):
+            assert stub[key] == page[key], key
+        assert "coverImage" in stub and "logo" in stub
+
+
+class TestVersionReads:
+    @pytest.mark.parametrize("version", ["latest", "1"])
+    async def test_a_closed_form_version_reaches_respondents_as_a_stub(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        published_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        test_user_cookies_1: dict[str, str],
+        version: str,
+    ):
+        form_id = published_form.form_id
+        url = f"{_url(workspace)}/forms/{form_id}/versions/{version}"
+        for cookies in (None, test_user_cookies_1):
+            opened = await client.get(url, cookies=cookies)
+            assert opened.status_code == 200, opened.text
+            assert opened.json()["fields"]
+            assert opened.json().get("unavailable") is None
+
+        await _store_close_date(workspace, form_id, "2020-01-01T00:00:00Z")
+        for cookies in (None, test_user_cookies_1):
+            closed = await client.get(url, cookies=cookies)
+            assert closed.status_code == 200, closed.text
+            body = closed.json()
+            assert body["unavailable"] == "closed"
+            assert body["formId"] == form_id
+            assert body.get("fields") is None
+        staff = await client.get(url, cookies=test_user_cookies)
+        assert staff.status_code == 200, staff.text
+        assert staff.json()["fields"]
+        assert staff.json().get("unavailable") is None

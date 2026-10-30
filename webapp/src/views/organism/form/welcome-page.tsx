@@ -15,6 +15,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
@@ -84,6 +85,9 @@ export default function WelcomePage({
 
     // A closed form comes without its questions: no Start, only the notice.
     const closed = standardForm?.unavailable === 'closed';
+    // Members still get the whole form after its close date (preview): a
+    // line says respondents can no longer answer it.
+    const closedForRespondents = !closed && !!standardForm?.settings?.formCloseDate && !validateFormOpen(standardForm.settings.formCloseDate);
 
     // Notes and the start button: one group, set apart from the title block.
     const actions = closed ? (
@@ -94,6 +98,11 @@ export default function WelcomePage({
         </div>
     ) : (
         <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
+            {closedForRespondents && (
+                <p role="status" className="text-base font-medium" style={{ color: softInk(formTheme) }}>
+                    {t('WELCOME.CLOSED_STAFF')}
+                </p>
+            )}
             {!standardForm?.settings?.private && !auth.id && (
                 <p className="text-base" style={{ color: softInk(formTheme) }}>
                     {standardForm?.settings?.requireVerifiedIdentity ? (

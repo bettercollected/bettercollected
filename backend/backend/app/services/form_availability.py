@@ -2,8 +2,18 @@
 
 A form's close date (``WorkspaceFormSettings.form_close_date``) is an instant.
 The form is closed from that instant on (``now >= close``); before it, or
-without a date, it is open. The server's clock decides, at the time the
-request is handled: the respondent's clock is never consulted.
+without a date, it is open. The server's clock decides, never the
+respondent's.
+
+A submission is judged at the time the backend received the request
+(``request.state.received_at``, stamped before the body is read by
+``middlewares/received_at.py``), so an upload that started before the close
+still counts. Behind a proxy that buffers request bodies (nginx's default
+``proxy_request_buffering on``) the backend only sees the request once the
+upload has finished, so there the stamp is "upload finished". The stamp
+counts for at most ``MAX_ARRIVAL_WINDOW``: a request still being handled
+longer than that after it arrived is judged at the current time, so a
+client cannot keep a request open past the close and still get in.
 
 Stored values come in several spellings: the browser's ``...Z`` with
 milliseconds, an offset such as ``+02:00``, a value without an offset (read
@@ -32,6 +42,8 @@ FORM_CLOSED_MESSAGE = "This form is closed and no longer accepts responses."
 # The read of a closed form's published version for a respondent: a stub with
 # this marker instead of the questions (services/form_service.py).
 UNAVAILABLE_CLOSED = "closed"
+# How long after it arrived a submission is still judged at its arrival time.
+MAX_ARRIVAL_WINDOW = dt.timedelta(minutes=10)
 
 
 def now() -> dt.datetime:
@@ -85,13 +97,27 @@ def is_closed(settings: Any, now: Optional[dt.datetime] = None) -> bool:
     return (now or clock.utcnow()) >= close
 
 
+def decision_time(
+    received_at: Optional[dt.datetime], now: Optional[dt.datetime] = None
+) -> dt.datetime:
+    """The time a submission is judged at: when it arrived, unless that was
+    more than ``MAX_ARRIVAL_WINDOW`` ago (then the current time)."""
+    current = now or clock.utcnow()
+    if received_at is None or current - received_at > MAX_ARRIVAL_WINDOW:
+        return current
+    return received_at
+
+
 def ensure_accepting_responses(
-    settings: Any, now: Optional[dt.datetime] = None
+    settings: Any,
+    now: Optional[dt.datetime] = None,
+    received_at: Optional[dt.datetime] = None,
 ) -> None:
     """Refuse a new response to a closed form: 409 ``form_closed``, in the
-    shape of the other refusals of a submission (``invalid_answers``)."""
+    shape of the other refusals of a submission (``invalid_answers``).
+    Judged at ``decision_time(received_at, now)``."""
     close = closes_at(settings)
-    if close is None or (now or clock.utcnow()) < close:
+    if close is None or decision_time(received_at, now) < close:
         return
     raise HTTPException(
         status_code=HTTPStatus.CONFLICT,

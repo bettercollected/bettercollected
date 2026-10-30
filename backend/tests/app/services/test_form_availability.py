@@ -130,3 +130,22 @@ def test_the_settings_patch_refuses_what_is_not_a_date(value):
         normalized_close_date(value)
     with pytest.raises(ValidationError):
         SettingsPatchDto(formCloseDate=value)
+
+
+def test_a_submission_is_judged_at_its_arrival_within_the_window():
+    from backend.app.services.form_availability import (
+        MAX_ARRIVAL_WINDOW,
+        decision_time,
+    )
+
+    settings = {"form_close_date": "2026-10-30T12:00:00Z"}
+    later = CLOSE + dt.timedelta(minutes=5)
+    assert decision_time(None, later) == later
+    assert decision_time(CLOSE - SECOND, later) == CLOSE - SECOND
+    ensure_accepting_responses(settings, later, received_at=CLOSE - SECOND)
+    # held open longer than the window: judged at the current time
+    too_late = CLOSE - SECOND + MAX_ARRIVAL_WINDOW + SECOND
+    assert decision_time(CLOSE - SECOND, too_late) == too_late
+    with pytest.raises(HTTPException):
+        ensure_accepting_responses(settings, too_late, received_at=CLOSE - SECOND)
+    assert MAX_ARRIVAL_WINDOW == dt.timedelta(minutes=10)

@@ -77,10 +77,13 @@ from backend.config import settings
 
 def _is_stub(form) -> bool:
     """The placeholder served instead of a published form the caller may not
-    fill: it has no questions to submit."""
+    fill (not theirs to answer, or closed): it has no questions to submit,
+    so it carries no AI notice token and no registration destination."""
     if isinstance(form, dict):
-        return bool(form.get("unauthorized"))
-    return bool(getattr(form, "unauthorized", None))
+        return bool(form.get("unauthorized") or form.get("unavailable"))
+    return bool(
+        getattr(form, "unauthorized", None) or getattr(form, "unavailable", None)
+    )
 
 
 def _only_sent_settings(form: StandardForm, body: Any) -> None:

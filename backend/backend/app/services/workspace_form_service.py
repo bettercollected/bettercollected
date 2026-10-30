@@ -1170,9 +1170,11 @@ class WorkspaceFormService:
         )
         # A closed form takes no new responses: 409 form_closed before
         # anything is stored, uploaded or started. The close date is checked
-        # against the time the request arrived (services/form_availability.py).
+        # against the time the request arrived, within a bound
+        # (services/form_availability.py decision_time).
         ensure_accepting_responses(
-            workspace_form.settings if workspace_form else None, now=received_at
+            workspace_form.settings if workspace_form else None,
+            received_at=received_at,
         )
         # Respondents fill the published version: a form never published has
         # none, and takes no responses (as its read answers 404).

@@ -81,3 +81,31 @@ describe('WelcomePage of a closed form', () => {
         expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
     });
 });
+
+describe('WelcomePage of a closed form for a member', () => {
+    it('keeps Start and says respondents can no longer answer', () => {
+        // members get the whole form after the close date (no stub)
+        store.dispatch(setForm({ formId: 'closed-staff', title: 'Visit feedback', fields: [], welcomePage: {}, settings: { formCloseDate: '2020-01-01T00:00:00+00:00' } } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.getByRole('status').textContent).toBe('This form is closed: respondents can no longer send answers.');
+        expect(screen.getByRole('button', { name: 'Start' })).toBeDefined();
+    });
+
+    it('says nothing while the close date is ahead', () => {
+        store.dispatch(setForm({ formId: 'open-staff', title: 'Visit feedback', fields: [], welcomePage: {}, settings: { formCloseDate: '2999-01-01T00:00:00+00:00' } } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.queryByRole('status')).toBeNull();
+    });
+});
