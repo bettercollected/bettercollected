@@ -327,15 +327,20 @@ jobs:
             url: https://www.npmjs.com/package/@bettercollected/sdk
         # id-token: npm trusted publishing exchanges a GitHub OIDC token for a
         # short-lived publish token, and the provenance statement is signed
-        # with the same identity. No repository code runs here: no checkout, no
+        # with the same identity. There is no npm token anywhere: OIDC is the
+        # only way this job can publish, and npm accepts it only from a
+        # GitHub-hosted runner. No repository code runs here: no checkout, no
         # npm ci. The only tools installed are Node and a pinned npm CLI.
         permissions:
             contents: read
             id-token: write
         env:
-            # npm 11.5.1 or later is needed for trusted publishing; Node 22
-            # ships npm 10. This is the registry's npm CLI, installed from its
-            # tarball and checked against this integrity before it runs.
+            # Trusted publishing needs Node 22.14.0 or later and npm 11.5.1 or
+            # later; Node 22 ships npm 10. NPM_CLI_VERSION is the registry's npm
+            # CLI, installed from its tarball and checked against this integrity
+            # before it runs.
+            NODE_MIN_VERSION: "22.14.0"
+            NPM_MIN_VERSION: "11.5.1"
             NPM_CLI_VERSION: "11.21.1"
             NPM_CLI_INTEGRITY: "sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ=="
         steps:
@@ -359,6 +364,13 @@ jobs:
                     echo "Unexpected Node version from the build job" >&2
                     exit 1
                   fi
+                  # The build job resolves .nvmrc; trusted publishing needs a newer Node.
+                  oldest="$(printf '%s\n%s\n' "${NODE_VERSION#v}" "${NODE_MIN_VERSION}" | sort -V | head -n1)"
+                  if [[ "${oldest}" != "${NODE_MIN_VERSION}" ]]; then
+                    echo "Node ${NODE_VERSION} is older than ${NODE_MIN_VERSION}, which npm trusted publishing needs; raise .nvmrc" >&2
+                    exit 1
+                  fi
+                  echo "Node ${NODE_VERSION}"
 
             # The Node version the build job used. registry-url writes an
             # .npmrc for registry.npmjs.org outside the workspace.
@@ -383,12 +395,31 @@ jobs:
                     exit 1
                   fi
                   npm install --global --offline --ignore-scripts --no-audit --no-fund "${dir}/npm.tgz"
-                  installed="$(npm --version)"
-                  if [[ "${installed}" != "${NPM_CLI_VERSION}" ]]; then
-                    echo "npm is ${installed}, not ${NPM_CLI_VERSION}" >&2
+
+            - name: Node and npm are new enough for trusted publishing
+              env:
+                  NODE_VERSION: ${{ needs.build-ts.outputs.node-version }}
+              run: |
+                  set -euo pipefail
+                  node="$(node --version)"
+                  npm="$(npm --version)"
+                  echo "Node ${node}, npm ${npm}"
+                  if [[ "${node}" != "${NODE_VERSION}" ]]; then
+                    echo "Node is ${node}, not the build job's ${NODE_VERSION}" >&2
                     exit 1
                   fi
-                  echo "npm ${installed}"
+                  if [[ "$(printf '%s\n%s\n' "${node#v}" "${NODE_MIN_VERSION}" | sort -V | head -n1)" != "${NODE_MIN_VERSION}" ]]; then
+                    echo "Node ${node} is older than ${NODE_MIN_VERSION}, which npm trusted publishing needs" >&2
+                    exit 1
+                  fi
+                  if [[ "${npm}" != "${NPM_CLI_VERSION}" ]]; then
+                    echo "npm is ${npm}, not the pinned ${NPM_CLI_VERSION}" >&2
+                    exit 1
+                  fi
+                  if [[ "$(printf '%s\n%s\n' "${npm}" "${NPM_MIN_VERSION}" | sort -V | head -n1)" != "${NPM_MIN_VERSION}" ]]; then
+                    echo "npm ${npm} is older than ${NPM_MIN_VERSION}, which trusted publishing needs" >&2
+                    exit 1
+                  fi
 
             - name: Fetch the checked tarball
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -419,23 +450,14 @@ jobs:
                   test "$(jq -r .name <<<"${manifest}")" = "@bettercollected/sdk"
                   test "$(jq -r .version <<<"${manifest}")" = "${VERSION}"
 
-            # Trusted publishing (OIDC) once it is set up on npmjs.com. Only the
-            # first release, before the package exists, uses NPM_TOKEN: a
-            # short-lived granular token in the `npm` environment, deleted
-            # afterwards (RELEASING.md). It is passed to npm only when set; npm
-            # tries OIDC first either way.
-            - name: Publish to npm (with provenance)
+            # Trusted publishing only: npm exchanges the job's GitHub OIDC token
+            # for a publish token (the trusted publisher on npmjs.com names this
+            # workflow file and the `npm` environment). With trusted publishing
+            # npm adds provenance on its own; --provenance only states it.
+            - name: Publish to npm (trusted publishing, with provenance)
               env:
                   VERSION: ${{ needs.build-ts.outputs.version }}
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: |
                   set -euo pipefail
-                  if [[ -n "${NPM_TOKEN}" ]]; then
-                    echo "Using the one-time NPM_TOKEN; remove it once trusted publishing is set up"
-                    export NODE_AUTH_TOKEN="${NPM_TOKEN}"
-                  else
-                    echo "No NPM_TOKEN: trusted publishing (OIDC)"
-                  fi
-                  unset NPM_TOKEN
                   cd "${RUNNER_TEMP}/pack"
                   npm publish "./bettercollected-sdk-${VERSION}.tgz" --provenance --access public --ignore-scripts

@@ -122,19 +122,25 @@ without any rules, and the publish job would then run without approval.
 - **PyPI:** a trusted publisher (a pending one until the first upload) for the
   project `bettercollected`: owner `bettercollected`, repository
   `bettercollected`, workflow `publish-sdk.yml`, environment `pypi`.
-- **npm:** the organisation `bettercollected` (2FA for every member). Trusted
-  publishing can only be set up on a package that exists, and a granular token
-  cannot be limited to a package that does not exist yet. So the first release uses
-  a granular access token with read and write access to the `@bettercollected`
-  scope (or the organisation), the shortest expiry, and "bypass two-factor
-  authentication" enabled if the organisation enforces 2FA for writes (otherwise
-  the publish from CI fails with `EOTP`). Store it as the secret `NPM_TOKEN` in the
-  `npm` environment; the workflow passes it to npm only when it is set. After the
-  first release: on npmjs.com, add the trusted publisher to the package
-  (repository `bettercollected/bettercollected`, workflow `publish-sdk.yml`,
-  environment `npm`), set its publishing access to require 2FA and disallow
-  tokens, then delete the secret and revoke the token. From then on npm
-  authenticates with GitHub OIDC only.
+- **npm**, trusted publishing only (no npm token is ever stored). Trusted
+  publishing can only be set up on a package that exists, and a new trusted
+  publisher must complete its first publish within 2 days, so, in this order:
+  1. The organisation `bettercollected` exists on npmjs.com (2FA for every member).
+  2. Publish a placeholder `@bettercollected/sdk@0.0.1` by hand (a package that
+     only reserves the name and points to 0.1.0 and later), then deprecate it:
+     `npm deprecate @bettercollected/sdk@0.0.1 "Name reserved; use 0.1.0 or later"`.
+  3. In the package's settings on npmjs.com, Trusted publishing → GitHub Actions:
+     organisation or user `bettercollected`, repository `bettercollected`, workflow
+     `publish-sdk.yml`, environment `npm`. Allow it to run `npm publish` (not only
+     staged publishing).
+  4. Optionally, set the package's publishing access to "Require two-factor
+     authentication and disallow tokens". Trusted publishing keeps working.
+  5. Push the tag `sdk-ts-v0.1.0` (see below) within 2 days of step 3.
+
+  The `npm` environment's rules (required reviewer, `sdk-ts-v*` tag rule) are still
+  required: they decide which runs may ask for the OIDC token npm trusts. The
+  publish job checks that it runs Node 22.14.0 or later and npm 11.5.1 or later,
+  which trusted publishing needs.
 
 ### Releasing an SDK
 
