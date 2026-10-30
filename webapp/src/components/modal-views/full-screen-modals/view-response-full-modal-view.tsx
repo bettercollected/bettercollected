@@ -23,8 +23,7 @@ import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemS
 import { getItemAnswer } from '@app/utils/response-export';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
-import { Check, Copy, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFullScreenModal } from '../full-screen-modal-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
@@ -96,51 +95,28 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
 /** The stored parts of a response that could not be decrypted, in words. */
 const UNREADABLE_LABELS: Record<string, string> = { answers: 'answers', hidden_fields: 'hidden fields', internal_answers: 'staff fields' };
 export const UNREADABLE_MESSAGE = 'This response could not be decrypted';
+// per question, when the notice above already says why
+const UNREADABLE_SHORT = 'Could not be decrypted';
 
 /**
- * Who answered, when (full local time with the zone) and the submission number
- * (the receipt number the responder holds), with a copy button. The title is the
- * same words as the dialog's accessible name (see FullScreenModalContainer).
+ * Who answered, when (full local time with the zone) and the start of the
+ * submission number. The number is a bearer token (anyone holding it can read
+ * the response without logging in), so, like the deletion-requests table, it is
+ * shown shortened: no full value on screen, in a tooltip or on the clipboard.
+ * The title carries the same words as the dialog's accessible name (see
+ * FullScreenModalContainer).
  */
 export const responseDialogLabel = (response?: StandardFormResponseDto) => (response?.dataOwnerIdentifier ? `${response.dataOwnerIdentifier} response` : 'Anonymous response');
 
 const ResponseHeader = ({ response }: { response: StandardFormResponseDto }) => {
-    const { toast } = useToast();
-    const [copied, setCopied] = useState(false);
     const number = response?.submissionUuid;
-
-    const copyNumber = async () => {
-        try {
-            await navigator.clipboard.writeText(number ?? '');
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (error) {
-            toast({ description: 'Could not copy the number', variant: 'destructive' });
-        }
-    };
-
     return (
         <div className="flex min-w-0 flex-col gap-1">
             <h2 aria-label={responseDialogLabel(response)} className="p3-new text-black-800 flex min-w-0 items-center">
                 {response?.dataOwnerIdentifier ? <span className="truncate">{response.dataOwnerIdentifier}</span> : <AnonymousBadge />}
             </h2>
             <span className="text-black-600 text-xs">{utcToLocalDateTimeWithZone(response?.createdAt)}</span>
-            {number && (
-                <span className="flex items-center gap-1">
-                    <span className="text-black-600 font-mono text-xs">#{number}</span>
-                    <button
-                        type="button"
-                        onClick={copyNumber}
-                        aria-label="Copy submission number"
-                        className="text-black-600 hover:bg-black-200 focus-visible:ring-brand-500 flex h-6 w-6 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
-                    >
-                        {copied ? <Check width={14} height={14} aria-hidden="true" /> : <Copy width={14} height={14} aria-hidden="true" />}
-                    </button>
-                    <span role="status" className="sr-only">
-                        {copied ? 'Submission number copied' : ''}
-                    </span>
-                </span>
-            )}
+            {number && <span className="text-black-600 font-mono text-xs">#{number.split('-')[0]}…</span>}
         </div>
     );
 };
@@ -163,7 +139,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     // answer then means "could not be read", never "no answer".
     const unreadable = response?.unreadableFields ?? [];
     const answersUnreadable = unreadable.includes('answers');
-    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? UNREADABLE_MESSAGE : 'No answer'}</span>;
+    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? UNREADABLE_SHORT : 'No answer'}</span>;
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const resolvedField = titleHasPipes(field?.title) ? ({ ...field, title: resolvePipesInTitle(field.title, pipeContext) } as StandardFormFieldDto) : field;
         const title = getTitleForHeader(resolvedField, standardForm);
@@ -183,7 +159,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     return (
         <div className={cn('flex w-full flex-col gap-8 p-4 pt-6', className)}>
             {unreadable.length > 0 && (
-                <div role="status" className="rounded border border-[#E8C7C7] bg-[#FBEFEF] p-3 text-sm text-[#8A2D2D]">
+                <div className="rounded border border-[#E8C7C7] bg-[#FBEFEF] p-3 text-sm text-[#8A2D2D]">
                     <p className="font-medium">{answersUnreadable ? UNREADABLE_MESSAGE : 'Some data in this response could not be decrypted'}</p>
                     <p className="mt-1">The stored data is not readable ({unreadable.map((name) => UNREADABLE_LABELS[name] ?? name).join(', ')}). It is not shown as empty answers.</p>
                 </div>

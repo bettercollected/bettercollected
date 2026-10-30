@@ -152,7 +152,8 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
 
     const columns: any = [
         {
-            name: '',
+            // visually hidden header: the column holds the "Open response" buttons
+            name: <span className="sr-only">Open</span>,
             cell: (response: StandardFormResponseDto) => (
                 // A real button: reachable with Tab, announced, opens with Enter/Space.
                 <button

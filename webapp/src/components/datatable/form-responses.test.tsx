@@ -254,11 +254,17 @@ describe('responses table: search and honest states', () => {
             expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r2' });
         });
 
-        it('does not open twice when Enter is pressed on the button inside the row', () => {
+        it('opens exactly once when the button inside the row is clicked (the click does not also hit the row)', () => {
             renderTable();
             const [button] = screen.getAllByRole('button', { name: 'Open response' });
-            fireEvent.keyDown(button, { key: 'Enter' });
-            expect(server.openResponse).not.toHaveBeenCalled();
+            fireEvent.click(button);
+            expect(server.openResponse).toHaveBeenCalledTimes(1);
+            expect(server.openResponse).toHaveBeenCalledWith({ workspace_id: 'workspace-1', submission_id: 'r1' });
+        });
+
+        it('gives the button column a header for screen readers', () => {
+            renderTable();
+            expect(screen.getByRole('columnheader', { name: 'Open' })).toBeInTheDocument();
         });
     });
 });

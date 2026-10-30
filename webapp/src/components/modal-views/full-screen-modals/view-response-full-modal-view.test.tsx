@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,7 +35,7 @@ const known = {
     createdAt: '2026-10-30T09:10:05Z',
     updatedAt: '2026-10-30T09:10:05Z',
     dataOwnerIdentifier: 'known1@example.com',
-    submissionUuid: '00123456',
+    submissionUuid: '0a1b2c3d-1111-4222-8333-444455556666',
     answers: {
         q1: { field: { id: 'q1' }, type: FieldTypes.SHORT_TEXT, text: 'Anna Example' },
         q2: { field: { id: 'q2' }, type: FieldTypes.MULTIPLE_CHOICE, choices: { values: ['c1', 'c2', 'c3'] } }
@@ -56,20 +56,19 @@ describe('response drawer', () => {
         store.dispatch(setWorkspace({ id: 'workspace-1' } as any));
     });
 
-    it('says who answered, when (with the time zone) and the submission number', () => {
+    it('says who answered, when (with the time zone) and the start of the submission number', () => {
         renderDrawer(known);
         expect(screen.getByRole('heading', { name: 'known1@example.com response' })).toBeInTheDocument();
         expect(screen.getByText(/^30 October 2026(,| at) \d{2}:\d{2}:\d{2} \S+$/)).toBeInTheDocument();
-        expect(screen.getByText('#00123456')).toBeInTheDocument();
+        expect(screen.getByText('#0a1b2c3d…')).toBeInTheDocument();
     });
 
-    it('copies the submission number', async () => {
-        const writeText = vi.fn(() => Promise.resolve());
-        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-        renderDrawer(known);
-        fireEvent.click(screen.getByRole('button', { name: 'Copy submission number' }));
-        await waitFor(() => expect(writeText).toHaveBeenCalledWith('00123456'));
-        expect(await screen.findByText('Submission number copied')).toBeInTheDocument();
+    it('never shows the full receipt number (it is a bearer token) and offers no copy button', () => {
+        const { container } = renderDrawer(known);
+        expect(container.textContent).not.toContain('4222');
+        expect(container.textContent).not.toContain('444455556666');
+        expect(container.querySelector('[title*="0a1b2c3d"]')).toBeNull();
+        expect(screen.queryByRole('button', { name: /copy/i })).toBeNull();
     });
 
     it('shows the Anonymous mark and no email for an anonymous response', () => {
@@ -78,26 +77,30 @@ describe('response drawer', () => {
         expect(screen.queryByText('known1@example.com')).toBeNull();
     });
 
-    it('hides the number and its copy button when the response has none', () => {
+    it('shows no number line when the response has none', () => {
         renderDrawer({ ...known, submissionUuid: undefined });
-        expect(screen.queryByRole('button', { name: 'Copy submission number' })).toBeNull();
+        expect(screen.queryByText(/^#/)).toBeNull();
     });
 
-    it('joins a multi-select with a comma and a space', () => {
+    it('leaves the multi-select display as the table shows it', () => {
         renderDrawer(known);
-        expect(screen.getByText('Reading, Cycling, Cooking')).toBeInTheDocument();
+        expect(screen.getByText('Reading,Cycling,Cooking')).toBeInTheDocument();
     });
 
-    it('says the response could not be decrypted instead of "No answer"', () => {
+    it('says once that the response could not be decrypted, and keeps the per-question text short', () => {
         renderDrawer({ ...known, answers: {}, unreadableFields: ['answers'] });
-        expect(screen.getAllByText('This response could not be decrypted').length).toBeGreaterThanOrEqual(3);
+        expect(screen.getAllByText('This response could not be decrypted')).toHaveLength(1);
+        expect(screen.getAllByText('Could not be decrypted')).toHaveLength(2);
         expect(screen.queryByText('No answer')).toBeNull();
+        // plain text: it is there on open, so a live region would announce nothing
+        expect(screen.queryByRole('status')).toBeNull();
+        expect(screen.queryByRole('alert')).toBeNull();
     });
 
     it('still says "No answer" for a readable response that has no answer', () => {
         renderDrawer({ ...known, answers: {} });
         expect(screen.getAllByText('No answer')).toHaveLength(2);
-        expect(screen.queryByText(/could not be decrypted/)).toBeNull();
+        expect(screen.queryByText(/could not be decrypted/i)).toBeNull();
     });
 
     it('names what could not be read when only hidden or staff data failed', () => {
@@ -105,27 +108,46 @@ describe('response drawer', () => {
         expect(screen.getByText('Some data in this response could not be decrypted')).toBeInTheDocument();
         expect(screen.getByText(/hidden fields/)).toBeInTheDocument();
         expect(screen.getByText('Anna Example')).toBeInTheDocument();
+        expect(screen.queryByText('Could not be decrypted')).toBeNull();
     });
 });
 
 describe('response drawer dialog', () => {
-    const Opener = () => {
-        const { openModal } = useFullScreenModal();
+    const Opener = ({ response }: { response: any }) => {
+        const { openModal, closeModal } = useFullScreenModal();
         useEffect(() => {
-            openModal('VIEW_RESPONSE', { response: known, formFields, form, formId: 'form-1', workspaceId: 'workspace-1', internalFields: [] });
+            openModal('VIEW_RESPONSE', { response, formFields, form, formId: 'form-1', workspaceId: 'workspace-1', internalFields: [] });
         }, []);
-        return null;
+        return <button onClick={closeModal}>close from outside</button>;
     };
-
-    it('is a dialog named after the responder', async () => {
+    const renderOpened = (response: any) =>
         render(
             <ReduxProvider store={store}>
                 <I18nProvider>
-                    <Opener />
+                    <Opener response={response} />
                     <FullScreenModalContainer />
                 </I18nProvider>
             </ReduxProvider>
         );
+
+    it('is a dialog named after the responder', async () => {
+        renderOpened(known);
         expect(await screen.findByRole('dialog', { name: 'known1@example.com response' })).toBeInTheDocument();
+    });
+
+    it('is named "Anonymous response" when there is no email', async () => {
+        renderOpened({ ...known, dataOwnerIdentifier: null, anonymousIdentity: 'anon' });
+        expect(await screen.findByRole('dialog', { name: 'Anonymous response' })).toBeInTheDocument();
+    });
+
+    it('keeps its name while it leaves the screen', async () => {
+        renderOpened(known);
+        const dialog = await screen.findByRole('dialog', { name: 'known1@example.com response' });
+        act(() => {
+            fireEvent.click(screen.getByText('close from outside'));
+        });
+        // closing clears the view at once; whatever is still on screen keeps its name
+        screen.queryAllByRole('dialog', { hidden: true }).forEach((leaving) => expect(leaving).toHaveAttribute('aria-label', 'known1@example.com response'));
+        expect(dialog.getAttribute('aria-label')).toBe('known1@example.com response');
     });
 });

@@ -103,9 +103,9 @@ function getChoicesValue(field: StandardFormFieldDto, answer: any) {
         }
     });
     if (otherValue && choicesValue) {
-        return [...choicesValue, otherValue]?.join(', ');
+        return [...choicesValue, otherValue]?.join(',');
     }
-    return choicesValue?.join(', ');
+    return choicesValue?.join(',');
 }
 
 function getMultipleChoiceOtherValue(answer: any, multipleSelection: boolean = false): string {
