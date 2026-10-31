@@ -12,7 +12,8 @@
 #               MAIL_* added the way a stack edit adds them, then `docker compose up -d`. No deploy.sh.
 #   (3) checks  a migrations   b scrub of the old action jobs   c old data reads as before   d jobs worker
 #               queues   e webhooks (the SSRF guard)   f drafts   g email action and respondent copy
-#               h the actions executor role's restriction (row-level policy, definer owner) is in force
+#               h the actions executor role's restriction: recorded after the bare swap (INFO), then in force after
+#                 the documented step (ensure-jobs-exec-role.sh as superuser, python -m backend.jobs.schema)
 #
 #   scripts/upgrade-image-swap-check.sh [--keep]
 #
@@ -611,16 +612,44 @@ checks_a_to_d() {
   done
   expect "no 'queue not served' warning in the jobs worker's log" "0" "$(grep -c "does not serve the '" "$work/jobs-worker.log")"
 
-  section "(3h) the executor role's restriction (what a swap must leave in force)"
+  section "(3h) the executor role's restriction"
   # backend/jobs/schema.py: a row-level policy keeps the actions executor (bc_jobs_exec, which runs creator code)
-  # to the actions queue; its trigger functions belong to the NOLOGIN role bc_jobs_def. deploy.sh applies both; a stack
-  # upgraded by swapping images relies on the backend's startup.
-  expect "row-level security is on for jobs.procrastinate_jobs, with the executor's restrictive policy" "t 2" \
+  # to the actions queue; its trigger functions belong to the NOLOGIN role bc_jobs_def. deploy.sh applies both. A stack
+  # upgraded by swapping images does not (the backend's startup finds the queue table present and skips it): the 4.2
+  # upgrade notes give one step for a stack that runs the executor on the Postgres queue.
+  executor_state() { # rls, policies, function owner and security definer, bc_jobs_def exists, INSERT on events
+    echo "rls=$(psql_app "select relrowsecurity from pg_class where oid='jobs.procrastinate_jobs'::regclass")" \
+      "policies=$(psql_app "select count(*) from pg_policies where schemaname='jobs' and tablename='procrastinate_jobs'")" \
+      "function_owner=$(psql_app "select proowner::regrole::text || '/definer=' || prosecdef::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='jobs' and proname='procrastinate_trigger_function_status_events_insert_v1'")" \
+      "bc_jobs_def_exists=$(psql_app "select count(*)=1 from pg_roles where rolname='bc_jobs_def'")" \
+      "executor_insert_on_events=$(psql_app "select has_table_privilege('bc_jobs_exec','jobs.procrastinate_events','INSERT')")"
+  }
+  local bare
+  bare="$(executor_state)"
+  RESULTS+=("INFO $(stamp) bare image swap leaves the executor unrestricted (expected; see the upgrade notes): $bare")
+  echo "  INFO  $(stamp) bare image swap leaves the executor unrestricted (expected; see the upgrade notes): $bare"
+  # the documented step, as an operator runs it: the release's script as the database superuser in the database
+  # container, then the schema step in the backend's container
+  local step_rc=0
+  (cd "$S_DIR" && hermetic docker compose -f docker-compose.deployment.yml "${COMPOSE_EXTRA[@]}" exec -T app-postgres bash -s \
+    < "$root/postgres/ensure-jobs-exec-role.sh") > "$work/ensure-role.out" 2>&1 || step_rc=$?
+  expect "the documented step: postgres/ensure-jobs-exec-role.sh as the database superuser exits 0" "0" "$step_rc"
+  tail -n 3 "$work/ensure-role.out" | cut -c1-200 | sed 's/^/        /'
+  step_rc=0
+  dc exec -T backend /api/backend/.venv/bin/python -m backend.jobs.schema > "$work/jobs-schema.out" 2>&1 || step_rc=$?
+  expect "the documented step: python -m backend.jobs.schema in the backend container exits 0" "0" "$step_rc"
+  tail -n 3 "$work/jobs-schema.out" | cut -c1-200 | sed 's/^/        /'
+  RESULTS+=("INFO $(stamp) after the documented step: $(executor_state)")
+  echo "  INFO  $(stamp) after the documented step: $(executor_state)"
+  expect "row-level security is on for jobs.procrastinate_jobs, with the executor's restrictive policy and the open one" "t 2" \
     "$(psql_app "select relrowsecurity from pg_class where oid='jobs.procrastinate_jobs'::regclass") $(psql_app "select count(*) from pg_policies where schemaname='jobs' and tablename='procrastinate_jobs'")"
+  expect "bc_jobs_def exists" "t" "$(psql_app "select count(*)=1 from pg_roles where rolname='bc_jobs_def'")"
   expect "the queue's trigger functions are owned by bc_jobs_def (SECURITY DEFINER)" "bc_jobs_def t" \
     "$(psql_app "select proowner::regrole::text || ' ' || prosecdef::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='jobs' and proname='procrastinate_trigger_function_status_events_insert_v1'" | sed 's/true/t/;s/ false/ f/')"
-  expect "the executor's role cannot write the queue's events table" "f" \
-    "$(psql_app "select has_table_privilege('bc_jobs_exec','jobs.procrastinate_events','INSERT')" | sed 's/true/t/;s/false/f/')"
+  expect "the executor's role (bc_jobs_exec) has no INSERT on procrastinate_events" "f" \
+    "$(psql_app "select has_table_privilege('bc_jobs_exec','jobs.procrastinate_events','INSERT')")"
+  # everything else of the stack still works after the step (the backend was not restarted)
+  expect "the backend still answers after the step" "401" "$(http_code "http://127.0.0.1:$S_BACKEND/api/v1/auth/status")"
 }
 
 check_e_webhook() {

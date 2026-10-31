@@ -102,7 +102,11 @@ backend, auth, webapp, jobs worker and the other first-party services to the can
 `DB_AUTO_MIGRATE=true` and the release's new switches and `MAIL_*` the way a stack edit does, and runs
 `docker compose up -d`. It never runs `deploy.sh` for the upgrade, because production does not. It then
 checks migrations, the scrub of old action jobs, that old responses still read, the jobs worker's
-queues, the webhook SSRF guard, drafts and email actions with the respondent copy. Update its checks
+queues, the webhook SSRF guard, drafts and email actions with the respondent copy. It also records, as
+an INFO line, that a bare image swap leaves the actions executor's database restrictions off (the
+backend's startup does not apply them to a queue that already exists; expected, see the release's upgrade
+notes), then runs the documented step (`postgres/ensure-jobs-exec-role.sh` as the database superuser, then
+`python -m backend.jobs.schema` in the backend container) and requires the restrictions to be in force. Update its checks
 (the expected alembic head, `SWAP_CHECK_EXPECT_ALEMBIC`, and the switches it turns on) when a release
 adds a migration or a switch. `SWAP_CHECK_CANDIDATE=v4.2.0` runs the same upgrade with the published
 images of a tag instead of images built from the checkout (use it once more after the images are
