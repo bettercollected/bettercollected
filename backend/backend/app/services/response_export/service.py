@@ -439,6 +439,10 @@ class ResponseExportService:
         if claimed is None:
             found = await self._exports.get_by_id(export_id)
             return found.status.value if found else "missing"
+        if claimed.attempts > 1:
+            # a re-claim of a run presumed dead: its chunks are not this run's
+            # (the old run can no longer store one: the claim moved)
+            await self._exports.delete_chunks(export_id)
         try:
             outcome = await self._build(claimed)
         except _Superseded:
@@ -559,6 +563,9 @@ class ResponseExportService:
             plan, document.title or "", self._source(workspace_id, scope, filters), counter
         ):
             pending.extend(piece)
+            if counter.rows > limits.MAX_ROWS:
+                # responses arrived after the count the request was admitted on
+                return await self._end_owned(export, ExportStatus.FAILED, "too_many_rows")
             if size + len(pending) > limits.MAX_FILE_BYTES:
                 return await self._end_owned(export, ExportStatus.FAILED, "too_large")
             while len(pending) >= limits.CHUNK_BYTES:

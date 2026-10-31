@@ -54,7 +54,7 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   worker for it. The executor's database role cannot see this queue. The filters wait sealed on the export row and are removed when the job ends. The
   job reads the live rows when it runs and asks again whether the requester still holds
   `response.export`.
-* `MAX_ROWS` (100,000) and `MAX_FILE_BYTES` (256 MiB) bound one export. The Export control sends the
+* `MAX_ROWS` (100,000) and `MAX_FILE_BYTES` (256 MiB) bound one export: the request is refused above the row cap, and a job stops with `too_many_rows` if responses that arrived after the count push it past it (`too_large` for the file size). The Export control sends the
   responses list's filters and search, so a form above 100,000 responses is exported in parts by narrowing the list.
 * **One live export per requester and form** (a job in flight, or whose file waits to be fetched: 409
   `export_in_progress` or `export_ready`), enforced by a partial unique index, so two requests at once
@@ -64,7 +64,7 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   lock together with a heartbeat (`started_at`), and refused once the export is no longer running on that
   claim; the final state is checked the same way. A job that is merely slow is therefore never taken for
   dead while it stores chunks, and if the sweep does requeue one (nothing stored for 30 minutes), the old
-  run stops without touching the new run's chunks.
+  run stops without touching the new run's chunks (a re-claim also clears the chunks of the run before it).
 * `response_export_redefer` (every 5 minutes) queues exports whose job never got queued and takes up
   those whose worker died (three attempts, then `worker_lost`).
 

@@ -411,3 +411,125 @@ async def test_a_role_that_cannot_export_cannot_delete(client: AsyncClient, work
     )
     assert (await discard(client, workspace, form, export["id"], user=officer)).status_code == 403
     assert (await repo().get_by_id(export["id"])).status == ExportStatus.READY
+
+
+# ------------------------------------------------- erasure races leave no chunk
+
+
+def _running(export_id):
+    async def go():
+        claimed = await repo().update_locked(export_id, service()._claim)
+        assert claimed.attempts == 1
+        return claimed
+
+    return go()
+
+
+async def _store(claimed, index=0):
+    from backend.app.schemas.response_export import ResponseExportChunkDocument
+
+    return await repo().add_chunk_if_owned(
+        ResponseExportChunkDocument(
+            export_id=str(claimed.id),
+            workspace_id=claimed.workspace_id,
+            form_id=claimed.form_id,
+            index=index,
+            data="x",
+            attempt=claimed.attempts,
+        ),
+        claimed.attempts,
+        utcnow(),
+    )
+
+
+@pytest.mark.parametrize("how", ["form", "form_ids", "workspace_ids"])
+async def test_a_job_cannot_slip_a_chunk_in_while_its_exports_are_deleted(client: AsyncClient, workspace, monkeypatch, how):
+    """Rows go first, then chunks: a running job whose next chunk lands between the
+    two steps is refused (its row is gone), so no chunk is left behind."""
+    from backend.app.repositories.postgres.response_exports import CHUNK_LOST
+    from backend.db.models import ResponseExportChunkRow
+
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    export = await queued(client, workspace, form)
+    claimed = await _running(export["id"])
+    assert await _store(claimed, 0) == "owned"
+    real = repo().delete_where
+    slipped = {}
+
+    async def interleaved(*where, row=None):
+        if row is ResponseExportChunkRow and "result" not in slipped:
+            # the moment between the two deletes: the job stores its next chunk
+            slipped["result"] = await _store(claimed, 1)
+        return await real(*where, row=row)
+
+    monkeypatch.setattr(repo(), "delete_where", interleaved)
+    if how == "form":
+        await repo().delete_for_form(workspace.id, form.form_id)
+    elif how == "form_ids":
+        await repo().delete_by_form_ids([form.form_id])
+    else:
+        await repo().delete_by_workspace_ids([str(workspace.id)])
+    assert slipped["result"] == CHUNK_LOST
+    assert await repo().get_by_id(export["id"]) is None
+    assert await repo().count_chunks(export["id"]) == 0
+
+
+async def test_a_job_that_finishes_while_an_account_is_forgotten_leaves_no_chunk(client: AsyncClient, workspace, monkeypatch):
+    """``forget_actor`` reads the rows, then locks one: if the job made it READY in
+    between, the stored state (not the copy read) decides the file is deleted."""
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    export = await queued(client, workspace, form, user=invited_user)
+    claimed = await _running(export["id"])
+    assert await _store(claimed, 0) == "owned"
+    real = repo().update_locked
+    done = {}
+
+    async def finishing(export_id, change):
+        if not done:
+            done["yes"] = True
+
+            def ready(row):
+                row.status = ExportStatus.READY
+                row.chunk_count = 1
+                row.expires_at = utcnow() + limits.FILE_TTL
+                return row
+
+            await real(export_id, ready)
+        return await real(export_id, change)
+
+    monkeypatch.setattr(repo(), "update_locked", finishing)
+    assert await repo().forget_actor(invited_user.id) == 1
+    gone = await repo().get_by_id(export["id"])
+    assert gone.status == ExportStatus.ERASED and gone.actor_id == DELETED_ACTOR
+    assert await repo().count_chunks(export["id"]) == 0
+
+
+# ------------------------------------------------------------ smaller follow-ups
+
+
+async def test_responses_that_arrive_after_the_count_cannot_push_a_job_past_the_cap(client: AsyncClient, workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 5)
+    export = await queued(client, workspace, form)
+    # five were counted; more arrived before the job read them
+    monkeypatch.setattr(limits, "MAX_ROWS", 3)
+    assert await service().run_job(export["id"]) == "failed"
+    entry = await repo().get_by_id(export["id"])
+    assert entry.error_code == "too_many_rows" and await repo().count_chunks(export["id"]) == 0
+
+
+async def test_a_reclaimed_job_starts_from_no_chunks(client: AsyncClient, workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 6)
+    export = await queued(client, workspace, form)
+    claimed = await _running(export["id"])
+    assert await _store(claimed, 0) == "owned"
+    # the run is presumed dead; the next claim must not meet its chunk
+    monkeypatch.setattr(service(), "_clock", lambda: utcnow() + limits.STALE_RUNNING_AFTER + dt.timedelta(minutes=1))
+    assert await service().run_job(export["id"]) == "ready"
+    built = await repo().get_by_id(export["id"])
+    assert built.attempts == 2 and await repo().count_chunks(export["id"]) == built.chunk_count
+    monkeypatch.undo()
+    assert len(rows(await ready_file(client, workspace, form, export["id"]))) == 7

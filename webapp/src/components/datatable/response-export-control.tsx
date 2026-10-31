@@ -48,7 +48,7 @@ function refusalMessage(error: any): { key: string; values?: Record<string, unkn
 /** Why an export that ended without a file did: its status and error code. */
 function endedMessage(exportRow: ResponseExportDto): string {
     if (exportRow.status === 'cancelled') return exportRow.errorCode === 'permission_removed' ? responseExportLocale.errorPermission : responseExportLocale.errorDeleted;
-    if (exportRow.status === 'failed') return exportRow.errorCode === 'too_large' ? responseExportLocale.errorTooLarge : responseExportLocale.errorFailed;
+    if (exportRow.status === 'failed') return exportRow.errorCode === 'too_many_rows' ? responseExportLocale.errorTooMany : exportRow.errorCode === 'too_large' ? responseExportLocale.errorTooLarge : responseExportLocale.errorFailed;
     return responseExportLocale.errorGone;
 }
 
@@ -234,7 +234,16 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
 
     return (
         <div className="flex flex-col items-start gap-2 sm:items-end">
-            <Button data-umami-event="Export CSV Button" isLoading={phase === 'starting'} disabled={busy} aria-describedby="response-export-status" variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleStart}>
+            <Button
+                data-umami-event="Export CSV Button"
+                className="whitespace-nowrap"
+                isLoading={phase === 'starting'}
+                disabled={busy}
+                aria-describedby="response-export-status"
+                variant="v2Button"
+                icon={<DownloadIcon className="h-4 w-4" />}
+                onClick={handleStart}
+            >
                 {t(search || (filters && Object.keys(filters).length > 0) ? responseExportLocale.buttonMatching : responseExportLocale.button)}
             </Button>
             <div id="response-export-status" role={phase === 'error' ? 'alert' : 'status'} aria-live={phase === 'error' ? 'assertive' : 'polite'} aria-busy={busy} className="max-w-[420px] text-left text-sm text-black-700 sm:text-right">
@@ -246,7 +255,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
                     <div className="flex flex-col items-start gap-2 sm:items-end">
                         {notice && <span className={notice.ok ? undefined : 'text-red-600'}>{t(notice.key, notice.values)}</span>}
                         <span>{t(responseExportLocale.ready)}</span>
-                        {expires && <span className="text-xs text-black-600">{t(responseExportLocale.readyUntil, { time: expires })}</span>}
+                        {expires && !notice?.ok && <span className="text-xs text-black-600">{t(responseExportLocale.readyUntil, { time: expires })}</span>}
                         <div className="flex flex-wrap items-center gap-2">
                             <Button type="button" variant="primary" size="sm" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleDownload}>
                                 {t(responseExportLocale.download)}

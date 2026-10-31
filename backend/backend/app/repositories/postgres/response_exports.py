@@ -118,7 +118,7 @@ class PostgresResponseExportRepository(RecordRepository):
         in flight (``WorkspaceBusy``) or the requester already has a live export
         of the form (``OpenExportExists``). The count and the insert share one
         transaction under a lock on the workspace, and the partial unique index
-        of revision 0028 backs the second rule, so concurrent requests cannot
+        of revision 0027 backs the second rule, so concurrent requests cannot
         both get in."""
         digest = hashlib.sha1(("response-export|" + _id(document.workspace_id)).encode()).digest()
         key = int.from_bytes(digest[:8], "big", signed=True)
@@ -260,39 +260,46 @@ class PostgresResponseExportRepository(RecordRepository):
                 document.actor_id = DELETED_ACTOR
                 return document
 
-            was_ready = found.status == ExportStatus.READY
-            if await self.update_locked(found.id, change) is not None:
+            # decided from the stored row under its lock, not from the copy read
+            # above: a job may have made it READY since
+            updated = await self.update_locked(found.id, change)
+            if updated is not None:
                 changed += 1
-                if was_ready:
+                if updated.status == ExportStatus.ERASED:
                     await self.delete_chunks(found.id)
         return changed
 
     async def delete_for_form(self, workspace_id, form_id) -> int:
+        # the rows first: with the row gone ``add_chunk_if_owned`` (which locks
+        # it) refuses a running job's next chunk, and the delete below takes the rest
+        deleted = await self.delete_where(
+            ResponseExportRow.workspace_id == _id(workspace_id),
+            ResponseExportRow.form_id == _id(form_id),
+        )
         await self.delete_where(
             ResponseExportChunkRow.workspace_id == _id(workspace_id),
             ResponseExportChunkRow.form_id == _id(form_id),
             row=ResponseExportChunkRow,
         )
-        return await self.delete_where(
-            ResponseExportRow.workspace_id == _id(workspace_id),
-            ResponseExportRow.form_id == _id(form_id),
-        )
+        return deleted
 
     async def delete_by_form_ids(self, form_ids: Sequence) -> int:
         if not form_ids:
             return 0
         ids = [_id(f) for f in form_ids]
+        deleted = await self.delete_where(ResponseExportRow.form_id.in_(ids))
         await self.delete_where(ResponseExportChunkRow.form_id.in_(ids), row=ResponseExportChunkRow)
-        return await self.delete_where(ResponseExportRow.form_id.in_(ids))
+        return deleted
 
     async def delete_by_workspace_ids(self, workspace_ids: Sequence) -> int:
         if not workspace_ids:
             return 0
         ids = [_id(w) for w in workspace_ids]
+        deleted = await self.delete_where(ResponseExportRow.workspace_id.in_(ids))
         await self.delete_where(
             ResponseExportChunkRow.workspace_id.in_(ids), row=ResponseExportChunkRow
         )
-        return await self.delete_where(ResponseExportRow.workspace_id.in_(ids))
+        return deleted
 
     # -- chunks ---------------------------------------------------------------
     async def add_chunk(self, chunk: ResponseExportChunkDocument) -> None:

@@ -169,6 +169,8 @@ describe('a large export', () => {
         expect(server.saved[0].name).toBe('Colours.csv');
         // the file stays, for as long as the server says: the button stays for another download
         expect(await screen.findByText(/The file stays on our servers until/)).toBeInTheDocument();
+        // the retention sentence is said once
+        expect(screen.queryByText(/as often as you like/)).toBeNull();
         expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
         click('Download');
         await waitFor(() => expect(server.saved).toHaveLength(2));
@@ -216,6 +218,7 @@ describe('a large export', () => {
     it.each([
         ['failed', undefined, 'could not be prepared'],
         ['failed', 'too_large', 'too large for one file'],
+        ['failed', 'too_many_rows', 'more responses than one export can hold'],
         ['cancelled', 'responses_deleted', 'Responses were deleted while your export'],
         ['cancelled', 'permission_removed', 'no longer export'],
         ['expired', undefined, 'no longer available'],
