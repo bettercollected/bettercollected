@@ -9,7 +9,7 @@ import { Provider } from 'jotai';
 import { describe, expect, it } from 'vitest';
 
 import { FormTheme, ThemeColors, themeProblems, themeTypeShape } from '@app/constants/theme';
-import { Input } from '@app/shadcn/components/ui/input';
+import { FieldInput, Input } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 import { hexChannels } from '@app/utils/color-contrast';
 
@@ -41,7 +41,27 @@ const answerColour = (theme: FormTheme) => {
     return (screen.getByLabelText('answer') as HTMLInputElement).style.color;
 };
 
+// The field wrapper hands FieldInput `style={undefined}`, which replaces the inline colour: the
+// email, link and number inputs get a theme's own input text from the stylesheet.
+const fieldColour = (theme: FormTheme) => {
+    render(
+        <Provider>
+            <Themed theme={theme}>
+                <FieldInput aria-label="field" style={undefined} $formTheme={theme as any} defaultValue="a@b.nl" />
+            </Themed>
+        </Provider>
+    );
+    return getComputedStyle(screen.getByLabelText('field')).color;
+};
+
 describe('the colour of the answers in the input boxes', () => {
+    it('reaches the email, link and number inputs too, and leaves a theme without it alone', () => {
+        expect(fieldColour({ ...NIGHT, inputText: '#0F172A' })).toBe(rgb('#0F172A'));
+    });
+    it('keeps what those inputs always drew for a theme without an input text', () => {
+        expect(fieldColour(NIGHT)).not.toBe(rgb(NIGHT.primary));
+    });
+
     it('is the ink when the theme has no inputText, so existing themes render as before', () => {
         expect(inputTextOf(ThemeColors[0])).toBe(ThemeColors[0].primary);
         expect(answerColour(ThemeColors[0])).toBe(rgb(ThemeColors[0].primary));
