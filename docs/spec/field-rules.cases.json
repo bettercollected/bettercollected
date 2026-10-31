@@ -2172,7 +2172,7 @@
       }
     },
     {
-      "name": "order: set values that read each other in a circle are evaluated in form order",
+      "name": "order: set values that read each other in a circle have no value, as a calculation in a circle has none",
       "form": [
         {
           "id": "p1",
@@ -2279,14 +2279,110 @@
         }
       },
       "answersAfter": {
-        "s1": {
-          "type": "number",
-          "number": 6
-        },
-        "s2": {
-          "type": "number",
-          "number": 7
+        "s1": null,
+        "s2": null
+      }
+    },
+    {
+      "name": "order: text questions that set each other in a circle have no value",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "t1",
+                "type": "short_text",
+                "title": "t1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "var": "t2"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "t2",
+                "type": "short_text",
+                "title": "t2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "var": "t1"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "t1": {
+          "type": "text",
+          "text": "p"
+        },
+        "t2": {
+          "type": "text",
+          "text": "q"
+        }
+      },
+      "states": {
+        "t1": {
+          "locked": true
+        },
+        "t2": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "t1": null,
+        "t2": null
       }
     },
     {
@@ -2562,6 +2658,360 @@
           "description": "D"
         }
       },
+      "answersAfter": {}
+    },
+    {
+      "name": "trigger: a condition on an internal question is not active, as respondents are not served it",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a",
+                "internal": true
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EMPTY"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "seen"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "trigger: a formula that reads a heading, paragraph, divider or markdown block is not active (content holds no answer)",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "c_h1",
+                "type": "h1",
+                "title": "h1"
+              },
+              {
+                "id": "c_h2",
+                "type": "h2",
+                "title": "h2"
+              },
+              {
+                "id": "c_h3",
+                "type": "h3",
+                "title": "h3"
+              },
+              {
+                "id": "c_h4",
+                "type": "h4",
+                "title": "h4"
+              },
+              {
+                "id": "c_h5",
+                "type": "h5",
+                "title": "h5"
+              },
+              {
+                "id": "c_p",
+                "type": "p",
+                "title": "p"
+              },
+              {
+                "id": "c_strong",
+                "type": "strong",
+                "title": "strong"
+              },
+              {
+                "id": "c_divider",
+                "type": "divider",
+                "title": "divider"
+              },
+              {
+                "id": "c_markdown",
+                "type": "markdown",
+                "title": "markdown"
+              },
+              {
+                "id": "q_h1",
+                "type": "short_text",
+                "title": "q_h1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_h1",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_h1"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_h2",
+                "type": "short_text",
+                "title": "q_h2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_h2",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_h2"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_h3",
+                "type": "short_text",
+                "title": "q_h3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_h3",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_h3"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_h4",
+                "type": "short_text",
+                "title": "q_h4",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_h4",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_h4"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_h5",
+                "type": "short_text",
+                "title": "q_h5",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_h5",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_h5"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_p",
+                "type": "short_text",
+                "title": "q_p",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_p",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_p"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_strong",
+                "type": "short_text",
+                "title": "q_strong",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_strong",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_strong"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_divider",
+                "type": "short_text",
+                "title": "q_divider",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_divider",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_divider"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "q_markdown",
+                "type": "short_text",
+                "title": "q_markdown",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r_markdown",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "c_markdown"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {},
       "answersAfter": {}
     },
     {

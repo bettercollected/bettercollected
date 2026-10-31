@@ -331,17 +331,25 @@ editor ops that carry whole questions) via `_new_problems`; `finished_form` prun
 422 `field_rules_disabled`; ops fail with the same message). Paths that hold it: create/update form (builder,
 spec API), templates, `set_field_rules`, the editor ops' questions and pages, and `persist_form` as the last
 gate for every op writer (chat, proposals, MCP, public API). Never add a parallel check: use
-`ensure_rules_allowed` / `new_or_changed_rules`, which compares a rule by its question (id, type, page or
-group) and its content, so a rule moved to another question reads as new. Stored rules are kept and enforced.
+`ensure_rules_allowed` / `new_or_changed_rules`, which compares a rule by its question (id and type, not
+where it sits: moving a question changes no rule) and its content, so a rule moved to another question, or
+to one of another type under a reused id, reads as new. Stored rules are kept and enforced.
 Bounds: 8 per question, 100 per form (counted before parsing a builder body, a spec or an ops payload), 50
 variables per expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`:
 forms that could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`).
 Date rules do not apply to a question a rule sets or locks. The MCP `update_form` text documents the op; the
 chat prompt (`RULES_GUIDE`) only while the flag is on; the spec check warns while it is off. The builder
 (`updateFieldInternal`) clears a question's rules when it becomes internal. No editor UI or importer writes
-rules yet. Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner
-skips them until its evaluator exists) and the `set_field_rules` cases of `docs/spec/form-ops-v1.cases.json`
-(`"engines": ["backend"]`: the builder's TypeScript engine does not implement rules).
+rules yet. Shared cases, run on both sides (the webapp's twin is `lib/field-rules.ts`):
+`docs/spec/field-rules.cases.json` and `docs/spec/answer-validation.cases.json` (checks `fieldRules`), and the
+`set_field_rules` cases of `docs/spec/form-ops-v1.cases.json` (`"engines": ["backend"]`: the builder's
+TypeScript engine does not implement rules yet, nor the dropping of rules a structural op strands).
+The condition evaluator reads no text over 10,000 characters (`text_max`, field rules only: such a text
+counts as empty, as an expression's input does), and a condition on an internal question is not active
+(respondents are not served it); values that read each other in a circle have none. One `_Checker`
+(`field_rule_checker`) can run before and after an op replaced a question's rules, keeping the form's
+structure and the cost of the other questions; an expression nested more than 32 levels is refused when
+an op is parsed, and the op walks (`_resolve_refs`, `ref_dependencies`) are iterative.
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record

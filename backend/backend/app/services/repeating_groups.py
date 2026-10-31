@@ -106,8 +106,29 @@ def _text(value: Any) -> str:
     return "" if value is None else str(value)
 
 
-def compare(value: Any, comparison: Optional[str], target: Any) -> bool:
-    """Python twin of the webapp comparison switch (``evaluateCondition``)."""
+def _capped(value: Any, text_max: Optional[int]) -> Any:
+    """``value`` as a condition may read it when ``text_max`` is set (field
+    rules): a text longer than that counts as empty (a list drops such
+    texts), as the expressions' inputs do, so the cost of a condition does
+    not grow with the length of an answer. Twin of the webapp's ``capped``."""
+    if text_max is None:
+        return value
+    if isinstance(value, str):
+        return None if len(value) > text_max else value
+    if isinstance(value, list):
+        return [v for v in value if not (isinstance(v, str) and len(v) > text_max)]
+    return value
+
+
+def compare(
+    value: Any,
+    comparison: Optional[str],
+    target: Any,
+    text_max: Optional[int] = None,
+) -> bool:
+    """Python twin of the webapp comparison switch (``evaluateCondition``).
+    ``text_max``: see ``_capped``."""
+    value = _capped(value, text_max)
     if comparison == "IS_EMPTY":
         return _is_empty(value)
     if comparison == "IS_NOT_EMPTY":
@@ -202,7 +223,11 @@ def _choice_tokens(chosen: str, source: Any) -> List[str]:
 
 
 def _evaluate_choice_condition(
-    answer: Any, source: Any, comparison: Optional[str], target: Any
+    answer: Any,
+    source: Any,
+    comparison: Optional[str],
+    target: Any,
+    text_max: Optional[int] = None,
 ) -> bool:
     """A condition on a choice question. The answer holds option ids (and
     the text typed as "Other"); the condition names an option by its text or
@@ -220,7 +245,7 @@ def _evaluate_choice_condition(
         ]
         if _filled_text(many.get("other")):
             tokens.append(_text(many["other"]))
-        return compare(tokens, comparison, target)
+        return compare(tokens, comparison, target, text_max)
     one = _as_dict(answer.get("choice"))
     one = one if isinstance(one, dict) else {}
     tokens = (
@@ -231,8 +256,8 @@ def _evaluate_choice_condition(
     if _filled_text(one.get("other")):
         tokens.append(_text(one["other"]))
     if not tokens:
-        return compare(None, comparison, target)
-    results = [compare(token, comparison, target) for token in tokens]
+        return compare(None, comparison, target, text_max)
+    results = [compare(token, comparison, target, text_max) for token in tokens]
     return all(results) if comparison in NEGATED_COMPARISONS else any(results)
 
 
@@ -240,6 +265,7 @@ def evaluate_condition(
     answers: Dict[str, Any],
     condition: Any,
     sources: Optional[Dict[str, Any]] = None,
+    text_max: Optional[int] = None,
 ) -> bool:
     condition = _as_dict(condition) or {}
     get = lambda snake, camel: condition.get(snake, condition.get(camel))  # noqa: E731
@@ -250,7 +276,7 @@ def evaluate_condition(
     if group_mode:
         items = group_items(answers.get(field_id))
         if group_mode == "COUNT":
-            return compare(len(items), comparison, target)
+            return compare(len(items), comparison, target, text_max)
         child = {
             "field_id": get("child_field_id", "childFieldId"),
             "field_type": get("child_field_type", "childFieldType"),
@@ -260,7 +286,8 @@ def evaluate_condition(
         if not child["field_id"]:
             return False
         matches = [
-            evaluate_condition({**answers, **item}, child, sources) for item in items
+            evaluate_condition({**answers, **item}, child, sources, text_max)
+            for item in items
         ]
         if group_mode == "ANY":
             return any(matches)
@@ -270,10 +297,14 @@ def evaluate_condition(
     field_type = get("field_type", "fieldType")
     if field_type in CHOICE_TYPES:
         return _evaluate_choice_condition(
-            answers.get(field_id), (sources or {}).get(field_id), comparison, target
+            answers.get(field_id),
+            (sources or {}).get(field_id),
+            comparison,
+            target,
+            text_max,
         )
     value = comparable_answer_value(answers.get(field_id), field_type)
-    return compare(value, comparison, target)
+    return compare(value, comparison, target, text_max)
 
 
 def evaluate_conditions(
@@ -281,10 +312,12 @@ def evaluate_conditions(
     conditions: Any,
     answers: Dict[str, Any],
     sources: Optional[Dict[str, Any]] = None,
+    text_max: Optional[int] = None,
 ) -> bool:
     """Fold conditions with AND/OR. ``sources``: the form's questions by id
     (``logic_sources``), which a condition on a choice question needs to
-    match an option's text; without it, only option ids match."""
+    match an option's text; without it, only option ids match. ``text_max``:
+    see ``_capped`` (field rules set it; logic does not)."""
     valid = [
         c
         for c in (_as_dict(c) for c in (conditions or []))
@@ -292,7 +325,7 @@ def evaluate_conditions(
     ]
     if not valid:
         return False
-    results = [evaluate_condition(answers, c, sources) for c in valid]
+    results = [evaluate_condition(answers, c, sources, text_max) for c in valid]
     return any(results) if operator == "OR" else all(results)
 
 

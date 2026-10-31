@@ -126,10 +126,15 @@ the form's own rules is not the respondent's to fix. A question hidden by
   the group (use `groupMode` on the group).
 - Values that rules set and calculated fields can read each other, but not
   in a circle. The server evaluates them in dependency order, so a condition
-  on a calculated or set value sees the final one.
+  on a calculated or set value sees the final one. Where such a circle is
+  stored anyway (data no save accepts), the questions in it have no value
+  and are still locked.
+- A condition reads a text of at most 10,000 characters (as the inputs of an
+  expression do): a longer one counts as empty.
 
 A rule that reads something the form does not have (a question that was
-removed) is not active. A rule whose trigger reads a hidden field (a URL
+removed, or one respondents are never served, an internal field) is not
+active. A rule whose trigger reads a hidden field (a URL
 parameter) is controlled by whoever opens the link, as with `logic`: do not
 use one to require or lock something the respondent must not escape. Validation and the API refuse a document whose
 rules break these rules (`errors` with JSON pointers). The builder's
@@ -301,8 +306,8 @@ should pass every case.
 - `expect` without `error` means every operation applies.
 - `engines` (optional): the engines that run the case. A case without it is
   run by every implementation; `["backend"]` marks behaviour the form
-  builder's TypeScript engine does not have yet (field rules). A case that
-  brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
+  builder's TypeScript engine does not have. A case that brings field rules
+  assumes the server setting `FIELD_RULES_ENABLED` is on.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.
