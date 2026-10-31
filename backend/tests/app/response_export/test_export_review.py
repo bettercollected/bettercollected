@@ -246,6 +246,9 @@ async def test_a_refused_bulk_read_leaves_no_entry(client: AsyncClient, workspac
     form = await publish(workspace)
     path = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/all-submissions"
     assert (await client.get(path, cookies=_cookies(testUser1))).status_code == 403
+    missing = f"/api/v1/workspaces/{workspace.id}/forms/nope/all-submissions"
+    refused = await client.get(missing, cookies=_cookies(testUser))
+    assert refused.status_code == 404 and refused.json() == "Form not found in the workspace."
     assert await repo().many() == []
 
 

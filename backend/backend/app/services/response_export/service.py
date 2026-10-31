@@ -236,7 +236,9 @@ class ResponseExportService:
         JSON. It is an export like any other, so it takes the same permission,
         rate limit and audit entry (channel ``all_submissions``, one row per
         read, never an answer)."""
-        await self._authorize(user, workspace_id, form_id)
+        # the permission first (403 for a role that may not export); the form is
+        # checked, with its own 404, when the responses are read
+        await self._authorization.authorize(user, Permission.RESPONSE_EXPORT, workspace_id)
         verdict = await self._limiter.hit(
             f"response-export:{workspace_id}:{form_id}",
             str(user.id),
@@ -250,26 +252,25 @@ class ResponseExportService:
                 f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
                 **{"Retry-After": str(verdict.retry_after)},
             )
+        responses = await self._responses.get_workspace_form_all_submissions(
+            form_id, workspace_id, user
+        )
         now = self._clock()
-        entry = ResponseExportDocument(
-            workspace_id=workspace_id,
-            form_id=form_id,
-            actor_id=str(user.id),
-            channel="all_submissions",
-            kind=ExportKind.STREAM,
-            status=ExportStatus.STREAMING,
-            format="json",
-            started_at=now,
-        ).ensure_id()
-        await self._exports.save(entry)
-        try:
-            responses = await self._responses.get_workspace_form_all_submissions(
-                form_id, workspace_id, user
+        await self._exports.save(
+            ResponseExportDocument(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                actor_id=str(user.id),
+                channel="all_submissions",
+                kind=ExportKind.STREAM,
+                status=ExportStatus.COMPLETED,
+                format="json",
+                expected_rows=len(responses),
+                row_count=len(responses),
+                started_at=now,
+                finished_at=now,
             )
-        except BaseException:
-            await _settle(self._finish_stream(entry, 0, False))
-            raise
-        await _settle(self._finish_stream(entry, len(responses), True))
+        )
         return responses
 
     # ------------------------------------------------------------------- request
