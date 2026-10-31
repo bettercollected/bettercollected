@@ -42,8 +42,9 @@ def is_tag(value: object) -> bool:
 
 
 def tag_key(value: str) -> str:
-    """What two tags are compared by: the text without case."""
-    return value.lower()
+    """What two tags are compared by: the text in Unicode form C (a precomposed
+    and a decomposed letter are the same) and in lower case."""
+    return unicodedata.normalize("NFC", value).lower()
 
 
 def duplicate_index(tags: Iterable[str]) -> Optional[int]:

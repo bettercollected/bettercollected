@@ -649,6 +649,15 @@ def type_problem(
     if not isinstance(answer, dict):
         return TYPE
     field_type = _type(field)
+    if field_type == "tags" and answer.get("tags") is not None:
+        # whenever the slot is there (nothing in it that "counts" as a value
+        # or not): a list of text only, and the hard rules for every entry
+        tags = answer["tags"]
+        if not (isinstance(tags, list) and all(isinstance(tag, str) for tag in tags)):
+            return TYPE
+        hard = _tags_hard_problem(tags)
+        if hard:
+            return hard
     given = _given_slots(answer)
     if not given:
         return None

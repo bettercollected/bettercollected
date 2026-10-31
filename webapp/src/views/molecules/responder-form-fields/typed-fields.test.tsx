@@ -17,7 +17,7 @@ import { checkAnswerRules } from '@app/utils/answer-rules';
 import CurrencyField from './currency-field';
 import DateRangeField from './date-range-field';
 import DayField from './day-field';
-import TagsField from './tags-field';
+import TagsField, { addTags } from './tags-field';
 import TimeField from './time-field';
 
 // A field rule that locks the question (read-only, or the form sets its value).
@@ -495,5 +495,14 @@ describe('TagsField', () => {
         await screen.findByText(/already added/);
         const results = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
         expect(results.violations.map((v) => v.id)).toEqual([]);
+    });
+
+    it('says where a refused tag starts in the text, whatever lowercasing does to its length', () => {
+        // U+0130 (a capital I with a dot) is longer in lower case: positions must come from the text as typed
+        const result = addTags(['İ'], '  İ, ok;İ', topics);
+        expect(result.refusal).toMatchObject({ reason: 'duplicate', tag: 'İ', at: 2 });
+        expect('  İ, ok;İ'.slice(result.refusal!.at)).toBe('İ, ok;İ');
+        expect(addTags([], 'a, b,  İ\nİ', plainTags).refusal).toMatchObject({ reason: 'duplicate', at: 9 });
+        expect(addTags([], 'ok, a,b', plainTags)).toMatchObject({ added: ['ok', 'a', 'b'] });
     });
 });

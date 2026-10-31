@@ -429,13 +429,17 @@ def column_letter(count: int) -> str:
     return letters
 
 
-FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+# JavaScript's ``\s`` (the browser export's guard) and the server export's: Python's differs (it adds the C0
+# separators and leaves out the byte order mark). A formula after leading whitespace still runs in a spreadsheet.
+_JS_SPACE = " \t\n\x0b\x0c\r\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_FORMULA_START = re.compile(rf"[\t\r]|[{_JS_SPACE}]*[=+\-@]")
 
 
 def formula_safe(value: Any) -> Any:
-    """Spreadsheets run cells starting with = + - @ (or tab / CR) as
-    formulas. Such strings get a leading ``'`` so they stay text; numbers
-    and other values are returned unchanged."""
-    if isinstance(value, str) and value.startswith(FORMULA_PREFIXES):
+    """Spreadsheets run cells starting with = + - @ (also after leading
+    whitespace) or a tab / CR as formulas. Such strings get a leading ``'`` so
+    they stay text, as in the server's export; numbers and other values are
+    returned unchanged."""
+    if isinstance(value, str) and _FORMULA_START.match(value):
         return "'" + value
     return value

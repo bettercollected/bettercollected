@@ -39,3 +39,34 @@ describe('rules on time, day and currency questions (the same as the backend)', 
         expect(problem.message).toContain('short and long text, number, date, day, time, currency, yes/no and single-choice questions');
     });
 });
+
+describe('a rule on a date range question', () => {
+    const range = (variable: string): FormDoc =>
+        ({
+            title: 'Typed rules',
+            builderVersion: 'v2',
+            fields: [
+                {
+                    id: 'p1',
+                    index: 0,
+                    type: 'slide',
+                    properties: {
+                        fields: [
+                            { id: 's', index: 0, type: 'date_range', title: 'Stay', properties: { rules: [{ id: 'r1', when: { expression: { '>': [{ date_diff_days: [{ var: variable }, { var: 's.end' }] }, 3] } }, then: { required: true } }] } },
+                            { id: 'b', index: 1, type: 'short_text', title: 'B', properties: { rules: [{ id: 'r2', when: { expression: { '>': [{ date_diff_days: [{ var: 's.start' }, { var: 's.end' }] }, 3] } }, then: { required: true } }] } }
+                        ]
+                    }
+                }
+            ]
+        }) as unknown as FormDoc;
+
+    it.each(['s.start', 's.end'])('cannot read its own %s', (variable) => {
+        const problems = fieldRuleProblems(range(variable)).filter((problem) => problem.fieldId === 's');
+        expect(problems.length).toBeGreaterThan(0);
+        expect(problems[0].message).toContain("own value");
+    });
+
+    it('is read freely by the rules of other questions', () => {
+        expect(fieldRuleProblems(range('s.start')).filter((problem) => problem.fieldId === 'b')).toEqual([]);
+    });
+});

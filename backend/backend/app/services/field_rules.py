@@ -287,6 +287,12 @@ def _rule_reads(rule: Any) -> List[str]:
     ]
 
 
+def _is_own_key(key: str, owner: str) -> bool:
+    """Is ``key`` the question's own value? A date range reads as two
+    variables, ``<id>.start`` and ``<id>.end``: both are its own."""
+    return key == owner or key in (f"{owner}.start", f"{owner}.end")
+
+
 def _answer_key(key: str) -> str:
     """The answers key a variable reads (``<group>.<child>`` reads the
     group's answer)."""
@@ -410,7 +416,7 @@ def _dangling(rule: Any, owner: str, scope: _Scope) -> bool:
     when = _get(rule, "when")
     if _get(when, "expression") is not None:
         reads = expression_variables(_get(when, "expression"))
-        if any(key not in scope.known or key == owner for key in reads):
+        if any(key not in scope.known or _is_own_key(key, owner) for key in reads):
             return True
     else:
         for condition in _get(when, "conditions") or []:
@@ -422,7 +428,9 @@ def _dangling(rule: Any, owner: str, scope: _Scope) -> bool:
                 not child or str(child) not in scope.sources
             ):
                 return True
-    return any(key not in scope.known or key == owner for key in _value_reads(rule))
+    return any(
+        key not in scope.known or _is_own_key(key, owner) for key in _value_reads(rule)
+    )
 
 
 def _evaluate(ast: Any, scope: _Scope) -> Any:
@@ -1256,10 +1264,10 @@ class _Checker:
             )
             return
         for key in keys:
-            if reads(key) and key != target.id and key not in self.internal:
+            if reads(key) and not _is_own_key(key, target.id) and key not in self.internal:
                 continue
             path = _pointer(index, *where) + _var_pointer(ast, key)
-            if key == target.id:
+            if _is_own_key(key, target.id):
                 self.add(
                     target.id,
                     path,

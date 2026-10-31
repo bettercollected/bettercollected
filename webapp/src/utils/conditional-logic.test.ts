@@ -566,7 +566,9 @@ describe('date range and tags conditions', () => {
         expect(holds(cond('tags', Comparison.CONTAINS, 'halal'), tags('vegan'))).toBe(false);
         expect(holds(cond('tags', Comparison.DOES_NOT_CONTAIN, 'Halal'), tags('vegan'))).toBe(true);
         expect(holds(cond('tags', Comparison.DOES_NOT_CONTAIN, 'VEGAN'), tags('vegan'))).toBe(false);
-        expect(holds(cond('tags', Comparison.IS_EQUAL, 'Gluten Free'), tags('vegan', 'gluten free'))).toBe(true);
+        // only contains / does not contain / is empty / is not empty apply to tags
+        expect(holds(cond('tags', Comparison.IS_EQUAL, 'Gluten Free'), tags('vegan', 'gluten free'))).toBe(false);
+        expect(holds(cond('tags', Comparison.STARTS_WITH, 'veg'), tags('vegan'))).toBe(false);
         // a label is a whole tag, not part of one
         expect(holds(cond('tags', Comparison.CONTAINS, 'veg'), tags('vegan'))).toBe(false);
     });
@@ -583,5 +585,20 @@ describe('date range and tags conditions', () => {
         const group = { fieldId: 'g', fieldType: 'group', groupMode: 'ANY', childFieldId: 'q', childFieldType: 'date_range', comparison: Comparison.CONTAINS, value: '2026-11-05' } as any;
         expect(evaluateConditions(undefined, [group], { g: { type: 'group', items: [{ q: stay('2026-01-01', '2026-01-02') }, { q: stay('2026-11-03', '2026-11-07') }] } })).toBe(true);
         expect(evaluateConditions(undefined, [group], { g: { type: 'group', items: [{ q: stay('2026-01-01', '2026-01-02') }] } })).toBe(false);
+    });
+
+    it('does not compare a list with starts-with, ends-with or an order, whatever the list is', () => {
+        const tags = { type: 'tags', tags: ['Vegan', 'quiet'] };
+        for (const comparison of [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL]) {
+            expect(holds(cond('tags', comparison, 'veg'), tags)).toBe(false);
+            expect(holds(cond('tags', comparison, 'iet'), tags)).toBe(false);
+        }
+        // a single number in a list is no number either
+        expect(holds(cond('tags', Comparison.GREATER_THAN, '3'), { type: 'tags', tags: ['5'] })).toBe(false);
+        expect(holds(cond('tags', Comparison.CONTAINS, 'VEGAN'), tags)).toBe(true);
+    });
+
+    it('compares tags in Unicode form C and ignoring case', () => {
+        expect(holds(cond('tags', Comparison.CONTAINS, 'cafe\u0301'), { type: 'tags', tags: ['Caf\u00e9'] })).toBe(true);
     });
 });

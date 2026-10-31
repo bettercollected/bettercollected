@@ -576,10 +576,16 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
 export const VALUELESS_COMPARISONS = new Set(['IS_EMPTY', 'IS_NOT_EMPTY']);
 /** What a condition on a date range question may ask (backend DATE_RANGE_COMPARISONS, `compareDateRange`). */
 const DATE_RANGE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN', 'GREATER_THAN', 'LESS_THAN']);
+/** What a condition on a tags question may ask with a value (backend TAGS_VALUE_COMPARISONS). */
+const TAGS_VALUE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN']);
 const COUNT_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LESS_THAN', 'LESS_THAN_EQUAL']);
 
 function validatedValue(source: FormField, comparison: string, raw: any): any {
     if (VALUELESS_COMPARISONS.has(comparison)) return undefined;
+    if (source.type === FieldTypes.TAGS && !TAGS_VALUE_COMPARISONS.has(comparison)) {
+        // a list of labels has no beginning, end or order to compare
+        throw new OpError('A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, IS_EMPTY or IS_NOT_EMPTY.');
+    }
     if (raw === null || raw === undefined || raw === '') throw new OpError(`Comparison '${comparison}' needs a value.`);
     if (CHOICE_FIELD_TYPES.has(source.type)) {
         const labels = (source.properties?.choices ?? []).map((c: any) => c.value);

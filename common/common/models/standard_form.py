@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
 from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
+from common.tags import TAG_LENGTH_MAX, TAGS_MAX
 from common.ids import RecordId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 from pydantic import (
@@ -1295,11 +1296,34 @@ class StandardFormField(BaseModel):
     def _check_repeating_group(self):
         check_repeating_group_structure(self)
         check_field_date_rules(self)
+        check_tags_settings(self)
         return self
 
 
 def _type_value(field_type: Any) -> Optional[str]:
     return getattr(field_type, "value", field_type)
+
+
+def check_tags_settings(field: Any) -> None:
+    """The limits of a tags question: at most 30 tags (``maxChoices`` 1 to 30,
+    ``minChoices`` 0 to 30, the fewest not above the most) and a tag of 1 to 40
+    characters (``maxLength``). Anything else makes the question unanswerable,
+    so every path that writes a question refuses it. Raises ``ValueError``."""
+    if _type_value(getattr(field, "type", None)) != "tags":
+        return
+    rules = getattr(field, "validations", None)
+    if rules is None:
+        return
+    low, high = rules.min_choices, rules.max_choices
+    length = rules.max_length
+    if low is not None and not 0 <= low <= TAGS_MAX:
+        raise ValueError(f"The fewest tags is between 0 and {TAGS_MAX}.")
+    if high is not None and not 1 <= high <= TAGS_MAX:
+        raise ValueError(f"The most tags is between 1 and {TAGS_MAX}.")
+    if low is not None and high is not None and low > high:
+        raise ValueError("The fewest tags is more than the most.")
+    if length is not None and not 1 <= length <= TAG_LENGTH_MAX:
+        raise ValueError(f"The length of a tag is between 1 and {TAG_LENGTH_MAX} characters.")
 
 
 def check_repeating_group_structure(field: Any) -> None:

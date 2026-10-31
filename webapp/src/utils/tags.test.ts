@@ -59,6 +59,12 @@ describe('tags', () => {
         expect(isTag(`${character}red`)).toBe(false);
     });
 
+    it('compares in Unicode form C: a precomposed and a decomposed letter are one tag', () => {
+        expect(tagKey('caf\u00e9')).toBe(tagKey('cafe\u0301'));
+        expect(duplicateIndex(['caf\u00e9', 'cafe\u0301'])).toBe(1);
+        expect(duplicateIndex(['cafe', 'caf\u00e9'])).toBeNull();
+    });
+
     it('compares ignoring case with toLowerCase, and finds the first repeat', () => {
         expect(tagKey('VeGaN')).toBe('vegan');
         expect(duplicateIndex(['a', 'b', 'c'])).toBeNull();

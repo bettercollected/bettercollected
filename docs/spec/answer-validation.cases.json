@@ -11993,44 +11993,6 @@
       "errors": []
     },
     {
-      "name": "tags with a length limit above the hard cap",
-      "checks": [
-        "rules"
-      ],
-      "form": [
-        {
-          "id": "p1",
-          "type": "slide",
-          "properties": {
-            "fields": [
-              {
-                "id": "q1",
-                "type": "tags",
-                "title": "q1",
-                "validations": {
-                  "maxLength": 100
-                }
-              }
-            ]
-          }
-        }
-      ],
-      "answers": {
-        "q1": {
-          "type": "tags",
-          "tags": [
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-          ]
-        }
-      },
-      "errors": [
-        {
-          "fieldId": "q1",
-          "rule": "too_long"
-        }
-      ]
-    },
-    {
       "name": "tags with the same label twice",
       "checks": [
         "rules"
@@ -12354,74 +12316,6 @@
                 "id": "q1",
                 "type": "tags",
                 "title": "q1"
-              }
-            ]
-          }
-        }
-      ],
-      "answers": {
-        "q1": {
-          "type": "tags",
-          "tags": [
-            "t0",
-            "t1",
-            "t2",
-            "t3",
-            "t4",
-            "t5",
-            "t6",
-            "t7",
-            "t8",
-            "t9",
-            "t10",
-            "t11",
-            "t12",
-            "t13",
-            "t14",
-            "t15",
-            "t16",
-            "t17",
-            "t18",
-            "t19",
-            "t20",
-            "t21",
-            "t22",
-            "t23",
-            "t24",
-            "t25",
-            "t26",
-            "t27",
-            "t28",
-            "t29",
-            "t30"
-          ]
-        }
-      },
-      "errors": [
-        {
-          "fieldId": "q1",
-          "rule": "too_many_choices"
-        }
-      ]
-    },
-    {
-      "name": "tags over a limit above the hard cap",
-      "checks": [
-        "rules"
-      ],
-      "form": [
-        {
-          "id": "p1",
-          "type": "slide",
-          "properties": {
-            "fields": [
-              {
-                "id": "q1",
-                "type": "tags",
-                "title": "q1",
-                "validations": {
-                  "maxChoices": 50
-                }
               }
             ]
           }
@@ -15382,6 +15276,600 @@
           "rule": "too_many_choices"
         }
       ]
+    },
+    {
+      "name": "tags are not compared with starts-with",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "STARTS_WITH",
+                        "value": "veg"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "Vegan",
+            "quiet"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags are not compared with ends-with",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "ENDS_WITH",
+                        "value": "iet"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "Vegan",
+            "quiet"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags are not compared with is-more-than",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "GREATER_THAN",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "5"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with only a null entry are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            null
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with an empty text and a null are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "",
+            null
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with an empty list inside are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            []
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with an empty object inside are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            {}
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with a hundred nulls are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with only an empty tag is not a tag",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            ""
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question with junk inside is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            null,
+            "a"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags that differ only by a combining accent are the same tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "café",
+            "café"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        }
+      ]
+    },
+    {
+      "name": "tags with different letters are different tags",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "cafe",
+            "café"
+          ]
+        }
+      },
+      "errors": []
     }
   ]
 }

@@ -44,6 +44,10 @@ from backend.app.services.publish_checks import (
     THEME_CONTRAST,
     publish_problems,
 )
+from backend.app.services.repeating_groups import (
+    DATE_RANGE_COMPARISONS,
+    TAGS_COMPARISONS,
+)
 from backend.app.services.retention import checked_retention
 
 # The org's compliance rules are free text: only an AI review reads them.
@@ -136,6 +140,19 @@ def _check_conditions(
             )
             continue
         _, source, source_group = entry
+        allowed = {
+            "tags": TAGS_COMPARISONS,
+            "date_range": DATE_RANGE_COMPARISONS,
+        }.get(str(getattr(source.type, "value", source.type)))
+        comparison = str(getattr(condition.comparison, "value", condition.comparison))
+        if allowed is not None and condition.comparison and comparison not in allowed:
+            problems.append(
+                _problem(
+                    f"{here}/comparison",
+                    f"A condition on '{_title(source)}' ({source.type}) uses one of "
+                    f"{', '.join(allowed)}, not {comparison}.",
+                )
+            )
         if source.internal:
             problems.append(
                 _problem(

@@ -6,3 +6,11 @@
   views and the responses table are written in the app's date style. Taking away the date
   question that a day question's date rule compares with no longer leaves the day question
   unsavable while the new question types are switched off.
+- A tags question only compares with "contains", "does not contain", "is empty" and "is not
+  empty" (in logic, in the form spec and in what the AI and API may write); a tags answer
+  with an entry that is not text is refused wherever the question is answered; the limits
+  of a tags question (up to 30 tags, 1 to 40 characters each, the fewest not above the
+  most) are kept on every path that saves a form; the same tag written two ways in Unicode
+  counts as one; a rule on a date range question can no longer read the question's own
+  start or end; a spreadsheet formula after leading whitespace is kept as text in the
+  Google Sheets action as well.

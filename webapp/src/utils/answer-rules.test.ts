@@ -288,6 +288,19 @@ describe('tags answers', () => {
         expect(checkAnswerRules(f({ maxLength: 2 }), tags('😀😀'))).toEqual([]);
     });
 
+    it('refuses an entry that is not text, whatever else is in the list', () => {
+        for (const junk of [null, undefined, 5, [], {}]) {
+            expect(checkAnswerRules(f(), tags(junk))).toEqual(['FORMAT']);
+            expect(checkAnswerRules(f(), tags('ok', junk))).toEqual(['FORMAT']);
+        }
+        expect(checkAnswerRules(f(), tags(''))).toEqual(['FORMAT']);
+    });
+
+    it('takes a precomposed and a decomposed letter for the same tag', () => {
+        expect(checkAnswerRules(f(), tags('caf\u00e9', 'cafe\u0301'))).toEqual(['DUPLICATE']);
+        expect(checkAnswerRules(f(), tags('cafe', 'caf\u00e9'))).toEqual([]);
+    });
+
     it('refuses a tag written again, ignoring case', () => {
         expect(checkAnswerRules(f(), tags('Vegan', 'vegan'))).toEqual(['DUPLICATE']);
         expect(checkAnswerRules(f(), tags('a', 'b', 'B'))).toEqual(['DUPLICATE']);
@@ -312,7 +325,7 @@ describe('tags answers', () => {
 
     it('is the server’s problem when the answer is not a list of texts', () => {
         expect(checkAnswerRules(f(), { type: 'tags', tags: 'a' })).toEqual([]);
-        expect(checkAnswerRules(f(), tags('a', 3))).toEqual([]);
+        expect(checkAnswerRules(f(), tags('a', 3))).toEqual(['FORMAT']);
         expect(checkAnswerRules(f(), { type: 'text', text: 'a' })).toEqual([]);
     });
 

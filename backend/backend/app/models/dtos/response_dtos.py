@@ -26,6 +26,7 @@ from common.models.standard_form import (
     Theme,
     check_field_date_rules,
     check_repeating_group_structure,
+    check_tags_settings,
     check_type_settings,
 )
 from common.currencies import CURRENCIES_MAX
@@ -173,6 +174,7 @@ class StandardFormFieldCamelModel(CamelModel):
     def _check_repeating_group(self):
         check_repeating_group_structure(self)
         check_field_date_rules(self)
+        check_tags_settings(self)
         return self
 
 

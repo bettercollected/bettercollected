@@ -165,6 +165,8 @@ DATE_RANGE_COMPARISONS = (
     "GREATER_THAN",
     "LESS_THAN",
 )
+# What a condition on a tags question may ask with a value.
+TAGS_VALUE_COMPARISONS = ("CONTAINS", "DOES_NOT_CONTAIN")
 # The comparisons that order values (time and date conditions check their value).
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
@@ -1858,6 +1860,12 @@ COUNT_COMPARISONS = {"IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "GREATER_THAN_E
 def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> Any:
     if comparison in VALUELESS_COMPARISONS:
         return None
+    if source.type == StandardFormFieldType.TAGS and comparison not in TAGS_VALUE_COMPARISONS:
+        # a list of labels has no beginning, end or order to compare
+        raise OpError(
+            "A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, "
+            "IS_EMPTY or IS_NOT_EMPTY."
+        )
     if raw in (None, ""):
         raise OpError(f"Comparison '{comparison}' needs a value.")
     if source.type in CHOICE_TYPES:

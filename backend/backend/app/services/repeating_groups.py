@@ -20,6 +20,7 @@ the required questions of the items a group shows on the respondent's path.)
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from common.currencies import is_time
+from common.tags import tag_key
 from common.expressions import format_expression_value
 from common.models.standard_form import (
     StandardForm,
@@ -319,6 +320,17 @@ def _evaluate_choice_condition(
     return all(results) if comparison in NEGATED_COMPARISONS else any(results)
 
 
+# What a condition on a tags question or on a date range question may ask
+# (the rest has no meaning for a list of labels or for two days).
+TAGS_COMPARISONS = ("CONTAINS", "DOES_NOT_CONTAIN", "IS_EMPTY", "IS_NOT_EMPTY")
+DATE_RANGE_COMPARISONS = (
+    "CONTAINS",
+    "DOES_NOT_CONTAIN",
+    "GREATER_THAN",
+    "LESS_THAN",
+    "IS_EMPTY",
+    "IS_NOT_EMPTY",
+)
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
     "GREATER_THAN_EQUAL",
@@ -410,12 +422,16 @@ def evaluate_condition(
     if field_type == "date_range":
         return _date_range_condition(answers.get(field_id), comparison, target)
     if field_type == "tags":
+        # a list of labels has no beginning, end or order to compare: only
+        # these hold (the spec check and the operations refuse the others)
+        if comparison not in TAGS_COMPARISONS:
+            return False
         # tags are compared ignoring case
         tags = comparable_answer_value(answers.get(field_id), field_type)
         return compare(
-            [tag.lower() for tag in tags] if tags else tags,
+            [tag_key(tag) for tag in tags] if tags else tags,
             comparison,
-            target.lower() if isinstance(target, str) else target,
+            tag_key(target) if isinstance(target, str) else target,
             text_max,
         )
     if field_type in ORDERED_TEXT_TYPES and comparison in ORDERED_COMPARISONS:

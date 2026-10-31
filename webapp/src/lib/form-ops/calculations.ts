@@ -7,6 +7,7 @@
  */
 import { validateExpression } from '@app/lib/expressions/validator';
 import { FieldTypes } from '@app/models/dtos/form';
+import { questionVariableKeys } from '@app/utils/calculated-fields';
 
 import { findCycle } from './date-rules';
 import { OpError, isRepeatingGroup, isSlide, pyStrip } from './model';
@@ -131,11 +132,11 @@ export function variableKeys(doc: FormDoc): Set<string> {
     for (const field of pageFields(doc)) {
         if (!field.id || field.internal) continue;
         if (isRepeatingGroup(field)) {
-            for (const child of (field.properties?.fields as FormField[] | undefined) ?? []) if (child?.id && !child.internal) keys.add(`${field.id}.${child.id}`);
+            for (const child of (field.properties?.fields as FormField[] | undefined) ?? []) if (child?.id && !child.internal) for (const key of questionVariableKeys(child as any, `${field.id}.`)) keys.add(key);
             continue;
         }
         if (NOT_VARIABLES.has(field.type) || field.type === FieldTypes.GROUP) continue;
-        keys.add(String(field.id));
+        for (const key of questionVariableKeys(field as any)) keys.add(key);
     }
     return keys;
 }

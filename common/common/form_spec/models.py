@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from common.currencies import CURRENCIES_MAX, is_currency_code
 from common.models.standard_form import (
+    check_tags_settings,
     CALCULATION_MAX_DECIMALS,
     DATE_RULES_MAX,
     ENDING_BUTTON_TEXT_MAX_LENGTH,
@@ -684,6 +685,7 @@ class FormField(_Spec):
                     raise ValueError(f"'{code}' is not a currency the form offers.")
             if len(set(self.currencies)) != len(self.currencies):
                 raise ValueError("A currency is listed twice.")
+        check_tags_settings(self)
         return self
 
 

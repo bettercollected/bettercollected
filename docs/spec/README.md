@@ -83,7 +83,10 @@ not empty, without `,` or `;` (they separate tags in the box and in an export)
 or control or format characters (zero-width and bidirectional marks, the byte
 order mark, the soft hyphen: they reverse or hide text and defeat the
 comparison), and no two tags are the same ignoring case; a question holds at
-most 30 tags of at most 40 characters, and its own limits can only be lower.
+most 30 tags of at most 40 characters, and its own limits can only be lower
+(`maxChoices` 1 to 30, `minChoices` 0 to 30 and not above the most, `maxLength` 1 to 40:
+every path that writes a question refuses others, the model, the spec, the builder save
+and the operations).
 These hard rules hold for every stored tags answer, a hidden or skipped
 question's too; the question's own limits are checked for the questions a
 respondent answers. The server refuses an answer with the rule codes `format` (a day that
@@ -101,8 +104,13 @@ A logic condition on a range compares it with a day: `CONTAINS` (the range
 includes the day), `DOES_NOT_CONTAIN`, `GREATER_THAN` (it starts after the day),
 `LESS_THAN` (it ends before the day), `IS_EMPTY` and `IS_NOT_EMPTY`; it needs
 both ends and a well-formed day, else it does not hold. Tags read as a list, like
-a multiple choice, compared ignoring case (`CONTAINS`, `DOES_NOT_CONTAIN`,
-`IS_EMPTY`...). Field rules do not set the value of either type. In the exports a
+a multiple choice, compared ignoring case and in Unicode form C (a precomposed
+and a decomposed letter are the same tag): a condition on them is `CONTAINS`,
+`DOES_NOT_CONTAIN`, `IS_EMPTY` or `IS_NOT_EMPTY`, and the spec check and the edit
+operations refuse the others (a list has no beginning, end or order; in a
+condition, `STARTS_WITH`, `ENDS_WITH` and the ordered comparisons never hold for
+a list, a multiple choice's too). A rule on a range cannot read its own
+`<id>.start` or `<id>.end`. Field rules do not set the value of either type. In the exports a
 range is `YYYY-MM-DD/YYYY-MM-DD` (an ISO 8601 interval, an end that is missing
 leaves its side empty) and tags are one cell, joined with `; `, with the CSV's
 formula guard as for every cell.
@@ -486,8 +494,8 @@ should pass every case.
   brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
 - `newQuestionTypes` (optional, default `true`): the state of the switch for the
   newer question types (the server setting `NEW_QUESTION_TYPES_ENABLED`) in
-  that case. With `false`, an operation that adds a `time`, `day` or `currency`
-  question, or changes the type or the settings of one the form's `before` did
+  that case. With `false`, an operation that adds a `time`, `day`, `currency`,
+  `date_range` or `tags` question, or changes the type or the settings of one the form's `before` did
   not have in the same state, fails with a message containing
   `NEW_QUESTION_TYPES_ENABLED`; questions `before` already holds, and edits to
   them that leave their type and settings alone, still apply. Both engines

@@ -315,3 +315,148 @@ def test_a_group_item_can_hold_a_range_and_tags():
     bad = {"g": {"type": "group", "items": [{"stay": _range("2026-01-05", "2026-01-03"), "likes": {"type": "tags", "tags": ["a", "A"]}}]}}
     rules = sorted((p.field_id, p.rule) for p in validate_answers(form, bad))
     assert rules == [("likes", "duplicate"), ("stay", "range_order")]
+
+
+# --- the limits of a tags question hold on every path --------------------------------
+
+
+@pytest.mark.parametrize(
+    "validations,message",
+    [
+        ({"maxChoices": 0}, "most tags is between 1 and 30"),
+        ({"maxChoices": 31}, "most tags is between 1 and 30"),
+        ({"minChoices": 31}, "fewest tags is between 0 and 30"),
+        ({"minChoices": 5, "maxChoices": 3}, "fewest tags is more than the most"),
+        ({"maxLength": 0}, "length of a tag is between 1 and 40"),
+        ({"maxLength": 999}, "length of a tag is between 1 and 40"),
+    ],
+)
+def test_a_tags_question_cannot_be_given_limits_that_leave_nothing_to_answer(validations, message):
+    from pydantic import ValidationError
+
+    from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
+    from common.form_spec.models import FormField
+    from common.models.standard_form import StandardFormField
+
+    field = {"id": "t", "type": "tags", "title": "Topics"}
+    with pytest.raises(ValidationError, match=message):
+        StandardFormField.model_validate({**field, "validations": _snake(validations)})
+    with pytest.raises(ValidationError, match=message):
+        StandardFormFieldCamelModel.model_validate({**field, "validations": validations})
+    with pytest.raises(ValidationError, match=message):
+        FormField.model_validate({"id": "t", "type": "tags", "title": "Topics", "validations": _snake(validations)})
+    # the same limits on a question of another type are not this check's
+    StandardFormField.model_validate({**field, "type": "multiple_choice", "validations": _snake(validations)})
+
+
+def _snake(validations):
+    names = {"minChoices": "min_choices", "maxChoices": "max_choices", "maxLength": "max_length"}
+    return {names[key]: value for key, value in validations.items()}
+
+
+def test_the_limits_within_the_caps_are_taken():
+    from common.models.standard_form import StandardFormField
+
+    for validations in ({"min_choices": 0}, {"max_choices": 30, "max_length": 40}, {"min_choices": 3, "max_choices": 3}, {"max_length": 1}):
+        StandardFormField.model_validate({"id": "t", "type": "tags", "title": "Topics", "validations": validations})
+
+
+def test_a_spec_document_with_impossible_tag_limits_is_not_valid():
+    from backend.app.services.form_spec.checks import check_spec_document
+
+    spec = {
+        "specVersion": "1",
+        "title": "T",
+        "pages": [{"id": "p1", "fields": [{"id": "t", "type": "tags", "title": "Topics", "validations": {"maxChoices": 0, "maxLength": 999}}]}],
+    }
+    result = check_spec_document(spec)
+    assert result["valid"] is False
+    assert any("tags" in e["message"] for e in result["errors"])
+
+
+# --- what a condition on these questions may ask -------------------------------------
+
+
+@pytest.mark.parametrize("kind,comparison,allowed", [
+    ("tags", "STARTS_WITH", False),
+    ("tags", "ENDS_WITH", False),
+    ("tags", "GREATER_THAN", False),
+    ("tags", "CONTAINS", True),
+    ("tags", "IS_EMPTY", True),
+    ("date_range", "STARTS_WITH", False),
+    ("date_range", "IS_EQUAL", False),
+    ("date_range", "CONTAINS", True),
+    ("date_range", "GREATER_THAN", True),
+])
+def test_the_spec_check_refuses_a_comparison_a_tags_or_range_question_cannot_make(kind, comparison, allowed):
+    from backend.app.services.form_spec.checks import check_spec_document
+
+    spec = {
+        "specVersion": "1",
+        "title": "T",
+        "pages": [
+            {
+                "id": "p1",
+                "fields": [
+                    {"id": "src", "type": kind, "title": "Source"},
+                    {
+                        "id": "q2",
+                        "type": "short_text",
+                        "title": "Asked",
+                        "logic": {"action": "SHOW", "conditions": [{"fieldId": "src", "comparison": comparison, "value": "2026-01-01" if kind == "date_range" else "vegan"}]},
+                    },
+                ],
+            }
+        ],
+    }
+    result = check_spec_document(spec)
+    refused = [e for e in result["errors"] if e["path"].endswith("/comparison")]
+    assert bool(refused) is (not allowed), result["errors"]
+
+
+# --- a rule may not read its own range ----------------------------------------------
+
+
+def test_a_rule_on_a_range_cannot_read_its_own_days():
+    from backend.app.services.field_rules import field_rule_problems
+
+    def form(variable):
+        return _form(
+            [
+                {
+                    "id": "p1",
+                    "type": "slide",
+                    "properties": {
+                        "fields": [
+                            {
+                                "id": "stay",
+                                "type": "date_range",
+                                "title": "Stay",
+                                "properties": {
+                                    "rules": [
+                                        {
+                                            "id": "r1",
+                                            "when": {"expression": {">": [{"date_diff_days": [{"var": variable}, {"var": "stay.end"}]}, 3]}},
+                                            "then": {"required": True},
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                }
+            ]
+        )
+
+    for variable in ("stay.start", "stay.end"):
+        problems = field_rule_problems(form(variable))
+        assert any("own value" in p.message for p in problems), variable
+    # a rule on another question reads the range freely
+    reader = {
+        "id": "b",
+        "type": "short_text",
+        "title": "B",
+        "properties": {"rules": [{"id": "r2", "when": {"expression": {">": [{"date_diff_days": [{"var": "s.start"}, {"var": "s.end"}]}, 3]}}, "then": {"required": True}}]},
+    }
+    other = _form([{"id": "p1", "type": "slide", "properties": {"fields": [{"id": "s", "type": "date_range", "title": "S"}, reader]}}])
+    assert field_rule_problems(other) == []

@@ -215,11 +215,14 @@ interface Scope {
     costs: Map<FieldRule, number>;
 }
 
+/** Is `key` the question's own value? A date range reads as two variables, `<id>.start` and `<id>.end`: both are its own (backend `_is_own_key`). */
+export const isOwnKey = (key: string, owner: string): boolean => key === owner || key === `${owner}.start` || key === `${owner}.end`;
+
 /** Does the rule read something the form does not have, or its own question? Such a rule is never active. */
 function dangling(rule: FieldRule, owner: string, scope: Scope): boolean {
     const when = rule.when;
     if (present(when?.expression)) {
-        if (expressionVariables(when.expression).some((key) => !scope.known.has(key) || key === owner)) return true;
+        if (expressionVariables(when.expression).some((key) => !scope.known.has(key) || isOwnKey(key, owner))) return true;
     } else {
         for (const condition of when?.conditions ?? []) {
             const source = String(condition?.fieldId ?? '');
@@ -228,7 +231,7 @@ function dangling(rule: FieldRule, owner: string, scope: Scope): boolean {
             if ((condition?.groupMode === 'ANY' || condition?.groupMode === 'ALL') && (!child || !(String(child) in scope.sources))) return true;
         }
     }
-    return valueReads(rule).some((key) => !scope.known.has(key) || key === owner);
+    return valueReads(rule).some((key) => !scope.known.has(key) || isOwnKey(key, owner));
 }
 
 function evaluate(ast: unknown, scope: Scope): ExprValue {

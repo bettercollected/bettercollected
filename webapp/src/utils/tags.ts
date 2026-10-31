@@ -25,8 +25,8 @@ export function isTag(value: unknown): value is string {
     return typeof value === 'string' && value !== '' && !EDGE_SPACE.test(value) && !FORBIDDEN.test(value);
 }
 
-/** What two tags are compared by: the text without case. */
-export const tagKey = (value: string): string => value.toLowerCase();
+/** What two tags are compared by: the text in Unicode form C (a precomposed and a decomposed letter are the same), in lower case. */
+export const tagKey = (value: string): string => value.normalize('NFC').toLowerCase();
 
 /** The number of characters (code points, as the server counts them) of a tag. */
 export const tagLength = (value: string): number => Array.from(value).length;

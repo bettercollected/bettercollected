@@ -254,7 +254,9 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
         }
         case 'tags': {
             const tags = answer?.tags;
-            if (!Array.isArray(tags) || !tags.length || !tags.every((tag) => typeof tag === 'string')) break;
+            if (!Array.isArray(tags) || !tags.length) break;
+            // text only (the server says "type"; the browser never builds anything else)
+            if (!tags.every((tag) => typeof tag === 'string')) return ['FORMAT'];
             const limits = tagLimits(field);
             if (!tags.every(isTag)) problems.push('FORMAT');
             if (tags.some((tag) => tagLength(tag) > limits.length)) problems.push('TOO_LONG');

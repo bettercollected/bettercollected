@@ -26,7 +26,8 @@ interface ITagsField {
 export interface TagsAdded {
     tags: string[];
     added: string[];
-    refusal?: { reason: 'duplicate' | 'too_long' | 'too_many' | 'format'; tag: string };
+    /** `at`: where the refused tag starts in the text given (what stays in the box to fix starts there). */
+    refusal?: { reason: 'duplicate' | 'too_long' | 'too_many' | 'format'; tag: string; at: number };
 }
 
 /**
@@ -40,13 +41,17 @@ export function addTags(tags: string[], raw: string, field: StandardFormFieldDto
     const limits = tagLimits(field);
     const next = [...tags];
     const added: string[] = [];
+    let offset = 0;
     for (const part of raw.split(/[,;\n\r]/)) {
         const tag = part.trim();
+        // where this tag starts in `raw` (each separator is one character)
+        const at = offset + (part.length - part.trimStart().length);
+        offset += part.length + 1;
         if (!tag) continue;
-        if (!isTag(tag)) return { tags: next, added, refusal: { reason: 'format', tag } };
-        if (tagLength(tag) > limits.length) return { tags: next, added, refusal: { reason: 'too_long', tag } };
-        if (next.some((existing) => tagKey(existing) === tagKey(tag))) return { tags: next, added, refusal: { reason: 'duplicate', tag } };
-        if (next.length >= limits.most) return { tags: next, added, refusal: { reason: 'too_many', tag } };
+        if (!isTag(tag)) return { tags: next, added, refusal: { reason: 'format', tag, at } };
+        if (tagLength(tag) > limits.length) return { tags: next, added, refusal: { reason: 'too_long', tag, at } };
+        if (next.some((existing) => tagKey(existing) === tagKey(tag))) return { tags: next, added, refusal: { reason: 'duplicate', tag, at } };
+        if (next.length >= limits.most) return { tags: next, added, refusal: { reason: 'too_many', tag, at } };
         next.push(tag);
         added.push(tag);
     }
@@ -108,8 +113,7 @@ function TagsFieldSection({ field, isBuilder }: ITagsField) {
         if (result.added.length) save(result.tags);
         if (result.refusal) {
             // keep the text of the refused tag (and what follows it) to fix
-            const at = raw.toLowerCase().indexOf(result.refusal.tag.toLowerCase());
-            setDraft(at >= 0 ? raw.slice(at) : result.refusal.tag);
+            setDraft(raw.slice(result.refusal.at));
             setStatus({ text: refusalText(result.refusal), refusal: true });
             return false;
         }
