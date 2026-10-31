@@ -2,7 +2,11 @@
 
 Configured from the environment (smoke/config.py, docs/smoke-test.md). Exit
 status: 0 every check passed (or was skipped), 1 a check failed, 2 the
-configuration is incomplete.
+configuration is incomplete. A form the run could not delete afterwards (the
+key lacks forms:delete) is a warning in the report, not a failure.
+
+The one-off cleanup of forms that earlier runs left behind is a separate
+command: python -m smoke.cleanup (dry run unless --delete is given).
 
 Local dry run (never against production): point --target at a local stack and
 read the codes from its Mailpit inbox with --mailpit http://localhost:8025.
@@ -11,6 +15,7 @@ read the codes from its Mailpit inbox with --mailpit http://localhost:8025.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -40,6 +45,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="local dry run: write page snapshots (redacted) here when a flow fails",
     )
     return parser.parse_args(argv)
+
+
+def emit_warnings(report: Report) -> None:
+    """GitHub warning annotations for the report's warnings (a form left
+    behind), in Actions only."""
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    for text in report.warnings:
+        safe = text.replace("%", "%25").replace("\r", " ").replace("\n", " ")
+        print(f"::warning title=Smoke test cleanup::{safe}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -77,8 +92,13 @@ def main(argv: list[str] | None = None) -> int:
         with sync_playwright() as playwright:
             Suite(config, report, mailbox, playwright, args.debug_dir).run()
     finally:
-        mailbox.close()
-        report.write(args.report_dir)
+        # also when something unhandled escaped: what was left behind must
+        # still be reported
+        try:
+            mailbox.close()
+        finally:
+            report.write(args.report_dir)
+            emit_warnings(report)
     print(report.markdown())
     return 0 if report.ok else 1
 

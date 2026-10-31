@@ -125,3 +125,26 @@ def test_the_key_only_goes_to_the_apps_site():
     assert same_site("http://localhost:3000", "http://127.0.0.1:8000/api/v1")
     assert not same_site("https://admin.example.com", "https://example.net/api/v1")
     assert not same_site("https://admin.example.com", "https://localhost/api/v1")
+
+
+def test_a_refusal_names_its_problem_codes_and_never_their_messages(server):
+    body = {
+        "code": "form_not_publishable",
+        "message": "secret AB1-2CD",
+        "problems": [
+            {"code": "workspace_title_missing", "message": "private words"},
+            {"code": "theme_contrast", "fieldId": "theme", "message": "more words"},
+            {"code": "workspace_title_missing"},
+            {"code": "not a plain code!", "message": "x"},
+            "junk",
+        ],
+    }
+    Handler.plan = [(422, {}, body)]
+    with pytest.raises(HttpError) as caught:
+        Http(server).get("/forms/x/publish")
+    error = caught.value
+    assert error.problems == ("workspace_title_missing", "theme_contrast")
+    assert str(error).endswith(
+        "answered 422 (form_not_publishable: workspace_title_missing, theme_contrast)"
+    )
+    assert "words" not in str(error) and "AB1" not in str(error)
