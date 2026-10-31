@@ -28,6 +28,11 @@ WORKER_ROUTES = [
         f"/api/v1/temporal/workspaces/{OID}/forms/{OID}/copy-recipient",
         {"json": {"address": "a@example.test"}},
     ),
+    (
+        "POST",
+        f"/api/v1/temporal/workspaces/{OID}/forms/{OID}/actions/{OID}/runs/r1/context",
+        {},
+    ),
     ("PATCH", f"/api/v1/workspaces/{OID}/forms/{OID}/action/{OID}/update", {}),
     ("PATCH", f"/api/v1/template/{OID}/preview", {}),
     ("DELETE", "/api/v1/auth/user", {}),

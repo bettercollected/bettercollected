@@ -1,3 +1,6 @@
+import asyncio
+from typing import Optional
+
 from common.models.standard_form import Trigger
 from loguru import logger
 from common.models.user import User
@@ -17,12 +20,28 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.internal_fields import strip_internal_fields
+from backend.jobs import signals
+from backend.app.exceptions import HTTPException as AppHTTPException
+from backend.app.models.workspace import WorkspaceRequestWithActionDto
 from backend.app.models.enum.permission import Permission
 from backend.app.services.copy_recipient import (
     CREATOR_COPY_ACTION,
     not_allowed,
     recipient_values,
 )
+
+
+QUEUE_ATTEMPTS = 3
+QUEUE_RETRY_SECONDS = 0.3
+
+
+def _only(settings_by_action, action_id):
+    """``settings_by_action`` (a dict keyed by action id, or None) with only
+    ``action_id``'s entry."""
+    if not settings_by_action:
+        return settings_by_action
+    return {k: v for k, v in settings_by_action.items() if str(k) == str(action_id)}
 
 
 class ActionService:
@@ -107,9 +126,7 @@ class ActionService:
             workspace = await self.workspace_repo.get_workspace_with_action_by_id(
                 workspace_id=workspace_id, action_id=action.id
             )
-            await self.temporal_service.start_action_execution(
-                action=action, form=form, response=response, workspace=workspace
-            )
+            await self._queue_run(action, form, response, workspace)
         if skipped:
             logger.info(
                 "actions skipped for re-consent: form={} workspace={} count={}",
@@ -117,6 +134,103 @@ class ActionService:
                 workspace_id,
                 skipped,
             )
+
+    async def _queue_run(self, action, form, response, workspace) -> None:
+        """Queue one run; a transient failure is tried again (the pool of
+        queue connections can be busy). A run that still cannot be queued does
+        not fail the submission, which is stored, nor keep the form's other
+        actions from running: it is counted and logged as an error with a fixed
+        event name and ids (``action_run_not_queued``), and no run happens (it
+        is not queued later)."""
+        for attempt in range(QUEUE_ATTEMPTS):
+            try:
+                await self.temporal_service.start_action_execution(
+                    action=action, form=form, response=response, workspace=workspace
+                )
+                return
+            except Exception as exc:  # noqa: BLE001 - ids and the class only
+                if attempt + 1 < QUEUE_ATTEMPTS:
+                    await asyncio.sleep(QUEUE_RETRY_SECONDS * (attempt + 1))
+                    continue
+                signals.action_run_not_queued()
+                logger.error(
+                    "action_run_not_queued: action={} form={} response={} ({})",
+                    action.id,
+                    form.form_id,
+                    response.response_id,
+                    type(exc).__name__,
+                )
+
+    async def action_run_context(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
+        response_id: str,
+    ) -> Optional[dict]:
+        """What the actions executor needs to run one queued action run, read
+        now (the job carries ids only, never answers): the action, the
+        published form with the action settings, the decrypted response, the
+        workspace's copy of the action and the responder's identifier, each as
+        JSON text, exactly as the run was once queued with them.
+
+        None when the run must not happen any more: the response was deleted
+        (erasure wins over a late run), the form, the action or the workspace's
+        copy is gone, the action was switched off or taken off the form, or a
+        Google Sheets action holds a legacy grant. The executor then skips the
+        job instead of retrying it."""
+        form_document = await self.form_repo.get_form_document_by_id(str(form_id))
+        latest = await self.form_repo.get_latest_version_of_form(RecordId(str(form_id)))
+        if form_document is None or latest is None:
+            return None
+        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
+        if not any(
+            str(configured.id) == str(action_id) and configured.enabled
+            for configured in on_submit
+        ):
+            return None
+        stored = await self.form_response_service.workspace_response(
+            workspace_id, str(response_id)
+        )
+        if stored is None or str(stored.form_id) != str(form_id):
+            return None
+        action = await self.action_repository.get_action_by_id(action_id)
+        if action is None:
+            return None
+        if self.sheets_reconsent is not None and (
+            await self.sheets_reconsent.hold_back_run(
+                form_document, action, workspace_id
+            )
+        ):
+            return None
+        try:
+            workspace = await self.workspace_repo.get_workspace_with_action_by_id(
+                workspace_id=workspace_id, action_id=action.id
+            )
+        except AppHTTPException:
+            return None
+        workspace = WorkspaceRequestWithActionDto(**workspace)
+        response = self.form_response_service.decrypt_form_response(
+            workspace_id=workspace_id, response=stored
+        )
+        # the same form the run used to be queued with: the published version
+        # with the action settings of the current one, as the respondent sees it
+        latest.actions = form_document.actions
+        latest.secrets = form_document.secrets
+        latest.parameters = form_document.parameters
+        form = strip_internal_fields(latest.model_copy(deep=True))
+        # this action's settings only: not the secrets of the form's other actions
+        form.secrets = _only(form.secrets, action.id)
+        form.parameters = _only(form.parameters, action.id)
+        workspace.secrets = _only(workspace.secrets, action.id)
+        workspace.parameters = _only(workspace.parameters, action.id)
+        return {
+            "action": action.model_dump_json(),
+            "form": form.model_dump_json(),
+            "response": response.model_dump_json(),
+            "user_email": response.dataOwnerIdentifier or "",
+            "workspace": workspace.model_dump_json(),
+        }
 
     async def delete_action_from_workspace(self, action_id: RecordId):
         await self.form_repo.remove_action_from_all_forms(action_id=action_id)

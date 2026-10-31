@@ -62,7 +62,7 @@ def init_sql(database: str, suffix: str, passwords: dict[str, str]) -> str:
     # the script reads the passwords with psql's \getenv (never as -v arguments); here
     # they are bound below, so the meta-commands are dropped
     sql = re.sub(r"^\\getenv .*\n", "", sql, flags=re.M)
-    sql = re.sub(r"\bbc_(app|auth|google|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|jobs_exec|jobs_def)\b", rf"bc_\1_{suffix}", sql)
     for role, var in zip(ROLES, ("app_pw", "auth_pw", "google_pw", "jobs_pw")):
         sql = sql.replace(f":'{var}'", f"'{passwords[role]}'")
     return sql.replace(':"DBNAME"', f'"{database}"')
@@ -94,7 +94,7 @@ async def app_role_url():
             _with_database(admin, "postgres"),
             f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)',
         )
-        for role in ROLES:
+        for role in (*ROLES, "jobs_def"):
             await _execute(
                 _with_database(admin, "postgres"),
                 f'DROP ROLE IF EXISTS "bc_{role}_{suffix}"',

@@ -939,6 +939,37 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   deletion (at the response's expiration), action-code execution — as procrastinate jobs on Postgres (default;
   `backend/jobs/tasks.py`; per job kind `JOBS_BACKEND__<job>=temporal` selects the Temporal workflow; `run_action` is deferred by name and
   executed by `temporal/actions-executor`). See `docs/postgres-cutover-runbook.md`.
+  **An action run queues ids only** (`action_id`, `form_id`, `response_id`, `workspace_id` and a `run_token`; the
+  lock is `action_` + action + form + response (`run_lock`), so the same run is queued once and a second queueing
+  answers `already_queued`): the answers, the responder's address and the action's stored secrets are not written to
+  the queue's rows, which outlive the run. The executor reads them when it runs from
+  `POST /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/context` (`ActionService.action_run_context`: the
+  response decrypted for the run, only this action's secrets and parameters). The route needs the job key, the
+  `run-token` header (`services/action_run_token.py`: `<expiry>.<HMAC of the four ids and the expiry>` under a subkey
+  of the respondent identity key, 24 h), **and** the run's job in the queue: `actions`, `run_action`, status `doing`,
+  the same ids and token. 403 when any is missing; **410** when the token is past its day or the run no longer applies
+  (response deleted, action off or removed, a legacy Sheets grant). A run that cannot be queued is logged with ids and
+  never fails the submission. Finished `actions` rows are deleted by the `purge_finished_action_jobs` periodic task (a
+  week, a month for failed). `python -m backend.jobs.schema` (run by `deploy.sh`) also applies the executor-role
+  restriction and runs `backend/jobs/legacy.py`, which removes 4.1.x's response data from the `actions` queue in any
+  status (finished rows deleted, waiting or running ones rewritten to ids and a token; counts only in the log).
+  The executor's role `bc_jobs_exec` sees only the `actions` queue's rows and writes only `run_action` rows whose locks
+  start with `action_` (a row-level policy on `jobs.procrastinate_jobs`, `backend/jobs/schema.py`; the unique lock
+  indexes are shared by every queue, so a free lock name would block a deletion), cannot write the events or
+  periodic-defers tables. procrastinate's triggers write them for it as SECURITY DEFINER functions owned by the NOLOGIN
+  role `bc_jobs_def` (init script / `postgres/ensure-jobs-exec-role.sh` create it; `backend.jobs.schema` hands the
+  functions over) with `search_path = jobs, pg_catalog, pg_temp`: **`pg_temp` must be last** on every SECURITY DEFINER
+  function (`tests/admin/test_definer_functions.py` checks the database and every SQL source in the repo), or a role
+  with TEMPORARY rights shadows the table with a temp table of its own and its trigger runs as the owner. A later
+  procrastinate `CREATE OR REPLACE FUNCTION` resets a function to SECURITY INVOKER: the executor's start check then
+  fails closed until `python -m backend.jobs.schema` (every `deploy.sh`) has run again, so after upgrading procrastinate
+  run it before starting the executor. `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
+  (`backend/jobs/log_safety.py`, installed when `backend.jobs.app` is imported; the executor has its own copy).
+  **Not isolated yet (executor track):** the executor's `exec` is not a sandbox, so code in it can read the process's
+  environment (job key, AES key, database URL), can mark an `actions` row `doing`, and with the job key and the AES key
+  can forge `X-User-Deletion`: it must never hold both. Keep form actions off until that is done.
+  Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
+  `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
   `DELETE /auth/user`) with the `api-key` header, checked by `get_api_key` (`user_service.py`) against
   `TEMPORAL_API_KEY` (`services/internal_job_key.py`): **503** while it is unset, empty or the old

@@ -31,3 +31,10 @@ async def test_status_reports_the_jobs_backends_and_postgres(
     assert body["mongo"] == {"used": False, "status": "not used"}
     assert "metrics" not in body and "outbox" not in body
     assert body["postgres"] == {"configured": True, "reachable": True}
+
+
+async def test_status_shows_the_action_runs_that_could_not_be_queued(
+    client: AsyncClient, test_user_cookies
+):
+    response = await client.get("/api/v1/persistence/status", cookies=test_user_cookies)
+    assert response.json()["problems"]["action_runs_not_queued"] >= 0

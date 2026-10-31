@@ -228,6 +228,38 @@ async def recheck_verified_domains(timestamp: int) -> str:
     return ", ".join(f"{totals[k]} {k}" for k in totals)
 
 
+# How long the rows of finished action runs stay in the queue: a week for the
+# ones that succeeded, a month for the ones that did not (to look into them).
+# They hold ids only, but the queue is not an archive.
+ACTION_JOBS_KEEP_SUCCEEDED_HOURS = 7 * 24
+ACTION_JOBS_KEEP_FAILED_HOURS = 30 * 24
+
+
+@app.periodic(cron="31 3 * * *", periodic_id="purge_finished_action_jobs")
+@app.task(
+    name="purge_finished_action_jobs",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="purge_finished_action_jobs",
+)
+async def purge_finished_action_jobs(timestamp: int) -> str:
+    """Daily: delete the finished rows of the ``actions`` queue (and their
+    events) once their retention is over. Also clears the rows that earlier
+    releases queued with the whole response in them. Counts nothing, logs
+    nothing about the jobs."""
+    manager = app.job_manager
+    await manager.delete_old_jobs(
+        nb_hours=ACTION_JOBS_KEEP_SUCCEEDED_HOURS, queue=ACTIONS_QUEUE
+    )
+    await manager.delete_old_jobs(
+        nb_hours=ACTION_JOBS_KEEP_FAILED_HOURS,
+        queue=ACTIONS_QUEUE,
+        include_failed=True,
+        include_cancelled=True,
+        include_aborted=True,
+    )
+    return "purged"
+
+
 def run_action_deferrer(queueing_lock: str):
     """Defer ``run_action`` to the actions queue without importing its body."""
     return app.configure_task(

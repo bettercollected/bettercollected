@@ -31,6 +31,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.action_run_token import run_lock, run_token
 from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
 from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
@@ -245,7 +246,28 @@ class TemporalService:
         workspace: WorkspaceRequestWithActionDto,
     ):
 
+        lock = run_lock(action.id, form.form_id, response.response_id)
         workspace = WorkspaceRequestWithActionDto(**workspace)
+        if self._on_postgres("run_action"):
+            # Ids only: the executor reads the run's data from the backend when
+            # it runs (``POST /temporal/.../runs/{response_id}/context``, against
+            # the run's own token), so no answer, responder address or action
+            # secret is stored in the queue's rows, which outlive the run.
+            try:
+                await tasks.run_action_deferrer(queueing_lock=lock).defer_async(
+                    action_id=str(action.id),
+                    form_id=str(form.form_id),
+                    response_id=str(response.response_id),
+                    workspace_id=str(workspace.id),
+                    run_token=run_token(
+                        workspace.id, form.form_id, action.id, response.response_id
+                    ),
+                )
+                return "Job Started"
+            except AlreadyEnqueued:
+                # the same run is already waiting: queueing twice would run the
+                # action twice (mail, webhook, sheet row)
+                return "already_queued"
         run_action_params = RunActionCodeParams(
             action=action.json(),
             form=form.json(),
@@ -253,20 +275,6 @@ class TemporalService:
             user_email=response.dataOwnerIdentifier if response is not None else "",
             workspace=workspace.json(),
         )
-        lock = (
-            "action_" + str(action.id) + str(form.form_id) + str(response.response_id)
-        )
-        if self._on_postgres("run_action"):
-            try:
-                await tasks.run_action_deferrer(queueing_lock=lock).defer_async(
-                    **asdict(run_action_params)
-                )
-                return "Job Started"
-            except AlreadyEnqueued:
-                raise HTTPException(
-                    status_code=HTTPStatus.CONFLICT,
-                    content="Workflow has already started.",
-                )
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(

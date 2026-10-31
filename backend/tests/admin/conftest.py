@@ -33,7 +33,7 @@ from tests.app.db.test_auto_migrate import _execute, _with_database, init_sql
 
 ROOT = Path(__file__).resolve().parents[3]
 ROLES_SCRIPT = ROOT / "postgres" / "ensure-admin-roles.sh"
-INIT_ROLES = ("app", "auth", "google", "jobs_exec")
+INIT_ROLES = ("app", "auth", "google", "jobs_exec", "jobs_def")
 # the settings store's reader roles, see backend.admin.migration_support
 # (READER_SERVICES); "tasks" is the task runner's role, created by the roles script
 READER_ROLES = ("app", "auth", "google", "tasks")
@@ -64,7 +64,7 @@ def roles_sql(
     sql = re.sub(r"\bbc_tasks_def\b", f"bc_tasks_def_{suffix}", sql)
     sql = re.sub(r"\bbc_tasks_purge_google\b", f"bc_tasks_purge_google_{suffix}", sql)
     sql = re.sub(r"\bbc_count_(app|auth|google)\b", rf"bc_count_\1_{suffix}", sql)
-    sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|tasks_data_app|tasks_data_google|tasks|jobs_exec|jobs_def)\b", rf"bc_\1_{suffix}", sql)
     return (
         sql.replace(":'admin_pw'", f"'{admin_pw}'")
         .replace(":'mig_pw'", f"'{mig_pw}'")

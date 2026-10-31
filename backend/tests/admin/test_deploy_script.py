@@ -349,6 +349,7 @@ def site(tmp_path):
     shutil.copytree(ROOT / "deploy", work / "deploy", ignore=shutil.ignore_patterns("seccomp"))
     (work / "postgres").mkdir()
     shutil.copy(ROOT / "postgres" / "ensure-admin-roles.sh", work / "postgres" / "ensure-admin-roles.sh")
+    shutil.copy(ROOT / "postgres" / "ensure-jobs-exec-role.sh", work / "postgres" / "ensure-jobs-exec-role.sh")
     (work / "docker-compose.deployment.yml").write_text("services: {}\n")
     (work / ".env.deployment").write_text("UMAMI_PASSWORD=\n")
     bin_dir = tmp_path / "bin"

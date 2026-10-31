@@ -251,7 +251,8 @@ BEGIN
     FOREACH r SLICE 1 IN ARRAY runtime_roles LOOP
         EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM %I', current_database(), r[1]);
     END LOOP;
-    FOREACH s IN ARRAY ARRAY['bc_app', 'bc_auth', 'bc_google', 'bc_jobs_exec'] LOOP
+    -- (not the actions executor's role, bc_jobs_exec: it runs creator code and needs no temp tables)
+    FOREACH s IN ARRAY ARRAY['bc_app', 'bc_auth', 'bc_google'] LOOP
         IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = s) THEN
             EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO %I', current_database(), s);
         END IF;

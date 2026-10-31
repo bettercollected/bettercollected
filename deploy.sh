@@ -1598,6 +1598,12 @@ function dockerup() {
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head || exit 1
   # procrastinate's queue tables (jobs schema), applied once; a no-op afterwards
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema || exit 1
+  # The actions executor's role (it runs code form creators wrote): the queue and nothing
+  # else, as the database superuser inside the container, which holds BC_JOBS_EXEC_PASSWORD
+  # (a volume from before the role gets it here). Then the queue's row restriction for that
+  # role is asserted again: it needs the role, which may only exist now (a no-op otherwise).
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" exec -T app-postgres bash -s < postgres/ensure-jobs-exec-role.sh || exit 1
+  "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/python -m backend.jobs.schema || exit 1
   "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps auth /api/auth/.venv/bin/alembic -c /api/auth/alembic.ini upgrade head || exit 1
   if [ "$googleform_flag" = true ]; then
     "${docker_compose_cmd[@]}" -f "docker-compose.deployment.yml" run --rm --no-deps integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head || exit 1
