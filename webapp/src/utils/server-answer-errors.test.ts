@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { firstPageWithError, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
+import { firstPageWithError, formRefusal, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
 
 const q = (id: string, type = FieldTypes.SHORT_TEXT, properties: Record<string, any> = {}) => ({ id, index: 0, type, properties }) as StandardFormFieldDto;
 const page = (id: string, fields: StandardFormFieldDto[]) => ({ id, index: 0, type: FieldTypes.SLIDE, properties: { fields } }) as StandardFormFieldDto;
@@ -95,5 +95,23 @@ describe('isFormClosedError', () => {
         expect(isFormClosedError({ status: 409, data: 'Form with given custom slug already exists' })).toBe(false);
         expect(isFormClosedError({ status: 422, data: { code: 'form_closed' } })).toBe(false);
         expect(isFormClosedError(undefined)).toBe(false);
+    });
+});
+
+describe('why a submission to an unavailable form was refused', () => {
+    it.each([
+        ['form_closed', 'closed'],
+        ['form_not_open', 'not_yet_open'],
+        ['form_full', 'full']
+    ])('maps a 409 %s to %s', (code, reason) => {
+        expect(formRefusal({ status: 409, data: { code, message: 'x' } })).toBe(reason);
+    });
+
+    it('is null for any other failure', () => {
+        expect(formRefusal({ status: 409, data: { code: 'busy' } })).toBeNull();
+        expect(formRefusal({ status: 409, data: 'Form with given custom slug already exists' })).toBeNull();
+        expect(formRefusal({ status: 422, data: { code: 'form_full' } })).toBeNull();
+        expect(formRefusal({ status: 500 })).toBeNull();
+        expect(formRefusal(undefined)).toBeNull();
     });
 });

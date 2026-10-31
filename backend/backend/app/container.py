@@ -394,6 +394,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         http_client=http_client,
         integration_provider=integration_provider,
+        form_response_repo=form_response_repo,
     )
 
     form_response_service: FormResponseService = providers.Singleton(

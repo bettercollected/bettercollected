@@ -219,6 +219,10 @@ export interface StandardFormDto {
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;
+        /** The instant the form starts taking responses; empty or absent = open from the start. */
+        formOpenDate?: string;
+        /** The number of responses after which the form takes no more. Only the form's team receives it (respondents learn that a form is full, never its limit). */
+        responseLimit?: number | null;
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
         allowEditingResponse?: boolean;
@@ -247,8 +251,8 @@ export interface StandardFormDto {
     secrets?: Record<any, Array<Parameters>>;
     theme?: FormTheme;
     unauthorized?: boolean;
-    /** Served without its questions: "closed" once its close date has passed. */
-    unavailable?: 'closed';
+    /** Served without its questions, and why: "closed" once its close date has passed, "not_yet_open" before its open date, "full" once it holds as many responses as its limit. */
+    unavailable?: UnavailableReason;
     /**
      * Signed proof that this page shows the AI insights notice (#752): sent
      * with the published form while it allows AI insights, and sent back on
@@ -256,6 +260,8 @@ export interface StandardFormDto {
      */
     aiNoticeToken?: string | null;
 }
+
+export type UnavailableReason = 'closed' | 'not_yet_open' | 'full';
 
 export interface StandardFormResponseDto {
     answers: {

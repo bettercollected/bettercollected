@@ -242,6 +242,11 @@ class WorkspaceFormSettings(BaseModel):
     publish_checks_version: Optional[int] = None
     disable_branding: Optional[bool] = None
     form_close_date: Optional[dt.datetime | str] = None
+    # The instant the form starts taking responses (services/form_availability.py);
+    # none = open from the start.
+    form_open_date: Optional[dt.datetime | str] = None
+    # The number of responses after which the form takes no more; none = no limit.
+    response_limit: Optional[int] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
     allow_editing_response: Optional[bool] = None

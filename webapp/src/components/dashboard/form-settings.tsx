@@ -43,6 +43,7 @@ import getFormShareURL from '@app/utils/form-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import FeedbackStatusesEditor from '@Components/dashboard/feedback-statuses-editor';
+import { OpenDateControl, ResponseLimitControl } from '@Components/dashboard/form-availability-controls';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -99,7 +100,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         } else {
             if (response.error.status === 409) {
                 toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
-            } else if (response.error.status === 403 && typeof response.error.data === 'string') {
+            } else if ((response.error.status === 403 || response.error.status === 422) && typeof response.error.data === 'string') {
                 // e.g. a collaborator switching "Respond to submissions" (admins only)
                 toast({ description: response.error.data, variant: 'destructive' });
             } else {
@@ -165,8 +166,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', { visibilityType: visibilityType(), handleOnConfirm });
     };
 
-    const onFormClosedChange = (date: moment.Moment | string) => {
-        const patchBody = { formCloseDate: date };
+    const onFormClosedChange = (date: moment.Moment | string, alsoClearOpenDate = false) => {
+        // closing now while an open date is still ahead: the open date goes too
+        // (it must stay before the close date)
+        const patchBody = { formCloseDate: date, ...(alsoClearOpenDate ? { formOpenDate: '' } : {}) };
         patchSettings(patchBody, form)
             .then(() => { })
             .catch(() => {
@@ -195,7 +198,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
 
     const closeForm = () => {
-        onFormClosedChange(moment.utc());
+        onFormClosedChange(moment.utc(), !!form?.settings?.formOpenDate && moment.utc(form.settings.formOpenDate).isAfter(moment.utc()));
         closeModal();
     };
     const reopenForm = () => {
@@ -452,6 +455,21 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 )}
                             </div>
                         )}
+                        {form?.settings?.provider === 'self' && (
+                            <>
+                                <SettingRow stacked title={t('FORM_PAGE.SETTINGS.OPEN_DATE.TITLE')} description={t('FORM_PAGE.SETTINGS.OPEN_DATE.DESCRIPTION')}>
+                                    <OpenDateControl
+                                        key={`open-${form.formId}`}
+                                        value={form?.settings?.formOpenDate}
+                                        closeDate={form?.settings?.formCloseDate}
+                                        onSave={(instant) => patchSettings({ formOpenDate: instant }, form)}
+                                    />
+                                </SettingRow>
+                                <SettingRow stacked title={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.TITLE')} description={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.DESCRIPTION')}>
+                                    <ResponseLimitControl key={`limit-${form.formId}`} value={form?.settings?.responseLimit} onSave={(limit) => patchSettings({ responseLimit: limit }, form)} />
+                                </SettingRow>
+                            </>
+                        )}
                     </div>
                 );
             default:
@@ -470,7 +488,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
  * The control (a switch) is named by the row's title and described by its
  * description, unless it brings its own name.
  */
-export const SettingRow = ({ title, titleExtra, description, children, hint }: { title: React.ReactNode; titleExtra?: React.ReactNode; description: React.ReactNode; children: React.ReactNode; hint?: React.ReactNode }) => {
+export const SettingRow = ({ title, titleExtra, description, children, hint, stacked = false }: { title: React.ReactNode; titleExtra?: React.ReactNode; description: React.ReactNode; children: React.ReactNode; hint?: React.ReactNode; stacked?: boolean }) => {
     const id = useId();
     const titleId = `${id}-title`;
     const descriptionId = `${id}-description`;
@@ -481,7 +499,9 @@ export const SettingRow = ({ title, titleExtra, description, children, hint }: {
           })
         : children;
     return (
-        <div className="flex w-full items-start justify-between gap-6 py-5">
+        // `stacked`: a wide control (a date, a number with its buttons) goes
+        // under the text on a narrow screen instead of squeezing it.
+        <div className={cn('flex w-full items-start justify-between gap-6 py-5', stacked && 'flex-col sm:flex-row')}>
             <div className="flex max-w-[560px] flex-col gap-1">
                 <div className="text-black-900 flex items-center gap-2 text-[15px] font-semibold">
                     <span id={titleId}>{title}</span>
@@ -492,7 +512,7 @@ export const SettingRow = ({ title, titleExtra, description, children, hint }: {
                 </div>
                 {hint}
             </div>
-            <div className="pt-1">{control}</div>
+            <div className={cn('pt-1', stacked && 'w-full sm:w-auto')}>{control}</div>
         </div>
     );
 };

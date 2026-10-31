@@ -44,7 +44,9 @@
         "SUBMIT": "Submit response",
         "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
         "SUBMIT_INVALID": "Some answers need another look. They are marked below.",
-        "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent."
+        "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent.",
+        "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
+        "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent."
     },
     "CONSENT": {
         "SHARE_EMAIL": "Share my email with the form collector",
@@ -62,7 +64,12 @@
         "NO_ACCESS": "You do not have access to this form. Switch to a different account with access to continue. If this is a mistake contact the owner of this form.",
         "CONTENTS": "In this form",
         "CLOSED": "This form is closed and no longer accepts responses.",
-        "CLOSED_STAFF": "This form is closed: respondents can no longer send answers."
+        "CLOSED_ON": "It closed on {{date}}.",
+        "CLOSED_STAFF": "This form is closed: respondents can no longer send answers.",
+        "NOT_OPEN": "This form is not open yet. It opens on {{date}}.",
+        "NOT_OPEN_NO_DATE": "This form is not open yet.",
+        "NOT_OPEN_STAFF": "This form is not open yet: respondents can start on {{date}}.",
+        "FULL": "This form is no longer accepting responses."
     },
     "ACCOUNT": {
         "LABEL": "Account",

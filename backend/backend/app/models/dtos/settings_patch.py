@@ -5,7 +5,12 @@ from fastapi_camelcase import CamelModel
 from pydantic import field_validator, model_validator
 
 from backend.app.models.workspace import normalize_feedback_statuses
-from backend.app.services.form_availability import normalized_close_date
+from backend.app.services.form_availability import (
+    ensure_dates_in_order,
+    normalized_close_date,
+    normalized_open_date,
+    normalized_response_limit,
+)
 from backend.app.services.policy_url import checked_policy_url
 from backend.app.services.retention import checked_retention
 from common.models.consent import ResponseRetentionType
@@ -21,6 +26,11 @@ class SettingsPatchDto(CamelModel):
     # None leaves it, "" removes it, else an ISO 8601 instant stored in UTC
     # (no offset = UTC): services/form_availability.py reads it.
     form_close_date: Optional[str] = None
+    # The same for the date the form opens: before it, no response is taken.
+    form_open_date: Optional[str] = None
+    # None leaves it, 0 removes it, else the number of responses after which
+    # the form takes no more (enforced under a lock on the insert).
+    response_limit: Optional[int] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
@@ -45,6 +55,23 @@ class SettingsPatchDto(CamelModel):
     @classmethod
     def _valid_close_date(cls, value):
         return normalized_close_date(value)
+
+    @field_validator("form_open_date", mode="before")
+    @classmethod
+    def _valid_open_date(cls, value):
+        return normalized_open_date(value)
+
+    @field_validator("response_limit", mode="before")
+    @classmethod
+    def _valid_response_limit(cls, value):
+        return normalized_response_limit(value)
+
+    @model_validator(mode="after")
+    def _dates_in_order(self) -> "SettingsPatchDto":
+        # both sent: checked here; one sent: against the stored one by
+        # FormService.update_workspace_form_settings
+        ensure_dates_in_order(self.form_open_date, self.form_close_date)
+        return self
 
     @field_validator("privacy_policy_url")
     @classmethod

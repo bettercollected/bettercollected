@@ -583,6 +583,13 @@ class FormResponseService:
         to ``workspace_id`` (#768)."""
         return await response_scope(self._workspace_form_repo, workspace_id, form_ids)
 
+    async def count_for_form(self, workspace_id: RecordId, form_id: str) -> int:
+        """The responses stored for the form in this workspace: what its
+        response limit counts."""
+        return await self._form_response_repo.count_responses_for_form_ids(
+            await self.scope(workspace_id, [str(form_id)])
+        )
+
     async def in_workspace(self, response, workspace_id: RecordId) -> bool:
         """Whether a stored response belongs to ``workspace_id`` (#768)."""
         return await response_in_workspace(
@@ -717,9 +724,21 @@ class FormResponseService:
         form_id: RecordId,
         response: StandardFormResponse,
         workspace_id: RecordId,
+        response_limit: Optional[int] = None,
     ):
+        """Store a new response. ``response_limit``: the form's limit; the
+        count and the insert are one locked step, 409 ``form_full`` when it is
+        used up (repositories/postgres/responses.py ``save_form_response``)."""
         response = await self._form_response_repo.save_form_response(
-            form_id=form_id, response=response, workspace_id=workspace_id
+            form_id=form_id,
+            response=response,
+            workspace_id=workspace_id,
+            response_limit=response_limit,
+            scope=(
+                await self.scope(workspace_id, [str(form_id)])
+                if response_limit is not None
+                else None
+            ),
         )
 
         return self.decrypt_form_response(workspace_id=workspace_id, response=response)

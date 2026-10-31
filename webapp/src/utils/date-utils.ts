@@ -31,6 +31,20 @@ export function utcToLocalDateTimeIn(dateStr: any, language: string): string {
     return dateStr && date.isValid() ? new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long', timeStyle: 'short' }).format(date.toDate()) : '';
 }
 
+/**
+ * A UTC instant as a local date and time in a language, with the time zone's
+ * short name: "2 November 2026, 09:00 CET" / "2 november 2026, 09:00 CET".
+ * The zone defaults to the viewer's own, so a respondent reads it in theirs.
+ */
+export function utcToLocalDateTimeZoneIn(dateStr: any, language: string, timeZone?: string): string {
+    const date = moment.utc(dateStr);
+    if (!dateStr || !date.isValid()) return '';
+    const locale = intlLocale(language);
+    const day = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone }).format(date.toDate());
+    const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZoneName: 'short', timeZone }).format(date.toDate());
+    return `${day}, ${time}`;
+}
+
 const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
     ['year', 365 * 24 * 3600],
     ['month', 30 * 24 * 3600],

@@ -126,3 +126,97 @@ describe('a form that closes while it is filled in', () => {
         expect((document.getElementById('input-field-b') as HTMLInputElement).value).toBe('Utrecht');
     });
 });
+
+// The same page when the server refuses because the form is not open yet or
+// full (409 form_not_open / form_full): the message says which, in the
+// respondent's language, and the answers stay.
+const REFUSALS = {
+    form_not_open: {
+        body: { code: 'form_not_open', message: 'x', opensAt: '2099-11-02T08:00:00+00:00' },
+        en: 'This form is not open yet, so your response was not sent. Your answers were not sent.',
+        nl: 'Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.'
+    },
+    form_full: {
+        body: { code: 'form_full', message: 'x' },
+        en: 'This form received all the responses it accepts before yours was sent. Your answers were not sent.',
+        nl: 'Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd.'
+    }
+} as const;
+
+describe('a form that stops taking responses while it is filled in', () => {
+    beforeEach(() => {
+        window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
+        Element.prototype.scrollIntoView = vi.fn();
+        submit.mockReset();
+    });
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it.each((['form_not_open', 'form_full'] as const).flatMap((code) => (['en', 'nl'] as const).map((lang) => [code, lang] as const)))('says which on a 409 %s, keeps the answers and does not retry (%s)', async (code, lang) => {
+        window.history.replaceState(null, '', `/acme/forms/f1?lang=${lang}`);
+        submit.mockResolvedValue({ error: { status: 409, data: REFUSALS[code].body } });
+        store.dispatch(setForm({ formId: `refused-${Math.random()}`, title: 'Survey', fields: [page('s1', 0, [text('a', 'Your name')])] }));
+        function Page() {
+            responder = useResponderState();
+            response = useFormResponse();
+            return <FormSlide index={0} isPreviewMode={false} />;
+        }
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Page />
+                </Provider>
+            </ReduxProvider>
+        );
+        act(() => responder!.setResponderState({ ...responder!.responderState, currentSlide: 0, history: [] }));
+        await type('a', 'Ada');
+        await act(async () => void fireEvent.click(screen.getByRole('button', { name: CLOSED_SUBMIT[lang][0] })));
+        expect(submit).toHaveBeenCalledTimes(1);
+
+        const alert = await screen.findByRole('alert');
+        expect(alert.textContent).toBe(REFUSALS[code][lang]);
+        expect(screen.queryByText(/could not be sent|niet verstuurd\. Probeer/)).toBeNull();
+        expect(responder!.responderState.currentSlide).toBe(0);
+        expect((document.getElementById('input-field-a') as HTMLInputElement).value).toBe('Ada');
+        expect(JSON.stringify(response!.formResponse.answers)).toContain('Ada');
+    });
+
+    it.each([
+        ['not_yet_open', 'This form is not open yet.'],
+        ['full', 'This form is no longer accepting responses.']
+    ] as const)('shows the %s notice on any page when a refetch brings the form back that way, and keeps the answers', async (reason, notice) => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+        const formId = `refetch-${reason}-${Math.random()}`;
+        const full = { formId, builderVersion: 'v2', title: 'Survey', fields: [page('s1', 0, [text('a', 'Your name')]), page('s2', 1, [text('b', 'Your town')])] };
+        store.dispatch(setForm(full));
+        function Respondent() {
+            responder = useResponderState();
+            response = useFormResponse();
+            const { updateFormTheme } = useFormState();
+            React.useEffect(() => {
+                updateFormTheme(ThemeColors[0], { undoable: false });
+                responder!.setResponderState({ ...responder!.responderState, currentSlide: 1, prevActiveSlide: 0, history: [0] });
+            }, []);
+            return <Form isPreviewMode={false} />;
+        }
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Respondent />
+                </Provider>
+            </ReduxProvider>
+        );
+        await screen.findByRole('textbox', { name: 'Your town' }, { timeout: 5000 });
+        await type('b', 'Utrecht');
+
+        act(() => void store.dispatch(setForm({ formId, builderVersion: 'v2', title: 'Survey', welcomePage: {}, settings: {}, unavailable: reason } as any)));
+        expect((await screen.findByRole('status')).textContent).toBe(notice);
+        expect(screen.queryByRole('textbox')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+        expect(responder!.responderState.currentSlide).toBe(1);
+        expect(JSON.stringify(response!.formResponse.answers)).toContain('Utrecht');
+
+        act(() => void store.dispatch(setForm(full)));
+        await screen.findByRole('textbox', { name: 'Your town' }, { timeout: 5000 });
+        expect((document.getElementById('input-field-b') as HTMLInputElement).value).toBe('Utrecht');
+    });
+});

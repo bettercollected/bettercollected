@@ -18,6 +18,7 @@ from common.services.http_client import HttpClient
 from fastapi_pagination import Page
 from starlette.requests import Request
 
+from backend.app.repositories.response_scope import response_scope
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresWorkspaceFormRepository,
@@ -49,7 +50,14 @@ from backend.app.services.ai.notice_token import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.event_service import event_logger_service
-from backend.app.services.form_availability import UNAVAILABLE_CLOSED, is_closed
+from backend.app.services.form_availability import (
+    UNAVAILABLE_FULL,
+    UNAVAILABLE_REASONS,
+    date_unavailability,
+    ensure_dates_in_order,
+    is_full,
+    response_limit,
+)
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
@@ -68,16 +76,18 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
         return FormSettingsCamelModel(language=language) if language else None
     settings = FormSettingsCamelModel(**workspace_form.settings.model_dump())
     settings.language = language
+    # the limit is the creator's: respondents learn only that a form is full
+    settings.response_limit = None
     return settings
 
 
-def _closed_stub(form: Any, settings: Any = None) -> dict:
-    """What a respondent gets of a closed form, on every read that would
-    serve its questions: the welcome page and its look, with ``unavailable``
-    and no questions. A closed form takes no responses
-    (services/form_availability.py), so its questions are not served either.
-    ``form`` is a stored dict or a document; ``settings`` the association's
-    (default: the form's folded ones)."""
+def _unavailable_stub(form: Any, reason: str, settings: Any = None) -> dict:
+    """What a respondent gets of a form that takes no responses (closed, not
+    open yet, or full), on every read that would serve its questions: the
+    welcome page and its look, with ``unavailable`` naming the reason and no
+    questions (services/form_availability.py). ``form`` is a stored dict or a
+    document; ``settings`` the association's (default: the form's folded
+    ones). The stub never carries the response limit."""
 
     def get(key):
         if isinstance(form, dict):
@@ -85,6 +95,11 @@ def _closed_stub(form: Any, settings: Any = None) -> dict:
         return getattr(form, key, None)
 
     form_id = get("form_id")
+    shown = settings if settings is not None else get("settings")
+    if isinstance(shown, dict):
+        shown = {**shown, "response_limit": None}
+    elif shown is not None:
+        shown = shown.model_copy(update={"response_limit": None})
     return {
         "formId": str(form_id) if form_id is not None else None,
         "builderVersion": get("builder_version"),
@@ -97,13 +112,13 @@ def _closed_stub(form: Any, settings: Any = None) -> dict:
         "useWorkspaceLogo": get("use_workspace_logo"),
         "welcomePage": get("welcome_page"),
         "theme": get("theme"),
-        "settings": settings if settings is not None else get("settings"),
-        "unavailable": UNAVAILABLE_CLOSED,
+        "settings": shown,
+        "unavailable": reason,
     }
 
 
-def _is_closed_stub(form: Any) -> bool:
-    return isinstance(form, dict) and form.get("unavailable") == UNAVAILABLE_CLOSED
+def _is_unavailable_stub(form: Any) -> bool:
+    return isinstance(form, dict) and form.get("unavailable") in UNAVAILABLE_REASONS
 
 
 def _declared_language(form) -> Optional[str]:
@@ -122,7 +137,10 @@ class FormService:
         crypto: Crypto,
         http_client: HttpClient,
         integration_provider: IntegrationProviderFactory,
+        form_response_repo=None,
     ):
+        # the responses repository: counts for a form's response limit
+        self._form_response_repo = form_response_repo
         self._authorization = authorization_service
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
@@ -148,6 +166,10 @@ class FormService:
             user=user,
             filter_closed=published or pinned_only,
         )
+        if published or pinned_only:
+            workspace_form_ids = await self._without_full_forms(
+                workspace_id, workspace_form_ids
+            )
         if published:
             forms_page = await self._form_repo.paginate_published_forms_in_workspace(
                 workspace_id=workspace_id,
@@ -230,9 +252,12 @@ class FormService:
             workspace_id=workspace_id,
             is_not_admin=True,
             user=user,
-            # as the public listing: closed forms are not offered to respondents
+            # as the public listing: closed, not yet open and full forms are not
+            # offered to respondents
             filter_closed=not staff,
         )
+        if not staff:
+            form_ids = await self._without_full_forms(workspace_id, form_ids)
         forms = await self._form_repo.search_form_in_workspace(
             workspace_id=workspace_id,
             form_ids=form_ids,
@@ -278,15 +303,58 @@ class FormService:
         )
         if is_admin:
             return form
-        # A closed form's questions are not served to respondents: its
-        # welcome page says it is closed. Who may see the form at all is
-        # decided first: the stubs of private and hidden forms (camelCase
-        # keys, no questions) are served as they are.
+        # The questions of a form that takes no responses (closed, not open
+        # yet, full) are not served to respondents: its welcome page says why.
+        # Who may see the form at all is decided first: the stubs of private
+        # and hidden forms (camelCase keys, no questions) are served as they
+        # are.
         if published and isinstance(form, dict) and "form_id" in form:
-            if is_closed(form.get("settings")):
-                return _closed_stub(form)
+            reason = await self._unavailable_reason(
+                workspace_id, form["form_id"], form.get("settings")
+            )
+            if reason:
+                return _unavailable_stub(form, reason)
         # Respondents and the public never receive internal fields.
         return respondent_view(form)
+
+    async def _response_count(self, workspace_id: RecordId, form_id: str) -> int:
+        """The responses stored for the form in this workspace (what the
+        response limit counts)."""
+        scope = await response_scope(
+            self._workspace_form_repo, workspace_id, [str(form_id)]
+        )
+        return await self._form_response_repo.count_responses_for_form_ids(scope)
+
+    async def _unavailable_reason(
+        self, workspace_id: RecordId, form_id: str, settings: Any
+    ) -> Optional[str]:
+        """Why a respondent gets this form's welcome page without its
+        questions: ``closed``, ``not_yet_open`` or ``full``, else None. The
+        count is read only for a form that has a limit."""
+        reason = date_unavailability(settings)
+        if reason or response_limit(settings) is None:
+            return reason
+        if is_full(settings, await self._response_count(workspace_id, form_id)):
+            return UNAVAILABLE_FULL
+        return None
+
+    async def _without_full_forms(
+        self, workspace_id: RecordId, form_ids: List[str]
+    ) -> List[str]:
+        """``form_ids`` without the forms that have used up their response
+        limit (one count query for all the limited forms of the list)."""
+        limits = await self._workspace_form_repo.get_response_limits(
+            workspace_id, form_ids
+        )
+        if not limits:
+            return form_ids
+        scope = await response_scope(self._workspace_form_repo, workspace_id, limits)
+        counts = await self._form_response_repo.count_responses_by_form_ids(scope)
+        return [
+            form_id
+            for form_id in form_ids
+            if form_id not in limits or counts.get(form_id, 0) < limits[form_id]
+        ]
 
     async def ai_notice_token(
         self, workspace_id: RecordId, form_id_or_slug: str
@@ -540,8 +608,30 @@ class FormService:
             workspace_form.settings.response_data_owner_field = (
                 settings.response_data_owner_field
             )
-        if settings.form_close_date is not None:
-            workspace_form.settings.form_close_date = settings.form_close_date
+        if settings.form_close_date is not None or settings.form_open_date is not None:
+            # the open date stays before the close date, whichever of the two
+            # is sent (the stored one counts for the one that is not)
+            new_open = (
+                settings.form_open_date
+                if settings.form_open_date is not None
+                else workspace_form.settings.form_open_date
+            )
+            new_close = (
+                settings.form_close_date
+                if settings.form_close_date is not None
+                else workspace_form.settings.form_close_date
+            )
+            try:
+                ensure_dates_in_order(new_open, new_close)
+            except ValueError as error:
+                raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, str(error))
+            if settings.form_close_date is not None:
+                workspace_form.settings.form_close_date = settings.form_close_date
+            if settings.form_open_date is not None:
+                workspace_form.settings.form_open_date = settings.form_open_date
+        if settings.response_limit is not None:
+            # 0 removes the limit
+            workspace_form.settings.response_limit = settings.response_limit or None
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 
     async def delete_form(self, form_id: str):
@@ -623,7 +713,7 @@ class FormService:
         form = await self._get_form_by_version(
             workspace_id, form_id, version, user, is_admin
         )
-        if is_admin or isinstance(form, HTTPException) or _is_closed_stub(form):
+        if is_admin or isinstance(form, HTTPException) or _is_unavailable_stub(form):
             return form
         return respondent_view(form)
 
@@ -659,13 +749,16 @@ class FormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
         workspace_form = workspace_forms[0]
-        # A closed form's questions reach staff only, on this read as on the
-        # published one (services/form_availability.py).
-        closed_settings = (
-            workspace_form.get("settings")
-            if not is_admin and is_closed(workspace_form.get("settings"))
+        # The questions of a form that takes no responses reach staff only, on
+        # this read as on the published one (services/form_availability.py).
+        unavailable = (
+            await self._unavailable_reason(
+                workspace_id, workspace_form["form_id"], workspace_form.get("settings")
+            )
+            if not is_admin
             else None
         )
+        closed_settings = workspace_form.get("settings")
         if workspace_form["settings"]["provider"] != "self":
             form = await self._form_repo.get_forms_in_workspace(
                 workspace_id=workspace_id,
@@ -677,8 +770,8 @@ class FormService:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                 )
-            if closed_settings is not None:
-                return _closed_stub(form[0], closed_settings)
+            if unavailable:
+                return _unavailable_stub(form[0], unavailable, closed_settings)
             return form[0]
         else:
             form = await self._form_repo.get_form_by_by_version(
@@ -689,8 +782,8 @@ class FormService:
                     status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
                 )
             form.form_id = str(form.form_id)
-            if closed_settings is not None:
-                return _closed_stub(form, closed_settings)
+            if unavailable:
+                return _unavailable_stub(form, unavailable, closed_settings)
             return form
 
     async def add_action_form(

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Lock } from 'lucide-react';
+import moment from 'moment/moment';
 
 import { FormTheme } from '@app/constants/theme';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
@@ -15,6 +16,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { utcToLocalDateTimeZoneIn } from '@app/utils/date-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { LeafletContents, LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
@@ -83,17 +85,31 @@ export default function WelcomePage({
         </Link>
     );
 
-    // A closed form comes without its questions: no Start, only the notice.
-    const closed = standardForm?.unavailable === 'closed';
-    // Members still get the whole form after its close date (preview): a
-    // line says respondents can no longer answer it.
-    const closedForRespondents = !closed && !!standardForm?.settings?.formCloseDate && !validateFormOpen(standardForm.settings.formCloseDate);
+    // A form that takes no responses (closed, not open yet, full) comes
+    // without its questions: no Start, only the notice saying which.
+    const unavailable = standardForm?.unavailable;
+    const closeDate = standardForm?.settings?.formCloseDate;
+    const openDate = standardForm?.settings?.formOpenDate;
+    // Dates are the server's UTC instants, shown in the respondent's own time zone.
+    const noticeText = (() => {
+        if (unavailable === 'closed') {
+            const base = t('WELCOME.CLOSED');
+            return closeDate ? `${base} ${t('WELCOME.CLOSED_ON', { date: utcToLocalDateTimeZoneIn(closeDate, language) })}` : base;
+        }
+        if (unavailable === 'not_yet_open') return openDate ? t('WELCOME.NOT_OPEN', { date: utcToLocalDateTimeZoneIn(openDate, language) }) : t('WELCOME.NOT_OPEN_NO_DATE');
+        if (unavailable === 'full') return t('WELCOME.FULL');
+        return null;
+    })();
+    // Members still get the whole form after its close date or before its
+    // open date (preview): a line says respondents cannot answer it now.
+    const closedForRespondents = !unavailable && !!closeDate && !validateFormOpen(closeDate);
+    const notOpenForRespondents = !unavailable && !closedForRespondents && !!openDate && moment.utc(openDate).isAfter(moment.utc());
 
     // Notes and the start button: one group, set apart from the title block.
-    const actions = closed ? (
+    const actions = noticeText ? (
         <div className={cn('mt-8 flex w-full flex-col gap-4', align)}>
-            <p role="status" className="text-base" style={{ color: softInk(formTheme) }}>
-                {t('WELCOME.CLOSED')}
+            <p role="status" className="text-base" style={{ color: softInk(formTheme) }} data-unavailable={unavailable}>
+                {noticeText}
             </p>
         </div>
     ) : (
@@ -101,6 +117,11 @@ export default function WelcomePage({
             {closedForRespondents && (
                 <p role="status" className="text-base font-medium" style={{ color: softInk(formTheme) }}>
                     {t('WELCOME.CLOSED_STAFF')}
+                </p>
+            )}
+            {notOpenForRespondents && (
+                <p role="status" className="text-base font-medium" style={{ color: softInk(formTheme) }}>
+                    {t('WELCOME.NOT_OPEN_STAFF', { date: utcToLocalDateTimeZoneIn(openDate, language) })}
                 </p>
             )}
             {!standardForm?.settings?.private && !auth.id && (

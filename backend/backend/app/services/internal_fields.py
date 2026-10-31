@@ -120,7 +120,9 @@ def strip_internal_fields(form: Any) -> Any:
     # the creator's import review mark (a form imported from another product,
     # not yet looked over) is staff information too
     if settings is not None:
-        for key in ("needs_review", "import_source", "import_id"):
+        # the response limit is the creator's too: a full form says so
+        # (``unavailable``), never how many it takes
+        for key in ("needs_review", "import_source", "import_id", "response_limit"):
             if _get(settings, key) is not None:
                 _set(settings, key, None)
     # an ending's name is the creator's label ("Not eligible"); respondents
