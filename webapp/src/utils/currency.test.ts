@@ -90,6 +90,23 @@ describe('displaying an amount', () => {
     });
 });
 
+describe('minus zero', () => {
+    it('is no amount: zero has one writing', () => {
+        for (const text of ['-0', '-0.0', '-0.00', '-0.000']) expect(parseAmount(text)).toBeUndefined();
+        expect(parseAmount('0')).toBe(0);
+        expect(parseAmount('0.00', 'EUR')).toBe(0);
+        expect(parseAmount('-0.01', 'EUR')).toBe(-0.01);
+    });
+
+    it('is typed as zero: the input is stored without its minus', () => {
+        expect(amountFromInput('-0', 'EUR')).toBe('0');
+        expect(amountFromInput('-0,00', 'EUR')).toBe('0.00');
+        expect(amountFromInput(' -0.0 ', 'EUR')).toBe('0.0');
+        expect(amountFromInput('-0.001', 'EUR')).toBeUndefined();
+        expect(amountFromInput('-5', 'EUR')).toBe('-5');
+    });
+});
+
 describe('times and days', () => {
     it('reads times as HH:MM only', () => {
         expect(['00:00', '09:30', '23:59'].every(isTime)).toBe(true);

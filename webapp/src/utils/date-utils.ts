@@ -25,6 +25,23 @@ export function utcToLocalDateIn(dateStr: any, language: string): string {
     return dateStr && date.isValid() ? new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long' }).format(date.toDate()) : '';
 }
 
+/**
+ * A calendar day written YYYY-MM-DD (an answer to a date, day or date range
+ * question) in the app's date style and a language: "5 November 1990" /
+ * "5 november 1990". A day has no time zone, so it is never moved by the
+ * reader's. Text that is not a real day comes back as it is.
+ */
+export function calendarDayIn(value: string, language: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return value;
+    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+    // setUTCFullYear, not the constructor: years 0 to 99 are not read as 1900 to 1999
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return value;
+    return new Intl.DateTimeFormat(intlLocale(language), { dateStyle: 'long', timeZone: 'UTC' }).format(date);
+}
+
 /** A UTC date as a local date and time in a language: "24 October 2026 at 14:05" / "24 oktober 2026 om 14:05". */
 export function utcToLocalDateTimeIn(dateStr: any, language: string): string {
     const date = moment.utc(dateStr);

@@ -1,6 +1,7 @@
 import { ExprNode, ExprValue, FormulaError, evaluateExpression, formatExpressionValue, parseFormula, printFormula, validateExpression } from '@app/lib/expressions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { getComparableAnswerValue, getGroupAnswerItems } from '@app/utils/conditional-logic';
+import { dateRangeDays } from '@app/utils/date-range';
 
 /**
  * Calculated fields: a value computed from the respondent's answers, shown
@@ -154,6 +155,32 @@ export const fieldTitleText = (field: StandardFormFieldDto): string => (titleTex
 
 const fieldLabel = (field: StandardFormFieldDto): string => (titleText(field.title) || (typeof field.value === 'string' ? field.value : '')).replace(/\s+/g, ' ').trim() || field.id;
 
+/** The label of a question's variable: a date range's two read "<label> (start)" and "<label> (end)". */
+const rangeLabel = (field: StandardFormFieldDto, label: string, part: number): string => (field.type === FieldTypes.DATE_RANGE ? `${label} (${DATE_RANGE_PARTS[part]})` : label);
+
+/** A date range is two variables: its first and its last day. */
+export const DATE_RANGE_PARTS = ['start', 'end'] as const;
+
+/**
+ * The variable keys one question answers to: its id, or for a date range
+ * `<id>.start` and `<id>.end`; `prefix` is `<group id>.` inside a repeating
+ * group. Twin of the server's `question_variable_keys`.
+ */
+export function questionVariableKeys(field: Pick<StandardFormFieldDto, 'id' | 'type'>, prefix: string = ''): string[] {
+    const key = `${prefix}${field.id}`;
+    return field.type === FieldTypes.DATE_RANGE ? DATE_RANGE_PARTS.map((part) => `${key}.${part}`) : [key];
+}
+
+/** The variables one question's answer gives, by key (`questionVariableKeys`); an unanswered one is undefined. Twin of `question_variables`. */
+export function questionVariables(field: Pick<StandardFormFieldDto, 'id' | 'type'>, answer: any, prefix: string = ''): Record<string, unknown> {
+    const keys = questionVariableKeys(field, prefix);
+    if (field.type === FieldTypes.DATE_RANGE) {
+        const days = dateRangeDays(answer);
+        return { [keys[0]]: days.start, [keys[1]]: days.end };
+    }
+    return { [keys[0]]: getComparableAnswerValue(answer, field.type) };
+}
+
 /** Every variable of the form, in form order (hidden fields last). */
 export function calculationVariables(slides: StandardFormFieldDto[] | undefined | null, hiddenNames: string[] = []): CalculationVariable[] {
     const variables: CalculationVariable[] = [];
@@ -162,12 +189,13 @@ export function calculationVariables(slides: StandardFormFieldDto[] | undefined 
         if (isRepeatingGroupField(field)) {
             const groupLabel = fieldLabel(field);
             (field.properties?.fields ?? []).forEach((child) => {
-                if (child?.id && !child.internal) variables.push({ key: `${field.id}.${child.id}`, label: `${groupLabel}.${fieldLabel(child)}`, kind: 'group' });
+                if (!child?.id || child.internal) return;
+                questionVariableKeys(child, `${field.id}.`).forEach((key, i) => variables.push({ key, label: `${groupLabel}.${rangeLabel(child, fieldLabel(child), i)}`, kind: 'group' }));
             });
             return;
         }
         if (NOT_VARIABLE_TYPES.has(field.type) || field.type === FieldTypes.GROUP) return;
-        variables.push({ key: field.id, label: fieldLabel(field), kind: isCalculatedField(field) ? 'calculated' : 'field' });
+        questionVariableKeys(field).forEach((key, i) => variables.push({ key, label: rangeLabel(field, fieldLabel(field), i), kind: isCalculatedField(field) ? 'calculated' : 'field' }));
     });
     const fieldKeys = new Set(variables.map((variable) => variable.key));
     hiddenNames.forEach((name) => {
@@ -344,12 +372,13 @@ export function buildVariables(slides: StandardFormFieldDto[] | undefined | null
             const items = getGroupAnswerItems(answers?.[field.id]);
             (field.properties?.fields ?? []).forEach((child) => {
                 if (!child?.id || child.internal) return;
-                variables[`${field.id}.${child.id}`] = items.map((item) => getComparableAnswerValue(item?.[child.id], child.type) ?? null);
+                const perItem = items.map((item) => questionVariables(child, item?.[child.id], `${field.id}.`));
+                questionVariableKeys(child, `${field.id}.`).forEach((key) => (variables[key] = perItem.map((values) => values[key] ?? null)));
             });
             return;
         }
         if (NOT_VARIABLE_TYPES.has(field.type) || field.type === FieldTypes.GROUP) return;
-        variables[field.id] = getComparableAnswerValue(answers?.[field.id], field.type) ?? null;
+        Object.entries(questionVariables(field, answers?.[field.id])).forEach(([key, value]) => (variables[key] = value ?? null));
     });
     return variables;
 }
@@ -408,15 +437,28 @@ export function usesAnyAnswer(field: StandardFormFieldDto, slides: StandardFormF
     walk(field);
     if (!sources.length) return true;
     const filled = (value: unknown) => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0);
+    // One question's answer: a date range is read through the day of the end the key names.
+    const answered = (field: StandardFormFieldDto, answer: any, part?: string) => (field.type === FieldTypes.DATE_RANGE ? filled(dateRangeDays(answer)[part === 'end' ? 'end' : 'start']) : filled(getComparableAnswerValue(answer, field.type)));
+    const rangePart = (key: string): { base: string; part: string } | null => {
+        const match = /^(.*)\.(start|end)$/.exec(key);
+        return match ? { base: match[1], part: match[2] } : null;
+    };
     return sources.some((key) => {
+        const source = byId.get(key);
+        if (source) return answered(source, answers?.[key]);
+        const ranged = rangePart(key);
+        const rangeSource = ranged ? byId.get(ranged.base) : undefined;
+        if (ranged && rangeSource?.type === FieldTypes.DATE_RANGE) return answered(rangeSource, answers?.[ranged.base], ranged.part);
         const dot = key.indexOf('.');
         if (dot > 0) {
             const groupId = key.slice(0, dot);
-            const child = byId.get(groupId)?.properties?.fields?.find((f) => f.id === key.slice(dot + 1));
-            return !!child && getGroupAnswerItems(answers?.[groupId]).some((item) => filled(getComparableAnswerValue(item?.[child.id], child.type)));
+            const rest = key.slice(dot + 1);
+            const children = byId.get(groupId)?.properties?.fields ?? [];
+            const direct = children.find((f) => f.id === rest);
+            const part = rangePart(rest);
+            const child = direct ?? (part ? children.find((f) => f.id === part.base && f.type === FieldTypes.DATE_RANGE) : undefined);
+            return !!child && getGroupAnswerItems(answers?.[groupId]).some((item) => answered(child, item?.[child.id], direct ? undefined : part?.part));
         }
-        const source = byId.get(key);
-        if (source) return filled(getComparableAnswerValue(answers?.[key], source.type));
         return filled(hiddenValues?.[key]);
     });
 }
@@ -523,11 +565,19 @@ export function formatCalculatedValue(value: ExprValue | undefined, format: Calc
 export function sampleVariables(variables: CalculationVariable[], slides: StandardFormFieldDto[] | undefined | null): Record<string, unknown> {
     const byId = new Map<string, StandardFormFieldDto>();
     pageFields(slides).forEach((field) => {
-        byId.set(field.id, field);
-        (field.properties?.fields ?? []).forEach((child) => byId.set(`${field.id}.${child.id}`, child));
+        questionVariableKeys(field).forEach((key) => byId.set(key, field));
+        (field.properties?.fields ?? []).forEach((child) => questionVariableKeys(child, `${field.id}.`).forEach((key) => byId.set(key, child)));
     });
-    const sample = (field: StandardFormFieldDto | undefined): unknown => {
+    const sample = (field: StandardFormFieldDto | undefined, key: string): unknown => {
         switch (field?.type) {
+            case FieldTypes.DATE_RANGE: {
+                // a short stay: it starts today and ends in three days
+                const end = new Date();
+                end.setDate(end.getDate() + 3);
+                return key.endsWith('.end') ? localToday(end) : localToday();
+            }
+            case FieldTypes.TAGS:
+                return ['one', 'two'];
             case FieldTypes.NUMBER:
                 return 10;
             case FieldTypes.RATING:
@@ -555,8 +605,8 @@ export function sampleVariables(variables: CalculationVariable[], slides: Standa
     variables.forEach((variable) => {
         if (variable.kind === 'calculated') return;
         if (variable.kind === 'hidden') out[variable.key] = 'value';
-        else if (variable.kind === 'group') out[variable.key] = [sample(byId.get(variable.key)), sample(byId.get(variable.key))];
-        else out[variable.key] = sample(byId.get(variable.key));
+        else if (variable.kind === 'group') out[variable.key] = [sample(byId.get(variable.key), variable.key), sample(byId.get(variable.key), variable.key)];
+        else out[variable.key] = sample(byId.get(variable.key), variable.key);
     });
     return out;
 }

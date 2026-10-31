@@ -31,9 +31,9 @@ export default function AnswerRulesSettings({ field, onChange, onPropertyChange 
     const summaryId = useId();
     const valueConflict = rules.minValue !== undefined && rules.maxValue !== undefined && rules.minValue > rules.maxValue;
     if (!kind) return null;
-    // Time and currency have settings of their own (in the builder's language); a day has only its date rules.
-    if (kind === 'time' || kind === 'currency') return <TypedFieldSettings field={field} onChange={onChange} onPropertyChange={onPropertyChange ?? (() => undefined)} />;
-    if (kind === 'day') return null;
+    // Time, currency and tags have settings of their own (in the builder's language); a day and a date range have only their date rules.
+    if (kind === 'time' || kind === 'currency' || kind === 'tags') return <TypedFieldSettings field={field} onChange={onChange} onPropertyChange={onPropertyChange ?? (() => undefined)} />;
+    if (kind === 'day' || kind === 'date_range') return null;
 
     return (
         <div className="flex flex-col gap-3">

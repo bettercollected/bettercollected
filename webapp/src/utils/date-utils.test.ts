@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { utcToLocalDateTimeWithZone, utcToRelativeIn } from '@app/utils/date-utils';
+import { calendarDayIn, utcToLocalDateTimeWithZone, utcToRelativeIn } from '@app/utils/date-utils';
 
 const NOW = Date.parse('2026-10-29T12:00:00Z');
 const ago = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
@@ -47,5 +47,30 @@ describe('utcToLocalDateTimeWithZone', () => {
     it('is empty for a missing or invalid date', () => {
         expect(utcToLocalDateTimeWithZone(undefined)).toBe('');
         expect(utcToLocalDateTimeWithZone('not a date')).toBe('');
+    });
+});
+
+describe('calendarDayIn', () => {
+    it('writes a day in the app\'s date style, in the language', () => {
+        expect(calendarDayIn('1990-11-05', 'en')).toBe('5 November 1990');
+        expect(calendarDayIn('1990-11-05', 'nl')).toBe('5 november 1990');
+        expect(calendarDayIn('2026-02-28', 'en')).toBe('28 February 2026');
+    });
+
+    it('never moves the day with the reader\'s time zone', () => {
+        const zone = process.env.TZ;
+        for (const tz of ['Pacific/Auckland', 'America/Los_Angeles', 'UTC']) {
+            process.env.TZ = tz;
+            expect(calendarDayIn('2026-12-31', 'en')).toBe('31 December 2026');
+            expect(calendarDayIn('2026-01-01', 'en')).toBe('1 January 2026');
+        }
+        process.env.TZ = zone;
+    });
+
+    it('returns what is not a real day as it is', () => {
+        expect(calendarDayIn('2026-02-30', 'en')).toBe('2026-02-30');
+        expect(calendarDayIn('90-11-05', 'en')).toBe('90-11-05');
+        expect(calendarDayIn('', 'en')).toBe('');
+        expect(calendarDayIn('soon', 'nl')).toBe('soon');
     });
 });

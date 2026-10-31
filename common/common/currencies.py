@@ -64,6 +64,8 @@ CURRENCIES_MAX = 10
 AMOUNT_MAX_INTEGER_DIGITS = 12
 
 _AMOUNT = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?")
+# A zero written with a minus ("-0", "-0.00") is not an amount: zero has one writing.
+_NEGATIVE_ZERO = re.compile(r"-0(?:\.0+)?")
 
 
 def is_currency_code(code: object) -> bool:
@@ -78,10 +80,12 @@ def parse_amount(amount: object, code: Optional[str] = None) -> Optional[Decimal
     """``amount`` as a Decimal when it is a plain decimal string with at most
     the currency's number of decimals (any number when ``code`` is not given
     or not listed), else None. No ``+``, no thousands separators, no decimal
-    comma, no exponent, no leading zeros ("007"), no more than
+    comma, no exponent, no leading zeros ("007"), no "-0", no more than
     ``AMOUNT_MAX_INTEGER_DIGITS`` integer digits (``fullmatch``: no trailing
     newline)."""
     if not isinstance(amount, str) or not _AMOUNT.fullmatch(amount):
+        return None
+    if _NEGATIVE_ZERO.fullmatch(amount):
         return None
     whole, _, fraction = amount.lstrip("-").partition(".")
     if len(whole) > AMOUNT_MAX_INTEGER_DIGITS:

@@ -129,13 +129,23 @@ it says so when the form changed, closed or filled. The pure rules are in `utils
 are never saved, positions are page ids). The privacy panel row and the builder setting (`form-draft-controls.tsx`, days
 1 to 90) read the same settings; the ops engine and spec know `allowSaveDraft` / `draftRetentionDays`.
 
-**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day and currency
-questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
+**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day, currency,
+date range and tags questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
 from `useWorkspacePermissions`). While off, the Insert menu and a repeating group's type lists leave those types out,
 and `FieldSettings` shows an existing question's settings read-only (`NEW_TYPES.LOCKED`). `lib/form-ops/new-question-types.ts`
 twins the backend module, and `applyOps` applies it when given `newQuestionTypes: false` (the shared corpus cases with
 `newQuestionTypes: false`); the builder's own edits do not pass it, because the server checks every save and undo must
 be able to put an existing question back. Respondent inputs, the response view and exports never read it.
+
+**Date range and tags questions:** `date_range` answers `{type:'date_range', date_range:{start,end}}` (YYYY-MM-DD, both
+ends once either is given, the end not before the start) and uses the question's `dateRules` for each end (another
+question's date rule can only compare with `date` and `day`: `DATE_RULE_SOURCE_TYPES`). `tags` answers
+`{type:'tags', tags:[...]}` with `validations.minChoices/maxChoices` (number of tags, cap `TAGS_MAX` 30) and
+`validations.maxLength` (length of one tag, cap `TAG_LENGTH_MAX` 40); the tag rules are `utils/tags.ts`, the twin of
+common `tags.py`. A date range is two formula/rule variables, `<id>.start` and `<id>.end` (`questionVariableKeys` and
+`questionVariables` in `utils/calculated-fields.ts`, twins of the server's), tags one list; logic reads a range with
+`compareDateRange` (includes a day, starts after, ends before) and tags ignoring case. Exports write
+`YYYY-MM-DD/YYYY-MM-DD` and tags joined with `; ` (the CSV formula guard applies as to any cell).
 
 ## Commands
 

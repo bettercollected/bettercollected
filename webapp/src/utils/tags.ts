@@ -1,0 +1,52 @@
+/**
+ * What a tags answer may hold: short free-entry labels. An answer is
+ * `{ type: 'tags', tags: ['a', 'b'] }`. A tag is stored the way it is shown:
+ * trimmed and not empty, without `,` or `;` (they separate tags in the input
+ * and in an export), control characters or format characters (zero-width and
+ * bidirectional marks), at most TAG_LENGTH_MAX characters,
+ * and no two tags the same ignoring case. At most TAGS_MAX tags. The server's
+ * twin: common `tags.py`.
+ */
+
+/** Tags one answer may hold, and the characters of one tag (hard caps: a question's own limits can only be lower). */
+export const TAGS_MAX = 30;
+export const TAG_LENGTH_MAX = 40;
+
+// , and ; separate tags; control characters (Cc), format characters (Cf: zero-width and bidirectional marks, the byte
+// order mark, the soft hyphen) and the line and paragraph separators (Zl, Zp) never belong in one: they reverse or hide
+// text in a view and defeat the comparison of two tags (the server's twin: common `tags.py`).
+const FORBIDDEN = /[,;]|[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+// What Python's str.strip() removes (the server's notion of "trimmed"), not what JavaScript's trim() does (it also strips U+FEFF).
+const PY_SPACE = '\\t\\n\\v\\f\\r \\x1c-\\x1f\\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
+const EDGE_SPACE = new RegExp(`^[${PY_SPACE}]|[${PY_SPACE}]$`);
+
+/** Is `value` a well-formed tag (not looking at its length or at the other tags)? */
+export function isTag(value: unknown): value is string {
+    return typeof value === 'string' && value !== '' && !EDGE_SPACE.test(value) && !FORBIDDEN.test(value);
+}
+
+/** What two tags are compared by: the text in Unicode form C (a precomposed and a decomposed letter are the same), in lower case. */
+export const tagKey = (value: string): string => value.normalize('NFC').toLowerCase();
+
+/** The number of characters (code points, as the server counts them) of a tag. */
+export const tagLength = (value: string): number => Array.from(value).length;
+
+/** The position of the first tag that repeats an earlier one, or null. */
+export function duplicateIndex(tags: ReadonlyArray<string>): number | null {
+    const seen = new Set<string>();
+    for (let index = 0; index < tags.length; index++) {
+        const key = tagKey(tags[index]);
+        if (seen.has(key)) return index;
+        seen.add(key);
+    }
+    return null;
+}
+
+/** The tags as one cell of an export (`; ` between them). */
+export const joinedTags = (tags: ReadonlyArray<string>): string => tags.join('; ');
+
+/** The tags of an answer, as the list it holds (strings only), or undefined when it has none. */
+export function answerTags(answer: any): string[] | undefined {
+    const tags = answer?.tags;
+    return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string') : undefined;
+}

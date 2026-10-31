@@ -23,7 +23,7 @@ import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
 import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem, titleText, tryLocateField } from './model';
-import { GATED_OPS, gatedSignatures, questionTypeProblem } from './new-question-types';
+import { GATED_OPS, type GatedSignatures, gatedSignatures, questionTypeProblem } from './new-question-types';
 import { referenceFixes } from './references';
 import { type RefTable, refsDefined, resolveRefs } from './refs';
 import type { ApplyOptions, ApplyResult, FormDoc, FormField, FormOp, OpResult } from './types';
@@ -197,7 +197,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
     let size = formSize(working);
     let stopped = false;
     const refs: RefTable = new Map();
-    let startedTypes: Map<string, string[]> | null = null;
+    let startedTypes: GatedSignatures | null = null;
 
     for (let i = 0; i < ops.length; i++) {
         const raw = ops[i];

@@ -41,6 +41,7 @@ from common.form_spec.models import (
     count_fields,
 )
 from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
+from common.tags import TAG_LENGTH_MAX, TAGS_MAX
 from common.expressions import MAX_DEPTH as EXPRESSION_DEPTH_MAX, validate_expression
 from common.models.standard_form import (
     FORM_OPTION_CONDITIONS_MAX,
@@ -133,6 +134,7 @@ from backend.app.services.form_drafts.mode import (
 )
 from backend.app.services.new_question_types import (
     GATED_OPS,
+    Signatures,
     gated_signatures,
     new_question_types_enabled,
     op_may_gate,
@@ -160,6 +162,16 @@ from backend.app.services.rich_text import style_value_problem
 from pydantic.alias_generators import to_camel
 
 
+# What a condition on a date range question may ask (backend
+# repeating_groups._date_range_condition, webapp compareDateRange).
+DATE_RANGE_COMPARISONS = (
+    "CONTAINS",
+    "DOES_NOT_CONTAIN",
+    "GREATER_THAN",
+    "LESS_THAN",
+)
+# What a condition on a tags question may ask with a value.
+TAGS_VALUE_COMPARISONS = ("CONTAINS", "DOES_NOT_CONTAIN")
 # The comparisons that order values (time and date conditions check their value).
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
@@ -186,6 +198,8 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.DAY,
     StandardFormFieldType.TIME,
     StandardFormFieldType.CURRENCY,
+    StandardFormFieldType.DATE_RANGE,
+    StandardFormFieldType.TAGS,
     StandardFormFieldType.YES_NO,
     StandardFormFieldType.MULTIPLE_CHOICE,
     StandardFormFieldType.DROPDOWN,
@@ -1327,7 +1341,11 @@ def _ensure_can_be_internal(field_type) -> None:
 
 
 # Questions that carry date rules.
-DATE_RULE_FIELD_TYPES = {StandardFormFieldType.DATE, StandardFormFieldType.DAY}
+DATE_RULE_FIELD_TYPES = {
+    StandardFormFieldType.DATE,
+    StandardFormFieldType.DAY,
+    StandardFormFieldType.DATE_RANGE,
+}
 # Questions that take a short label beside the control.
 LABEL_FIELD_TYPES = {
     StandardFormFieldType.DATE,
@@ -1606,7 +1624,7 @@ def _check_date_rules_patch(
     """Date rules go through the same checks as a builder save: an existing
     date question of the same scope, never itself, no circle."""
     if field.type not in DATE_RULE_FIELD_TYPES:
-        raise OpError("Date rules only apply to date and day questions.")
+        raise OpError("Date rules only apply to date, day and date range questions.")
     rules = _date_rules(specs)
     previous = field.properties.date_rules if field.properties else None
     known = set(date_rule_problems(form.fields))
@@ -1870,6 +1888,12 @@ COUNT_COMPARISONS = {"IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "GREATER_THAN_E
 def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> Any:
     if comparison in VALUELESS_COMPARISONS:
         return None
+    if source.type == StandardFormFieldType.TAGS and comparison not in TAGS_VALUE_COMPARISONS:
+        # a list of labels has no beginning, end or order to compare
+        raise OpError(
+            "A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, "
+            "IS_EMPTY or IS_NOT_EMPTY."
+        )
     if raw in (None, ""):
         raise OpError(f"Comparison '{comparison}' needs a value.")
     if source.type in CHOICE_TYPES:
@@ -1878,6 +1902,17 @@ def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> An
             raise OpError(f"'{raw}' is not a choice of '{_title_text(source)}'. Choices: {', '.join(labels)}")
     if source.type == StandardFormFieldType.YES_NO and str(raw) not in ("Yes", "No"):
         raise OpError("Yes/No conditions take the value 'Yes' or 'No'.")
+    if source.type == StandardFormFieldType.DATE_RANGE:
+        # includes / does not include a day, starts after, ends before
+        if comparison not in DATE_RANGE_COMPARISONS:
+            raise OpError(
+                "A condition on a date range question uses CONTAINS (includes a day), "
+                "DOES_NOT_CONTAIN, GREATER_THAN (starts after a day), LESS_THAN (ends "
+                "before a day), IS_EMPTY or IS_NOT_EMPTY."
+            )
+        if not is_iso_date(raw):
+            raise OpError("A condition on a date range question takes a day written as YYYY-MM-DD.")
+        return raw
     if comparison in ORDERED_COMPARISONS:
         if source.type == StandardFormFieldType.TIME and not is_time(raw):
             raise OpError("A condition on a time question takes a time written as HH:MM.")
@@ -2413,6 +2448,8 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
 
 # Which questions each kind of answer rule applies to.
 _LENGTH_TYPES = {StandardFormFieldType.SHORT_TEXT, StandardFormFieldType.LONG_TEXT}
+# A tags question's maximum length is the length of one tag.
+_TAG_LENGTH_TYPES = _LENGTH_TYPES | {StandardFormFieldType.TAGS}
 _PATTERN_TYPES = {StandardFormFieldType.SHORT_TEXT}
 _VALUE_TYPES = {StandardFormFieldType.NUMBER, StandardFormFieldType.CURRENCY}
 
@@ -2454,10 +2491,15 @@ def _apply_set_field_validation(form: StandardForm, op: SetFieldValidationOp) ->
         changed.append("required" if patch.required else "optional")
     for key, label in (("min_length", "minimum length"), ("max_length", "maximum length")):
         if key in given:
-            _rule_applies(field, _LENGTH_TYPES, "Text lengths", "short or long text")
+            if key == "max_length":
+                _rule_applies(field, _TAG_LENGTH_TYPES, "Text lengths", "short text, long text and tags")
+            else:
+                _rule_applies(field, _LENGTH_TYPES, "Text lengths", "short or long text")
             value = getattr(patch, key)
             if value is not None and value < 0:
                 raise OpError(f"The {label} cannot be negative.")
+            if field.type == StandardFormFieldType.TAGS and value is not None and not 1 <= value <= TAG_LENGTH_MAX:
+                raise OpError(f"The length of a tag is between 1 and {TAG_LENGTH_MAX} characters.")
             setattr(rules, key, value)
             changed.append(label)
     for key, label in (("min_value", "minimum"), ("max_value", "maximum")):
@@ -2468,6 +2510,16 @@ def _apply_set_field_validation(form: StandardForm, op: SetFieldValidationOp) ->
     for key, label in (("min_choices", "minimum choices"), ("max_choices", "maximum choices")):
         if key in given:
             value = getattr(patch, key)
+            if field.type == StandardFormFieldType.TAGS:
+                # the number of tags: at most TAGS_MAX
+                if value is not None and not (1 if key == "max_choices" else 0) <= value <= TAGS_MAX:
+                    raise OpError(
+                        f"The {label} of a tags question is between "
+                        f"{1 if key == 'max_choices' else 0} and {TAGS_MAX}."
+                    )
+                setattr(rules, key, value)
+                changed.append(label.replace("choices", "tags"))
+                continue
             if field.type != StandardFormFieldType.MULTIPLE_CHOICE or not (
                 field.properties and field.properties.allow_multiple_selection
             ):
@@ -3821,7 +3873,7 @@ def apply_form_ops(
     that keeps calculated fields valid, for a batch that creates none.
     """
     working = form.model_copy(deep=True)
-    started_types: Optional[Dict[str, List[str]]] = None
+    started_types: Optional[Signatures] = None
     results: List[OpResult] = []
     size = _form_size(working) if check_size else (0, 0)
     stopped = False

@@ -111,3 +111,52 @@ describe('a day question', () => {
         expect(container).toBeEmptyDOMElement();
     });
 });
+
+const tags = (validations: Record<string, any> = {}): StandardFormFieldDto => ({ id: 'g', index: 0, type: FieldTypes.TAGS, title: 'Topics', validations });
+
+describe('settings of a tags question', () => {
+    it('sets the fewest and the most tags and the longest tag, and clears them', () => {
+        const { onChange } = setup(tags({ minChoices: 1, maxChoices: 5, maxLength: 20 }));
+        expect(screen.getByLabelText('Fewest tags')).toHaveValue(1);
+        expect(screen.getByLabelText('Most tags')).toHaveValue(5);
+        expect(screen.getByLabelText('Longest tag (characters)')).toHaveValue(20);
+        fireEvent.change(screen.getByLabelText('Most tags'), { target: { value: '8' } });
+        expect(onChange).toHaveBeenLastCalledWith({ maxChoices: 8 });
+        fireEvent.change(screen.getByLabelText('Longest tag (characters)'), { target: { value: '12' } });
+        expect(onChange).toHaveBeenLastCalledWith({ maxLength: 12 });
+        fireEvent.change(screen.getByLabelText('Fewest tags'), { target: { value: '' } });
+        expect(onChange).toHaveBeenLastCalledWith({ minChoices: undefined });
+    });
+
+    it('brings a number above the caps back to them (30 tags, 40 characters) and treats 0 as no limit', () => {
+        const { onChange } = setup(tags());
+        fireEvent.change(screen.getByLabelText('Most tags'), { target: { value: '99' } });
+        expect(onChange).toHaveBeenLastCalledWith({ maxChoices: 30 });
+        fireEvent.change(screen.getByLabelText('Longest tag (characters)'), { target: { value: '100' } });
+        expect(onChange).toHaveBeenLastCalledWith({ maxLength: 40 });
+        fireEvent.change(screen.getByLabelText('Fewest tags'), { target: { value: '0' } });
+        expect(onChange).toHaveBeenLastCalledWith({ minChoices: undefined });
+        expect(screen.getByLabelText('Longest tag (characters)')).toHaveAttribute('placeholder', '40');
+    });
+
+    it('names the caps, and says when the fewest is more than the most', () => {
+        setup(tags({ minChoices: 6, maxChoices: 3 }));
+        expect(screen.getByText(/At most 30 tags, and each tag at most 40 characters/)).toBeInTheDocument();
+        expect(screen.getByLabelText('Fewest tags')).toBeInvalid();
+        expect(screen.getByRole('status')).toHaveTextContent('The fewest tags is more than the most.');
+    });
+
+    it('is in Dutch for the Dutch builder', async () => {
+        await act(() => i18n.changeLanguage('nl'));
+        setup(tags());
+        expect(screen.getByLabelText('Minste tags')).toBeInTheDocument();
+        expect(screen.getByLabelText('Meeste tags')).toBeInTheDocument();
+        expect(screen.getByLabelText('Langste tag (tekens)')).toBeInTheDocument();
+    });
+
+    it('a date range has no answer settings here: its date rules are its own section', () => {
+        const range: StandardFormFieldDto = { id: 'r', index: 0, type: FieldTypes.DATE_RANGE, title: 'Stay' };
+        const { container } = render(<AnswerRulesSettings field={range} onChange={vi.fn()} />);
+        expect(container).toBeEmptyDOMElement();
+    });
+});

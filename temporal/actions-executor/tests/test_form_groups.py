@@ -161,7 +161,10 @@ def test_formula_like_text_is_kept_as_text():
 
     for text in ('=HYPERLINK("x")', "+1", "-2", "@SUM(A1)", "\tx", "\rx"):
         assert formula_safe(text) == "'" + text
-    for value in (-5, 3.5, "2026-09-27", "plain", "", None):
+    # a formula after leading whitespace runs in a spreadsheet too
+    for text in (" =1+1", "\u00a0+1", "\u3000-2", "\ufeff@x", "\n =1"):
+        assert formula_safe(text) == "'" + text
+    for value in (-5, 3.5, "2026-09-27", "plain", "", None, "a =1", "x\n=1"):
         assert formula_safe(value) == value
 
 

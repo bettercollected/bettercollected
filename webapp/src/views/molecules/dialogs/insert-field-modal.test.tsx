@@ -265,7 +265,7 @@ describe('field settings', () => {
 });
 
 describe('the newer question types and the server switch', () => {
-    const NEW_NAMES = ['Day (d-m-y)', 'Time', 'Amount of money'];
+    const NEW_NAMES = ['Day (d-m-y)', 'Time', 'Amount of money', 'Date range', 'Tags'];
 
     it('leaves time, day and currency out of the Insert menu while the server does not take them', async () => {
         renderEditor();
@@ -274,6 +274,25 @@ describe('the newer question types and the server switch', () => {
         expect(within(screen.getByRole('group', { name: 'Date & number' })).getByRole('option', { name: 'Date' })).toBeInTheDocument();
         fireEvent.change(await search(), { target: { value: 'euro' } });
         expect(screen.queryAllByRole('option')).toHaveLength(0);
+    });
+
+    it('finds neither the date range nor the tags question by what they are for while the server does not take them', async () => {
+        renderEditor();
+        for (const query of ['stay', 'tags', 'keywords', 'periode']) {
+            fireEvent.change(await search(), { target: { value: query } });
+            expect(screen.queryAllByRole('option')).toHaveLength(0);
+        }
+    });
+
+    it('offers the date range and tags questions, and adds each, while the server takes them', async () => {
+        served.newQuestionTypesEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'stay' } });
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Date range' })));
+        expect(pageFields()[3].type).toBe(FieldTypes.DATE_RANGE);
+        fireEvent.change(await search(), { target: { value: 'keywords' } });
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Tags' })));
+        expect(pageFields()[4].type).toBe(FieldTypes.TAGS);
     });
 
     it('offers them, and adds one, while the server takes them', async () => {

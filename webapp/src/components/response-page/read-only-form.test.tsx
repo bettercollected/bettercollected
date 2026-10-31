@@ -113,7 +113,7 @@ describe('every question type shows its answer, read-only', () => {
             ['Your phone number', '+31612345678'],
             ['How many people?', '0'],
             ['Your website', 'https://example.com/anna'],
-            ['When do you arrive?', 'July 4th, 2026']
+            ['When do you arrive?', '4 July 2026']
         ] as const) {
             const box = within(question(new RegExp(title.replace('?', '\\?')))).getByRole('textbox');
             expect(box).toHaveAttribute('aria-readonly', 'true');
@@ -278,7 +278,7 @@ describe('every question type shows its answer, read-only', () => {
 
     it('writes them in English for a form in English or with no language', () => {
         renderForm();
-        expect(within(question('When do you arrive?')).getByRole('textbox')).toHaveTextContent('July 4th, 2026');
+        expect(within(question('When do you arrive?')).getByRole('textbox')).toHaveTextContent('4 July 2026');
     });
 
     it('hidden fields from the share link are listed with their values', () => {

@@ -868,6 +868,14 @@
       "COUNT": "Number of items",
       "ANY": "Any item",
       "ALL": "All items"
+    },
+    "RANGE_COMPARISON": {
+      "CONTAINS": "includes",
+      "DOES_NOT_CONTAIN": "does not include",
+      "GREATER_THAN": "starts after",
+      "LESS_THAN": "ends before",
+      "IS_EMPTY": "is empty",
+      "IS_NOT_EMPTY": "is not empty"
     }
   },
   "WEBHOOKS": {
@@ -1242,6 +1250,14 @@
     "currency": {
       "NAME": "Amount of money",
       "DESCRIPTION": "An amount with its currency"
+    },
+    "date_range": {
+      "NAME": "Date range",
+      "DESCRIPTION": "A first and a last day, such as a stay"
+    },
+    "tags": {
+      "NAME": "Tags",
+      "DESCRIPTION": "Short labels the respondent types"
     }
   },
   "TYPED_SETTINGS": {
@@ -1260,7 +1276,12 @@
     "LOWEST_AMOUNT": "Lowest amount",
     "HIGHEST_AMOUNT": "Highest amount",
     "NO_LIMIT": "No limit",
-    "AMOUNT_ORDER": "The lowest amount is more than the highest."
+    "AMOUNT_ORDER": "The lowest amount is more than the highest.",
+    "FEWEST_TAGS": "Fewest tags",
+    "MOST_TAGS": "Most tags",
+    "LONGEST_TAG": "Longest tag (characters)",
+    "TAGS_ORDER": "The fewest tags is more than the most.",
+    "TAGS_HINT": "At most {{most}} tags, and each tag at most {{length}} characters. Tags are compared ignoring capitals, and a tag has no comma or semicolon."
   },
   "NEW_TYPES": {
     "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are.",

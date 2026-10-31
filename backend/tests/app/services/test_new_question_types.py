@@ -51,12 +51,19 @@ MONEY = {
     "properties": {"currencies": ["EUR"]},
     "validations": {"min_value": 1},
 }
+STAY = {
+    "id": "r",
+    "type": "date_range",
+    "title": "Stay",
+    "properties": {"date_rules": [{"comparison": "after", "target": "today"}]},
+}
+TAGS = {"id": "g", "type": "tags", "title": "Topics", "validations": {"max_choices": 3}}
 DAY = {"id": "d", "type": "day", "title": "Born"}
 TEXT = {"id": "s", "type": "short_text", "title": "Name"}
 
 
-def test_the_list_is_the_three_types_for_now():
-    assert GATED_TYPES == {"time", "day", "currency"}
+def test_the_list_is_the_five_types():
+    assert GATED_TYPES == {"time", "day", "currency", "date_range", "tags"}
 
 
 def test_only_gated_questions_have_signatures_nested_ones_included():
@@ -80,10 +87,14 @@ def test_a_question_that_is_the_same_is_not_new_or_changed():
         {**MONEY, "properties": {"currencies": ["EUR", "USD"]}},
         {**MONEY, "validations": {"min_value": 1, "max_value": 9}},
         {**DAY, "properties": {"date_rules": [{"comparison": "before", "target": "today"}]}},
+        {**STAY, "properties": {"date_rules": [{"comparison": "before", "target": "today"}]}},
+        {**TAGS, "validations": {"max_choices": 4}},
+        {**TAGS, "validations": {"max_choices": 3, "max_length": 10}},
+        {**TAGS, "validations": {"max_choices": 3, "min_choices": 1}},
     ],
 )
 def test_changed_settings_count(changed):
-    stored = _form(TIME, MONEY, DAY)
+    stored = _form(TIME, MONEY, DAY, STAY, TAGS)
     result = new_or_changed_questions(_form(changed), stored)
     assert [r[0] for r in result] == [changed["id"]]
 
@@ -202,3 +213,19 @@ async def test_a_provider_import_cannot_bring_the_newer_types_while_off(
         {"form": plain, "responses": []}, "owner", workspace.id
     )
     assert saved is not None
+
+
+def test_taking_a_date_rule_away_asks_nothing_new_but_adding_one_does():
+    rule_a = {"comparison": "after", "target": "field", "field_id": "s"}
+    rule_b = {"comparison": "before", "target": "today"}
+    with_rules = {**DAY, "properties": {"date_rules": [rule_a, rule_b]}}
+    stored = _form(with_rules)
+    assert new_or_changed_questions(_form({**DAY, "properties": {"date_rules": [rule_b]}}), stored) == []
+    assert new_or_changed_questions(_form(DAY), stored) == []
+    assert new_or_changed_questions(_form(with_rules), stored) == []
+    extra = {"comparison": "on_or_after", "target": "date", "date": "1900-01-01"}
+    assert new_or_changed_questions(_form({**DAY, "properties": {"date_rules": [rule_a, rule_b, extra]}}), stored) == [("d", "day")]
+    # another rule in place of one is a new rule
+    assert new_or_changed_questions(_form({**DAY, "properties": {"date_rules": [extra]}}), stored) == [("d", "day")]
+    # fewer rules do not excuse another setting that changed
+    assert new_or_changed_questions(_form({**STAY, "properties": {"date_rules": []}}), _form(STAY)) == []

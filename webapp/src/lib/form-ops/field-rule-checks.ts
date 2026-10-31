@@ -26,10 +26,11 @@ import {
     ruleReads,
     rulesOf,
     targetsOf,
-    valueAnswer
+    valueAnswer,
+    isOwnKey
 } from '@app/lib/field-rules';
 import { FieldTypes, type StandardFormFieldDto } from '@app/models/dtos/form';
-import { expressionVariables } from '@app/utils/calculated-fields';
+import { expressionVariables, questionVariableKeys } from '@app/utils/calculated-fields';
 
 import { calcTitle, pageFields, variableKeys } from './calculations';
 import { childrenOf, isRepeatingGroup, isSlide } from './model';
@@ -236,7 +237,8 @@ class Checker {
     private siblings(target: Target): Set<string> {
         let found = this.siblingCache.get(target.group);
         if (!found) {
-            found = siblingIds(target);
+            // a sibling's id reads its answer; a date range reads as its two days
+            found = new Set([...siblingIds(target), ...childrenOf(target.group as FormField).flatMap((child) => (child?.id ? questionVariableKeys(child as any) : []))]);
             this.siblingCache.set(target.group, found);
         }
         return found;
@@ -377,9 +379,9 @@ class Checker {
             return;
         }
         for (const key of keys) {
-            if (reads(key) && key !== target.field.id && !this.internal.has(key)) continue;
+            if (reads(key) && !isOwnKey(key, target.field.id) && !this.internal.has(key)) continue;
             const path = pointer(index, ...where) + varPointer(ast, key);
-            if (key === target.field.id) this.add(target.field.id, path, `A rule of '${name}' cannot read the question's own value.`, index);
+            if (isOwnKey(key, target.field.id)) this.add(target.field.id, path, `A rule of '${name}' cannot read the question's own value.`, index);
             else if (this.internal.has(key)) this.add(target.field.id, path, `A rule of '${name}' uses an internal field: respondents never answer internal fields.`, index);
             else if (!reads(key)) this.add(target.field.id, path, `A rule of '${name}' uses '${key}', which is not a question, calculation or hidden field it can read.`, index);
         }

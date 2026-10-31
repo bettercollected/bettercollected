@@ -10,6 +10,7 @@ import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { isCurrencyCode } from '@app/utils/currency';
 import { optionLogicProblems } from '@app/utils/option-logic';
+import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
 import { styleValueProblem } from '@app/utils/rich-text-style';
 import { isTime } from '@app/utils/time-of-day';
 
@@ -238,6 +239,17 @@ function modelProblems(field: any, loc: string): string[] {
     return own ? [loc ? `${loc}: Value error, ${own}` : own] : [];
 }
 
+/** The limits of a tags question (common `check_tags_settings`): 0 to 30 tags, a tag of 1 to 40 characters, the fewest not above the most. */
+function tagsSettingsProblem(field: any): string | null {
+    if (field.type !== FieldTypes.TAGS) return null;
+    const { minChoices: low, maxChoices: high, maxLength: length } = field.validations ?? {};
+    if (low != null && !(low >= 0 && low <= TAGS_MAX)) return `The fewest tags is between 0 and ${TAGS_MAX}.`;
+    if (high != null && !(high >= 1 && high <= TAGS_MAX)) return `The most tags is between 1 and ${TAGS_MAX}.`;
+    if (low != null && high != null && low > high) return 'The fewest tags is more than the most.';
+    if (length != null && !(length >= 1 && length <= TAG_LENGTH_MAX)) return `The length of a tag is between 1 and ${TAG_LENGTH_MAX} characters.`;
+    return null;
+}
+
 /** The model validator of a stored field (common `check_repeating_group_structure`, `check_field_date_rules`). */
 function ownModelProblem(field: any): string | null {
     const properties = field.properties;
@@ -258,7 +270,7 @@ function ownModelProblem(field: any): string | null {
         if (!DATE_RULE_FIELD_TYPES.has(field.type)) return 'Only date questions can have date rules.';
         for (const rule of rules) if (field.id && rule.fieldId === field.id) return 'A date rule cannot compare a question with itself.';
     }
-    return typeSettingsProblem(properties?.minTime, properties?.maxTime, properties?.currencies);
+    return tagsSettingsProblem(field) ?? typeSettingsProblem(properties?.minTime, properties?.maxTime, properties?.currencies);
 }
 
 /** The settings of time and currency questions (common `check_type_settings`). */

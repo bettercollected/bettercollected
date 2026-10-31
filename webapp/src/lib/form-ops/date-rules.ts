@@ -10,7 +10,7 @@
  */
 import { isIsoDate } from '@app/utils/date-rules';
 
-import { DATE_RULES_MAX, DATE_RULE_FIELD_TYPES, OpError, isSlide } from './model';
+import { DATE_RULES_MAX, DATE_RULE_FIELD_TYPES, DATE_RULE_SOURCE_TYPES, OpError, isSlide } from './model';
 import type { DateRuleSpec, FormField } from './types';
 
 /** Path of a question: indexes into the nested `fields` arrays from `doc.fields`. */
@@ -115,7 +115,7 @@ export function dateRuleProblems(fields: FormField[] | undefined | null, overrid
                 continue;
             }
             const refTitle = questionTitle(entry.question);
-            if (!DATE_RULE_FIELD_TYPES.has(entry.question.type)) {
+            if (!DATE_RULE_SOURCE_TYPES.has(entry.question.type)) {
                 problems.push(`A date rule of '${title}' uses '${refTitle}', which is not a date question.`);
                 continue;
             }
@@ -213,7 +213,7 @@ export function dateRuleFixes(fields: FormField[] | undefined | null): DateRuleF
                       if (rule.target !== 'field') return true;
                       const entry = scopes.get(String(rule.fieldId));
                       if (!entry || entry[0] === question) return false;
-                      if (!DATE_RULE_FIELD_TYPES.has(entry[0].type) || entry[0].internal) return false;
+                      if (!DATE_RULE_SOURCE_TYPES.has(entry[0].type) || entry[0].internal) return false;
                       return groupId === entry[1];
                   });
         if (kept.length !== rules.length) fixes.push({ path: pathOf(top, position, child), rules: kept.length ? kept : undefined, dropped: rules.length - kept.length });

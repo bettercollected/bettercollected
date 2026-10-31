@@ -16,8 +16,8 @@ import { useLazyGetWorkspaceFormVersionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
-import { responsePageUrl } from '@app/utils/response-page';
-import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
+import { formFormatLanguage, responsePageUrl } from '@app/utils/response-page';
+import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
@@ -90,7 +90,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
                 </div>
             );
         }
-        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}</div>;
+        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerDisplayText(response, field, formFormatLanguage(form.settings?.language))}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (

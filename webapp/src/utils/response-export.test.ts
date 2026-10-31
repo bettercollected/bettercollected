@@ -65,3 +65,26 @@ describe('the file the server sent', () => {
         expect(exportExtension(undefined)).toBe('csv');
     });
 });
+
+describe('date range and tags answers on screen and in the sheet', () => {
+    const stay: StandardFormFieldDto = { id: 'stay', index: 0, type: FieldTypes.DATE_RANGE, title: 'Stay' };
+    const interests: StandardFormFieldDto = { id: 'interests', index: 1, type: FieldTypes.TAGS, title: 'Interests' };
+
+    it('reads a range as one interval and one end alone with its slash (the export itself is built on the server)', () => {
+        const range = (start: string, end: string) => ({ answers: { stay: { type: 'date_range', date_range: { start, end } } } }) as any;
+        expect(getAnswerForField(range('2026-11-03', '2026-11-07'), stay)).toBe('2026-11-03/2026-11-07');
+        expect(getAnswerForField(range('2026-11-03', ''), stay)).toBe('2026-11-03/');
+        expect(getAnswerForField(range('', ''), stay)).toBe('');
+    });
+
+    it('reads a stored response that spells the slot dateRange', () => {
+        expect(getAnswerForField({ answers: { stay: { type: 'date_range', dateRange: { start: '2026-11-03', end: '2026-11-07' } } } } as any, stay)).toBe('2026-11-03/2026-11-07');
+    });
+
+    it('shows the tags comma separated on screen (the display separator) and joined with "; " by default', () => {
+        const response = { answers: { interests: { type: 'tags', tags: ['a', 'b'] } } } as any;
+        expect(getAnswerForField(response, interests, ', ')).toBe('a, b');
+        expect(getAnswerForField(response, interests)).toBe('a; b');
+        expect(getAnswerForField(response, interests, '; ')).toBe('a; b');
+    });
+});

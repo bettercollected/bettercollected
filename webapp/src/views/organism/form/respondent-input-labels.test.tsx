@@ -48,6 +48,8 @@ const FIELDS: StandardFormFieldDto[] = [
     question('day', FieldTypes.DAY, 'Which day did you start?'),
     question('time', FieldTypes.TIME, 'When do you arrive?', { minTime: '08:00' }),
     question('money', FieldTypes.CURRENCY, 'What is your budget?', { currencies: ['EUR', 'GBP'] }),
+    question('stay', FieldTypes.DATE_RANGE, 'When do you stay?'),
+    question('topics', FieldTypes.TAGS, 'What interests you?', {}, { validations: { maxChoices: 5 } }),
     question('dropdown', FieldTypes.DROP_DOWN, 'Which country?', { choices: choices('Netherlands', 'Belgium') }),
     question('single', FieldTypes.MULTIPLE_CHOICE, 'Favourite colour?', { choices: choices('Red', 'Green') }),
     question('multi', FieldTypes.MULTIPLE_CHOICE, 'Which fruits?', { choices: choices('Apple', 'Pear'), allowMultipleSelection: true }),
@@ -113,6 +115,7 @@ describe('respondent controls are named by their question', () => {
         ['date', 'button', 'When were you born?'],
         ['day', 'group', 'Which day did you start?'],
         ['amount', 'textbox', 'What is your budget?'],
+        ['date range', 'group', 'When do you stay?'],
         ['dropdown', 'button', 'Which country?'],
         ['multiple choice', 'radiogroup', 'Favourite colour?'],
         ['checkboxes', 'group', 'Which fruits?'],
@@ -127,6 +130,26 @@ describe('respondent controls are named by their question', () => {
         open();
         const control = await screen.findByRole(role, { name: title });
         expect(control).toHaveAccessibleDescription(describedBy(title));
+    });
+
+    it('a date range is a group of two labelled pickers, a tags box is named by its question and its own label', async () => {
+        open();
+        const range = await screen.findByRole('group', { name: 'When do you stay?' });
+        expect(within(range).getByRole('button', { name: 'Start' })).toHaveAccessibleDescription('Pick a date');
+        expect(within(range).getByRole('button', { name: 'End' })).toHaveAccessibleDescription('Pick a date');
+        const tags = screen.getByRole('textbox', { name: 'What interests you? Add a tag' });
+        expect(tags).toHaveAccessibleDescription(/About what interests you\? Press Enter, a comma or a semicolon after each tag\. 0 of 5 tags/);
+        expect(screen.getByRole('textbox', { name: /Add a tag/ })).toBe(tags);
+    });
+
+    it('in Dutch the two pickers and the tags box carry Dutch labels', async () => {
+        window.history.replaceState(null, '', '/acme/forms/f1?lang=nl');
+        open();
+        const range = await screen.findByRole('group', { name: 'When do you stay?' });
+        expect(within(range).getByRole('button', { name: 'Begin' })).toHaveAccessibleDescription('Kies een datum');
+        expect(within(range).getByRole('button', { name: 'Einde' })).toBeInTheDocument();
+        const tags = screen.getByRole('textbox', { name: 'What interests you? Voeg een tag toe' });
+        expect(tags).toHaveAccessibleDescription(/Druk na elke tag op Enter, een komma of een puntkomma\. 0 van 5 tags/);
     });
 
     it('the placeholder is not the name', async () => {

@@ -5,7 +5,8 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
-import { DISPLAY_LIST_SEPARATOR, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { formFormatLanguage } from '@app/utils/response-page';
+import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
@@ -151,7 +152,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         </div>
                     );
                 }
-                const answerText = getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
+                const answerText = getAnswerDisplayText(response, field, formFormatLanguage(standardForm?.settings?.language));
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}

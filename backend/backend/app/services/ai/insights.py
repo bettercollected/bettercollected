@@ -268,6 +268,12 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
         return str(answer["date"])
     if answer.get("time"):
         return str(answer["time"])
+    date_range = answer.get("date_range")
+    if isinstance(date_range, dict) and (date_range.get("start") or date_range.get("end")):
+        return f"{date_range.get('start') or ''}/{date_range.get('end') or ''}"
+    tags = answer.get("tags")
+    if isinstance(tags, list) and tags:
+        return "; ".join(str(tag) for tag in tags)
     currency = answer.get("currency")
     if isinstance(currency, dict) and currency.get("amount"):
         return f"{currency.get('code') or ''} {currency['amount']}".strip()

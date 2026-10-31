@@ -1,7 +1,9 @@
 import { codePointLength } from '@app/lib/expressions/ast';
 import { formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { dateRangeDays } from '@app/utils/date-range';
 import { isIsoDate } from '@app/utils/iso-date';
+import { answerTags, tagKey } from '@app/utils/tags';
 import { isTime } from '@app/utils/time-of-day';
 import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -69,6 +71,13 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
         case FieldTypes.CURRENCY:
             // the amount as written ("12.50"): a number to formulas and ordered comparisons; the code is not part of the value
             return typeof answer.currency?.amount === 'string' && answer.currency.amount ? answer.currency.amount : undefined;
+        case FieldTypes.DATE_RANGE: {
+            // {start, end} once either is given (conditions and formulas read the two days: `dateRangeDays`)
+            const { start, end } = dateRangeDays(answer);
+            return start || end ? { start, end } : undefined;
+        }
+        case FieldTypes.TAGS:
+            return answerTags(answer);
         case FieldTypes.PHONE_NUMBER:
             return answer.phoneNumber ?? answer.phone_number;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -218,9 +227,45 @@ function compareOrderedText(value: any, fieldType: string, comparison: Compariso
     }
 }
 
+/**
+ * A condition on a date range: includes a day (CONTAINS), does not include it,
+ * starts after it (GREATER_THAN), ends before it (LESS_THAN), is empty or is
+ * not. Needs both days and a well-formed target day, else it does not hold.
+ * Twin of the server's `_date_range_condition`.
+ */
+export function compareDateRange(answer: any, comparison: Comparison | string, target: any): boolean {
+    const { start, end } = dateRangeDays(answer);
+    if (comparison === Comparison.IS_EMPTY) return start === undefined && end === undefined;
+    if (comparison === Comparison.IS_NOT_EMPTY) return start !== undefined || end !== undefined;
+    if (start === undefined || end === undefined || !isIsoDate(target)) return false;
+    switch (comparison) {
+        case Comparison.CONTAINS:
+            return start <= target && target <= end;
+        case Comparison.DOES_NOT_CONTAIN:
+            return !(start <= target && target <= end);
+        case Comparison.GREATER_THAN:
+            return start > target;
+        case Comparison.LESS_THAN:
+            return end < target;
+        default:
+            return false;
+    }
+}
+
+/** What a condition on a tags question may ask (backend `TAGS_COMPARISONS`). */
+const TAGS_COMPARISONS = new Set<string>([Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
+
 function evaluateCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources, textMax?: number): boolean {
     if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources, textMax);
     const answer = answers?.[condition.fieldId];
+    if (condition.fieldType === FieldTypes.DATE_RANGE) return compareDateRange(answer, condition.comparison, condition.value);
+    if (condition.fieldType === FieldTypes.TAGS) {
+        // a list of labels has no beginning, end or order to compare: only these hold (backend TAGS_COMPARISONS)
+        if (!TAGS_COMPARISONS.has(condition.comparison)) return false;
+        // tags are compared ignoring case
+        const tags = getComparableAnswerValue(answer, condition.fieldType) as string[] | undefined;
+        return compareValue(tags?.length ? tags.map(tagKey) : tags, condition.comparison, typeof condition.value === 'string' ? tagKey(condition.value) : condition.value, textMax);
+    }
     if (ORDERED_TEXT_TYPES.has(condition.fieldType) && ORDERED_COMPARISONS.has(condition.comparison)) return compareOrderedText(getComparableAnswerValue(answer, condition.fieldType), condition.fieldType, condition.comparison, condition.value);
     if (CHOICE_TYPES.has(condition.fieldType)) return evaluateChoiceCondition(answer, sources?.[condition.fieldId], condition.comparison, condition.value, textMax);
     const value = getComparableAnswerValue(answer, condition.fieldType);

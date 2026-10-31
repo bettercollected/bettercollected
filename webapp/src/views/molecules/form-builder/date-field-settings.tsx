@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { X } from 'lucide-react';
 
-import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule, DateRuleComparison } from '@app/models/types/form-builder-shared';
 import { DATE_RULES_MAX, DATE_RULE_COMPARISON_LABELS, DateRuleSource, isIsoDate, todayIso } from '@app/utils/date-rules';
 
@@ -26,7 +26,9 @@ function targetFromValue(value: string, rule: DateRule): DateRule {
  * ("Start date") and up to DATE_RULES_MAX date rules — before / after / on or
  * before / on or after a fixed date, today, or an earlier date question
  * (`sources`: titles shown, ids stored). `onChange` receives the properties
- * to merge; an empty label or rule list is stored as `undefined`.
+ * to merge; an empty label or rule list is stored as `undefined`. A date range
+ * has no label (its two pickers are named Start and End) and its rules apply
+ * to each of its two days.
  */
 export default function DateFieldSettings({
     field,
@@ -40,6 +42,7 @@ export default function DateFieldSettings({
     sourceHint?: string;
 }) {
     const rules = field.properties?.dateRules ?? [];
+    const isRange = field.type === FieldTypes.DATE_RANGE;
     const [label, setLabel] = useState(field.properties?.label ?? '');
 
     useEffect(() => {
@@ -52,26 +55,30 @@ export default function DateFieldSettings({
 
     return (
         <div className="flex flex-col gap-3" data-testid="date-field-settings">
-            <label className="flex flex-col gap-1 text-xs text-black-700">
-                Label
-                <input
-                    className={selectClass}
-                    value={label}
-                    placeholder="e.g. Start date"
-                    maxLength={120}
-                    onChange={(e) => setLabel(e.target.value)}
-                    onBlur={() => {
-                        const next = label.trim();
-                        if (next !== (field.properties?.label ?? '')) onChange({ label: next || undefined });
-                    }}
-                />
-                <span className="text-[11px] text-black-600">Shown above the date picker, apart from the question.</span>
-            </label>
+            {!isRange && (
+                <label className="flex flex-col gap-1 text-xs text-black-700">
+                    Label
+                    <input
+                        className={selectClass}
+                        value={label}
+                        placeholder="e.g. Start date"
+                        maxLength={120}
+                        onChange={(e) => setLabel(e.target.value)}
+                        onBlur={() => {
+                            const next = label.trim();
+                            if (next !== (field.properties?.label ?? '')) onChange({ label: next || undefined });
+                        }}
+                    />
+                    <span className="text-[11px] text-black-600">Shown above the date picker, apart from the question.</span>
+                </label>
+            )}
 
             <div className="flex flex-col gap-2">
                 <div>
                     <div className="text-xs font-medium text-black-700">Date rules</div>
-                    <div className="text-[11px] text-black-600">Dates outside the rules can&apos;t be picked. A rule on another question applies once it is answered.</div>
+                    <div className="text-[11px] text-black-600">
+                        {isRange ? 'Both days must meet the rules; days outside them can\u2019t be picked.' : 'Dates outside the rules can\u2019t be picked.'} A rule on another question applies once it is answered.
+                    </div>
                 </div>
                 {rules.map((rule, index) => {
                     const known = rule.target !== 'field' || sources.some((s) => s.id === rule.fieldId);

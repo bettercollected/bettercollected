@@ -66,6 +66,8 @@ const FIELDS: StandardFormFieldDto[] = [
     question('day', FieldTypes.DAY, 'Which day did you start?'),
     question('time', FieldTypes.TIME, 'When do you arrive?'),
     question('money', FieldTypes.CURRENCY, 'What is your budget?', { currencies: ['EUR', 'GBP'] }),
+    question('stay', FieldTypes.DATE_RANGE, 'When do you stay?'),
+    question('topics', FieldTypes.TAGS, 'What interests you?', {}, { validations: { maxChoices: 5 } }),
     question('dropdown', FieldTypes.DROP_DOWN, 'Which country?', { choices: choices('Netherlands', 'Belgium') }),
     question('single', FieldTypes.MULTIPLE_CHOICE, 'Favourite colour?', { choices: choices('Red', 'Green') }),
     question('multi', FieldTypes.MULTIPLE_CHOICE, 'Which fruits?', { choices: choices('Apple', 'Pear'), allowMultipleSelection: true }),

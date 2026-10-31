@@ -513,3 +513,92 @@ describe('time, day and currency conditions', () => {
         expect(holds(cond('currency', Comparison.IS_NOT_EMPTY, undefined), amount('0'))).toBe(true);
     });
 });
+
+describe('date range and tags conditions', () => {
+    const cond = (fieldType: string, comparison: Comparison, value: unknown) => ({ fieldId: 'q', fieldType, comparison, value }) as any;
+    const holds = (condition: any, answer: any) => evaluateConditions(undefined, [condition], { q: answer });
+    const stay = (start?: string, end?: string) => ({ type: 'date_range', date_range: { start, end } });
+
+    it('asks whether a range includes a day, both ends counting', () => {
+        const nov = stay('2026-11-03', '2026-11-07');
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-05'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-03'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-07'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-08'), nov)).toBe(false);
+        expect(holds(cond('date_range', Comparison.DOES_NOT_CONTAIN, '2026-11-08'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.DOES_NOT_CONTAIN, '2026-11-05'), nov)).toBe(false);
+    });
+
+    it('asks whether a range starts after or ends before a day, a day on the edge being neither', () => {
+        const nov = stay('2026-11-03', '2026-11-07');
+        expect(holds(cond('date_range', Comparison.GREATER_THAN, '2026-11-02'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.GREATER_THAN, '2026-11-03'), nov)).toBe(false);
+        expect(holds(cond('date_range', Comparison.LESS_THAN, '2026-11-08'), nov)).toBe(true);
+        expect(holds(cond('date_range', Comparison.LESS_THAN, '2026-11-07'), nov)).toBe(false);
+    });
+
+    it('needs both ends and a real day to compare, else the condition does not hold', () => {
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-03'), stay('2026-11-03'))).toBe(false);
+        expect(holds(cond('date_range', Comparison.DOES_NOT_CONTAIN, '2026-11-03'), stay('2026-11-03'))).toBe(false);
+        expect(holds(cond('date_range', Comparison.CONTAINS, 'soon'), stay('2026-11-03', '2026-11-07'))).toBe(false);
+        expect(holds(cond('date_range', Comparison.CONTAINS, '2026-11-03'), stay('2026-02-30', '2026-11-07'))).toBe(false);
+        expect(holds(cond('date_range', Comparison.IS_EQUAL, '2026-11-03'), stay('2026-11-03', '2026-11-03'))).toBe(false);
+    });
+
+    it('is empty until either end is a day', () => {
+        expect(holds(cond('date_range', Comparison.IS_EMPTY, undefined), undefined)).toBe(true);
+        expect(holds(cond('date_range', Comparison.IS_EMPTY, undefined), stay('', ''))).toBe(true);
+        expect(holds(cond('date_range', Comparison.IS_EMPTY, undefined), stay('2026-11-03'))).toBe(false);
+        expect(holds(cond('date_range', Comparison.IS_NOT_EMPTY, undefined), stay(undefined, '2026-11-07'))).toBe(true);
+    });
+
+    it('reads a range as its two days, or nothing', () => {
+        expect(getComparableAnswerValue(stay('2026-11-03', '2026-11-07'), 'date_range')).toEqual({ start: '2026-11-03', end: '2026-11-07' });
+        expect(getComparableAnswerValue(stay('2026-11-03'), 'date_range')).toEqual({ start: '2026-11-03', end: undefined });
+        expect(getComparableAnswerValue(stay('', ''), 'date_range')).toBeUndefined();
+        expect(getComparableAnswerValue(undefined, 'date_range')).toBeUndefined();
+    });
+
+    const tags = (...list: string[]) => ({ type: 'tags', tags: list });
+
+    it('compares tags ignoring case, like a multi-select list', () => {
+        expect(holds(cond('tags', Comparison.CONTAINS, 'VEGAN'), tags('vegan', 'gluten free'))).toBe(true);
+        expect(holds(cond('tags', Comparison.CONTAINS, 'halal'), tags('vegan'))).toBe(false);
+        expect(holds(cond('tags', Comparison.DOES_NOT_CONTAIN, 'Halal'), tags('vegan'))).toBe(true);
+        expect(holds(cond('tags', Comparison.DOES_NOT_CONTAIN, 'VEGAN'), tags('vegan'))).toBe(false);
+        // only contains / does not contain / is empty / is not empty apply to tags
+        expect(holds(cond('tags', Comparison.IS_EQUAL, 'Gluten Free'), tags('vegan', 'gluten free'))).toBe(false);
+        expect(holds(cond('tags', Comparison.STARTS_WITH, 'veg'), tags('vegan'))).toBe(false);
+        // a label is a whole tag, not part of one
+        expect(holds(cond('tags', Comparison.CONTAINS, 'veg'), tags('vegan'))).toBe(false);
+    });
+
+    it('is empty for no tags', () => {
+        expect(holds(cond('tags', Comparison.IS_EMPTY, undefined), undefined)).toBe(true);
+        expect(holds(cond('tags', Comparison.IS_EMPTY, undefined), tags())).toBe(true);
+        expect(holds(cond('tags', Comparison.IS_NOT_EMPTY, undefined), tags('a'))).toBe(true);
+        expect(getComparableAnswerValue(tags('b', 'a'), 'tags')).toEqual(['b', 'a']);
+        expect(getComparableAnswerValue({ type: 'tags' }, 'tags')).toBeUndefined();
+    });
+
+    it('works inside a repeating group item condition', () => {
+        const group = { fieldId: 'g', fieldType: 'group', groupMode: 'ANY', childFieldId: 'q', childFieldType: 'date_range', comparison: Comparison.CONTAINS, value: '2026-11-05' } as any;
+        expect(evaluateConditions(undefined, [group], { g: { type: 'group', items: [{ q: stay('2026-01-01', '2026-01-02') }, { q: stay('2026-11-03', '2026-11-07') }] } })).toBe(true);
+        expect(evaluateConditions(undefined, [group], { g: { type: 'group', items: [{ q: stay('2026-01-01', '2026-01-02') }] } })).toBe(false);
+    });
+
+    it('does not compare a list with starts-with, ends-with or an order, whatever the list is', () => {
+        const tags = { type: 'tags', tags: ['Vegan', 'quiet'] };
+        for (const comparison of [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL]) {
+            expect(holds(cond('tags', comparison, 'veg'), tags)).toBe(false);
+            expect(holds(cond('tags', comparison, 'iet'), tags)).toBe(false);
+        }
+        // a single number in a list is no number either
+        expect(holds(cond('tags', Comparison.GREATER_THAN, '3'), { type: 'tags', tags: ['5'] })).toBe(false);
+        expect(holds(cond('tags', Comparison.CONTAINS, 'VEGAN'), tags)).toBe(true);
+    });
+
+    it('compares tags in Unicode form C and ignoring case', () => {
+        expect(holds(cond('tags', Comparison.CONTAINS, 'cafe\u0301'), { type: 'tags', tags: ['Caf\u00e9'] })).toBe(true);
+    });
+});

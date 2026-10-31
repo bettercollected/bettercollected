@@ -26,6 +26,7 @@ import datetime as dt
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from common.models.standard_form import (
+    DATE_RULE_SOURCE_TYPES,
     DATE_RULE_TYPES,
     StandardForm,
     StandardFormFieldType,
@@ -34,6 +35,7 @@ from common.models.standard_form import (
 
 from backend.app.services.repeating_groups import (
     _as_dict,
+    date_range_days,
     group_items,
     is_hidden_by_logic,
     iter_repeating_groups,
@@ -41,6 +43,10 @@ from backend.app.services.repeating_groups import (
 )
 
 DATE_TYPES = DATE_RULE_TYPES
+# The questions another question's date rule may compare with: one day each
+# (a date range has two).
+SOURCE_TYPES = DATE_RULE_SOURCE_TYPES
+RANGE = StandardFormFieldType.DATE_RANGE.value
 
 COMPARISON_WORDS = {
     "before": "before",
@@ -142,12 +148,42 @@ def _check_field(
     raw = answers.get(field.id)
     if raw is None or is_hidden_by_logic(field, answers, sources):
         return []
+    if _type_value(field.type) == RANGE:
+        # each end of a date range must meet the rules
+        problems = []
+        for end_name, value in zip(("start", "end"), date_range_days(raw)):
+            if value is None:
+                continue
+            problems.extend(
+                _rule_problems(
+                    field, value, rules, answers, siblings, today, sources,
+                    f"The {end_name} of '{_title(field)}'",
+                )
+            )
+        return problems
     value = _date_value(raw)
     if value is None:
         raw = _as_dict(raw)
         if not isinstance(raw, dict) or raw.get("date") in (None, ""):
             return []
         return [f"The answer to '{_title(field)}' is not a valid date (YYYY-MM-DD)."]
+    return _rule_problems(
+        field, value, rules, answers, siblings, today, sources, f"'{_title(field)}'"
+    )
+
+
+def _rule_problems(
+    field: Any,
+    value: str,
+    rules: List[Any],
+    answers: Dict[str, Any],
+    siblings: Dict[str, Any],
+    today: TodayRange,
+    sources: Optional[Dict[str, Any]],
+    subject: str,
+) -> List[str]:
+    """What ``subject`` (a day of the question) breaks of the question's date
+    rules."""
     problems = []
     for rule in rules:
         comparison = rule.comparison
@@ -159,7 +195,7 @@ def _check_field(
             what = "today"
         else:
             ref = siblings.get(rule.field_id)
-            if ref is None or _type_value(ref.type) not in DATE_TYPES:
+            if ref is None or _type_value(ref.type) not in SOURCE_TYPES:
                 continue
             if is_hidden_by_logic(ref, answers, sources):
                 continue
@@ -169,7 +205,7 @@ def _check_field(
             what = f"'{_title(ref)}' ({display_date(bound)})"
         if is_violated(value, comparison, bound):
             problems.append(
-                f"'{_title(field)}' must be {COMPARISON_WORDS[comparison]} {what}."
+                f"{subject} must be {COMPARISON_WORDS[comparison]} {what}."
             )
     return problems
 
