@@ -20,9 +20,12 @@ const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false }));
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, can: () => true }) }));
 // Set to add a time question as a fourth.
 let withTime = false;
+// The type of that question.
+let gatedType: FieldTypes = FieldTypes.TIME;
 afterEach(() => {
     served.newQuestionTypesEnabled = false;
     withTime = false;
+    gatedType = FieldTypes.TIME;
 });
 
 const pages = (): StandardFormFieldDto[] => [
@@ -35,7 +38,7 @@ const pages = (): StandardFormFieldDto[] => [
                 { id: 'q-1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name' },
                 { id: 'q-2', index: 1, type: FieldTypes.EMAIL, title: 'Email' },
                 { id: 'q-3', index: 2, type: FieldTypes.SHORT_TEXT, title: 'City' },
-                ...(withTime ? [{ id: 'q-4', index: 3, type: FieldTypes.TIME, title: 'Arrival' }] : [])
+                ...(withTime ? [{ id: 'q-4', index: 3, type: gatedType, title: 'Arrival' }] : [])
             ]
         }
     } as StandardFormFieldDto,
@@ -189,6 +192,16 @@ describe('builder shortcuts on the canvas', () => {
 
     it('Ctrl/Cmd+D does not copy a time, day or currency question while the server does not take them, and says so', async () => {
         withTime = true;
+        renderBuilder('q-4');
+        const canvas = await screen.findByRole('button', { name: 'On the canvas' });
+        await press(canvas, { key: 'd', ctrlKey: true });
+        expect(ids()).toEqual(['q-1', 'q-2', 'q-3', 'q-4']);
+        expect(await screen.findByText(/can't be copied on this server yet/)).toBeInTheDocument();
+    });
+
+    it.each([FieldTypes.DATE_RANGE, FieldTypes.TAGS])('Ctrl/Cmd+D does not copy a %s question while the server does not take it', async (type) => {
+        withTime = true;
+        gatedType = type;
         renderBuilder('q-4');
         const canvas = await screen.findByRole('button', { name: 'On the canvas' });
         await press(canvas, { key: 'd', ctrlKey: true });

@@ -3,6 +3,8 @@ import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponse
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
 import { currencyExportText } from '@app/utils/currency';
+import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
+import { answerTags } from '@app/utils/tags';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
@@ -10,6 +12,12 @@ import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-js
 
 /** Joins the options of a multi-select answer on screen (the responses table, the response page, the respondent's view): "Reading, Cycling". */
 export const DISPLAY_LIST_SEPARATOR = ', ';
+
+/** The answer as a screen shows it: like `getAnswerForField`, but a date range reads as two long dates ("3 November 2026 – 7 November 2026"). */
+export function getAnswerDisplayText(response: StandardFormResponseDto, field: StandardFormFieldDto, language: 'en' | 'nl' = 'en') {
+    if (field.type === FieldTypes.DATE_RANGE) return dateRangeText(response.answers?.[field.id], language);
+    return getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
+}
 
 /**
  * `listSeparator` joins the selected options of a multi-select answer. The
@@ -46,6 +54,12 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FieldTypes.CURRENCY:
             // "EUR 12.50": the code, a space and the dot-decimal amount, the same in every language and in the CSV
             return currencyExportText(answer?.currency);
+        case FieldTypes.DATE_RANGE:
+            // "YYYY-MM-DD/YYYY-MM-DD" (an ISO 8601 interval), the same in every language and in the CSV
+            return dateRangeExportText(answer);
+        case FieldTypes.TAGS:
+            // one cell, "; " between the tags (never the list separator of the choice questions)
+            return (answerTags(answer) ?? []).join(listSeparator ?? '; ');
         case FieldTypes.YES_NO:
             return answer?.boolean === true ? 'Yes' : answer?.boolean === false ? 'No' : '';
 

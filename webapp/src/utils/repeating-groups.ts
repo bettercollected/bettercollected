@@ -45,6 +45,8 @@ export const REPEAT_CHILD_FIELD_TYPES: string[] = [
     FieldTypes.DAY,
     FieldTypes.TIME,
     FieldTypes.CURRENCY,
+    FieldTypes.DATE_RANGE,
+    FieldTypes.TAGS,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.DROP_DOWN,

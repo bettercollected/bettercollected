@@ -11,7 +11,7 @@ import { pyStrip } from '@app/lib/form-ops/model';
 import { FieldRuleProblem, canCarryRules, canLockOrSet, fieldRuleProblems, totalRules } from '@app/lib/form-ops/field-rule-checks';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { LogicCondition } from '@app/models/types/form-builder-shared';
-import { CalculationVariable, calculationVariables } from '@app/utils/calculated-fields';
+import { CalculationVariable, DATE_RANGE_PARTS, calculationVariables, questionVariableKeys } from '@app/utils/calculated-fields';
 import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { ConditionRow, SourceField, buildSourceFields, fieldText, isConditionComplete, isConditionSource, newConditionFor, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
 import FormulaInput from '@app/views/molecules/form-builder/formula-input';
@@ -89,7 +89,10 @@ function ruleVariables(slides: StandardFormFieldDto[], hiddenNames: string[], fi
     const group = groupOf(slides, field.id);
     if (group) {
         getGroupChildren(group).forEach((child) => {
-            if (child.id !== field.id && !child.internal && child.type !== FieldTypes.TEXT) variables.push({ key: child.id, label: fieldText(child), kind: 'field' });
+            if (child.id !== field.id && !child.internal && child.type !== FieldTypes.TEXT) {
+                // a sibling's id reads its answer; a date range reads as its two days
+                questionVariableKeys(child).forEach((key, index) => variables.push({ key, label: child.type === FieldTypes.DATE_RANGE ? `${fieldText(child)} (${DATE_RANGE_PARTS[index]})` : fieldText(child), kind: 'field' }));
+            }
         });
     }
     return variables;

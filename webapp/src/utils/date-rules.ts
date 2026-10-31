@@ -1,6 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule, DateRuleComparison } from '@app/models/types/form-builder-shared';
 import { isFieldHiddenByLogic } from '@app/utils/conditional-logic';
+import { dateRangeDays } from '@app/utils/date-range';
 import { isIsoDate } from '@app/utils/iso-date';
 import { getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers, plainTitle, scopedFieldId } from '@app/utils/repeating-groups';
 
@@ -23,10 +24,19 @@ import { getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGrou
  * (`date_rule_problems` in common/models/standard_form.py) — keep them in step.
  */
 
-/** Question types that answer with a calendar day and carry date rules: a date from a calendar and a day typed as day, month and year (mirrors the backend's DATE_RULE_TYPES). */
-export const DATE_RULE_TYPES: ReadonlyArray<string> = [FieldTypes.DATE, FieldTypes.DAY];
+/**
+ * Question types that carry date rules: a date from a calendar, a day typed as
+ * day, month and year, and a date range (each of its two ends must meet the
+ * rules). Mirrors the backend's DATE_RULE_TYPES.
+ */
+export const DATE_RULE_TYPES: ReadonlyArray<string> = [FieldTypes.DATE, FieldTypes.DAY, FieldTypes.DATE_RANGE];
+
+/** The questions another question's date rule may compare with: one day each (a range has two). Mirrors DATE_RULE_SOURCE_TYPES. */
+export const DATE_RULE_SOURCE_TYPES: ReadonlyArray<string> = [FieldTypes.DATE, FieldTypes.DAY];
 
 export const isDateRuleType = (type: unknown): boolean => typeof type === 'string' && DATE_RULE_TYPES.includes(type);
+
+export const isDateRuleSourceType = (type: unknown): boolean => typeof type === 'string' && DATE_RULE_SOURCE_TYPES.includes(type);
 
 /** At most this many rules per date question (mirrors the backend). */
 export const DATE_RULES_MAX = 5;
@@ -147,7 +157,7 @@ export function resolveDateRuleBounds(field: StandardFormFieldDto, context: Date
         } else if (rule.target === 'field' && rule.fieldId) {
             const source = context.fieldsById[rule.fieldId];
             // Unanswered, hidden by logic or gone: the rule does not apply.
-            if (!source || !isDateRuleType(source.type) || isFieldHiddenByLogic(source, context.answers, context.fieldsById)) return;
+            if (!source || !isDateRuleSourceType(source.type) || isFieldHiddenByLogic(source, context.answers, context.fieldsById)) return;
             const value = context.answers?.[rule.fieldId]?.date;
             if (!isIsoDate(value)) return;
             bounds.push({ rule, bound: value, label: `${dateFieldName(source, messages)} (${formatDate(value)})` });
@@ -174,11 +184,32 @@ export function getDateRuleViolations(field: StandardFormFieldDto, value: string
  */
 export function getDateRuleError(field: StandardFormFieldDto, context: DateRuleContext, answerId: string = field.id): string | undefined {
     if (!getDateRules(field).length) return undefined;
+    if (field.type === FieldTypes.DATE_RANGE) return getDateRangeRuleError(field, context, answerId);
     const value = context.answers?.[answerId]?.date;
     if (value === undefined || value === null || value === '') return undefined;
     if (!isIsoDate(value)) return context.messages ? context.messages.t('DATE.INVALID') : 'Please pick a valid date.';
     const [first] = getDateRuleViolations(field, value, context);
     return first ? describeDateRuleViolation(first, context.messages) : undefined;
+}
+
+/**
+ * The message for a date range whose start or end breaks one of the question's
+ * rules, naming the end ("Start: Must be after ..."); the start is checked
+ * first. A day that is not a well-formed date is the answer rules' concern
+ * (FORMAT), not a date rule's.
+ */
+function getDateRangeRuleError(field: StandardFormFieldDto, context: DateRuleContext, answerId: string): string | undefined {
+    const days = dateRangeDays(context.answers?.[answerId]);
+    for (const end of ['start', 'end'] as const) {
+        const day = days[end];
+        if (!day) continue;
+        const [first] = getDateRuleViolations(field, day, context);
+        if (!first) continue;
+        const message = describeDateRuleViolation(first, context.messages);
+        const part = context.messages ? context.messages.t(`DATE_RANGE.${end.toUpperCase()}`) : end === 'start' ? 'Start' : 'End';
+        return context.messages ? context.messages.t('DATE.RANGE_PART', { part, message }) : `${part}: ${message}`;
+    }
+    return undefined;
 }
 
 /** A day-picker matcher: true for the days the field's rules rule out. */
@@ -257,7 +288,7 @@ function questionsByScope(slides: Array<StandardFormFieldDto>): Record<string, S
 
 /** Could `owner` use `source` in a rule: a respondent-facing date question of the same scope, not itself. */
 function isUsableSource(owner: ScopedQuestion, source: ScopedQuestion | undefined): boolean {
-    return !!source && source.field !== owner.field && isDateRuleType(source.field.type) && !source.field.internal && source.groupId === owner.groupId;
+    return !!source && source.field !== owner.field && isDateRuleSourceType(source.field.type) && !source.field.internal && source.groupId === owner.groupId;
 }
 
 /**

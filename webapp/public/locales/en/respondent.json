@@ -156,7 +156,18 @@
         "FORMAT_AMOUNT": "Enter an amount in numbers, for example 12.50. Use a dot or a comma for the cents, and no thousands separator.",
         "CURRENCY": "Choose one of these currencies: {{currencies}}.",
         "AMOUNT_TOO_SMALL": "Enter an amount of {{min}} or more.",
-        "AMOUNT_TOO_LARGE": "Enter an amount of {{max}} or less."
+        "AMOUNT_TOO_LARGE": "Enter an amount of {{max}} or less.",
+        "RANGE_ORDER": "The end is before the start. Choose an end on or after the start.",
+        "RANGE_INCOMPLETE": "Choose both the start and the end.",
+        "FORMAT_RANGE": "Choose real days for the start and the end.",
+        "FORMAT_TAGS": "A tag cannot be empty, start or end with a space, or contain a comma or a semicolon.",
+        "TAG_DUPLICATE": "Each tag can be used once, whether written in capitals or not.",
+        "TAG_TOO_LONG_one": "Keep each tag to {{count}} character or fewer.",
+        "TAG_TOO_LONG_other": "Keep each tag to {{count}} characters or fewer.",
+        "TOO_FEW_TAGS_one": "Enter at least {{count}} tag.",
+        "TOO_FEW_TAGS_other": "Enter at least {{count}} tags.",
+        "TOO_MANY_TAGS_one": "Enter at most {{count}} tag.",
+        "TOO_MANY_TAGS_other": "Enter at most {{count}} tags."
     },
     "DATE": {
         "PICK": "Pick a date",
@@ -166,7 +177,8 @@
         "MUST_BE_on_or_before": "Must be on or before {{label}}.",
         "MUST_BE_on_or_after": "Must be on or after {{label}}.",
         "TODAY": "today ({{date}})",
-        "OTHER_DATE": "the other date"
+        "OTHER_DATE": "the other date",
+        "RANGE_PART": "{{part}}: {{message}}"
     },
     "TIME": {
         "PICK": "Time",
@@ -186,6 +198,27 @@
         "PLACEHOLDER": "12.50",
         "IN": "Amount in {{code}}",
         "ONE_OF": "Choose the currency, then enter the amount"
+    },
+    "DATE_RANGE": {
+        "START": "Start",
+        "END": "End"
+    },
+    "TAGS": {
+        "ADD": "Add a tag",
+        "PLACEHOLDER": "Type a tag, then press Enter",
+        "HINT": "Press Enter, a comma or a semicolon after each tag.",
+        "HINT_MIN_one": "Press Enter, a comma or a semicolon after each tag. Enter at least {{count}} tag.",
+        "HINT_MIN_other": "Press Enter, a comma or a semicolon after each tag. Enter at least {{count}} tags.",
+        "COUNT": "{{count}} of {{max}} tags",
+        "LIST": "Tags you added",
+        "REMOVE": "Remove {{tag}}",
+        "ADDED_one": "Added “{{tag}}”. {{count}} tag in total.",
+        "ADDED_other": "Added “{{tag}}”. {{count}} tags in total.",
+        "REMOVED_one": "Removed “{{tag}}”. {{count}} tag left.",
+        "REMOVED_other": "Removed “{{tag}}”. {{count}} tags left.",
+        "DUPLICATE": "“{{tag}}” is already added.",
+        "AT_MOST_one": "You can add at most {{count}} tag.",
+        "AT_MOST_other": "You can add at most {{count}} tags."
     },
     "FILE": {
         "CHOOSE": "Choose your file or drag file",

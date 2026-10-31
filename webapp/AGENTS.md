@@ -89,13 +89,23 @@ read per request like `SSO_ENABLED`, `lib/runtime-flags.ts`); with it off, exist
 save the server refuses with 422 `field_rules_disabled` toasts the reason (`audo-save-form.tsx`). The formula box is
 shared with calculated fields (`formula-input.tsx`).
 
-**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day and currency
-questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
+**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day, currency,
+date range and tags questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
 from `useWorkspacePermissions`). While off, the Insert menu and a repeating group's type lists leave those types out,
 and `FieldSettings` shows an existing question's settings read-only (`NEW_TYPES.LOCKED`). `lib/form-ops/new-question-types.ts`
 twins the backend module, and `applyOps` applies it when given `newQuestionTypes: false` (the shared corpus cases with
 `newQuestionTypes: false`); the builder's own edits do not pass it, because the server checks every save and undo must
 be able to put an existing question back. Respondent inputs, the response view and exports never read it.
+
+**Date range and tags questions:** `date_range` answers `{type:'date_range', date_range:{start,end}}` (YYYY-MM-DD, both
+ends once either is given, the end not before the start) and uses the question's `dateRules` for each end (another
+question's date rule can only compare with `date` and `day`: `DATE_RULE_SOURCE_TYPES`). `tags` answers
+`{type:'tags', tags:[...]}` with `validations.minChoices/maxChoices` (number of tags, cap `TAGS_MAX` 30) and
+`validations.maxLength` (length of one tag, cap `TAG_LENGTH_MAX` 40); the tag rules are `utils/tags.ts`, the twin of
+common `tags.py`. A date range is two formula/rule variables, `<id>.start` and `<id>.end` (`questionVariableKeys` and
+`questionVariables` in `utils/calculated-fields.ts`, twins of the server's), tags one list; logic reads a range with
+`compareDateRange` (includes a day, starts after, ends before) and tags ignoring case. Exports write
+`YYYY-MM-DD/YYYY-MM-DD` and tags joined with `; ` (the CSV formula guard applies as to any cell).
 
 ## Commands
 
@@ -116,3 +126,13 @@ yarn storybook    # :6006
 - **PWA + Sentry + APM** are wired in `next.config.js` / `sentry.*.config.js`; dev uses a separate `.next-dev` dist dir.
 - **Multi-tenant routing:** most routes are under `[workspace_name]/`; respect workspace scoping and custom-domain logic
   (`Components/CustomDomain`) — a route that ignores the workspace handle will break client-host and custom-domain serving.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

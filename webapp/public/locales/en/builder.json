@@ -16,6 +16,14 @@
     "currency": {
       "NAME": "Amount of money",
       "DESCRIPTION": "An amount with its currency"
+    },
+    "date_range": {
+      "NAME": "Date range",
+      "DESCRIPTION": "A first and a last day, such as a stay"
+    },
+    "tags": {
+      "NAME": "Tags",
+      "DESCRIPTION": "Short labels the respondent types"
     }
   },
   "TYPED_SETTINGS": {
@@ -34,7 +42,12 @@
     "LOWEST_AMOUNT": "Lowest amount",
     "HIGHEST_AMOUNT": "Highest amount",
     "NO_LIMIT": "No limit",
-    "AMOUNT_ORDER": "The lowest amount is more than the highest."
+    "AMOUNT_ORDER": "The lowest amount is more than the highest.",
+    "FEWEST_TAGS": "Fewest tags",
+    "MOST_TAGS": "Most tags",
+    "LONGEST_TAG": "Longest tag (characters)",
+    "TAGS_ORDER": "The fewest tags is more than the most.",
+    "TAGS_HINT": "At most {{most}} tags, and each tag at most {{length}} characters. Tags are compared ignoring capitals, and a tag has no comma or semicolon."
   },
   "PREVIEW": {
     "DEFAULT": "Preview"
@@ -882,6 +895,14 @@
       "LESS_THAN_EQUAL": "is at most",
       "STARTS_WITH": "starts with",
       "ENDS_WITH": "ends with",
+      "IS_EMPTY": "is empty",
+      "IS_NOT_EMPTY": "is not empty"
+    },
+    "RANGE_COMPARISON": {
+      "CONTAINS": "includes",
+      "DOES_NOT_CONTAIN": "does not include",
+      "GREATER_THAN": "starts after",
+      "LESS_THAN": "ends before",
       "IS_EMPTY": "is empty",
       "IS_NOT_EMPTY": "is not empty"
     },

@@ -47,7 +47,7 @@ export interface StandardFormFieldProperties {
     repeat?: RepeatSettings;
     /** Short label shown with the control itself ("Start date" above a date picker), apart from the question title. */
     label?: string;
-    /** Date and day questions: constraints on the chosen date (see utils/date-rules.ts). */
+    /** Date, day and date range questions: constraints on the chosen date (each end of a range; see utils/date-rules.ts). */
     dateRules?: DateRule[];
     /** Time questions: the earliest and latest time that can be answered ("HH:MM", 24-hour; see utils/time-of-day.ts). */
     minTime?: string;
@@ -343,6 +343,11 @@ export interface AnswerDto {
     time?: string;
     /** A currency question's answer: the ISO 4217 code and the amount as a plain decimal string ("12.50"). */
     currency?: { code?: string; amount?: string };
+    /** A date range question's answer: its first and last day (YYYY-MM-DD). Stored responses may spell the slot `dateRange`. */
+    date_range?: { start?: string; end?: string };
+    dateRange?: { start?: string; end?: string };
+    /** A tags question's answer: the labels, in the order they were entered. */
+    tags?: string[];
     url?: string;
     file_metadata?: FileMetadata;
     phoneNumber?: string;
@@ -395,6 +400,10 @@ export enum FieldTypes {
     TIME = 'time',
     /** An amount of money with its currency (answer slot `currency`). */
     CURRENCY = 'currency',
+    /** A first and a last day (answer slot `date_range`). */
+    DATE_RANGE = 'date_range',
+    /** Free-entry short labels (answer slot `tags`). */
+    TAGS = 'tags',
     PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',
     NUMBER = 'number',
@@ -435,6 +444,8 @@ export const V2InputFields = [
     FieldTypes.DAY,
     FieldTypes.TIME,
     FieldTypes.CURRENCY,
+    FieldTypes.DATE_RANGE,
+    FieldTypes.TAGS,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.RATING,

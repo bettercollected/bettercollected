@@ -4,7 +4,7 @@ import { DEFAULT_CURRENCY, parseAmount } from '@app/utils/currency';
 import { isIsoDate } from '@app/utils/iso-date';
 import { isTime } from '@app/utils/time-of-day';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { buildVariables, calculatedAnswer, calculationVariables, expressionVariables, getCalculatedFields, idMap, pageFields, questionKeys, readingFor } from '@app/utils/calculated-fields';
+import { buildVariables, calculatedAnswer, calculationVariables, expressionVariables, getCalculatedFields, idMap, pageFields, questionKeys, questionVariableKeys, questionVariables, readingFor } from '@app/utils/calculated-fields';
 import { LogicSources, evaluateConditions, getComparableAnswerValue, getGroupAnswerItems, logicSourcesById } from '@app/utils/conditional-logic';
 import { getRepeatSettings, isRepeatingGroup } from '@app/utils/repeating-groups';
 
@@ -505,11 +505,12 @@ export function resolveFieldRules(slides: StandardFormFieldDto[] | undefined | n
         groups.forEach((group, groupId) => {
             const items = getGroupAnswerItems(plain[groupId]);
             const children = group.properties?.fields ?? [];
-            const siblings = new Set(children.map((child) => child.id).filter(Boolean));
+            // a sibling's id reads its answer; a date range reads as its two days
+            const siblings = new Set(children.filter((child) => child.id).flatMap((child) => questionVariableKeys(child)));
             for (let index = 0; index < itemCount(group, items); index++) {
                 const item = items[index] ?? {};
                 const siblingVariables = idMap<unknown>();
-                children.forEach((child) => child.id && (siblingVariables[child.id] = getComparableAnswerValue(item[child.id], child.type) ?? null));
+                children.forEach((child) => child.id && Object.entries(questionVariables(child, item[child.id])).forEach(([key, value]) => (siblingVariables[key] = value ?? null)));
                 const itemScope: Scope = { ...scope, answers: idMap({ ...plain, ...item }), variables: idMap({ ...variables, ...siblingVariables }), known: new Set([...known, ...siblings]) };
                 children.forEach((child) => {
                     const rules = read.get(child) ?? [];

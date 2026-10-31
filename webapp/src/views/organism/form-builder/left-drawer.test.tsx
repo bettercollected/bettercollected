@@ -26,6 +26,8 @@ vi.mock('./add-slide/add-slide-popover', () => ({ default: () => <button type="b
 const q = (id: string, title: string, extra: Partial<StandardFormFieldDto> = {}) => ({ id, index: 0, type: FieldTypes.SHORT_TEXT, title, ...extra }) as StandardFormFieldDto;
 // Set to put a time question on page 2.
 let timeOnPageTwo = false;
+// The type of that question.
+let gatedOnPageTwo: FieldTypes = FieldTypes.TIME;
 // Set to put field rules on "Your name" (the rules badge).
 let nameRules: unknown[] | undefined;
 const pages = (): StandardFormFieldDto[] =>
@@ -35,7 +37,7 @@ const pages = (): StandardFormFieldDto[] =>
             type: FieldTypes.SLIDE,
             properties: { sectionTitle: 'About you', fields: [q('name', 'Your name', nameRules ? { properties: { rules: nameRules } as any } : {}), q('email', 'Your email', { type: FieldTypes.EMAIL })] }
         },
-        { id: 'p2', type: FieldTypes.SLIDE, properties: { fields: [q('city', 'Your city'), q('ref', 'Reference', { internal: true }), ...(timeOnPageTwo ? [q('when', 'Arrival', { type: FieldTypes.TIME })] : [])] } },
+        { id: 'p2', type: FieldTypes.SLIDE, properties: { fields: [q('city', 'Your city'), q('ref', 'Reference', { internal: true }), ...(timeOnPageTwo ? [q('when', 'Arrival', { type: gatedOnPageTwo })] : [])] } },
         { id: 'p3', type: FieldTypes.SLIDE, properties: { fields: [] } }
     ].map((slide, index) => ({ ...slide, index, properties: { ...slide.properties, fields: slide.properties.fields.map((f, i) => ({ ...f, index: i })) } })) as StandardFormFieldDto[];
 
@@ -383,6 +385,7 @@ describe('the rules badge', () => {
     describe('duplicating a page and the newer question types', () => {
         afterEach(() => {
             timeOnPageTwo = false;
+            gatedOnPageTwo = FieldTypes.TIME;
             served.newQuestionTypesEnabled = false;
         });
         const duplicateItem = async () => {
@@ -406,6 +409,14 @@ describe('the rules badge', () => {
             fireEvent.click(item);
             await tick();
             expect(seen.builder.formFields).toHaveLength(3);
+        });
+
+        it.each([FieldTypes.DATE_RANGE, FieldTypes.TAGS])('cannot copy a page that holds a %s question while the server does not take it', async (type) => {
+            timeOnPageTwo = true;
+            gatedOnPageTwo = type;
+            renderOutline();
+            await tick();
+            expect(await duplicateItem()).toHaveAttribute('aria-disabled', 'true');
         });
 
         it('copies it once the server takes them', async () => {

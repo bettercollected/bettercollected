@@ -18,6 +18,8 @@ enum AnswerType {
     DATE = 'date',
     TIME = 'time',
     CURRENCY = 'currency',
+    DATE_RANGE = 'date_range',
+    TAGS = 'tags',
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
@@ -55,6 +57,8 @@ export interface FormResponse {
             date?: string;
             time?: string;
             currency?: { code?: string; amount?: string };
+            date_range?: { start?: string; end?: string };
+            tags?: string[];
             phone_number?: string;
             url?: string;
             choice?: ChoiceAnswer;
@@ -263,6 +267,33 @@ export const useFormResponse = () => {
         });
     };
 
+    // A date range: either end may still be empty while the respondent picks them (both are needed to submit).
+    const addFieldDateRangeAnswer = (fieldId: string, start: string, end: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.DATE_RANGE,
+                    date_range: { start, end }
+                }
+            }
+        });
+    };
+
+    const addFieldTagsAnswer = (fieldId: string, tags: string[]) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.TAGS,
+                    tags
+                }
+            }
+        });
+    };
+
     const addFieldURLAnswer = (fieldId: string, url: string) => {
         setFormResponse({
             ...formResponse,
@@ -372,6 +403,8 @@ export const useFormResponse = () => {
         addFieldDateAnswer,
         addFieldTimeAnswer,
         addFieldCurrencyAnswer,
+        addFieldDateRangeAnswer,
+        addFieldTagsAnswer,
         addFieldEmailAnswer,
         addFieldNumberAnswer,
         addFieldPhoneNumberAnswer,

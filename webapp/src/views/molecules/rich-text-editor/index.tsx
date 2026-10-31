@@ -54,6 +54,10 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Select a time';
         case FieldTypes.CURRENCY:
             return 'Enter an amount';
+        case FieldTypes.DATE_RANGE:
+            return 'Select the first and the last day';
+        case FieldTypes.TAGS:
+            return 'Type a tag and press Enter';
         case FieldTypes.LINEAR_RATING:
             return 'Rate from 1 to 10';
         case FieldTypes.MATRIX:

@@ -29,7 +29,10 @@ const form = (language?: string) =>
                         field('arrival', 0, FieldTypes.TIME, 'When do you arrive?'),
                         field('born', 1, FieldTypes.DAY, 'When were you born?'),
                         field('budget', 2, FieldTypes.CURRENCY, 'What is your budget?', { currencies: ['EUR', 'GBP'] }),
-                        field('spare', 3, FieldTypes.CURRENCY, 'Anything spare?')
+                        field('spare', 3, FieldTypes.CURRENCY, 'Anything spare?'),
+                        field('stay', 4, FieldTypes.DATE_RANGE, 'When do you stay?'),
+                        field('topics', 5, FieldTypes.TAGS, 'What interests you?'),
+                        field('later', 6, FieldTypes.DATE_RANGE, 'When do you come back?')
                     ]
                 }
             }
@@ -40,7 +43,9 @@ const response = (answers: Record<string, any>) => ({ responseId: 'r', createdAt
 const ANSWERS = {
     arrival: { field: { id: 'arrival' }, type: 'time', time: '09:05' },
     born: { field: { id: 'born' }, type: 'date', date: '1990-11-05' },
-    budget: { field: { id: 'budget' }, type: 'currency', currency: { code: 'GBP', amount: '1250.5' } }
+    budget: { field: { id: 'budget' }, type: 'currency', currency: { code: 'GBP', amount: '1250.5' } },
+    stay: { field: { id: 'stay' }, type: 'date_range', date_range: { start: '2026-11-03', end: '2026-11-07' } },
+    topics: { field: { id: 'topics' }, type: 'tags', tags: ['vegan', 'gluten free'] }
 };
 
 const show = (language?: string, answers: Record<string, any> = ANSWERS) =>
@@ -78,6 +83,38 @@ describe('time, day and currency answers on the response page', () => {
     it('are read-only boxes with no violations', async () => {
         const { container } = show();
         expect(box(/When do you arrive\?/)).toHaveAttribute('aria-readonly', 'true');
+        expect(await axeViolations(container)).toEqual([]);
+    });
+});
+
+describe('date range and tags answers on the response page', () => {
+    it('show the range as two dates as the form writes them, and the tags in the order entered', () => {
+        show();
+        expect(box(/When do you stay\?/)).toHaveTextContent('November 3rd, 2026 \u2013 November 7th, 2026');
+        expect(box(/What interests you\?/)).toHaveTextContent('vegan, gluten free');
+    });
+
+    it('write the range the Dutch way in a Dutch form', () => {
+        show('nl');
+        expect(box(/When do you stay\?/)).toHaveTextContent('3 november 2026 \u2013 7 november 2026');
+    });
+
+    it('also read a stored response that spells the slot dateRange', () => {
+        show(undefined, { stay: { field: { id: 'stay' }, type: 'date_range', dateRange: { start: '2026-11-03', end: '2026-11-07' } } });
+        expect(box(/When do you stay\?/)).toHaveTextContent('November 3rd, 2026 \u2013 November 7th, 2026');
+    });
+
+    it('show the one end that was given, and no answer for none', () => {
+        show(undefined, { stay: { field: { id: 'stay' }, type: 'date_range', date_range: { start: '2026-11-03', end: '' } }, later: { field: { id: 'later' }, type: 'date_range', date_range: { start: '', end: '' } } });
+        expect(box(/When do you stay\?/)).toHaveTextContent(/^November 3rd, 2026$/);
+        expect(within(screen.getAllByRole('group', { name: /When do you come back\?/ })[0]).getByText(/No answer/i)).toBeInTheDocument();
+        expect(within(screen.getAllByRole('group', { name: /What interests you\?/ })[0]).getByText(/No answer/i)).toBeInTheDocument();
+    });
+
+    it('are read-only boxes with no violations', async () => {
+        const { container } = show();
+        expect(box(/When do you stay\?/)).toHaveAttribute('aria-readonly', 'true');
+        expect(box(/What interests you\?/)).toHaveAttribute('aria-readonly', 'true');
         expect(await axeViolations(container)).toEqual([]);
     });
 });

@@ -248,3 +248,67 @@ describe('formula guard', () => {
         expect(first).toContain(",'+31 6 1234 5678,");
     });
 });
+
+describe('date range and tags answers in the export', () => {
+    const stay: StandardFormFieldDto = { id: 'stay', index: 0, type: FieldTypes.DATE_RANGE, title: 'Stay' };
+    const interests: StandardFormFieldDto = { id: 'interests', index: 1, type: FieldTypes.TAGS, title: 'Interests' };
+    const typed = form(undefined, [stay, interests]);
+    const answer = (start: string | undefined, end: string | undefined, tags?: string[]) => ({
+        stay: { type: 'date_range', date_range: { start, end } },
+        ...(tags ? { interests: { type: 'tags', tags } } : {})
+    });
+
+    it('writes a range as one cell, YYYY-MM-DD/YYYY-MM-DD, and the tags as one cell joined with "; "', () => {
+        const { main } = buildResponsesExport(typed, [response({ responseId: 'r1', answers: answer('2026-11-03', '2026-11-07', ['vegan', 'gluten free']) })]);
+        expect(main.headers.slice(0, 3)).toEqual(['Responder ID', 'Stay', 'Interests']);
+        expect(main.rows[0].slice(1, 3)).toEqual(['2026-11-03/2026-11-07', 'vegan; gluten free']);
+        expect(tableToCsv(main).split('\r\n')[1]).toContain('2026-11-03/2026-11-07,vegan; gluten free');
+    });
+
+    it('writes one end alone with its slash, and nothing for no answer', () => {
+        const { main } = buildResponsesExport(typed, [
+            response({ responseId: 'r1', answers: answer('2026-11-03', '') }),
+            response({ responseId: 'r2', answers: answer('', '2026-11-07') }),
+            response({ responseId: 'r3', answers: answer('', '') }),
+            response({ responseId: 'r4', answers: {} })
+        ]);
+        expect(main.rows.map((row) => row[1])).toEqual(['2026-11-03/', '/2026-11-07', '', '']);
+        expect(main.rows[3][2]).toBe('');
+    });
+
+    it('reads a stored response that spells the slot dateRange', () => {
+        expect(getAnswerForField({ answers: { stay: { type: 'date_range', dateRange: { start: '2026-11-03', end: '2026-11-07' } } } } as any, stay)).toBe('2026-11-03/2026-11-07');
+    });
+
+    it('shows the tags comma separated on screen (the display separator) and joined with "; " by default and in the export', () => {
+        const response = { answers: { interests: { type: 'tags', tags: ['a', 'b'] } } } as any;
+        expect(getAnswerForField(response, interests, ', ')).toBe('a, b');
+        expect(getAnswerForField(response, interests)).toBe('a; b');
+        expect(getAnswerForField(response, interests, '; ')).toBe('a; b');
+    });
+
+    // The guard is on the CSV (tableToCsv): the table keeps the answer as written.
+    const csvCell = (tags: string[]) => {
+        const { main } = buildResponsesExport(typed, [response({ responseId: 'r1', answers: answer(undefined, undefined, tags) })]);
+        return tableToCsv(main).split('\r\n')[1].split(',')[main.headers.indexOf('Interests')];
+    };
+
+    it.each([
+        ['=SUM(1+1)', "'=SUM(1+1)"],
+        ['+31 6 1234', "'+31 6 1234"],
+        ['-x', "'-x"],
+        ['@home', "'@home"],
+        ['=1+1', "'=1+1"]
+    ])('neutralises a tags cell that starts with the tag %j, so a spreadsheet reads text', (tag, cell) => {
+        expect(csvCell([tag, 'b'])).toBe(`${cell}; b`);
+        expect(csvCell([tag])).toBe(cell);
+    });
+
+    it('leaves a formula character after the first tag alone: the cell does not start with it', () => {
+        expect(csvCell(['ok', '=1+1', '+2', '-3', '@4'])).toBe('ok; =1+1; +2; -3; @4');
+    });
+
+    it('keeps a plain negative number as it is, as for any text answer', () => {
+        expect(csvCell(['-5'])).toBe('-5');
+    });
+});

@@ -19,6 +19,8 @@ import {
     parseFormulaText,
     pipedInto,
     pruneOrphanedCalculationRefs,
+    questionVariableKeys,
+    questionVariables,
     unansweredAsZero,
     usesAnyAnswer,
     withCalculatedAnswers
@@ -279,5 +281,80 @@ describe('builder checks', () => {
         expect(slides[0].properties!.fields![1].properties!.expression).toEqual({ '+': [V('qty'), null, V('utm'), null] });
         pruneOrphanedCalculationRefs(slides, []);
         expect(slides[0].properties!.fields![1].properties!.expression).toEqual({ '+': [V('qty'), null, null, null] });
+    });
+});
+
+describe('date range variables', () => {
+    const STAY = field('stay', FieldTypes.DATE_RANGE, 'Stay');
+    const TAGS = field('t', FieldTypes.TAGS, 'Interests');
+    const stay = (start?: string, end?: string) => ({ type: 'date_range', date_range: { start, end } });
+    const NIGHTS = calc('nights', 'Nights', { date_diff_days: [V('stay.start'), V('stay.end')] });
+
+    it('names the variables of a question: one, or the two days of a range', () => {
+        expect(questionVariableKeys(QTY)).toEqual(['qty']);
+        expect(questionVariableKeys(STAY)).toEqual(['stay.start', 'stay.end']);
+        expect(questionVariableKeys(STAY, 'g.')).toEqual(['g.stay.start', 'g.stay.end']);
+        expect(questionVariableKeys(TAGS)).toEqual(['t']);
+    });
+
+    it('gives the values of a question: the two days, or the list', () => {
+        expect(questionVariables(STAY, stay('2026-11-03', '2026-11-07'))).toEqual({ 'stay.start': '2026-11-03', 'stay.end': '2026-11-07' });
+        expect(questionVariables(STAY, stay('2026-11-03'))).toEqual({ 'stay.start': '2026-11-03', 'stay.end': undefined });
+        expect(questionVariables(STAY, undefined)).toEqual({ 'stay.start': undefined, 'stay.end': undefined });
+        expect(questionVariables(TAGS, { type: 'tags', tags: ['a', 'b'] })).toEqual({ t: ['a', 'b'] });
+    });
+
+    it('lists a range as two variables, in the builder and inside a group, with readable labels', () => {
+        const group = field('g', FieldTypes.GROUP, 'Trips', { repeat: { minItems: 0, maxItems: 3 }, fields: [field('s', FieldTypes.DATE_RANGE, 'Trip')] });
+        const variables = calculationVariables([page('p', [STAY, TAGS, group])]);
+        expect(variables.map((v) => [v.key, v.label, v.kind])).toEqual([
+            ['stay.start', 'Stay (start)', 'field'],
+            ['stay.end', 'Stay (end)', 'field'],
+            ['t', 'Interests', 'field'],
+            ['g.s.start', 'Trips.Trip (start)', 'group'],
+            ['g.s.end', 'Trips.Trip (end)', 'group']
+        ]);
+    });
+
+    it('counts the nights between the two days, and nothing for a half-answered range', () => {
+        const slides = [page('p', [STAY, NIGHTS])];
+        expect(computeCalculatedValues(slides, { stay: stay('2026-11-03', '2026-11-07') })).toEqual({ nights: 4 });
+        expect(computeCalculatedValues(slides, { stay: stay('2026-11-03') })).toEqual({ nights: null });
+        expect(computeCalculatedValues(slides, {})).toEqual({ nights: null });
+    });
+
+    it('reads the days of a range in a group as lists, one per item', () => {
+        const group = field('g', FieldTypes.GROUP, 'Trips', { repeat: { minItems: 0, maxItems: 3 }, fields: [field('s', FieldTypes.DATE_RANGE, 'Trip')] });
+        const count = calc('n', 'N', { count: [V('g.s.end')] });
+        const answers = { g: { type: 'group', items: [{ s: stay('2026-01-01', '2026-01-03') }, {}, { s: stay('2026-02-01', '2026-02-02') }] } };
+        expect(computeCalculatedValues([page('p', [group, count])], answers)).toEqual({ n: 2 });
+    });
+
+    it('lets a formula look into tags and count them', () => {
+        const slides = [page('p', [TAGS, calc('n', 'N', { count: [V('t')] }), calc('has', 'Has', { if: [{ contains: [V('t'), 'blue'] }, 'yes', 'no'] }, { format: { style: 'text' } })])];
+        expect(computeCalculatedValues(slides, { t: { type: 'tags', tags: ['red', 'blue'] } })).toEqual({ n: 2, has: 'yes' });
+    });
+
+    it('does not flag the days of a range as unknown variables', () => {
+        expect(calculationProblems([page('p', [STAY, NIGHTS])])).toEqual([]);
+        expect(calculationProblems([page('p', [STAY, calc('bad', 'Bad', V('stay.middle'))])]).map((p) => p.path)).toEqual(['/var']);
+    });
+
+    it('says a calculation has not been given an answer to work from until a day is chosen', () => {
+        const slides = [page('p', [STAY, NIGHTS])];
+        expect(usesAnyAnswer(NIGHTS, slides, {})).toBe(false);
+        expect(usesAnyAnswer(NIGHTS, slides, { stay: stay('2026-11-03') })).toBe(true);
+        const group = field('g', FieldTypes.GROUP, 'Trips', { repeat: { minItems: 0, maxItems: 3 }, fields: [field('s', FieldTypes.DATE_RANGE, 'Trip')] });
+        const inGroup = calc('n', 'N', { count: [V('g.s.end')] });
+        expect(usesAnyAnswer(inGroup, [page('p', [group, inGroup])], { g: { type: 'group', items: [{ s: stay('2026-01-01') }] } })).toBe(false);
+        expect(usesAnyAnswer(inGroup, [page('p', [group, inGroup])], { g: { type: 'group', items: [{ s: stay('2026-01-01', '2026-01-02') }] } })).toBe(true);
+    });
+
+    it('pipes a range as its two days and tags as a list', () => {
+        const slides = [page('p', [STAY, TAGS])];
+        const context = { slides, answers: { stay: stay('2026-11-03', '2026-11-07'), t: { type: 'tags', tags: ['a', 'b'] } }, hiddenValues: {} } as any;
+        expect(resolvePipeValue('field', 'stay', context)).toBe('2026-11-03 – 2026-11-07');
+        expect(resolvePipeValue('field', 't', context)).toBe('a, b');
+        expect(resolvePipeValue('field', 'stay', { ...context, answers: {} })).toBeUndefined();
     });
 });

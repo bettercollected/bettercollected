@@ -1,7 +1,7 @@
 /**
  * The switch for the newer question types (backend `NEW_QUESTION_TYPES_ENABLED`,
  * services/new_question_types.py): while it is off, an op that leaves a time,
- * day or currency question new, or changes the type or the settings of one the
+ * day, currency, date range or tags question new, or changes the type or the settings of one the
  * form already had, is refused. Questions a form already holds keep working.
  *
  * Pass `newQuestionTypes: false` in the apply options to apply the switch (the
@@ -12,13 +12,13 @@ import { childrenOf, pagesOf } from './model';
 import type { FormDoc, FormField } from './types';
 
 // Types behind the switch. Keep in step with GATED_TYPES in the backend module.
-export const GATED_TYPES = new Set<string>(['time', 'day', 'currency']);
+export const GATED_TYPES = new Set<string>(['time', 'day', 'currency', 'date_range', 'tags']);
 
 /** Ops that can give a form such a question or change one (backend GATED_OPS). */
 export const GATED_OPS = new Set<string>(['add_field', 'add_group', 'add_page', 'duplicate_page', 'update_field', 'set_field_validation', 'insert_field', 'insert_page', 'replace_field']);
 
 export const NEW_QUESTION_TYPES_DISABLED_MESSAGE =
-    'These question types (time, day and currency) cannot be added or changed on this server yet (NEW_QUESTION_TYPES_ENABLED is off). Questions of these types that a form already has are kept.';
+    'These question types (time, day, currency, date range and tags) cannot be added or changed on this server yet (NEW_QUESTION_TYPES_ENABLED is off). Questions of these types that a form already has are kept.';
 
 /** Keys sorted, null and undefined left out: what makes two settings the same. */
 function stable(value: unknown): unknown {
@@ -46,7 +46,11 @@ export function signature(field: FormField): string {
             currencies: props.currencies,
             dateRules: props.dateRules,
             minValue: validations.minValue,
-            maxValue: validations.maxValue
+            maxValue: validations.maxValue,
+            // a tags question: the number of tags and the length of one
+            minChoices: validations.minChoices,
+            maxChoices: validations.maxChoices,
+            maxLength: validations.maxLength
         })
     );
 }

@@ -17,6 +17,7 @@ import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc 
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { formatAmount } from '@app/utils/currency';
+import { dateRangeText } from '@app/utils/date-range';
 import { isoToLocalDate } from '@app/utils/date-rules';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
@@ -368,6 +369,14 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.DATE:
         case FieldTypes.DAY:
             return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{dateText(String(value), ctx.formatLanguage)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        case FieldTypes.DATE_RANGE: {
+            // two dates as the form shows them ("3 November 2026 – 7 November 2026")
+            const range = dateRangeText(answer, ctx.formatLanguage);
+            return range ? <ReadOnlyBox labelledBy={labelledBy}>{range}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        }
+        case FieldTypes.TAGS:
+            // the tags, in the order they were entered
+            return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{String(value)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
         case FieldTypes.CURRENCY: {
             // the amount as the form shows it ("€ 12,50"), not the export's "EUR 12.50"
             const amount = formatAmount(answer?.currency, ctx.formatLanguage);
