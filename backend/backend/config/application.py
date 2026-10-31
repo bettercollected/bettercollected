@@ -98,6 +98,11 @@ class Application(StoreBackedSettings):
     # release): those saves are refused with 422 choice_logic_disabled;
     # stored choice logic is kept and still enforced.
     CHOICE_LOGIC_ENABLED: bool = False
+    # Respondents may save a draft and continue later (services/form_drafts).
+    # Off (the default, until it is released): turning the per-form setting on
+    # is refused with 422 save_drafts_disabled, and saving or opening a draft is
+    # refused.
+    SAVE_DRAFTS_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

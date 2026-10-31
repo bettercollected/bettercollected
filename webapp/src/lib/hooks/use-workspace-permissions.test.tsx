@@ -54,6 +54,17 @@ describe('useWorkspacePermissions', () => {
         expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.fieldRulesEnabled).toBe(false);
     });
 
+    it('tells whether the server lets respondents save drafts, from the same answer', () => {
+        query.result = { data: { permissions: [], saveDraftsEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.saveDraftsEnabled).toBe(true);
+        query.result = { data: { permissions: [], saveDraftsEnabled: false } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.saveDraftsEnabled).toBe(false);
+        query.result = { data: { permissions: [] } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.saveDraftsEnabled).toBe(false);
+        query.result = { isError: true, data: { permissions: [], saveDraftsEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.saveDraftsEnabled).toBe(false);
+    });
+
     it('grants nothing until the permissions have loaded', () => {
         const { result } = renderHook(() => useWorkspacePermissions(), { wrapper });
         expect(result.current.can(WorkspacePermission.FORM_READ)).toBe(false);

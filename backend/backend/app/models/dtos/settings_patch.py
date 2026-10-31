@@ -11,6 +11,7 @@ from backend.app.services.form_availability import (
     normalized_open_date,
     normalized_response_limit,
 )
+from backend.app.services.form_drafts.limits import normalized_draft_retention_days
 from backend.app.services.policy_url import checked_policy_url
 from backend.app.services.retention import checked_retention
 from common.models.consent import ResponseRetentionType
@@ -35,6 +36,11 @@ class SettingsPatchDto(CamelModel):
     show_submission_number: Optional[bool] = None
     show_review_page: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
+    # "Let respondents save and continue later" (off by default) and how long
+    # a draft is kept: None leaves it, 0 goes back to the default, else 1 to 90
+    # days (services/form_drafts/limits.py).
+    allow_save_draft: Optional[bool] = None
+    draft_retention_days: Optional[int] = None
     show_original_form: Optional[bool] = None
     privacy_policy_url: Optional[str] = None
     purpose: Optional[str] = None
@@ -61,6 +67,11 @@ class SettingsPatchDto(CamelModel):
     @classmethod
     def _valid_open_date(cls, value):
         return normalized_open_date(value)
+
+    @field_validator("draft_retention_days", mode="before")
+    @classmethod
+    def _valid_draft_retention(cls, value):
+        return normalized_draft_retention_days(value)
 
     @field_validator("response_limit", mode="before")
     @classmethod

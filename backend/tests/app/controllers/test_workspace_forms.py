@@ -490,6 +490,8 @@ class TestWorkspaceForm:
                 "formOpenDate": None,
                 "responseLimit": None,
                 "showReviewPage": None,
+                "allowSaveDraft": None,
+                "draftRetentionDays": None,
             }
         }
         actual_response = patch_settings.json()

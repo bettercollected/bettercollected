@@ -24,6 +24,7 @@ from backend.app.services.field_rules import (
     field_rule_problems,
     field_rules_enabled,
 )
+from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.new_question_types import (
     GATED_TYPES,
@@ -349,6 +350,14 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                     "use a current type for new questions.",
                 )
             )
+    if not save_drafts_enabled() and spec.trust and spec.trust.allow_save_draft:
+        warnings.append(
+            _problem(
+                "/trust/allowSaveDraft",
+                "Saving drafts is switched off on this server: turning it on "
+                "is refused (SAVE_DRAFTS_ENABLED).",
+            )
+        )
     if not new_question_types_enabled():
         # a write with a new or changed time, day or currency question is
         # refused (422 question_type_disabled)

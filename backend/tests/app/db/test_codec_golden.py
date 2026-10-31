@@ -88,6 +88,8 @@ NO_DOCUMENT_CLASS = {
     "form_webhooks",
     "action_logs",
     "webhook_audit_entries",
+    # and saved drafts of a form
+    "form_drafts",
     # and the response exports (audit entries and a job's file chunks)
     "response_exports",
     "response_export_chunks",

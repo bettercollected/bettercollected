@@ -37,6 +37,8 @@ B_TRUST = {
     "require_verified_identity": True,
     "allow_editing_response": True,
     "show_submission_number": True,
+    "allow_save_draft": True,
+    "draft_retention_days": 20,
 }
 A_TRUST = {
     "purpose": "Workspace A purpose",
@@ -50,6 +52,8 @@ NEW_TRUST = {
     "require_verified_identity": False,
     "allow_editing_response": False,
     "show_submission_number": False,
+    "allow_save_draft": False,
+    "draft_retention_days": 45,
 }
 SETTINGS_OP = {
     "op": "update_form_settings",
@@ -60,6 +64,8 @@ SETTINGS_OP = {
         "requireVerifiedIdentity": False,
         "allowEditingResponse": False,
         "showSubmissionNumber": False,
+        "allowSaveDraft": False,
+        "draftRetentionDays": 45,
     },
 }
 # the same values as the spec document's trust block shows them
@@ -297,6 +303,8 @@ class TestSettingsOpsStayInTheCallersWorkspace:
             "requireVerifiedIdentity": False,
             "allowEditingResponse": False,
             "showSubmissionNumber": False,
+            "allowSaveDraft": False,
+            "draftRetentionDays": 45,
         }
         response = await client.put(
             f"{BASE}/forms/{shared.form_id}",

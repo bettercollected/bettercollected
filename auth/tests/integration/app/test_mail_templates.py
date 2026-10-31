@@ -109,11 +109,22 @@ async def sheets_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
     return mail.return_value.send_message.await_args.args[0]
 
 
+async def draft_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
+    with patch("auth.app.services.notification_service.MailService") as mail:
+        mail.return_value.send_message = AsyncMock()
+        await NotificationService().send_draft_link(
+            "r@example.com", FORM_LINK, 7, locale=locale
+        )
+    mail.assert_called_once_with()
+    return mail.return_value.send_message.await_args.args[0]
+
+
 MAILS = {
     "code": code_mail,
     "invitation": invitation_mail,
     "submission update": update_mail,
     "sheets reconnect": sheets_mail,
+    "draft link": draft_mail,
 }
 
 # words that are the same in both languages or are brand, link or legal text
@@ -132,7 +143,7 @@ async def test_every_mail_renders_with_nothing_missing(name, locale):
         assert leftover not in body, leftover
     assert "{" not in message.subject and "None" not in message.subject
     # the sender, never the workspace, is the product
-    assert "BetterCollected" in body or name in ("submission update", "sheets reconnect")
+    assert "BetterCollected" in body or name in ("submission update", "sheets reconnect", "draft link")
     # every text of the mail is in this language: none of the other one's
     # distinctive sentences appears
     other = "nl" if locale == "en" else "en"
@@ -259,6 +270,7 @@ FORMAL_MAILS = {
 INFORMAL_MAILS = {
     "respondent code": code_mail,
     "submission update": update_mail,
+    "draft link": draft_mail,
 }
 
 INFORMAL_WORDS = re.compile(r"\b(je|jij|jouw|jou|jouwe)\b", re.I)
@@ -291,7 +303,7 @@ async def test_dutch_respondent_mails_say_je(name):
 
 
 def test_the_dutch_table_is_formal_except_for_respondent_texts():
-    respondent_keys = {k for k in TEXTS["nl"] if k.startswith("update_")}
+    respondent_keys = {k for k in TEXTS["nl"] if k.startswith(("update_", "draft_"))}
     for key, text in TEXTS["nl"].items():
         if key in respondent_keys:
             assert not FORMAL_PRONOUN.search(text), key

@@ -11,6 +11,7 @@ import { useClearUnavailableOptions, useOptionStates } from '@app/lib/hooks/use-
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
+import SaveDraftControl from '@app/components/drafts/save-draft-control';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -408,6 +409,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 {submitsHere && !reviewOn ? t('NAV.SUBMIT') : submitsHere ? t('REVIEW.GO_TO_REVIEW') : t('NAV.CONTINUE')}
                             </Button>
                         </div>
+                        {/* "Save and continue later", when the form lets respondents (not in the builder's preview). */}
+                        {!isPreviewMode && <SaveDraftControl ink={leaflet ? leafletHeaderInk : standardForm?.theme?.primary} />}
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>

@@ -680,6 +680,30 @@ class WebhookAuditRow(Base, BaseRow):
     __table_args__ = (Index(None, "workspace_id", "form_id", "created_at"),)
 
 
+class FormDraftRow(Base, BaseRow):
+    __tablename__ = "form_drafts"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    owner_id = S.text("owner_id")
+    email_key = S.text("email_key")
+    expires_at = S.ts("expires_at")
+    __table_args__ = (
+        # one draft per account and form
+        Index(
+            "uq_form_drafts_owner",
+            "workspace_id",
+            "form_id",
+            "owner_id",
+            unique=True,
+            postgresql_where=text("owner_id IS NOT NULL"),
+        ),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id", "email_key"),
+        Index(None, "owner_id"),
+        Index(None, "expires_at"),
+    )
+
+
 class ResponseExportRow(Base, BaseRow):
     __tablename__ = "response_exports"
     workspace_id = S.text("workspace_id")

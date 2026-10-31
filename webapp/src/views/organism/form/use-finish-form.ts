@@ -11,6 +11,7 @@ import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState, useVisitedSlides } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
+import { useRespondentDraft } from '@app/store/jotai/respondent-draft';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
@@ -65,6 +66,8 @@ export function useFinishForm(isPreviewMode: boolean) {
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const authState = useAppSelector(selectAuth);
+    // The key of the anonymous draft this browser holds, if any: the submit deletes that draft.
+    const { draft: savedDraft } = useRespondentDraft(standardForm?.formId);
     // A failed submission, shown by the button until the next attempt.
     const [submitError, setSubmitError] = useState<SubmitError>(false);
 
@@ -94,6 +97,7 @@ export function useFinishForm(isPreviewMode: boolean) {
         formData.append('today', localToday());
         const aiNoticeToken = aiNoticeTokenToSend(standardForm);
         if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
+        if (savedDraft.editKey) formData.append('draft_key', savedDraft.editKey);
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
             formData.append('file_field_ids', fileObj.fieldId);

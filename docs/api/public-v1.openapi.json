@@ -4487,6 +4487,32 @@
             ],
             "title": "Showsubmissionnumber"
           },
+          "allowSaveDraft": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowsavedraft",
+            "description": "Let respondents save a draft and continue later (off by default). Drafts are encrypted, kept apart from the responses and deleted after draftRetentionDays."
+          },
+          "draftRetentionDays": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 90.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draftretentiondays",
+            "description": "How many days after the last save a draft is kept, 1 to 90; left out, 30."
+          },
           "showReviewPage": {
             "anyOf": [
               {

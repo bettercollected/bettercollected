@@ -133,6 +133,7 @@ class WorkspaceService:
         workspace_domain_service: Optional[WorkspaceDomainService] = None,
         registration_service=None,
         webhook_service=None,
+        draft_service=None,
         response_export_service=None,
         email_action_service=None,
         sso_policy=None,
@@ -147,6 +148,7 @@ class WorkspaceService:
         self.workspace_domain_service = workspace_domain_service
         self._registration_service = registration_service
         self._webhook_service = webhook_service
+        self._draft_service = draft_service
         self._response_export_service = response_export_service
         self._email_action_service = email_action_service
         self.custom_domain_service = custom_domain_service
@@ -874,6 +876,9 @@ class WorkspaceService:
         if self._webhook_service is not None:
             # their webhooks (and sealed secrets), delivery log and audit trail
             await self._webhook_service.delete_for_workspaces(workspace_ids)
+        if self._draft_service is not None:
+            # the respondents' saved drafts of its forms
+            await self._draft_service.delete_for_workspaces(workspace_ids)
         if self._response_export_service is not None:
             # their export audit entries and stored export files
             await self._response_export_service.delete_for_workspaces(workspace_ids)

@@ -17,10 +17,12 @@ from auth.app.container import container
 from auth.app.controllers.internal_key import require_internal_key
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
+from auth.app.services import notification_service as notices
 from auth.app.services.auth_service import AuthService
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.notification_service import (
     NotificationService,
+    is_allowed_draft_link,
     is_allowed_submission_link,
     one_line,
     sheets_reconnect_link,
@@ -49,6 +51,23 @@ class SubmissionUpdateNotice(BaseModel):
     workspace_title: Optional[str] = Field(None, max_length=1000)
     link: str = Field(..., max_length=2000)
     # the mail's language (the form's); English unless Dutch
+    locale: Optional[str] = Field(None, max_length=35)
+
+
+class DraftLinkNotice(BaseModel):
+    """The link that reopens a saved draft: the address, the link and how many
+    days it works. The mail's wording is fixed: no form title, no organisation,
+    no answer."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipient: EmailStr
+    link: str = Field(..., max_length=2000)
+    # the workspace the form belongs to: only to count mails per workspace, never
+    # in the mail
+    workspace_id: str = Field(..., pattern=r"^[0-9a-f]{24}$")
+    # how long the link works, named in the mail
+    days: int = Field(7, ge=1, le=90)
     locale: Optional[str] = Field(None, max_length=35)
 
 
@@ -106,6 +125,39 @@ class NotificationsRouter(Routable):
             form_title=one_line(notice.form_title),
             workspace_title=one_line(notice.workspace_title),
             link=notice.link,
+            locale=notice.locale,
+        )
+        return {"message": "Notice queued."}
+
+    @post("/draft-link")
+    async def send_draft_link(
+        self,
+        notice: DraftLinkNotice,
+        background_tasks: BackgroundTasks,
+        _: None = Depends(require_internal_key),
+    ):
+        """Mail a respondent who is not signed in the link to their saved
+        draft. Sent by the backend on its own, which rate limits per address,
+        form and client before it asks: the internal key alone, no user token.
+        The link must be a form page of this instance with a draft token in
+        its fragment, so this cannot mail any other link."""
+        if not is_allowed_draft_link(notice.link):
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "The link must point at a form page of this instance.",
+            )
+        if not self.notification_service.allow(
+            f"draft-link:{notice.workspace_id}",
+            limit=notices.DRAFT_LINKS_PER_WORKSPACE_PER_HOUR,
+        ):
+            raise HTTPException(
+                HTTPStatus.TOO_MANY_REQUESTS, "Too many notices; try again later."
+            )
+        background_tasks.add_task(
+            self.notification_service.send_draft_link,
+            recipient=str(notice.recipient),
+            link=notice.link,
+            days=notice.days,
             locale=notice.locale,
         )
         return {"message": "Notice queued."}

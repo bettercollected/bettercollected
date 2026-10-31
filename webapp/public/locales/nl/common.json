@@ -398,6 +398,15 @@
         "REMOVE": "Limiet verwijderen",
         "NOTE": "Laat leeg voor geen limiet. Een antwoord bewerken valt hier niet onder.",
         "INVALID": "Voer een geheel getal in van 1 tot {{max}}."
+      },
+      "SAVE_DRAFT": {
+        "TITLE": "Laat respondenten opslaan en later verdergaan",
+        "DESCRIPTION": "Respondenten kunnen bewaren wat ze hebben ingevuld en later afronden: wie is ingelogd vanuit het eigen account, anderen met een link naar het e-mailadres dat ze invullen. Concepten zijn versleuteld, staan los van de reacties en zijn voor u pas zichtbaar nadat het formulier is verstuurd. Zet u dit uit, dan worden concepten niet meer opgeslagen of geopend en binnen een dag verwijderd.",
+        "OFF_NOTE": "Concepten opslaan is op deze server nog niet ingeschakeld, dus deze instelling kan nog niet worden aangezet.",
+        "DAYS_LABEL": "Concepten bewaren (dagen)",
+        "SAVE": "Opslaan",
+        "NOTE": "1 tot 90 dagen na het laatste bewaarmoment. Leeg: {{default}} dagen. Bestanden worden niet in een concept bewaard.",
+        "INVALID": "Voer een geheel getal in van 1 tot 90."
       }
     },
     "DELETION_REQUEST": {

@@ -30,6 +30,7 @@ from auth.config import settings
 
 SUBMISSION_UPDATE_TEMPLATE = "submission_update.html"
 SHEETS_RECONNECT_TEMPLATE = "sheets_reconnect.html"
+DRAFT_LINK_TEMPLATE = "draft_link.html"
 # a workspace handle and a form id, as path segments of the admin client
 WORKSPACE_NAME = re.compile(r"[A-Za-z0-9._~-]{1,200}")
 FORM_ID = re.compile(r"[A-Za-z0-9-]{1,64}")
@@ -38,8 +39,16 @@ DOT_SEGMENTS = (".", "..")
 _SUBMISSION_PATH = re.compile(
     r"/[A-Za-z0-9._~%-]{1,200}/submissions/[A-Za-z0-9-]{1,64}"
 )
+# /<workspace handle>/forms/<form id>, with the resume token in the fragment (a
+# fragment never reaches a server log or a Referer header)
+_DRAFT_PATH = re.compile(r"/[A-Za-z0-9._~%-]{1,200}/forms/[A-Za-z0-9-]{1,64}")
+_DRAFT_FRAGMENT = re.compile(r"resume=[0-9a-f]{24}\.[A-Za-z0-9_-]{43}")
 # Per signed-in sender and process: a burst guard, not an accounting limit.
 NOTICES_PER_HOUR = 300
+# Draft-link mails, per workspace (the backend names it) and process. Above the
+# backend's own cap of 1,000 per workspace per hour (services/form_drafts/limits.py),
+# so this is only a backstop, and one workspace can never use up another's mails.
+DRAFT_LINKS_PER_WORKSPACE_PER_HOUR = 1200
 
 
 def _origin_and_prefix(base_url: Optional[str]) -> Optional[Tuple[str, str]]:
@@ -81,6 +90,43 @@ def is_allowed_submission_link(link: str) -> bool:
         if _SUBMISSION_PATH.fullmatch(parts.path[len(prefix) :]):
             return True
     return False
+
+
+def is_allowed_draft_link(link: str) -> bool:
+    """A link to a form's page on one of the configured hosts that carries a
+    saved draft's token in its fragment: http(s), no credentials, no query,
+    the exact path shape and the exact token shape."""
+    try:
+        parts = urlsplit(link)
+    except ValueError:
+        return False
+    if (
+        parts.scheme not in ("http", "https")
+        or parts.username
+        or parts.password
+        or parts.query
+        or not _DRAFT_FRAGMENT.fullmatch(parts.fragment)
+    ):
+        return False
+    origin = f"{parts.scheme}://{parts.netloc}".lower()
+    for base_origin, prefix in allowed_link_bases():
+        if origin != base_origin or not parts.path.startswith(prefix + "/"):
+            continue
+        if _DRAFT_PATH.fullmatch(parts.path[len(prefix) :]):
+            return True
+    return False
+
+
+def render_draft_link(link: str, days: int, locale: Optional[str] = None) -> str:
+    """Fixed wording and the link: no form title, no organisation, no answer."""
+    t = texts(locale)
+    return render(
+        DRAFT_LINK_TEMPLATE,
+        t=t,
+        lang=mail_locale(locale),
+        expiry=t["draft_expiry"].format(days=days),
+        link=link,
+    )
 
 
 def render_submission_update(
@@ -154,13 +200,14 @@ class NotificationService:
     def __init__(self):
         self._sent: Dict[str, Deque[float]] = defaultdict(deque)
 
-    def allow(self, sender_id: str) -> bool:
-        """Count one notice for ``sender_id``; False once over the hourly cap."""
+    def allow(self, sender_id: str, limit: Optional[int] = None) -> bool:
+        """Count one notice for ``sender_id``; False once over the hourly cap
+        (``limit``, default ``NOTICES_PER_HOUR``)."""
         now = time.monotonic()
         sent = self._sent[sender_id]
         while sent and now - sent[0] > 3600:
             sent.popleft()
-        if len(sent) >= NOTICES_PER_HOUR:
+        if len(sent) >= (NOTICES_PER_HOUR if limit is None else limit):
             return False
         sent.append(now)
         return True
@@ -193,6 +240,28 @@ class NotificationService:
         except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
             logger.warning(f"Submission update notice not sent ({type(exc).__name__})")
 
+    async def send_draft_link(
+        self,
+        recipient: str,
+        link: str,
+        days: int,
+        locale: Optional[str] = None,
+    ) -> None:
+        """Email ``recipient`` the link that reopens a saved draft. The mail
+        is fixed wording and the link: no form, no organisation, no answer. Runs after
+        the response was sent: failures are logged without the address, and
+        never with the link."""
+        try:
+            message = MessageSchema(
+                subject=texts(locale)["draft_subject"],
+                recipients=[recipient],
+                body=render_draft_link(link, days, locale),
+                subtype="html",
+            )
+            await MailService().send_message(message)
+        except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
+            logger.warning(f"Draft link not sent ({type(exc).__name__})")
+
     async def send_sheets_reconnect(
         self,
         recipient: str,
@@ -209,9 +278,7 @@ class NotificationService:
                 # fixed wording: titles appear only in the body (#761)
                 subject=texts(locale)["sheets_subject"],
                 recipients=[recipient],
-                body=render_sheets_reconnect(
-                    form_title, workspace_title, link, locale
-                ),
+                body=render_sheets_reconnect(form_title, workspace_title, link, locale),
                 subtype="html",
             )
             await MailService().send_message(message)

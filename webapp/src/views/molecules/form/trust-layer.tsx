@@ -10,6 +10,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
+import { draftDays } from '@app/utils/form-drafts';
 import { httpUrl } from '@app/utils/http-url';
 import { measurePrimaryActionFit } from '@app/utils/panel-fit';
 import { describeRetention } from '@app/utils/retention';
@@ -190,6 +191,11 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
             term: t('PRIVACY.WEBHOOKS'),
             detail: `${t('PRIVACY.WEBHOOKS_DESTINATION', { hosts })} ${t('PRIVACY.WEBHOOKS_NO_DELETION')}`
         });
+    }
+    // Saving a draft keeps what was typed before it is submitted: say for how
+    // long, that it is encrypted, and that the form's team does not see it.
+    if (settings?.allowSaveDraft) {
+        rows.push({ key: 'drafts', term: t('PRIVACY.DRAFTS'), detail: t('PRIVACY.DRAFTS_DETAIL', { count: draftDays(settings as StandardFormDto['settings']) }) });
     }
     // An email action mails answers to the form's team (the workspace's
     // members, never named) and, if it is set up, a copy to the respondent.

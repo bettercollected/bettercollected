@@ -495,3 +495,52 @@ describe('Privacy panel: answers also emailed', () => {
         expect(row('email')).toHaveTextContent('Een kopie voor jou: een kopie van je antwoorden wordt gemaild naar het adres dat je invult.');
     });
 });
+
+describe('Privacy panel: saved drafts', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('says nothing while the form keeps no drafts', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-drafts')).not.toBeInTheDocument();
+        unmount();
+        renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: false } as any });
+        openPanel();
+        expect(screen.queryByTestId('privacy-drafts')).not.toBeInTheDocument();
+    });
+
+    it('states how long a draft is kept, that it is encrypted and unseen until submitted, and what happens to the address (English)', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 14 } as any });
+        openPanel();
+        expect(screen.getByText('Saved drafts')).toBeInTheDocument();
+        expect(row('drafts')).toHaveTextContent('If you save and continue later, your draft is kept encrypted for 14 days after your last save, and deleted within a day after that. The form owner cannot see it until you submit.');
+        expect(row('drafts')).toHaveTextContent('your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.');
+        const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
+        expect(keys.indexOf('privacy-drafts')).toBeLessThan(keys.indexOf('privacy-rights'));
+    });
+
+    it('uses the default of 30 days and the singular for one day', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true } as any });
+        openPanel();
+        expect(row('drafts')).toHaveTextContent('kept encrypted for 30 days after your last save, and deleted within a day after that');
+        unmount();
+        renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 1 } as any });
+        openPanel();
+        expect(row('drafts')).toHaveTextContent('kept encrypted for 1 day after your last save, and deleted within a day after that');
+    });
+
+    it('says it in Dutch, in the "je" register', () => {
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 14 } as any });
+        fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
+        expect(screen.getByText('Opgeslagen concepten')).toBeInTheDocument();
+        expect(row('drafts')).toHaveTextContent('wordt je concept 14 dagen na je laatste keer opslaan versleuteld bewaard en daarna binnen een dag verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt.');
+        expect(row('drafts')).toHaveTextContent('wordt je e-mailadres niet bij het concept bewaard');
+    });
+});
