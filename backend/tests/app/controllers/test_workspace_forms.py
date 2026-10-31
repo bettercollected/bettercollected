@@ -489,6 +489,7 @@ class TestWorkspaceForm:
                 "importId": None,
                 "formOpenDate": None,
                 "responseLimit": None,
+                "showReviewPage": None,
                 "allowSaveDraft": None,
                 "draftRetentionDays": None,
             }

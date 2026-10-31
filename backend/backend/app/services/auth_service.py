@@ -390,6 +390,8 @@ class AuthService:
         if self.draft_service is not None:
             # a respondent's drafts of forms of other workspaces too
             await self.draft_service.delete_for_account(str(user.id))
+        # the export audit rows the user leaves in other workspaces stay, without them
+        await self.workspace_service.forget_exports_of_user(user.id)
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
         # then the stored provider credentials, deleted now or purged by a

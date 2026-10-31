@@ -130,6 +130,7 @@ export interface FormSettingsPatch {
     allowSaveDraft?: boolean | null;
     /** Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30. */
     draftRetentionDays?: number | null;
+    showReviewPage?: boolean | null;
 }
 
 // ---------------------------------------------------------------------------

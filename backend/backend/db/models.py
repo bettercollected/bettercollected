@@ -644,6 +644,13 @@ class FormWebhookRow(Base, BaseRow):
     __table_args__ = (Index(None, "workspace_id", "form_id"),)
 
 
+class FormEmailActionRow(Base, BaseRow):
+    __tablename__ = "form_email_actions"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id"),)
+
+
 class ActionLogRow(Base, BaseRow):
     __tablename__ = "action_logs"
     workspace_id = S.text("workspace_id")
@@ -651,6 +658,9 @@ class ActionLogRow(Base, BaseRow):
     action_id = S.text("action_id")
     response_id = S.text("response_id")
     status = S.text("status")
+    # ``webhook`` or ``email`` (revision 0026): each kind's sweep and list read
+    # only its own rows
+    action_type = S.text("action_type")
     __table_args__ = (
         # the idempotency key of a submission run: one per action and response
         # (a test run has no response id: NULLs never collide)
@@ -691,4 +701,41 @@ class FormDraftRow(Base, BaseRow):
         Index(None, "form_id", "email_key"),
         Index(None, "owner_id"),
         Index(None, "expires_at"),
+    )
+
+
+class ResponseExportRow(Base, BaseRow):
+    __tablename__ = "response_exports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "actor_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one export in flight or waiting to be fetched per requester and form:
+        # the check and the insert of a request cannot race past each other
+        Index(
+            "uq_response_exports_one_open",
+            "workspace_id",
+            "form_id",
+            "actor_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running', 'ready')"),
+        ),
+    )
+
+
+class ResponseExportChunkRow(Base, BaseRow):
+    __tablename__ = "response_export_chunks"
+    export_id = S.text("export_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    chunk_index = S.int("index", name="chunk_index")
+    __table_args__ = (
+        UniqueConstraint("export_id", "chunk_index"),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
     )

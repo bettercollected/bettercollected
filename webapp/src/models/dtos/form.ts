@@ -166,6 +166,12 @@ export interface StandardFormDto {
      * answers on: the host names of the destinations. The privacy panel names them.
      */
     webhookDestination?: { hosts: string[] } | null;
+    /**
+     * Only on the published form read, while an enabled email action mails this
+     * form's answers on: `team` to the form's team, `copy` a copy to the
+     * respondent. The privacy panel says so.
+     */
+    emailDestination?: { team: boolean; copy: boolean } | null;
     welcomePage?: {
         title?: string;
         description?: string;
@@ -236,6 +242,8 @@ export interface StandardFormDto {
         responseLimit?: number | null;
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
+        /** Respondents review their answers on a page of their own before sending (client-only; utils/review-page.ts). */
+        showReviewPage?: boolean;
         allowEditingResponse?: boolean;
         /** "Let respondents save and continue later": drafts kept apart from the responses (off by default). */
         allowSaveDraft?: boolean | null;

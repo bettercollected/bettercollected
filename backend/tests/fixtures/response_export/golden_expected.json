@@ -1,0 +1,10 @@
+{
+ "main": "Responder ID,Name Page 1,Phone,Colours,One colour,Agree?,Count,Rating,Date,Email,Site,Upload,Total,Eligible,Label,Table,Boxes,Single,Ranking,Enter Question,Scale,Plain group,Kid 1 – Kid name,Kid 1 – Age,Kid 1 – Kid colours,Kid 2 – Kid name,Kid 2 – Age,Kid 2 – Kid colours,Jobs (Job count),Response ID,Internal: Reference,Internal: Tags,Internal: Untitled field,Response ID (2),\"Submitted at (UTC, ISO 8601)\",Hidden: utm_source,Hidden: ref,Hidden: constructor\r\nsita@example.org,\"Sita, \"\"the\"\" first\nline two\",'+31 6 1234 5678,Red; Item 2; Blue; Pink,Item 2; Teal,Yes,42,4,2026-09-30,'@handle@example.org,'-cmd|' /C calc'!A0,cv.pdf,1234.5,No,\"'=HYPERLINK(\"\"http://x\"\")\",\"a, b | c, d\",Alpha; Beta,Beta,B; A,'\ttabbed,,,Anu,7,Red; Blue,'  =cmd,-3,,2,-12.5,REF-9,Red; Blue,,resp-1,2026-10-01T10:00:05Z,newsletter,'=SUM(1),\r\nAnonymous,Ram,-5,,,No,0,,,,,,,,,,,,,,,,,,,,,,0,'+1 (555) 123-4567,,,,resp-2,2026-10-02T06:30:00Z,5,,\r\nAnonymous,Ünïcödé ✓,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,'@internal,,,,2026-10-03T00:00:00Z,,,",
+ "groups": {
+  "Jobs": "Response ID,Job,Employer,Current\r\nresp-1,1,Acme,Yes\r\nresp-1,2,\"Beta, Inc\",No\r\n,1,Solo,"
+ },
+ "fileName": "Survey  2026    edition.csv",
+ "groupFileName": [
+  "Survey  2026    edition - Jobs.csv"
+ ]
+}

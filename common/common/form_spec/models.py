@@ -744,6 +744,13 @@ class Trust(_Spec):
         description="How many days after the last save a draft is kept, 1 to "
         "90; left out, 30.",
     )
+    show_review_page: Optional[bool] = Field(
+        None,
+        description=(
+            "Respondents see their answers on a page of their own, with a link "
+            "back to each page, before they send them."
+        ),
+    )
 
 
 class FormSpec(_Spec):

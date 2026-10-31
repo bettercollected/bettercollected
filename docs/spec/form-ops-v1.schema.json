@@ -1865,6 +1865,18 @@
           "default": null,
           "description": "Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
           "title": "Draftretentiondays"
+        },
+        "showReviewPage": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showreviewpage"
         }
       },
       "title": "FormSettingsPatch",

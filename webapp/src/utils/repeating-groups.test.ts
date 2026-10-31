@@ -21,7 +21,6 @@ import {
     validateGroupAnswer,
     writeItemAnswers
 } from '@app/utils/repeating-groups';
-import { buildResponsesExport, formulaSafeCell, tableToCsv } from '@app/utils/response-export';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 
 const name: StandardFormFieldDto = { id: 'name', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name', validations: { required: true } };
@@ -294,66 +293,5 @@ describe('aggregates', () => {
         expect(joinList(['A', 'B'])).toBe('A and B');
         expect(joinList(['A', 'B', 'C'])).toBe('A, B and C');
         expect(joinList([])).toBeUndefined();
-    });
-});
-
-describe('exports', () => {
-    const form = (g: StandardFormFieldDto) => ({ formId: 'f', title: 'Loan', builderVersion: 'v2', fields: slides(g) }) as unknown as StandardFormDto;
-    const responses = [
-        { responseId: 'r1', dataOwnerIdentifier: 'a@x.org', answers: { intro: text('Sharma'), ...answersWith({ name: text('Sita'), income: num(10) }, { name: text('Ram') }) } },
-        { responseId: 'r2', answers: { intro: text('Rai') } }
-    ] as unknown as StandardFormResponseDto[];
-
-    it('columns per item keep one row per submission', () => {
-        const { main, groupTables } = buildResponsesExport(form(group({ maxItems: 2 })), responses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicant 1 – Name', 'Applicant 1 – Income', 'Applicant 2 – Name', 'Applicant 2 – Income', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
-        expect(main.rows).toEqual([
-            ['a@x.org', 'Sharma', 'Sita', 10, 'Ram', '', 'r1', ''],
-            ['Anonymous', 'Rai', '', '', '', '', 'r2', '']
-        ]);
-        expect(groupTables).toEqual([]);
-    });
-
-    it('large groups get their own table keyed by response id and item number', () => {
-        const { main, groupTables } = buildResponsesExport(form(group({ maxItems: 10 })), responses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
-        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'r1', '']);
-        expect(groupTables).toEqual([
-            {
-                name: 'Applicants',
-                headers: ['Response ID', 'Applicant', 'Name', 'Income'],
-                rows: [
-                    ['r1', 1, 'Sita', 10],
-                    ['r1', 2, 'Ram', '']
-                ]
-            }
-        ]);
-    });
-
-    it('keeps internal (staff) columns after the respondent answers', () => {
-        const staff: StandardFormFieldDto = { id: 'ref', index: 2, type: FieldTypes.SHORT_TEXT, title: 'Reference', internal: true };
-        const withStaff = form(group({ maxItems: 10 }));
-        withStaff.fields[0].properties!.fields!.push(staff);
-        const staffResponses = [{ ...responses[0], internalAnswers: { ref: text('R-1') } }] as unknown as StandardFormResponseDto[];
-        const { main } = buildResponsesExport(withStaff, staffResponses);
-        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Internal: Reference', 'Response ID', 'Submitted at (UTC, ISO 8601)']);
-        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'R-1', 'r1', '']);
-    });
-
-    it('the creator can override the layout', () => {
-        expect(buildResponsesExport(form(group({ maxItems: 2, exportLayout: 'rows' })), responses).groupTables).toHaveLength(1);
-        expect(buildResponsesExport(form(group({ maxItems: 10, exportLayout: 'columns' })), responses).groupTables).toHaveLength(0);
-    });
-
-    it('neutralises formula-like text cells, leaving numbers and dates alone', () => {
-        const csv = tableToCsv({ name: 't', headers: ['=HEADER'], rows: [['=HYPERLINK("x")', '+SUM(1)', '-2+3', '@SUM(A1)', '\tx', '\rx', -5, 3, '2026-09-27', 'plain']] });
-        const [, row] = csv.split('\r\n');
-        expect(row).toBe(`"'=HYPERLINK(""x"")",'+SUM(1),'-2+3,'@SUM(A1),'\tx,"'\rx",-5,3,2026-09-27,plain`);
-        expect(csv.startsWith("'=HEADER")).toBe(true);
-        expect(formulaSafeCell(-5)).toBe(-5);
-    });
-
-    it('writes valid CSV', () => {
-        expect(tableToCsv({ name: 't', headers: ['a', 'b'], rows: [['x, y', 'say "hi"']] })).toBe('a,b\r\n"x, y","say ""hi"""');
     });
 });

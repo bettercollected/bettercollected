@@ -1,7 +1,7 @@
 """saved drafts of a form (save and continue later)
 
-Revision ID: 0027
-Revises: 0025
+Revision ID: 0028
+Revises: 0027
 Create Date: 2026-10-31
 
 One new table (``backend/app/services/form_drafts``): a respondent's saved
@@ -15,8 +15,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0027"
-down_revision: Union[str, None] = "0025"
+revision: str = "0028"
+down_revision: Union[str, None] = "0027"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

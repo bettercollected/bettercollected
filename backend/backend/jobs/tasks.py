@@ -26,7 +26,15 @@ from backend.app.services.registration.retry import (
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.app.services.webhooks.retry import WebhookRetry, WebhookRetryStrategy
-from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
+from backend.app.services.email_actions.retry import EmailRetry, EmailRetryStrategy
+from backend.jobs.app import (
+    ACTIONS_QUEUE,
+    DEFAULT_QUEUE,
+    EMAILS_QUEUE,
+    EXPORTS_QUEUE,
+    WEBHOOKS_QUEUE,
+    app,
+)
 
 RUN_ACTION = "run_action"
 
@@ -369,6 +377,93 @@ async def purge_action_logs(timestamp: int) -> str:
     """Daily: delete the action log rows (ids, statuses and timings of each
     webhook delivery) older than 30 days. Counts only."""
     deleted = await _container().webhook_service().purge_expired()
+    return f"{deleted} deleted"
+
+
+@app.task(
+    name="deliver_email",
+    queue=EMAILS_QUEUE,
+    retry=EmailRetryStrategy(),
+    pass_context=True,
+)
+async def deliver_email(context, log_id: str) -> str:
+    """One attempt to send one email of an email action (docs/email-actions.md).
+    The only argument is the log row's id: the message is built here, from the
+    decrypted answers, and never queued. A transient failure raises so the job is
+    retried with exponential backoff and jitter; a permanent one, or the last
+    attempt, ends with the delivery ``failed``."""
+    outcome = await _container().email_action_service().run_delivery(
+        log_id, job_attempt=context.job.attempts
+    )
+    if outcome.retry:
+        raise EmailRetry(outcome.retry_after)
+    return outcome.status
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="emails_redefer")
+@app.task(
+    name="emails_redefer",
+    queue=EMAILS_QUEUE,
+    queueing_lock="emails_redefer",
+)
+async def emails_redefer(timestamp: int) -> str:
+    """Queue again emails whose job was never queued or whose worker died (no-op
+    while EMAIL_ACTIONS_ENABLED is off). Counts only."""
+    counts = await _container().email_action_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+
+
+@app.periodic(cron="43 3 * * *", periodic_id="purge_email_logs")
+@app.task(
+    name="purge_email_logs",
+    queue=EMAILS_QUEUE,
+    queueing_lock="purge_email_logs",
+)
+async def purge_email_logs(timestamp: int) -> str:
+    """Daily: delete the action log rows older than 30 days, so the log is kept
+    that long even where this worker does not serve the webhooks queue (which
+    has the same purge for every action type). Counts only."""
+    deleted = await _container().email_action_service().purge_expired()
+    return f"{deleted} deleted"
+
+
+@app.task(
+    name="build_response_export",
+    queue=EXPORTS_QUEUE,
+)
+async def build_response_export(export_id: str) -> str:
+    """Build the file of a large responses export (docs/response-export.md).
+    The only argument is the export id: the filters sit sealed on the export
+    row, the answers are decrypted inside the job and written as encrypted
+    chunks, never queued or logged. A failed build ends the export as failed
+    (the requester asks again); a worker that died is found by
+    ``response_export_redefer``."""
+    return await _container().response_export_service().run_job(export_id)
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="response_export_redefer")
+@app.task(
+    name="response_export_redefer",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_export_redefer",
+)
+async def response_export_redefer(timestamp: int) -> str:
+    """Queue again exports whose job was never queued, rescue those whose
+    worker died mid-build. Counts only."""
+    counts = await _container().response_export_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued, {counts['failed']} failed"
+
+
+@app.periodic(cron="9 * * * *", periodic_id="response_export_purge")
+@app.task(
+    name="response_export_purge",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_export_purge",
+)
+async def response_export_purge(timestamp: int) -> str:
+    """Hourly: delete the stored files of exports that outlived their 24 hours
+    (a file is also deleted when its requester discards it or responses of the form are deleted). Counts only."""
+    deleted = await _container().response_export_service().purge_expired()
     return f"{deleted} deleted"
 
 

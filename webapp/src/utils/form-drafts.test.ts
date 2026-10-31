@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { REVIEW_SLIDE } from '@app/utils/review-page';
 
 import { DEFAULT_DRAFT_DAYS, answersForDraft, draftDays, draftErrorKey, draftsOffered, forgetResumeToken, hasFileQuestion, positionForDraft, restoreDraft, resumeTokenOf, takeResumeToken } from './form-drafts';
 
@@ -57,6 +58,12 @@ describe('position', () => {
     it('is stored by page id, without the welcome page', () => {
         expect(positionForDraft(FORM.fields, 2, [-1, 0, 1])).toEqual({ pageId: 'p3', history: ['p1', 'p2'] });
         expect(positionForDraft(FORM.fields, 0, [-1])).toEqual({ pageId: 'p1', history: [] });
+    });
+
+    it('on the review page is the last page gone through, to come back to and go on to the review again', () => {
+        expect(positionForDraft(FORM.fields, REVIEW_SLIDE, [-1, 0, 1, 2])).toEqual({ pageId: 'p3', history: ['p1', 'p2'] });
+        expect(positionForDraft(FORM.fields, REVIEW_SLIDE, [-1, 0, 2, 0, 2])).toEqual({ pageId: 'p3', history: ['p1'] });
+        expect(positionForDraft(FORM.fields, REVIEW_SLIDE, [-1])).toEqual({ pageId: null, history: [] });
     });
 
     it('is found again in a changed form', () => {

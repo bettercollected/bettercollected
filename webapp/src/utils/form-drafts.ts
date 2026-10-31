@@ -1,5 +1,6 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import type { DraftContent, OpenedDraft } from '@app/store/redux/drafts-api';
+import { REVIEW_SLIDE, pathPages } from '@app/utils/review-page';
 
 /**
  * Save and continue later, as the respondent page sees it (backend
@@ -81,12 +82,23 @@ function restorable(slides: StandardFormFieldDto[] | undefined, answers: Answers
     return { answers: kept, dropped };
 }
 
-/** Where the respondent is, as the draft stores it: page ids, the welcome page left out. */
+/**
+ * Where the respondent is, as the draft stores it: page ids, the welcome page
+ * left out. On the review page (utils/review-page.ts) the place is the last page
+ * they went through: they come back to it and go on to the review again.
+ */
 export function positionForDraft(slides: StandardFormFieldDto[] | undefined, currentSlide: number, history: number[] | undefined): NonNullable<DraftContent['position']> {
     const idOf = (index: number) => (index >= 0 ? slides?.[index]?.id : undefined);
+    let current = currentSlide;
+    let before = history ?? [];
+    if (currentSlide === REVIEW_SLIDE) {
+        const pages = pathPages(history);
+        current = pages[pages.length - 1] ?? -1;
+        before = pages.slice(0, -1);
+    }
     return {
-        pageId: idOf(currentSlide) ?? null,
-        history: (history ?? []).map(idOf).filter((id): id is string => !!id)
+        pageId: idOf(current) ?? null,
+        history: before.map(idOf).filter((id): id is string => !!id)
     };
 }
 

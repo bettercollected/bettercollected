@@ -203,6 +203,7 @@ def test_trust_comes_from_the_association_settings_when_given():
         require_verified_identity=True,
         allow_editing_response=False,
         show_submission_number=None,
+        show_review_page=True,
     )
     spec = form_to_spec(varied_form(), settings)
     assert spec.trust.purpose == "To plan the season."
@@ -215,6 +216,7 @@ def test_trust_comes_from_the_association_settings_when_given():
         "response_expiration": "2031-01-01",
         "require_verified_identity": True,
         "allow_editing_response": False,
+        "show_review_page": True,
     }
 
 

@@ -160,6 +160,7 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                                                     <div className="flex min-w-0 flex-col">
                                                         <span className="text-sm font-semibold break-all text-black-900">{hook.host}</span>
                                                         <span className="text-xs text-black-600">{t('WEBHOOKS.LIST.QUESTIONS', { count: hook.fields.length })}</span>
+                                                        {hook.condition && hook.condition.conditions.length > 0 && <span className="text-xs text-black-600">{t('ACTION_CONDITION.BADGE')}</span>}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Switch

@@ -307,22 +307,27 @@ class FormDraftService:
             else None
         )
 
-    def _expiry(self, link, created_at: dt.datetime, now: dt.datetime) -> dt.datetime:
-        """Retention days from this save, never past 90 days from the first
-        save, never past a fixed retention date of the form."""
-        expires = min(
-            now + dt.timedelta(days=limits.draft_days(link.settings)),
+    def _retention_end(
+        self, settings, created_at: dt.datetime, last_saved: dt.datetime
+    ) -> dt.datetime:
+        """Where the form's retention ends a draft first saved at ``created_at``
+        and last saved at ``last_saved``: retention days from the last save,
+        never past 90 days from the first save, never past a fixed retention
+        date of the form. Read from the settings as they are now, so a lower
+        number of days or an earlier date reaches drafts that already exist."""
+        end = min(
+            last_saved + dt.timedelta(days=limits.draft_days(settings)),
             created_at + limits.ABSOLUTE_LIFETIME,
         )
-        settings = link.settings
-        kind = getattr(
-            getattr(settings, "response_expiration_type", None), "value", None
-        ) or getattr(settings, "response_expiration_type", None)
-        if kind == "date":
-            day = retention_date(getattr(settings, "response_expiration", None))
-            if day is not None:
-                end = dt.datetime(day.year, day.month, day.day, tzinfo=dt.timezone.utc)
-                expires = min(expires, end)
+        fixed = _fixed_end(settings)
+        if fixed is not None:
+            end = min(end, fixed)
+        return end
+
+    def _expiry(self, link, created_at: dt.datetime, now: dt.datetime) -> dt.datetime:
+        """When a draft saved now expires (``_retention_end``); 409 when the
+        form's own retention ends at once and it could keep no draft."""
+        expires = self._retention_end(link.settings, created_at, now)
         if expires <= now + dt.timedelta(minutes=1):
             # the form's own retention ends now: it could not keep a draft
             raise _error(
@@ -331,6 +336,13 @@ class FormDraftService:
                 "This form cannot keep a draft any longer.",
             )
         return expires
+
+    def _kept(self, link, draft: FormDraftDocument, now: dt.datetime) -> bool:
+        """Whether the draft is still kept: not past its own expiry and not past
+        what the form's retention says now (it may have been lowered)."""
+        return draft.expires_at > now and (
+            self._retention_end(link.settings, draft.created_at, draft.updated_at) > now
+        )
 
     # ------------------------------------------------------- the payload
 
@@ -442,14 +454,23 @@ class FormDraftService:
                 "Sign in to save a draft of this form.",
             )
         draft = await self._by_secret(
-            workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY
+            workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY, link
         )
         if draft is None:
             raise not_found()
-        draft.payload = self._seal(workspace_id, real_form_id, draft.id, body)
-        draft.form_version = body.form_version or version.version
-        draft.expires_at = self._expiry(link, draft.created_at, now)
-        saved = await self._drafts.save(draft)
+        # Only the content changes, in one locked update: a link request or an open
+        # that landed meanwhile keeps its new token and edit key, and a draft that
+        # was deleted meanwhile (discard, the submit, the purge) stays deleted.
+        saved = await self._drafts.update_fields(
+            workspace_id,
+            real_form_id,
+            draft.id,
+            payload=self._seal(workspace_id, real_form_id, draft.id, body),
+            form_version=body.form_version or version.version,
+            expires_at=self._expiry(link, draft.created_at, now),
+        )
+        if saved is None:
+            raise not_found()
         return SavedDto(saved_at=saved.updated_at, expires_at=saved.expires_at)
 
     async def _save_for_owner(
@@ -458,19 +479,36 @@ class FormDraftService:
         owner = str(user.id)
         for attempt in (1, 2):
             draft = await self._drafts.for_owner(workspace_id, form_id, owner)
-            if draft is None:
-                if (
-                    await self._drafts.count_live_for_owner(owner, now)
-                    >= limits.MAX_DRAFTS_PER_ACCOUNT
-                ):
-                    raise _draft_limit()
-                draft = FormDraftDocument(
-                    workspace_id=workspace_id,
-                    form_id=form_id,
-                    owner_id=owner,
-                    payload="",
-                    expires_at=now,
-                ).ensure_id()
+            if draft is not None and draft.expires_at <= now:
+                # expired and not purged yet: this save starts a new draft
+                await self._drafts.delete(workspace_id, form_id, draft.id)
+                draft = None
+            if draft is not None:
+                # an existing draft: one locked update of the content, never an
+                # insert (a draft deleted meanwhile stays deleted: 404)
+                saved = await self._drafts.update_fields(
+                    workspace_id,
+                    form_id,
+                    draft.id,
+                    payload=self._seal(workspace_id, form_id, draft.id, body),
+                    form_version=body.form_version or version.version,
+                    expires_at=self._expiry(link, draft.created_at, now),
+                )
+                if saved is None:
+                    raise not_found()
+                return SavedDto(saved_at=saved.updated_at, expires_at=saved.expires_at)
+            if (
+                await self._drafts.count_live_for_owner(owner, now)
+                >= limits.MAX_DRAFTS_PER_ACCOUNT
+            ):
+                raise _draft_limit()
+            draft = FormDraftDocument(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                owner_id=owner,
+                payload="",
+                expires_at=now,
+            ).ensure_id()
             draft.payload = self._seal(workspace_id, form_id, draft.id, body)
             draft.form_version = body.form_version or version.version
             draft.expires_at = self._expiry(link, draft.created_at, now)
@@ -523,7 +561,7 @@ class FormDraftService:
         await self._ensure_takes_responses(link, workspace_id, received_at)
         now = self._clock()
         draft = await self._by_secret(
-            workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY
+            workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY, link
         )
         created = draft is None
         if created:
@@ -539,7 +577,11 @@ class FormDraftService:
                 # Somebody else may have filled this address's drafts: answer as
                 # for any request, send nothing, store nothing. Neither the
                 # status nor a wait tells that the address holds drafts.
-                logger.info("Draft not stored: address at its draft limit")
+                logger.info(
+                    "Draft not stored: address at its draft limit (workspace={} form={})",
+                    workspace_id,
+                    real_form_id,
+                )
                 return LinkSentDto(
                     saved_at=now,
                     expires_at=self._expiry(link, now, now),
@@ -576,10 +618,30 @@ class FormDraftService:
             )
             if saved is None:
                 # lost a race for the last place: the mail went, its link is dead
-                logger.info("Draft not stored: address at its draft limit")
+                logger.info(
+                    "Draft not stored: address at its draft limit, lost a race "
+                    "(workspace={} form={})",
+                    workspace_id,
+                    real_form_id,
+                )
                 saved = draft
         else:
-            saved = await self._drafts.save(draft)
+            # the new link, edit key and content in one locked update of the
+            # draft the browser's key named; a draft deleted meanwhile stays deleted
+            saved = await self._drafts.update_fields(
+                workspace_id,
+                real_form_id,
+                draft.id,
+                payload=draft.payload,
+                form_version=draft.form_version,
+                expires_at=draft.expires_at,
+                token_hash=draft.token_hash,
+                token_expires_at=draft.token_expires_at,
+                edit_key_hash=draft.edit_key_hash,
+                email_key=draft.email_key,
+            )
+            if saved is None:
+                raise not_found()
         return LinkSentDto(
             saved_at=saved.updated_at,
             expires_at=saved.expires_at,
@@ -638,9 +700,11 @@ class FormDraftService:
         form_id: str,
         value: Optional[str],
         purpose: str,
+        link=None,
     ) -> Optional[FormDraftDocument]:
         """The draft a token or edit key opens: for this workspace and form,
-        live, with the right secret of the right purpose, else None."""
+        live (and, with ``link``, within the form's retention as it is now), with
+        the right secret of the right purpose, else None."""
         parts = tokens.split(value)
         if parts is None:
             return None
@@ -655,6 +719,8 @@ class FormDraftService:
         right = self._keys.matches(purpose, draft_id, secret, stored)
         now = self._clock()
         if draft is None or not right or draft.expires_at <= now:
+            return None
+        if link is not None and not self._kept(link, draft, now):
             return None
         if (
             purpose == tokens.TOKEN
@@ -684,7 +750,7 @@ class FormDraftService:
         try:
             link, version = await self._form(workspace_id, form_id, user)
             draft = await self._by_secret(
-                workspace_id, str(link.form_id), body.token, tokens.TOKEN
+                workspace_id, str(link.form_id), body.token, tokens.TOKEN, link
             )
             if draft is None or link.settings.require_verified_identity:
                 # the form asks for a sign-in now: an anonymous link opens nothing
@@ -717,7 +783,7 @@ class FormDraftService:
         draft = await self._drafts.for_owner(
             workspace_id, str(link.form_id), str(user.id)
         )
-        if draft is None or draft.expires_at <= self._clock():
+        if draft is None or not self._kept(link, draft, self._clock()):
             raise not_found()
         return await self._view(link, version, workspace_id, draft, None)
 
@@ -828,6 +894,17 @@ class FormDraftService:
 
     # ------------------------------------------------------------- purge
 
+    async def _purge_beyond_retention(self, workspace_id, form_id, link) -> int:
+        now = self._clock()
+        settings = link.settings
+        fixed = _fixed_end(settings)
+        if fixed is not None and fixed <= now:
+            return await self._drafts.delete_for_form(workspace_id, form_id)
+        # last saved longer ago than the days the form keeps a draft (the 90-day cap
+        # from the first save is already in each draft's own expiry)
+        cutoff = now - dt.timedelta(days=limits.draft_days(settings))
+        return await self._drafts.delete_beyond_retention(workspace_id, form_id, cutoff)
+
     async def purge(self) -> Dict[str, int]:
         """The daily purge: expired drafts, and the drafts of forms that no
         longer keep them (the setting is off, or the form is gone from the
@@ -849,11 +926,30 @@ class FormDraftService:
                     orphaned += await self._drafts.delete_for_form(
                         workspace_id, form_id
                     )
+                else:
+                    # the form's retention as it is now: a lower number of days
+                    # or an earlier date reaches drafts saved under the old one
+                    expired += await self._purge_beyond_retention(
+                        workspace_id, form_id, link
+                    )
                 await asyncio.sleep(0)
             if len(page) < PURGE_PAGE:
                 break
             after = page[-1]
         return {"expired": expired, "unwanted": orphaned}
+
+
+def _fixed_end(settings) -> Optional[dt.datetime]:
+    """The end of a form's fixed retention date (``YYYY-MM-DD``, UTC), if it has one."""
+    kind = getattr(
+        getattr(settings, "response_expiration_type", None), "value", None
+    ) or getattr(settings, "response_expiration_type", None)
+    if kind != "date":
+        return None
+    day = retention_date(getattr(settings, "response_expiration", None))
+    if day is None:
+        return None
+    return dt.datetime(day.year, day.month, day.day, tzinfo=dt.timezone.utc)
 
 
 def _context(draft_id) -> bytes:

@@ -558,6 +558,12 @@ class Trust(BaseModel):
         description="How many days after the last save a draft is kept, 1 to 90; left out, 30.",
         title="Draftretentiondays",
     )
+    show_review_page: bool | None = Field(
+        None,
+        alias="showReviewPage",
+        description="Respondents see their answers on a page of their own, with a link back to each page, before they send them.",
+        title="Showreviewpage",
+    )
 
 
 class MinLength(RootModel[int]):

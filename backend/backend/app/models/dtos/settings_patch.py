@@ -34,6 +34,7 @@ class SettingsPatchDto(CamelModel):
     response_limit: Optional[int] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    show_review_page: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     # "Let respondents save and continue later" (off by default) and how long
     # a draft is kept: None leaves it, 0 goes back to the default, else 1 to 90

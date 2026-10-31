@@ -155,7 +155,7 @@ SERVER: Tuple[SettingSpec, ...] = (
          "Public address of the web app. Code default: http://localhost:3000 (development)."),
     _url("CLIENT_ADMIN_URL", "server", (AUTH,),
          "Public address of the dashboard. Code default: http://localhost:3000 (development)."),
-    _text("ORGANIZATION_NAME", "server", (AUTH, EXECUTOR), "Organisation name used in outgoing mail.",
+    _text("ORGANIZATION_NAME", "server", (BACKEND, AUTH, EXECUTOR), "Organisation name used in outgoing mail.",
           "Better Collected", max_length=100),
     _int("API_ALLOWED_COLLABORATORS", "limits", (BACKEND,), 10, 0, 10000,
          "Collaborators allowed per workspace."),
@@ -410,17 +410,17 @@ SSO_SPECS: Tuple[SettingSpec, ...] = (
 
 MAIL = dict(section="mail", tier=T3)
 MAIL_BILLING: Tuple[SettingSpec, ...] = (
-    _text("MAIL_USER", readers=(AUTH, ADMIN), description="Outgoing mail account name.", **MAIL),
-    _secret("MAIL_PASSWORD", "mail", (AUTH, ADMIN), "Outgoing mail account password.", tier=T3),
-    _text("MAIL_SMTP_SERVER", readers=(AUTH, ADMIN), format="host",
+    _text("MAIL_USER", readers=(BACKEND, AUTH, ADMIN), description="Outgoing mail account name.", **MAIL),
+    _secret("MAIL_PASSWORD", "mail", (BACKEND, AUTH, ADMIN), "Outgoing mail account password.", tier=T3),
+    _text("MAIL_SMTP_SERVER", readers=(BACKEND, AUTH, ADMIN), format="host",
           description="Outgoing mail server host name.", **MAIL),
-    _int("MAIL_SMTP_PORT", "mail", (AUTH, ADMIN), 587, 1, 65535, "Outgoing mail server port.", tier=T3),
-    _text("MAIL_SENDER", readers=(AUTH, ADMIN), description="From address of outgoing mail.",
+    _int("MAIL_SMTP_PORT", "mail", (BACKEND, AUTH, ADMIN), 587, 1, 65535, "Outgoing mail server port.", tier=T3),
+    _text("MAIL_SENDER", readers=(BACKEND, AUTH, ADMIN), description="From address of outgoing mail.",
           max_length=320, **MAIL),
-    _bool("MAIL_STARTTLS", "mail", (AUTH, ADMIN), True, "Upgrades the connection with STARTTLS.", tier=T3),
-    _bool("MAIL_SSL_TLS", "mail", (AUTH, ADMIN), False, "Uses TLS from the start of the connection.", tier=T3),
-    _bool("MAIL_USE_CREDENTIALS", "mail", (AUTH, ADMIN), True, "Logs in to the mail server.", tier=T3),
-    _bool("MAIL_VALIDATE_CERTS", "mail", (AUTH, ADMIN), True,
+    _bool("MAIL_STARTTLS", "mail", (BACKEND, AUTH, ADMIN), True, "Upgrades the connection with STARTTLS.", tier=T3),
+    _bool("MAIL_SSL_TLS", "mail", (BACKEND, AUTH, ADMIN), False, "Uses TLS from the start of the connection.", tier=T3),
+    _bool("MAIL_USE_CREDENTIALS", "mail", (BACKEND, AUTH, ADMIN), True, "Logs in to the mail server.", tier=T3),
+    _bool("MAIL_VALIDATE_CERTS", "mail", (BACKEND, AUTH, ADMIN), True,
           "Verifies the mail server certificate.", tier=T3),
     # The admin portal's own sign-in mail (never the public ``mail`` section).
     # Saving these needs a delivered test mail (see SettingsService.set).
@@ -548,6 +548,10 @@ SERVICES: Tuple[SettingSpec, ...] = (
     _bool("WEBHOOKS_ENABLED", "webhooks", (BACKEND,), False,
           "Self-service webhooks per form: on, or off (creating or enabling one answers 422, nothing is "
           "queued or sent; saved webhooks and the delivery log stay).", tier=T2),
+    _bool("EMAIL_ACTIONS_ENABLED", "email_actions", (BACKEND,), False,
+          "Email actions per form: on, or off (creating or enabling one answers 422, nothing is "
+          "queued or sent; saved actions and the log stay).",
+          tier=T2),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))

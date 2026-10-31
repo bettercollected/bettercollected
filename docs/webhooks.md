@@ -21,6 +21,7 @@ One webhook belongs to one form (at most 5 per form). It has:
 | Address | https only, port 443 only, no user name or password; a fragment (`#...`) is dropped. Stored and used in its ASCII (IDNA) form. See the SSRF rules below. May carry a query (some receivers put a token there), so the address is **sealed** at rest like the secret (bound to the workspace, the webhook and its purpose). Only the host is kept in clear. The list shows the host only; the owner-facing detail read (`workspace.manage`) and the delivery job are the only places it is opened. Never logged or queued. |
 | Questions | Which questions are sent and the name each gets in the body (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique). Hidden fields can be sent too. File questions cannot (webhooks never carry files); calculated values can; a repeating group is one list. A multiple choice answer is a list of the chosen options' texts. |
 | Secret | Generated (`whsec_` + 256 random bits), shown **once**, when the webhook is created or its secret rotated, and stored encrypted (the same credential encryption as other secrets, bound to the workspace and the webhook). No other response returns it. |
+| Condition | Optional: it runs only when a condition on the answers holds, built in the form's logic conditions and evaluated by the server when the submission is queued (see [email actions](email-actions.md#conditions)). One that does not hold writes a `cancelled` log row (`condition_not_met`) and queues nothing. |
 | On or off | A switched-off webhook sends nothing; a test event may still be sent to it. |
 
 Permissions: configuring, reading the list, rotating the secret and sending a test need `workspace.manage` (owners and admins), because the answers leave
@@ -122,7 +123,7 @@ One row per delivery (one per enabled webhook and submission, plus one per test 
 (`webhook`), a status (`pending`, `in_progress`, `retrying`, `delivered`, `failed`, `cancelled`), the HTTP status, the number of attempts and timings
 (first and last attempt, the next one, when it finished, how long the last attempt took). **No answer content, no request or response body, no address, no
 secret**; an error is one of our codes (`http_4xx`, `http_5xx`, `timeout`, `unreachable`, `tls_error`, `redirect_refused`, `not_allowed`, `invalid_url`,
-`too_large`, `secret_unreadable`, `url_unreadable`, `answers_unreadable`, `disabled`, `destination_changed`, `internal_error`).
+`too_large`, `secret_unreadable`, `url_unreadable`, `answers_unreadable`, `disabled`, `destination_changed`, `condition_not_met`, `condition_invalid`, `internal_error`).
 
 Rows are kept **30 days**; a job on the `webhooks` queue deletes older ones daily at 03:41. The rows of a form or workspace that is deleted go with it. The
 form's settings tab has a "Deliveries" view of the log (English and Dutch) for people who may read it.
@@ -139,7 +140,7 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Where it runs, and what it cannot reach
 
 - Job `deliver_webhook`, plus the sweep `webhooks_redefer` and the purge `purge_action_logs`, on the queue **`webhooks`** of the Postgres job queue, in the
-  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks`; override with `JOBS_QUEUES`: if you set it, include `webhooks`, or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
+  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails,exports`; override with `JOBS_QUEUES`: if you set it, include `webhooks` (and `emails`, `exports`, the queues of email actions and large response exports), or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
   delivery id.
 - The actions executor, which runs creator code, connects as `bc_jobs_exec`. Its row-level security policy limits it to `run_action` rows of the `actions`
   queue, so it cannot see, change, cancel or queue a webhook job, nor take a lock name that blocks one. `tests/app/jobs/test_executor_role.py` proves it
@@ -165,8 +166,8 @@ destination, by **host name** only, and that deleting a response here does not d
 | `GET /workspaces/{ws}/forms/{form}/webhooks` | the form's webhooks: host, questions, state (no secrets, no addresses) |
 | `GET .../webhooks/{id}/detail` | one webhook with its address opened (to edit it); `workspace.manage` |
 | `GET .../webhooks/variables` | the form's questions that can be mapped |
-| `POST .../webhooks` | `{url, fields:[{source,key}], enabled}` -> 201 with `secret` (once) |
-| `PATCH .../webhooks/{id}` | `{url?, fields?, enabled?}` |
+| `POST .../webhooks` | `{url, fields:[{source,key}], condition, enabled}` -> 201 with `secret` (once) |
+| `PATCH .../webhooks/{id}` | `{url?, fields?, condition?, enabled?}` (`condition: null` removes it) |
 | `DELETE .../webhooks/{id}` | 204 |
 | `POST .../webhooks/{id}/rotate-secret` | a new `secret`, once; the old one stops working at once |
 | `POST .../webhooks/{id}/test` | queues a real, signed delivery of sample data; returns its log row |

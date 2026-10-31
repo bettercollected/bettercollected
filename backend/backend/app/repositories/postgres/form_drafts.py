@@ -61,13 +61,17 @@ class PostgresFormDraftRepository(RecordRepository):
             FormDraftRow.owner_id == _id(owner_id), FormDraftRow.expires_at > now
         )
 
-    async def replace_edit_key(
-        self, workspace_id, form_id, draft_id, edit_key_hash: str
-    ) -> bool:
-        """Set the edit key hash of a draft and nothing else: the row is locked,
-        read afresh (a save that landed meanwhile is kept) and written back with
-        ``updated_at`` as it was, so "saved on" does not move. False when the
-        draft is gone."""
+    async def update_fields(
+        self, workspace_id, form_id, draft_id, touch: bool = True, **fields
+    ) -> Optional[FormDraftDocument]:
+        """Change only the named fields of an existing draft, and nothing else.
+
+        The row is locked and read afresh, so what another request changed meanwhile
+        (a link request's token and edit key, a save's answers) is kept and never
+        written back from an older copy; it is filtered by id, workspace and form;
+        and it never inserts: a draft deleted meanwhile (discard, the submit,
+        the purge) stays deleted. ``None`` when there is no such draft. ``touch``
+        moves ``updated_at`` (a save does, taking the edit key does not)."""
         async with self._session() as session, session.begin():
             draft = await _locked_doc(
                 session,
@@ -78,10 +82,34 @@ class PostgresFormDraftRepository(RecordRepository):
                 document=FormDraftDocument,
             )
             if draft is None:
-                return False
-            draft.edit_key_hash = edit_key_hash
+                return None
+            for name, value in fields.items():
+                setattr(draft, name, value)
+            if touch:
+                draft.touch()
             await session.execute(self._upsert_statement(row_values(draft)))
-        return True
+        return draft
+
+    async def replace_edit_key(
+        self, workspace_id, form_id, draft_id, edit_key_hash: str
+    ) -> bool:
+        """Set the edit key hash of a draft and nothing else (``updated_at``
+        stays: "saved on" does not move). False when the draft is gone."""
+        found = await self.update_fields(
+            workspace_id, form_id, draft_id, touch=False, edit_key_hash=edit_key_hash
+        )
+        return found is not None
+
+    async def delete_beyond_retention(
+        self, workspace_id, form_id, last_saved_before: dt.datetime
+    ) -> int:
+        """Delete a form's drafts last saved at or before ``last_saved_before``
+        (the form's retention was lowered since they were saved)."""
+        return await self.delete_where(
+            FormDraftRow.workspace_id == _id(workspace_id),
+            FormDraftRow.form_id == _id(form_id),
+            FormDraftRow.updated_at <= last_saved_before,
+        )
 
     async def save(self, document: FormDraftDocument) -> FormDraftDocument:
         return await self.save_document(document)

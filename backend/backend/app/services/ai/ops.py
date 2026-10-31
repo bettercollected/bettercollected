@@ -671,6 +671,7 @@ class FormSettingsPatch(_CamelModel):
         None,
         description="Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
     )
+    show_review_page: Optional[bool] = None
 
 
 class UpdateFormSettingsOp(_CamelModel):
@@ -1698,6 +1699,7 @@ _SETTINGS_LABELS = {
     "show_submission_number": "submission numbers",
     "allow_save_draft": "saving drafts",
     "draft_retention_days": "how long drafts are kept",
+    "show_review_page": "review page before sending",
 }
 
 
@@ -1712,7 +1714,7 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
     if not changed:
         raise OpError(
             "Nothing to change — provide at least one of: purpose, retentionText, "
-            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, "
+            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, "
             "allowSaveDraft, draftRetentionDays."
         )
     if op.patch.allow_save_draft is True and not save_drafts_enabled():
@@ -1738,6 +1740,7 @@ _SETTINGS_SWITCH_KEYS = (
     "allow_editing_response",
     "show_submission_number",
     "allow_save_draft",
+    "show_review_page",
 )
 
 

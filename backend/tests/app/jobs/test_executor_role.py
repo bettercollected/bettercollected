@@ -698,6 +698,34 @@ async def test_the_probe_does_leak_with_the_search_path_and_owner_the_review_fou
     assert LEAK in message
 
 
+async def test_the_role_cannot_see_or_queue_response_export_jobs(db):
+    """The file of a large responses export is built in the backend's own worker
+    on the ``exports`` queue. A job's only argument is the export id, but the
+    executor's role runs creator code and must neither see these jobs nor queue
+    one (it could make the backend build a file for an export id it chose)."""
+    await _defer(db, "build_response_export", "exports", export_id="e1")
+    await _defer(db, "run_action", "actions", action_id="a")
+    conn = await db.connect("jobs_exec")
+    try:
+        for sql in (
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE queue_name = 'exports'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE task_name = 'build_response_export'",
+        ):
+            assert await (await conn.execute(sql)).fetchone() == (0,), sql
+        assert (
+            await conn.execute(
+                "UPDATE jobs.procrastinate_jobs SET status = 'failed' WHERE queue_name = 'exports'"
+            )
+        ).rowcount == 0
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            await conn.execute(
+                "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+                " VALUES ('exports', 'build_response_export', '{\"export_id\": \"x\"}')"
+            )
+    finally:
+        await conn.close()
+
+
 async def test_the_role_cannot_see_read_change_cancel_or_queue_webhook_jobs(db):
     """Webhook deliveries run in the backend's own worker on the ``webhooks``
     queue (no creator code). The executor's role, which runs creator code, must
@@ -793,3 +821,71 @@ async def test_a_worker_of_the_role_never_runs_a_webhook_job(db):
         )
     assert ran == []
     assert await _statuses(db) == [("deliver_webhook", "webhooks", "todo")]
+
+
+async def test_the_role_cannot_see_read_change_cancel_or_queue_email_jobs(db):
+    """Email actions run in the backend's own worker on the ``emails`` queue (no
+    creator code). A job's args name a log row, whose message holds a person's
+    answers when it is built: the executor's role, which runs creator code,
+    must not see, take the place of, queue or touch them."""
+    await _defer(db, "deliver_email", "emails", log_id="l1")
+    await _defer(db, "emails_redefer", "emails")
+    await _defer(db, "run_action", "actions", action_id="a")
+    conn = await db.connect("jobs_exec")
+    try:
+        for sql in (
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE queue_name = 'emails'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE task_name = 'deliver_email'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE args ? 'log_id'",
+        ):
+            assert await (await conn.execute(sql)).fetchone() == (0,), sql
+        for sql in (
+            "UPDATE jobs.procrastinate_jobs SET status = 'failed' WHERE queue_name = 'emails'",
+            "UPDATE jobs.procrastinate_jobs SET args = '{}' WHERE task_name = 'deliver_email'",
+            "DELETE FROM jobs.procrastinate_jobs WHERE queue_name = 'emails'",
+        ):
+            assert (await conn.execute(sql)).rowcount == 0, sql
+        for sql in (
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('emails', 'deliver_email', '{\"log_id\": \"x\"}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('emails', 'run_action', '{}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('actions', 'deliver_email', '{\"log_id\": \"x\"}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, queueing_lock, args)"
+            " VALUES ('actions', 'run_action', 'deliver_email:l1', '{}')",
+        ):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                await conn.execute(sql)
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            await conn.execute("UPDATE jobs.procrastinate_jobs SET queue_name = 'emails'")
+    finally:
+        await conn.close()
+    executor = db.queue_app("jobs_exec")
+    async with executor.open_async():
+        with pytest.raises(ConnectorException):
+            await executor.configure_task(name="deliver_email", queue="emails").defer_async(
+                log_id="x"
+            )
+    assert await _as_backend(
+        db,
+        "SELECT task_name, status FROM jobs.procrastinate_jobs"
+        " WHERE queue_name = 'emails' ORDER BY id",
+    ) == [("deliver_email", "todo"), ("emails_redefer", "todo")]
+
+
+async def test_a_worker_of_the_role_never_runs_an_email_job(db):
+    await _defer(db, "deliver_email", "emails", log_id="l1")
+    ran = []
+    executor = db.queue_app("jobs_exec")
+
+    @executor.task(name="deliver_email", queue="emails")
+    async def deliver_email(**kwargs):
+        ran.append(kwargs)
+
+    async with executor.open_async():
+        await executor.run_worker_async(
+            wait=False, install_signal_handlers=False, queues=None
+        )
+    assert ran == []
+    assert await _statuses(db) == [("deliver_email", "emails", "todo")]

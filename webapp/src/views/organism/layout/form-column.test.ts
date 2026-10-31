@@ -68,5 +68,7 @@ describe('layoutOfPage', () => {
         expect(layoutOfPage({ thankyouPage: null } as any, -2)).toBeUndefined();
         expect(layoutOfPage(form, 5)).toBeUndefined();
         expect(layoutOfPage(undefined, -1)).toBeUndefined();
+        // the review page (-3) has no layout of its own
+        expect(layoutOfPage(form, -3)).toBeUndefined();
     });
 });

@@ -134,6 +134,8 @@ class WorkspaceService:
         registration_service=None,
         webhook_service=None,
         draft_service=None,
+        response_export_service=None,
+        email_action_service=None,
         sso_policy=None,
         sso_release=None,
     ):
@@ -147,6 +149,8 @@ class WorkspaceService:
         self._registration_service = registration_service
         self._webhook_service = webhook_service
         self._draft_service = draft_service
+        self._response_export_service = response_export_service
+        self._email_action_service = email_action_service
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
@@ -700,6 +704,12 @@ class WorkspaceService:
             )
         return workspace
 
+    async def forget_exports_of_user(self, user_id: str) -> None:
+        """An account is being deleted: the export audit rows it leaves in other
+        workspaces lose the user (the rows stay), and files it had waiting go."""
+        if self._response_export_service is not None:
+            await self._response_export_service.forget_actor(user_id)
+
     async def apply_custom_domain_event(self, event) -> str:
         """Apply a verified webhook event to the workspace that owns the domain.
         Deliveries are at least once and unordered: an event older than what the
@@ -848,6 +858,9 @@ class WorkspaceService:
             form_ids=form_ids, workspace_ids=workspace_ids, user_id=user.id
         )
         await self._workspace_user_service.delete_user_form_all_workspaces(user)
+        if self._email_action_service is not None:
+            # their address leaves the team lists of every workspace they were in
+            await self._email_action_service.forget_address(user.sub)
         await self._workspace_user_service.delete_user_of_workspaces(
             workspace_ids=workspace_ids
         )
@@ -866,6 +879,12 @@ class WorkspaceService:
         if self._draft_service is not None:
             # the respondents' saved drafts of its forms
             await self._draft_service.delete_for_workspaces(workspace_ids)
+        if self._response_export_service is not None:
+            # their export audit entries and stored export files
+            await self._response_export_service.delete_for_workspaces(workspace_ids)
+        if self._email_action_service is not None:
+            # their email actions and the log of what was sent
+            await self._email_action_service.delete_for_workspaces(workspace_ids)
         if self._sso_release is not None:
             await self._sso_release(workspace_ids)
 

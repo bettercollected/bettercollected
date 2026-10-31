@@ -648,6 +648,10 @@ export interface Trust {
    * How many days after the last save a draft is kept, 1 to 90; left out, 30.
    */
   draftRetentionDays?: number | null;
+  /**
+   * Respondents see their answers on a page of their own, with a link back to each page, before they send them.
+   */
+  showReviewPage?: boolean | null;
 }
 /**
  * How long answers are kept: a number of days, until a date

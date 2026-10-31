@@ -30,11 +30,12 @@ const SETTINGS_LABELS: Record<keyof FormSettingsPatch, string> = {
     requireVerifiedIdentity: 'verified-identity requirement',
     allowEditingResponse: 'response editing',
     showSubmissionNumber: 'submission numbers',
+    showReviewPage: 'review page before sending',
     allowSaveDraft: 'saving drafts',
     draftRetentionDays: 'how long drafts are kept'
 };
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'allowSaveDraft'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'showReviewPage', 'allowSaveDraft'] as const;
 
 /** The refusal of turning drafts on while the server has the feature off (backend `DISABLED_MESSAGE`). */
 export const SAVE_DRAFTS_OFF = 'Saving drafts is not switched on on this server yet (SAVE_DRAFTS_ENABLED is off).';
@@ -93,7 +94,7 @@ export const updateFormSettings: Handler<UpdateFormSettingsOp> = (ctx, op) => {
     const patch = op.patch ?? {};
     const changed = (Object.keys(SETTINGS_LABELS) as Array<keyof FormSettingsPatch>).filter((key) => patch[key] != null).map((key) => SETTINGS_LABELS[key]);
     if (!changed.length) {
-        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, allowSaveDraft, draftRetentionDays.');
+        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, allowSaveDraft, draftRetentionDays.');
     }
     if (patch.privacyPolicyUrl != null) checkedPolicyUrl(patch.privacyPolicyUrl);
     if (patch.draftRetentionDays != null) checkedDraftRetentionDays(patch.draftRetentionDays);

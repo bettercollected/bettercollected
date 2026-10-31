@@ -8301,7 +8301,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:1582a7954fed98e0500253b3a2dca468c48326033803fab45c5c4be8166b987b",
+  "checksum": "sha256:dc793922348c8d260be1aee29c526ebd7ac5091ec6d9f2f18e75a9f1c8215840",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8345,6 +8345,7 @@
     "response_limit": 9007199254740993,
     "retention_text": "WorkspaceFormDocument.settings.retention_text tëxt ✓ \"quoted\" \\ line\nbreak",
     "show_original_form": true,
+    "show_review_page": true,
     "show_submission_number": true
    },
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
@@ -8374,7 +8375,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:e49b095ac072c58b625264f3196cd756e3b588d15b58252d0d8752e714ad8ad7",
+  "checksum": "sha256:ae84ad7db0fc499eeed174bff4bfe9c3bdc5ebcbc3b980913a2a649bd4c0c3d2",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8418,6 +8419,7 @@
     "response_limit": 9007199254740993,
     "retention_text": "WorkspaceFormDocument.settings.retention_text tëxt ✓ \"quoted\" \\ line\nbreak",
     "show_original_form": true,
+    "show_review_page": true,
     "show_submission_number": true
    },
    "updated_at": "2026-02-03T04:05:06.789012",

@@ -7,6 +7,7 @@ from common.configs.crypto import Crypto
 from common.services.crypto_service import crypto_service
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
+from common.services.crypto_service import crypto_service
 from dependency_injector import containers, providers
 
 from common.db import DatabaseSettings
@@ -58,6 +59,12 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceUserRepository,
 )
 from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepository
+from backend.app.repositories.postgres.response_exports import (
+    PostgresResponseExportRepository,
+)
+from backend.app.repositories.postgres.email_actions import (
+    PostgresFormEmailActionRepository,
+)
 from backend.app.repositories.postgres.webhooks import (
     PostgresActionLogRepository,
     PostgresFormWebhookRepository,
@@ -147,6 +154,8 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
 from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
+from backend.app.services.response_export.service import ResponseExportService
+from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
@@ -248,6 +257,9 @@ class AppContainer(containers.DeclarativeContainer):
     form_webhook_repo: PostgresFormWebhookRepository = providers.Singleton(
         PostgresFormWebhookRepository, pg_sessionmaker
     )
+    form_email_action_repo: PostgresFormEmailActionRepository = providers.Singleton(
+        PostgresFormEmailActionRepository, pg_sessionmaker
+    )
     action_log_repo: PostgresActionLogRepository = providers.Singleton(
         PostgresActionLogRepository, pg_sessionmaker
     )
@@ -256,6 +268,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     form_draft_repo: PostgresFormDraftRepository = providers.Singleton(
         PostgresFormDraftRepository, pg_sessionmaker
+    )
+    response_export_repo: PostgresResponseExportRepository = providers.Singleton(
+        PostgresResponseExportRepository, pg_sessionmaker
     )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
@@ -428,6 +443,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         registration_delivery_repo=registration_delivery_repo,
         webhook_log_repo=action_log_repo,
+        response_export_repo=response_export_repo,
     )
 
     # saved drafts of a form (answers encrypted with the response keyset)
@@ -473,6 +489,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
+        response_export_repo=response_export_repo,
     )
 
     form_schedular = providers.Singleton(
@@ -532,6 +549,8 @@ class AppContainer(containers.DeclarativeContainer):
         registration_service=LazyRepository(lambda: container.registration_service()),
         webhook_service=LazyRepository(lambda: container.webhook_service()),
         draft_service=form_draft_service,
+        response_export_service=LazyRepository(lambda: container.response_export_service()),
+        email_action_service=LazyRepository(lambda: container.email_action_service()),
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -559,6 +578,31 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         form_response_service=form_response_service,
         crypto=crypto,
+        rate_limiter=rate_limiter,
+    )
+
+    # the export of a form's responses (stream or job); encrypts a job's file
+    # with the responses' own keyset
+    response_export_service: ResponseExportService = providers.Singleton(
+        ResponseExportService,
+        authorization_service=authorization_service,
+        form_response_service=form_response_service,
+        form_repo=form_repo,
+        response_repo=form_response_repo,
+        export_repo=response_export_repo,
+        crypto=providers.Object(crypto_service),
+        rate_limiter=rate_limiter,
+    )
+
+    email_action_service: EmailActionService = providers.Singleton(
+        EmailActionService,
+        authorization_service=authorization_service,
+        action_repo=form_email_action_repo,
+        log_repo=action_log_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_response_service=form_response_service,
+        copy_recipient_service=copy_recipient_service,
         rate_limiter=rate_limiter,
     )
 
@@ -659,6 +703,8 @@ class AppContainer(containers.DeclarativeContainer):
         registration_service=registration_service,
         webhook_service=webhook_service,
         draft_service=form_draft_service,
+        response_export_service=response_export_service,
+        email_action_service=email_action_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
@@ -876,6 +922,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         workspace_form_service=workspace_form_service,
         scim_directory_repo=scim_directory_repo,
+        email_action_service=email_action_service,
     )
 
     stripe_service: StripeService = providers.Singleton(

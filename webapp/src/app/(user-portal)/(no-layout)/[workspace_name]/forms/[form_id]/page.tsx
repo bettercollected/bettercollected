@@ -202,6 +202,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     settings={data?.settings}
                     registrationDestination={data?.registrationDestination}
                     webhookDestination={data?.webhookDestination}
+                    emailDestination={data?.emailDestination}
                     portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
                     layout={layoutOfPage(shownForm, shownSlide, endingId)}
                     // Open on the welcome page when the screen has room for

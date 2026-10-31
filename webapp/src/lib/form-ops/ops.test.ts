@@ -261,6 +261,13 @@ describe('form-level ops', () => {
         expect(applyOps(smallForm(), [on]).results[0].ok).toBe(true);
     });
 
+    it('sets the review page switch as given and counts it as a change', () => {
+        const on = one({ op: 'update_form_settings', patch: { showReviewPage: true } });
+        expect(on.result.message).toBe('Updated form settings: review page before sending');
+        expect(on.doc.settings).toMatchObject({ showReviewPage: true });
+        expect(one({ op: 'update_form_settings', patch: { showReviewPage: false } }).doc.settings).toMatchObject({ showReviewPage: false });
+    });
+
     it('applies presets by name, legacy names included, and keeps the style', () => {
         const ocean = one({ op: 'set_theme_preset', name: ' blue ' });
         expect(ocean.result.message).toBe("Applied the 'Ocean' theme");

@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import re
 import secrets
+import unicodedata
 from typing import Optional, Tuple
 
 _KEY_LABEL = b"bettercollected form draft v1\0"
@@ -39,6 +40,17 @@ def split(value: object) -> Optional[Tuple[str, str]]:
     return (match.group(1), match.group(2)) if match else None
 
 
+def normalised_address(address: str) -> str:
+    local, at, domain = unicodedata.normalize("NFC", address.strip()).rpartition("@")
+    if not at:
+        return local.casefold()
+    try:
+        domain = domain.encode("idna").decode("ascii")
+    except UnicodeError:
+        pass
+    return f"{local.casefold()}@{domain.casefold()}"
+
+
 class DraftKeys:
     def __init__(self, secret: str):
         self._key = hashlib.sha256(_KEY_LABEL + (secret or "").encode()).digest()
@@ -58,5 +70,7 @@ class DraftKeys:
         return hmac.compare_digest(expected, stored or "0" * len(expected))
 
     def address_key(self, form_id, address: str) -> str:
-        """The keyed hash of a normalised address on one form."""
-        return self._mac("address", str(form_id), address.strip().casefold())
+        """The keyed hash of a normalised address on one form: the local part
+        folded (Unicode normal form C, case folded), the domain in its ASCII form
+        (an internationalised domain and its punycode are one mailbox)."""
+        return self._mac("address", str(form_id), normalised_address(address))

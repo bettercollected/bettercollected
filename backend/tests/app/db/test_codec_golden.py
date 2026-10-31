@@ -90,6 +90,10 @@ NO_DOCUMENT_CLASS = {
     "webhook_audit_entries",
     # and saved drafts of a form
     "form_drafts",
+    # and the response exports (audit entries and a job's file chunks)
+    "response_exports",
+    "response_export_chunks",
+    "form_email_actions",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres
