@@ -314,6 +314,7 @@ export default function FormResponsesTable({ props }: any) {
                                 placeholder={'Search by responder email'}
                                 ariaLabel={requestForDeletion ? 'Search deletion requests by responder email' : 'Search responses by responder email'}
                                 className="md:w-[282px]"
+                                maxLength={320}
                             />
                         </div>
                     ) : (

@@ -627,6 +627,11 @@ describe('responses table: search and honest states', () => {
     });
 
     describe('keyboard and screen reader basics', () => {
+        it('limits the search to the 320 characters the server takes', () => {
+            renderTable();
+            expect(screen.getByPlaceholderText('Search by responder email')).toHaveAttribute('maxlength', '320');
+        });
+
         it('labels the search box', () => {
             renderTable();
             expect(screen.getByRole('textbox', { name: 'Search responses by responder email' })).toBeInTheDocument();
