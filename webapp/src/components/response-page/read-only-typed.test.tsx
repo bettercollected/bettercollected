@@ -65,7 +65,7 @@ describe('time, day and currency answers on the response page', () => {
     it('show the time, the day as the form writes dates and the amount with its currency', () => {
         show();
         expect(box(/When do you arrive\?/)).toHaveTextContent('09:05');
-        expect(box(/When were you born\?/)).toHaveTextContent('November 5th, 1990');
+        expect(box(/When were you born\?/)).toHaveTextContent('5 November 1990');
         expect(box(/What is your budget\?/).textContent?.replace(/\s/g, ' ')).toBe('£1,250.50');
     });
 
@@ -90,7 +90,7 @@ describe('time, day and currency answers on the response page', () => {
 describe('date range and tags answers on the response page', () => {
     it('show the range as two dates as the form writes them, and the tags in the order entered', () => {
         show();
-        expect(box(/When do you stay\?/)).toHaveTextContent('November 3rd, 2026 \u2013 November 7th, 2026');
+        expect(box(/When do you stay\?/)).toHaveTextContent('3 November 2026 \u2013 7 November 2026');
         expect(box(/What interests you\?/)).toHaveTextContent('vegan, gluten free');
     });
 
@@ -101,12 +101,12 @@ describe('date range and tags answers on the response page', () => {
 
     it('also read a stored response that spells the slot dateRange', () => {
         show(undefined, { stay: { field: { id: 'stay' }, type: 'date_range', dateRange: { start: '2026-11-03', end: '2026-11-07' } } });
-        expect(box(/When do you stay\?/)).toHaveTextContent('November 3rd, 2026 \u2013 November 7th, 2026');
+        expect(box(/When do you stay\?/)).toHaveTextContent('3 November 2026 \u2013 7 November 2026');
     });
 
     it('show the one end that was given, and no answer for none', () => {
         show(undefined, { stay: { field: { id: 'stay' }, type: 'date_range', date_range: { start: '2026-11-03', end: '' } }, later: { field: { id: 'later' }, type: 'date_range', date_range: { start: '', end: '' } } });
-        expect(box(/When do you stay\?/)).toHaveTextContent(/^November 3rd, 2026$/);
+        expect(box(/When do you stay\?/)).toHaveTextContent(/^3 November 2026$/);
         expect(within(screen.getAllByRole('group', { name: /When do you come back\?/ })[0]).getByText(/No answer/i)).toBeInTheDocument();
         expect(within(screen.getAllByRole('group', { name: /What interests you\?/ })[0]).getByText(/No answer/i)).toBeInTheDocument();
     });

@@ -21,7 +21,11 @@ interface ICurrencyField {
 }
 
 /** The amount as typed, with a comma or a dot for the cents, as a stored plain decimal ("12,5" is "12.5"). */
-const storedAmount = (typed: string): string => typed.trim().replace(',', '.');
+const storedAmount = (typed: string): string => {
+    const text = typed.trim().replace(',', '.');
+    // "-0" and "-0.00" are zero: stored without the minus, so zero reads one way (as `amountFromInput`)
+    return /^-0(?:\.0+)?$/.test(text) ? text.slice(1) : text;
+};
 
 /** A stored amount as shown to the respondent: the decimal separator of their language. */
 const shownAmount = (amount: string, language: string): string => (language === 'nl' ? amount.replace('.', ',') : amount);
@@ -107,8 +111,11 @@ function CurrencyFieldSection({ field, isBuilder }: ICurrencyField) {
                     placeholder={placeholder}
                     value={text}
                     disabled={isBuilder}
+                    // A field rule that locks the question sets its value: it shows, and cannot be typed over.
+                    readOnly={locked}
                     $formTheme={theme}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                        if (locked) return;
                         setText(event.target.value);
                         save(code, event.target.value);
                     }}

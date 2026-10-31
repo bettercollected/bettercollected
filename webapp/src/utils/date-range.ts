@@ -1,6 +1,4 @@
-import { format } from 'date-fns';
-import { nl as dutch } from 'date-fns/locale/nl';
-
+import { calendarDayIn } from '@app/utils/date-utils';
 import { isIsoDate } from '@app/utils/iso-date';
 
 /** The two days of a date range answer. */
@@ -29,15 +27,8 @@ export function dateRangeExportText(answer: any): string {
     return start || end ? `${start}/${end}` : '';
 }
 
-/** A day as the form shows it ("3 November 2026", "3 november 2026"), or the stored text when it is not a day. */
-export function longDateText(value: string, language: 'en' | 'nl' = 'en'): string {
-    if (!isIsoDate(value)) return value;
-    const [year, month, day] = value.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    // years 0 to 99 are read as 19xx by the Date constructor
-    date.setFullYear(year);
-    return format(date, 'PPP', { locale: language === 'nl' ? dutch : undefined });
-}
+/** A day in the app's date style ("3 November 2026", "3 november 2026"), or the stored text when it is not a day. */
+export const longDateText = (value: string, language: 'en' | 'nl' = 'en'): string => calendarDayIn(value, language);
 
 /** The range as people read it: "3 November 2026 – 7 November 2026" (just that day when only one end is given). Empty when neither is. */
 export function dateRangeText(answer: any, language: 'en' | 'nl' = 'en'): string {

@@ -169,4 +169,25 @@ describe('the switch for the newer question types', () => {
         expect(pageHoldsGatedQuestion(doc([TEXT]).fields![0])).toBe(false);
         expect(pageHoldsGatedQuestion(undefined)).toBe(false);
     });
+
+    it('asks nothing new when a date rule is taken away, and something when one is added', () => {
+        const ruleA = { comparison: 'after', target: 'field', fieldId: 's' };
+        const ruleB = { comparison: 'before', target: 'today' };
+        const day = (rules: unknown[]) => ({ id: 'd', index: 0, type: 'day', title: 'Moved in', properties: { dateRules: rules } });
+        const stored = gatedSignatures(doc([day([ruleA, ruleB])]));
+        expect(newOrChangedQuestions(doc([day([ruleB])]), stored)).toEqual([]);
+        expect(newOrChangedQuestions(doc([day([])]), stored)).toEqual([]);
+        expect(newOrChangedQuestions(doc([day([ruleA, ruleB])]), stored)).toEqual([]);
+        expect(newOrChangedQuestions(doc([day([ruleA, ruleB, { comparison: 'on_or_after', target: 'date', date: '1900-01-01' }])]), stored)).toEqual(['d']);
+        expect(newOrChangedQuestions(doc([day([{ comparison: 'on_or_after', target: 'date', date: '1900-01-01' }])]), stored)).toEqual(['d']);
+    });
+
+    it('lets the date question a day question\'s rule points at be removed while the switch is off', () => {
+        const start = { id: 's', index: 0, type: 'date', title: 'Start' };
+        const day = { id: 'd', index: 1, type: 'day', title: 'Moved in', properties: { dateRules: [{ comparison: 'after', target: 'field', fieldId: 's' }] } };
+        const { results, doc: after } = applyOps(doc([start, day]), [{ op: 'remove_field', fieldId: 's' } as FormOp], { atomic: true, skipInverse: true, newQuestionTypes: false });
+        expect(results[0].ok).toBe(true);
+        const left = (after.fields![0].properties!.fields as FormField[]).map((f) => [f.id, f.properties?.dateRules]);
+        expect(left).toEqual([['d', undefined]]);
+    });
 });

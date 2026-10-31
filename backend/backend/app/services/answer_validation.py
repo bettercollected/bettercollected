@@ -84,7 +84,7 @@ from common.models.standard_form import (
     StandardFieldValidations,
     default_ending,
     ending_by_id,
-    is_iso_date,
+    is_day,
 )
 from loguru import logger
 
@@ -803,7 +803,7 @@ def answer_rule_problems(
             problems.append(NOT_INTEGER if rules.regex == INTEGER_PATTERN else PATTERN)
     elif field_type == "day":
         value = answer.get("date")
-        if isinstance(value, str) and value and not is_iso_date(value):
+        if isinstance(value, str) and value and not is_day(value):
             problems.append(FORMAT)
     elif field_type == "time":
         value = answer.get("time")
@@ -868,7 +868,9 @@ def _currency_problems(field: Any, value: Any, rules: Any) -> List[str]:
     if parsed is None:
         return [FORMAT]
     problems: List[str] = []
-    if _is_set(rules.min_value) and parsed < Decimal(repr(float(rules.min_value))):
+    # an amount is not below zero unless the question's lowest amount says so
+    lowest = rules.min_value if _is_set(rules.min_value) else 0
+    if parsed < Decimal(repr(float(lowest))):
         problems.append(TOO_SMALL)
     if _is_set(rules.max_value) and parsed > Decimal(repr(float(rules.max_value))):
         problems.append(TOO_LARGE)
@@ -886,7 +888,7 @@ def _date_range_problems(value: Any) -> List[str]:
         return []
     if not start or not end:
         return [REQUIRED]  # both ends are needed once it is answered
-    if not is_iso_date(start) or not is_iso_date(end):
+    if not is_day(start) or not is_day(end):
         return [FORMAT]
     return [RANGE_ORDER] if end < start else []
 

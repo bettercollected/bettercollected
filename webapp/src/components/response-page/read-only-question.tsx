@@ -5,8 +5,6 @@ import { CSSProperties, ReactNode } from 'react';
 import Image from 'next/image';
 
 import { StarIcon } from '@Components/icons/start';
-import { format } from 'date-fns';
-import { nl as dutch } from 'date-fns/locale/nl';
 import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
 
@@ -18,7 +16,7 @@ import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } fr
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { formatAmount } from '@app/utils/currency';
 import { dateRangeText } from '@app/utils/date-range';
-import { isoToLocalDate } from '@app/utils/date-rules';
+import { calendarDayIn } from '@app/utils/date-utils';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { DISPLAY_LIST_SEPARATOR, getAnswerForField } from '@app/utils/form-builder-block-utils';
@@ -314,11 +312,8 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
     );
 }
 
-/** The date as the form shows it ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
-function dateText(value: string, language: 'en' | 'nl'): string {
-    const date = isoToLocalDate(value);
-    return date ? format(date, 'PPP', { locale: language === 'nl' ? dutch : undefined }) : value;
-}
+/** The date in the app's date style ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
+const dateText = (value: string, language: 'en' | 'nl'): string => calendarDayIn(value, language);
 
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
 

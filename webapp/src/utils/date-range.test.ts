@@ -27,8 +27,8 @@ describe('date range answers', () => {
     });
 
     it('reads as two long dates in the language of the form', () => {
-        expect(longDateText('2026-11-03')).toBe('November 3rd, 2026');
-        expect(dateRangeText(range('2026-11-03', '2026-11-07'))).toBe('November 3rd, 2026 – November 7th, 2026');
+        expect(longDateText('2026-11-03')).toBe('3 November 2026');
+        expect(dateRangeText(range('2026-11-03', '2026-11-07'))).toBe('3 November 2026 – 7 November 2026');
         expect(dateRangeText(range('2026-11-03', '2026-11-07'), 'nl')).toBe('3 november 2026 – 7 november 2026');
         expect(dateRangeText(range('2026-11-03'), 'nl')).toBe('3 november 2026');
         expect(dateRangeText(range('', ''))).toBe('');

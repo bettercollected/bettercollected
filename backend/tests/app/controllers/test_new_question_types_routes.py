@@ -188,6 +188,26 @@ async def test_questions_a_form_has_keep_saving_while_off(
     assert response.status_code == 200, response.text
 
 
+async def test_deleting_the_date_question_a_day_rule_points_at_does_not_strand_the_day_question(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies, monkeypatch
+):
+    start = {"id": "s", "type": "date", "title": "Start", "properties": {}}
+    rule = {"comparison": "after", "target": "field", "fieldId": "s"}
+    day = _day(dateRules=[rule, {"comparison": "before", "target": "today"}])
+    _switch(monkeypatch, True)
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [start, day])
+    assert response.status_code == 200, response.text
+    _switch(monkeypatch, False)
+    # the builder removes the date question and the rule that read it: allowed
+    day_after = _day(dateRules=[{"comparison": "before", "target": "today"}])
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [day_after])
+    assert response.status_code == 200, response.text
+    # a date rule that was not there is new
+    added = _day(dateRules=[{"comparison": "before", "target": "today"}, {"comparison": "after", "target": "date", "date": "1900-01-01"}])
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [added])
+    assert response.status_code == 422 and response.json()["code"] == CODE
+
+
 # --- creating a form, a copy, a template ------------------------------------------
 
 

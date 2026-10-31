@@ -77,20 +77,20 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def signature(field: Any) -> str:
-    """What makes a gated question the same one: its type and the settings
-    that belong to the type (the time limits, the currencies, the date rules
-    of a day or a date range, the amount limits, the number and length of tags). Its title, its place and the settings every
-    question has do not count."""
+def signature_parts(field: Any) -> Tuple[str, Tuple[str, ...]]:
+    """What makes a gated question the same one, in two parts: the settings
+    that belong to the type as one text (the type, the time limits, the
+    currencies, the amount limits, the number and length of tags), and its date
+    rules (of a day or a date range) one text each. Its title, its place and
+    the settings every question has do not count."""
     props = _get(field, "properties")
     validations = _get(field, "validations")
-    return json.dumps(
+    base = json.dumps(
         {
             "type": _type(field),
             "minTime": _get(props, "min_time"),
             "maxTime": _get(props, "max_time"),
             "currencies": _get(props, "currencies"),
-            "dateRules": _plain(_get(props, "date_rules")),
             "minValue": _get(validations, "min_value"),
             "maxValue": _get(validations, "max_value"),
             # a tags question: the number of tags and the length of one
@@ -101,19 +101,38 @@ def signature(field: Any) -> str:
         sort_keys=True,
         default=str,
     )
+    rules = tuple(
+        json.dumps(_plain(rule), sort_keys=True, default=str)
+        for rule in _get(props, "date_rules") or []
+    )
+    return base, rules
 
 
-Signatures = Dict[str, List[str]]
+def signature(field: Any) -> str:
+    """The two parts of ``signature_parts`` as one text."""
+    base, rules = signature_parts(field)
+    return json.dumps([base, list(rules)])
+
+
+Signatures = Dict[str, List[Tuple[str, Tuple[str, ...]]]]
 
 
 def gated_signatures(form: Any) -> Signatures:
-    """``{question id: [signature, ...]}`` of the gated questions of ``form``
-    (a list, because a document may carry one id twice: each copy counts)."""
+    """``{question id: [parts, ...]}`` of the gated questions of ``form`` (a
+    list, because a document may carry one id twice: each copy counts)."""
     found: Signatures = {}
     for field in _walk(form):
         if _type(field) in GATED_TYPES:
-            found.setdefault(str(_get(field, "id")), []).append(signature(field))
+            found.setdefault(str(_get(field, "id")), []).append(signature_parts(field))
     return found
+
+
+def _covers(stored: Tuple[str, Tuple[str, ...]], now: Tuple[str, Tuple[str, ...]]) -> bool:
+    """Is a question as it is now what was stored, or less: the same settings
+    and no date rule the stored one did not have? Taking a date rule away
+    (the date question it compared with was removed, say) asks nothing new of
+    the server."""
+    return stored[0] == now[0] and set(now[1]) <= set(stored[1])
 
 
 def new_or_changed_questions(
@@ -121,10 +140,10 @@ def new_or_changed_questions(
 ) -> List[Tuple[str, str]]:
     """``(question id, type)`` of the gated questions of ``form`` that
     ``existing`` (the stored version, or None) does not have, on a question of
-    the same id, with the same type and settings. ``stored`` is
-    ``gated_signatures(existing)`` when the caller has it. A stored question
-    covers one question of ``form`` only: a second one with the same id reads
-    as new."""
+    the same id, with the same type and settings (a date rule may be fewer, not
+    more). ``stored`` is ``gated_signatures(existing)`` when the caller has it.
+    A stored question covers one question of ``form`` only: a second one with
+    the same id reads as new."""
     if stored is None:
         stored = gated_signatures(existing) if existing is not None else {}
     remaining = {key: list(values) for key, values in stored.items()}
@@ -133,9 +152,10 @@ def new_or_changed_questions(
     for field in _walk(form):
         if _type(field) not in GATED_TYPES:
             continue
-        key, sig = str(_get(field, "id")), signature(field)
-        if sig in remaining.get(key, []):
-            remaining[key].remove(sig)
+        key, parts = str(_get(field, "id")), signature_parts(field)
+        match = next((i for i, kept in enumerate(remaining.get(key, [])) if _covers(kept, parts)), None)
+        if match is not None:
+            remaining[key].pop(match)
         else:
             changed.append((key, str(_type(field))))
     return changed

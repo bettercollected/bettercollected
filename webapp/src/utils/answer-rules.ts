@@ -1,7 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@app/utils/currency';
-import { isIsoDate } from '@app/utils/iso-date';
+import { isDay } from '@app/utils/iso-date';
 import { rawDateRange } from '@app/utils/date-range';
 import { TAGS_MAX, TAG_LENGTH_MAX, duplicateIndex, isTag, tagLength } from '@app/utils/tags';
 import { isTime, minutesOf } from '@app/utils/time-of-day';
@@ -224,7 +224,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
         }
         case 'day': {
             const date = answer?.date;
-            if (typeof date === 'string' && date && !isIsoDate(date)) problems.push('FORMAT');
+            if (typeof date === 'string' && date && !isDay(date)) problems.push('FORMAT');
             break;
         }
         case 'currency': {
@@ -236,7 +236,8 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
             if (!questionCurrencies(field).includes(code)) return ['CURRENCY'];
             const parsed = parseAmount(amount, code);
             if (parsed === undefined) return ['FORMAT'];
-            if (isSet(rules.minValue) && parsed < rules.minValue) problems.push('TOO_SMALL');
+            // an amount is not below zero unless the question's lowest amount says so
+            if (parsed < (isSet(rules.minValue) ? rules.minValue : 0)) problems.push('TOO_SMALL');
             if (isSet(rules.maxValue) && parsed > rules.maxValue) problems.push('TOO_LARGE');
             break;
         }
@@ -247,7 +248,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
             if (!start && !end) break;
             // both ends are needed once it is answered
             if (!start || !end) return ['REQUIRED'];
-            if (!isIsoDate(start) || !isIsoDate(end)) return ['FORMAT'];
+            if (!isDay(start) || !isDay(end)) return ['FORMAT'];
             if (end < start) problems.push('RANGE_ORDER');
             break;
         }
@@ -317,7 +318,7 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
         }
         case 'TOO_SMALL':
             if (field?.type === FieldTypes.TIME) return t('RULE.TOO_EARLY', { time: field.properties?.minTime });
-            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_SMALL', { min: formatAmount({ code: questionCurrencies(field)[0], amount: String(rules.minValue) }, language) });
+            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_SMALL', { min: formatAmount({ code: questionCurrencies(field)[0], amount: String(isSet(rules.minValue) ? rules.minValue : 0) }, language) });
             return t('RULE.TOO_SMALL', { min: rules.minValue });
         case 'TOO_LARGE':
             if (field?.type === FieldTypes.TIME) return t('RULE.TOO_LATE', { time: field.properties?.maxTime });

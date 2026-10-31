@@ -71,6 +71,8 @@ _PLACEHOLDERS = {
     "day": "Select a date",
     "time": "Select a time",
     "currency": "Enter an amount",
+    "date_range": "Select the first and the last day",
+    "tags": "Type a tag and press Enter",
     "linear_rating": "Rate from 1 to 10",
     "matrix": "Matrix Field",
     "tabular_input": "Tabular Input Field",
@@ -347,6 +349,19 @@ def answer_value(answers: Dict[str, Any], field_: Dict[str, Any], separator: Opt
             return ""
         code = currency.get("code")
         return f"{code} {amount}" if isinstance(code, str) and code else amount
+    if kind == "date_range":
+        # "YYYY-MM-DD/YYYY-MM-DD" (an ISO 8601 interval): one cell, so the
+        # column count never depends on the answer; a missing end leaves its
+        # side empty (webapp ``dateRangeExportText``)
+        days = _dict(_get(answer, "date_range", "dateRange"))
+        start, end = days.get("start"), days.get("end")
+        start = start if isinstance(start, str) else ""
+        end = end if isinstance(end, str) else ""
+        return f"{start}/{end}" if start or end else ""
+    if kind == "tags":
+        # one cell, the tags joined (webapp ``getAnswerForField``)
+        tags = answer.get("tags")
+        return _join((t for t in tags if isinstance(t, str)), separator if separator is not None else "; ") if isinstance(tags, list) else ""
     if kind == "yes_no":
         flag = answer.get("boolean")
         return "Yes" if flag is True else "No" if flag is False else ""

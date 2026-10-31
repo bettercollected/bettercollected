@@ -1,6 +1,7 @@
-"""Time, day and currency answers in the export: HH:MM, YYYY-MM-DD and
-"EUR 12.50" (the code, a space, a dot decimal), the same in every language and
-in a repeating group's items. The expected text is what the browser's export
+"""Time, day, currency, date range and tags answers in the export: HH:MM,
+YYYY-MM-DD, "EUR 12.50" (the code, a space, a dot decimal), "YYYY-MM-DD/YYYY-MM-DD"
+and the tags joined with "; ", the same in every language and in a repeating
+group's items. The expected text is what the browser's export
 wrote for the same data before the export moved to the server."""
 
 import io
@@ -36,6 +37,8 @@ FORM = {
                         "title": "Budget",
                         "properties": {"currencies": ["EUR", "GBP"]},
                     },
+                    {"id": "stay", "index": 3, "type": "date_range", "title": "Stay"},
+                    {"id": "interests", "index": 4, "type": "tags", "title": "Interests"},
                 ]
             },
         }
@@ -104,3 +107,59 @@ def test_an_amount_without_a_code_or_without_an_amount():
     assert answer_value({"budget": {"currency": {"amount": "3"}}}, budget) == "3"
     assert answer_value({"budget": {}}, budget) == ""
     assert answer_value({"budget": {"currency": {"code": "EUR", "amount": "3"}}}, budget) == "EUR 3"
+
+
+def _stay_and_tags(*tags, start="2026-11-03", end="2026-11-07"):
+    answers = {"stay": {"type": "date_range", "date_range": {"start": start, "end": end}}}
+    if tags:
+        answers["interests"] = {"type": "tags", "tags": list(tags)}
+    return answers
+
+
+@pytest.mark.asyncio
+async def test_a_range_is_one_interval_cell_and_tags_are_one_cell_joined_with_semicolons():
+    lines = await _csv(_response("r1", _stay_and_tags("vegan", "gluten free")))
+    assert lines[0].startswith("Responder ID,Arrival,Born,Budget,Stay,Interests,")
+    assert lines[1].startswith("a@example.org,,,,2026-11-03/2026-11-07,vegan; gluten free,")
+
+
+@pytest.mark.asyncio
+async def test_one_end_of_a_range_is_written_with_its_slash_and_no_answer_is_empty():
+    lines = await _csv(
+        _response("r1", _stay_and_tags(end="")),
+        _response("r2", _stay_and_tags(start="")),
+        _response("r3", _stay_and_tags(start="", end="")),
+        _response("r4", {}),
+    )
+    cells = [line.split(",")[4] for line in lines[1:5]]
+    assert cells == ["2026-11-03/", "/2026-11-07", "", ""]
+
+
+def test_the_slot_may_be_spelled_dateRange_and_tags_take_the_separator_given():
+    stay = FORM["fields"][0]["properties"]["fields"][3]
+    tags = FORM["fields"][0]["properties"]["fields"][4]
+    assert answer_value({"stay": {"dateRange": {"start": "2026-11-03", "end": "2026-11-07"}}}, stay) == "2026-11-03/2026-11-07"
+    answers = {"interests": {"tags": ["a", "b"]}}
+    assert answer_value(answers, tags) == "a; b"
+    assert answer_value(answers, tags, ", ") == "a, b"
+    assert answer_value({"interests": {"tags": []}}, tags) == ""
+    assert answer_value({}, tags) == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tag,cell",
+    [("=SUM(1+1)", "'=SUM(1+1)"), ("+31 6 1234", "'+31 6 1234"), ("-x", "'-x"), ("@home", "'@home"), ("=1+1", "'=1+1")],
+)
+async def test_a_tags_cell_that_starts_with_a_formula_character_is_neutralised(tag, cell):
+    lines = await _csv(_response("r1", _stay_and_tags(tag, "b")))
+    assert lines[1].split(",")[5].startswith(cell + "; b") or f'"{cell}; b"' in lines[1] or f"{cell}; b" in lines[1]
+    only = await _csv(_response("r2", _stay_and_tags(tag)))
+    assert cell in only[1]
+
+
+@pytest.mark.asyncio
+async def test_a_formula_character_after_the_first_tag_is_left_alone():
+    lines = await _csv(_response("r1", _stay_and_tags("ok", "=1+1", "+2", "-3", "@4")))
+    assert "ok; =1+1; +2; -3; @4" in lines[1]
+    assert "'ok" not in lines[1]

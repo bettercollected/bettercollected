@@ -4,6 +4,7 @@ import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
 import { currencyExportText } from '@app/utils/currency';
 import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
+import { calendarDayIn } from '@app/utils/date-utils';
 import { answerTags } from '@app/utils/tags';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
@@ -13,9 +14,10 @@ import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-js
 /** Joins the options of a multi-select answer on screen (the responses table, the response page, the respondent's view): "Reading, Cycling". */
 export const DISPLAY_LIST_SEPARATOR = ', ';
 
-/** The answer as a screen shows it: like `getAnswerForField`, but a date range reads as two long dates ("3 November 2026 – 7 November 2026"). */
+/** The answer as a screen shows it: like `getAnswerForField`, but a day reads in the app's date style ("5 November 1990") and a date range as two ("3 November 2026 – 7 November 2026"). */
 export function getAnswerDisplayText(response: StandardFormResponseDto, field: StandardFormFieldDto, language: 'en' | 'nl' = 'en') {
     if (field.type === FieldTypes.DATE_RANGE) return dateRangeText(response.answers?.[field.id], language);
+    if (field.type === FieldTypes.DAY || field.type === FieldTypes.DATE) return calendarDayIn(String(response.answers?.[field.id]?.date ?? ''), language);
     return getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
 }
 

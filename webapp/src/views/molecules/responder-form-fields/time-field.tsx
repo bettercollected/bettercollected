@@ -69,11 +69,17 @@ function TimeFieldSection({ field, isBuilder }: ITimeField) {
                 max={field.properties?.maxTime}
                 value={value}
                 disabled={isBuilder}
+                // A field rule that locks the question sets its value: it shows, and cannot be changed.
+                readOnly={locked}
                 aria-labelledby={labelledBy}
                 aria-label={labelledBy || label ? undefined : t('TIME.PICK')}
                 $formTheme={theme}
                 // The native control reports "" until the time is complete: that is no answer.
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => (event.target.value ? addFieldTimeAnswer(field.id, event.target.value) : removeAnswer(field.id))}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    if (locked) return;
+                    if (event.target.value) addFieldTimeAnswer(field.id, event.target.value);
+                    else removeAnswer(field.id);
+                }}
                 onKeyDown={onKeyDown}
                 className="min-h-12 max-w-xs"
             />

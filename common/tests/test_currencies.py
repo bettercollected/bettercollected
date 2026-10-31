@@ -78,6 +78,10 @@ def test_amounts_that_are_plain_decimals(amount, code, expected):
         (12, "EUR"),
         (None, "EUR"),
         (12.5, "EUR"),
+        ("-0", "EUR"),
+        ("-0.0", "EUR"),
+        ("-0.00", "EUR"),
+        ("-0", None),
     ],
 )
 def test_amounts_that_are_not(amount, code):
@@ -100,3 +104,14 @@ def test_minutes():
     assert minutes_of("00:00") == 0
     assert minutes_of("09:30") == 570
     assert minutes_of("23:59") == 1439
+
+
+def test_a_day_is_a_real_date_from_the_year_1000():
+    from common.models.standard_form import MIN_DAY_YEAR, is_day
+
+    assert MIN_DAY_YEAR == 1000
+    assert is_day("1000-01-01") and is_day("2028-02-29")
+    assert not any(
+        is_day(v)
+        for v in ("0999-12-31", "0090-05-12", "0001-01-01", "90-05-12", "2026-02-30", "2026-2-03", "", None, 1990)
+    )

@@ -1134,6 +1134,18 @@ def is_iso_date(value: Any) -> bool:
     return True
 
 
+# The earliest year a day typed in three boxes (a ``day`` question) or an end of
+# a date range may have: a year with fewer than four digits ("90") is a typing
+# slip, never the year 90.
+MIN_DAY_YEAR = 1000
+
+
+def is_day(value: Any) -> bool:
+    """Is ``value`` a calendar date written as ``YYYY-MM-DD`` in a year from
+    ``MIN_DAY_YEAR`` on? (Twin of the webapp's ``isDay``.)"""
+    return is_iso_date(value) and int(value[:4]) >= MIN_DAY_YEAR
+
+
 def check_type_settings(
     min_time: Optional[str], max_time: Optional[str], currencies: Optional[List[str]]
 ) -> None:

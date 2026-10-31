@@ -20,6 +20,14 @@ import DayField from './day-field';
 import TagsField from './tags-field';
 import TimeField from './time-field';
 
+// A field rule that locks the question (read-only, or the form sets its value).
+const served = vi.hoisted(() => ({ locked: false }));
+vi.mock('@app/lib/hooks/use-field-rule-states', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@app/lib/hooks/use-field-rule-states')>();
+    // the states are an object with methods: only the answer to "is it locked" is replaced
+    return { ...actual, useFieldRuleStates: () => new Proxy(actual.useFieldRuleStates(), { get: (target, key) => (key === 'isLocked' ? () => served.locked : Reflect.get(target, key)) }) };
+});
+
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
     RenderImage: () => null,
     default: () => null
@@ -65,6 +73,7 @@ const show = (field: StandardFormFieldDto, Component: React.ComponentType<{ fiel
 
 afterEach(() => {
     latest = {};
+    served.locked = false;
 });
 
 describe('TimeField', () => {
@@ -85,6 +94,15 @@ describe('TimeField', () => {
         expect(latest.arrival).toEqual({ type: 'time', time: '09:30' });
         fireEvent.change(input, { target: { value: '' } });
         expect(latest.arrival).toBeUndefined();
+    });
+
+    it('shows a locked time as it is and cannot be changed', async () => {
+        served.locked = true;
+        show(time, TimeField, { arrival: { type: 'time', time: '09:30' } });
+        const input = await screen.findByLabelText('When do you arrive?');
+        expect(input).toHaveAttribute('readonly');
+        fireEvent.change(input, { target: { value: '10:45' } });
+        expect(latest.arrival.time).toBe('09:30');
     });
 
     it('shows a stored time', async () => {
@@ -124,13 +142,37 @@ describe('DayField', () => {
         show(day, DayField);
         fireEvent.change(await screen.findByLabelText('Day'), { target: { value: '31' } });
         fireEvent.change(screen.getByLabelText('Month'), { target: { value: '02' } });
-        expect(latest.born.date).toBe('0000-02-31');
+        expect(latest.born.date).toBe('-02-31');
         expect(checkAnswerRules(day, latest.born)).toEqual(['FORMAT']);
         fireEvent.change(screen.getByLabelText('Year'), { target: { value: '2026' } });
         expect(latest.born.date).toBe('2026-02-31');
         expect(checkAnswerRules(day, latest.born)).toEqual(['FORMAT']);
         fireEvent.change(screen.getByLabelText('Day'), { target: { value: '28' } });
         expect(checkAnswerRules(day, latest.born)).toEqual([]);
+    });
+
+    it('never pads a short year into one that was not typed', async () => {
+        show(day, DayField);
+        fireEvent.change(await screen.findByLabelText('Day'), { target: { value: '5' } });
+        fireEvent.change(screen.getByLabelText('Month'), { target: { value: '11' } });
+        for (const year of ['9', '90', '199']) {
+            fireEvent.change(screen.getByLabelText('Year'), { target: { value: year } });
+            expect(latest.born.date).toBe(`${year}-11-05`);
+            expect(checkAnswerRules(day, latest.born)).toEqual(['FORMAT']);
+            expect(screen.getByLabelText('Year')).toHaveValue(year);
+        }
+        fireEvent.change(screen.getByLabelText('Year'), { target: { value: '1990' } });
+        expect(latest.born.date).toBe('1990-11-05');
+        expect(checkAnswerRules(day, latest.born)).toEqual([]);
+    });
+
+    it('shows the boxes of a locked day as they are and cannot be typed over', async () => {
+        served.locked = true;
+        show(day, DayField, { born: { type: 'date', date: '1990-11-05' } });
+        const dayBox = await screen.findByLabelText('Day');
+        expect(dayBox).toHaveAttribute('readonly');
+        fireEvent.change(dayBox, { target: { value: '9' } });
+        expect(latest.born.date).toBe('1990-11-05');
     });
 
     it('drops the answer when all three boxes are emptied', async () => {
@@ -181,6 +223,28 @@ describe('CurrencyField', () => {
         fireEvent.change(await screen.findByLabelText('What is your budget?'), { target: { value: '1.250,00' } });
         expect(latest.budget.currency.amount).toBe('1.250.00');
         expect(checkAnswerRules(money, latest.budget)).toEqual(['FORMAT']);
+    });
+
+    it('writes a minus zero as zero, and flags a negative amount while the question has no negative lowest amount', async () => {
+        show(money, CurrencyField);
+        const amount = await screen.findByLabelText('What is your budget?');
+        fireEvent.change(amount, { target: { value: '-0' } });
+        expect(latest.budget.currency.amount).toBe('0');
+        fireEvent.change(amount, { target: { value: '-0,00' } });
+        expect(latest.budget.currency.amount).toBe('0.00');
+        fireEvent.change(amount, { target: { value: '-5' } });
+        expect(latest.budget.currency.amount).toBe('-5');
+        expect(checkAnswerRules(money, latest.budget)).toEqual(['TOO_SMALL']);
+        expect(checkAnswerRules({ ...money, validations: { minValue: -10 } }, latest.budget)).toEqual([]);
+    });
+
+    it('shows a locked amount as it is and cannot be typed over', async () => {
+        served.locked = true;
+        show(money, CurrencyField, { budget: { type: 'currency', currency: { code: 'EUR', amount: '12.50' } } });
+        const amount = await screen.findByLabelText('What is your budget?');
+        expect(amount).toHaveAttribute('readonly');
+        fireEvent.change(amount, { target: { value: '99' } });
+        expect(latest.budget.currency.amount).toBe('12.50');
     });
 
     it('drops the answer when the amount is emptied', async () => {

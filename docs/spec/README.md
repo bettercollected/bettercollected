@@ -49,7 +49,13 @@ An amount is a plain decimal string: digits, an optional leading `-`, a dot and
 at most the currency's own number of decimals (EUR 2, JPY 0, KWD 3; the table
 is [`currencies-v1.json`](currencies-v1.json)). A comma, a thousands separator,
 an exponent, a leading `+` or a leading zero is refused, so a stored amount reads
-the same everywhere. The server refuses an answer with the rule codes
+the same everywhere; so is a zero written with a minus (`-0`, `-0.00`). An
+amount is not below zero unless the question's lowest amount (`minValue`) says
+it may be: with no lowest amount, or one of 0 or more, a negative amount breaks
+`too_small`, and a negative lowest amount allows negative ones. A `day` has its
+year from 1000 on: a year of fewer than four digits ("90") is a typing slip, so
+the boxes do not pad it and `0090-11-05` is refused (`format`), as is an end of
+a date range in such a year. The server refuses an answer with the rule codes
 `format` (not a real time, day or amount), `currency` (a currency the question
 does not offer), `too_small` and `too_large` (before the earliest or after the
 latest time; below or above the lowest or highest amount), `type` and `required`.
