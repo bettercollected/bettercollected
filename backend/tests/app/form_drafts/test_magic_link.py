@@ -315,7 +315,7 @@ async def test_a_mail_that_cannot_be_sent_is_reported_and_the_respondent_can_try
     async def down(*args, **kwargs):
         raise RuntimeError("auth is down")
 
-    monkeypatch.setattr(container.http_client(), "post", down)
+    monkeypatch.setattr(type(container.http_client()), "post", down)
     refused = await ask_for_link(client, workspace, form)
     assert refused.status_code == 503 and refused.json()["code"] == "link_not_sent"
 
@@ -441,7 +441,7 @@ async def test_a_failed_send_logs_no_address_and_no_link(
             f"cannot reach {kwargs['json']['recipient']} {kwargs['json']['link']}"
         )
 
-    monkeypatch.setattr(container.http_client(), "post", down)
+    monkeypatch.setattr(type(container.http_client()), "post", down)
     await ask_for_link(client, workspace, form)
     text = "\n".join(lines)
     assert ADDRESS not in text and "#resume=" not in text
