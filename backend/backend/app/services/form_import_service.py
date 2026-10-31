@@ -16,6 +16,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.services.field_rules import strip_field_rules
+from backend.app.services.option_logic import strip_option_logic
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -75,6 +76,10 @@ class FormImportService:
         # none come in this way, whatever the payload holds.
         if form_data.form is not None and strip_field_rules(form_data.form):
             logger.warning("A form import carried field rules; they were dropped")
+        # ... nor option logic (services/option_logic.py): the providers have
+        # none, and CHOICE_LOGIC_ENABLED is for what people write here.
+        if form_data.form is not None and strip_option_logic(form_data.form):
+            logger.warning("A form import carried choice logic; it was dropped")
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.

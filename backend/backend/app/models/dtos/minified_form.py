@@ -74,6 +74,9 @@ class FormDtoCamelModel(CamelModel):
     # out because they were broken (``fieldId``, ``ruleId``, ``message``;
     # services/field_rules.py). Never stored.
     dropped_field_rules: Optional[List[Dict[str, Optional[str]]]] = None
+    # Likewise the choice logic that save repaired (``fieldId``, ``optionId``,
+    # ``message``; services/option_logic.py). Never stored.
+    dropped_option_logic: Optional[List[Dict[str, Optional[str]]]] = None
     # Where a submission is also sent (registration): ``{"organisation": name}``,
     # only on the published form while the switch is on and its registration
     # is enabled. The privacy panel names it. Derived, never stored here.

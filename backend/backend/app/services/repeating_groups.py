@@ -92,18 +92,43 @@ def _is_empty(value: Any) -> bool:
     return value is None or value == "" or (isinstance(value, list) and not value)
 
 
+def _js():
+    # answer_validation holds the JavaScript twins (Number, String) and imports
+    # this module, so it is read when first needed
+    from backend.app.services import answer_validation
+
+    return answer_validation
+
+
 def _to_number(value: Any) -> float:
+    """``Number(value)`` as the browser's comparison reads it: a text is a
+    number as JavaScript reads it (an empty one is 0, "1_0" and "inf" are
+    not numbers), a missing answer is NaN, a list is NaN."""
+    if value is None or isinstance(value, (list, dict)):
+        return float("nan")
+    if isinstance(value, bool):
+        return 1.0 if value else 0.0
+    if isinstance(value, str):
+        return _js().js_number(value)
     try:
-        return float(value)
-    except OverflowError:
-        # an integer too big for a float: JavaScript's Number makes it Infinity
-        return float("inf") if value > 0 else float("-inf")
+        return _js().to_float(value)
     except (TypeError, ValueError):
         return float("nan")
 
 
+def _js_str(value: Any) -> str:
+    """``String(value)``: a list joins its items with commas (an empty slot
+    is empty), null is "null"."""
+    if value is None:
+        return "null"
+    if isinstance(value, list):
+        return ",".join("" if v is None else _js_str(v) for v in value)
+    return _js().js_string(value)
+
+
 def _text(value: Any) -> str:
-    return "" if value is None else str(value)
+    """``String(value ?? '')``."""
+    return "" if value is None else _js_str(value)
 
 
 def _capped(value: Any, text_max: Optional[int]) -> Any:
@@ -136,7 +161,7 @@ def compare(
     if comparison in ("IS_EQUAL", "CONTAINS", "IS_NOT_EQUAL", "DOES_NOT_CONTAIN"):
         negate = comparison in ("IS_NOT_EQUAL", "DOES_NOT_CONTAIN")
         if isinstance(value, list):
-            hit = _text(target) in [str(v) for v in value]
+            hit = _js_str(target) in [_js_str(v) for v in value]
         elif comparison in ("IS_EQUAL", "IS_NOT_EQUAL"):
             hit = _text(value) == _text(target)
         else:
@@ -210,6 +235,10 @@ def _filled_text(value: Any) -> bool:
 def _choice_tokens(chosen: str, source: Any) -> List[str]:
     """What a chosen option answers to: its id, its text and its label (an
     unknown id: itself)."""
+    index = getattr(source, "token_index", None) if source is not None else None
+    if index is not None:
+        # a reader that looked the options up once (services/option_logic.py)
+        return list(index.get(chosen, [chosen]))
     props = getattr(source, "properties", None) if source is not None else None
     for choice in (getattr(props, "choices", None) if props else None) or []:
         choice = _as_dict(choice)

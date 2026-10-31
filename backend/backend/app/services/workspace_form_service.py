@@ -93,6 +93,11 @@ from backend.app.services.field_rules import (
     ensure_valid_field_rules,
     rule_keys_affected,
 )
+from backend.app.services.option_logic import (
+    ensure_choice_logic_allowed,
+    ensure_valid_option_logic,
+    option_keys_affected,
+)
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -726,6 +731,12 @@ class WorkspaceFormService:
         await run_in_threadpool(ensure_valid_field_rules, form, True)
         if not drop_unusable_settings:
             ensure_rules_allowed(form)
+        # Choice logic (services/option_logic.py): what a structural edit
+        # broke is dropped; the size caps refuse; new option logic needs
+        # CHOICE_LOGIC_ENABLED, except in a copy of a form or template.
+        ensure_valid_option_logic(form, drop=True)
+        if not drop_unusable_settings:
+            ensure_choice_logic_allowed(form)
         ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
@@ -811,6 +822,7 @@ class WorkspaceFormService:
         cover_image: UploadFile = None,
         expected_updated_at: Optional[dt.datetime] = None,
         dropped_rules: Optional[List[Dict[str, Any]]] = None,
+        dropped_option_logic: Optional[List[Dict[str, Any]]] = None,
     ):
         """``expected_updated_at``: the draft's ``updated_at`` as the caller
         last saw it; when the stored draft is newer the save is refused with
@@ -818,6 +830,8 @@ class WorkspaceFormService:
 
         ``dropped_rules``: receives the field rules the save dropped because
         they were broken (``fieldId``, ``ruleId``, ``message``).
+        ``dropped_option_logic``: likewise the choice logic it repaired
+        (``fieldId``, ``optionId``, ``message``).
 
         With it, the form is written conditionally, and the settings only
         after that write succeeded: a save refused at the write (another save
@@ -850,6 +864,13 @@ class WorkspaceFormService:
         if dropped_rules is not None:
             dropped_rules.extend(dropped)
         ensure_rules_allowed(form, existing_form)
+        # Choice logic: a condition or filter a structural edit broke (a
+        # question moved before its source, a removed option) is dropped,
+        # never a refusal that would stop autosave; the size caps refuse.
+        repaired = ensure_valid_option_logic(form, drop=True)
+        if dropped_option_logic is not None:
+            dropped_option_logic.extend(repaired)
+        ensure_choice_logic_allowed(form, existing_form)
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
@@ -1132,6 +1153,11 @@ class WorkspaceFormService:
         # (through set values: a question whose rule reads a set value is
         # affected when what sets that value changes)
         rule_keys = sorted(rule_keys_affected(form, changed_keys + calc_ids))
+        # and a choice question whose options read what changed: an edit of
+        # an earlier answer can strand a selection there (choice logic)
+        rule_keys += sorted(
+            option_keys_affected(form, changed_keys + calc_ids) - set(rule_keys)
+        )
         # Required, answer rules and types (services/answer_validation.py) on
         # the answers after the edit, reported for what this edit touches.
         # CPU-bound (creator patterns, formulas): off the event loop.

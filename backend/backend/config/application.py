@@ -82,6 +82,13 @@ class Application(StoreBackedSettings):
     # until an operator turns rules on): those saves are refused with 422
     # field_rules_disabled; stored rules are kept and still enforced.
     FIELD_RULES_ENABLED: bool = False
+    # Choice logic (services/option_logic.py: options shown or hidden by
+    # answers, options filtered by an earlier answer) may be created or
+    # changed through the API, the builder save, edit operations, templates and
+    # the AI and MCP paths. Off (the default, kept off until the 4.2
+    # release): those saves are refused with 422 choice_logic_disabled;
+    # stored choice logic is kept and still enforced.
+    CHOICE_LOGIC_ENABLED: bool = False
     # Respondents may save a draft and continue later (services/form_drafts).
     # Off (the default, until it is released): turning the per-form setting on
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is

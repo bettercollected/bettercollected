@@ -50,7 +50,9 @@ export function useWorkspacePermissions() {
     const answered = !!workspaceId && !!userId && !!isSuccess && !isError;
     // Whether the server takes field rules (its FIELD_RULES_ENABLED), told with the permissions.
     const fieldRulesEnabled = !!userId && !isError && !!data?.fieldRulesEnabled;
+    // Likewise for choice logic (its CHOICE_LOGIC_ENABLED): option logic and filters in the builder.
+    const choiceLogicEnabled = !!userId && !isError && !!data?.choiceLogicEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, saveDraftsEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, saveDraftsEnabled };
 }

@@ -133,6 +133,10 @@
         "MORE_one": "{{count}} wijziging meer op deze pagina.",
         "MORE_other": "{{count}} wijzigingen meer op deze pagina."
     },
+    "OPTIONS": {
+        "CLEARED_one": "{{options}} is niet meer beschikbaar en is uit je antwoord gehaald. Controleer je antwoord.",
+        "CLEARED_other": "{{options}} zijn niet meer beschikbaar en zijn uit je antwoord gehaald. Controleer je antwoord."
+    },
     "RULE": {
         "TOO_SHORT_one": "Gebruik minstens {{count}} teken.",
         "TOO_SHORT_other": "Gebruik minstens {{count}} tekens.",
@@ -151,7 +155,8 @@
         "TOO_MANY_CHOICES_one": "Kies hooguit {{count}} optie.",
         "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties.",
         "SERVER_TYPE": "Dit antwoord kon niet worden verwerkt. Beantwoord de vraag opnieuw.",
-        "SERVER_CHOICE": "Kies een van de getoonde opties."
+        "SERVER_CHOICE": "Kies een van de getoonde opties.",
+        "SERVER_OPTION": "Een van de gekozen opties is niet meer beschikbaar. Kies opnieuw."
     },
     "DATE": {
         "PICK": "Kies een datum",

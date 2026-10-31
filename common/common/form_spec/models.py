@@ -25,6 +25,9 @@ from common.models.standard_form import (
     ENDING_TITLE_MAX_LENGTH,
     FIELD_RULES_MAX,
     FORM_FIELD_RULES_MAX,
+    OPTION_CONDITIONS_MAX,
+    OPTION_FILTER_PAIRS_MAX,
+    OPTION_ID_MAX_LENGTH,
     FORM_LANGUAGES,
     MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
@@ -300,6 +303,13 @@ class Choice(_Spec):
     value: Optional[str] = None
     label: Optional[str] = None
     attachment: Optional[Attachment] = None
+    logic: Optional["Logic"] = Field(
+        None,
+        description="Offer this option only (SHOW) or unless (HIDE) its "
+        f"conditions hold, at most {OPTION_CONDITIONS_MAX}. The conditions read "
+        "earlier questions of the form. An answer that selects an option that "
+        "is not offered is refused.",
+    )
 
 
 class Condition(_Spec):
@@ -326,6 +336,30 @@ class Logic(_Spec):
     action: Optional[Literal["SHOW", "HIDE"]] = None
     operator: Optional[Literal["AND", "OR"]] = None
     conditions: Optional[List[Condition]] = None
+
+
+Choice.model_rebuild()
+
+
+class OptionFilterEntry(_Spec):
+    """While the earlier question's option ``when`` (its id) is chosen, the
+    question offers the options in ``show`` (their ids)."""
+
+    when: str = Field(..., min_length=1, max_length=OPTION_ID_MAX_LENGTH)
+    show: List[str] = Field(default_factory=list, max_length=OPTION_FILTER_PAIRS_MAX)
+
+
+class OptionFilter(_Spec):
+    """Filter a choice question's options by an earlier choice question's
+    answer: the options offered are those the chosen options of ``fieldId``
+    map to (the union over a multiple choice's selection). Without an answer
+    to it (or with only "Other" text) nothing is filtered; a chosen option
+    with no entry offers nothing."""
+
+    field_id: str = Field(..., min_length=1)
+    mapping: List[OptionFilterEntry] = Field(
+        default_factory=list, max_length=OPTION_FILTER_PAIRS_MAX
+    )
 
 
 class RuleWhen(_Spec):
@@ -575,6 +609,11 @@ class FormField(_Spec):
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     logic: Optional[Logic] = None
+    option_filter: Optional[OptionFilter] = Field(
+        None,
+        description="A choice question's options filtered by an earlier "
+        "choice question's answer (see OptionFilter).",
+    )
     rules: Optional[List[Rule]] = Field(
         None,
         max_length=FIELD_RULES_MAX,

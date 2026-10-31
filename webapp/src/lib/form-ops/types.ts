@@ -216,6 +216,32 @@ export interface SetFieldLogicOp {
     logic?: FieldLogicSpec | null;
 }
 
+/** Choice-level logic: offer one option only (SHOW) or unless (HIDE) earlier answers match; `choice` is its label (or id), `logic: null` clears. */
+export interface SetOptionLogicOp {
+    op: 'set_option_logic';
+    fieldId: string;
+    choice: string;
+    logic?: FieldLogicSpec | null;
+}
+
+/** While the earlier question's option `when` (label or id) is chosen, offer the options `show` (labels or ids). */
+export interface OptionFilterRowSpec {
+    when: string;
+    show?: string[];
+}
+
+export interface OptionFilterSpec {
+    fieldId: string;
+    mapping: OptionFilterRowSpec[];
+}
+
+/** Filter a choice question's options by an earlier choice question's answer; `filter: null` clears it. */
+export interface SetOptionFilterOp {
+    op: 'set_option_filter';
+    fieldId: string;
+    filter?: OptionFilterSpec | null;
+}
+
 /** When a field rule is active: the conditions of `set_field_logic` (operator AND when left out) or an expressions-v1 expression, never both. */
 export interface RuleWhenSpec {
     operator?: 'AND' | 'OR' | null;
@@ -455,6 +481,8 @@ export type AiFormOp =
     | UpdateFormInfoOp
     | UpdateFormSettingsOp
     | SetFieldLogicOp
+    | SetOptionLogicOp
+    | SetOptionFilterOp
     | SetFieldRulesOp
     | SetPageJumpsOp
     | DuplicatePageOp
