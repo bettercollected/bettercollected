@@ -1328,6 +1328,31 @@ async def test_with_the_flag_off_stored_rules_are_kept_and_enforced(
     assert error.value.content["errors"] == [{"fieldId": "b", "rule": "required"}]
 
 
+async def test_with_the_flag_off_changing_the_type_of_a_ruled_question_does_not_block_saves(
+    workspace, monkeypatch
+):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    form = await _published(workspace, RULED)
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", False)
+    service = container.workspace_form_service()
+    # a type that still takes the rule: it is kept, and the save goes through
+    longer = _form([_q("a"), _q("b", "long_text", rules=RULED[1]["properties"]["rules"])])
+    await service.update_form(workspace.id, form.form_id, longer, testUser)
+    saved = await container.form_service().get_form_document_by_id(str(form.form_id))
+    assert [r.id for r in saved.fields[0].properties.fields[1].properties.rules] == ["r1"]
+    # a type that cannot carry rules: the rule is dropped (and reported), not refused
+    dropped: list = []
+    content = _form([_q("a"), _q("b", "statement", rules=RULED[1]["properties"]["rules"])])
+    await service.update_form(
+        workspace.id, form.form_id, content, testUser, dropped_rules=dropped
+    )
+    saved = await container.form_service().get_form_document_by_id(str(form.form_id))
+    assert not saved.fields[0].properties.fields[1].properties.rules
+    assert [d["ruleId"] for d in dropped] == ["r1"]
+
+
 async def test_the_spec_api_follows_the_flag(workspace, monkeypatch):
     from backend.config import settings
 
