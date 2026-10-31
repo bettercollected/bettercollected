@@ -61,7 +61,7 @@ def require_database_url(env=os.environ) -> None:
 if __name__ == "__main__":
     log_if_api_key_missing()
     # JOBS_BACKEND=postgres (the default): consume the procrastinate `actions`
-    # queue instead of Temporal (plans/postgres-consolidation.md §7);
+    # queue instead of Temporal;
     # JOBS_BACKEND=temporal keeps the workflow.
     if jobs_backend() == "postgres":
         require_database_url()

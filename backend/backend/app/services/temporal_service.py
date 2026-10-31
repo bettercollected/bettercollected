@@ -31,7 +31,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
-from backend.app.services.action_run_token import run_token
+from backend.app.services.action_run_token import run_lock, run_token
 from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
 from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
@@ -246,9 +246,7 @@ class TemporalService:
         workspace: WorkspaceRequestWithActionDto,
     ):
 
-        lock = (
-            "action_" + str(action.id) + str(form.form_id) + str(response.response_id)
-        )
+        lock = run_lock(action.id, form.form_id, response.response_id)
         workspace = WorkspaceRequestWithActionDto(**workspace)
         if self._on_postgres("run_action"):
             # Ids only: the executor reads the run's data from the backend when

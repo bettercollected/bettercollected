@@ -1,4 +1,4 @@
-"""The actions-executor as a procrastinate worker (plans/postgres-consolidation.md §7).
+"""The actions-executor as a procrastinate worker.
 
 Consumes the ``actions`` queue only, connecting as the ``bc_jobs_exec`` role
 whose search_path is the ``jobs`` schema (it can reach the queue tables and
@@ -27,10 +27,14 @@ from typing import Optional
 from procrastinate import App, PsycopgConnector, RetryStrategy
 
 from utilities.actions import run_action
+from utilities.job_logging import scrub_job_logging
 from utilities.queue_isolation import require_isolated_queue
 from utilities.run_context import RunContextUnavailable, fetch_run_context
 
 logger = logging.getLogger(__name__)
+
+# no job argument in any log line (utilities/job_logging.py)
+scrub_job_logging()
 
 ACTIONS_QUEUE = "actions"
 # procrastinate counts retries, not runs: two retries after the first run

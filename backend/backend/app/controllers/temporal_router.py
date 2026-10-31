@@ -7,7 +7,15 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
-from backend.app.services.action_run_token import HEADER, is_valid_run_token
+from backend.app.services.action_run_token import (
+    EXPIRED,
+    HEADER,
+    INVALID,
+    check_run_token,
+    job_matches,
+    run_lock,
+)
+from backend.jobs.app import ACTIONS_QUEUE, app as jobs_app
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
@@ -97,17 +105,35 @@ class TemporalRouter(Routable):
         """The actions executor reads what one queued run needs, when it runs:
         the job carries ids only, so no answers or action secrets sit in the
         job queue's rows. Besides the job key it must present the run's own
-        token (``run-token``, minted when the run was queued: the job key alone
-        reads nobody's answers). 410 when the run no longer applies (the
+        token (``run-token``, minted when the run was queued, expiring after a
+        day) and the run's job must be in the actions queue, ``doing``, with these
+        ids and this token: the job key alone reads nobody's answers, and a token
+        read from the queue opens nothing once its run is over. 410 when the run
+        is too old or no longer applies (the
         response was erased, the action was switched off or removed): the
         executor skips the job, it is not retried."""
-        if not is_valid_run_token(
-            request.headers.get(HEADER, ""),
-            workspace_id,
-            form_id,
-            action_id,
-            response_id,
-        ):
+        token = request.headers.get(HEADER, "")
+        ids = (workspace_id, form_id, action_id, response_id)
+        verdict = check_run_token(token, *ids)
+        if verdict == INVALID:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="You are not allowed to perform this action.",
+            )
+        if verdict == EXPIRED:
+            # queued too long ago to be run now (an executor that was down)
+            raise HTTPException(
+                status_code=HTTPStatus.GONE, content="This action run no longer applies."
+            )
+        # the token is only good for the run in flight: its job is in the actions
+        # queue, being run, with these ids and this token
+        running = await jobs_app.job_manager.list_jobs_async(
+            queue=ACTIONS_QUEUE,
+            task="run_action",
+            status="doing",
+            queueing_lock=run_lock(action_id, form_id, response_id),
+        )
+        if not any(job_matches(job, token, *ids) for job in running):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN,
                 content="You are not allowed to perform this action.",

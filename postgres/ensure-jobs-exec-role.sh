@@ -7,7 +7,8 @@
 #                 code that form creators wrote, so the role is the job queue
 #                 (schema `jobs`) and nothing else: USAGE on that schema and
 #                 SELECT/INSERT/UPDATE/DELETE on its tables, USAGE on its
-#                 sequences, EXECUTE on its functions (now, and on what a later
+#                 sequences, EXECUTE on its functions, but no write on the events and
+#                 periodic-defers tables (now, and on what a later
 #                 procrastinate migration adds). It is not a superuser, cannot
 #                 create roles, databases or objects, and holds no privilege in
 #                 `app`, `auth`, `google`, `admin`, `tasks` or `settings`; those
@@ -91,6 +92,21 @@ BEGIN
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA jobs TO bc_jobs_exec;
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA jobs TO bc_jobs_exec;
     REVOKE CREATE ON SCHEMA jobs FROM bc_jobs_exec;
+
+    -- except what only procrastinate's own triggers may write: the events and the
+    -- periodic defers (the second would let the role suppress periodic jobs). The
+    -- triggers write them as the table's owner for it (SECURITY DEFINER), the same
+    -- as backend.jobs.schema asserts.
+    FOR s IN
+        SELECT p.proname FROM pg_catalog.pg_proc p
+          JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+         WHERE n.nspname = 'jobs'
+           AND (starts_with(p.proname, 'procrastinate_trigger_function_')
+                OR p.proname = 'procrastinate_unlink_periodic_defers_v1')
+    LOOP
+        EXECUTE 'ALTER FUNCTION jobs.' || quote_ident(s) || '() SECURITY DEFINER SET search_path = jobs, pg_catalog';
+    END LOOP;
+    REVOKE ALL ON jobs.procrastinate_events, jobs.procrastinate_periodic_defers FROM bc_jobs_exec;
 
     -- and those a later procrastinate migration creates, for every role that owns objects in `jobs`
     FOR owner_name IN

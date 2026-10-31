@@ -22,13 +22,23 @@ Each is a standalone Python service with its own `main.py`, `requirements.txt`, 
 ## The actions executor on the Postgres queue (default)
 
 `actions-executor/main.py` follows `JOBS_BACKEND` (default `postgres`): `procrastinate_worker.py` consumes the
-`actions` queue as the `bc_jobs_exec` role (`DATABASE_URL`; the role sees only the `actions` queue's rows, and the
-executor refuses to start where the backend has not applied that policy: `utilities/queue_isolation.py`). The job
-carries **ids only**; `utilities/run_context.py` fetches the run's data from the backend's in-network route when
-it runs, presenting the job's `run_token` (the job key alone reads nothing; 410 = the run no longer applies, skipped). Three runs at most (waits of 5 s and 25 s), cut off after 90 s;
-a failure names ids and the error's class, never its message (it can hold an answer), and the job's result is one
-word. Jobs queued by 4.1.x with the whole run in them are still run once. Tests: `tests/test_run_job.py`,
-`tests/test_queue_isolation.py`. `JOBS_BACKEND=temporal` runs the workflow below instead.
+`actions` queue as the `bc_jobs_exec` role (`DATABASE_URL`). The role sees only the `actions` queue's rows and writes
+only `run_action` rows with `action_` locks; it cannot write the events or periodic-defers tables. The executor
+refuses to start where the backend has not applied that (`utilities/queue_isolation.py`: policy, no superuser or
+bypass or table ownership, no write on those tables, SECURITY DEFINER triggers). The job carries **ids and a run
+token only**; `utilities/run_context.py` fetches the run's data from the backend's in-network route when it runs,
+presenting the job's `run_token` (the route also checks the job is `doing`; the job key alone reads nothing; 410 =
+the run no longer applies or is over a day old, skipped). Three runs at most (waits of 5 s and 25 s), cut off after
+90 s; a failure names ids and the error's class, never its message (it can hold an answer); the job's result is one
+word; `utilities/job_logging.py` keeps job arguments out of procrastinate's log lines. Jobs queued by 4.1.x with the
+whole run in them are still run once (and `python -m backend.jobs.schema` scrubs them). Tests:
+`tests/test_run_job.py`, `tests/test_queue_isolation.py`, `tests/test_job_logging.py`. `JOBS_BACKEND=temporal` runs the
+workflow below instead.
+
+**Not isolated (open, executor track):** the `exec` that runs creator code is not a sandbox; code in it reaches the
+process's environment (`API_KEY`, `AES_HEX_KEY`, `DATABASE_URL`), can mark an `actions` row `doing`, and `API_KEY` plus
+`AES_HEX_KEY` (when it equals the stack's `AUTH_AES_HEX_KEY`) are enough to forge `X-User-Deletion` for
+`DELETE /auth/user`: the executor must never hold both. Keep form actions off until this is done.
 
 ## Tech
 

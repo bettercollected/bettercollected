@@ -169,3 +169,30 @@ async def test_it_refuses_a_database_without_the_queue(db):
     await _execute(db.url(), "DROP SCHEMA jobs CASCADE")
     done = run_script(db, secrets.token_hex(12))
     assert done.returncode != 0 and "backend.jobs.schema" in done.stderr
+
+
+async def test_it_keeps_the_role_from_writing_the_events_and_periodic_defers(db):
+    password = secrets.token_hex(12)
+    assert run_script(db, password).returncode == 0
+    conn = await _exec_connect(db, password)
+    try:
+        for table in ("procrastinate_events", "procrastinate_periodic_defers"):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                await conn.execute(f"DELETE FROM jobs.{table}")
+    finally:
+        await conn.close()
+    owner = await psycopg.AsyncConnection.connect(
+        libpq_url(db.url("app")), autocommit=True
+    )
+    try:
+        row = await (
+            await owner.execute(
+                "SELECT bool_and(prosecdef) FROM pg_proc p JOIN pg_namespace n"
+                " ON n.oid = p.pronamespace WHERE n.nspname = 'jobs' AND"
+                " (starts_with(proname, 'procrastinate_trigger_function_')"
+                " OR proname = 'procrastinate_unlink_periodic_defers_v1')"
+            )
+        ).fetchone()
+        assert row == (True,)
+    finally:
+        await owner.close()

@@ -12,6 +12,7 @@ from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_admin
 from backend.app.utils.custom_routable import CustomRoutable
+from backend.jobs import signals
 from backend.jobs.app import JOB_NAMES, postgres_jobs_enabled
 from common.db import ping
 from common.models.user import User
@@ -35,5 +36,7 @@ class PersistenceRouter(CustomRoutable):
             "flags": flags.describe(JOB_NAMES),
             "jobs_on_postgres": postgres_jobs_enabled(flags),
             "postgres": postgres,
+            # since this process started; the error log has each one, by ids
+            "problems": signals.snapshot(),
             "mongo": {"used": False, "status": "not used"},
         }

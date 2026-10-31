@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 from common.models.standard_form import Trigger
@@ -20,6 +21,7 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.internal_fields import strip_internal_fields
+from backend.jobs import signals
 from backend.app.exceptions import HTTPException as AppHTTPException
 from backend.app.models.workspace import WorkspaceRequestWithActionDto
 from backend.app.models.enum.permission import Permission
@@ -28,6 +30,18 @@ from backend.app.services.copy_recipient import (
     not_allowed,
     recipient_values,
 )
+
+
+QUEUE_ATTEMPTS = 3
+QUEUE_RETRY_SECONDS = 0.3
+
+
+def _only(settings_by_action, action_id):
+    """``settings_by_action`` (a dict keyed by action id, or None) with only
+    ``action_id``'s entry."""
+    if not settings_by_action:
+        return settings_by_action
+    return {k: v for k, v in settings_by_action.items() if str(k) == str(action_id)}
 
 
 class ActionService:
@@ -112,20 +126,7 @@ class ActionService:
             workspace = await self.workspace_repo.get_workspace_with_action_by_id(
                 workspace_id=workspace_id, action_id=action.id
             )
-            try:
-                await self.temporal_service.start_action_execution(
-                    action=action, form=form, response=response, workspace=workspace
-                )
-            except Exception as exc:  # noqa: BLE001 - the submission is stored; ids only
-                # a run that cannot be queued must not fail the submission, nor
-                # keep the form's other actions from running
-                logger.error(
-                    "action run not queued: action={} form={} response={} ({})",
-                    action.id,
-                    form.form_id,
-                    response.response_id,
-                    type(exc).__name__,
-                )
+            await self._queue_run(action, form, response, workspace)
         if skipped:
             logger.info(
                 "actions skipped for re-consent: form={} workspace={} count={}",
@@ -133,6 +134,32 @@ class ActionService:
                 workspace_id,
                 skipped,
             )
+
+    async def _queue_run(self, action, form, response, workspace) -> None:
+        """Queue one run; a transient failure is tried again (the pool of
+        queue connections can be busy). A run that still cannot be queued does
+        not fail the submission, which is stored, nor keep the form's other
+        actions from running: it is counted and logged as an error with a fixed
+        event name and ids (``action_run_not_queued``), and no run happens (it
+        is not queued later)."""
+        for attempt in range(QUEUE_ATTEMPTS):
+            try:
+                await self.temporal_service.start_action_execution(
+                    action=action, form=form, response=response, workspace=workspace
+                )
+                return
+            except Exception as exc:  # noqa: BLE001 - ids and the class only
+                if attempt + 1 < QUEUE_ATTEMPTS:
+                    await asyncio.sleep(QUEUE_RETRY_SECONDS * (attempt + 1))
+                    continue
+                signals.action_run_not_queued()
+                logger.error(
+                    "action_run_not_queued: action={} form={} response={} ({})",
+                    action.id,
+                    form.form_id,
+                    response.response_id,
+                    type(exc).__name__,
+                )
 
     async def action_run_context(
         self,
@@ -192,6 +219,11 @@ class ActionService:
         latest.secrets = form_document.secrets
         latest.parameters = form_document.parameters
         form = strip_internal_fields(latest.model_copy(deep=True))
+        # this action's settings only: not the secrets of the form's other actions
+        form.secrets = _only(form.secrets, action.id)
+        form.parameters = _only(form.parameters, action.id)
+        workspace.secrets = _only(workspace.secrets, action.id)
+        workspace.parameters = _only(workspace.parameters, action.id)
         return {
             "action": action.model_dump_json(),
             "form": form.model_dump_json(),

@@ -13,6 +13,7 @@ import os
 from procrastinate import App, PsycopgConnector
 
 from common.db.flags import DbFlags, JobsBackend
+from backend.jobs.log_safety import scrub_job_logging
 
 DEFAULT_QUEUE = "default"
 ACTIONS_QUEUE = "actions"
@@ -51,3 +52,6 @@ app = App(
     connector=build_connector(os.environ.get("DATABASE_URL")),
     import_paths=["backend.jobs.tasks"],
 )
+
+# no job argument in any log line (backend/jobs/log_safety.py)
+scrub_job_logging()

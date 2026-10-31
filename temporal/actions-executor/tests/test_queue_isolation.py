@@ -31,7 +31,10 @@ def test_it_refuses_to_start_without_the_policy_and_says_how_to_apply_it():
 
 
 def test_the_check_asks_only_the_catalog_and_changes_nothing():
-    sql = queue_isolation.ISOLATION_SQL.upper()
+    import re
+
+    # outside the quoted names (a privilege list reads 'INSERT,UPDATE,DELETE')
+    sql = re.sub(r"'[^']*'", "''", queue_isolation.ISOLATION_SQL).upper()
     assert sql.lstrip().startswith("SELECT")
     for word in ("INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"):
         assert word not in sql

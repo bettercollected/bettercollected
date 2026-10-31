@@ -104,10 +104,14 @@ By default (`JOBS_BACKEND=postgres`) each job kind runs as a **procrastinate** j
 workflows above, which stay for jobs queued there before the switch
 (see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)).
 
-An action run is queued as **ids only**: the actions-executor reads the run's data (the response decrypted, the
-action's secrets) from the backend when it runs, so none of it sits in the queue's rows. The executor runs code that
-form creators wrote, so its database role (`bc_jobs_exec`) reaches the `jobs` schema only, and within it only the
-`actions` queue's rows (a row-level policy the backend applies); it refuses to start where that policy is missing.
+An action run is queued as **ids only** (and a run token): the actions-executor reads the run's data (the response
+decrypted, the action's secrets) from the backend when it runs, against the token and the run's job being `doing`, so
+none of it sits in the queue's rows. The executor runs code that form creators wrote, so its database role
+(`bc_jobs_exec`) reaches the `jobs` schema only, and within it only `run_action` rows of the `actions` queue (a
+row-level policy the backend applies); it refuses to start where that policy is missing. This narrows what the
+executor can reach; it does not isolate it. Its `exec` is not a sandbox, it holds the job key and the AES key, and
+keep form actions off until that is done (and the executor must never hold both the job key and the AES key: together
+they forge a deletion header).
 
 ## Example end-to-end flows
 
