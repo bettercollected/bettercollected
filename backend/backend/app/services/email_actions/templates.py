@@ -186,16 +186,22 @@ def defang_links(text: str) -> str:
     return _LINK.sub(lambda m: m.group(0) if m.group("email") else LINK_REMOVED, text)
 
 
+def _copy_item(text: str) -> str:
+    # cut before the links are looked for, so the search reads at most
+    # COPY_ITEM_MAX characters; again after, as "[link removed]" can be longer
+    return truncate(defang_links(truncate(text, COPY_ITEM_MAX)), COPY_ITEM_MAX)
+
+
 def copy_answers_block(entries: Sequence[Entry], language: str = DEFAULT_LANGUAGE) -> str:
     """The respondent's copy of ``answers_block``: every label and answer cut
     to ``COPY_ITEM_MAX`` characters (with an ellipsis), links removed, the
     whole block to ``COPY_ANSWERS_MAX``."""
     lines = []
     for _key, label, value in entries:
-        name = truncate(defang_links(one_line(label, LABEL_MAX)), COPY_ITEM_MAX)
-        text = truncate(
-            defang_links(multi_line(format_value(value, language), VALUE_MAX)), COPY_ITEM_MAX
-        ).replace("\n", "\n  ")
+        name = _copy_item(one_line(label, LABEL_MAX))
+        text = _copy_item(multi_line(format_value(value, language), VALUE_MAX)).replace(
+            "\n", "\n  "
+        )
         lines.append(f"{name}: {text}".rstrip())
     return truncate("\n".join(lines), COPY_ANSWERS_MAX)
 

@@ -3,6 +3,7 @@ matrix. Nothing a respondent types may become markup, a header line, another
 placeholder or another recipient."""
 
 import email
+import time
 from email import policy
 
 import pytest
@@ -313,6 +314,17 @@ def test_the_copy_removes_links_from_labels_and_answers_but_the_team_mail_keeps_
     assert "Question" not in text
     team = body("{{answers}}", entries)
     assert "https://evil.example/now" in team and "www.evil.example/pay" in team
+
+
+@pytest.mark.parametrize("unit", ["a", "a.", "a-", "a@", "-"])
+def test_removing_links_from_a_long_copy_is_quick(unit):
+    # each label and answer is cut before links are looked for, so a copy of
+    # many long answers that look almost like links costs little to build
+    long = unit * 1000
+    entries = [(f"k{i}", long[:200], long) for i in range(50)]
+    started = time.perf_counter()
+    templates.copy_answers_block(entries)
+    assert time.perf_counter() - started < 0.5
 
 
 def test_every_label_and_answer_of_the_copy_is_cut_to_200_characters_and_the_block_to_2000():
