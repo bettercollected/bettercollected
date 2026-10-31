@@ -78,6 +78,10 @@ class FormDtoCamelModel(CamelModel):
     # only on the published form while the switch is on and its registration
     # is enabled. The privacy panel names it. Derived, never stored here.
     registration_destination: Optional[Dict[str, str]] = None
+    # The hosts a submission is also sent to by the form's webhooks
+    # (``{"hosts": [...]}``), only on the published form while WEBHOOKS_ENABLED
+    # is on and a webhook is enabled. The privacy panel names them. Derived.
+    webhook_destination: Optional[Dict[str, List[str]]] = None
     # The draft's version (its ETag, services/form_spec/editor_ops.py): only
     # on the editor's read, for If-Match on its op-batch saves.
     etag: Optional[str] = None

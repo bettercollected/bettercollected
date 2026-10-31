@@ -89,6 +89,17 @@ on from the first changed jump, or to a page that is no longer complete). Sendin
 shared by the last page and the review (409 closed/not open/full keep the answers; 422 goes to the page). A page is
 complete by `pageInvalidations` (`utils/page-validation.ts`) everywhere.
 
+**Field rules (builder):** the inspector's Rules section (`views/molecules/form-builder/field-rules-section.tsx`, the
+editor in `field-rules-settings.tsx`) writes rules through the `set_field_rules` op, so the ops engine's handler
+(`lib/form-ops/handlers/rules.ts`) and the shared checks (`lib/form-ops/field-rule-checks.ts`, twin of the
+server's `field_rule_problems` and `prune_field_rules`) decide what is accepted, and each edit is an undo step.
+The same checks give the editor's inline warnings. Structural ops (remove, make internal, move across a group,
+remove or replace options) drop the rules they leave dangling and say so in their result; duplicating a page does
+not copy rules. The section shows only while `FIELD_RULES_ENABLED` is on for the webapp (`useFieldRulesEnabled`,
+read per request like `SSO_ENABLED`, `lib/runtime-flags.ts`); with it off, existing rules are listed read-only. A
+save the server refuses with 422 `field_rules_disabled` toasts the reason (`audo-save-form.tsx`). The formula box is
+shared with calculated fields (`formula-input.tsx`).
+
 ## Commands
 
 ```bash

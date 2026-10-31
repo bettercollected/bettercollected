@@ -14,6 +14,8 @@
  * clearing a title, description or theme entirely; such differences are
  * left as they are.
  */
+import { answerKey, ruleReads } from '@app/lib/field-rules';
+
 import { childrenOf, clone, isRepeatingGroup, isSlide, jsonEqual, withoutNulls } from './model';
 import type { FormDoc, FormField, FormOp, FormSettingsPatch, PagePatch, UpdateLogoOp } from './types';
 
@@ -185,9 +187,11 @@ function structureOps(from: FormDoc, to: FormDoc): FormOp[] {
      */
     const withoutRules = (field: FormField): FormField => {
         for (const item of [field, ...childrenOf(field)]) {
-            if (item.properties?.dateRules) {
-                delete item.properties.dateRules;
-                forced.add(item.id);
+            for (const key of ['dateRules', 'rules'] as const) {
+                if (item.properties?.[key]) {
+                    delete item.properties[key];
+                    forced.add(item.id);
+                }
             }
         }
         return field;
@@ -202,7 +206,11 @@ function structureOps(from: FormDoc, to: FormDoc): FormOp[] {
     const noteMove = (id: string, fromKey: string | undefined, toKey: string) => {
         if (scopeOf(fromKey) === scopeOf(toKey)) return;
         forced.add(id);
-        for (const [otherId, { field }] of toIdx.fields) if (field.properties?.dateRules?.some((rule: any) => rule.fieldId === id)) forced.add(otherId);
+        for (const [otherId, { field }] of toIdx.fields) {
+            if (field.properties?.dateRules?.some((rule: any) => rule.fieldId === id)) forced.add(otherId);
+            // field rules that read the moved question, and its own, are dropped by a move across the boundary too
+            if (otherId === id || (field.properties?.rules as any[] | undefined)?.some((rule) => ruleReads(rule).some((key) => answerKey(key) === id))) forced.add(otherId);
+        }
     };
     const place = (id: string, key: string, index: number) => {
         const list = containers.get(key)!;
