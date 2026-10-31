@@ -1,5 +1,8 @@
 import { ExprNode, ExprValue, MAX_INPUT_STRING_LENGTH, evaluateExpression, formatExpressionValue } from '@app/lib/expressions';
 import { Dec } from '@app/lib/expressions/decimal';
+import { DEFAULT_CURRENCY, parseAmount } from '@app/utils/currency';
+import { isIsoDate } from '@app/utils/iso-date';
+import { isTime } from '@app/utils/time-of-day';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { buildVariables, calculatedAnswer, calculationVariables, expressionVariables, getCalculatedFields, idMap, pageFields, questionKeys, readingFor } from '@app/utils/calculated-fields';
 import { LogicSources, evaluateConditions, getComparableAnswerValue, getGroupAnswerItems, logicSourcesById } from '@app/utils/conditional-logic';
@@ -74,7 +77,7 @@ export interface FieldRule {
 type Answers = Record<string, any>;
 
 /** Question types whose value a rule may set or lock (page questions only). */
-export const VALUE_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.YES_NO]);
+export const VALUE_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.DAY, FieldTypes.TIME, FieldTypes.CURRENCY, FieldTypes.YES_NO]);
 const TEXT_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT]);
 export const CHOICE_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
 
@@ -256,20 +259,8 @@ function readRules(field: StandardFormFieldDto, allowance: { left: number }): Fi
     return rules.slice(0, allowed);
 }
 
-const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-
 /** Is `value` a real calendar date written exactly as YYYY-MM-DD (years 0001 to 9999)? */
-export function isCalendarDate(value: unknown): value is string {
-    if (typeof value !== 'string') return false;
-    const match = CALENDAR_DATE.exec(value);
-    if (!match) return false;
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    if (year < 1) return false;
-    // setUTCFullYear: Date.UTC treats the years 0 to 99 as 19xx.
-    const date = new Date(0);
-    date.setUTCFullYear(year, month - 1, day);
-    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-}
+export const isCalendarDate = isIsoDate;
 
 const choiceIds = (field: StandardFormFieldDto): Set<string> => new Set((field.properties?.choices ?? []).map((choice) => choice?.id).filter((id): id is string => !!id));
 
@@ -290,7 +281,15 @@ export function valueAnswer(field: StandardFormFieldDto, value: unknown, fromCon
         if (fromConst && Dec.fromNumber(value) === null) return undefined;
         return { type: 'number', number: value };
     }
-    if (type === FieldTypes.DATE) return isCalendarDate(value) ? { type: 'date', date: value } : undefined;
+    if (type === FieldTypes.DATE || type === FieldTypes.DAY) return isCalendarDate(value) ? { type: 'date', date: value } : undefined;
+    if (type === FieldTypes.TIME) return isTime(value) ? { type: 'time', time: value } : undefined;
+    if (type === FieldTypes.CURRENCY) {
+        // the amount in the question's first currency
+        if (typeof value === 'boolean' || (typeof value !== 'string' && typeof value !== 'number')) return undefined;
+        const code = field.properties?.currencies?.[0] ?? DEFAULT_CURRENCY;
+        const amount = typeof value === 'string' ? value : formatExpressionValue(value as ExprValue);
+        return parseAmount(amount, code) === undefined ? undefined : { type: 'currency', currency: { code, amount } };
+    }
     if (type === FieldTypes.YES_NO) {
         if (typeof value === 'boolean') return { type: 'boolean', boolean: value };
         if (value === 'Yes' || value === 'true') return { type: 'boolean', boolean: true };

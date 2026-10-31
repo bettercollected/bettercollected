@@ -26,6 +26,10 @@ from backend.app.services.field_rules import (
 )
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.image_urls import checked_image_url
+from backend.app.services.new_question_types import (
+    GATED_TYPES,
+    new_question_types_enabled,
+)
 from backend.app.services.option_logic import (
     CAN_END_EMPTY,
     SOURCE_OPTION_UNMAPPED,
@@ -354,6 +358,20 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                 "is refused (SAVE_DRAFTS_ENABLED).",
             )
         )
+    if not new_question_types_enabled():
+        # a write with a new or changed time, day or currency question is
+        # refused (422 question_type_disabled)
+        for path, field, _ in index.questions.values():
+            if str(getattr(field.type, "value", field.type)) in GATED_TYPES:
+                warnings.append(
+                    _problem(
+                        f"{path}/type",
+                        f"'{getattr(field.type, 'value', field.type)}' questions are "
+                        "switched off on this server: saving a new one, or changing "
+                        "the settings of one, is refused. Questions the form "
+                        "already has are kept.",
+                    )
+                )
     if not field_rules_enabled():
         # a write with new or changed rules is refused (422 field_rules_disabled)
         for path, field, _ in index.questions.values():

@@ -36,6 +36,11 @@ export interface NewFieldSpec {
     internal?: boolean | null;
     allowMultiple?: boolean | null;
     label?: string | null;
+    /** time only: the earliest and latest time (HH:MM). */
+    minTime?: string | null;
+    maxTime?: string | null;
+    /** currency only: the allowed ISO 4217 codes, the first being the default. */
+    currencies?: string[] | null;
     whyWeAsk?: string | null;
     /** calculated only (backend NewFieldSpec): an expressions-v1 AST, its format, visibility and "unanswered as 0". */
     expression?: unknown;
@@ -73,6 +78,10 @@ export interface FieldPatch {
     exportLayout?: 'columns' | 'rows' | null;
     label?: string | null;
     dateRules?: DateRuleSpec[] | null;
+    /** time only ("" clears) and currency only ([] goes back to the default, EUR). */
+    minTime?: string | null;
+    maxTime?: string | null;
+    currencies?: string[] | null;
     whyWeAsk?: string | null;
     expression?: unknown;
     format?: Record<string, unknown> | null;
@@ -553,6 +562,13 @@ export interface ApplyOptions {
      * the form already holds are accepted (see images.ts).
      */
     isStorageImageUrl?: (url: string) => boolean;
+    /**
+     * The server's NEW_QUESTION_TYPES_ENABLED switch for the time, day and
+     * currency questions. Default true (not checked); false refuses an op that
+     * adds one or changes the type or settings of one the form did not have.
+     * The server checks every save either way.
+     */
+    newQuestionTypes?: boolean;
     /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles

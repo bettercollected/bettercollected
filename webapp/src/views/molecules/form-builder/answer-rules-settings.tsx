@@ -11,6 +11,7 @@ import { useCheckAnswerPatternMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FORMAT_PRESETS, INTEGER_PATTERN, PATTERN_MAX_LENGTH, answerRuleConflicts, answerRuleKind, presetForPattern, summarizeAnswerRules } from '@app/utils/answer-rules';
 import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
+import TypedFieldSettings from '@app/views/molecules/form-builder/typed-field-settings';
 
 type Patch = Partial<IFormFieldValidation>;
 
@@ -22,7 +23,7 @@ export const PATTERN_CHECK_DELAY_MS = 400;
  * field's validations (utils/answer-rules.ts) and checked on the respondent
  * page before Continue/Submit.
  */
-export default function AnswerRulesSettings({ field, onChange }: { field: StandardFormFieldDto; onChange: (patch: Patch) => void }) {
+export default function AnswerRulesSettings({ field, onChange, onPropertyChange }: { field: StandardFormFieldDto; onChange: (patch: Patch) => void; onPropertyChange?: (patch: { minTime?: string; maxTime?: string; currencies?: string[] }) => void }) {
     const kind = answerRuleKind(field);
     const rules = field.validations ?? {};
     const summary = summarizeAnswerRules(field);
@@ -30,6 +31,9 @@ export default function AnswerRulesSettings({ field, onChange }: { field: Standa
     const summaryId = useId();
     const valueConflict = rules.minValue !== undefined && rules.maxValue !== undefined && rules.minValue > rules.maxValue;
     if (!kind) return null;
+    // Time and currency have settings of their own (in the builder's language); a day has only its date rules.
+    if (kind === 'time' || kind === 'currency') return <TypedFieldSettings field={field} onChange={onChange} onPropertyChange={onPropertyChange ?? (() => undefined)} />;
+    if (kind === 'day') return null;
 
     return (
         <div className="flex flex-col gap-3">

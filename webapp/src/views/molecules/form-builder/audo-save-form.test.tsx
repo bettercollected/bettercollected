@@ -6,6 +6,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { setForm } from '@app/store/forms/slice';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
@@ -17,7 +18,7 @@ import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-lan
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-import AutoSaveForm, { droppedOptionLogicOf, flushAutosave, isChoiceLogicDisabled, isFieldRulesDisabled, newlyRepairedOptionLogic, resetRepairedOptionLogicNotices, saveOutcomeOf } from './audo-save-form';
+import AutoSaveForm, { droppedOptionLogicOf, flushAutosave, isChoiceLogicDisabled, isFieldRulesDisabled, isQuestionTypeDisabled, newlyRepairedOptionLogic, resetRepairedOptionLogicNotices, saveOutcomeOf } from './audo-save-form';
 import PublishButton from './publish-button';
 
 const patchFormMock = vi.fn();
@@ -115,6 +116,15 @@ describe('AutoSaveForm', () => {
         await advance(10_000);
         expect(patchFormMock).not.toHaveBeenCalled();
         expect(beforeUnloadPrevented()).toBe(false);
+    });
+
+    it('says plainly why a save the server refuses for a newer question type was not stored', async () => {
+        patchFormMock.mockResolvedValue({ error: { status: 422, data: { code: 'question_type_disabled', message: 'x', errors: [{ fieldId: 'q' }] } } });
+        renderEditor();
+        await act(async () => editor.fields!.updateDescription(0, 0, 'A copy'));
+        await advance(1500);
+        expect(patchFormMock).toHaveBeenCalled();
+        expect(screen.getByText(/can't be added or changed on this server yet/)).toBeInTheDocument();
     });
 
     it('nothing is saved before the editor says the form is loaded', async () => {
@@ -334,6 +344,16 @@ describe('option logic in a save', () => {
         expect(newlyRepairedOptionLogic('f1', repaired)).toBe(2);
         expect(newlyRepairedOptionLogic('f1', repaired)).toBe(0);
         expect(droppedOptionLogicOf({})).toEqual([]);
+    });
+});
+
+describe('isQuestionTypeDisabled', () => {
+    it('recognises the 422 the server answers while the newer question types are switched off', () => {
+        expect(isQuestionTypeDisabled({ error: { status: 422, data: { code: 'question_type_disabled', message: 'x' } } })).toBe(true);
+        expect(isQuestionTypeDisabled({ error: { status: 422, data: { code: 'field_rules_disabled' } } })).toBe(false);
+        expect(isQuestionTypeDisabled({ error: { status: 403, data: { code: 'question_type_disabled' } } })).toBe(false);
+        expect(isQuestionTypeDisabled({ data: {} })).toBe(false);
+        expect(isQuestionTypeDisabled(undefined)).toBe(false);
     });
 });
 

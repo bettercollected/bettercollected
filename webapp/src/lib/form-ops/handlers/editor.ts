@@ -8,13 +8,16 @@
  */
 import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
+import { isCurrencyCode } from '@app/utils/currency';
 import { optionLogicProblems } from '@app/utils/option-logic';
 import { styleValueProblem } from '@app/utils/rich-text-style';
+import { isTime } from '@app/utils/time-of-day';
 
 import { dateRuleProblems, questionsWithScope } from '../date-rules';
 import { fieldRuleProblems } from '../field-rule-checks';
 import { IMAGE_URL_ERROR, firstPartyImageUrl, formImageUrls } from '../images';
 import {
+    DATE_RULE_FIELD_TYPES,
     KNOWN_FIELD_TYPES,
     OpError,
     REPEAT_CHILD_TYPES,
@@ -252,8 +255,20 @@ function ownModelProblem(field: any): string | null {
     }
     const rules = properties?.dateRules;
     if (rules?.length) {
-        if (field.type !== FieldTypes.DATE) return 'Only date questions can have date rules.';
+        if (!DATE_RULE_FIELD_TYPES.has(field.type)) return 'Only date questions can have date rules.';
         for (const rule of rules) if (field.id && rule.fieldId === field.id) return 'A date rule cannot compare a question with itself.';
+    }
+    return typeSettingsProblem(properties?.minTime, properties?.maxTime, properties?.currencies);
+}
+
+/** The settings of time and currency questions (common `check_type_settings`). */
+function typeSettingsProblem(minTime: unknown, maxTime: unknown, currencies: unknown): string | null {
+    for (const value of [minTime, maxTime]) if (value != null && !isTime(value)) return 'A time limit is written as HH:MM (24-hour).';
+    if (typeof minTime === 'string' && typeof maxTime === 'string' && minTime > maxTime) return 'The earliest time is after the latest time.';
+    if (Array.isArray(currencies)) {
+        if (!currencies.length) return 'A currency question needs at least one currency.';
+        for (const code of currencies) if (!isCurrencyCode(code)) return `'${code}' is not a currency the form offers.`;
+        if (new Set(currencies).size !== currencies.length) return 'A currency is listed twice.';
     }
     return null;
 }

@@ -1,5 +1,8 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
+import DayField from '@app/views/molecules/responder-form-fields/day-field';
+import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import LinearRatingField from '@app/views/molecules/responder-form-fields/linear-rating';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
 
@@ -84,6 +87,12 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <RatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.DATE:
             return <DateField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.DAY:
+            return <DayField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.TIME:
+            return <TimeField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.CURRENCY:
+            return <CurrencyField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.IMAGE_CONTENT:

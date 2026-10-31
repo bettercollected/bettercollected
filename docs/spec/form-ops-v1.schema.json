@@ -1461,6 +1461,46 @@
           "default": null,
           "title": "Daterules"
         },
+        "minTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mintime"
+        },
+        "maxTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxtime"
+        },
+        "currencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currencies"
+        },
         "whyWeAsk": {
           "anyOf": [
             {
@@ -2296,6 +2336,46 @@
           ],
           "default": null,
           "title": "Label"
+        },
+        "minTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mintime"
+        },
+        "maxTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxtime"
+        },
+        "currencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currencies"
         },
         "whyWeAsk": {
           "anyOf": [
@@ -4108,6 +4188,46 @@
           ],
           "default": null
         },
+        "minTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mintime"
+        },
+        "maxTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxtime"
+        },
+        "currencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currencies"
+        },
         "label": {
           "anyOf": [
             {
@@ -4658,6 +4778,46 @@
           ],
           "default": null,
           "title": "Daterules"
+        },
+        "minTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mintime"
+        },
+        "maxTime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maxtime"
+        },
+        "currencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currencies"
         },
         "whyWeAsk": {
           "anyOf": [
@@ -5302,6 +5462,9 @@
       "enum": [
         "slide",
         "date",
+        "time",
+        "day",
+        "currency",
         "short_text",
         "long_text",
         "multiple_choice",

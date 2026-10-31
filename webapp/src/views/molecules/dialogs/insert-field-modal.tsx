@@ -1,9 +1,12 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useState } from 'react';
 
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, filterInsertCatalog } from '@app/constants/insert-field-catalog';
+import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
+import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
 import { InsertPlacement, useInsertField } from '@app/lib/hooks/use-insert-field';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { InsertTarget } from '@app/store/jotai/insert-target';
@@ -16,12 +19,17 @@ import { InsertTarget } from '@app/store/jotai/insert-target';
  */
 const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown, target }: { formFields: StandardFormFieldDto[]; activeSlideComponent: { id: string; index: number } | null; closeDropdown: () => void; target?: InsertTarget | null }) => {
     const { insert } = useInsertField();
+    // The names of the newer field types come in the builder's language; the rest of this menu is still English.
+    const { t } = useTranslation('builder');
     const [query, setQuery] = useState('');
     const [activeIndex, setActiveIndex] = useState(0);
     const baseId = useId();
     const optionId = (index: number) => `${baseId}-option-${index}`;
 
-    const results = useMemo(() => filterInsertCatalog(query), [query]);
+    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED).
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const offered = useMemo(() => (newQuestionTypesEnabled ? insertCatalog : insertCatalog.filter((item) => !GATED_TYPES.has(item.type))), [newQuestionTypesEnabled]);
+    const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
     // A page to add to: the selected one, or the canvas target's.
     const hasPage = !!target || (!!activeSlideComponent && activeSlideComponent.index >= 0 && !!formFields?.[activeSlideComponent.index]);
@@ -93,7 +101,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                         value={query}
                         onChange={(event) => {
                             setQuery(event.target.value);
-                            setActiveIndex(bestInsertMatch(filterInsertCatalog(event.target.value), event.target.value));
+                            setActiveIndex(bestInsertMatch(filterInsertCatalog(event.target.value, offered), event.target.value));
                         }}
                         onKeyDown={onKeyDown}
                         className="w-full border-0 bg-transparent py-2 text-sm text-black-900 outline-hidden placeholder:text-black-600 focus:ring-0"
@@ -134,9 +142,11 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                                     >
                                         <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-white', selected ? 'border-brand-500' : 'border-black-300')}>{item.icon}</span>
                                         <span className="min-w-0">
-                                            <span id={`${optionId(index)}-name`} className="block text-sm font-medium">{item.name}</span>
+                                            <span id={`${optionId(index)}-name`} className="block text-sm font-medium">
+                                                {t(`FIELD_TYPES.${item.type}.NAME`, { defaultValue: item.name })}
+                                            </span>
                                             <span id={`${optionId(index)}-desc`} className="block truncate text-xs text-black-600">
-                                                {item.description}
+                                                {t(`FIELD_TYPES.${item.type}.DESCRIPTION`, { defaultValue: item.description })}
                                             </span>
                                         </span>
                                     </div>

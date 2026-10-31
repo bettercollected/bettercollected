@@ -70,7 +70,7 @@ describe.skipIf(!corpus)('form ops conformance corpus', () => {
 
     it.each(cases.map((c) => [c.name, c]))('%s', (_name, c: any) => {
         const before = formOf(c.before);
-        const { doc, results } = applyOps(before, c.ops as FormOp[], { atomic: c.atomic, applySettings: false, skipInverse: true });
+        const { doc, results } = applyOps(before, c.ops as FormOp[], { atomic: c.atomic, applySettings: false, skipInverse: true, newQuestionTypes: c.newQuestionTypes !== false });
         const after = normalised(doc);
         const error = c.expect.error;
         if (!error) {

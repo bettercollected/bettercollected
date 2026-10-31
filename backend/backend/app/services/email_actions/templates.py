@@ -186,22 +186,34 @@ def defang_links(text: str) -> str:
     return _LINK.sub(lambda m: m.group(0) if m.group("email") else LINK_REMOVED, text)
 
 
-def _copy_item(text: str) -> str:
-    # cut before the links are looked for, so the search reads at most
-    # COPY_ITEM_MAX characters; again after, as "[link removed]" can be longer
-    return truncate(defang_links(truncate(text, COPY_ITEM_MAX)), COPY_ITEM_MAX)
+# NFKC turns the fullwidth full stop (U+FF0E), the small full stop (U+FE52) and the
+# one-dot leader (U+2024) into ``.``, and the halfwidth ideographic full stop
+# (U+FF61) into the ideographic one (U+3002), which it leaves alone: so that one,
+# and its twin, are mapped by hand
+_DOTS = {ord("\u3002"): ".", ord("\uff61"): "."}
+
+
+def copy_item(text: str, *, multiline: bool) -> str:
+    """One label or answer as the respondent's copy shows it: cut to
+    ``COPY_ITEM_MAX``, normalised to NFKC (the copy is plain text, so
+    compatibility forms such as fullwidth letters, dots and slashes become the
+    plain ones a link search can see), links removed, cut again (the
+    normalisation can lengthen a text, the replacement is longer than a dot)."""
+    # the cut comes before everything else, so the search reads at most
+    # COPY_ITEM_MAX characters (a long answer is not even cleaned whole)
+    text = (multi_line if multiline else one_line)(str(text)[:VALUE_MAX], COPY_ITEM_MAX)
+    text = unicodedata.normalize("NFKC", text).translate(_DOTS)
+    return truncate(defang_links(text), COPY_ITEM_MAX)
 
 
 def copy_answers_block(entries: Sequence[Entry], language: str = DEFAULT_LANGUAGE) -> str:
     """The respondent's copy of ``answers_block``: every label and answer cut
-    to ``COPY_ITEM_MAX`` characters (with an ellipsis), links removed, the
-    whole block to ``COPY_ANSWERS_MAX``."""
+    to ``COPY_ITEM_MAX`` characters (with an ellipsis), normalised and
+    link-free (``copy_item``), the whole block to ``COPY_ANSWERS_MAX``."""
     lines = []
     for _key, label, value in entries:
-        name = _copy_item(one_line(label, LABEL_MAX))
-        text = _copy_item(multi_line(format_value(value, language), VALUE_MAX)).replace(
-            "\n", "\n  "
-        )
+        name = copy_item(label, multiline=False)
+        text = copy_item(format_value(value, language), multiline=True).replace("\n", "\n  ")
         lines.append(f"{name}: {text}".rstrip())
     return truncate("\n".join(lines), COPY_ANSWERS_MAX)
 

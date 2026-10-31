@@ -1229,5 +1229,42 @@
         "address_not_supported": "Naar dit adres kan niet worden verstuurd: de mailserver accepteert alleen adressen met gewone letters voor de @. Dat proberen we niet opnieuw."
       }
     }
+  },
+  "FIELD_TYPES": {
+    "time": {
+      "NAME": "Tijd",
+      "DESCRIPTION": "Een tijdstip, zoals 09:30"
+    },
+    "day": {
+      "NAME": "Dag (d-m-j)",
+      "DESCRIPTION": "Een datum getypt als dag, maand en jaar"
+    },
+    "currency": {
+      "NAME": "Geldbedrag",
+      "DESCRIPTION": "Een bedrag met de valuta"
+    }
+  },
+  "TYPED_SETTINGS": {
+    "EARLIEST": "Vroegste tijd",
+    "LATEST": "Laatste tijd",
+    "TIME_HINT": "Tijden buiten dit venster kunnen niet worden ingevuld. Laat een vak leeg voor geen grens.",
+    "TIME_ORDER": "De vroegste tijd ligt na de laatste tijd. Er kan dan geen tijd worden ingevuld.",
+    "LABEL": "Label",
+    "LABEL_PLACEHOLDER": "bijv. Aankomsttijd",
+    "CURRENCIES": "Valuta",
+    "DEFAULT": "Standaard",
+    "MAKE_DEFAULT": "Maak {{code}} de standaard",
+    "REMOVE_CURRENCY": "Verwijder {{code}}",
+    "ADD_CURRENCY": "Valuta toevoegen",
+    "CURRENCY_HINT": "Respondenten kiezen uit deze valuta. Bij één valuta vullen ze alleen het bedrag in. Berekeningen gebruiken alleen het bedrag: tel dus bedragen in dezelfde valuta bij elkaar op.",
+    "LOWEST_AMOUNT": "Laagste bedrag",
+    "HIGHEST_AMOUNT": "Hoogste bedrag",
+    "NO_LIMIT": "Geen grens",
+    "AMOUNT_ORDER": "Het laagste bedrag is hoger dan het hoogste."
+  },
+  "NEW_TYPES": {
+    "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",
+    "SAVE_REFUSED": "Deze vraagtypen kunnen op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe vraag of zet de instellingen terug.",
+    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd."
   }
 }

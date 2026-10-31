@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
+import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
@@ -240,6 +241,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { toast } = useToast();
+    const { t: tBuilder } = useTranslation('builder');
     const { autosaveStatus } = useAutosaveStatus();
 
     const slides = formFields || [];
@@ -271,7 +273,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const [showInsights, setShowInsights] = useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const { can } = useWorkspacePermissions();
+    const { can, newQuestionTypesEnabled } = useWorkspacePermissions();
     const insightsTarget = !showInsights || !workspace?.id || !standardForm?.formId ? null : { workspaceId: workspace.id, formId: standardForm.formId };
     const { data: paths, isFetching: pathsFetching } = useGetFormSubmissionPathsQuery(insightsTarget ? { ...insightsTarget, savedAt: autosaveStatus.savedAt } : skipToken, {
         skip: !can(WorkspacePermission.RESPONSE_READ)
@@ -286,6 +288,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
+    // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
+    const cannotCopyPage = !newQuestionTypesEnabled && pageHoldsGatedQuestion(selectedSlide);
 
     // Click-to-connect: click a right dot to start a jump FROM that page (then
     // click any destination node), or a left dot to start one INTO it (then
@@ -762,11 +766,13 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                         <PencilLine className="h-3.5 w-3.5" /> Edit content
                                     </button>
                                     <button
+                                        disabled={cannotCopyPage}
+                                        title={cannotCopyPage ? tBuilder('NEW_TYPES.CANNOT_COPY') : undefined}
                                         onClick={() => {
                                             const newId = duplicateSlide(selectedIndex);
                                             if (newId) setSelectedId(newId);
                                         }}
-                                        className="border-black-300 text-black-700 hover:border-brand-500 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                                        className="border-black-300 text-black-700 hover:border-brand-500 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black-300"
                                     >
                                         <Copy className="h-3.5 w-3.5" /> Duplicate
                                     </button>

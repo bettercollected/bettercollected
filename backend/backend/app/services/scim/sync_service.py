@@ -186,6 +186,7 @@ class ScimSyncService:
         domain_service: WorkspaceDomainService,
         session_service: SessionService,
         http_client,
+        email_action_service=None,
     ):
         self._directories = directory_repo
         self._users = user_repo
@@ -196,6 +197,7 @@ class ScimSyncService:
         self._workspace_user_service = workspace_user_service
         self._domains = domain_service
         self._sessions = session_service
+        self._email_actions = email_action_service
         self._http = http_client
 
     # -- the auth service -----------------------------------------------------
@@ -466,6 +468,12 @@ class ScimSyncService:
         if changed:
             membership.updated_at = _now()
             await self._workspace_users.save(membership)
+        if self._email_actions is not None and email:
+            # deprovisioned: their address leaves this workspace's email
+            # actions (a person who was removed at their organisation is no
+            # longer mailed as "the form's team"; re-provisioning does not
+            # bring it back, an admin adds it again)
+            await self._email_actions.forget_address(email, workspace.id)
         # every session of the account, its other workspaces' included: the
         # simplest safe choice (docs/sso.md); its other memberships stay
         revoked = await self._sessions.revoke_all_for_user(

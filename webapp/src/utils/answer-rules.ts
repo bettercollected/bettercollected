@@ -1,5 +1,8 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@app/utils/currency';
+import { isIsoDate } from '@app/utils/iso-date';
+import { isTime, minutesOf } from '@app/utils/time-of-day';
 import type { LogicSources } from '@app/utils/conditional-logic';
 import type { OptionStates } from '@app/utils/option-logic';
 import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
@@ -14,16 +17,22 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
  * - Number: lowest and highest value, and "whole numbers only" (stored as
  *   the INTEGER_PATTERN regex, checked against the number as typed).
  * - Multiple choice with multiple selection: how many options to pick.
+ * - Time: the earliest and latest time (`minTime`, `maxTime`, in the
+ *   properties) and the format (HH:MM).
+ * - Day (typed as day, month and year): the date must be a real one.
+ * - Currency: the currency must be one of the question's (EUR when it names
+ *   none), the amount a plain decimal with the currency's own decimals, and
+ *   within the lowest and highest value.
  *
  * An empty answer is never checked here: whether one is needed is what
  * Required says.
  */
 
-export type AnswerRuleKind = 'text' | 'number' | 'choices';
+export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency';
 
-export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES';
+export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY';
 
-export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES'];
+export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY'];
 
 /** "Whole numbers only" on a number question. */
 export const INTEGER_PATTERN = '^-?\\d+$';
@@ -89,6 +98,12 @@ export function answerRuleKind(field: Pick<StandardFormFieldDto, 'type' | 'prope
             return 'number';
         case FieldTypes.MULTIPLE_CHOICE:
             return field.properties?.allowMultipleSelection ? 'choices' : null;
+        case FieldTypes.TIME:
+            return 'time';
+        case FieldTypes.DAY:
+            return 'day';
+        case FieldTypes.CURRENCY:
+            return 'currency';
         default:
             return null;
     }
@@ -109,12 +124,20 @@ function answerNumber(answer: any): { value: number; typed: string } | undefined
     return Number.isFinite(value) ? { value, typed } : undefined;
 }
 
+/** A currency answer is `{ code: text, amount: text }` (either may be missing); another shape is the server's "type" problem. */
+function currencyShape(value: any): value is { code?: string; amount?: string } {
+    return !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every((key) => key === 'code' || key === 'amount') && Object.values(value).every((v) => v === undefined || v === null || typeof v === 'string');
+}
+
 function answerChoiceCount(answer: any): number | undefined {
     const choices = answer?.choices;
     if (!choices) return undefined;
     const count = (choices.values?.length ?? 0) + (typeof choices.other === 'string' && choices.other.trim() ? 1 : 0);
     return count > 0 ? count : undefined;
 }
+
+/** The currencies a currency question offers: its own list, else the euro. */
+export const questionCurrencies = (field: Pick<StandardFormFieldDto, 'properties'> | undefined | null): string[] => (field?.properties?.currencies?.length ? field.properties.currencies : ['EUR']);
 
 /** The rules an answer breaks (empty when it keeps them all, or is empty). */
 export function checkAnswerRules(field: StandardFormFieldDto, answer: any, options?: OptionStates): AnswerRuleProblem[] {
@@ -150,6 +173,33 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
             const minimum = isSet(rules.minChoices) ? (options ? options.minChoices(field.id, rules.minChoices) : rules.minChoices) : undefined;
             if (isSet(minimum) && count < minimum) problems.push('TOO_FEW_CHOICES');
             if (isSet(rules.maxChoices) && count > rules.maxChoices) problems.push('TOO_MANY_CHOICES');
+            break;
+        }
+        case 'time': {
+            const time = answer?.time;
+            if (typeof time !== 'string' || !time) break;
+            if (!isTime(time)) return ['FORMAT'];
+            const { minTime, maxTime } = field.properties ?? {};
+            if (isTime(minTime) && minutesOf(time) < minutesOf(minTime)) problems.push('TOO_SMALL');
+            if (isTime(maxTime) && minutesOf(time) > minutesOf(maxTime)) problems.push('TOO_LARGE');
+            break;
+        }
+        case 'day': {
+            const date = answer?.date;
+            if (typeof date === 'string' && date && !isIsoDate(date)) problems.push('FORMAT');
+            break;
+        }
+        case 'currency': {
+            const value = answer?.currency;
+            if (!currencyShape(value)) break;
+            const { code, amount } = value;
+            if (!code && !amount) break;
+            if (typeof code !== 'string' || !isCurrencyCode(code)) return ['FORMAT'];
+            if (!questionCurrencies(field).includes(code)) return ['CURRENCY'];
+            const parsed = parseAmount(amount, code);
+            if (parsed === undefined) return ['FORMAT'];
+            if (isSet(rules.minValue) && parsed < rules.minValue) problems.push('TOO_SMALL');
+            if (isSet(rules.maxValue) && parsed > rules.maxValue) problems.push('TOO_LARGE');
             break;
         }
     }
@@ -193,7 +243,7 @@ export const isAnswerRuleProblem = (code: unknown): code is AnswerRuleProblem =>
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /** What to tell the respondent, in their language (`respondent` namespace, RULE.*). */
-export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRuleProblem, t: Translate): string {
+export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRuleProblem, t: Translate, language: string = 'en'): string {
     const rules: IFormFieldValidation = field?.validations ?? {};
     switch (problem) {
         case 'TOO_SHORT':
@@ -205,9 +255,19 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
             return preset ? t(`RULE.FORMAT_${preset.id.toUpperCase()}`, { example: preset.example }) : t('RULE.PATTERN');
         }
         case 'TOO_SMALL':
+            if (field?.type === FieldTypes.TIME) return t('RULE.TOO_EARLY', { time: field.properties?.minTime });
+            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_SMALL', { min: formatAmount({ code: questionCurrencies(field)[0], amount: String(rules.minValue) }, language) });
             return t('RULE.TOO_SMALL', { min: rules.minValue });
         case 'TOO_LARGE':
+            if (field?.type === FieldTypes.TIME) return t('RULE.TOO_LATE', { time: field.properties?.maxTime });
+            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_LARGE', { max: formatAmount({ code: questionCurrencies(field)[0], amount: String(rules.maxValue) }, language) });
             return t('RULE.TOO_LARGE', { max: rules.maxValue });
+        case 'FORMAT':
+            if (field?.type === FieldTypes.TIME) return t('RULE.FORMAT_TIME');
+            if (field?.type === FieldTypes.DAY) return t('RULE.FORMAT_DAY');
+            return t('RULE.FORMAT_AMOUNT');
+        case 'CURRENCY':
+            return t('RULE.CURRENCY', { currencies: questionCurrencies(field).join(', ') });
         case 'NOT_INTEGER':
             return t('RULE.NOT_INTEGER');
         case 'TOO_FEW_CHOICES':

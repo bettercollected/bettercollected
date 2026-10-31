@@ -79,7 +79,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
     // the server finds a miss, and its message stays until the next Continue.
     const serverPattern = flagged.includes('PATTERN') && !!field?.validations?.regex && !browserChecksPattern(field.validations.regex);
-    const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t) : serverPattern ? answerRuleMessage(field, 'PATTERN', t) : undefined;
+    const ruleMessage = ruleProblems.length ? answerRuleMessage(field, ruleProblems[0], t, language) : serverPattern ? answerRuleMessage(field, 'PATTERN', t) : undefined;
     // Problems only the server finds (an answer of the wrong kind).
     const serverProblem = flagged.find(isServerProblem);
     const serverMessage = serverProblem ? serverProblemMessage(serverProblem, t) : undefined;

@@ -309,6 +309,16 @@ form spec, the ops engine, the REST API and the Open Formulieren import (an arch
 drops it). The builder asks `POST /workspaces/{id}/forms/pattern/check` while a pattern is typed. There is no
 shape analysis of patterns: two review rounds found bypasses in one, and RE2 makes it unnecessary.
 
+**Time, day and currency questions** (field types `time`, `day`, `currency`; spec section "Time, day and currency
+questions" in [../docs/spec/README.md](../docs/spec/README.md)): answers sit in the `time` slot (`"HH:MM"`), the `date` slot
+(a `day` is a date typed as three boxes) and the `currency` slot (`{code, amount}` with the amount a plain decimal string).
+`common/currencies.py` holds the currency table (twin `webapp/src/utils/currency.ts`, both compared with
+`docs/spec/currencies-v1.json`), `parse_amount`, `is_time`; the settings are `properties.min_time`, `max_time`, `currencies`
+(`check_type_settings`, checked by the model, the spec, the DTO and the ops engines). `answer_validation` checks them
+(rule codes `format`, `currency`, plus `too_small`/`too_large`; twin `utils/answer-rules.ts`); date rules apply to `day`
+too (`DATE_RULE_TYPES`). In logic and rules a time or a day compares as text that sorts (`_ordered_text_condition`, also for
+`date`), a currency reads as its amount string. Internal fields do not take these types.
+
 **Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
 `calculated` field on a page stores an expressions-v1 AST at `properties.expression`
 ([../docs/spec/expressions-v1.md](../docs/spec/expressions-v1.md)), a display `format` and
@@ -343,6 +353,18 @@ gate for every op writer (chat, proposals, MCP, public API). Never add a paralle
 `ensure_rules_allowed` / `new_or_changed_rules`, which compares a rule by its question (id and type, not
 where it sits: moving a question changes no rule) and its content, so a rule moved to another question, or
 to one of another type under a reused id, reads as new. Stored rules are kept and enforced.
+`NEW_QUESTION_TYPES_ENABLED` (default off) is the same kind of switch for the newer question types (`time`, `day`,
+`currency`; the list is `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
+brings a new gated question, or changes the type or the type's own settings of one (`signature`: time limits,
+currencies, a day's date rules, amount limits; not the title, label, required flag or place), is refused with 422
+`question_type_disabled`, and an op fails with the same message (`question_type_problem`, after each op in
+`GATED_OPS`, against the form the batch started from). Paths: `write_form_parts` (the last gate for every op writer),
+create/update form (a copy, `drop_unusable_settings`, keeps what its source has), templates, the spec API (its
+validate warns) and `apply_form_ops`; the permissions answer says it as `newQuestionTypesEnabled`, the assistant's
+prompt leaves the types out (`ops_guide()`). Never add a parallel check. Stored questions keep rendering, taking
+answers and exporting: answer validation and exports do not read the switch. The shared ops corpus runs a case with
+the switch off through `newQuestionTypes: false`. A test that needs such a form builds it with the switch on, then
+turns it off.
 Bounds: 8 per question, 100 per form (counted before parsing a builder body, a spec or an ops payload), 50
 variables per expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`:
 forms that could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`).
@@ -1028,8 +1050,9 @@ the instance's `MAIL_*` settings (`config/mail_settings.py`, the auth service's 
 - **No open relay.** Team addresses are members of the workspace only (`CopyRecipientService.allowed_among`, at save and again at send). A
   respondent's copy goes only to the `email` answer of its own submission, read from the stored answers at send time, in fixed wording
   (never a creator template, no form title; labels and answers cut to 200 characters, 2,000 in all, links removed: `copy_answers_block`),
-  rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget,
-  a mail counts once across retries. Team mail is capped per form. An address is erased from the team lists when its member leaves or is deleted (`forget_address`). No endpoint mails an address it is given: the
+  rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget
+  (each budget is `RateLimiter.admit`, atomic: check and count in one locked step, then `release` what a later budget refused),
+  a mail counts once across retries. Team mail is capped per form. An address is erased from the team lists (`forget_address`) when its member is removed, their account is deleted, or the workspace's SCIM directory deprovisions them: any new path that removes or deactivates a membership must call it. No endpoint mails an address it is given: the
   test mail goes to the caller. Never add one.
 - **Plain text only, one pass.** Template values pass through `templates.clean` (controls, line/paragraph separators, NEL, bidi overrides and
   isolates, zero width characters out); the subject is one line; addresses are validated by `copy_recipient.normalize_address` (which refuses

@@ -19,11 +19,13 @@ the required questions of the items a group shows on the respondent's path.)
 
 from typing import Any, Dict, Iterable, List, Optional
 
+from common.currencies import is_time
 from common.expressions import format_expression_value
 from common.models.standard_form import (
     StandardForm,
     StandardFormFieldType,
     StandardFormResponseAnswer,
+    is_iso_date,
 )
 from pydantic import BaseModel, ValidationError
 
@@ -68,8 +70,16 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
         return answer.get("url") or answer.get("text")
     if field_type in ("number", "rating", "linear_rating"):
         return answer.get("number")
-    if field_type == "date":
+    if field_type in ("date", "day"):
         return answer.get("date")
+    if field_type == "time":
+        return answer.get("time")
+    if field_type == "currency":
+        # the amount as written ("12.50"): a number to formulas and
+        # ordered comparisons; the code is not part of the value
+        currency = answer.get("currency")
+        amount = currency.get("amount") if isinstance(currency, dict) else None
+        return amount if isinstance(amount, str) and amount else None
     if field_type == "phone_number":
         return answer.get("phoneNumber") or answer.get("phone_number")
     if field_type == "calculated":
@@ -290,6 +300,35 @@ def _evaluate_choice_condition(
     return all(results) if comparison in NEGATED_COMPARISONS else any(results)
 
 
+ORDERED_COMPARISONS = (
+    "GREATER_THAN",
+    "GREATER_THAN_EQUAL",
+    "LESS_THAN",
+    "LESS_THAN_EQUAL",
+)
+# Questions whose answer is text that sorts as the thing it is: a time
+# ("HH:MM") or a calendar day ("YYYY-MM-DD"). Ordered comparisons compare
+# them as such (both sides must be well-formed, else the condition does not
+# hold); everything else reads numbers.
+ORDERED_TEXT_TYPES = ("time", "day", "date")
+
+
+def _ordered_text_condition(
+    value: Any, field_type: str, comparison: Optional[str], target: Any
+) -> bool:
+    """Twin of the webapp's ``compareOrderedText``."""
+    well_formed = is_time if field_type == "time" else is_iso_date
+    if not well_formed(value) or not well_formed(target):
+        return False
+    if comparison == "GREATER_THAN":
+        return value > target
+    if comparison == "GREATER_THAN_EQUAL":
+        return value >= target
+    if comparison == "LESS_THAN":
+        return value < target
+    return value <= target
+
+
 def evaluate_condition(
     answers: Dict[str, Any],
     condition: Any,
@@ -324,6 +363,13 @@ def evaluate_condition(
             return bool(matches) and all(matches)
         return False
     field_type = get("field_type", "fieldType")
+    if field_type in ORDERED_TEXT_TYPES and comparison in ORDERED_COMPARISONS:
+        return _ordered_text_condition(
+            comparable_answer_value(answers.get(field_id), field_type),
+            field_type,
+            comparison,
+            target,
+        )
     if field_type in CHOICE_TYPES:
         return _evaluate_choice_condition(
             answers.get(field_id),

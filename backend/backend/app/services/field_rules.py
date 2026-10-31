@@ -72,6 +72,7 @@ from typing import (
     Tuple,
 )
 
+from common.currencies import DEFAULT_CURRENCY, is_time, parse_amount
 from common.expressions import (
     MAX_INPUT_STRING_LENGTH,
     ExpressionError,
@@ -146,7 +147,14 @@ TEXT_TYPES = {"short_text", "long_text"}
 CHOICE_TYPES = {"multiple_choice", "dropdown"}
 # Types whose value a rule may set or lock (readOnly / setValue), on a page
 # only: never inside a repeating group in this version.
-VALUE_TYPES = TEXT_TYPES | CHOICE_TYPES | {"number", "date", "yes_no"}
+VALUE_TYPES = TEXT_TYPES | CHOICE_TYPES | {
+    "number",
+    "date",
+    "day",
+    "time",
+    "currency",
+    "yes_no",
+}
 # Types that hold no answer a rule could apply to (content, pages, hidden
 # and calculated fields): rules may not sit on them.
 NOT_RULE_TARGETS = NOT_VARIABLES | {CALCULATED, GROUP}
@@ -156,6 +164,9 @@ _ANSWER_TYPE = {
     "long_text": "text",
     "number": "number",
     "date": "date",
+    "day": "date",
+    "time": "time",
+    "currency": "currency",
     "yes_no": "boolean",
     "multiple_choice": "choice",
     "dropdown": "choice",
@@ -475,10 +486,31 @@ def value_answer(field: Any, value: Any) -> Optional[Dict[str, Any]]:
                 return None
             return {**answer, "type": "number", "number": value}
         return None
-    if field_type == "date":
+    if field_type in ("date", "day"):
         if is_iso_date(value):
             return {**answer, "type": "date", "date": value}
         return None
+    if field_type == "time":
+        if is_time(value):
+            return {**answer, "type": "time", "time": value}
+        return None
+    if field_type == "currency":
+        # the amount in the question's first currency
+        if isinstance(value, bool) or not isinstance(
+            value, (str, int, float, Decimal)
+        ):
+            return None
+        code = (
+            _get(_get(field, "properties"), "currencies") or [DEFAULT_CURRENCY]
+        )[0]
+        amount = value if isinstance(value, str) else format_expression_value(value)
+        if parse_amount(amount, code) is None:
+            return None
+        return {
+            **answer,
+            "type": "currency",
+            "currency": {"code": code, "amount": amount},
+        }
     if field_type == "yes_no":
         if isinstance(value, bool):
             return {**answer, "type": "boolean", "boolean": value}
@@ -1060,8 +1092,8 @@ class _Checker:
             elif _type(field) not in VALUE_TYPES:
                 problem = (
                     f"Rules can lock or set the value of short and long text, "
-                    f"number, date, yes/no and single-choice questions, not "
-                    f"'{name}'."
+                    f"number, date, day, time, currency, yes/no and single-choice "
+                    f"questions, not '{name}'."
                 )
             elif _multiple(field):
                 problem = (
@@ -1263,6 +1295,9 @@ class _Checker:
             what = {
                 "number": "a number",
                 "date": "a date written as YYYY-MM-DD",
+                "day": "a date written as YYYY-MM-DD",
+                "time": "a time written as HH:MM (24-hour)",
+                "currency": "an amount such as 12.50 (in the question's first currency)",
                 "yes_no": "true or false",
                 "multiple_choice": "the id of one of its options",
                 "dropdown": "the id of one of its options",

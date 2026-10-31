@@ -52,7 +52,9 @@ export function useWorkspacePermissions() {
     const fieldRulesEnabled = !!userId && !isError && !!data?.fieldRulesEnabled;
     // Likewise for choice logic (its CHOICE_LOGIC_ENABLED): option logic and filters in the builder.
     const choiceLogicEnabled = !!userId && !isError && !!data?.choiceLogicEnabled;
+    // The same for the newer question types (its NEW_QUESTION_TYPES_ENABLED): the builder offers them from it.
+    const newQuestionTypesEnabled = !!userId && !isError && !!data?.newQuestionTypesEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, saveDraftsEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, saveDraftsEnabled };
 }

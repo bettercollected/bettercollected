@@ -93,6 +93,7 @@ from backend.app.services.field_rules import (
     ensure_valid_field_rules,
     rule_keys_affected,
 )
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -745,6 +746,9 @@ class WorkspaceFormService:
         await run_in_threadpool(ensure_valid_field_rules, form, True)
         if not drop_unusable_settings:
             ensure_rules_allowed(form)
+            # the newer question types: a copy of a form or template keeps
+            # what its source has; anything else needs the switch
+            ensure_question_types_allowed(form)
         # Choice logic (services/option_logic.py): what a structural edit
         # broke is dropped; the size caps refuse; new option logic needs
         # CHOICE_LOGIC_ENABLED, except in a copy of a form or template.
@@ -878,6 +882,8 @@ class WorkspaceFormService:
         if dropped_rules is not None:
             dropped_rules.extend(dropped)
         ensure_rules_allowed(form, existing_form)
+        # the newer question types (services/new_question_types.py)
+        ensure_question_types_allowed(form, existing_form)
         # Choice logic: a condition or filter a structural edit broke (a
         # question moved before its source, a removed option) is dropped,
         # never a refusal that would stop autosave; the size caps refuse.

@@ -173,7 +173,40 @@ class Label(RootModel[str]):
 
 
 class DateRules(RootModel[list[DateRule]]):
-    root: list[DateRule] = Field(None, max_length=5, title="Daterules")
+    root: list[DateRule] = Field(
+        None,
+        description="Constraints on a date or day question's answer.",
+        max_length=5,
+        title="Daterules",
+    )
+
+
+class MinTime(RootModel[str]):
+    root: str = Field(
+        None,
+        description="A time question: the earliest time that can be answered (HH:MM, 24-hour).",
+        pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$",
+        title="Mintime",
+    )
+
+
+class MaxTime(RootModel[str]):
+    root: str = Field(
+        None,
+        description="A time question: the latest time that can be answered (HH:MM, 24-hour).",
+        pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$",
+        title="Maxtime",
+    )
+
+
+class Currencies(RootModel[list[str]]):
+    root: list[str] = Field(
+        None,
+        description="A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.",
+        max_length=10,
+        min_length=1,
+        title="Currencies",
+    )
 
 
 class WhyWeAsk(RootModel[str]):
@@ -851,6 +884,9 @@ class FormField(BaseModel):
     type: (
         Literal[
             "date",
+            "time",
+            "day",
+            "currency",
             "short_text",
             "long_text",
             "multiple_choice",
@@ -968,7 +1004,29 @@ class FormField(BaseModel):
     label: Label | None = Field(
         None, description="Short label shown with a date picker.", title="Label"
     )
-    date_rules: DateRules | None = Field(None, alias="dateRules", title="Daterules")
+    date_rules: DateRules | None = Field(
+        None,
+        alias="dateRules",
+        description="Constraints on a date or day question's answer.",
+        title="Daterules",
+    )
+    min_time: MinTime | None = Field(
+        None,
+        alias="minTime",
+        description="A time question: the earliest time that can be answered (HH:MM, 24-hour).",
+        title="Mintime",
+    )
+    max_time: MaxTime | None = Field(
+        None,
+        alias="maxTime",
+        description="A time question: the latest time that can be answered (HH:MM, 24-hour).",
+        title="Maxtime",
+    )
+    currencies: Currencies | None = Field(
+        None,
+        description="A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.",
+        title="Currencies",
+    )
     why_we_ask: WhyWeAsk | None = Field(None, alias="whyWeAsk", title="Whyweask")
     logic: Logic | None = None
     option_filter: OptionFilter | None = Field(

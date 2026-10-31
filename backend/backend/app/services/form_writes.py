@@ -15,6 +15,7 @@ from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.field_rules import ensure_rules_allowed
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -85,6 +86,9 @@ async def persist_form(
         # FIELD_RULES_ENABLED is on, except as the stored form has them:
         # whatever an op or a writer did, nothing new gets past this.
         ensure_rules_allowed(new_form, form_document)
+        # The newer question types (services/new_question_types.py): the
+        # same, while NEW_QUESTION_TYPES_ENABLED is off.
+        ensure_question_types_allowed(new_form, form_document)
         # Choice logic (services/option_logic.py): the last gate repairs what
         # a structural change left broken and refuses the size caps.
         ensure_valid_option_logic(new_form, drop=True)

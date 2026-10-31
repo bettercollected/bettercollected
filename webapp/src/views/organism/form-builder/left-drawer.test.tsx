@@ -2,7 +2,7 @@ import React from 'react';
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider } from 'jotai';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
@@ -17,10 +17,15 @@ import LeftDrawer from './left-drawer';
 // The overlay is measured by the browser; jsdom has no layout, so drags are
 // measured on the rows themselves (mocked below).
 vi.mock('@dnd-kit/core', async (importOriginal) => ({ ...(await importOriginal<typeof import('@dnd-kit/core')>()), DragOverlay: () => null }));
+// What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, can: () => true }) }));
 // The "+" popover pulls in template queries; not under test here.
 vi.mock('./add-slide/add-slide-popover', () => ({ default: () => <button type="button" aria-label="Add page" /> }));
 
 const q = (id: string, title: string, extra: Partial<StandardFormFieldDto> = {}) => ({ id, index: 0, type: FieldTypes.SHORT_TEXT, title, ...extra }) as StandardFormFieldDto;
+// Set to put a time question on page 2.
+let timeOnPageTwo = false;
 // Set to put field rules on "Your name" (the rules badge).
 let nameRules: unknown[] | undefined;
 const pages = (): StandardFormFieldDto[] =>
@@ -30,7 +35,7 @@ const pages = (): StandardFormFieldDto[] =>
             type: FieldTypes.SLIDE,
             properties: { sectionTitle: 'About you', fields: [q('name', 'Your name', nameRules ? { properties: { rules: nameRules } as any } : {}), q('email', 'Your email', { type: FieldTypes.EMAIL })] }
         },
-        { id: 'p2', type: FieldTypes.SLIDE, properties: { fields: [q('city', 'Your city'), q('ref', 'Reference', { internal: true })] } },
+        { id: 'p2', type: FieldTypes.SLIDE, properties: { fields: [q('city', 'Your city'), q('ref', 'Reference', { internal: true }), ...(timeOnPageTwo ? [q('when', 'Arrival', { type: FieldTypes.TIME })] : [])] } },
         { id: 'p3', type: FieldTypes.SLIDE, properties: { fields: [] } }
     ].map((slide, index) => ({ ...slide, index, properties: { ...slide.properties, fields: slide.properties.fields.map((f, i) => ({ ...f, index: i })) } })) as StandardFormFieldDto[];
 
@@ -373,5 +378,42 @@ describe('the rules badge', () => {
         renderOutline();
         expect(screen.getByTestId('rules-badge')).toHaveTextContent('1 rule');
         nameRules = undefined;
+    });
+
+    describe('duplicating a page and the newer question types', () => {
+        afterEach(() => {
+            timeOnPageTwo = false;
+            served.newQuestionTypesEnabled = false;
+        });
+        const duplicateItem = async () => {
+            fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Page 2' }), { key: 'Enter' });
+            return screen.findByRole('menuitem', { name: 'Duplicate' });
+        };
+
+        it('can copy a page while the server does not take the types when it holds none', async () => {
+            renderOutline();
+            await tick();
+            expect(await duplicateItem()).not.toHaveAttribute('aria-disabled', 'true');
+        });
+
+        it('cannot copy a page that holds a time, day or currency question while the server does not take them', async () => {
+            timeOnPageTwo = true;
+            renderOutline();
+            await tick();
+            const item = await duplicateItem();
+            expect(item).toHaveAttribute('aria-disabled', 'true');
+            expect(item).toHaveAttribute('title', expect.stringContaining("can't be copied"));
+            fireEvent.click(item);
+            await tick();
+            expect(seen.builder.formFields).toHaveLength(3);
+        });
+
+        it('copies it once the server takes them', async () => {
+            timeOnPageTwo = true;
+            served.newQuestionTypesEnabled = true;
+            renderOutline();
+            await tick();
+            expect(await duplicateItem()).not.toHaveAttribute('aria-disabled', 'true');
+        });
     });
 });

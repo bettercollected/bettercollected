@@ -8,10 +8,9 @@
  * batch. Here the sweep reads a plain document and reports only the
  * questions whose rules actually change.
  */
-import { FieldTypes } from '@app/models/dtos/form';
 import { isIsoDate } from '@app/utils/date-rules';
 
-import { DATE_RULES_MAX, OpError, isSlide } from './model';
+import { DATE_RULES_MAX, DATE_RULE_FIELD_TYPES, OpError, isSlide } from './model';
 import type { DateRuleSpec, FormField } from './types';
 
 /** Path of a question: indexes into the nested `fields` arrays from `doc.fields`. */
@@ -99,7 +98,7 @@ export function dateRuleProblems(fields: FormField[] | undefined | null, overrid
         const rules = rulesOf(question);
         if (!rules.length) continue;
         const title = questionTitle(question);
-        if (question.type !== FieldTypes.DATE) {
+        if (!DATE_RULE_FIELD_TYPES.has(question.type)) {
             problems.push(`'${title}' is not a date question, so it cannot have date rules.`);
             continue;
         }
@@ -116,7 +115,7 @@ export function dateRuleProblems(fields: FormField[] | undefined | null, overrid
                 continue;
             }
             const refTitle = questionTitle(entry.question);
-            if (entry.question.type !== FieldTypes.DATE) {
+            if (!DATE_RULE_FIELD_TYPES.has(entry.question.type)) {
                 problems.push(`A date rule of '${title}' uses '${refTitle}', which is not a date question.`);
                 continue;
             }
@@ -208,13 +207,13 @@ export function dateRuleFixes(fields: FormField[] | undefined | null): DateRuleF
         const rules = (question?.properties?.dateRules as DateRuleSpec[] | undefined) ?? [];
         if (!rules.length) return;
         const kept =
-            question.type !== FieldTypes.DATE
+            !DATE_RULE_FIELD_TYPES.has(question.type)
                 ? []
                 : rules.filter((rule) => {
                       if (rule.target !== 'field') return true;
                       const entry = scopes.get(String(rule.fieldId));
                       if (!entry || entry[0] === question) return false;
-                      if (entry[0].type !== FieldTypes.DATE || entry[0].internal) return false;
+                      if (!DATE_RULE_FIELD_TYPES.has(entry[0].type) || entry[0].internal) return false;
                       return groupId === entry[1];
                   });
         if (kept.length !== rules.length) fixes.push({ path: pathOf(top, position, child), rules: kept.length ? kept : undefined, dropped: rules.length - kept.length });

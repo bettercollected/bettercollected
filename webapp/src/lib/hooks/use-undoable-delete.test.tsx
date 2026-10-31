@@ -2,7 +2,7 @@ import React from 'react';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
@@ -11,6 +11,9 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import SlideOptions from '@app/views/organism/form-builder/slide-options';
 
 import { useUndoableDelete } from './use-undoable-delete';
+
+// The outline's page menu asks what the server takes (no store here).
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: false, can: () => true }) }));
 
 const pages = (): StandardFormFieldDto[] => [
     {

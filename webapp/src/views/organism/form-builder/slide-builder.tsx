@@ -6,14 +6,17 @@ import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAtomValue, useSetAtom } from 'jotai';
+import i18n from 'i18next';
 import { Copy, Lock as LockIcon, Plus, Trash } from 'lucide-react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { formFieldsList } from '@app/constants/form-fields';
 import { insertCatalogItem } from '@app/constants/insert-field-catalog';
 import { jsonEqual } from '@app/lib/form-ops/model';
+import { isGatedQuestion } from '@app/lib/form-ops/new-question-types';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -211,6 +214,9 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
     const setActiveFieldComponent = useSetAtom(activeFieldAtom);
     const { duplicateField, getFormFields } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
+    // A copy of a time, day or currency question is a new one: not while the server does not take them.
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const cannotCopy = isGatedQuestion(field) && !newQuestionTypesEnabled;
     // The toolbar acts on the question where it is now, found by id.
     const locate = () => (field ? locateField(getFormFields(), field.id) : null);
     if (!field) return null;
@@ -283,8 +289,9 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 type="button"
                                 aria-label="Duplicate question"
                                 aria-keyshortcuts="Control+D Meta+D"
-                                title="Duplicate question (Ctrl/Cmd+D)"
-                                className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
+                                title={cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : 'Duplicate question (Ctrl/Cmd+D)'}
+                                disabled={cannotCopy}
+                                className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     const at = locate();

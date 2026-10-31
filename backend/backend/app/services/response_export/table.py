@@ -68,6 +68,9 @@ _PLACEHOLDERS = {
     "text": "Add Text",
     "rating": "Rate from 1 to 5",
     "date": "Select a date",
+    "day": "Select a date",
+    "time": "Select a time",
+    "currency": "Enter an amount",
     "linear_rating": "Rate from 1 to 10",
     "matrix": "Matrix Field",
     "tabular_input": "Tabular Input Field",
@@ -331,8 +334,19 @@ def answer_value(answers: Dict[str, Any], field_: Dict[str, Any], separator: Opt
         return answer.get("url")
     if kind in ("email", "input_email"):
         return answer.get("email")
-    if kind in ("date", "input_date"):
+    if kind in ("date", "input_date", "day"):
         return answer.get("date")
+    if kind == "time":
+        return answer.get("time")
+    if kind == "currency":
+        # "EUR 12.50": the code, a space and the dot-decimal amount, the same
+        # in every language (webapp ``currencyExportText``)
+        currency = _dict(answer.get("currency"))
+        amount = currency.get("amount")
+        if not isinstance(amount, str) or not amount:
+            return ""
+        code = currency.get("code")
+        return f"{code} {amount}" if isinstance(code, str) and code else amount
     if kind == "yes_no":
         flag = answer.get("boolean")
         return "Yes" if flag is True else "No" if flag is False else ""

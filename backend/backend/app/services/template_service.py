@@ -21,6 +21,7 @@ from backend.app.services.field_rules import (
     ensure_rules_allowed,
     ensure_valid_field_rules,
 )
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -172,6 +173,9 @@ class FormTemplateService:
         # and new ones need FIELD_RULES_ENABLED
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body)
+        # a template cannot be built from the newer question types while
+        # NEW_QUESTION_TYPES_ENABLED is off
+        ensure_question_types_allowed(template_body)
         ensure_valid_option_logic(template_body, drop=True)
         ensure_choice_logic_allowed(template_body, None)
         template_body.id = RecordId()
@@ -219,6 +223,7 @@ class FormTemplateService:
         check_template_retention(template_body.settings, template.settings)
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body, template)
+        ensure_question_types_allowed(template_body, template)
         ensure_valid_option_logic(template_body, drop=True)
         ensure_choice_logic_allowed(template_body, template)
         if logo:
