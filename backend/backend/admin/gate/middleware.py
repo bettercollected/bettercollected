@@ -225,12 +225,21 @@ class GateMiddleware:
             return
 
         # level 1b: client address allowlist
+        # CF-Connecting-IP only when the operator turned Cloudflare on, and then
+        # only as a single header: resolve_client_ip believes it for a request
+        # from a trusted proxy whose first hop past the proxies is a Cloudflare
+        # edge; from anyone else it is ignored.
+        cf_values = (
+            _header_values(scope, b"cf-connecting-ip")
+            if self.settings.cloudflare_ips
+            else []
+        )
         client = resolve_client_ip(
             peer,
             _header_values(scope, b"x-forwarded-for"),
-            None,
+            cf_values[0] if len(cf_values) == 1 else None,
             self._snapshot(scope).spec,
-            None,
+            self.settings.cloudflare_ips,
         )
         scope["state"]["client_ip"] = client
         address = parse_address(client)

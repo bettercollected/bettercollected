@@ -4171,6 +4171,19 @@
             ],
             "title": "Selection",
             "description": "The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary."
+          },
+          "inputText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inputtext",
+            "description": "The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary."
           }
         },
         "additionalProperties": false,

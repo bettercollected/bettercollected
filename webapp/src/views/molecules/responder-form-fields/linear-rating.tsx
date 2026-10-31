@@ -15,7 +15,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { moveOnFrom } from '@app/utils/scroll-utils';
 import ScaleRadioGroup from '@app/views/atoms/scale-radio-group';
 import useJustChosen from '@app/views/atoms/use-just-chosen';
-import { themed } from '@app/views/molecules/theme/theme-root';
+import { inputTextOf, themed } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useQuestionLabel } from './question-label-context';
@@ -25,14 +25,16 @@ import QuestionWrapper from './question-wrapper';
  * One number of the scale. The chosen one is filled with the theme's
  * highlight where it sets one (theme-root.ts), else the action colour; its
  * edge takes the highlight's edge colour, which keeps 3:1 on the page (the
- * ink for a light highlight), as option cards do.
+ * ink for a light highlight), as option cards do. An unselected cell is a
+ * white face, so its number and hover edge wear the input text (else the ink),
+ * which reads on white; the questions' colour may be a light one on a dark page.
  */
 export function scaleCellStyle(colours: Partial<FormTheme> | undefined, selected: boolean, radius: string): CSSProperties {
     return {
         ['--scale-edge' as string]: selected ? themed('--form-highlight-edge', colours?.secondary) : colours?.tertiary,
-        ['--scale-edge-hover' as string]: selected ? themed('--form-highlight-edge', colours?.secondary) : colours?.primary,
+        ['--scale-edge-hover' as string]: selected ? themed('--form-highlight-edge', colours?.secondary) : inputTextOf(colours),
         background: selected ? themed('--form-highlight-solid', colours?.secondary) : '#ffffff',
-        color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : colours?.primary,
+        color: selected ? 'var(--form-highlight-solid-ink, #ffffff)' : inputTextOf(colours),
         borderRadius: radius
     };
 }

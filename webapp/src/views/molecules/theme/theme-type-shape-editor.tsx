@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { FormTheme, THEME_FONTS, ThemeButtonStyle, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 import { cn } from '@app/shadcn/util/lib';
+import { AA_TEXT, contrast } from '@app/utils/color-contrast';
 
 import { themeFontStack } from './theme-root';
 
@@ -33,9 +34,21 @@ const BUTTONS: Array<{ key: ThemeButtonStyle; label: string }> = [
     { key: 'pill', label: 'THEME.BUTTON_PILL' }
 ];
 
-// The colours the editor sets: the highlight, and the chosen answer's own.
-const COLOUR_KEYS = ['highlight', 'selection'] as const;
+// The colours the editor sets: the highlight, the chosen answer's own, and the
+// answers typed in the white input boxes.
+const COLOUR_KEYS = ['highlight', 'selection', 'inputText'] as const;
+const COLOUR_PREFIX: Record<(typeof COLOUR_KEYS)[number], string> = { highlight: 'THEME.HIGHLIGHT', selection: 'THEME.SELECTION', inputText: 'THEME.INPUT_TEXT' };
 type ColourKey = (typeof COLOUR_KEYS)[number];
+
+/**
+ * The colour a new highlight, chosen-answer or input-text colour starts from:
+ * the button colour; for the input text, the questions' colour where it reads
+ * on white, else the default ink (a dark page's light questions don't).
+ */
+function startColour(key: ColourKey, theme: FormTheme): string {
+    if (key === 'inputText') return isHexColour(theme.primary) && contrast(theme.primary, '#FFFFFF') >= AA_TEXT ? theme.primary : '#101828';
+    return isHexColour(theme.secondary) ? theme.secondary : '#1649E2';
+}
 
 const segment = (on: boolean) => cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', on ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white');
 
@@ -78,7 +91,7 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
         if (!target) return;
         focusNext.current = null;
         target.focus();
-    }, [theme.highlight, theme.selection]);
+    }, [theme.highlight, theme.selection, theme.inputText]);
     const titleFace = theme.titleFont ?? theme.bodyFont;
     const radius = theme.radius ?? DEFAULT;
     const buttons = theme.buttonStyle ?? 'filled';
@@ -207,7 +220,7 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
 
             {COLOUR_KEYS.map((key) => {
                 const value = theme[key];
-                const prefix = key === 'highlight' ? 'THEME.HIGHLIGHT' : 'THEME.SELECTION';
+                const prefix = COLOUR_PREFIX[key];
                 return (
                     <div key={key} className="flex flex-col gap-1">
                         <div className="flex items-center justify-between gap-3">
@@ -236,7 +249,7 @@ export default function ThemeTypeShapeEditor({ theme, onChange }: { theme: FormT
                                     type="button"
                                     onClick={() => {
                                         focusNext.current = { key, to: 'colour' };
-                                        set({ [key]: (isHexColour(theme.secondary) ? theme.secondary : '#1649E2').toUpperCase() });
+                                        set({ [key]: startColour(key, theme).toUpperCase() });
                                     }}
                                     className="text-[11px] font-medium text-brand-500 underline underline-offset-2 hover:text-brand-600"
                                 >

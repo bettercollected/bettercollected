@@ -63,6 +63,7 @@ export interface IThemeState {
     radius?: FormTheme['radius'];
     buttonStyle?: FormTheme['buttonStyle'];
     highlight?: FormTheme['highlight'];
+    inputText?: FormTheme['inputText'];
 }
 
 

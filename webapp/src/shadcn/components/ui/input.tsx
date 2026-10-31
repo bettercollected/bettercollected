@@ -3,9 +3,11 @@ import * as React from 'react';
 import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
+import { isHexColour } from '@app/constants/theme';
 import { cn } from '@app/shadcn/util/lib';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor?: string;
@@ -18,9 +20,10 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
         <input
             style={{
                 // The answer is the responder's own words — it wears ink (theme
-                // primary), never the accent/action colour. 16px floor, and never
-                // larger than the 24px question (DESIGN.md, Type).
-                color: theme?.primary
+                // primary, or the theme's own input text), never the accent/action
+                // colour. 16px floor, and never larger than the 24px question
+                // (DESIGN.md, Type).
+                color: inputTextOf(theme)
             }}
             type={type}
             className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
@@ -66,6 +69,10 @@ const FieldInput = styled(ShadCNInput)<{
         // action colour on FOCUS, with the global focus outline (tailwind.css,
         // --focus-ring set by the layout wrapper).
         borderColor: themeColor || '#818CA0',
+        // The field wrapper passes `style` through as undefined, which replaces the
+        // inline colour above: so a theme's own input text is set here as well. A
+        // theme without one keeps what these inputs always drew (the page's ink).
+        ...(isHexColour($formTheme?.inputText) ? { color: $formTheme!.inputText! } : {}),
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.

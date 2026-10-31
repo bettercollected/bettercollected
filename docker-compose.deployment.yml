@@ -69,8 +69,8 @@ services:
   # If you want to run webapp locally without using docker-compose,
   # you will also need to run nginx locally and not from docker-compose
   webapp:
-    image: bettercollected/webapp:nightly
-    # image: bettercollected/webapp:nightly
+    image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.1.2}
+    # image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.1.2}
     environment:
       INTERNAL_DOCKER_API_ENDPOINT_HOST: http://backend:8000/api/v1
       API_ENDPOINT_HOST: http://localhost:8000/api/v1
@@ -178,8 +178,8 @@ services:
 
 
   backend:
-    image: bettercollected/backend:nightly
-    # image: bettercollected/backend:nightly
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    # image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     environment:
       # Settings come from the settings store (docs/settings-loader.md): the
       # service refuses to start when it cannot read it. SETTINGS_STORE=off in
@@ -288,7 +288,7 @@ services:
   # deployments keep working; deploy.sh generates the first two, and
   # PLATFORM_ADMIN_EMAILS (the super admin list) is set by the operator.
   admin:
-    image: bettercollected/backend:nightly
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.serve"]
     user: "65534:65534"
     read_only: true
@@ -308,6 +308,8 @@ services:
       ADMIN_PUBLIC_ORIGINS: ${ADMIN_PUBLIC_ORIGINS:-http://localhost:${ADMIN_PORT:-8100},http://127.0.0.1:${ADMIN_PORT:-8100}}
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-}
       ADMIN_TRUSTED_PROXY_REFRESH_SECONDS: ${ADMIN_TRUSTED_PROXY_REFRESH_SECONDS:-}
+      ADMIN_TRUST_CLOUDFLARE: ${ADMIN_TRUST_CLOUDFLARE:-}
+      ADMIN_CLOUDFLARE_IPS: ${ADMIN_CLOUDFLARE_IPS:-}
       ADMIN_EDGE_GATEWAY: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
       # the bc_admin role sees only schema `admin` (postgres/ensure-admin-roles.sh);
       # empty without the password, which keeps the service in bare-gate mode
@@ -350,7 +352,7 @@ services:
   # attached to admin-edge. Task implementations that need Mongo or other
   # services add exactly the variables they need here.
   task-runner:
-    image: bettercollected/backend:nightly
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.runner"]
     user: "65534:65534"
     read_only: true
@@ -405,7 +407,7 @@ services:
   # seccomp syscall allowlist and no environment file (it holds no secrets). The backend and the jobs worker reach
   # it over a Unix socket on the doc-sandbox volume.
   document-sandbox:
-    image: bettercollected/backend:nightly
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     command: ["/api/backend/.venv/bin/python", "-I", "/api/backend/backend/app/services/pdf_import/server.py", "/run/doc-sandbox/sandbox.sock"]
     user: "65534:65534"
     network_mode: none
@@ -436,7 +438,7 @@ services:
   # Consumes the procrastinate `default` queue (delete_user, delete_response) when
   # JOBS_BACKEND routes those to Postgres; same image and env as the backend.
   jobs-worker:
-    image: bettercollected/backend:nightly
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.jobs.worker"]
     environment:
       # reads the same settings as the backend (same database role), with a
@@ -477,8 +479,8 @@ services:
         condition: service_healthy
 
   auth:
-    image: bettercollected/auth:nightly
-    # image: bettercollected/auth:nightly
+    image: bettercollected/auth:${BC_IMAGE_TAG:-v4.1.2}
+    # image: bettercollected/auth:${BC_IMAGE_TAG:-v4.1.2}
     environment:
       SETTINGS_STORE: ${SETTINGS_STORE:-required}
       SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
@@ -522,7 +524,7 @@ services:
       - no-new-privileges:true
 
   integrations-googleform:
-    image: bettercollected/integrations-google:nightly
+    image: bettercollected/integrations-google:${BC_IMAGE_TAG:-v4.1.2}
     environment:
       SETTINGS_STORE: ${SETTINGS_STORE:-required}
       SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}

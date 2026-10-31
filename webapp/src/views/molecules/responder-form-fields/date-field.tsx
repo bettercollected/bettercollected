@@ -17,6 +17,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDate, resolveDateRuleBounds, toIsoDate, todayIso } from '@app/utils/date-rules';
 import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { joinIds, useQuestionLabel } from './question-label-context';
@@ -114,13 +115,13 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             borderRadius: styleTokens(theme?.style).fieldRadius,
                             borderColor: tertiaryColor ?? '#818CA0',
                             // Chosen date is content (ink); empty state a legible neutral.
-                            color: date ? theme?.primary : '#667085'
+                            color: date ? inputTextOf(theme) : '#667085'
                         }}
                     >
                         <CalendarIcon aria-hidden="true" className="h-6 w-6 shrink-0" style={{ color: secondaryColor }} />
                         {date ? (
                             // The chosen date is the answer — ink, not the action colour.
-                            <span id={valueId} style={{ color: theme?.primary }}>
+                            <span id={valueId} style={{ color: inputTextOf(theme) }}>
                                 {format(date, 'PPP', { locale })}
                             </span>
                         ) : (

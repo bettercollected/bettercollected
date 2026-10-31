@@ -510,6 +510,11 @@
     "SELECTION_NONE": "Uses the highlight, else the button colour.",
     "SELECTION_ADD": "Set a colour",
     "SELECTION_REMOVE": "Remove chosen-answer colour",
+    "INPUT_TEXT": "Answer text",
+    "INPUT_TEXT_HINT": "The colour of what respondents type in the white input boxes. It must read on white, so a dark page can keep light questions.",
+    "INPUT_TEXT_NONE": "Uses the questions & text colour.",
+    "INPUT_TEXT_ADD": "Set an answer colour",
+    "INPUT_TEXT_REMOVE": "Remove answer text colour",
     "GALLERY_LABEL": "Theme",
     "GALLERY_SAVED": "Your themes",
     "GALLERY_PRESETS": "Presets",
@@ -535,6 +540,7 @@
     "ROLE_PRIMARY": "Questions & text",
     "ROLE_SECONDARY": "Buttons",
     "ROLE_TERTIARY": "Input borders",
+    "ROLE_INPUTTEXT": "Answer text",
     "ROLE_GRADIENT": "Gradient"
   },
   "OPEN_FORMULIEREN_IMPORT": {

@@ -778,3 +778,32 @@ def test_a_new_stack_runs_the_backend_its_worker_and_the_task_runner_without_a_m
         assert not {"DB_READ_SOURCE", "DB_WRITE_MODE"} & set(env), name
         assert not env.get("MONGO_URI"), name
     assert "mongodb" not in rendered
+
+
+# --- the image tag ------------------------------------------------------------------------
+
+FIRST_PARTY_IMAGE = re.compile(r"^\s*#?\s*image:\s*(bettercollected/[a-z-]+):(\S+)\s*$", re.M)
+
+
+def test_first_party_images_default_to_one_pinned_release_never_nightly():
+    """Every first-party image runs `:${BC_IMAGE_TAG:-vX.Y.Z}`: the operator's tag, else
+    one pinned release (deploy.sh sets the tag from the release the checkout is on)."""
+    found = FIRST_PARTY_IMAGE.findall(COMPOSE_TEXT)
+    assert {name for name, _ in found} >= {
+        "bettercollected/backend", "bettercollected/auth", "bettercollected/webapp",
+        "bettercollected/integrations-google",
+    }
+    defaults = set()
+    for name, tag in found:
+        match = re.fullmatch(r"\$\{BC_IMAGE_TAG:-(v\d+\.\d+\.\d+)\}", tag)
+        assert match, f"{name}:{tag} must be ${{BC_IMAGE_TAG:-vX.Y.Z}}, not a floating tag"
+        defaults.add(match.group(1))
+    assert len(defaults) == 1, defaults
+    assert "nightly" not in COMPOSE_TEXT.split("services:", 1)[1].replace("nightly SCIM", "")
+
+
+def test_the_pinned_default_is_the_newest_release_in_the_changelog():
+    """A release's changelog PR sets the default to its own version (RELEASING.md)."""
+    newest = re.search(r"^## \[(\d+\.\d+\.\d+)\]", (ROOT / "CHANGELOG.md").read_text(), re.M).group(1)
+    (default,) = {tag for _, tag in FIRST_PARTY_IMAGE.findall(COMPOSE_TEXT)}
+    assert default == f"${{BC_IMAGE_TAG:-v{newest}}}"

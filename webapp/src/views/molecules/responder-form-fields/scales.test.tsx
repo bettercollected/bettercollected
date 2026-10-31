@@ -9,14 +9,18 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ThemeColors } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { store } from '@app/store/store';
+import { contrast } from '@app/utils/color-contrast';
 import { scaleIndexForKey } from '@app/views/atoms/scale-radio-group';
 import { FormFieldComponent } from '@app/views/organism/form/form-slide';
+
+import { scaleCellStyle } from './linear-rating';
 
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({
     RenderImage: () => null,
@@ -343,5 +347,24 @@ describe('scales as answered controls', () => {
         });
         const results = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
         expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+    });
+});
+
+describe('an unselected scale cell is a white face', () => {
+    // light questions on a dark page, with a dark input text (which passes the contrast guard)
+    const night = { ...ThemeColors[0], primary: '#F1F5F9', secondary: '#076EED', tertiary: '#56667F', accent: '#0F172A', inputText: '#0F172A' };
+
+    it('shows its number and hover edge in the input text, readable on white', () => {
+        const style = scaleCellStyle(night, false, '6px') as Record<string, string>;
+        expect(style.background).toBe('#ffffff');
+        expect(style.color).toBe('#0F172A');
+        expect(style['--scale-edge-hover']).toBe('#0F172A');
+        expect(contrast(style.color, '#FFFFFF')).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('keeps the questions colour for a theme without an input text, as before', () => {
+        const style = scaleCellStyle({ ...night, inputText: undefined, primary: '#101828' }, false, '6px') as Record<string, string>;
+        expect(style.color).toBe('#101828');
+        expect(style['--scale-edge-hover']).toBe('#101828');
     });
 });

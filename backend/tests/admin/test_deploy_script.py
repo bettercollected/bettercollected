@@ -29,6 +29,8 @@ STUB = textwrap.dedent(
         log.write(" ".join(argv) + "\\n")
     with (state / "project.log").open("a") as log:
         log.write(os.environ.get("COMPOSE_PROJECT_NAME", "") + "\\n")
+    with (state / "image_tag.log").open("a") as log:
+        log.write(os.environ.get("BC_IMAGE_TAG", "<unset>") + "\\n")
     store = state / "store"
     store.mkdir(exist_ok=True)
 
@@ -2333,3 +2335,68 @@ def test_the_temporal_namespace_of_the_old_stack_is_asked(site):
     done, _ = _run(site, volumes=UPGRADE_VOLUMES, extra=TEMPORAL_ENV)
     assert done.returncode == 0
     assert all("--namespace worker-ns" in c for c in _docker_calls(state) if "temporal workflow list" in c)
+
+
+def _image_tags(state: Path) -> set:
+    return set((state / "image_tag.log").read_text().splitlines())
+
+
+def _git(work: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+        cwd=work, check=True, capture_output=True,
+    )
+
+
+def _checkout_at(work: Path, *tags: str) -> None:
+    _git(work, "init", "-q")
+    _git(work, "add", "-A")
+    _git(work, "commit", "-q", "-m", "release")
+    for tag in tags:
+        _git(work, "tag", "-a", tag, "-m", tag)
+
+
+def test_the_images_follow_the_release_the_checkout_is_on(site):
+    work, state, _ = site
+    _checkout_at(work, "v9.9.9")
+    done, calls = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert _image_tags(state) == {"v9.9.9"}
+    assert "not on a release tag" not in done.stderr
+
+
+def test_a_tag_that_is_not_a_release_does_not_pick_the_images(site):
+    work, state, _ = site
+    _checkout_at(work, "nightly-build", "v9.9")
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    # compose then keeps its own default (a pinned release), and deploy.sh says so
+    assert _image_tags(state) == {"<unset>"}
+    assert "not on a release tag" in done.stderr
+
+
+def test_a_checkout_without_git_keeps_the_compose_default_and_says_so(site):
+    work, state, _ = site
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert _image_tags(state) == {"<unset>"}
+    assert "not on a release tag" in done.stderr
+
+
+def test_the_operators_image_tag_wins_over_the_checkout(site):
+    work, state, _ = site
+    _checkout_at(work, "v9.9.9")
+    done, _ = _run(site, extra={"BC_IMAGE_TAG": "nightly"})
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    assert _image_tags(state) == {"nightly"}
+
+
+def test_an_image_tag_in_the_root_env_is_left_for_compose_to_read(site):
+    work, state, _ = site
+    (work / ".env").write_text("BC_IMAGE_TAG=v8.8.8\n")
+    _checkout_at(work, "v9.9.9")
+    done, _ = _run(site)
+    assert done.returncode == 0, done.stdout[-1500:] + done.stderr[-1500:]
+    # not exported over the file's value
+    assert _image_tags(state) == {"<unset>"}
+    assert "not on a release tag" not in done.stderr

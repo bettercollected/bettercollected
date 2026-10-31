@@ -225,6 +225,7 @@ environment, whatever the tier.
 | `ADMIN_ALLOWED_HOSTS` | admin | admin | str |  | R | T5 |  |
 | `ADMIN_ALLOWED_IPS` | admin | admin | str |  | R | T5 | `127.0.0.1/32` |
 | `ADMIN_BIND_HOST` | admin | admin | str |  | R | T5 | `127.0.0.1` |
+| `ADMIN_CLOUDFLARE_IPS` | admin | admin | str cidr_list |  | R | T5 |  |
 | `ADMIN_DATABASE_URL` | admin | admin | str | yes | R | T5 |  |
 | `ADMIN_DB_RUNTIME_ROLE` | admin | admin | str |  | R | T5 | `bc_admin` |
 | `ADMIN_EDGE_GATEWAY` | admin | admin | str |  | R | T5 |  |
@@ -241,6 +242,7 @@ environment, whatever the tier.
 | `ADMIN_TASKS_SELFTEST` | admin | admin | bool |  | R | T5 | `false` |
 | `ADMIN_TRUSTED_PROXIES` | admin | admin | str |  | R | T5 |  |
 | `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` | admin | admin | int 10..3600 |  | R | T5 | `60` |
+| `ADMIN_TRUST_CLOUDFLARE` | admin | admin | bool |  | R | T5 | `false` |
 | `TASKS_DATABASE_URL` | admin | admin | str | yes | R | T5 |  |
 | `DOCS_URL` | bootstrap | google | str |  | R | T5 | `/docs` |
 | `DOTENV_PATH` | bootstrap | backend, auth, google | str |  | R | T5 |  |

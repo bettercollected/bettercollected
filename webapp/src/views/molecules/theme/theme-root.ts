@@ -49,6 +49,18 @@ const ratio = contrast;
 const pageOf = (theme?: Partial<FormTheme> | null) => (isHexColour(theme?.accent) ? theme!.accent : '#FFFFFF');
 const inkOf = (theme?: Partial<FormTheme> | null) => (isHexColour(theme?.primary) ? theme!.primary : '#101828');
 
+/**
+ * The colour of the answers typed in the white input boxes (inputs, text
+ * areas, dropdown and date triggers, the phone field): the theme's
+ * `inputText`, else its ink (`primary`), which is what they wore before the
+ * key existed. A dark page can keep light questions and still show dark
+ * answers on white. The contrast guard measures this colour on white
+ * (utils/theme-contrast.ts, services/theme_contrast.py `input_text_colour`).
+ */
+export function inputTextOf(theme?: Partial<FormTheme> | null): string | undefined {
+    return isHexColour(theme?.inputText) ? theme!.inputText! : theme?.primary;
+}
+
 /** Of two inks, the one that reads best on `ground`. */
 const bestOn = (ground: string, a: string, b: string) => (ratio(a, ground) >= ratio(b, ground) ? a : b);
 
