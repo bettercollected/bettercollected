@@ -518,3 +518,26 @@ async def test_an_unreadable_address_fails_the_delivery_for_good(workspace, tls,
         workspace.id, form.form_id, created.id, WebhookUpdateDto(url=TOKEN_URL), testUser
     )
     assert (await service().get_webhook(workspace.id, form.form_id, created.id, testUser)).url == TOKEN_URL
+
+
+async def test_the_form_is_not_served_when_the_disclosure_cannot_be_read(
+    workspace, client: AsyncClient, monkeypatch, memory_jobs
+):
+    """Fail closed: if the privacy panel could not name the webhook hosts, the
+    published form is refused, so no one submits to a form whose destinations
+    were not shown."""
+    form = await publish(workspace)
+    await make_webhook(workspace, form)
+    ws, fid = workspace.id, form.form_id
+    ok = await client.get(f"/api/v1/workspaces/{ws}/forms/{fid}?published=true")
+    assert ok.status_code == 200 and ok.json()["webhookDestination"] == {"hosts": ["case.example.org"]}
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("database trouble")
+
+    monkeypatch.setattr(container.webhook_service(), "destination_for", broken)
+    refused_load = await client.get(f"/api/v1/workspaces/{ws}/forms/{fid}?published=true")
+    assert refused_load.status_code == 503, refused_load.text
+    assert refused_load.json()["code"] == "form_unavailable"
+    assert "webhookDestination" not in refused_load.text
+    assert memory_jobs.jobs == {}
