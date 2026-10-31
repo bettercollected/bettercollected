@@ -552,6 +552,14 @@ class FormService:
                 settings.allow_editing_response
             )
 
+        if settings.allow_save_draft is not None:
+            workspace_form.settings.allow_save_draft = settings.allow_save_draft
+        if settings.draft_retention_days is not None:
+            # 0 goes back to the default
+            workspace_form.settings.draft_retention_days = (
+                settings.draft_retention_days or None
+            )
+
         if settings.show_original_form is not None:
             workspace_form.settings.show_original_form = settings.show_original_form
 

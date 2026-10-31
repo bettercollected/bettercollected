@@ -44,6 +44,8 @@ _RESPONSE_DATA_PATH = re.compile(
     r"(?:forms/[^/]+/)?"
     r"(?:submissions(?:/.*)?|all-submissions(?:/export)?|submission-paths)"
     r"|forms/[^/]+/ai/insights(?:/.*)?"
+    # a respondent's saved draft: decrypted answers, or the key to one
+    r"|forms/[^/]+/drafts(?:/.*)?"
     r"|responders(?:/.*)?"
     r")/?$"
 )

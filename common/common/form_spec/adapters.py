@@ -295,6 +295,8 @@ def _trust_to_spec(form: StandardForm, settings: Any) -> Optional[Dict[str, Any]
         "requireVerifiedIdentity": get("require_verified_identity"),
         "allowEditingResponse": get("allow_editing_response"),
         "showSubmissionNumber": get("show_submission_number"),
+        "allowSaveDraft": get("allow_save_draft"),
+        "draftRetentionDays": get("draft_retention_days"),
     }
     if all(v is None for v in trust.values()):
         return None
@@ -634,6 +636,8 @@ def spec_trust_settings(spec: FormSpec) -> Dict[str, Any]:
         "require_verified_identity": trust.require_verified_identity,
         "allow_editing_response": trust.allow_editing_response,
         "show_submission_number": trust.show_submission_number,
+        "allow_save_draft": trust.allow_save_draft,
+        "draft_retention_days": trust.draft_retention_days,
     }
     return {k: v for k, v in values.items() if v is not None}
 

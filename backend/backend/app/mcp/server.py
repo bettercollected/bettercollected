@@ -374,9 +374,10 @@ async def update_form(
     {"op":"update_form_info","title"?:str,"description"?:str} ·
     {"op":"update_form_settings","patch":{"purpose"?:str,"retentionText"?:str,
     "privacyPolicyUrl"?:str,"requireVerifiedIdentity"?:bool,"allowEditingResponse"?:bool,
-    "showSubmissionNumber"?:bool}} (trust metadata; "" clears a text value;
+    "showSubmissionNumber"?:bool,"allowSaveDraft"?:bool,"draftRetentionDays"?:int}} (trust metadata; "" clears a text value;
     "retentionText" is an internal note respondents never see, it does not set the
-    retention period they are told) ·
+    retention period they are told; "allowSaveDraft" lets respondents save a draft and
+    continue later, "draftRetentionDays" 1 to 90 keeps it that long, 0 is the default 30) ·
     {"op":"set_field_logic","fieldId":str,"logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR",
     "conditions":[{"fieldId":str,"comparison":"IS_EQUAL"|"IS_NOT_EQUAL"|"CONTAINS"|"IS_EMPTY"|...,
     "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No";

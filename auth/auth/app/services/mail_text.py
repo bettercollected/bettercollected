@@ -72,6 +72,15 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "sheets_paused": "Until you reconnect, new submissions are not added to the spreadsheet. They are still saved in {product}, so nothing is lost.",
         "sheets_button": "Reconnect Google Sheets",
         "sheets_why_you": "You are receiving this because you own the plan of this workspace. If the button does not work, open",
+        # a saved draft of a form (save and continue later)
+        "draft_subject": "Your link to continue a form",
+        "draft_heading": "Continue where you left off",
+        "draft_from_workspace": "You saved a draft of",
+        "draft_by_workspace": "from {workspace}",
+        "draft_intro": "Use the button to open it and carry on.",
+        "draft_button": "Continue the form",
+        "draft_expiry": "This link works for {days} days, until your draft is deleted or you submit the form. Anyone with the link can open the draft, so do not forward this email.",
+        "draft_why": "You are receiving this because someone entered this address to save a draft. If that was not you, ignore this email: nothing is shared and the draft is deleted by itself. If the button does not work, open",
     },
     "nl": {
         "footer_rights": "Alle rechten voorbehouden.",
@@ -110,6 +119,14 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "sheets_paused": "Zolang u niet opnieuw koppelt, worden nieuwe inzendingen niet aan de spreadsheet toegevoegd. Ze worden wel bewaard in {product}. Er gaat dus niets verloren.",
         "sheets_button": "Google Sheets opnieuw koppelen",
         "sheets_why_you": "U ontvangt deze e-mail omdat het abonnement van deze werkruimte op uw naam staat. Werkt de knop niet? Open dan",
+        "draft_subject": "Je link om een formulier af te maken",
+        "draft_heading": "Ga verder waar je gebleven was",
+        "draft_from_workspace": "Je hebt een concept bewaard van",
+        "draft_by_workspace": "van {workspace}",
+        "draft_intro": "Open het met de knop en vul het formulier verder in.",
+        "draft_button": "Verder met het formulier",
+        "draft_expiry": "Deze link werkt {days} dagen, tot je concept wordt verwijderd of je het formulier verstuurt. Iedereen met de link kan het concept openen. Stuur deze e-mail dus niet door.",
+        "draft_why": "Je krijgt deze e-mail omdat iemand dit adres heeft ingevuld om een concept te bewaren. Was jij dat niet? Negeer deze e-mail dan: er wordt niets gedeeld en het concept wordt vanzelf verwijderd. Werkt de knop niet? Open dan",
     },
 }
 

@@ -692,6 +692,19 @@ class Trust(_Spec):
     require_verified_identity: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    allow_save_draft: Optional[bool] = Field(
+        None,
+        description="Let respondents save a draft and continue later (off by "
+        "default). Drafts are encrypted, kept apart from the responses and "
+        "deleted after draftRetentionDays.",
+    )
+    draft_retention_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=90,
+        description="How many days after the last save a draft is kept, 1 to "
+        "90; left out, 30.",
+    )
 
 
 class FormSpec(_Spec):

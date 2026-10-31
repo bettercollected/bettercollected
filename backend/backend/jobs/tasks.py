@@ -370,3 +370,16 @@ async def purge_action_logs(timestamp: int) -> str:
     webhook delivery) older than 30 days. Counts only."""
     deleted = await _container().webhook_service().purge_expired()
     return f"{deleted} deleted"
+
+
+@app.periodic(cron="29 3 * * *", periodic_id="purge_form_drafts")
+@app.task(
+    name="purge_form_drafts",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="purge_form_drafts",
+)
+async def purge_form_drafts(timestamp: int) -> str:
+    """Daily: delete the saved drafts of forms that are past their expiry, and
+    the ones of forms that no longer keep drafts. Counts only."""
+    counts = await _container().form_draft_service().purge()
+    return f"{counts['expired']} expired, {counts['unwanted']} of forms that keep none"
