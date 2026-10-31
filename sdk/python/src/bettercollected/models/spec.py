@@ -538,6 +538,12 @@ class Trust(BaseModel):
     show_submission_number: bool | None = Field(
         None, alias="showSubmissionNumber", title="Showsubmissionnumber"
     )
+    show_review_page: bool | None = Field(
+        None,
+        alias="showReviewPage",
+        description="Respondents see their answers on a page of their own, with a link back to each page, before they send them.",
+        title="Showreviewpage",
+    )
 
 
 class MinLength(RootModel[int]):

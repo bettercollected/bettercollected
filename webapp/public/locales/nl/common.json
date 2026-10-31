@@ -327,6 +327,10 @@
     "SETTINGS": {
       "DEFAULT": {
         "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer uw formulieren effectief.",
+        "REVIEW_PAGE": {
+          "TITLE": "Antwoorden laten controleren voor het verzenden",
+          "DESCRIPTION": "Respondenten zien na de laatste vraag al hun antwoorden op één pagina, met een link om elke pagina aan te passen, en verzenden ze vanaf daar. Er wordt niets verstuurd of opgeslagen voordat ze dat doen."
+        },
         "PIN_FORM": {
           "TITLE": "Formulier vastzetten",
           "DESCRIPTION": "Wanneer u een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat uw publiek kan zien op uw formulierpagina."

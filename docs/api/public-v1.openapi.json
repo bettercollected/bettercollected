@@ -4365,6 +4365,18 @@
               }
             ],
             "title": "Showsubmissionnumber"
+          },
+          "showReviewPage": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Showreviewpage",
+            "description": "Respondents see their answers on a page of their own, with a link back to each page, before they send them."
           }
         },
         "additionalProperties": false,

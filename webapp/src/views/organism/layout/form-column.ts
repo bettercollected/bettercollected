@@ -52,6 +52,8 @@ export function greetingAlignClass(layout?: FormSlideLayout | null) {
 export function layoutOfPage(form: Partial<Pick<StandardFormDto, 'welcomePage' | 'thankyouPage' | 'fields'>> | undefined, currentSlide: number, endingId?: string): FormSlideLayout | undefined {
     if (currentSlide === -1) return form?.welcomePage?.layout ?? undefined;
     if (currentSlide === -2) return endingToShow(form?.thankyouPage, endingId)?.layout ?? undefined;
+    // the review page has no layout of its own: the single column
+    if (currentSlide < 0) return undefined;
     return form?.fields?.[currentSlide]?.properties?.layout ?? undefined;
 }
 

@@ -48,6 +48,26 @@
         "SUBMIT_NOT_OPEN": "Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.",
         "SUBMIT_FULL": "Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd."
     },
+    "REVIEW": {
+        "TITLE": "Controleer je antwoorden",
+        "INTRO": "Controleer je antwoorden voordat je ze verstuurt. Er is nog niets verstuurd: je antwoorden blijven in deze browser tot je op Antwoorden versturen kiest.",
+        "EMPTY": "Er zijn geen antwoorden om te controleren. Je kunt het formulier wel versturen.",
+        "PROBLEMS_one": "{{count}} antwoord heeft je aandacht nodig voordat je kunt versturen.",
+        "PROBLEMS_other": "{{count}} antwoorden hebben je aandacht nodig voordat je kunt versturen.",
+        "PAGE": "Pagina {{n}}",
+        "PAGE_NAMED": "Pagina {{n}}: {{title}}",
+        "EDIT": "Wijzigen",
+        "BACK_TO_REVIEW": "Terug naar controle",
+        "GO_TO_REVIEW": "Antwoorden controleren",
+        "ANSWERED": "Beantwoord",
+        "UNTITLED": "Vraag zonder titel",
+        "NO_ENTRIES": "Geen invoer",
+        "NOT_ANSWERED": "Niet beantwoord",
+        "NEEDS_ANSWER": "Antwoord nodig",
+        "ANSWER_IT": "Beantwoorden",
+        "FIX": "Controleren",
+        "FILLED_IN": "Ingevuld door het formulier"
+    },
     "CONSENT": {
         "SHARE_EMAIL": "Mijn e-mailadres delen met wie dit formulier verzamelt",
         "SHARE_EMAIL_HINT": "{{email}} — zet je geen vinkje, dan blijven je antwoorden anoniem."

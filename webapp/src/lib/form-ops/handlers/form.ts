@@ -29,10 +29,11 @@ const SETTINGS_LABELS: Record<keyof FormSettingsPatch, string> = {
     privacyPolicyUrl: 'privacy policy link',
     requireVerifiedIdentity: 'verified-identity requirement',
     allowEditingResponse: 'response editing',
-    showSubmissionNumber: 'submission numbers'
+    showSubmissionNumber: 'submission numbers',
+    showReviewPage: 'review page before sending'
 };
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'showReviewPage'] as const;
 
 const MAX_POLICY_URL_LENGTH = 2048;
 const UNSAFE_URL = /[\s\x00-\x1f\x7f]/;
@@ -77,7 +78,7 @@ export const updateFormSettings: Handler<UpdateFormSettingsOp> = (ctx, op) => {
     const patch = op.patch ?? {};
     const changed = (Object.keys(SETTINGS_LABELS) as Array<keyof FormSettingsPatch>).filter((key) => patch[key] != null).map((key) => SETTINGS_LABELS[key]);
     if (!changed.length) {
-        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber.');
+        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage.');
     }
     if (patch.privacyPolicyUrl != null) checkedPolicyUrl(patch.privacyPolicyUrl);
     if (ctx.options.applySettings !== false) {

@@ -26,7 +26,7 @@ const LOGO_KEYS = { logoPosition: 'position', logoAlt: 'alt', useWorkspaceLogo: 
 const WELCOME_KEYS = ['title', 'description', 'layout', 'imageUrl', 'buttonText'];
 const PAGE_KEYS = ['layout', 'theme', 'position', 'showQuestionNumbers', 'sectionTitle'];
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'showReviewPage'] as const;
 
 function formLevelOps(from: FormDoc, to: FormDoc): FormOp[] {
     const ops: FormOp[] = [];

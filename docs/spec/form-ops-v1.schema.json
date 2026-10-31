@@ -1839,6 +1839,18 @@
           ],
           "default": null,
           "title": "Showsubmissionnumber"
+        },
+        "showReviewPage": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Showreviewpage"
         }
       },
       "title": "FormSettingsPatch",

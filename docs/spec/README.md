@@ -25,7 +25,7 @@ A test fails when the committed file is out of date.
 | `theme` | Colours, background and style; optionally type and shape (`titleFont`, `bodyFont`, `dataFont` from `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono`; `titleWidth` `normal` or `expanded`; `radius` `sharp`, `soft` or `round`; `buttonStyle` `filled`, `outlined` or `pill`) a `highlight` colour (`#rrggbb`) and an `inputText` colour (`#rrggbb`, the answers typed in the white input boxes; absent: `primary`). A key left out keeps the look forms had before it existed. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
 | `logo` | Position, alt text and whether to use the workspace logo. `url` is read-only: a logo is set by uploading it. |
-| `trust` | Purpose, retention text, privacy policy link, retention period, and the identity, editing and submission-number switches. |
+| `trust` | Purpose, retention text, privacy policy link, retention period, and the identity, editing, submission-number and review-page switches. |
 
 A field has an `id`, a `type` and a `title` (plain text, or a rich-text
 document that can pipe answers). Depending on the type it also has `choices`,
