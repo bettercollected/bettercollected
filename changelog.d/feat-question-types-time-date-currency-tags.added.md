@@ -8,5 +8,4 @@
   creators: while it is off, the Insert menu leaves them out, and saving a new one, or
   changing the settings of one a form already has, is refused (422 `question_type_disabled`;
   the same for the API, MCP, the AI assistant, templates and imports). Questions a form
-  already has keep working: they are shown, answered and exported. The date range and tags
-  will join the same switch.
+  already has keep working: they are shown, answered and exported.

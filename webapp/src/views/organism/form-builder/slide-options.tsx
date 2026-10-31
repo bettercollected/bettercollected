@@ -1,12 +1,15 @@
 import { useRef } from 'react';
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
+import i18n from 'i18next';
 import { ArrowDown, ArrowUp, Copy, Ellipsis, Trash2 } from 'lucide-react';
 
+import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
 import { cn } from '@app/shadcn/util/lib';
-import { usePageIds } from '@app/store/jotai/entity-hooks';
+import { useBuilderFieldsValue, usePageIds } from '@app/store/jotai/entity-hooks';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 
 import { MoveOutcome, useOutlineMoves } from './outline/use-outline-moves';
@@ -28,6 +31,10 @@ export const outlineMenuItemClass = 'text-black-800 gap-2 px-3 py-2 text-sm';
 export default function SlideOptions({ slideIndex, pageName, visible, onMoved }: { slideIndex: number; pageName: string; visible: boolean; onMoved: (outcome: MoveOutcome) => void }) {
     const { duplicateSlide } = useBuilderActions();
     const pageCount = usePageIds().length;
+    // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const holdsGated = useBuilderFieldsValue((fields) => pageHoldsGatedQuestion(fields[slideIndex]), [slideIndex]);
+    const cannotCopy = holdsGated && !newQuestionTypesEnabled;
     const { deletePage } = useUndoableDelete();
     const { movePageTo } = useOutlineMoves();
     // A move hands focus to the moved row instead of back to this trigger.
@@ -59,7 +66,7 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                     Move down
                 </DropdownMenuItem>
-                <DropdownMenuItem className={outlineMenuItemClass} onSelect={() => duplicateSlide(slideIndex)}>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={cannotCopy} title={cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : undefined} onSelect={() => duplicateSlide(slideIndex)}>
                     <Copy className="h-4 w-4" aria-hidden="true" />
                     Duplicate
                 </DropdownMenuItem>

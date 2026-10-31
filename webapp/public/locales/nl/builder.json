@@ -1048,6 +1048,8 @@
     }
   },
   "NEW_TYPES": {
-    "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn."
+    "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",
+    "SAVE_REFUSED": "Deze vraagtypen kunnen op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe vraag of zet de instellingen terug.",
+    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd."
   }
 }

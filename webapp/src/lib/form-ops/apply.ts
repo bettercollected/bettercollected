@@ -169,7 +169,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
     let size = formSize(working);
     let stopped = false;
     const refs: RefTable = new Map();
-    let startedTypes: Map<string, string> | null = null;
+    let startedTypes: Map<string, string[]> | null = null;
 
     for (let i = 0; i < ops.length; i++) {
         const raw = ops[i];

@@ -63,8 +63,8 @@ constant or an expression, as for a date) and a currency's amount (in its first
 currency). In the exports a time is `HH:MM`, a day `YYYY-MM-DD` and a currency
 `EUR 12.50` (code, a space, a dot decimal).
 
-**Rollout.** The newer question types (`time`, `day` and `currency`; the date
-range and tags will join them) are behind one server setting,
+**Rollout.** The newer question types (`time`, `day` and `currency`) are behind one
+server setting,
 `NEW_QUESTION_TYPES_ENABLED`, off by default. While it is off, every write
 that gives a form such a question, or changes the type or the settings of one
 (the limits, the currencies, a day's date rules), is refused with 422

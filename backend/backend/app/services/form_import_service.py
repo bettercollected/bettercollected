@@ -16,6 +16,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.services.field_rules import strip_field_rules
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -75,6 +76,12 @@ class FormImportService:
         # none come in this way, whatever the payload holds.
         if form_data.form is not None and strip_field_rules(form_data.form):
             logger.warning("A form import carried field rules; they were dropped")
+        # ... nor the newer question types, unless the server takes them
+        # (services/new_question_types.py): no converter emits them today, so
+        # a payload that has some is refused while NEW_QUESTION_TYPES_ENABLED
+        # is off.
+        if form_data.form is not None:
+            ensure_question_types_allowed(form_data.form)
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.

@@ -1048,6 +1048,8 @@
     }
   },
   "NEW_TYPES": {
-    "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are."
+    "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are.",
+    "SAVE_REFUSED": "These question types can't be added or changed on this server yet. The change was not saved: remove the new question, or put its settings back.",
+    "CANNOT_COPY": "Questions of this type can't be copied on this server yet."
   }
 }

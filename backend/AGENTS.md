@@ -345,7 +345,7 @@ gate for every op writer (chat, proposals, MCP, public API). Never add a paralle
 where it sits: moving a question changes no rule) and its content, so a rule moved to another question, or
 to one of another type under a reused id, reads as new. Stored rules are kept and enforced.
 `NEW_QUESTION_TYPES_ENABLED` (default off) is the same kind of switch for the newer question types (`time`, `day`,
-`currency`; the date range and tags join `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
+`currency`; the list is `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
 brings a new gated question, or changes the type or the type's own settings of one (`signature`: time limits,
 currencies, a day's date rules, amount limits; not the title, label, required flag or place), is refused with 422
 `question_type_disabled`, and an op fails with the same message (`question_type_problem`, after each op in

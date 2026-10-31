@@ -61,6 +61,11 @@ function storedBodyOf(body: string, dropped: DroppedRule[]): string {
     return JSON.stringify(parsed);
 }
 
+/** Did the server refuse the save because the newer question types are switched off (422 `question_type_disabled`)? */
+export function isQuestionTypeDisabled(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'question_type_disabled';
+}
+
 /** Did the server refuse the save because field rules are switched off (422 `field_rules_disabled`)? */
 export function isFieldRulesDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'field_rules_disabled';
@@ -173,6 +178,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         const outcome = saveOutcomeOf(response);
                         // Rules the server will not take (they are switched off there): say so plainly, once per refusal.
                         if (isFieldRulesDisabled(response)) toast({ description: i18n.t('builder:FIELD_RULES.DISABLED') });
+                        // The same for the newer question types (NEW_QUESTION_TYPES_ENABLED is off there).
+                        if (isQuestionTypeDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.SAVE_REFUSED') });
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own

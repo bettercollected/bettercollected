@@ -137,3 +137,65 @@ async def test_an_invalid_new_op_gets_the_corrective_retry(
     retry = fake_provider.calls[1]["messages"][-1]["content"]
     assert "could not be used" in retry and "index" in retry
     assert response.json()["results"][0]["ok"] is True
+
+
+TIME_OP = {
+    "op": "add_field",
+    "pageId": "page-1",
+    "field": {"title": "When do you arrive?", "type": "time"},
+}
+
+
+async def test_a_chat_turn_cannot_add_a_newer_question_type_while_the_switch_is_off(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    test_user_cookies,
+    fake_provider: FakeProvider,
+    monkeypatch,
+):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", False)
+    doc = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+    await _make_v2(doc)
+    fake_provider.replies = [json.dumps({"reply": "Added.", "ops": [TIME_OP]})]
+    response = await client.post(
+        _url(workspace, workspace_form.form_id),
+        cookies=test_user_cookies,
+        json={"message": "ask when they arrive"},
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()["results"][0]
+    assert result["ok"] is False
+    assert "NEW_QUESTION_TYPES_ENABLED" in result["message"]
+    saved = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+    assert all(
+        f.type.value != "time" for page in saved.fields for f in page.properties.fields
+    )
+    # the assistant is not told about the types while they are off
+    assert "time (HH:MM" not in fake_provider.calls[0]["system"]
+
+
+async def test_a_chat_turn_adds_a_newer_question_type_while_the_switch_is_on(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[Any, Any, FormDocument],
+    test_user_cookies,
+    fake_provider: FakeProvider,
+    monkeypatch,
+):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", True)
+    doc = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+    await _make_v2(doc)
+    fake_provider.replies = [json.dumps({"reply": "Added.", "ops": [TIME_OP]})]
+    response = await client.post(
+        _url(workspace, workspace_form.form_id),
+        cookies=test_user_cookies,
+        json={"message": "ask when they arrive"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["results"][0]["ok"] is True
+    assert "time (HH:MM" in fake_provider.calls[0]["system"]

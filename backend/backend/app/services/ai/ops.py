@@ -3537,7 +3537,7 @@ def apply_form_ops(
     that keeps calculated fields valid, for a batch that creates none.
     """
     working = form.model_copy(deep=True)
-    started_types: Optional[Dict[str, str]] = None
+    started_types: Optional[Dict[str, List[str]]] = None
     results: List[OpResult] = []
     size = _form_size(working) if check_size else (0, 0)
     stopped = False

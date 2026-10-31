@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyOps } from './apply';
-import { GATED_TYPES, NEW_QUESTION_TYPES_DISABLED_MESSAGE, gatedSignatures, newOrChangedQuestions, signature } from './new-question-types';
+import { GATED_TYPES, NEW_QUESTION_TYPES_DISABLED_MESSAGE, gatedSignatures, isGatedQuestion, newOrChangedQuestions, pageHoldsGatedQuestion, signature } from './new-question-types';
 import type { FormDoc, FormField, FormOp } from './types';
 
 const doc = (fields: any[]): FormDoc => ({ title: 'T', builderVersion: 'v2', fields: [{ id: 'p1', index: 0, type: 'slide', properties: { fields } } as FormField] }) as FormDoc;
@@ -71,5 +71,34 @@ describe('the switch for the newer question types', () => {
             false
         );
         expect(results.filter((r) => !r.ok).map((r) => r.message)).toEqual([]);
+    });
+
+    it('counts a second question with a stored id as new', () => {
+        const stored = gatedSignatures(doc([TIME]));
+        const twice = doc([TIME, { ...TIME, title: 'Again' }]);
+        expect(newOrChangedQuestions(twice, stored)).toEqual(['t']);
+        expect(newOrChangedQuestions(twice, gatedSignatures(twice))).toEqual([]);
+        // a check does not use up the stored copies
+        expect(newOrChangedQuestions(twice, stored)).toEqual(['t']);
+        expect(newOrChangedQuestions(doc([TIME]), stored)).toEqual([]);
+    });
+
+    it('is not thrown by a payload that has a list or an object for a type', () => {
+        for (const odd of [['x'], { a: 1 }, 3, null]) {
+            const { results } = run([{ op: 'add_field', pageId: 'p1', field: { title: 'c', type: 'calculated', expression: { type: odd } } } as unknown as FormOp], false);
+            expect(results[0].ok).toBe(false);
+            expect(results[0].message).not.toBe(NEW_QUESTION_TYPES_DISABLED_MESSAGE);
+        }
+        const patched = run([{ op: 'update_field', fieldId: 's', patch: { expression: { type: ['x'] } } } as unknown as FormOp], false);
+        expect(patched.results[0].ok).toBe(false);
+    });
+
+    it('knows a question and a page that hold a type behind the switch', () => {
+        expect(isGatedQuestion(TIME as FormField)).toBe(true);
+        expect(isGatedQuestion(TEXT as FormField)).toBe(false);
+        expect(isGatedQuestion(undefined)).toBe(false);
+        expect(pageHoldsGatedQuestion(base().fields![0])).toBe(true);
+        expect(pageHoldsGatedQuestion(doc([TEXT]).fields![0])).toBe(false);
+        expect(pageHoldsGatedQuestion(undefined)).toBe(false);
     });
 });

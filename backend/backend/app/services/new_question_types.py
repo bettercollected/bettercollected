@@ -14,7 +14,7 @@ type and settings as they are (a new title, a moved question, another
 question changed) passes. Stored data is never touched.
 
 ``GATED_TYPES`` is the one list of types behind the switch (time, day and
-currency now; the date range and tags join it), and ``signature`` is what
+currency), and ``signature`` is what
 counts as "the question's type and settings".
 """
 
@@ -99,30 +99,42 @@ def signature(field: Any) -> str:
     )
 
 
-def gated_signatures(form: Any) -> Dict[str, str]:
-    """``{question id: signature}`` of the gated questions of ``form``."""
-    return {
-        str(_get(field, "id")): signature(field)
-        for field in _walk(form)
-        if _type(field) in GATED_TYPES
-    }
+Signatures = Dict[str, List[str]]
+
+
+def gated_signatures(form: Any) -> Signatures:
+    """``{question id: [signature, ...]}`` of the gated questions of ``form``
+    (a list, because a document may carry one id twice: each copy counts)."""
+    found: Signatures = {}
+    for field in _walk(form):
+        if _type(field) in GATED_TYPES:
+            found.setdefault(str(_get(field, "id")), []).append(signature(field))
+    return found
 
 
 def new_or_changed_questions(
-    form: Any, existing: Any = None, stored: Optional[Dict[str, str]] = None
+    form: Any, existing: Any = None, stored: Optional[Signatures] = None
 ) -> List[Tuple[str, str]]:
     """``(question id, type)`` of the gated questions of ``form`` that
     ``existing`` (the stored version, or None) does not have, on a question of
     the same id, with the same type and settings. ``stored`` is
-    ``gated_signatures(existing)`` when the caller has it."""
+    ``gated_signatures(existing)`` when the caller has it. A stored question
+    covers one question of ``form`` only: a second one with the same id reads
+    as new."""
     if stored is None:
         stored = gated_signatures(existing) if existing is not None else {}
-    return [
-        (str(_get(field, "id")), str(_type(field)))
-        for field in _walk(form)
-        if _type(field) in GATED_TYPES
-        and stored.get(str(_get(field, "id"))) != signature(field)
-    ]
+    remaining = {key: list(values) for key, values in stored.items()}
+    changed: List[Tuple[str, str]] = []
+    # the walk order is the document's: copies of an id are told apart by it
+    for field in _walk(form):
+        if _type(field) not in GATED_TYPES:
+            continue
+        key, sig = str(_get(field, "id")), signature(field)
+        if sig in remaining.get(key, []):
+            remaining[key].remove(sig)
+        else:
+            changed.append((key, str(_type(field))))
+    return changed
 
 
 def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
@@ -157,7 +169,9 @@ def _mentions_gated_type(value: Any) -> bool:
     while pending:
         node = pending.pop()
         if isinstance(node, dict):
-            if node.get("type") in GATED_TYPES:
+            kind = node.get("type")
+            # a type is text: `type` may be anything in a payload (an expression)
+            if isinstance(kind, str) and kind in GATED_TYPES:
                 return True
             pending.extend(node.values())
         elif isinstance(node, list):
@@ -165,7 +179,7 @@ def _mentions_gated_type(value: Any) -> bool:
     return False
 
 
-def op_may_gate(op: Any, started: Dict[str, str]) -> bool:
+def op_may_gate(op: Any, started: Signatures) -> bool:
     """Can ``op`` leave a gated question new or changed? It can only when its
     payload names a gated type, or it targets a question that already has one
     (``started``: ``gated_signatures`` of the form the batch started from), or
@@ -176,22 +190,23 @@ def op_may_gate(op: Any, started: Dict[str, str]) -> bool:
         return False
     try:
         payload = op.model_dump(mode="json", by_alias=True, exclude_none=True)
-    except ValueError:
-        # a payload nested too deeply to dump (an expression): be careful
+    except (ValueError, TypeError):
+        # a payload that cannot be dumped (nested too deeply, an expression):
+        # be careful
         return True
     if _mentions_gated_type(payload):
         return True
     if name == "duplicate_page":
         return bool(started)
-    targets = {payload.get("fieldId")}
+    targets = [payload.get("fieldId")]
     field = payload.get("field")
     if isinstance(field, dict):
-        targets.add(field.get("id"))
-    return any(target in started for target in targets if target)
+        targets.append(field.get("id"))
+    return any(isinstance(target, str) and target in started for target in targets)
 
 
 def question_type_problem(
-    form: Any, stored: Dict[str, str], op_name: str
+    form: Any, stored: Signatures, op_name: str
 ) -> Optional[str]:
     """For the edit operations: the refusal an operation earns when it left
     ``form`` with a gated question that is new or changed against ``stored``

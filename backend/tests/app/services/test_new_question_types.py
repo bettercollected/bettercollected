@@ -141,3 +141,64 @@ def test_only_an_op_that_can_gate_needs_a_look(monkeypatch):
     assert not op_may_gate(
         parse_ops([{"op": "duplicate_page", "pageId": page}])[0], {}
     )
+
+
+def test_a_type_that_is_not_text_in_a_payload_never_breaks_the_look(monkeypatch):
+    """`type` may be anything in an op's payload (a list or an object inside an
+    expression): that is no gated type, and no crash."""
+    from backend.app.services.ai.ops import apply_form_ops, parse_ops
+    from backend.app.services.new_question_types import op_may_gate
+
+    started = gated_signatures(_form(TIME))
+    for odd in (["x"], {"a": 1}, 3, None):
+        ops = parse_ops(
+            [
+                {
+                    "op": "add_field",
+                    "pageId": "p1",
+                    "field": {"title": "c", "type": "calculated", "expression": {"type": odd}},
+                }
+            ]
+        )
+        assert op_may_gate(ops[0], started) is False
+        monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", False)
+        _, results = apply_form_ops(_form(TEXT), ops)
+        assert results[0].ok is False and "NEW_QUESTION_TYPES" not in results[0].message
+    patch = parse_ops(
+        [{"op": "update_field", "fieldId": "s", "patch": {"expression": {"type": ["x"]}}}]
+    )
+    assert op_may_gate(patch[0], started) is False
+
+
+def test_a_second_question_with_a_stored_id_reads_as_new():
+    stored = _form(TIME)
+    twice = _form(TIME, {**TIME, "title": "Again"})
+    assert new_or_changed_questions(twice, stored) == [("t", "time")]
+    # as many copies as the stored form has pass
+    assert new_or_changed_questions(twice, _form(TIME, {**TIME, "title": "Again"})) == []
+    # the stored copies are not used up by a check: it can run again
+    signatures = gated_signatures(stored)
+    assert new_or_changed_questions(twice, None, signatures) == [("t", "time")]
+    assert new_or_changed_questions(twice, None, signatures) == [("t", "time")]
+    once_more = _form(TIME)
+    assert new_or_changed_questions(once_more, None, signatures) == []
+
+
+async def test_a_provider_import_cannot_bring_the_newer_types_while_off(
+    workspace, monkeypatch
+):
+    from backend.app.container import container
+
+    form = _form(TEXT, TIME).model_dump(mode="json")
+    data = {"form": {**form, "form_id": "provider-form-types"}, "responses": []}
+    service = container.form_import_service()
+    monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", False)
+    with pytest.raises(HTTPException) as refused:
+        await service.save_converted_form_and_responses(data, "owner", workspace.id)
+    assert refused.value.content["code"] == DISABLED_CODE
+    plain = {**form, "form_id": "provider-form-plain"}
+    plain["fields"][0]["properties"]["fields"] = [TEXT]
+    saved = await service.save_converted_form_and_responses(
+        {"form": plain, "responses": []}, "owner", workspace.id
+    )
+    assert saved is not None

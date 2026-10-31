@@ -82,8 +82,7 @@ class Application(StoreBackedSettings):
     # until an operator turns rules on): those saves are refused with 422
     # field_rules_disabled; stored rules are kept and still enforced.
     FIELD_RULES_ENABLED: bool = False
-    # The newer question types (time, day, currency; date range and tags
-    # follow) may be added or changed through the API, the builder save,
+    # The newer question types (time, day, currency) may be added or changed through the API, the builder save,
     # edit operations (MCP and AI included), templates and imports
     # (services/new_question_types.py). Off (the default, until the release
     # that turns them on): those saves are refused with 422
