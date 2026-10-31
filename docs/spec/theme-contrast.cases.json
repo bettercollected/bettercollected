@@ -1628,14 +1628,14 @@
         "secondary": "#1649E2",
         "tertiary": "#6B7280",
         "accent": "#FFFFFF",
-        "inputText": "#334155"
+        "inputText": "#33415A"
       },
       "b": {
         "primary": "#101828",
         "secondary": "#1649E2",
         "tertiary": "#6B7280",
         "accent": "#FFFFFF",
-        "inputText": "#334155"
+        "inputText": "#33415a"
       },
       "same": true
     },

@@ -94,6 +94,11 @@ def _cloudflare(switch: Optional[str], ranges: Optional[str]) -> Optional[str]:
         raise GateConfigError("ADMIN_TRUST_CLOUDFLARE: not true or false")
     spec = ",".join(_split(ranges)) or CLOUDFLARE_IPS
     for part in spec.split(","):
+        if "%" in part:
+            raise GateConfigError(
+                f"ADMIN_CLOUDFLARE_IPS: {part!r} has a zone id (%); "
+                "use the plain address or CIDR"
+            )
         try:
             net = ipaddress.ip_network(part, strict=False)
         except ValueError:

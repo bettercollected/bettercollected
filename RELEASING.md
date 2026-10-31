@@ -52,7 +52,9 @@ us automate release notes later.
    `## [Unreleased]`, adds the compare link (from the newest version in the file;
    `--previous` when the last release was cut from another branch) and deletes the
    fragments. Review the section, add a summary paragraph under the heading if the
-   release needs one, and commit.
+   release needs one. In the same PR, bump the default of `BC_IMAGE_TAG` in
+   `docker-compose.deployment.yml` (every `${BC_IMAGE_TAG:-vX.Y.Z}`) to the new
+   version; a test fails until it equals the newest version in CHANGELOG.md. Commit.
 3. **Merge** that changelog PR to `develop` (or to the `release/X.Y` branch for a
    patch release cut from it).
 4. **Tag** the release commit and push the tag:
@@ -73,8 +75,14 @@ us automate release notes later.
 
 The deployment compose file runs `bettercollected/<service>:${BC_IMAGE_TAG:-vX.Y.Z}`, so a
 self-hoster who has not chosen a tag gets the latest release, not `nightly`. Set that default
-to the new version in the changelog PR of step 2 (`docker-compose.deployment.yml`, every
-`BC_IMAGE_TAG` default); a test fails until it equals the newest version in CHANGELOG.md.
+to the new version in the changelog PR of step 2 (see the bullet there).
+
+- Between merging that changelog PR and pushing the tag (step 4), the compose default on
+  `develop` points at an image that is not published yet. Push the tag promptly, and do not
+  deploy a stack from `develop` in that window.
+- A stack built from `docker-compose.deployment.yml` that should track `develop` (a dev or
+  staging stack, not one that follows releases) needs `BC_IMAGE_TAG=nightly` in its root `.env`.
+  `deploy.sh` on a checkout that is not on a release tag keeps the pinned default and says so.
 
 ## Keeping the changelog current
 

@@ -99,7 +99,12 @@ mode instead of failing.
   (`common/utils/client_ip.py`, dated); `ADMIN_CLOUDFLARE_IPS` replaces them with your own
   comma-separated list when Cloudflare publishes new ones. It needs `ADMIN_TRUSTED_PROXIES`:
   without a trusted proxy in front, the header is never read. A value that is neither true nor
-  false, or a range that is not an address or CIDR (or matches everything), stops startup.
+  false, or a range that is not an address or CIDR (or matches everything, or has a zone id
+  such as `%eth0`), stops startup. Hardening that goes beyond this setting: a request that
+  names a Cloudflare address in `X-Forwarded-For` has still passed through your proxy, so keep
+  the proxy reachable from Cloudflare only (a firewall allow-list of Cloudflare's ranges, or
+  Authenticated Origin Pulls, which makes the proxy refuse connections without Cloudflare's
+  client certificate).
 - **Cookies and ports.** The `__Host-` cookies carry no port, so a browser sends
   `__Host-bcadmin` to every service on the same host name, whatever the port
   (`localhost:3000`, another tunnel, a second environment's portal tunnelled to
@@ -828,7 +833,8 @@ window: the deploy recreates every service and runs migrations.
    every run and, with no `BC_IMAGE_TAG` set, uses the release tag the checkout is on, so
    check out the release tag: the compose file, `deploy.sh`, the scripts and the images are
    then the release's. A checkout between releases keeps the compose file's default and
-   `deploy.sh` says so; set `BC_IMAGE_TAG=nightly` in `.env` to follow `develop` on purpose.
+   `deploy.sh` says so. A stack that should track `develop` (a dev or staging stack built
+   from `docker-compose.deployment.yml`) needs `BC_IMAGE_TAG=nightly` in the root `.env`.
 6. **Keep `.env.deployment` across the update.** From 4.0 the repository no longer tracks
    `.env.deployment`. It ships the template `.env.deployment.example` instead, and
    `.env.deployment` is git-ignored: `deploy.sh` creates it from the template (mode 600)

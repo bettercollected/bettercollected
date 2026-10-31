@@ -63,6 +63,8 @@ def test_on_uses_the_built_in_ranges_or_the_operators_own():
         {"ADMIN_TRUST_CLOUDFLARE": "true", "ADMIN_CLOUDFLARE_IPS": "not-a-range"},
         {"ADMIN_TRUST_CLOUDFLARE": "true", "ADMIN_CLOUDFLARE_IPS": "0.0.0.0/0"},
         {"ADMIN_TRUST_CLOUDFLARE": "true", "ADMIN_CLOUDFLARE_IPS": "198.51.100.0/24,::/0"},
+        {"ADMIN_TRUST_CLOUDFLARE": "true", "ADMIN_CLOUDFLARE_IPS": "fe80::1%eth0"},
+        {"ADMIN_TRUST_CLOUDFLARE": "true", "ADMIN_CLOUDFLARE_IPS": "198.51.100.0/24,2001:db8::%1/32"},
     ],
 )
 def test_a_bad_value_fails_startup(env):

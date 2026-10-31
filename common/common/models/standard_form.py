@@ -115,9 +115,9 @@ ThemeHexColour = Annotated[
 
 def theme_problems(theme: Any, path: str = "theme") -> List[str]:
     """What is wrong with a theme's type, shape and highlight keys: each one
-    must be absent (or null) or one of its listed values, ``highlight`` and
-    ``selection`` and ``inputText`` 6-digit hex colours, and the background's ``artwork`` on
-    its list. Every writer checks a theme with this (the edit
+    must be absent (or null) or one of its listed values, ``highlight``,
+    ``selection`` and ``inputText`` 6-digit hex colours, and the background's
+    ``artwork`` on its list. Every writer checks a theme with this (the edit
     operations, whole-form saves, saved workspace themes)."""
     if theme is None:
         return []

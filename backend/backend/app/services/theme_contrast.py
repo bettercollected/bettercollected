@@ -432,8 +432,9 @@ def _colour(value: Any) -> Any:
 
 def contrast_key(theme: Any) -> Tuple[Any, ...]:
     """Everything the contrast check reads from a theme: its four colours, the
-    colour of the answers (``inputText``, else ``primary``), whether its buttons are outlined, and the ground the page puts behind the
-    text, as ``_page_grounds`` reads it (an image with an address; both stops
+    colour of the answers (``inputText``, else ``primary``), whether its
+    buttons are outlined, and the ground the page puts behind the text, as
+    ``_page_grounds`` reads it (an image with an address; both stops
     of a gradient; the white sheet of the ``margin`` pattern; anything else,
     an absent background or type, ``color`` and other patterns included, is
     the plain page colour). Gradient stops count only for a gradient, the
