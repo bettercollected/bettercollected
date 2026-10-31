@@ -179,6 +179,9 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("CHOICE_LOGIC_ENABLED", "features", (BACKEND,), False,
           "Allows saving new or changed choice logic: options shown or hidden by answers, option filters (stored ones are enforced either way).",
           tier=T2),
+    _bool("SAVE_DRAFTS_ENABLED", "features", (BACKEND,), False,
+          "Lets respondents save a draft and continue later (off: the per-form setting cannot be turned on and drafts are not saved or opened).",
+          tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",

@@ -5,11 +5,14 @@ import { ReactNode } from 'react';
  * content and the privacy strip its footer, so screen-reader users can jump
  * between the two and nothing sits outside a landmark.
  *
- * `data-fit-area` marks the space the form gets (utils/panel-fit.ts).
+ * `data-fit-area` marks the space the form gets (utils/panel-fit.ts). A
+ * `notice` (the note about a saved draft) sits above it, in flow, so it never
+ * covers the form's own controls.
  */
-export default function RespondentPageShell({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
+export default function RespondentPageShell({ children, footer, notice }: { children: ReactNode; footer?: ReactNode; notice?: ReactNode }) {
     return (
         <div className="relative flex h-dvh w-screen flex-col">
+            {notice}
             <main className="relative min-h-0 flex-1" data-fit-area>
                 {children}
             </main>

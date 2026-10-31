@@ -127,6 +127,11 @@ from backend.app.services.field_rules import (
     new_or_changed_rules,
     prune_field_rules,
 )
+from backend.app.services.form_drafts.limits import normalized_draft_retention_days
+from backend.app.services.form_drafts.mode import (
+    DISABLED_MESSAGE as SAVE_DRAFTS_DISABLED_MESSAGE,
+    save_drafts_enabled,
+)
 from backend.app.services.new_question_types import (
     GATED_OPS,
     Signatures,
@@ -705,6 +710,14 @@ class FormSettingsPatch(_CamelModel):
     require_verified_identity: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    allow_save_draft: Optional[bool] = Field(
+        None,
+        description="Let respondents save a draft and continue later (off by default).",
+    )
+    draft_retention_days: Optional[int] = Field(
+        None,
+        description="Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
+    )
     show_review_page: Optional[bool] = None
 
 
@@ -1792,6 +1805,8 @@ _SETTINGS_LABELS = {
     "require_verified_identity": "verified-identity requirement",
     "allow_editing_response": "response editing",
     "show_submission_number": "submission numbers",
+    "allow_save_draft": "saving drafts",
+    "draft_retention_days": "how long drafts are kept",
     "show_review_page": "review page before sending",
 }
 
@@ -1807,8 +1822,17 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
     if not changed:
         raise OpError(
             "Nothing to change — provide at least one of: purpose, retentionText, "
-            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage."
+            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, "
+            "allowSaveDraft, draftRetentionDays."
         )
+    if op.patch.allow_save_draft is True and not save_drafts_enabled():
+        # SAVE_DRAFTS_ENABLED is off: the setting cannot be turned on
+        raise OpError(SAVE_DRAFTS_DISABLED_MESSAGE)
+    if op.patch.draft_retention_days is not None:
+        try:
+            normalized_draft_retention_days(op.patch.draft_retention_days)
+        except ValueError as error:
+            raise OpError(str(error))
     if op.patch.privacy_policy_url is not None:
         # Respondents get it as a link: http(s) only.
         try:
@@ -1823,6 +1847,7 @@ _SETTINGS_SWITCH_KEYS = (
     "require_verified_identity",
     "allow_editing_response",
     "show_submission_number",
+    "allow_save_draft",
     "show_review_page",
 )
 
@@ -1847,6 +1872,9 @@ def apply_settings_ops(settings: Any, ops, results: List["OpResult"]) -> bool:
             value = getattr(patch, key)
             if value is not None:
                 setattr(settings, key, value)
+        if patch.draft_retention_days is not None:
+            # 0 goes back to the default (none stored)
+            settings.draft_retention_days = patch.draft_retention_days or None
     return bool(patches)
 
 

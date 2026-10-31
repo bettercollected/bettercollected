@@ -118,6 +118,17 @@ repaired: `droppedOptionLogic`). Page-level choice questions only. The section s
 option logic is listed read-only. A copy of a question or page starts without option logic (`dropOptionLogic`). The server
 stays authoritative (`hidden_option`).
 
+**Save and continue later (respondent):** when the form's `settings.allowSaveDraft` is on, a question page offers "Save and
+continue later" (`components/drafts/save-draft-control.tsx`, under the Continue button, never in the builder preview).
+Signed in, it saves to the account; otherwise the respondent enters an address once and gets a link (the address is not
+kept). The respondent API is `store/redux/drafts-api.ts` (token and edit key travel in the body, never a URL), the
+browser's draft state is in memory only (`store/jotai/respondent-draft.ts`; the edit key rides the submit as `draft_key`
+so the server deletes the draft). `components/drafts/draft-resume.tsx` (the `notice` of `RespondentPageShell`) reads the
+link's `#resume=<token>` once, removes it from the address bar, and restores answers, hidden-field values and the page;
+it says so when the form changed, closed or filled. The pure rules are in `utils/form-drafts.ts` (files and calculations
+are never saved, positions are page ids). The privacy panel row and the builder setting (`form-draft-controls.tsx`, days
+1 to 90) read the same settings; the ops engine and spec know `allowSaveDraft` / `draftRetentionDays`.
+
 **New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day, currency,
 date range and tags questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
 from `useWorkspacePermissions`). While off, the Insert menu and a repeating group's type lists leave those types out,

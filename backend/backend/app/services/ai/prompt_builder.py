@@ -197,7 +197,7 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   ("Your contact details", not "Applicant identification data"); no numbering, the section
   number is added automatically. "title":null or "" clears it. Only question pages have
   one, never the welcome page or the ending.)
-- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?,"showReviewPage":true?}}
+- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?,"showReviewPage":true?,"allowSaveDraft":true?,"draftRetentionDays":30?}}
   (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
   data is collected. "retentionText" is an internal note that respondents never
   see: they are told only the retention period the form enforces, which is a
@@ -440,6 +440,8 @@ def project_form(form, settings=None) -> str:
             "requireVerifiedIdentity": getattr(settings, "require_verified_identity", None),
             "allowEditingResponse": getattr(settings, "allow_editing_response", None),
             "showSubmissionNumber": getattr(settings, "show_submission_number", None),
+            "allowSaveDraft": getattr(settings, "allow_save_draft", None),
+            "draftRetentionDays": getattr(settings, "draft_retention_days", None),
             "showReviewPage": getattr(settings, "show_review_page", None),
         }
     return json.dumps(snapshot, ensure_ascii=False)

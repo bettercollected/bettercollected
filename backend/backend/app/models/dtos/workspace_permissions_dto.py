@@ -14,11 +14,15 @@ class WorkspacePermissionsDto(CamelModel):
     from it, so the one switch on the backend is the only one.
     ``choice_logic_enabled`` is the same for option logic and filters.
     ``new_question_types_enabled`` is the same for the newer question types
-    (``NEW_QUESTION_TYPES_ENABLED``): the builder offers them from it."""
+    (``NEW_QUESTION_TYPES_ENABLED``): the builder offers them from it.
+    ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
+    respondents save and continue later": the builder shows the setting
+    read-only while it is off)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
     # Likewise for choice logic (``CHOICE_LOGIC_ENABLED``): the builder shows
     # its option logic and filter settings from it.
     choice_logic_enabled: bool = False
+    save_drafts_enabled: bool = False
     new_question_types_enabled: bool = False

@@ -336,6 +336,7 @@ class WorkspaceFormService:
         pdf_import_repo=None,
         registration_service=None,
         webhook_service=None,
+        draft_service=None,
         email_action_service=None,
         copy_recipient_service=None,
         response_export_service=None,
@@ -362,6 +363,8 @@ class WorkspaceFormService:
         # queues the delivery of a stored submission (services/registration)
         self._registration_service = registration_service
         self._webhook_service = webhook_service
+        # the saved drafts of a form (services/form_drafts)
+        self._draft_service = draft_service
         self._response_export_service = response_export_service
         self._email_action_service = email_action_service
 
@@ -535,6 +538,9 @@ class WorkspaceFormService:
         if self._webhook_service is not None:
             # the form's webhooks, delivery log and audit trail
             await self._webhook_service.delete_for_form(workspace_id, form_id)
+        if self._draft_service is not None:
+            # the respondents' saved drafts of it
+            await self._draft_service.delete_for_form(workspace_id, form_id)
         if self._response_export_service is not None:
             # the form's export audit entries and any stored export file
             await self._response_export_service.delete_for_form(workspace_id, form_id)
@@ -654,6 +660,8 @@ class WorkspaceFormService:
             await self._registration_service.delete_for_forms(list(form_ids))
         if self._webhook_service is not None and form_ids:
             await self._webhook_service.delete_for_forms(list(form_ids))
+        if self._draft_service is not None and form_ids:
+            await self._draft_service.delete_for_forms(list(form_ids))
         if self._response_export_service is not None and form_ids:
             await self._response_export_service.delete_for_forms(list(form_ids))
         if self._email_action_service is not None and form_ids:

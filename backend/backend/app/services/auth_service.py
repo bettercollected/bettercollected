@@ -89,8 +89,11 @@ class AuthService:
         allowed_origins_repo=None,
         sso_policy=None,
         credential_purge_service=None,
+        draft_service=None,
     ):
         self.credential_purge_service = credential_purge_service
+        # the account's own saved drafts, in every workspace
+        self.draft_service = draft_service
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
@@ -384,6 +387,9 @@ class AuthService:
         # the account, its sessions and its workspace data go first: nothing
         # about a provider service may hold them back
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
+        if self.draft_service is not None:
+            # a respondent's drafts of forms of other workspaces too
+            await self.draft_service.delete_for_account(str(user.id))
         # the export audit rows the user leaves in other workspaces stay, without them
         await self.workspace_service.forget_exports_of_user(user.id)
         await self.delete_user_form_auth(user=user)

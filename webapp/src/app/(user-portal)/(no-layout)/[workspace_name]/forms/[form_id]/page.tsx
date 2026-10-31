@@ -1,5 +1,6 @@
 'use client';
 
+import DraftResume from '@app/components/drafts/draft-resume';
 import Loader from '@app/components/ui/loader';
 import { trackCanonicalFormView } from '@app/lib/analytics/umami';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -14,6 +15,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ownerProps } from '@app/utils/workspace-display-name';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
 import { isUnavailableForm } from '@app/utils/closed-form';
+import { takeResumeToken } from '@app/utils/form-drafts';
 import { httpUrl } from '@app/utils/http-url';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
@@ -28,7 +30,8 @@ export default function FormPage(props: { params: Promise<{ form_id: string; wor
     const slug = params.form_id;
 
     return (
-        <FetchFormWrapper slug={slug} />
+        // keyed by the form: another form starts with its own state (and its own link)
+        <FetchFormWrapper key={slug} slug={slug} />
     );
 }
 
@@ -36,6 +39,9 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const workspace = useAppSelector(selectWorkspace);
     const dispatch = useAppDispatch();
     const iframeRef = useRef(null);
+    // A draft's link (#resume=<token>): taken from the address bar and history as the page starts,
+    // before the form loads, and kept in memory (utils/form-drafts.ts).
+    const [resumeToken] = useState(() => takeResumeToken());
     const { updateFormTheme } = useFormState();
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery(
@@ -187,6 +193,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         // never covers the form's button. dvh keeps the strip on screen under
         // a phone's browser bars.
         <RespondentPageShell
+            // A saved draft, picked up from the link or the account (components/drafts).
+            notice={<DraftResume form={data} token={resumeToken} />}
             footer={
                 <TrustLayer
                     {...ownerProps(workspace)}

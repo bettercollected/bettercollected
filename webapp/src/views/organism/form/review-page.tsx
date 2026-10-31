@@ -8,6 +8,7 @@ import { statesFor } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import { useOptionStates } from '@app/lib/hooks/use-option-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import SaveDraftControl from '@app/components/drafts/save-draft-control';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
@@ -142,6 +143,8 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
                 <Button flat style={formButtonStyle(theme?.secondary, corner)} isLoading={isLoading} className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')} onClick={onSubmit} size="medium">
                     {t('NAV.SUBMIT')}
                 </Button>
+                {/* "Save and continue later" works from here too: the draft comes back on the last page, to go on to this review again. */}
+                {!isPreviewMode && <SaveDraftControl ink={ink} />}
                 {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                 {submitError && (
                     <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]">

@@ -8421,7 +8421,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:81068b4f85bbbecfb0e979416f4b35b3e6438e3dd7275f66e6b63d6a0798829f",
+  "checksum": "sha256:dc793922348c8d260be1aee29c526ebd7ac5091ec6d9f2f18e75a9f1c8215840",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8436,8 +8436,10 @@
     "ai_insights_provider": "WorkspaceFormDocument.settings.ai_insights_provider tëxt ✓ \"quoted\" \\ line\nbreak",
     "ai_insights_provider_name": "WorkspaceFormDocument.settings.ai_insights_provider_name tëxt ✓ \"quoted\" \\ line\nbreak",
     "allow_editing_response": true,
+    "allow_save_draft": true,
     "custom_url": "WorkspaceFormDocument.settings.custom_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "disable_branding": true,
+    "draft_retention_days": 9007199254740993,
     "embed_url": "WorkspaceFormDocument.settings.embed_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "feedback_statuses": [
      "WorkspaceFormDocument.settings.feedback_statuses[0] tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8493,7 +8495,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:d71965bd72262eaab010bbe75f82aa960c81ac82358a4c44bea01e8575def736",
+  "checksum": "sha256:ae84ad7db0fc499eeed174bff4bfe9c3bdc5ebcbc3b980913a2a649bd4c0c3d2",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8508,8 +8510,10 @@
     "ai_insights_provider": "WorkspaceFormDocument.settings.ai_insights_provider tëxt ✓ \"quoted\" \\ line\nbreak",
     "ai_insights_provider_name": "WorkspaceFormDocument.settings.ai_insights_provider_name tëxt ✓ \"quoted\" \\ line\nbreak",
     "allow_editing_response": true,
+    "allow_save_draft": true,
     "custom_url": "WorkspaceFormDocument.settings.custom_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "disable_branding": true,
+    "draft_retention_days": 9007199254740993,
     "embed_url": "WorkspaceFormDocument.settings.embed_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "feedback_statuses": [
      "WorkspaceFormDocument.settings.feedback_statuses[0] tëxt ✓ \"quoted\" \\ line\nbreak",
