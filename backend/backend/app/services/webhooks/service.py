@@ -278,12 +278,14 @@ class WebhookService:
     async def _staff(self, user: User, workspace_id: RecordId, form_id: str) -> None:
         """The log holds ids and codes only: whoever edits the form or reads
         the audit log may look at it."""
+        held = await self._authorization.effective_permissions(user, workspace_id)
         for permission in (Permission.FORM_EDIT, Permission.AUDIT_READ):
-            if await self._authorization.has_permission(
-                user, permission, workspace_id, form_id=str(form_id)
-            ):
-                return
-        # the same answer as any refusal: 403, or 404 for a form that is not ours
+            if permission in held:
+                # 404 when the form is not this workspace's, as every other read
+                return await self._authorization.authorize(
+                    user, permission, workspace_id, form_id=str(form_id)
+                )
+        # neither: 403
         await self._authorization.authorize(
             user, Permission.FORM_EDIT, workspace_id, form_id=str(form_id)
         )

@@ -18,6 +18,7 @@ from pathlib import Path
 import psycopg
 import pytest
 from procrastinate import App
+from procrastinate.exceptions import ConnectorException
 
 from backend.jobs.app import build_connector, libpq_url
 from backend.jobs.schema import (
@@ -695,3 +696,100 @@ async def test_the_probe_does_leak_with_the_search_path_and_owner_the_review_fou
     message = await _run_the_temp_table_exploit(db)
 
     assert LEAK in message
+
+
+async def test_the_role_cannot_see_read_change_cancel_or_queue_webhook_jobs(db):
+    """Webhook deliveries run in the backend's own worker on the ``webhooks``
+    queue (no creator code). The executor's role, which runs creator code, must
+    not see them (a job's args name a delivery), take their place in the queue,
+    queue one of its own (a delivery to an address it chose, signed for a
+    workspace it does not own, or one that makes the backend skip a real
+    delivery through the queue's unique indexes) or touch them in any way."""
+    await _defer(db, "deliver_webhook", "webhooks", log_id="l1")
+    await _defer(db, "purge_action_logs", "webhooks")
+    await _defer(db, "run_action", "actions", action_id="a")
+    assert await _as_backend(
+        db, "SELECT count(*) FROM jobs.procrastinate_jobs WHERE queue_name = 'webhooks'"
+    ) == [(2,)]
+    conn = await db.connect("jobs_exec")
+    try:
+        # invisible: not by queue, not by task, not by id, not in a count
+        for sql in (
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE queue_name = 'webhooks'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE task_name = 'deliver_webhook'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE args ? 'log_id'",
+        ):
+            assert await (await conn.execute(sql)).fetchone() == (0,), sql
+        assert await (
+            await conn.execute("SELECT count(*) FROM jobs.procrastinate_jobs")
+        ).fetchone() == (1,)  # the one actions row
+        # not changeable, not cancellable, not removable
+        for sql in (
+            "UPDATE jobs.procrastinate_jobs SET status = 'failed' WHERE queue_name = 'webhooks'",
+            "UPDATE jobs.procrastinate_jobs SET args = '{}' WHERE task_name = 'deliver_webhook'",
+            "DELETE FROM jobs.procrastinate_jobs WHERE queue_name = 'webhooks'",
+        ):
+            assert (await conn.execute(sql)).rowcount == 0, sql
+        # not queueable: the webhooks queue, the webhook task, or a lock that would
+        # make the backend skip a delivery (``deliver_webhook:<log id>``)
+        for sql in (
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('webhooks', 'deliver_webhook', '{\"log_id\": \"x\"}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('webhooks', 'run_action', '{}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+            " VALUES ('actions', 'deliver_webhook', '{\"log_id\": \"x\"}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, queueing_lock, args)"
+            " VALUES ('actions', 'run_action', 'deliver_webhook:l1', '{}')",
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, lock, args)"
+            " VALUES ('actions', 'run_action', 'deliver_webhook:l1', '{}')",
+        ):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                await conn.execute(sql)
+        # moving an actions row onto the webhooks queue is refused as well
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            await conn.execute(
+                "UPDATE jobs.procrastinate_jobs SET queue_name = 'webhooks'"
+            )
+    finally:
+        await conn.close()
+    # procrastinate's own deferral, through the role, is refused too
+    executor = db.queue_app("jobs_exec")
+    async with executor.open_async():
+        with pytest.raises(ConnectorException) as refused:
+            await executor.configure_task(
+                name="deliver_webhook", queue="webhooks"
+            ).defer_async(log_id="x")
+    assert isinstance(
+        refused.value.__cause__, psycopg.errors.InsufficientPrivilege
+    ), repr(refused.value.__cause__)
+    # the backend's rows are untouched, and its own delivery can still be queued
+    # with the lock the role tried to take
+    assert await _as_backend(
+        db,
+        "SELECT task_name, status FROM jobs.procrastinate_jobs"
+        " WHERE queue_name = 'webhooks' ORDER BY id",
+    ) == [("deliver_webhook", "todo"), ("purge_action_logs", "todo")]
+    backend = db.queue_app("app")
+    async with backend.open_async():
+        await backend.configure_task(
+            name="deliver_webhook", queue="webhooks", queueing_lock="deliver_webhook:l2"
+        ).defer_async(log_id="l2")
+
+
+async def test_a_worker_of_the_role_never_runs_a_webhook_job(db):
+    await _defer(db, "deliver_webhook", "webhooks", log_id="l1")
+    ran = []
+    executor = db.queue_app("jobs_exec")
+
+    # a worker of the executor that even knows the task, on every queue
+    @executor.task(name="deliver_webhook", queue="webhooks")
+    async def deliver_webhook(**kwargs):
+        ran.append(kwargs)
+
+    async with executor.open_async():
+        await executor.run_worker_async(
+            wait=False, install_signal_handlers=False, queues=None
+        )
+    assert ran == []
+    assert await _statuses(db) == [("deliver_webhook", "webhooks", "todo")]
