@@ -81,6 +81,9 @@ class ActionLogDocument(Record):
     action_id: str
     # ``submission`` (a stored response) or ``test`` (sample data, no response)
     event: str = "submission"
+    # the host this delivery was queued for (the one the respondent was shown):
+    # a run whose webhook points to another host by then is cancelled
+    host: Optional[str] = None
     response_id: Optional[str] = None
     status: LogStatus = LogStatus.PENDING
     attempts: int = 0

@@ -92,7 +92,7 @@ destination's `Retry-After` when that is longer (capped at one hour).
 | the address no longer passes the guard | `failed` at once (`not_allowed`) |
 
 Timeouts: 5 s to connect, 10 s per read or write, 20 s in all. Every attempt of one delivery uses the same delivery id and the same body. A delivery is
-idempotent on its (webhook, response) pair: a repeated hand-off from the submit path never queues it twice, and a queued job is claimed atomically, so two
+bound to the host it was queued for (the one the respondent was shown): if the webhook's address points to another host by the time an attempt runs, the delivery is cancelled (`destination_changed`) and nothing is sent, also for a retry. It is idempotent on its (webhook, response) pair: a repeated hand-off from the submit path never queues it twice, and a queued job is claimed atomically, so two
 workers never send one delivery at the same time. A submission that was erased before the send is never sent (erasure wins over a late delivery). A pending
 delivery whose job was never queued, or whose worker died, is queued again by a sweep every 5 minutes.
 
@@ -122,7 +122,7 @@ One row per delivery (one per enabled webhook and submission, plus one per test 
 (`webhook`), a status (`pending`, `in_progress`, `retrying`, `delivered`, `failed`, `cancelled`), the HTTP status, the number of attempts and timings
 (first and last attempt, the next one, when it finished, how long the last attempt took). **No answer content, no request or response body, no address, no
 secret**; an error is one of our codes (`http_4xx`, `http_5xx`, `timeout`, `unreachable`, `tls_error`, `redirect_refused`, `not_allowed`, `invalid_url`,
-`too_large`, `secret_unreadable`, `url_unreadable`, `answers_unreadable`, `disabled`, `internal_error`).
+`too_large`, `secret_unreadable`, `url_unreadable`, `answers_unreadable`, `disabled`, `destination_changed`, `internal_error`).
 
 Rows are kept **30 days**; a job on the `webhooks` queue deletes older ones daily at 03:41. The rows of a form or workspace that is deleted go with it. The
 form's settings tab has a "Deliveries" view of the log (English and Dutch) for people who may read it.

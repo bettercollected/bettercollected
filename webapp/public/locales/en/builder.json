@@ -865,6 +865,7 @@
         "url_unreadable": "The address of the webhook could not be read. Edit the webhook and enter the address again.",
         "answers_unreadable": "The answers of this submission could not be read, so nothing was sent.",
         "disabled": "The webhook was turned off or deleted before this was sent.",
+        "destination_changed": "The address of the webhook now points to another host than the one this submission was queued for, so nothing was sent. Respondents were told about the first host only.",
         "internal_error": "Something went wrong on our side.",
         "unknown": "It was not sent."
       }

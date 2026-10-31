@@ -865,6 +865,7 @@
         "url_unreadable": "Het adres van de webhook kon niet worden gelezen. Bewerk de webhook en vul het adres opnieuw in.",
         "answers_unreadable": "De antwoorden van deze inzending konden niet worden gelezen, dus er is niets verstuurd.",
         "disabled": "De webhook is uitgezet of verwijderd voordat dit verstuurd werd.",
+        "destination_changed": "Het adres van de webhook verwijst nu naar een andere host dan die waarvoor deze inzending in de wachtrij stond, dus er is niets verstuurd. Respondenten zijn alleen over de eerste host geïnformeerd.",
         "internal_error": "Er ging iets mis aan onze kant.",
         "unknown": "Het is niet verstuurd."
       }

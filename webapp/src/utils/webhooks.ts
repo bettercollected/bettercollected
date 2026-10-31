@@ -38,6 +38,7 @@ export const DELIVERY_ERROR_CODES = [
     'url_unreadable',
     'answers_unreadable',
     'disabled',
+    'destination_changed',
     'internal_error'
 ] as const;
 

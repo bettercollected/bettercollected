@@ -116,9 +116,11 @@ async def test_the_job_sends_only_the_mapped_questions_signed(setup, lines):
     assert done.status is LogStatus.DELIVERED and done.attempts == 1
     assert done.last_http_status == 200 and done.last_error_code is None
     assert done.finished_at and done.first_attempt_at and done.last_duration_ms is not None
-    # the row holds ids and counters, never answers, addresses or secrets
+    # the row holds ids, the host it was queued for and counters, never answers,
+    # addresses or secrets
+    assert done.host == "case.example.org"
     stored = json.dumps(done.model_dump(mode="json"))
-    for text in PERSONAL + [secret, "case.example.org", "intake"]:
+    for text in PERSONAL + [secret, "https://", "intake"]:
         assert text not in stored
     for text in PERSONAL + [secret, "case.example.org"]:
         assert not any(text in line for line in lines), text
@@ -426,3 +428,64 @@ async def test_backoff_grows_exponentially_with_jitter_inside_bounds_and_a_cap()
     assert retry.backoff_seconds(9, lambda: 1.0) <= retry.CAP_SECONDS * 1.25
     # jitter really varies
     assert len({retry.backoff_seconds(3) for _ in range(30)}) > 1
+
+
+# ------------------------------------- a delivery goes to the host it was queued for
+
+
+async def _change_url(setup, url):
+    from backend.app.services.webhooks.service import WebhookUpdateDto
+    from tests.app.controllers.data import testUser
+
+    await container.webhook_service().update_webhook(
+        setup.workspace.id, setup.form.form_id, setup.hook.id, WebhookUpdateDto(url=url), testUser
+    )
+
+
+async def test_a_url_change_between_queueing_and_running_cancels_the_delivery(setup, lines):
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    assert log.host == "case.example.org"
+    await _change_url(setup, "https://elsewhere.example.net/hook")
+    outcome = await run(log)
+    row = await container.action_log_repo().get(log.id)
+    assert outcome.status == "cancelled"
+    assert row.status is LogStatus.CANCELLED and row.last_error_code == "destination_changed"
+    assert row.finished_at and row.attempts == 1
+    # nothing was sent, to the old host or the new one
+    assert setup.tls.requests == [] and setup.tls.dialled == []
+    assert not any("elsewhere.example.net" in line for line in lines)
+
+
+async def test_a_url_change_between_attempts_cancels_the_retry(setup):
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    setup.tls.script.answers = [(503, {}, b"down")]
+    assert (await run(log, 0)).status == "retrying"
+    assert len(setup.tls.requests) == 1
+    await _change_url(setup, "https://elsewhere.example.net/hook")
+    outcome = await run(log, 1)
+    row = await container.action_log_repo().get(log.id)
+    assert outcome.status == "cancelled" and not outcome.retry
+    assert row.status is LogStatus.CANCELLED and row.last_error_code == "destination_changed"
+    assert len(setup.tls.requests) == 1  # the second attempt sent nothing
+
+
+async def test_a_change_of_path_or_token_on_the_same_host_still_delivers(setup):
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    await _change_url(setup, "https://case.example.org/v2/hooks?key=new")
+    assert (await run(log)).status == "delivered"
+    assert setup.tls.requests[0].target == "/v2/hooks?key=new"
+
+
+async def test_a_test_event_is_bound_to_its_host_too(setup):
+    from tests.app.controllers.data import testUser
+
+    queued = await container.webhook_service().send_test(
+        setup.workspace.id, setup.form.form_id, setup.hook.id, testUser
+    )
+    assert queued.host == "case.example.org"
+    await _change_url(setup, "https://elsewhere.example.net/hook")
+    assert (await container.webhook_service().run_delivery(queued.id)).status == "cancelled"
+    assert setup.tls.requests == []

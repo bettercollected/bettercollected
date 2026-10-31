@@ -204,7 +204,7 @@ def _delivery_dto(
         id=str(document.id),
         action_type=document.action_type.value,
         webhook_id=document.action_id,
-        host=hosts.get(document.action_id),
+        host=document.host or hosts.get(document.action_id),
         event=document.event,
         response_id=document.response_id,
         status=document.status.value,
@@ -683,6 +683,7 @@ class WebhookService:
                 form_id=str(form_id),
                 action_id=str(document.id),
                 event=payload.EVENT_TEST,
+                host=document.host,
             )
         )
         await self._queue(log)
@@ -723,6 +724,7 @@ class WebhookService:
                         action_id=str(hook.id),
                         event=payload.EVENT_SUBMISSION,
                         response_id=str(response_id),
+                        host=hook.host,
                     )
                 )
                 if log is None:
@@ -847,6 +849,8 @@ class WebhookService:
         hook = await self._hook_for(log)
         if hook is None:
             return await self._cancel(log, "disabled")
+        if hook.host != log.host:
+            return await self._cancel(log, "destination_changed")
         try:
             secret = unseal(self._crypto, hook.workspace_id, hook.id, hook.secret_sealed)
         except SecretUnreadable:
@@ -941,8 +945,11 @@ class WebhookService:
             if response is None or str(response.form_id) != str(log.form_id):
                 await self._logs.delete_by_response_id(str(log.response_id))
                 return Outcome("gone")
-        if await self._hook_for(log) is None:
+        hook = await self._hook_for(log)
+        if hook is None:
             return await self._cancel(log, "disabled")
+        if hook.host != log.host:
+            return await self._cancel(log, "destination_changed")
         return None
 
     @staticmethod
