@@ -25,6 +25,8 @@ export interface QuestionLabel {
     requiredId?: string;
     required: boolean;
     invalid: boolean;
+    /** A field rule locks the question (read-only, or its value is set by the form): the control says so, and is not disabled. */
+    readOnly: boolean;
 }
 
 export const QuestionLabelContext = createContext<QuestionLabel | null>(null);
@@ -40,6 +42,7 @@ export interface GroupLabelProps {
 export interface ControlLabelProps extends GroupLabelProps {
     'aria-required'?: boolean;
     'aria-invalid'?: boolean;
+    'aria-readonly'?: boolean;
 }
 
 type HintId = string | undefined | null | false;
@@ -66,7 +69,8 @@ export function useQuestionLabel(...hints: HintId[]): { label: QuestionLabel | n
             'aria-labelledby': label.labelledBy,
             'aria-describedby': describedBy,
             'aria-required': label.required || undefined,
-            'aria-invalid': label.invalid || undefined
+            'aria-invalid': label.invalid || undefined,
+            'aria-readonly': label.readOnly || undefined
         },
         group: {
             'aria-labelledby': label.labelledBy,

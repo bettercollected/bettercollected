@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
+import { withDerivedAnswers } from '@app/lib/field-rules';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { browserChecksPattern, validateAnswerRulesInSlide } from '@app/utils/answer-rules';
@@ -17,6 +18,11 @@ import { validateSlide } from '@app/utils/vvalidation-utils';
  * questions Required has nothing against), follow the page's jump or go to
  * the next page. Cases marked 'server' only are the server's alone (answer
  * types, unknown ids) or differ on purpose ('clientDiffers' says why).
+ *
+ * The 'fieldRules' cases run the form's field rules first (lib/field-rules.ts,
+ * as the respondent page's derived-answers hook does), then validate with the
+ * states they give: Required with the rules applied, locked questions
+ * skipped. They also check the answers the rules leave ('answersAfter').
  */
 
 interface Problem {
@@ -31,17 +37,23 @@ interface Case {
     clientDiffers?: string;
     form: StandardFormFieldDto[];
     answers: Record<string, any>;
+    /** The respondent's date (YYYY-MM-DD) for a case that reads today(); the server is given the same. */
+    today?: string;
+    answersAfter?: Record<string, Record<string, any> | null>;
     errors: Problem[];
 }
 
 const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/answer-validation.cases.json'), 'utf-8')) as { cases: Case[] };
-const CLIENT_CASES = corpus.cases.filter((c) => c.checks.includes('required') || c.checks.includes('rules'));
+const CLIENT_CASES = corpus.cases.filter((c) => c.checks.includes('required') || c.checks.includes('rules') || c.checks.includes('fieldRules'));
 
 const RULES: Record<string, string> = { '0': 'required', REQUIRED: 'required', MIN_ITEMS: 'too_few_items', MAX_ITEMS: 'too_many_items' };
 
 /** What the respondent page reports on its way through the form. */
-function respondentProblems(slides: StandardFormFieldDto[], answers: Record<string, any>): Problem[] {
+function respondentProblems(slides: StandardFormFieldDto[], given: Record<string, any>, today?: string): Problem[] {
     const problems: Problem[] = [];
+    // Respondents are served the form without internal questions.
+    const served = slides.map((slide) => ({ ...slide, properties: { ...slide.properties, fields: (slide.properties?.fields ?? []).filter((field) => !field.internal) } }));
+    const { answers, states } = withDerivedAnswers(served, given, {}, today);
     const sources = logicSourcesById(slides);
     const seen = new Set<number>();
     let index = 0;
@@ -53,10 +65,10 @@ function respondentProblems(slides: StandardFormFieldDto[], answers: Record<stri
         const hidden = getHiddenFieldIds(fields, answers, sources);
         const visible = fields.filter((field) => !hidden.has(field.id));
         const invalid: Record<string, any[]> = {
-            ...validateSlide({ ...slide, properties: { ...slide.properties, fields: visible } } as StandardFormFieldDto, answers),
-            ...validateGroupsInSlide(visible, answers, sources)
+            ...validateSlide({ ...slide, properties: { ...slide.properties, fields: visible } } as StandardFormFieldDto, answers, states),
+            ...validateGroupsInSlide(visible, answers, sources, states)
         };
-        Object.entries(validateAnswerRulesInSlide(visible, answers, sources)).forEach(([id, codes]) => {
+        Object.entries(validateAnswerRulesInSlide(visible, answers, sources, states.locked)).forEach(([id, codes]) => {
             if (!invalid[id]) invalid[id] = codes;
         });
         Object.entries(invalid).forEach(([key, codes]) => {
@@ -102,6 +114,16 @@ describe('answer validation cases shared with the server', () => {
     });
 
     it.each(CLIENT_CASES.map((c) => [c.name, c] as const))('%s', (_name, testCase) => {
-        expect(sorted(respondentProblems(testCase.form, testCase.answers))).toEqual(sorted(expectedInBrowser(testCase.form, testCase.errors)));
+        expect(sorted(respondentProblems(testCase.form, testCase.answers, testCase.today))).toEqual(sorted(expectedInBrowser(testCase.form, testCase.errors)));
+    });
+
+    it.each(CLIENT_CASES.filter((c) => c.checks.includes('fieldRules')).map((c) => [c.name, c] as const))('leaves the answers the server stores: %s', (_name, testCase) => {
+        const { answers } = withDerivedAnswers(testCase.form, testCase.answers, {}, testCase.today);
+        Object.entries(testCase.answersAfter ?? {}).forEach(([id, expected]) => {
+            // the server's answers carry the question's id; the respondent page's do not
+            const { field: _field, ...stored } = (answers[id] ?? {}) as Record<string, any>;
+            if (expected === null) expect(answers[id]).toBeUndefined();
+            else expect(stored).toEqual(Object.fromEntries(Object.entries(expected).filter(([key]) => key !== 'field')));
+        });
     });
 });

@@ -1,5 +1,6 @@
 import { v4 } from 'uuid';
 
+import type { FieldRuleStates } from '@app/lib/field-rules';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
 import { PipeContext, groupPipeKey, resolvePipesInText } from '@app/utils/answer-piping';
@@ -252,7 +253,7 @@ export type GroupInvalidation = 'REQUIRED' | 'MIN_ITEMS' | 'MAX_ITEMS';
  * Validate one group: item count within limits (keyed by the group id) and
  * required questions per visible item (keyed by the scoped child id).
  */
-export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record<string, any> | undefined, sources?: LogicSources): Record<string, GroupInvalidation[]> {
+export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record<string, any> | undefined, sources?: LogicSources, states?: FieldRuleStates): Record<string, GroupInvalidation[]> {
     const invalid: Record<string, GroupInvalidation[]> = {};
     const { minItems, maxItems } = getRepeatSettings(field);
     const count = getDisplayedItemCount(field, answers);
@@ -264,15 +265,16 @@ export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record
         const item = items[index] ?? {};
         const hidden = getItemHiddenChildIds(field, answers, index, sources);
         getGroupChildren(field).forEach((child) => {
-            if (child?.validations?.required && !hidden.has(child.id) && !hasAnswerValue(item[child.id])) invalid[scopedFieldId(child.id, index)] = ['REQUIRED'];
+            const required = states ? states.isRequired(child.id, !!child?.validations?.required, field.id, index) : child?.validations?.required;
+            if (required && !hidden.has(child.id) && !hasAnswerValue(item[child.id])) invalid[scopedFieldId(child.id, index)] = ['REQUIRED'];
         });
     }
     return invalid;
 }
 
 /** Validate the repeating groups among a page's visible fields. */
-export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any> | undefined, sources?: LogicSources): Record<string, GroupInvalidation[]> {
-    return (fields ?? []).filter(isRepeatingGroup).reduce((acc, group) => ({ ...acc, ...validateGroupAnswer(group, answers, sources) }), {} as Record<string, GroupInvalidation[]>);
+export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any> | undefined, sources?: LogicSources, states?: FieldRuleStates): Record<string, GroupInvalidation[]> {
+    return (fields ?? []).filter(isRepeatingGroup).reduce((acc, group) => ({ ...acc, ...validateGroupAnswer(group, answers, sources, states) }), {} as Record<string, GroupInvalidation[]>);
 }
 
 /** A question's title as plain text (string or TipTap JSON), without UI imports. */

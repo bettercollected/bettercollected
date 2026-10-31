@@ -15,7 +15,7 @@ import { getComparableAnswerValue, getGroupAnswerItems } from '@app/utils/condit
  * calculated field's id. Field ids win over hidden-field names.
  *
  * The respondent page writes the computed answers into the form's answers
- * (use-calculated-fields.ts), so logic, page jumps and piping read them like
+ * (lib/hooks/use-derived-answers.ts), so logic, page jumps and piping read them like
  * any answer. The server recomputes every value on submit and edit and never
  * trusts these: backend services/calculated_fields.py is the twin, keep the
  * two in step.

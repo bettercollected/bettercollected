@@ -67,6 +67,17 @@ share link's query string on the public form page (declared names only), held in
 `?field_<fieldId>=value` URL params prefill text-like input fields. Deleting a field/hidden name prunes its pipes
 (`pruneOrphanedPipes`, called next to `pruneOrphanedConditions`).
 
+**Field rules (respondent runtime):** a question's `properties.rules` (require / read-only / set value / change
+title or description while a condition or formula holds) are evaluated by `src/lib/field-rules.ts`, the pure
+twin of backend `services/field_rules.py` (no `eval`; same operator table, caps, ordering and evaluation budget).
+Shared cases: `docs/spec/field-rules.cases.json` and the `fieldRules` cases of
+`docs/spec/answer-validation.cases.json`, run on both sides, so change one evaluator only together with the other.
+`useDerivedAnswers` (`lib/hooks/`) writes calculated and set values into the answers; `useFieldRuleStates` gives
+`QuestionWrapper`, `validateSlide` and the answer/date-rule checks the effective required flag and the locked
+questions (read-only, not disabled; a locked question is never required and meets no answer or date rules). The
+page's status region (`field-rule-announcer.tsx`) says once, politely, what an answer changed. A form without rules
+takes none of these paths. The server stays authoritative.
+
 ## Commands
 
 ```bash

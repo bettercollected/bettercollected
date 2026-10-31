@@ -103,6 +103,7 @@
         "CALCULATED_TRUE": "Yes",
         "CALCULATED_FALSE": "No",
         "OPTIONAL": "Optional",
+        "READ_ONLY": "Read only",
         "ANSWER_REQUIRED": "Please answer this question to continue.",
         "YES": "Yes",
         "NO": "No",
@@ -114,6 +115,17 @@
         "RATE": "Rate {{value}} of {{total}}",
         "RATED": "{{value}} of {{total}}",
         "CHOOSE_MANY": "Choose as many as you like."
+    },
+    "FIELD_RULES": {
+        "NOW_REQUIRED": "\u201c{{title}}\u201d is now required.",
+        "NOW_OPTIONAL": "\u201c{{title}}\u201d is now optional.",
+        "NOW_READ_ONLY": "\u201c{{title}}\u201d is now read only.",
+        "NOW_FILLED_IN": "\u201c{{title}}\u201d was filled in for you and is read only.",
+        "NOW_EDITABLE": "\u201c{{title}}\u201d can be changed again.",
+        "NOW_TITLED": "A question is now titled \u201c{{title}}\u201d.",
+        "DESCRIPTION_CHANGED": "The description of \u201c{{title}}\u201d changed.",
+        "MORE_one": "{{count}} more change on this page.",
+        "MORE_other": "{{count}} more changes on this page."
     },
     "RULE": {
         "TOO_SHORT_one": "Use at least {{count}} character.",

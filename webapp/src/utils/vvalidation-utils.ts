@@ -3,6 +3,7 @@ import _ from 'lodash';
 import moment from 'moment/moment';
 
 import { formConstant } from '@app/constants/locales/form';
+import type { FieldRuleStates } from '@app/lib/field-rules';
 import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
@@ -296,7 +297,7 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
  * when it carries a value (`hasAnswerValue`), the same test the server applies
  * on submit (backend services/answer_validation.py).
  */
-export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>) {
+export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>, states?: FieldRuleStates) {
     const invalidFields: Record<string, Array<Invalidations>> = {};
     slide?.properties?.fields?.forEach((field) => {
         // Repeating groups validate per item (utils/repeating-groups.ts).
@@ -313,7 +314,7 @@ export function validateSlide(slide: StandardFormFieldDto, answers: Record<strin
                     }
                 }
             });
-        } else if (field?.validations?.required && !hasAnswerValue(answers[field.id])) {
+        } else if ((states ? states.isRequired(field.id, !!field?.validations?.required) : field?.validations?.required) && !hasAnswerValue(answers[field.id])) {
             invalidFields[field.id] = [Invalidations.REQUIRED];
         }
     });

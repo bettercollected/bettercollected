@@ -224,11 +224,17 @@ export function validateGroupDateRules(group: StandardFormFieldDto, answers: Rec
 }
 
 /** All date-rule problems among a page's visible fields (top level and repeating groups). */
-export function validateDateRulesInSlide(fields: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>, fieldsById: Record<string, StandardFormFieldDto>, today: string = todayIso()): Record<string, DateRuleInvalidation[]> {
-    return (fields ?? []).reduce(
-        (acc, field) => ({ ...acc, ...(isRepeatingGroup(field) ? validateGroupDateRules(field, answers, fieldsById, today) : validateDateRulesInFields([field], answers, fieldsById, today)) }),
-        {} as Record<string, DateRuleInvalidation[]>
-    );
+export function validateDateRulesInSlide(
+    fields: Array<StandardFormFieldDto> | undefined,
+    answers: Record<string, any>,
+    fieldsById: Record<string, StandardFormFieldDto>,
+    today: string = todayIso(),
+    locked?: ReadonlySet<string>
+): Record<string, DateRuleInvalidation[]> {
+    // A date the form sets or locks has no date rules of its own to meet (as on the server).
+    return (fields ?? [])
+        .filter((field) => !locked?.has(field.id))
+        .reduce((acc, field) => ({ ...acc, ...(isRepeatingGroup(field) ? validateGroupDateRules(field, answers, fieldsById, today) : validateDateRulesInFields([field], answers, fieldsById, today)) }), {} as Record<string, DateRuleInvalidation[]>);
 }
 
 // ---------------------------------------------------------------------------

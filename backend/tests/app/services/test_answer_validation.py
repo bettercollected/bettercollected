@@ -102,9 +102,9 @@ def test_shared_case(case):
         assert stored.get(key) == answer, key
 
 
-def test_rule_cases_are_left_out_of_the_respondent_runner():
-    # the webapp runner takes 'required' and 'rules' cases only; the field
-    # rule cases wait for the respondent page's own evaluator
+def test_rule_cases_are_marked_for_the_respondent_runner():
+    # the webapp runner takes the 'required', 'rules' and 'fieldRules' cases
+    # (src/lib/field-rules.ts is the respondent page's evaluator)
     rule_cases = [c for c in CASES if "fieldRules" in c["checks"]]
     assert len(rule_cases) >= 20
     assert all(c["checks"] == ["fieldRules"] for c in rule_cases)

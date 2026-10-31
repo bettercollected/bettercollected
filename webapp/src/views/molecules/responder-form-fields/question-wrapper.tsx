@@ -1,9 +1,10 @@
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { KeyboardEvent, MouseEvent, useContext, useEffect, useMemo, useRef } from 'react';
 
 import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -47,13 +48,25 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
 
     const { invalidFields } = formResponse;
     const { t, language } = useRespondentLanguage();
+    // Field rules (lib/field-rules.ts): what the form's rules decide for this
+    // question from the answers now. Inside a repeating-group item they are
+    // decided per item. A form without rules gets NO_RULES, which changes nothing.
+    const itemScope = useGroupItemScope();
+    const ruleStates = useFieldRuleStates();
+    const ruleText = ruleStates.text(field.id, itemScope?.groupId, itemScope?.index);
+    // A question the form fills in or locks (a rule sets its value or makes it read-only).
+    const locked = !itemScope && ruleStates.isLocked(field.id);
     // The author's text (title, description, reason) is marked when the form
     // declares another language than the page's; the chrome around it is not.
     const contentLang = useFormContentLanguage();
     // Answer rules (length, format, range, number of options): flagged on
     // Continue, then re-checked against the answer as it is now, so the
     // message goes away as soon as the answer is fixed.
-    const flagged = invalidFields?.[field.id] ?? [];
+    const isAnswerable = isAnswerableField(field);
+    // Required unless a rule says otherwise (never for a locked question).
+    const isRequired = ruleStates.isRequired(field.id, !!field?.validations?.required, itemScope?.groupId, itemScope?.index);
+    // A "required" flagged earlier goes away when a rule stops requiring the question.
+    const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || (code !== 0 && code !== 'REQUIRED'));
     const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
@@ -71,8 +84,6 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // no one is nudged into answering something they could skip. Display-only
     // fields (statements, images) collect nothing, so they carry no marker.
     // (DESIGN.md §5: "Don't hide which fields are optional to coerce answers".)
-    const isAnswerable = isAnswerableField(field);
-    const isRequired = !!field?.validations?.required;
     // A text block is content, not a question: it reads as body text (its
     // own headings keep their sizes), not in the question-label style.
     const isTextBlock = field?.type === FieldTypes.TEXT;
@@ -88,11 +99,12 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // answer or URL prefill can inject markup. Bold keeps the string path's look.
     // An untitled field shows no title: never the builder's placeholder hint.
     const legacy = field ? legacyTitleText(field) : undefined;
-    const stringTitle = typeof field?.title === 'string' && field.title ? field.title : legacy;
+    // A rule's title replaces the question's (plain text, same pipe tokens).
+    const stringTitle = ruleText?.title ? ruleText.title : typeof field?.title === 'string' && field.title ? field.title : legacy;
     const title = stringTitle ? stringTitleToDoc(stringTitle, [{ type: 'bold' }]) : field?.title;
     const resolvedTitle = resolvePipesInTitle(title, pipeContext);
     const titleHtml = getHtmlFromJson(resolvedTitle) ?? '';
-    const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
+    const resolvedDescription = resolvePipesInText(ruleText?.description ?? field?.description, pipeContext);
     // "Why we ask this": the creator's reason for an identifying question.
     const whyWeAsk = field?.properties?.whyWeAsk?.trim();
     // Leaflet: the question's n.m number, set in the margin column.
@@ -111,18 +123,18 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const errorId = `q-error-${field.id}`;
     const titleId = `q-title-${field.id}`;
     const requiredId = `q-required-${field.id}`;
+    const lockedId = `q-locked-${field.id}`;
 
     // The name the field's controls carry: the title as rendered (rich text
     // and piped answers included) and, inside a repeating-group item, that
     // item's heading ("Child 2"). An untitled question names nothing here, so
     // a control falls back to its own label.
-    const itemScope = useGroupItemScope();
     // Any visible character outside a tag means there is a title to name by.
     const hasTitle = /(^|>)[^<]*\S/.test(titleHtml);
     const itemHeadingId = itemScope ? `group-item-${itemScope.groupId}-${itemScope.index}` : undefined;
     const labelledBy = [hasTitle ? titleId : null, itemHeadingId].filter(Boolean).join(' ') || undefined;
     // Described in reading order: description, "why we ask", then the error.
-    const infoIds = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null].filter(Boolean).join(' ') || undefined;
+    const infoIds = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, locked ? lockedId : null].filter(Boolean).join(' ') || undefined;
     const describedBy = [infoIds, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
     const questionLabel: QuestionLabel = useMemo(
         () => ({
@@ -132,9 +144,10 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
             errorId: hasError ? errorId : undefined,
             requiredId: isAnswerable && isRequired ? requiredId : undefined,
             required: isAnswerable && isRequired,
-            invalid: hasError
+            invalid: hasError,
+            readOnly: locked
         }),
-        [labelledBy, describedBy, infoIds, errorId, requiredId, isAnswerable, isRequired, hasError]
+        [labelledBy, describedBy, infoIds, errorId, requiredId, isAnswerable, isRequired, hasError, locked]
     );
     useEffect(() => {
         const controls = groupRef.current?.querySelectorAll<HTMLElement>('input:not([type=hidden]), textarea, select, [role=radiogroup], [role=combobox]');
@@ -142,6 +155,19 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
             // Only this question's own controls, not those of nested questions.
             if (control.closest('[data-question-wrapper]') !== groupRef.current) return;
             const describedBy = (control.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== errorId);
+            // Read-only (a field rule locks the question), not disabled: the
+            // control stays in the tab order and keeps its text contrast.
+            // Native boxes take `readonly`; anything else is blocked below
+            // (onClickCapture / onKeyDownCapture) and says so through aria-readonly.
+            if (locked) {
+                if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) control.readOnly = true;
+                control.setAttribute('aria-readonly', 'true');
+                control.setAttribute('data-rule-readonly', 'true');
+            } else if (control.hasAttribute('data-rule-readonly')) {
+                if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) control.readOnly = false;
+                control.removeAttribute('aria-readonly');
+                control.removeAttribute('data-rule-readonly');
+            }
             if (hasError) {
                 control.setAttribute('aria-invalid', 'true');
                 control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
@@ -152,6 +178,23 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
             }
         });
     });
+
+    // A locked question's own buttons (options, the date and dropdown
+    // triggers) do nothing. Text boxes are read-only natively and keep their
+    // caret and selection.
+    const isTextBox = (target: EventTarget) => target instanceof HTMLElement && !!target.closest('input, textarea');
+    const blockClick = (event: MouseEvent) => {
+        if (isTextBox(event.target)) return;
+        event.preventDefault();
+        event.stopPropagation();
+    };
+    const blockKeys = (event: KeyboardEvent) => {
+        if (isTextBox(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.key === 'Enter' || event.key.length === 1 || event.key.startsWith('Arrow')) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    };
 
     const content = (
         <>
@@ -179,7 +222,12 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && <span className="form-note-accent text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
+                    {isAnswerable && !isRequired && !locked && <span className="form-note-accent text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
+                    {locked && (
+                        <span id={lockedId} className="form-note-accent text-[13px] font-normal text-black-700">
+                            {t('FIELD.READ_ONLY')}
+                        </span>
+                    )}
                 </div>
                 {resolvedDescription && (
                     <div id={`q-desc-${field.id}`} className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-black-700" lang={contentLang}>
@@ -226,6 +274,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 // Wide centred pages hang the number outside the text measure.
                 number && numbering?.hang && '@min-[880px]/page:block',
                 tokens.divider && 'border-b pb-7',
+                // A locked question (a field rule sets it or makes it read-only) keeps
+                // its ink, and its box takes a quiet tint so it does not look editable.
+                locked && '[&_[aria-expanded]]:bg-[#F3F4F6]! [&_[aria-haspopup]]:bg-[#F3F4F6]! [&_button]:cursor-default [&_input]:cursor-default [&_input]:bg-[#F3F4F6]! [&_textarea]:cursor-default [&_textarea]:bg-[#F3F4F6]!',
                 // The field's edge (inputs, the date and dropdown triggers, the
                 // option controls) in signal red while its error shows.
                 hasError &&
@@ -237,6 +288,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
             }}
             ref={groupRef}
             data-question-wrapper
+            data-rule-locked={locked || undefined}
+            onClickCapture={locked ? blockClick : undefined}
+            onKeyDownCapture={locked ? blockKeys : undefined}
             data-invalid={hasError || undefined}
             id={field.id}
             // A question made of several controls with no group of their own is

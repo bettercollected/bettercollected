@@ -1,0 +1,3577 @@
+{
+  "description": "What field rules (properties.rules) decide for a set of answers: 'answersAfter' lists answers as the server stores them after the replay (null: none stored; the question id the server adds to an answer is left out), 'states' the states the rules give the questions (question id, or group/question/item inside a repeating group, to locked, required, title, description: only what a rule decided, 'required' being the last active rule's own value; a locked question is never required). 'hiddenFields' are the form's declared hidden-field names, 'hiddenValues' what the link gave, 'today' the respondent's date. Run by backend tests/app/services/test_field_rules_cases.py and webapp src/lib/field-rules.cases.test.ts; field rule cases that also check validation are in answer-validation.cases.json (checks 'fieldRules').",
+  "cases": [
+    {
+      "name": "title and description: the last active rule wins for each property",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T1",
+                        "description": "D1"
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T2"
+                      }
+                    },
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "description": "D3"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "b": {
+          "title": "T2",
+          "description": "D1"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "title and description: a rule that is not active changes nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T1",
+                        "description": "D1"
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T2"
+                      }
+                    },
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "description": "D3"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "z"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "title and description: a later rule sets only the property it names",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T1",
+                        "description": "D1"
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T2"
+                      }
+                    },
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "description": "D3"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "y"
+        }
+      },
+      "states": {
+        "b": {
+          "description": "D3"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "required: an active rule that says false is recorded, so is one that says true",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "b": {
+          "required": false
+        },
+        "c": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "required: rules that are not active record nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "y"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "read-only without a value: the question is locked and the given value is removed",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "locked",
+                "type": "short_text",
+                "title": "locked",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "locked": {
+          "type": "text",
+          "text": "mine"
+        }
+      },
+      "states": {
+        "locked": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "locked": null
+      }
+    },
+    {
+      "name": "read-only: while the rule is not active the given value stays",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "locked",
+                "type": "short_text",
+                "title": "locked",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "y"
+        },
+        "locked": {
+          "type": "text",
+          "text": "mine"
+        }
+      },
+      "states": {},
+      "answersAfter": {
+        "locked": {
+          "type": "text",
+          "text": "mine"
+        }
+      }
+    },
+    {
+      "name": "read-only and required: the question is locked and the required flag is only recorded",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "locked",
+                "type": "short_text",
+                "title": "locked",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "locked": {
+          "locked": true,
+          "required": true
+        }
+      },
+      "answersAfter": {
+        "locked": null
+      }
+    },
+    {
+      "name": "read-only on a multiple choice that allows several answers does nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "m",
+                "type": "multiple_choice",
+                "title": "m",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "o1",
+                      "value": "one"
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "m": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "o1"
+            ]
+          }
+        }
+      },
+      "states": {},
+      "answersAfter": {
+        "m": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "o1"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "read-only on a question type that cannot be locked does nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "mail",
+                "type": "email",
+                "title": "mail",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "mail": {
+          "type": "email",
+          "email": "me@example.org"
+        }
+      },
+      "states": {},
+      "answersAfter": {
+        "mail": {
+          "type": "email",
+          "email": "me@example.org"
+        }
+      }
+    },
+    {
+      "name": "set value: the last active rule that sets a value wins",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 1
+                        }
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "n": {
+          "type": "number",
+          "number": 9
+        }
+      },
+      "states": {
+        "n": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n": {
+          "type": "number",
+          "number": 2
+        }
+      }
+    },
+    {
+      "name": "set value: a later read-only rule does not remove an earlier set value",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 5
+                        }
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "readOnly": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "n": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n": {
+          "type": "number",
+          "number": 5
+        }
+      }
+    },
+    {
+      "name": "set value: a rule that is not active leaves the given answer",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 5
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "y"
+        },
+        "n": {
+          "type": "number",
+          "number": 9
+        }
+      },
+      "states": {},
+      "answersAfter": {
+        "n": {
+          "type": "number",
+          "number": 9
+        }
+      }
+    },
+    {
+      "name": "set value: a number of 15 digits is kept, one of 16 digits sets nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n1",
+                "type": "number",
+                "title": "n1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 999999999999999
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "n2",
+                "type": "number",
+                "title": "n2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 1234567890123456
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "n3",
+                "type": "number",
+                "title": "n3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 1000000000000000.0
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "n2": {
+          "type": "number",
+          "number": 1
+        },
+        "n3": {
+          "type": "number",
+          "number": 1
+        }
+      },
+      "states": {
+        "n1": {
+          "locked": true
+        },
+        "n2": {
+          "locked": true
+        },
+        "n3": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n1": {
+          "type": "number",
+          "number": 999999999999999
+        },
+        "n2": null,
+        "n3": null
+      }
+    },
+    {
+      "name": "set value: a decimal number keeps its digits",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 0.25
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "m",
+                "type": "number",
+                "title": "m",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "/": [
+                              10,
+                              3
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "n": {
+          "locked": true
+        },
+        "m": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n": {
+          "type": "number",
+          "number": 0.25
+        },
+        "m": {
+          "type": "number",
+          "number": 3.33333333333333
+        }
+      }
+    },
+    {
+      "name": "set value: a text question takes a formula's number as text",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a1",
+                "type": "number",
+                "title": "a1"
+              },
+              {
+                "id": "a2",
+                "type": "number",
+                "title": "a2"
+              },
+              {
+                "id": "t",
+                "type": "short_text",
+                "title": "t",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "var": "a1"
+                            },
+                            0
+                          ]
+                        }
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "+": [
+                              {
+                                "var": "a1"
+                              },
+                              {
+                                "var": "a2"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a1": {
+          "type": "number",
+          "number": 3
+        },
+        "a2": {
+          "type": "number",
+          "number": 4
+        }
+      },
+      "states": {
+        "t": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "t": {
+          "type": "text",
+          "text": "7"
+        }
+      }
+    },
+    {
+      "name": "set value: a text question takes a yes or no as text",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a1",
+                "type": "number",
+                "title": "a1"
+              },
+              {
+                "id": "t",
+                "type": "short_text",
+                "title": "t",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "var": "a1"
+                            },
+                            0
+                          ]
+                        }
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            ">": [
+                              {
+                                "var": "a1"
+                              },
+                              1
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a1": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "states": {
+        "t": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "t": {
+          "type": "text",
+          "text": "true"
+        }
+      }
+    },
+    {
+      "name": "set value: a yes or no takes true, Yes, false and No",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "y1",
+                "type": "yes_no",
+                "title": "y1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "y2",
+                "type": "yes_no",
+                "title": "y2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "Yes"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "y3",
+                "type": "yes_no",
+                "title": "y3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "false"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "y4",
+                "type": "yes_no",
+                "title": "y4",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r4",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "maybe"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "y4": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "states": {
+        "y1": {
+          "locked": true
+        },
+        "y2": {
+          "locked": true
+        },
+        "y3": {
+          "locked": true
+        },
+        "y4": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "y1": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "y2": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "y3": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "y4": null
+      }
+    },
+    {
+      "name": "set value: a date must be a real calendar date",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "d1",
+                "type": "date",
+                "title": "d1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "2026-02-30"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "d2",
+                "type": "date",
+                "title": "d2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "0050-01-01"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "d3",
+                "type": "date",
+                "title": "d3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "2026-03-01"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "d4",
+                "type": "date",
+                "title": "d4",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r4",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "2026-3-1"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "d1": {
+          "type": "date",
+          "date": "2020-01-01"
+        }
+      },
+      "states": {
+        "d1": {
+          "locked": true
+        },
+        "d2": {
+          "locked": true
+        },
+        "d3": {
+          "locked": true
+        },
+        "d4": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "d1": null,
+        "d2": {
+          "type": "date",
+          "date": "0050-01-01"
+        },
+        "d3": {
+          "type": "date",
+          "date": "2026-03-01"
+        },
+        "d4": null
+      }
+    },
+    {
+      "name": "set value: a date question can be set to today",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "d",
+                "type": "date",
+                "title": "d",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "today": []
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "today": "2026-03-15",
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "d": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "d": {
+          "type": "date",
+          "date": "2026-03-15"
+        }
+      }
+    },
+    {
+      "name": "set value: a choice is set to one of its options only",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "c1",
+                "type": "multiple_choice",
+                "title": "c1",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "o1",
+                      "value": "one"
+                    }
+                  ],
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "o1"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c2",
+                "type": "dropdown",
+                "title": "c2",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "o1",
+                      "value": "one"
+                    }
+                  ],
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "zzz"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c3",
+                "type": "dropdown",
+                "title": "c3",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "o1",
+                      "value": "one"
+                    }
+                  ],
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": "o1"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "c2": {
+          "type": "choice",
+          "choice": {
+            "value": "o1"
+          }
+        }
+      },
+      "states": {
+        "c1": {
+          "locked": true
+        },
+        "c2": {
+          "locked": true
+        },
+        "c3": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "c1": {
+          "type": "choice",
+          "choice": {
+            "value": "o1"
+          }
+        },
+        "c2": null,
+        "c3": null
+      }
+    },
+    {
+      "name": "set value: a formula that has no value removes the given answer and locks the question",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "short_text",
+                "title": "t"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "t"
+                            },
+                            "go"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "+": [
+                              {
+                                "var": "t"
+                              },
+                              1
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "text",
+          "text": "go"
+        },
+        "n": {
+          "type": "number",
+          "number": 4
+        }
+      },
+      "states": {
+        "n": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n": null
+      }
+    },
+    {
+      "name": "set value: a set value is stored even while the question is hidden by logic",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "n",
+                "type": "number",
+                "title": "n",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 5
+                        }
+                      }
+                    }
+                  ],
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "a",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "z"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "n": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "n": {
+          "type": "number",
+          "number": 5
+        }
+      }
+    },
+    {
+      "name": "order: a set value that reads a set value that comes later in the form",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "s2",
+                "type": "number",
+                "title": "s2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "+": [
+                              {
+                                "var": "s1"
+                              },
+                              1
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "s1",
+                "type": "number",
+                "title": "s1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "a1"
+                              },
+                              2
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "a1",
+                "type": "number",
+                "title": "a1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "a1": {
+          "type": "number",
+          "number": 5
+        }
+      },
+      "states": {
+        "s1": {
+          "locked": true
+        },
+        "s2": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "s1": {
+          "type": "number",
+          "number": 10
+        },
+        "s2": {
+          "type": "number",
+          "number": 11
+        }
+      }
+    },
+    {
+      "name": "order: set values that read each other in a circle are evaluated in form order",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "s1",
+                "type": "number",
+                "title": "s1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "+": [
+                              {
+                                "var": "s2"
+                              },
+                              1
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "s2",
+                "type": "number",
+                "title": "s2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "+": [
+                              {
+                                "var": "s1"
+                              },
+                              1
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "s1": {
+          "type": "number",
+          "number": 5
+        },
+        "s2": {
+          "type": "number",
+          "number": 5
+        }
+      },
+      "states": {
+        "s1": {
+          "locked": true
+        },
+        "s2": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "s1": {
+          "type": "number",
+          "number": 6
+        },
+        "s2": {
+          "type": "number",
+          "number": 7
+        }
+      }
+    },
+    {
+      "name": "order: a calculation that reads a set value, and a trigger that reads the calculation",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "base",
+                "type": "number",
+                "title": "base",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": 8
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "fee",
+                "type": "calculated",
+                "title": "fee",
+                "properties": {
+                  "expression": {
+                    "+": [
+                      {
+                        "var": "base"
+                      },
+                      1
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "why",
+                "type": "short_text",
+                "title": "why",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "var": "fee"
+                            },
+                            8
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true,
+                        "title": "Why so high?"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "base": {
+          "locked": true
+        },
+        "why": {
+          "required": true,
+          "title": "Why so high?"
+        }
+      },
+      "answersAfter": {
+        "base": {
+          "type": "number",
+          "number": 8
+        },
+        "fee": {
+          "type": "number",
+          "number": 9
+        }
+      }
+    },
+    {
+      "name": "trigger: a rule that reads its own question is not active",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "b",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "c"
+                            },
+                            "x"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "b": {
+          "type": "text",
+          "text": "x"
+        },
+        "c": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "trigger: a rule that reads an unknown question or variable is not active",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "gone",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "gone"
+                            },
+                            "x"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "T",
+                        "description": "D"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "b": {
+          "title": "T",
+          "description": "D"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "hidden fields: a declared name is known even when the link gave no value",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "ref"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "description": "No reference given"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "ref"
+                            },
+                            "abc"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "hiddenFields": [
+        "ref"
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "b": {
+          "description": "No reference given"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "hidden fields: a declared name with a value is read",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "ref"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "description": "No reference given"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "ref"
+                            },
+                            "abc"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "hiddenFields": [
+        "ref"
+      ],
+      "hiddenValues": {
+        "ref": "abc"
+      },
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "c": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "hidden fields: a name the form does not declare is unknown",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "not": [
+                            {
+                              "var": "ref"
+                            }
+                          ]
+                        }
+                      },
+                      "then": {
+                        "description": "No reference given"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "ref"
+                            },
+                            "abc"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "hiddenValues": {
+        "ref": "abc"
+      },
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "trigger: a formula is active when its value is truthy (text, numbers, lists)",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "short_text",
+                "title": "t"
+              },
+              {
+                "id": "z",
+                "type": "number",
+                "title": "z"
+              },
+              {
+                "id": "k",
+                "type": "number",
+                "title": "k"
+              },
+              {
+                "id": "x1",
+                "type": "short_text",
+                "title": "x1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "var": "t"
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "x2",
+                "type": "short_text",
+                "title": "x2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "expression": {
+                          "var": "z"
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "x3",
+                "type": "short_text",
+                "title": "x3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "expression": {
+                          "var": "k"
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "x4",
+                "type": "short_text",
+                "title": "x4",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r4",
+                      "when": {
+                        "expression": {
+                          "var": "none"
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "x5",
+                "type": "short_text",
+                "title": "x5",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r5",
+                      "when": {
+                        "expression": {
+                          "==": [
+                            {
+                              "var": "t"
+                            },
+                            "0"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "text",
+          "text": "0"
+        },
+        "z": {
+          "type": "number",
+          "number": 0
+        },
+        "k": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "states": {
+        "x1": {
+          "required": true
+        },
+        "x3": {
+          "required": true
+        },
+        "x5": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "trigger: an OR of conditions and an AND of conditions",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b"
+              },
+              {
+                "id": "c",
+                "type": "short_text",
+                "title": "c",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "operator": "OR",
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          },
+                          {
+                            "fieldId": "b",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    },
+                    {
+                      "id": "r2",
+                      "when": {
+                        "operator": "AND",
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          },
+                          {
+                            "fieldId": "b",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "y"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "title": "Both"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "b": {
+          "type": "text",
+          "text": "n"
+        }
+      },
+      "states": {
+        "c": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "group: a rule reads its own item and each item is decided on its own",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {},
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1"
+                    },
+                    {
+                      "id": "c2",
+                      "type": "short_text",
+                      "title": "c2",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "conditions": [
+                                {
+                                  "fieldId": "c1",
+                                  "fieldType": "short_text",
+                                  "comparison": "IS_EQUAL",
+                                  "value": "x"
+                                }
+                              ]
+                            },
+                            "then": {
+                              "required": true,
+                              "title": "Why?"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "x"
+              }
+            },
+            {
+              "c1": {
+                "type": "text",
+                "text": "y"
+              }
+            }
+          ]
+        }
+      },
+      "states": {
+        "g/c2/0": {
+          "required": true,
+          "title": "Why?"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "group: a formula reads a sibling by its id",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {},
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1"
+                    },
+                    {
+                      "id": "c2",
+                      "type": "short_text",
+                      "title": "c2",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "expression": {
+                                "==": [
+                                  {
+                                    "var": "c1"
+                                  },
+                                  "x"
+                                ]
+                              }
+                            },
+                            "then": {
+                              "description": "Tell us more"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "y"
+              }
+            },
+            {
+              "c1": {
+                "type": "text",
+                "text": "x"
+              }
+            }
+          ]
+        }
+      },
+      "states": {
+        "g/c2/1": {
+          "description": "Tell us more"
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "group: a rule reads a question of the page",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {},
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "conditions": [
+                                {
+                                  "fieldId": "a",
+                                  "fieldType": "short_text",
+                                  "comparison": "IS_EQUAL",
+                                  "value": "x"
+                                }
+                              ]
+                            },
+                            "then": {
+                              "required": false
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "g": {
+          "type": "group",
+          "items": [
+            {},
+            {}
+          ]
+        }
+      },
+      "states": {
+        "g/c1/0": {
+          "required": false
+        },
+        "g/c1/1": {
+          "required": false
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "group: only the items the respondent sees are decided (at most the maximum)",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 1
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1"
+                    },
+                    {
+                      "id": "c2",
+                      "type": "short_text",
+                      "title": "c2",
+                      "properties": {
+                        "rules": [
+                          {
+                            "id": "r1",
+                            "when": {
+                              "conditions": [
+                                {
+                                  "fieldId": "c1",
+                                  "fieldType": "short_text",
+                                  "comparison": "IS_EQUAL",
+                                  "value": "x"
+                                }
+                              ]
+                            },
+                            "then": {
+                              "required": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "y"
+              }
+            },
+            {
+              "c1": {
+                "type": "text",
+                "text": "x"
+              }
+            }
+          ]
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "group: a page question reads the number of items",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 5
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "g",
+                            "fieldType": "group",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": 2,
+                            "groupMode": "COUNT"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {},
+            {}
+          ]
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "group: a formula reads a question across the items as a list",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "g",
+                "type": "group",
+                "title": "g",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 5
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "number",
+                      "title": "c1"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "sum": [
+                                {
+                                  "var": "g.c1"
+                                }
+                              ]
+                            },
+                            10
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "g": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "number",
+                "number": 4
+              }
+            },
+            {
+              "c1": {
+                "type": "number",
+                "number": 7
+              }
+            }
+          ]
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "no rules: nothing is decided and nothing is removed",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "b": {
+          "type": "text",
+          "text": "y"
+        }
+      },
+      "states": {},
+      "answersAfter": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "b": {
+          "type": "text",
+          "text": "y"
+        }
+      }
+    }
+  ]
+}
