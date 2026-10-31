@@ -12,6 +12,7 @@ from common.records import RecordId
 from httpx import AsyncClient
 
 from backend.app.container import container
+from backend.app.models.filter_queries.response_export import ResponseExportFilters
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.response_export import ExportKind, ExportStatus
 from backend.app.services.response_export import limits, links
@@ -573,3 +574,29 @@ async def test_deleting_a_form_deletes_its_exports_and_files(client: AsyncClient
     assert (await repo().get_by_id(kept_id)).status == ExportStatus.READY
     await service().delete_for_workspaces([str(workspace.id)])
     assert await repo().many() == [] and await repo().count_chunks(kept_id) == 0
+
+
+async def test_a_column_removed_before_the_job_runs_fails_the_export(client: AsyncClient, workspace):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    export = await queued(client, workspace, form, {"columns": ["q:phone"]})
+    stored = await container.form_repo().get_form_document_by_id(form.form_id)
+    stored.fields[0].properties.fields = [f for f in stored.fields[0].properties.fields if f.id != "phone"]
+    await container.form_repo().save_document(stored)
+    assert await build(export["id"]) == "failed"
+    entry = await repo().get_by_id(export["id"])
+    assert entry.error_code == "columns_changed" and await repo().count_chunks(export["id"]) == 0
+
+
+async def test_a_stream_that_was_cut_off_is_closed_by_the_sweep(client: AsyncClient, workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 1)
+    started = await service().request(workspace.id, form.form_id, testUser, None, ResponseExportFilters())
+    entry = await repo().get_by_id(started.export.id)
+    assert entry.status == ExportStatus.STREAMING
+    await service().redefer_pending()
+    assert (await repo().get_by_id(entry.id)).status == ExportStatus.STREAMING
+    monkeypatch.setattr(service(), "_clock", lambda: utcnow() + limits.STALE_STREAMING_AFTER + dt.timedelta(minutes=1))
+    await service().redefer_pending()
+    closed = await repo().get_by_id(entry.id)
+    assert closed.status == ExportStatus.CANCELLED and closed.error_code == "interrupted"

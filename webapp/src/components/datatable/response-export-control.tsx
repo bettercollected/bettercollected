@@ -131,7 +131,6 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
             setMessage(refusalMessage(error));
             setPhase('error');
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [workspaceId, formId, formTitle, search, startExport]);
 
     const handleDownload = useCallback(async () => {
@@ -167,16 +166,16 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
     const expires = followed?.expiresAt ? new Date(followed.expiresAt).toLocaleString() : undefined;
 
     return (
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-start gap-2 sm:items-end">
             <Button data-umami-event="Export CSV Button" isLoading={phase === 'starting'} disabled={busy} aria-describedby="response-export-status" variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleStart}>
                 {t(search ? responseExportLocale.buttonMatching : responseExportLocale.button)}
             </Button>
-            <div id="response-export-status" role={phase === 'error' ? 'alert' : 'status'} aria-live={phase === 'error' ? 'assertive' : 'polite'} aria-busy={busy} className="max-w-[420px] text-right text-sm text-black-700">
+            <div id="response-export-status" role={phase === 'error' ? 'alert' : 'status'} aria-live={phase === 'error' ? 'assertive' : 'polite'} aria-busy={busy} className="max-w-[420px] text-left text-sm text-black-700 sm:text-right">
                 {phase === 'starting' && <span>{t(responseExportLocale.starting)}</span>}
                 {phase === 'preparing' && <span>{t(responseExportLocale.preparing)}</span>}
                 {phase === 'downloading' && <span>{t(responseExportLocale.downloading)}</span>}
                 {phase === 'ready' && (
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col items-start gap-2 sm:items-end">
                         <span>{t(responseExportLocale.ready)}</span>
                         {expires && <span className="text-xs text-black-600">{t(responseExportLocale.readyUntil, { time: expires })}</span>}
                         <Button type="button" variant="primary" size="sm" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleDownload}>
@@ -185,7 +184,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
                     </div>
                 )}
                 {(phase === 'done' || phase === 'error') && (
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-col items-start gap-1 sm:items-end">
                         {phase === 'done' && <span>{t(responseExportLocale.downloaded)}</span>}
                         {message && <span>{t(message.key, message.values)}</span>}
                         <button type="button" onClick={handleDismiss} className="text-xs text-brand-500 underline">

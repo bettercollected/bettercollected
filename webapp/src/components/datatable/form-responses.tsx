@@ -151,7 +151,7 @@ export default function FormResponsesTable({ props }: any) {
     return (
         <div>
             <div className={`mb-6 flex flex-col gap-2 lg:flex-row lg:justify-between`}>
-                <div className="flex w-full flex-row justify-between">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
                             <SearchInput

@@ -25,3 +25,5 @@ DOWNLOAD_CLAIM_TTL = dt.timedelta(minutes=10)
 REDEFER_AFTER = dt.timedelta(minutes=2)
 STALE_RUNNING_AFTER = dt.timedelta(minutes=30)
 MAX_ATTEMPTS = 3
+# a streamed export still "streaming" after this long was cut off (the process died)
+STALE_STREAMING_AFTER = dt.timedelta(hours=1)

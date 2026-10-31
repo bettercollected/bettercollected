@@ -410,7 +410,11 @@ class ResponseExportService:
         if document is None:
             return await self._end(export.id, ExportStatus.CANCELLED, "form_gone")
         form = document.model_dump(mode="json", exclude_none=True)
-        plan = build_plan(form, params.get("columns"))
+        try:
+            plan = build_plan(form, params.get("columns"))
+        except UnknownColumn:
+            # the form changed between the request and the job
+            return await self._end(export.id, ExportStatus.FAILED, "columns_changed")
         scope = await self._responses.scope(workspace_id, [form_id])
         counter = RowCount()
         index = 0
@@ -682,9 +686,13 @@ class ResponseExportService:
     async def redefer_pending(self) -> Dict[str, int]:
         """Queue again exports whose job was never queued; rescue those whose
         worker died mid-build (their partial chunks are dropped); fail those
-        that ran out of attempts."""
+        that ran out of attempts; close streams that were cut off."""
         now = self._clock()
         queued = rescued = failed = 0
+        for export in await self._exports.list_by_status([ExportStatus.STREAMING]):
+            if export.created_at and export.created_at < now - limits.STALE_STREAMING_AFTER:
+                # a streamed export whose process died: it was cut off
+                await self._exports.update_locked(export.id, self._interrupted)
         for export in await self._exports.list_by_status([ExportStatus.QUEUED]):
             if export.created_at and export.created_at < now - limits.REDEFER_AFTER:
                 queued += 1 if await self._queue(export) else 0
@@ -706,6 +714,14 @@ class ResponseExportService:
             if await self._exports.update_locked(export.id, requeue) is not None:
                 rescued += 1 if await self._queue(export) else 0
         return {"queued": queued, "rescued": rescued, "failed": failed}
+
+    def _interrupted(self, document: ResponseExportDocument):
+        if document.status != ExportStatus.STREAMING:
+            return None
+        document.status = ExportStatus.CANCELLED
+        document.error_code = "interrupted"
+        document.finished_at = self._clock()
+        return document
 
     # ------------------------------------------------------------ deletion hooks
     async def forget_files_of_form(self, workspace_id: RecordId, form_id: str) -> int:
