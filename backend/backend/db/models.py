@@ -371,6 +371,15 @@ class FormResponseRow(Base, BaseRow):
             postgresql_where=LEGACY_IDENTITY_WHERE,
         ),
         Index(None, "expiration"),
+        # the staff responses list sorted by form version (0025)
+        Index(
+            "ix_form_responses_list_version",
+            "form_id",
+            text("(coalesce(form_version, 0))"),
+            "created_at",
+            "id",
+            postgresql_where=text("doc ? 'answers'"),
+        ),
     )
 
 
@@ -397,6 +406,8 @@ class ResponseDeletionRequestRow(Base, BaseRow):
             postgresql_nulls_not_distinct=True,
         ),
         Index(None, "status"),
+        # the list's per-row request lookup and its status filter (0025)
+        Index("ix_deletion_requests_response", "response_id"),
         Index(
             "ix_deletion_requests_legacy_identity",
             "id",
@@ -633,6 +644,13 @@ class FormWebhookRow(Base, BaseRow):
     __table_args__ = (Index(None, "workspace_id", "form_id"),)
 
 
+class FormEmailActionRow(Base, BaseRow):
+    __tablename__ = "form_email_actions"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id"),)
+
+
 class ActionLogRow(Base, BaseRow):
     __tablename__ = "action_logs"
     workspace_id = S.text("workspace_id")
@@ -640,6 +658,9 @@ class ActionLogRow(Base, BaseRow):
     action_id = S.text("action_id")
     response_id = S.text("response_id")
     status = S.text("status")
+    # ``webhook`` or ``email`` (revision 0026): each kind's sweep and list read
+    # only its own rows
+    action_type = S.text("action_type")
     __table_args__ = (
         # the idempotency key of a submission run: one per action and response
         # (a test run has no response id: NULLs never collide)
@@ -657,3 +678,40 @@ class WebhookAuditRow(Base, BaseRow):
     form_id = S.text("form_id")
     webhook_id = S.text("webhook_id")
     __table_args__ = (Index(None, "workspace_id", "form_id", "created_at"),)
+
+
+class ResponseExportRow(Base, BaseRow):
+    __tablename__ = "response_exports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "actor_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one export in flight or waiting to be fetched per requester and form:
+        # the check and the insert of a request cannot race past each other
+        Index(
+            "uq_response_exports_one_open",
+            "workspace_id",
+            "form_id",
+            "actor_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running', 'ready')"),
+        ),
+    )
+
+
+class ResponseExportChunkRow(Base, BaseRow):
+    __tablename__ = "response_export_chunks"
+    export_id = S.text("export_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    chunk_index = S.int("index", name="chunk_index")
+    __table_args__ = (
+        UniqueConstraint("export_id", "chunk_index"),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
+    )

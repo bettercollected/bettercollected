@@ -28,7 +28,7 @@ import re
 import secrets as token
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from common.clock import utcnow
 from common.constants import MESSAGE_NOT_FOUND
@@ -41,12 +41,14 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.webhook import (
+    ActionCondition,
     ActionLogDocument,
     FormWebhookDocument,
     LogStatus,
     WebhookAuditDocument,
     WebhookField,
 )
+from backend.app.services import action_conditions
 from backend.app.services.registration import body as body_builder
 from backend.app.services.registration import client
 from backend.app.services.registration.secrets import SecretUnreadable, seal, unseal
@@ -102,6 +104,8 @@ class WebhookDto(_CamelModel):
     host: str
     enabled: bool
     fields: List[FieldDto] = Field(default_factory=list)
+    # runs only when it holds on the submitted answers (None: every submission)
+    condition: Optional[ActionCondition] = None
     # the secret itself is returned once, by create and rotate, never here
     has_secret: bool
     secret_set_at: Optional[dt.datetime] = None
@@ -126,12 +130,15 @@ class WebhookCreateDto(_CamelModel):
     url: str = Field(..., min_length=1, max_length=2048)
     fields: List[FieldDto] = Field(default_factory=list)
     enabled: bool = True
+    condition: Optional[ActionCondition] = None
 
 
 class WebhookUpdateDto(_CamelModel):
     url: Optional[str] = Field(None, min_length=1, max_length=2048)
     fields: Optional[List[FieldDto]] = None
     enabled: Optional[bool] = None
+    # an explicit null removes the condition (``model_fields_set`` tells)
+    condition: Optional[ActionCondition] = None
 
 
 class VariableDto(_CamelModel):
@@ -194,6 +201,7 @@ def _webhook_dto(document: FormWebhookDocument) -> WebhookDto:
         host=document.host,
         enabled=document.enabled,
         fields=[FieldDto(source=f.source, key=f.key) for f in document.fields],
+        condition=document.condition,
         has_secret=bool(document.secret_sealed),
         secret_set_at=document.secret_set_at,
         created_at=document.created_at,
@@ -495,9 +503,9 @@ class WebhookService:
                 f"At most {MAX_WEBHOOKS_PER_FORM} webhooks per form.",
             )
         url, host = await self._checked_url(request.url, workspace_id)
-        fields = await self._checked_fields(
-            await self._form_for_variables(form_id), request.fields
-        )
+        form = await self._form_for_variables(form_id)
+        fields = await self._checked_fields(form, request.fields)
+        condition = action_conditions.checked_condition(form, request.condition)
         secret = new_secret()
         document = FormWebhookDocument(
             workspace_id=workspace_id,
@@ -506,6 +514,7 @@ class WebhookService:
             host=host,
             enabled=request.enabled,
             fields=fields,
+            condition=condition,
             created_by=str(user.id),
             updated_by=str(user.id),
         )
@@ -562,6 +571,13 @@ class WebhookService:
             if fields != document.fields:
                 document.fields = fields
                 changed.append("fields")
+        if "condition" in request.model_fields_set:
+            condition = action_conditions.checked_condition(
+                await self._form_for_variables(form_id), request.condition
+            )
+            if condition != document.condition:
+                document.condition = condition
+                changed.append("condition")
         if request.enabled is not None and request.enabled != document.enabled:
             document.enabled = request.enabled
             changed.append("enabled")
@@ -731,18 +747,44 @@ class WebhookService:
             return False
 
     async def queue_for_submission(
-        self, workspace_id: RecordId, form_id: str, response_id: str
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        response_id: str,
+        *,
+        form: Any = None,
+        answers: Optional[Dict[str, Any]] = None,
     ) -> List[str]:
         """Called after a response is stored. Writes one log row per enabled
-        webhook and queues a job for each; calls nothing external and never
-        raises (the respondent's submission does not depend on it). Returns the
-        log ids."""
+        webhook whose condition holds on ``answers`` (the submitted answers,
+        read in memory and not kept) and queues a job for each; a condition
+        that does not hold writes a ``cancelled`` row with its code and no job.
+        Calls nothing external and never raises (the respondent's submission
+        does not depend on it). Returns the log ids."""
         queued: List[str] = []
         try:
             if not webhooks_enabled():
                 return queued
             for hook in await self._webhooks.list_for_form(workspace_id, form_id):
                 if not hook.enabled:
+                    continue
+                runs, code = action_conditions.conditions_hold(
+                    hook.condition, form, answers or {}
+                )
+                if not runs:
+                    await self._logs.create_if_absent(
+                        ActionLogDocument(
+                            workspace_id=workspace_id,
+                            form_id=str(form_id),
+                            action_id=str(hook.id),
+                            event=payload.EVENT_SUBMISSION,
+                            response_id=str(response_id),
+                            host=hook.host,
+                            status=LogStatus.CANCELLED,
+                            last_error_code=code,
+                            finished_at=self._clock(),
+                        )
+                    )
                     continue
                 log = await self._logs.create_if_absent(
                     ActionLogDocument(

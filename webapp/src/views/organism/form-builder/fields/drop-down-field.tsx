@@ -1,19 +1,22 @@
-import { Close } from '@app/components/icons/close';
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFieldActions } from '@app/store/jotai/entity-hooks';
-import { useBuilderActions } from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
+import { useEffect, useRef, useState } from 'react';
+
 import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { ArrowDown } from '@Components/icons/arrow-down';
 import { PlusIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 
+import { Close } from '@app/components/icons/close';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
+import { useFieldActions } from '@app/store/jotai/entity-hooks';
+import { useBuilderActions } from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
 import { ChoiceIndicator, OptionKeyHint, choiceRowStyle, optionKeys, showsOptionKeys } from '@app/views/atoms/choice';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { updateChoiceFieldValue } = useFieldActions();
+    const { t } = useBuilderTranslation();
     const { addChoiceField, removeChoiceField } = useBuilderActions();
     const { theme } = useFormState();
     const [backspaceCount, setBackspaceCount] = useState(0);
@@ -40,7 +43,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                         borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
                         color: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
-                    className="mb-2 flex w-full items-center justify-between border-0 border-b py-2 text-3xl "
+                    className="mb-2 flex w-full items-center justify-between border-0 border-b py-2 text-3xl"
                 >
                     <h1>Select an option</h1>
                     <ArrowDown
@@ -85,6 +88,12 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                 ) : (
                                     input
                                 )}
+                                {/* Builder-only note: this option is shown or hidden by answers */}
+                                {choice.logic && (
+                                    <span data-testid={`option-badge-${choice.id}`} className="pointer-events-none absolute top-1/2 right-10 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">
+                                        {t('OPTION_LOGIC.BADGE')}
+                                    </span>
+                                )}
                                 {/* Hidden until the row is hovered or has focus; opacity, not
                                     visibility, so the button stays reachable by Tab. */}
                                 <button
@@ -92,7 +101,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     aria-label={`Remove option ${index + 1}${choice.value ? `: ${choice.value}` : ''}`}
                                     title="Remove option"
                                     onClick={() => removeChoiceField(field.index, slide.index, choice.id)}
-                                    className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[#123FC9]"
+                                    className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center justify-center rounded p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[#123FC9]"
                                 >
                                     <Close style={{ color: theme?.secondary }} aria-hidden="true" className="h-5 w-5" />
                                 </button>
@@ -100,6 +109,11 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                         );
                     })}
             </div>
+            {field?.properties?.optionFilter && (
+                <p data-testid="option-filter-note" className="mt-2 w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">
+                    {t('OPTION_LOGIC.BADGE_FILTERED')}
+                </p>
+            )}
             {field?.properties?.allowOtherChoice && (
                 <div
                     style={{

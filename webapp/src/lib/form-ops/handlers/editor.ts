@@ -9,6 +9,7 @@
 import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { isCurrencyCode } from '@app/utils/currency';
+import { optionLogicProblems } from '@app/utils/option-logic';
 import { styleValueProblem } from '@app/utils/rich-text-style';
 import { isTime } from '@app/utils/time-of-day';
 
@@ -347,6 +348,8 @@ function newProblem(before: FormDoc, after: FormDoc, pruneRules = false): string
         if (pruneRules && (problem.rule !== undefined || problem.wholeField)) continue;
         if (!knownFieldRules.has(problem.message)) return problem.message;
     }
+    const knownOptions = new Set(optionLogicProblems(before.fields as any).map((p) => p.message));
+    for (const problem of optionLogicProblems(after.fields as any)) if (!knownOptions.has(problem.message)) return problem.message;
     return null;
 }
 

@@ -74,6 +74,9 @@ class FormDtoCamelModel(CamelModel):
     # out because they were broken (``fieldId``, ``ruleId``, ``message``;
     # services/field_rules.py). Never stored.
     dropped_field_rules: Optional[List[Dict[str, Optional[str]]]] = None
+    # Likewise the choice logic that save repaired (``fieldId``, ``optionId``,
+    # ``message``; services/option_logic.py). Never stored.
+    dropped_option_logic: Optional[List[Dict[str, Optional[str]]]] = None
     # Where a submission is also sent (registration): ``{"organisation": name}``,
     # only on the published form while the switch is on and its registration
     # is enabled. The privacy panel names it. Derived, never stored here.
@@ -82,6 +85,11 @@ class FormDtoCamelModel(CamelModel):
     # (``{"hosts": [...]}``), only on the published form while WEBHOOKS_ENABLED
     # is on and a webhook is enabled. The privacy panel names them. Derived.
     webhook_destination: Optional[Dict[str, List[str]]] = None
+    # Whether a submission is also emailed to the form's team (``team``) and
+    # whether the respondent gets a copy (``copy``) by the form's enabled
+    # email actions: only on the published form, while EMAIL_ACTIONS_ENABLED is
+    # on. The privacy panel says so. Derived.
+    email_destination: Optional[Dict[str, bool]] = None
     # The draft's version (its ETag, services/form_spec/editor_ops.py): only
     # on the editor's read, for If-Match on its op-batch saves.
     etag: Optional[str] = None

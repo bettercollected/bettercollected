@@ -177,6 +177,15 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   `COLLECTION_GROUPS` map). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
   (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
   machine-readable view.
+- **The staff responses list pages by keyset** (`GET .../forms/{form_id}/submissions` with `paging=keyset`, any of the
+  filters `submittedFrom`/`submittedTo`/`status`/`respondent`/`formVersion`, or a `cursor`; `list_form_page` in
+  `postgres/responses.py`, plan in `services/response_paging.py`, cursor in `services/response_cursor.py`). Filters are
+  plaintext columns only (answers are encrypted: no answer-level filter exists or is to be added here). The page is
+  reached by a seek on the sort index plus a skip of a few rows: from a signed cursor (the first row of a page the client
+  has, at most 10 pages away), from the start (at most 10,000 rows) or, with an exact total, from the end. The total is
+  exact up to 10,000 (`COUNT_CAP`), then `totalExact` is false. A query predicate meant to match a partial or expression
+  index is written with its constant in the statement (`literal_column`), not bound, or the planner cannot use the index;
+  check with `tests/app/repositories/test_responses_list_performance.py` (`RESPONSES_PERF_ROWS=300000 pytest -s`).
 - **Tests:** the Postgres repositories' results are pinned in JSON fixtures written from the 4.0 parity runs
   (`tests/fixtures/forms_repositories.json`, `responses_repositories.json`; `tests/app/repositories/pinned.py`),
   never regenerated to make a change pass. Test fixtures go through `container.<repo>()`; Beanie appears only in the
@@ -372,6 +381,35 @@ counts as empty, as an expression's input does), and a condition on an internal 
 (`field_rule_checker`) can run before and after an op replaced a question's rules, keeping the form's
 structure and the cost of the other questions; an expression nested more than 32 levels is refused when
 an op is parsed, and the op walks (`_resolve_refs`, `ref_dependencies`) are iterative.
+
+**Choice logic** (`services/option_logic.py`; spec section "Choice logic" in
+[../docs/spec/README.md](../docs/spec/README.md); webapp twin `utils/option-logic.ts`, shared cases
+`docs/spec/option-logic.cases.json` run by `tests/app/services/test_option_logic_cases.py` and vitest): a
+choice (`choices[].logic`, the question-level `FieldLogic`) and a question (`properties.option_filter`,
+common `OptionFilter` `{field_id, mapping: [{when, show}]}`) decide which options respondents are offered.
+`answer_validation.validate_answers` evaluates `option_states` on the answers it is handed (after the field rules'
+values) and refuses a counted question's selection of an unavailable option (rule `hidden_option`); a question
+with nothing left (no "Other") is never required and `minChoices` is clamped (`OptionStates.min_choices`);
+a locked question (`FieldRuleStates.locked`) is not filtered. The respondent's edit also checks the questions
+`option_keys_affected` names (those whose options read a changed answer, transitively). Save paths: the spec
+check (`form_spec/checks._check_option_logic`, strict, with paths) and the ops engine (`set_option_logic`,
+`set_option_filter`; a move that would put a condition's source after its question is refused; removing a
+question or option prunes via `_dropped_rules_note`) refuse; the builder's create/update, templates and
+`persist_form` call `ensure_valid_option_logic(form, drop=True)`, which repairs (drops the condition, filter
+entry or filter that broke) and refuses only the size caps, so autosave never sticks. Rules: page-level choice
+questions only, sources are earlier respondent-facing questions (acyclic: one forward pass is the fixpoint),
+caps in common (`OPTION_CONDITIONS_MAX` 20 per option, 200 options, 1,000 conditions and 50 filters per form,
+counted raw before parsing in the builder body, templates and ops payloads). `CHOICE_LOGIC_ENABLED` (default off, kept off until the 4.2 release) gates every write that
+brings new or changed option logic or filters (`ensure_choice_logic_allowed` / `new_or_changed_option_logic`: a piece is
+new or changed unless it is stored as it is or is a stored one with some of it taken away, so a repair, a clearing and
+moving a question pass): create/update form (builder, spec API), templates, `set_option_logic` / `set_option_filter` and
+the editor ops' questions (`_check_choice_logic_allowed`), and `persist_form` as the last gate (chat, proposals, MCP, public
+API); 422 `choice_logic_disabled`. Stored option logic is enforced either way. A provider import strips it
+(`strip_option_logic`), `duplicate_page` and the builder's copies start without it, the AI prompt names the ops only while
+it is on, and the permissions answer carries `choiceLogicEnabled` for the builder. A builder save repairs and returns
+what it repaired (`droppedOptionLogic`, toasted by autosave); a question with more than 200 options, a form over the
+evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
+respondent page does (`clearUnavailableOptions`).
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
@@ -923,13 +961,42 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
 - The address is sealed (`services/webhooks/sealing.py`, `url_sealed`; only `host` in clear): open it only in the delivery job and `get_webhook` (the owner-facing detail read); lists, DTOs, audit and logs never carry it.
 - The log row is the delivery (its id is the `X-Bettercollected-Delivery` header on every attempt): ids, status,
   counters, timings and one of our codes. **Never** an answer, body, address, secret or the destination's text, in the
-  row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types may write the same
-  table (`action_type`); only webhooks do today.
+  row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types write the same
+  table (`action_type`): webhooks and email actions.
 - Outbound calls go through `registration/client.py` (`safe_http.py` rules): never a second HTTP path, never an
   http/private allowance. The guard runs when an address is saved, when a webhook is switched on and at every
   connection. Webhooks carry no files.
 - Tests: `tests/app/webhooks/` (SSRF matrix `test_guard.py`, delivery, retries, rebinding and erasure
   `test_delivery.py`, secrets, audit, log, purge, privacy `test_api.py`, roles `test_permissions.py`).
+
+## Email actions (per form)
+
+Behind `EMAIL_ACTIONS_ENABLED` (default off; `config/email_actions_settings.py`, read at call time through
+`services/email_actions/mode.py`: off means 422 `email_actions_off` on create/enable/test, nothing queued or sent). Mail goes through
+the instance's `MAIL_*` settings (`config/mail_settings.py`, the auth service's names; no per-workspace server). Docs:
+`docs/email-actions.md`. Rules to keep:
+
+- Code in `services/email_actions/` (`templates.py` the words and every escaping rule, `transport.py` the one SMTP send, `retry.py`,
+  `service.py` the logic), table `form_email_actions` (revision 0026), router `controllers/email_actions_router.py`. Runs in the backend
+  jobs worker on the **`emails` queue** (`deliver_email(log_id)`, `emails_redefer`, `purge_email_logs`), never the actions executor;
+  `bc_jobs_exec` must stay unable to see or queue it (`tests/app/jobs/test_executor_role.py`).
+- **No open relay.** Team addresses are members of the workspace only (`CopyRecipientService.allowed_among`, at save and again at send). A
+  respondent's copy goes only to the `email` answer of its own submission, read from the stored answers at send time, in fixed wording
+  (never a creator template, no form title; labels and answers cut to 200 characters, 2,000 in all, links removed: `copy_answers_block`),
+  rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget,
+  a mail counts once across retries. Team mail is capped per form. An address is erased from the team lists when its member leaves or is deleted (`forget_address`). No endpoint mails an address it is given: the
+  test mail goes to the caller. Never add one.
+- **Plain text only, one pass.** Template values pass through `templates.clean` (controls, line/paragraph separators, NEL, bidi overrides and
+  isolates, zero width characters out); the subject is one line; addresses are validated by `copy_recipient.normalize_address` (which refuses
+  whitespace, control and format characters). The injection matrix is `tests/app/email_actions/test_templates.py`: add a case there for any
+  new header value.
+- The log row (`action_logs`, `action_type` email, channel `team` / `respondent`, the copy under `<action id>.copy`) holds ids, status,
+  counters, timings and one of our codes: **never** an address, a hash or domain of one, a subject or content, in the row, a log line or the
+  queue. Each action type's lists and sweeps read their own rows (`action_type` spine column, revision 0026).
+- **Action conditions** (`services/action_conditions.py`, shared with webhooks): the form's `FieldLogicCondition` model, saved only against
+  the form's page questions (types written from the form), evaluated at enqueue on the submitted answers in memory; unreadable means not run.
+- Tests: `tests/app/email_actions/` (templates and injection matrix, configuration and limits, delivery and retries, rate limits, erasure,
+  conditions, roles).
 
 ## Registration of submissions (case systems)
 
@@ -1072,3 +1139,24 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   so no address is stored. The public `flow-events` endpoint uses it (#767), per /64 for IPv6, and deletes events after
   `API_FLOW_EVENTS_RETENTION_DAYS` (395): a Mongo TTL index on `created_at`, and for Postgres a sweep on the write path
   (`FlowEventService._sweep_expired`, at most every 6 h per process, using the existing `created_at` index).
+
+## Exporting responses (stream or job, audited)
+
+`POST /workspaces/{id}/forms/{form_id}/exports` (`controllers/response_exports_router.py`, `response.export`; no
+feature switch). Docs: `docs/response-export.md`. Rules to keep:
+
+- Code in `services/response_export/`: `table.py` (columns, cells, the formula guard; the browser's old builder moved
+  here, pinned by `tests/app/response_export/test_table.py` against its recorded output), `writer.py` (CSV, or a ZIP of
+  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `links.py` (the signed
+  link), `limits.py` (constants), `service.py`. Tables `response_exports` (the audit entry and the job state, revision
+  0027) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
+- Up to `STREAM_MAX_ROWS` matching responses stream, nothing stored; above it a job (`build_response_export(export_id)`,
+  `exports` queue, served by the jobs worker; a `JOBS_QUEUES` that leaves it out strands large exports) builds **encrypted chunks** bound to workspace, form, export, index and requester. Filters of a job
+  wait sealed in `params_sealed` (never the search text in clear, and the audit `filters` keep it only as `true`).
+- Anything that deletes responses of a form must call `_forget_export_files` (`FormResponseService`,
+  `FormImportService`): stored files go at once, a running job throws its file away. A new deletion path without it
+  leaves decrypted answers in a file for up to 24 hours.
+- A run owns an export only while its claim (`attempts`) is current: store chunks with `add_chunk_if_owned` (row lock plus heartbeat) and end with `_end_owned`, never with a bare write. One live export per requester and form is a partial unique index; `admit_job` also caps jobs per workspace. `GET .../all-submissions` goes through `ResponseExportService.bulk_read` (audit and rate limit).
+- The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
+- Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
+  else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.

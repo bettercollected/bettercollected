@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Optional
 
 from common.configs.shipped_secrets import require_secrets
 from common.services.keyset_source import configured_key_ids
@@ -32,6 +33,8 @@ from backend.config.OpenAISettings import OpenAISettings
 from backend.config.open_formulieren_settings import OpenFormulierenSettings
 from backend.config.registration_settings import RegistrationSettings
 from backend.config.webhooks_settings import WebhooksSettings
+from backend.config.email_actions_settings import EmailActionsSettings
+from backend.config.mail_settings import MailSettings
 from backend.config.respondent_identity_settings import RespondentIdentitySettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -88,6 +91,13 @@ class Application(StoreBackedSettings):
     # that turns them on): those saves are refused with 422
     # question_type_disabled; questions already stored keep working.
     NEW_QUESTION_TYPES_ENABLED: bool = False
+    # Choice logic (services/option_logic.py: options shown or hidden by
+    # answers, options filtered by an earlier answer) may be created or
+    # changed through the API, the builder save, edit operations, templates and
+    # the AI and MCP paths. Off (the default, kept off until the 4.2
+    # release): those saves are refused with 422 choice_logic_disabled;
+    # stored choice logic is kept and still enforced.
+    CHOICE_LOGIC_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.
@@ -120,6 +130,10 @@ class Application(StoreBackedSettings):
     scim: SCIMSettings = SCIMSettings()
     registration: RegistrationSettings = RegistrationSettings()
     webhooks: WebhooksSettings = WebhooksSettings()
+    email_actions: EmailActionsSettings = EmailActionsSettings()
+    mail_settings: MailSettings = MailSettings()
+    # the From display name of mails the backend sends (never a workspace's)
+    ORGANIZATION_NAME: Optional[str] = "Better Collected"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

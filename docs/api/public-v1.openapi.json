@@ -1846,6 +1846,17 @@
                 "type": "null"
               }
             ]
+          },
+          "logic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Logic"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offer this option only (SHOW) or unless (HIDE) its conditions hold, at most 20. The conditions read earlier questions of the form. An answer that selects an option that is not offered is refused."
           }
         },
         "additionalProperties": false,
@@ -2826,6 +2837,17 @@
               }
             ]
           },
+          "optionFilter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OptionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A choice question's options filtered by an earlier choice question's answer (see OptionFilter)."
+          },
           "rules": {
             "anyOf": [
               {
@@ -3343,6 +3365,55 @@
           "form"
         ],
         "title": "OpsResult"
+      },
+      "OptionFilter": {
+        "properties": {
+          "fieldId": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Fieldid"
+          },
+          "mapping": {
+            "items": {
+              "$ref": "#/components/schemas/OptionFilterEntry"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "title": "Mapping"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fieldId"
+        ],
+        "title": "OptionFilter",
+        "description": "Filter a choice question's options by an earlier choice question's\nanswer: the options offered are those the chosen options of ``fieldId``\nmap to (the union over a multiple choice's selection). Without an answer\nto it (or with only \"Other\" text) nothing is filtered; a chosen option\nwith no entry offers nothing."
+      },
+      "OptionFilterEntry": {
+        "properties": {
+          "when": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "When"
+          },
+          "show": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "title": "Show"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "when"
+        ],
+        "title": "OptionFilterEntry",
+        "description": "While the earlier question's option ``when`` (its id) is chosen, the\nquestion offers the options in ``show`` (their ids)."
       },
       "Page": {
         "properties": {
@@ -4415,6 +4486,18 @@
               }
             ],
             "title": "Showsubmissionnumber"
+          },
+          "showReviewPage": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Showreviewpage",
+            "description": "Respondents see their answers on a page of their own, with a link back to each page, before they send them."
           }
         },
         "additionalProperties": false,

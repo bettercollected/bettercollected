@@ -17,9 +17,9 @@ export interface ServerAnswerError {
 }
 
 /** Server-only problems, with their own message (`respondent` RULE.*). */
-export type ServerProblem = 'SERVER_TYPE' | 'SERVER_CHOICE';
+export type ServerProblem = 'SERVER_TYPE' | 'SERVER_CHOICE' | 'SERVER_OPTION';
 
-const SERVER_PROBLEMS: ReadonlyArray<string> = ['SERVER_TYPE', 'SERVER_CHOICE'];
+const SERVER_PROBLEMS: ReadonlyArray<string> = ['SERVER_TYPE', 'SERVER_CHOICE', 'SERVER_OPTION'];
 
 /** Server rule code -> the code the question wrapper understands. */
 const CLIENT_CODES: Record<string, string> = {
@@ -35,7 +35,8 @@ const CLIENT_CODES: Record<string, string> = {
     format: 'FORMAT',
     currency: 'CURRENCY',
     type: 'SERVER_TYPE',
-    choice: 'SERVER_CHOICE'
+    choice: 'SERVER_CHOICE',
+    hidden_option: 'SERVER_OPTION'
 };
 
 export const isServerProblem = (code: unknown): code is ServerProblem => typeof code === 'string' && SERVER_PROBLEMS.includes(code);
@@ -119,5 +120,6 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /** What to tell the respondent about a server-only problem. */
 export function serverProblemMessage(code: ServerProblem, t: Translate): string {
+    if (code === 'SERVER_OPTION') return t('RULE.SERVER_OPTION');
     return code === 'SERVER_CHOICE' ? t('RULE.SERVER_CHOICE') : t('RULE.SERVER_TYPE');
 }

@@ -138,6 +138,7 @@ def test_case(case, monkeypatch):
     monkeypatch.setattr(
         settings, "NEW_QUESTION_TYPES_ENABLED", case.get("newQuestionTypes", True)
     )
+    monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", True)
     run_case(case, _corpus()["forms"])
 
 

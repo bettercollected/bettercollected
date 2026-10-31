@@ -4,10 +4,11 @@ from typing import Any, List
 from common.ids import RecordId
 from classy_fastapi import delete, get, patch, post
 from common.models.user import User
-from fastapi import Depends
+from fastapi import Depends, Query
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
-from fastapi_pagination import Page
+from fastapi_pagination import Page, Params
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
@@ -29,8 +30,16 @@ from backend.app.models.dtos.respondent_feedback_dto import (
 )
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.dtos.response_list_page import ResponseListPage
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
-from backend.app.models.filter_queries.sort import SortRequest
+from backend.app.models.filter_queries.response_list import (
+    KEYSET_SORTS,
+    ResponseListFilters,
+    ResponseListOptions,
+    ResponseListQuery,
+    response_list_options,
+)
+from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.postgres.analytics import PostgresFlowEventRepository
 from backend.app.router import router
 from backend.app.services.flow_event_service import FlowEventService
@@ -81,7 +90,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
 
     @get(
         "/forms/{form_id}/submissions",
-        response_model=Page[StandardFormResponseCamelModel],
+        response_model=ResponseListPage[StandardFormResponseCamelModel],
     )
     async def _get_workspace_form_responses(
         self,
@@ -90,8 +99,65 @@ class WorkspaceResponsesRouter(CustomRoutable):
         filter_query: FormResponseFilterQuery = Depends(None),
         sort: SortRequest = Depends(),
         request_for_deletion: bool = False,
+        list_options: ResponseListOptions = Depends(response_list_options),
+        params: Params = Depends(),
         user: User = Depends(get_logged_user),
     ):
+        """A page of the form's responses (``response.read``), or of its
+        deletion requests (``privacy.manage``).
+
+        As before: ``page``, ``size``, the ``dataOwnerIdentifier`` search and
+        ``sort_by`` / ``sort_order`` (any stored field, offset paging). New:
+        ``paging=keyset``, or any of the filters ``submittedFrom`` /
+        ``submittedTo`` (UTC instants), ``status`` (deletion request: none,
+        pending, declined, success), ``respondent`` (anonymous, known) and
+        ``formVersion``, or a ``cursor``, serve the list from the sort index:
+        ``sort_by`` is then ``created_at`` (submitted time) or
+        ``form_version``, the page carries ``totalExact``, ``hasNext`` and the
+        ``cursor`` to send back for a page near it. Not for deletion requests.
+        """
+        if list_options.keyset:
+            if request_for_deletion:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    "Filters and cursors are not available for deletion requests.",
+                )
+            if sort.sort_by not in KEYSET_SORTS:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    f"Sort by one of: {', '.join(KEYSET_SORTS)}.",
+                )
+            order = (sort.sort_order or SortOrder.DESCENDING).upper()
+            if order not in ("ASCENDING", "DESCENDING", "ASC", "DESC"):
+                raise HTTPException(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "sort_order is ASCENDING or DESCENDING.",
+                )
+            try:
+                query = ResponseListQuery(
+                    filters=ResponseListFilters(
+                        **list_options.filters,
+                        search=(
+                            filter_query.data_owner_identifier
+                            if filter_query
+                            else None
+                        ),
+                    ),
+                    sort_by=sort.sort_by,
+                    descending=not order.startswith("ASC"),
+                    page=params.page,
+                    size=params.size,
+                    cursor=list_options.cursor,
+                )
+            except ValidationError:
+                # e.g. a search longer than the 320 characters of an address
+                raise HTTPException(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "The search is too long (at most 320 characters).",
+                ) from None
+            return await self._form_response_service.get_workspace_form_response_page(
+                workspace_id, form_id, query, user
+            )
         responses = await self._form_response_service.get_workspace_form_submissions(
             workspace_id, request_for_deletion, form_id, filter_query, sort, user
         )
@@ -108,10 +174,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
         user: User = Depends(get_logged_user),
     ):
         """Every response of the form, decrypted and unpaginated: a bulk
-        download, so response.export like ``.../export``. The flow view reads
-        ``.../submission-paths`` instead."""
-        return await self._form_response_service.get_workspace_form_all_submissions(
-            form_id, workspace_id, user
+        download, so response.export. The webapp's export is
+        ``POST .../exports`` (streamed or a job); this route is audited and
+        rate limited the same way (``services/response_export``); the flow view
+        reads ``.../submission-paths``."""
+        return await container.response_export_service().bulk_read(
+            workspace_id, form_id, user
         )
 
     @get(
@@ -128,21 +196,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         taken, ending reached), no answers: the flow view's insights
         (response.read)."""
         return await self._form_response_service.get_workspace_form_submission_paths(
-            form_id, workspace_id, user
-        )
-
-    @get(
-        "/forms/{form_id}/all-submissions/export",
-        response_model=List[StandardFormResponseCamelModel],
-    )
-    async def export_workspace_form_submissions(
-        self,
-        workspace_id: RecordId,
-        form_id: str,
-        user: User = Depends(get_logged_user),
-    ):
-        """Every response of the form for the CSV download (response.export)."""
-        return await self._form_response_service.get_workspace_form_all_submissions(
             form_id, workspace_id, user
         )
 

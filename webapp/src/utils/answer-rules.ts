@@ -4,6 +4,7 @@ import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@ap
 import { isIsoDate } from '@app/utils/iso-date';
 import { isTime, minutesOf } from '@app/utils/time-of-day';
 import type { LogicSources } from '@app/utils/conditional-logic';
+import type { OptionStates } from '@app/utils/option-logic';
 import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
@@ -139,7 +140,7 @@ function answerChoiceCount(answer: any): number | undefined {
 export const questionCurrencies = (field: Pick<StandardFormFieldDto, 'properties'> | undefined | null): string[] => (field?.properties?.currencies?.length ? field.properties.currencies : ['EUR']);
 
 /** The rules an answer breaks (empty when it keeps them all, or is empty). */
-export function checkAnswerRules(field: StandardFormFieldDto, answer: any): AnswerRuleProblem[] {
+export function checkAnswerRules(field: StandardFormFieldDto, answer: any, options?: OptionStates): AnswerRuleProblem[] {
     const rules: IFormFieldValidation = field?.validations ?? {};
     const problems: AnswerRuleProblem[] = [];
     switch (answerRuleKind(field)) {
@@ -168,7 +169,9 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
         case 'choices': {
             const count = answerChoiceCount(answer);
             if (count === undefined) break;
-            if (isSet(rules.minChoices) && count < rules.minChoices) problems.push('TOO_FEW_CHOICES');
+            // held to what the question offers (choice logic can offer fewer options than the minimum)
+            const minimum = isSet(rules.minChoices) ? (options ? options.minChoices(field.id, rules.minChoices) : rules.minChoices) : undefined;
+            if (isSet(minimum) && count < minimum) problems.push('TOO_FEW_CHOICES');
             if (isSet(rules.maxChoices) && count > rules.maxChoices) problems.push('TOO_MANY_CHOICES');
             break;
         }
@@ -210,7 +213,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
  * id its question renders under, skipping questions hidden in that item (the
  * server checks items the same way).
  */
-export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources, locked?: ReadonlySet<string>): Record<string, AnswerRuleProblem[]> {
+export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources, locked?: ReadonlySet<string>, options?: OptionStates): Record<string, AnswerRuleProblem[]> {
     const invalid: Record<string, AnswerRuleProblem[]> = {};
     (fields ?? []).forEach((field) => {
         if (field.internal) return;
@@ -229,7 +232,7 @@ export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFie
         }
         // The form's own value (a field rule sets or locks it): not the respondent's to correct.
         if (locked?.has(field.id)) return;
-        const problems = checkAnswerRules(field, answers[field.id]);
+        const problems = checkAnswerRules(field, answers[field.id], options);
         if (problems.length) invalid[field.id] = problems;
     });
     return invalid;

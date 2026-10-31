@@ -5,6 +5,7 @@ import type { FieldRule } from '@app/lib/field-rules';
 import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { DateRule, FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
+import type { OptionFilter } from '@app/utils/option-logic';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -36,6 +37,8 @@ export interface StandardFormFieldProperties {
     logic?: FieldConditionalLogic;
     /** Field rules: require, lock, set a value or change the text of this question while a condition holds (see lib/field-rules.ts). */
     rules?: FieldRule[];
+    /** A choice question's options filtered by an earlier choice question's answer (see utils/option-logic.ts). */
+    optionFilter?: OptionFilter;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */
@@ -168,6 +171,12 @@ export interface StandardFormDto {
      * answers on: the host names of the destinations. The privacy panel names them.
      */
     webhookDestination?: { hosts: string[] } | null;
+    /**
+     * Only on the published form read, while an enabled email action mails this
+     * form's answers on: `team` to the form's team, `copy` a copy to the
+     * respondent. The privacy panel says so.
+     */
+    emailDestination?: { team: boolean; copy: boolean } | null;
     welcomePage?: {
         title?: string;
         description?: string;
@@ -238,6 +247,8 @@ export interface StandardFormDto {
         responseLimit?: number | null;
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
+        /** Respondents review their answers on a page of their own before sending (client-only; utils/review-page.ts). */
+        showReviewPage?: boolean;
         allowEditingResponse?: boolean;
         showOriginalForm?: boolean;
         /** "Respond to submissions": staff post updates respondents see. */
@@ -381,6 +392,8 @@ export interface FieldChoice {
     id: string;
     value?: string;
     label?: string;
+    /** Choice-level logic: while it does not allow the option, respondents are not offered it (see utils/option-logic.ts). */
+    logic?: FieldConditionalLogic;
 }
 
 export enum FieldTypes {

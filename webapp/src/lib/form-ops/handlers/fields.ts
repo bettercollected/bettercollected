@@ -300,6 +300,14 @@ export function logicSources(doc: FormDoc): Set<string | undefined> {
                     sources.add(c.fieldId);
                     if (c.childFieldId) sources.add(c.childFieldId);
                 }
+                // option logic reads questions too (choices' logic and filters)
+                for (const choice of question.properties?.choices ?? []) {
+                    for (const c of choice.logic?.conditions ?? []) {
+                        sources.add(c.fieldId);
+                        if (c.childFieldId) sources.add(c.childFieldId);
+                    }
+                }
+                if (question.properties?.optionFilter) sources.add(question.properties.optionFilter.fieldId);
             }
         }
     }

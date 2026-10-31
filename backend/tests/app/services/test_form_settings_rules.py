@@ -148,6 +148,31 @@ async def test_settings_endpoint_answers_422_for_a_script_link(
     )
 
 
+async def test_review_page_switch_is_off_until_set_and_stored_on_patch(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies
+):
+    url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/settings"
+    assert not workspace_form.settings.show_review_page
+    on = await client.patch(url, json={"showReviewPage": True}, cookies=test_user_cookies)
+    assert on.status_code == 200, on.text
+    assert on.json()["settings"]["showReviewPage"] is True
+    # a patch without the key leaves it; false turns it off again
+    other = await client.patch(url, json={"pinned": True}, cookies=test_user_cookies)
+    assert other.json()["settings"]["showReviewPage"] is True
+    off = await client.patch(url, json={"showReviewPage": False}, cookies=test_user_cookies)
+    assert off.json()["settings"]["showReviewPage"] is False
+
+
+async def test_review_page_switch_refuses_a_value_that_is_not_a_boolean(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies
+):
+    url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/settings"
+    refused = await client.patch(
+        url, json={"showReviewPage": "banana"}, cookies=test_user_cookies
+    )
+    assert refused.status_code == 422
+
+
 # --- form create -------------------------------------------------------------
 
 

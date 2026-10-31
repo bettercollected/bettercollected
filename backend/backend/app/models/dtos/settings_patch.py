@@ -33,6 +33,7 @@ class SettingsPatchDto(CamelModel):
     response_limit: Optional[int] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    show_review_page: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_original_form: Optional[bool] = None
     privacy_policy_url: Optional[str] = None

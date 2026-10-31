@@ -21,7 +21,8 @@ export const ERROR_CODES = [
     'url_unreadable',
     'rate_limited',
     'forbidden',
-    'not_found'
+    'not_found',
+    'invalid_condition'
 ] as const;
 
 export const DELIVERY_ERROR_CODES = [
@@ -39,7 +40,9 @@ export const DELIVERY_ERROR_CODES = [
     'answers_unreadable',
     'disabled',
     'destination_changed',
-    'internal_error'
+    'internal_error',
+    'condition_not_met',
+    'condition_invalid'
 ] as const;
 
 const isKnown = (list: readonly string[], code: unknown): code is string => typeof code === 'string' && list.includes(code);
@@ -65,7 +68,7 @@ export const errorKey = (code: unknown) => `WEBHOOKS.ERROR.${isKnown(ERROR_CODES
 export const deliveryErrorKey = (code?: string | null) => `WEBHOOKS.DELIVERIES.ERROR.${isKnown(DELIVERY_ERROR_CODES, code) ? code : 'unknown'}`;
 
 /** Which field of the form a refusal belongs to (so it sits next to it), or null for the form as a whole. */
-export function errorField(code: string): 'url' | 'fields' | null {
+export function errorField(code: string): 'url' | 'fields' | 'condition' | null {
     switch (code) {
         case 'invalid_url':
         case 'not_https':
@@ -78,6 +81,8 @@ export function errorField(code: string): 'url' | 'fields' | null {
         case 'file_not_sent':
         case 'too_many_fields':
             return 'fields';
+        case 'invalid_condition':
+            return 'condition';
         default:
             return null;
     }

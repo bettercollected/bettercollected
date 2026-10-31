@@ -179,7 +179,7 @@ describe('adding a webhook', () => {
         createMock.mockReturnValue(ok({ ...hook(), secret: 'whsec_abcdef' }));
         render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
         await addWebhook();
-        await waitFor(() => expect(createMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', body: { url: 'https://hooks.example.org/in', fields: [{ source: 'name', key: 'name' }], enabled: true } }));
+        await waitFor(() => expect(createMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', body: { url: 'https://hooks.example.org/in', fields: [{ source: 'name', key: 'name' }], enabled: true, condition: null } }));
         const notice = await screen.findByTestId('webhook-secret-once');
         expect(within(notice).getByLabelText('Signing secret')).toHaveValue('whsec_abcdef');
         expect(notice).toHaveTextContent('shown only once');
@@ -313,11 +313,25 @@ describe('the list', () => {
                 workspaceId: 'ws1',
                 formId: 'f1',
                 webhookId: 'w1',
-                body: { url: 'https://hooks.example.org/in?key=tok-1', fields: [{ source: 'name', key: 'full_name' }, { source: 'age', key: 'age' }], enabled: true }
+                body: { url: 'https://hooks.example.org/in?key=tok-1', fields: [{ source: 'name', key: 'full_name' }, { source: 'age', key: 'age' }], enabled: true, condition: null }
             })
         );
         expect(await screen.findByText('The webhook for hooks.example.org was saved.')).toBeInTheDocument();
         expect(screen.queryByTestId('webhook-editor')).not.toBeInTheDocument();
+    });
+
+    it('saves a condition with the webhook, and removes it with null', async () => {
+        detailState.data = { ...hook({ condition: { operator: 'AND', conditions: [{ fieldId: 'age', fieldType: 'number', comparison: 'GREATER_THAN', value: 18 } as any] } }), url: 'https://hooks.example.org/in' };
+        hooksState.data = [hook({ condition: detailState.data.condition })];
+        updateMock.mockReturnValue(ok(hook()));
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.getByTestId('webhook-w1')).toHaveTextContent('Runs only when conditions match');
+        fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for hooks.example.org' }));
+        expect(screen.getByRole('switch', { name: 'Only run when' })).toBeChecked();
+        fireEvent.click(screen.getByRole('switch', { name: 'Only run when' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalled());
+        expect(updateMock.mock.calls[0][0].body.condition).toBeNull();
     });
 
     it('never asks for an address until a webhook is edited, and the list shows none', () => {

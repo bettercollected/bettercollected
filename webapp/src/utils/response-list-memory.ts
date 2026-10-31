@@ -3,20 +3,23 @@
  * response's page can offer "previous" and "next" without loading the list
  * again, and the list can open again on the page and search it was left on.
  *
- * Kept only in this module's memory (gone on reload; never in storage or in
- * a URL): the response ids of the pages seen (opaque handles, no answers),
- * the page last shown and the search typed (staff's own words, which may be
- * a responder's email: that is why it never goes into a URL). One list at a
- * time, named by workspace, form and search: an imported form can exist in
- * two workspaces with the same form id, and two searches with the same total
- * are different lists. Any change of these, of the page size or of the total
- * starts a new one. Opened in a new tab nothing is known, so there are no
+ * Kept only in this module's memory (gone on reload; never in storage): the
+ * response ids of the pages seen (opaque handles, no answers), the page last
+ * shown, the list's own URL parameters (filters, sort, page: nothing secret)
+ * and the search typed (staff's own words, which may be a responder's email:
+ * that is why it never goes into a URL). One list at a time, named by
+ * workspace, form, search and view (filters, sort and size): an imported form
+ * can exist in two workspaces with the same form id, and two searches with
+ * the same total are different lists. Any change of these, of the page size
+ * or of the total starts a new one. Opened in a new tab nothing is known, so there are no
  * previous/next links, which is honest.
  */
 export interface ResponseListKey {
     workspaceId: string;
     formId: string;
     searchText: string;
+    /** The filters, sort and size of the list (utils/response-list-state.ts `responseListView`). */
+    view?: string;
 }
 
 export interface ResponseNeighbours {
@@ -30,6 +33,8 @@ export interface ResponseNeighbours {
 interface Remembered extends ResponseListKey {
     /** The page of the list last shown. */
     page: number;
+    /** The list's URL parameters when it was last shown (no search text). */
+    query?: string;
     size?: number;
     total?: number;
     pages: Map<number, string[]>;
@@ -37,17 +42,20 @@ interface Remembered extends ResponseListKey {
 
 let list: Remembered | null = null;
 
-const sameList = (a: ResponseListKey, b: ResponseListKey) => a.workspaceId === b.workspaceId && a.formId === b.formId && a.searchText === b.searchText;
+const sameList = (a: ResponseListKey, b: ResponseListKey) => a.workspaceId === b.workspaceId && a.formId === b.formId && a.searchText === b.searchText && (a.view ?? '') === (b.view ?? '');
 
 /** Called by the responses list whenever its page or search changes. */
-export function rememberResponseListView(key: ResponseListKey, page: number) {
+export function rememberResponseListView(key: ResponseListKey, page: number, query?: string) {
     if (!key.workspaceId || !key.formId) return;
-    if (!list || !sameList(list, key)) list = { ...key, page, pages: new Map() };
-    else list.page = page;
+    if (!list || !sameList(list, key)) list = { ...key, page, query, pages: new Map() };
+    else {
+        list.page = page;
+        list.query = query;
+    }
 }
 
 /** Called by the responses table whenever it shows a page of the list. */
-export function rememberResponseListPage(key: ResponseListKey, { page, size, total, ids }: { page: number; size: number; total: number; ids: string[] }) {
+export function rememberResponseListPage(key: ResponseListKey, { page, size, total, ids }: { page: number; size: number; total?: number; ids: string[] }) {
     if (!key.workspaceId || !key.formId) return;
     const changed = !list || !sameList(list, key) || (list.size !== undefined && list.size !== size) || (list.total !== undefined && list.total !== total);
     if (changed) list = { ...key, page, size, total, pages: new Map() };
@@ -68,10 +76,10 @@ export function forgetResponseListOutside(workspaceId: string) {
     if (list && list.workspaceId !== workspaceId) list = null;
 }
 
-/** The page and search the form's responses list was left on, to open it there again. */
-export function rememberedListView(workspaceId: string | undefined, formId: string | undefined): { page: number; searchText: string } | null {
+/** The page, URL parameters and search the form's responses list was left on, to open it there again. */
+export function rememberedListView(workspaceId: string | undefined, formId: string | undefined): { page: number; searchText: string; query?: string } | null {
     if (!list || !workspaceId || !formId || list.workspaceId !== workspaceId || list.formId !== formId) return null;
-    return { page: list.page, searchText: list.searchText };
+    return { page: list.page, searchText: list.searchText, query: list.query };
 }
 
 /**

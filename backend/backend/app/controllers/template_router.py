@@ -7,7 +7,11 @@ from http import HTTPStatus
 
 from fastapi import Depends, UploadFile, Form
 from starlette.concurrency import run_in_threadpool
-from common.models.standard_form import FORM_FIELD_RULES_MAX, raw_rule_count
+from common.models.standard_form import (
+    FORM_FIELD_RULES_MAX,
+    raw_option_logic_problem,
+    raw_rule_count,
+)
 from pydantic import ValidationError
 from common.models.user import User
 from typing import Optional
@@ -48,6 +52,13 @@ def template_from_form_body(body: str) -> StandardFormTemplateCamelModel:
                 content=f"A template can have at most {FORM_FIELD_RULES_MAX} rules; "
                 f"this one has {rules}.",
             )
+        too_much = (
+            raw_option_logic_problem(data.get("fields"))
+            if isinstance(data, dict)
+            else None
+        )
+        if too_much:
+            raise HTTPException(HTTPStatus.UNPROCESSABLE_ENTITY, content=too_much)
         return StandardFormTemplateCamelModel(**data)
     except (ValidationError, ValueError, TypeError) as error:
         places = (

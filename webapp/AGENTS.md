@@ -78,6 +78,19 @@ questions (read-only, not disabled; a locked question is never required and meet
 page's status region (`field-rule-announcer.tsx`) says once, politely, what an answer changed. A form without rules
 takes none of these paths. The server stays authoritative.
 
+**Review page (respondent runtime):** a form with `settings.showReviewPage` (builder: Form tab, "Before sending") ends
+in a page of its own instead of submitting from the last page. It is a place in the journey like the welcome page and
+the ending: `REVIEW_SLIDE = -3` in `utils/review-page.ts`, drawn by `views/organism/form/review-page.tsx`, never
+stored or sent before submit. `reviewSections` lists the pages of the visited path (`history`) from the answers
+`normalizeGroupAnswersForSubmit` gives (what the submit sends): logic-hidden, internal and hidden-field values are
+left out, rule-set values are marked, files show their name. "Edit" (`editFromReview`) goes to a page and keeps the
+reviewed path in `reviewPath`; its "Back to review" replays the whole path from its first page with `walkReviewPath`
+(back to the review over the route as it now runs, on at a page never seen, or to a page that is no longer
+complete). The review does not change what is sent: answers to hidden questions and files are still sent by design,
+so `alsoSentRows` names them in an "Also sent" block, with the link's hidden-field values on a line of their own. Sending lives in `use-finish-form.ts`,
+shared by the last page and the review (409 closed/not open/full keep the answers; 422 goes to the page). A page is
+complete by `pageInvalidations` (`utils/page-validation.ts`) everywhere.
+
 **Field rules (builder):** the inspector's Rules section (`views/molecules/form-builder/field-rules-section.tsx`, the
 editor in `field-rules-settings.tsx`) writes rules through the `set_field_rules` op, so the ops engine's handler
 (`lib/form-ops/handlers/rules.ts`) and the shared checks (`lib/form-ops/field-rule-checks.ts`, twin of the
@@ -88,6 +101,22 @@ not copy rules. The section shows only while `FIELD_RULES_ENABLED` is on for the
 read per request like `SSO_ENABLED`, `lib/runtime-flags.ts`); with it off, existing rules are listed read-only. A
 save the server refuses with 422 `field_rules_disabled` toasts the reason (`audo-save-form.tsx`). The formula box is
 shared with calculated fields (`formula-input.tsx`).
+
+**Choice logic (respondent runtime and builder):** a choice's `logic` and a question's `properties.optionFilter`
+(which options are offered; `utils/option-logic.ts` is the pure twin of backend `services/option_logic.py`, its structure,
+save checks, repair and warnings are in `utils/option-logic-checks.ts`; shared cases `docs/spec/option-logic.cases.json`)
+are evaluated by `optionStates`. `useOptionStates` (`lib/hooks/use-option-states.ts`) hands the choice components the
+available options (radios, checkboxes and the dropdown render only those: `offeredChoices`), `QuestionWrapper` and
+`validateSlide` treat a question with nothing to choose as optional, and `useClearUnavailableOptions` (called next to
+`useDerivedAnswers` in `form-slide.tsx`) clears a selection that stopped being available, from the answers as a submission
+carries them; the question says so in `option-cleared-notice.tsx` (a polite status region under its options). The builder
+edits an option's logic and a question's filter in `form-builder/option-logic-settings.tsx` (Logic section of a choice
+question; the existing `ConditionRow`), with the shared warnings; `pruneOrphanedConditions` also runs `pruneOptionLogic`, so
+every structural edit repairs option logic as the server's save does (and autosave tells the creator what the server
+repaired: `droppedOptionLogic`). Page-level choice questions only. The section shows only while `CHOICE_LOGIC_ENABLED` is on
+(`useWorkspacePermissions().choiceLogicEnabled`, from the permissions answer like `fieldRulesEnabled`); with it off, existing
+option logic is listed read-only. A copy of a question or page starts without option logic (`dropOptionLogic`). The server
+stays authoritative (`hidden_option`).
 
 **New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day and currency
 questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`

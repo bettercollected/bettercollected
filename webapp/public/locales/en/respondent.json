@@ -20,6 +20,10 @@
         "WEBHOOKS": "Also sent to (automatically)",
         "WEBHOOKS_DESTINATION": "Your answers to some questions are also sent automatically to: {{hosts}}.",
         "WEBHOOKS_NO_DELETION": "Deleting your answers here does not delete the copy there. Contact the form's team to have it deleted.",
+        "EMAIL": "Also emailed to",
+        "EMAIL_TEAM": "Your answers are also emailed to the form's team.",
+        "EMAIL_COPY": "A copy to you: a copy of your answers is emailed to the address you enter.",
+        "EMAIL_NO_DELETION": "Deleting your answers here does not delete the emails already sent. Contact the form's team to have them deleted.",
         "STRIP_AI_USED": "Answers may be analysed by AI ({{provider}}).",
         "STRIP_AI_USED_NO_PROVIDER": "Answers may be analysed by AI.",
         "RIGHTS": "Your rights",
@@ -46,10 +50,35 @@
         "CONTINUE": "Continue",
         "SUBMIT": "Submit response",
         "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
+        "SUBMIT_UNMAPPED": "Your answers could not be accepted, and we could not tell which one needs another look. Please check them and try again.",
         "SUBMIT_INVALID": "Some answers need another look. They are marked below.",
         "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent.",
         "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
         "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent."
+    },
+    "REVIEW": {
+        "TITLE": "Review your answers",
+        "INTRO": "Check your answers before you send them. Nothing has been sent yet: your answers stay in this browser until you choose Submit response.",
+        "EMPTY": "There are no answers to review. You can still send the form.",
+        "PROBLEMS_one": "{{count}} answer needs your attention before you can submit.",
+        "PROBLEMS_other": "{{count}} answers need your attention before you can submit.",
+        "PAGE": "Page {{n}}",
+        "PAGE_NAMED": "Page {{n}}: {{title}}",
+        "EDIT": "Edit",
+        "BACK_TO_REVIEW": "Back to review",
+        "GO_TO_REVIEW": "Review your answers",
+        "ANSWERED": "Answered",
+        "UNTITLED": "Untitled question",
+        "NO_ENTRIES": "No entries",
+        "NOT_ANSWERED": "Not answered",
+        "NEEDS_ANSWER": "Needs an answer",
+        "ANSWER_IT": "Answer",
+        "FIX": "Check",
+        "ALSO_SENT": "Also sent",
+        "ALSO_SENT_HINT": "This form no longer shows these questions, because of your later answers, but your earlier answers to them are still sent. To change them, go back and change the answer that hid them.",
+        "UPLOADED_FILE": "Uploaded file",
+        "FROM_LINK": "From the link you opened:",
+        "FILLED_IN": "Filled in by the form"
     },
     "CONSENT": {
         "SHARE_EMAIL": "Share my email with the form collector",
@@ -130,6 +159,10 @@
         "MORE_one": "{{count}} more change on this page.",
         "MORE_other": "{{count}} more changes on this page."
     },
+    "OPTIONS": {
+        "CLEARED_one": "{{options}} is no longer available, so it was removed from your answer. Please check your answer.",
+        "CLEARED_other": "{{options}} are no longer available, so they were removed from your answer. Please check your answer."
+    },
     "RULE": {
         "TOO_SHORT_one": "Use at least {{count}} character.",
         "TOO_SHORT_other": "Use at least {{count}} characters.",
@@ -149,6 +182,7 @@
         "TOO_MANY_CHOICES_other": "Choose at most {{count}} options.",
         "SERVER_TYPE": "This answer could not be accepted. Please answer the question again.",
         "SERVER_CHOICE": "Choose one of the options shown.",
+        "SERVER_OPTION": "One of the options you chose is no longer available. Please choose again.",
         "TOO_EARLY": "Choose a time from {{time}} onwards.",
         "TOO_LATE": "Choose a time no later than {{time}}.",
         "FORMAT_TIME": "Enter a time as hours and minutes, for example 09:30.",
@@ -167,25 +201,6 @@
         "MUST_BE_on_or_after": "Must be on or after {{label}}.",
         "TODAY": "today ({{date}})",
         "OTHER_DATE": "the other date"
-    },
-    "TIME": {
-        "PICK": "Time",
-        "RANGE": "From {{min}} to {{max}}",
-        "FROM": "From {{min}}",
-        "UNTIL": "Until {{max}}"
-    },
-    "DAY": {
-        "DAY": "Day",
-        "MONTH": "Month",
-        "YEAR": "Year",
-        "EXAMPLE": "For example 12 11 1990"
-    },
-    "CURRENCY": {
-        "CODE": "Currency",
-        "AMOUNT": "Amount",
-        "PLACEHOLDER": "12.50",
-        "IN": "Amount in {{code}}",
-        "ONE_OF": "Choose the currency, then enter the amount"
     },
     "FILE": {
         "CHOOSE": "Choose your file or drag file",
@@ -304,5 +319,24 @@
         "CANCEL": "Cancel",
         "REQUEST_SENT": "Deletion requested",
         "REQUEST_FAILED": "Something went wrong. Please try again."
+    },
+    "TIME": {
+        "PICK": "Time",
+        "RANGE": "From {{min}} to {{max}}",
+        "FROM": "From {{min}}",
+        "UNTIL": "Until {{max}}"
+    },
+    "DAY": {
+        "DAY": "Day",
+        "MONTH": "Month",
+        "YEAR": "Year",
+        "EXAMPLE": "For example 12 11 1990"
+    },
+    "CURRENCY": {
+        "CODE": "Currency",
+        "AMOUNT": "Amount",
+        "PLACEHOLDER": "12.50",
+        "IN": "Amount in {{code}}",
+        "ONE_OF": "Choose the currency, then enter the amount"
     }
 }

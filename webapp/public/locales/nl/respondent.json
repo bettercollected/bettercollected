@@ -20,6 +20,10 @@
         "WEBHOOKS": "Ook automatisch verstuurd naar",
         "WEBHOOKS_DESTINATION": "Je antwoorden op een aantal vragen worden ook automatisch verstuurd naar: {{hosts}}.",
         "WEBHOOKS_NO_DELETION": "Als je je antwoorden hier verwijdert, wordt de kopie daar niet verwijderd. Neem daarvoor contact op met het team achter dit formulier.",
+        "EMAIL": "Ook gemaild naar",
+        "EMAIL_TEAM": "Je antwoorden worden ook gemaild naar het team achter dit formulier.",
+        "EMAIL_COPY": "Een kopie voor jou: een kopie van je antwoorden wordt gemaild naar het adres dat je invult.",
+        "EMAIL_NO_DELETION": "Als je je antwoorden hier verwijdert, worden de al verstuurde e-mails niet verwijderd. Neem contact op met het team achter dit formulier om ze te laten verwijderen.",
         "STRIP_AI_USED": "Antwoorden kunnen door AI ({{provider}}) worden geanalyseerd.",
         "STRIP_AI_USED_NO_PROVIDER": "Antwoorden kunnen door AI worden geanalyseerd.",
         "RIGHTS": "Je rechten",
@@ -46,10 +50,35 @@
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
         "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
+        "SUBMIT_UNMAPPED": "Je antwoorden zijn niet geaccepteerd en we konden niet zien welk antwoord nog een keer bekeken moet worden. Controleer ze en probeer het opnieuw.",
         "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd.",
         "SUBMIT_CLOSED": "Dit formulier is gesloten voordat je antwoorden zijn verstuurd. Je antwoorden zijn niet verstuurd.",
         "SUBMIT_NOT_OPEN": "Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.",
         "SUBMIT_FULL": "Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd."
+    },
+    "REVIEW": {
+        "TITLE": "Controleer je antwoorden",
+        "INTRO": "Controleer je antwoorden voordat je ze verstuurt. Er is nog niets verstuurd: je antwoorden blijven in deze browser tot je op Antwoorden versturen kiest.",
+        "EMPTY": "Er zijn geen antwoorden om te controleren. Je kunt het formulier wel versturen.",
+        "PROBLEMS_one": "{{count}} antwoord heeft je aandacht nodig voordat je kunt versturen.",
+        "PROBLEMS_other": "{{count}} antwoorden hebben je aandacht nodig voordat je kunt versturen.",
+        "PAGE": "Pagina {{n}}",
+        "PAGE_NAMED": "Pagina {{n}}: {{title}}",
+        "EDIT": "Wijzigen",
+        "BACK_TO_REVIEW": "Terug naar controle",
+        "GO_TO_REVIEW": "Antwoorden controleren",
+        "ANSWERED": "Beantwoord",
+        "UNTITLED": "Vraag zonder titel",
+        "NO_ENTRIES": "Geen invoer",
+        "NOT_ANSWERED": "Niet beantwoord",
+        "NEEDS_ANSWER": "Antwoord nodig",
+        "ANSWER_IT": "Beantwoorden",
+        "FIX": "Controleren",
+        "ALSO_SENT": "Ook verstuurd",
+        "ALSO_SENT_HINT": "Dit formulier toont deze vragen niet meer, door je latere antwoorden, maar je eerdere antwoorden erop worden nog wel verstuurd. Wil je ze wijzigen, ga dan terug en wijzig het antwoord waardoor ze verborgen werden.",
+        "UPLOADED_FILE": "Geüpload bestand",
+        "FROM_LINK": "Uit de link die je opende:",
+        "FILLED_IN": "Ingevuld door het formulier"
     },
     "CONSENT": {
         "SHARE_EMAIL": "Mijn e-mailadres delen met wie dit formulier verzamelt",
@@ -130,6 +159,10 @@
         "MORE_one": "{{count}} wijziging meer op deze pagina.",
         "MORE_other": "{{count}} wijzigingen meer op deze pagina."
     },
+    "OPTIONS": {
+        "CLEARED_one": "{{options}} is niet meer beschikbaar en is uit je antwoord gehaald. Controleer je antwoord.",
+        "CLEARED_other": "{{options}} zijn niet meer beschikbaar en zijn uit je antwoord gehaald. Controleer je antwoord."
+    },
     "RULE": {
         "TOO_SHORT_one": "Gebruik minstens {{count}} teken.",
         "TOO_SHORT_other": "Gebruik minstens {{count}} tekens.",
@@ -149,6 +182,7 @@
         "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties.",
         "SERVER_TYPE": "Dit antwoord kon niet worden verwerkt. Beantwoord de vraag opnieuw.",
         "SERVER_CHOICE": "Kies een van de getoonde opties.",
+        "SERVER_OPTION": "Een van de gekozen opties is niet meer beschikbaar. Kies opnieuw.",
         "TOO_EARLY": "Kies een tijd vanaf {{time}}.",
         "TOO_LATE": "Kies een tijd uiterlijk {{time}}.",
         "FORMAT_TIME": "Vul een tijd in als uren en minuten, bijvoorbeeld 09:30.",
@@ -167,25 +201,6 @@
         "MUST_BE_on_or_after": "Moet op of na {{label}} zijn.",
         "TODAY": "vandaag ({{date}})",
         "OTHER_DATE": "de andere datum"
-    },
-    "TIME": {
-        "PICK": "Tijd",
-        "RANGE": "Van {{min}} tot {{max}}",
-        "FROM": "Vanaf {{min}}",
-        "UNTIL": "Tot {{max}}"
-    },
-    "DAY": {
-        "DAY": "Dag",
-        "MONTH": "Maand",
-        "YEAR": "Jaar",
-        "EXAMPLE": "Bijvoorbeeld 12 11 1990"
-    },
-    "CURRENCY": {
-        "CODE": "Valuta",
-        "AMOUNT": "Bedrag",
-        "PLACEHOLDER": "12,50",
-        "IN": "Bedrag in {{code}}",
-        "ONE_OF": "Kies de valuta en vul daarna het bedrag in"
     },
     "FILE": {
         "CHOOSE": "Kies een bestand of sleep het hierheen",
@@ -304,5 +319,24 @@
         "CANCEL": "Annuleren",
         "REQUEST_SENT": "Verwijdering aangevraagd",
         "REQUEST_FAILED": "Er ging iets mis. Probeer het opnieuw."
+    },
+    "TIME": {
+        "PICK": "Tijd",
+        "RANGE": "Van {{min}} tot {{max}}",
+        "FROM": "Vanaf {{min}}",
+        "UNTIL": "Tot {{max}}"
+    },
+    "DAY": {
+        "DAY": "Dag",
+        "MONTH": "Maand",
+        "YEAR": "Jaar",
+        "EXAMPLE": "Bijvoorbeeld 12 11 1990"
+    },
+    "CURRENCY": {
+        "CODE": "Valuta",
+        "AMOUNT": "Bedrag",
+        "PLACEHOLDER": "12,50",
+        "IN": "Bedrag in {{code}}",
+        "ONE_OF": "Kies de valuta en vul daarna het bedrag in"
     }
 }

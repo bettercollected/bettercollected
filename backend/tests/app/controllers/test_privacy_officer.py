@@ -91,13 +91,19 @@ async def test_a_privacy_officer_is_refused_the_answers(client: AsyncClient, req
     for path in (
         "/api/v1/workspaces/{ws}/forms/{form}/submissions",
         "/api/v1/workspaces/{ws}/forms/{form}/all-submissions",
-        "/api/v1/workspaces/{ws}/forms/{form}/all-submissions/export",
         "/api/v1/workspaces/{ws}/forms/{form}/submission-paths",
         "/api/v1/workspaces/{ws}/submissions/{response}",
     ):
         refused = await client.get(path.format(**requested), cookies=_cookies(officer))
         assert refused.status_code == 403, path
         assert SECRET not in refused.text
+    # nor the export of them (streamed or a job), nor the columns or the list
+    exports = "/api/v1/workspaces/{ws}/forms/{form}/exports".format(**requested)
+    refused = await client.post(exports, json={}, cookies=_cookies(officer))
+    assert refused.status_code == 403 and SECRET not in refused.text
+    for tail in ("", "/columns"):
+        refused = await client.get(exports + tail, cookies=_cookies(officer))
+        assert refused.status_code == 403 and SECRET not in refused.text
 
 
 async def test_a_privacy_officer_completes_a_deletion_request(

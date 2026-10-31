@@ -286,8 +286,31 @@ def varied_form_data() -> dict:
                             "properties": {
                                 "choices": [
                                     {"id": "b-1", "value": "North"},
-                                    {"id": "b-2", "value": "South"},
-                                ]
+                                    {
+                                        "id": "b-2",
+                                        "value": "South",
+                                        "logic": {
+                                            "action": "HIDE",
+                                            "operator": "AND",
+                                            "conditions": [
+                                                {
+                                                    "field_id": "f-topics",
+                                                    "field_type": "multiple_choice",
+                                                    "comparison": "IS_EQUAL",
+                                                    "value": "Rowing",
+                                                }
+                                            ],
+                                        },
+                                    },
+                                    {"id": "b-3", "value": "East"},
+                                ],
+                                "option_filter": {
+                                    "field_id": "f-topics",
+                                    "mapping": [
+                                        {"when": "t-1", "show": ["b-1", "b-2"]},
+                                        {"when": "t-2", "show": ["b-2", "b-3"]},
+                                    ],
+                                },
                             },
                         },
                         {

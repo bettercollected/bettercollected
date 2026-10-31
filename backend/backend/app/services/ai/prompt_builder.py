@@ -20,6 +20,7 @@ from backend.app.constants.themes import (
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.ai.profile import render_prompt_block
 from backend.app.services.field_rules import field_rules_enabled
+from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.ai.structured import extract_json_object  # noqa: F401
 from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES, fence
 
@@ -65,6 +66,21 @@ STYLE_DESCRIPTIONS = {
     "studio": "bold and graphic: large numbers, heavy type, square edges",
     "leaflet": "a plain-language information leaflet: numbered section bars and questions",
 }
+
+
+CHOICE_LOGIC_GUIDE = """## Choice logic
+(Switched on for this server.)
+- {"op":"set_option_logic","fieldId":"<choice question>","choice":"<option label>","logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR","conditions":[...as set_field_logic]}}
+  (choice-level logic: offer ONE option only when ("SHOW") or unless ("HIDE") an EARLIER answer
+  matches, e.g. offer "Wine" only when the age is 18 or more. For a single or multiple choice or
+  dropdown question of a page, not inside a repeating group. "logic":null clears. Respondents who
+  chose an option that stops being offered have that answer cleared. Use it only when the user asks
+  for options that depend on answers.)
+- {"op":"set_option_filter","fieldId":"<choice question>","filter":{"fieldId":"<earlier choice question>","mapping":[{"when":"<its option label>","show":["<option label of this question>"]}]}}
+  (filter this question's options by the earlier question's answer, e.g. the cities of the chosen
+  country: each row lists the options offered while that option is chosen. With no answer there,
+  every option is offered. "filter":null clears.)
+"""
 
 
 RULES_GUIDE = """## Field rules
@@ -181,7 +197,7 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   ("Your contact details", not "Applicant identification data"); no numbering, the section
   number is added automatically. "title":null or "" clears it. Only question pages have
   one, never the welcome page or the ending.)
-- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?}}
+- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?,"showReviewPage":true?}}
   (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
   data is collected. "retentionText" is an internal note that respondents never
   see: they are told only the retention period the form enforces, which is a
@@ -420,6 +436,7 @@ def project_form(form, settings=None) -> str:
             "requireVerifiedIdentity": getattr(settings, "require_verified_identity", None),
             "allowEditingResponse": getattr(settings, "allow_editing_response", None),
             "showSubmissionNumber": getattr(settings, "show_submission_number", None),
+            "showReviewPage": getattr(settings, "show_review_page", None),
         }
     return json.dumps(snapshot, ensure_ascii=False)
 
@@ -434,6 +451,7 @@ def build_chat_system_prompt(form_snapshot: str, profile, memory_entries: Option
         "You are the form-editing copilot inside BetterCollected, a privacy-first form builder.",
         ops_guide(),
         *([RULES_GUIDE] if field_rules_enabled() else []),
+        *([CHOICE_LOGIC_GUIDE] if choice_logic_enabled() else []),
         UNTRUSTED_CONTENT_RULES.strip(),
         "## Current form snapshot\n" + fence("form_snapshot", form_snapshot),
     ]

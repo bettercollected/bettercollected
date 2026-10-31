@@ -3,6 +3,7 @@ import { formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { isIsoDate } from '@app/utils/iso-date';
 import { isTime } from '@app/utils/time-of-day';
+import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
 export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -464,6 +465,9 @@ export function pruneOrphanedConditions(slides: Array<StandardFormFieldDto>): Ar
             if (field?.type === FieldTypes.GROUP && field.properties?.repeat) field.properties.fields?.forEach(pruneFieldLogic);
         });
     });
+
+    // Choice logic reads questions too (conditions of an option, an option filter): repaired with them.
+    pruneOptionLogic(slides);
 
     return slides;
 }

@@ -634,7 +634,7 @@ async def test_the_old_csv_route_is_gone(
 ):
     """(#771) `GET .../forms/{form_id}/export-csv` called a service method that
     no longer existed and answered 500 to everyone. It is removed: the CSV
-    download reads `.../all-submissions/export` (response.export)."""
+    download is `POST .../exports` (response.export)."""
     from backend.app.router import root_api_router
 
     assert not [

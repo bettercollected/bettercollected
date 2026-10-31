@@ -26,7 +26,6 @@ import {
 import { isFieldHiddenByLogic, resolveJump, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { endingToShow } from '@app/utils/endings';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
-import { buildResponsesExport } from '@app/utils/response-export';
 
 const V = (key: string) => ({ var: key });
 
@@ -182,14 +181,11 @@ describe('a hidden calculation piped into text respondents see', () => {
     });
 });
 
-describe('responses and exports', () => {
-    const form = { formId: 'f', title: 'T', builderVersion: 'v2', fields: [page('p', [QTY, TOTAL])] } as any;
+describe('responses', () => {
     const response = { responseId: 'r', provider: 'self', createdAt: '', updatedAt: '', answers: { qty: num(2), total: { type: 'number', number: 1234.5 } } } as any;
 
-    it('the table formats the stored value, the export keeps the number', () => {
+    it('the table formats the stored value (the export keeps the number: the server writes it)', () => {
         expect(getAnswerForField(response, TOTAL)).toBe('€1,234.50');
-        const { main } = buildResponsesExport(form, [response]);
-        expect(main.rows[0][main.headers.indexOf('Total')]).toBe(1234.5);
     });
 });
 
