@@ -5,3 +5,6 @@
 - With field rules switched off, changing the type of a question that already
   has rules no longer makes every save fail: a type that still takes the rule
   keeps it, and one that cannot carry rules drops them.
+- The form editor operation `replace_field` (the AI assistant and the builder's
+  chat preview) now drops the field rules that a replaced question leaves
+  dangling, with a note, instead of refusing the edit.
