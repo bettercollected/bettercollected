@@ -11,7 +11,7 @@ import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_TYPES } from '@app/utils/repeating-groups';
 import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, sameSourceFields, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
-import { getDateRuleSources } from '@app/utils/date-rules';
+import { getDateRuleSources, isDateRuleType } from '@app/utils/date-rules';
 import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
 
 const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type === FieldTypes.TEXT ? 'Statement' : (formFieldsList.find((f) => f.type === type)?.name ?? type.replaceAll('_', ' ')) }));
@@ -41,7 +41,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         sameSourceFields
     );
     const dateChildIds = children
-        .filter((child) => child.type === FieldTypes.DATE)
+        .filter((child) => isDateRuleType(child.type))
         .map((child) => child.id)
         .join(',');
     const dateSources = useBuilderFieldsValue((formFields) => Object.fromEntries(dateChildIds.split(',').filter(Boolean).map((id) => [id, getDateRuleSources(formFields || [], id)])), [dateChildIds], jsonEqual);
@@ -205,7 +205,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                 </button>
                             </div>
                         )}
-                        {child.type === FieldTypes.DATE && (
+                        {isDateRuleType(child.type) && (
                             <DateFieldSettings
                                 field={child}
                                 sources={dateSources[child.id] ?? []}

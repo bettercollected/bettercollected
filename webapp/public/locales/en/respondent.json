@@ -145,7 +145,15 @@
         "TOO_MANY_CHOICES_one": "Choose at most {{count}} option.",
         "TOO_MANY_CHOICES_other": "Choose at most {{count}} options.",
         "SERVER_TYPE": "This answer could not be accepted. Please answer the question again.",
-        "SERVER_CHOICE": "Choose one of the options shown."
+        "SERVER_CHOICE": "Choose one of the options shown.",
+        "TOO_EARLY": "Choose a time from {{time}} onwards.",
+        "TOO_LATE": "Choose a time no later than {{time}}.",
+        "FORMAT_TIME": "Enter a time as hours and minutes, for example 09:30.",
+        "FORMAT_DAY": "Enter a date that exists: day, month and year.",
+        "FORMAT_AMOUNT": "Enter an amount in numbers, for example 12.50. Use a dot or a comma for the cents, and no thousands separator.",
+        "CURRENCY": "Choose one of these currencies: {{currencies}}.",
+        "AMOUNT_TOO_SMALL": "Enter an amount of {{min}} or more.",
+        "AMOUNT_TOO_LARGE": "Enter an amount of {{max}} or less."
     },
     "DATE": {
         "PICK": "Pick a date",
@@ -156,6 +164,25 @@
         "MUST_BE_on_or_after": "Must be on or after {{label}}.",
         "TODAY": "today ({{date}})",
         "OTHER_DATE": "the other date"
+    },
+    "TIME": {
+        "PICK": "Time",
+        "RANGE": "From {{min}} to {{max}}",
+        "FROM": "From {{min}}",
+        "UNTIL": "Until {{max}}"
+    },
+    "DAY": {
+        "DAY": "Day",
+        "MONTH": "Month",
+        "YEAR": "Year",
+        "EXAMPLE": "For example 12 11 1990"
+    },
+    "CURRENCY": {
+        "CODE": "Currency",
+        "AMOUNT": "Amount",
+        "PLACEHOLDER": "12.50",
+        "IN": "Amount in {{code}}",
+        "ONE_OF": "Choose the currency, then enter the amount"
     },
     "FILE": {
         "CHOOSE": "Choose your file or drag file",

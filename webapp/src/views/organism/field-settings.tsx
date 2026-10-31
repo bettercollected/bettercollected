@@ -13,7 +13,7 @@ import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '
 import useFormFieldsAtom, { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { answerRuleKind } from '@app/utils/answer-rules';
-import { getDateRuleSources } from '@app/utils/date-rules';
+import { getDateRuleSources, isDateRuleType } from '@app/utils/date-rules';
 import { canBeInternal } from '@app/utils/internal-fields';
 import { WHY_WE_ASK_MAX_LENGTH, asksForIdentity } from '@app/utils/publish-checks';
 import { isRepeatingGroup } from '@app/utils/repeating-groups';
@@ -164,10 +164,16 @@ export default function FieldSettings() {
                 </InspectorSection>
             )}
 
-            {(ruleKind || field.type === FieldTypes.DATE) && (
+            {(ruleKind || isDateRuleType(field.type)) && (
                 <InspectorSection title="Answer rules">
-                    {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.id, patch)} />}
-                    {field.type === FieldTypes.DATE && (
+                    {ruleKind && (
+                        <AnswerRulesSettings
+                            field={field}
+                            onChange={(patch) => updateFieldValidations(field.id, patch)}
+                            onPropertyChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))}
+                        />
+                    )}
+                    {isDateRuleType(field.type) && (
                         <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />
                     )}
                 </InspectorSection>

@@ -145,7 +145,15 @@
         "TOO_MANY_CHOICES_one": "Kies hooguit {{count}} optie.",
         "TOO_MANY_CHOICES_other": "Kies hooguit {{count}} opties.",
         "SERVER_TYPE": "Dit antwoord kon niet worden verwerkt. Beantwoord de vraag opnieuw.",
-        "SERVER_CHOICE": "Kies een van de getoonde opties."
+        "SERVER_CHOICE": "Kies een van de getoonde opties.",
+        "TOO_EARLY": "Kies een tijd vanaf {{time}}.",
+        "TOO_LATE": "Kies een tijd uiterlijk {{time}}.",
+        "FORMAT_TIME": "Vul een tijd in als uren en minuten, bijvoorbeeld 09:30.",
+        "FORMAT_DAY": "Vul een bestaande datum in: dag, maand en jaar.",
+        "FORMAT_AMOUNT": "Vul een bedrag in met cijfers, bijvoorbeeld 12,50. Gebruik een punt of komma voor de centen en geen duizendtalscheiding.",
+        "CURRENCY": "Kies een van deze valuta: {{currencies}}.",
+        "AMOUNT_TOO_SMALL": "Vul een bedrag van {{min}} of meer in.",
+        "AMOUNT_TOO_LARGE": "Vul een bedrag van {{max}} of minder in."
     },
     "DATE": {
         "PICK": "Kies een datum",
@@ -156,6 +164,25 @@
         "MUST_BE_on_or_after": "Moet op of na {{label}} zijn.",
         "TODAY": "vandaag ({{date}})",
         "OTHER_DATE": "de andere datum"
+    },
+    "TIME": {
+        "PICK": "Tijd",
+        "RANGE": "Van {{min}} tot {{max}}",
+        "FROM": "Vanaf {{min}}",
+        "UNTIL": "Tot {{max}}"
+    },
+    "DAY": {
+        "DAY": "Dag",
+        "MONTH": "Maand",
+        "YEAR": "Jaar",
+        "EXAMPLE": "Bijvoorbeeld 12 11 1990"
+    },
+    "CURRENCY": {
+        "CODE": "Valuta",
+        "AMOUNT": "Bedrag",
+        "PLACEHOLDER": "12,50",
+        "IN": "Bedrag in {{code}}",
+        "ONE_OF": "Kies de valuta en vul daarna het bedrag in"
     },
     "FILE": {
         "CHOOSE": "Kies een bestand of sleep het hierheen",

@@ -70,7 +70,7 @@ const TEXT_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparis
 const NUMBER_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const CHOICE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const MULTI_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
-const DATE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.LESS_THAN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
+const DATE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const BOOL_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
 
 export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] {
@@ -80,11 +80,14 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
         case FieldTypes.NUMBER:
         case FieldTypes.RATING:
         case FieldTypes.LINEAR_RATING:
+        case FieldTypes.CURRENCY:
             return NUMBER_COMPARISONS;
         case FieldTypes.CALCULATED:
             // a number, a yes/no or a text: every comparison applies
             return [...new Set([...NUMBER_COMPARISONS, ...TEXT_COMPARISONS])];
         case FieldTypes.DATE:
+        case FieldTypes.DAY:
+        case FieldTypes.TIME:
             return DATE_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
@@ -234,9 +237,11 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
             </select>
         );
     }
-    const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING;
-    const date = field?.type === FieldTypes.DATE;
-    return <input className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+    const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING || field?.type === FieldTypes.CURRENCY;
+    const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY;
+    const time = field?.type === FieldTypes.TIME;
+    // An amount may have cents: the number box must not insist on whole steps.
+    return <input className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

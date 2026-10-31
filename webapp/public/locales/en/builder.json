@@ -4,6 +4,38 @@
     "DEFAULT": "Insert",
     "A_FIELD": "Insert a Field"
   },
+  "FIELD_TYPES": {
+    "time": {
+      "NAME": "Time",
+      "DESCRIPTION": "A time of day, such as 09:30"
+    },
+    "day": {
+      "NAME": "Day (d-m-y)",
+      "DESCRIPTION": "A date typed as day, month and year"
+    },
+    "currency": {
+      "NAME": "Amount of money",
+      "DESCRIPTION": "An amount with its currency"
+    }
+  },
+  "TYPED_SETTINGS": {
+    "EARLIEST": "Earliest time",
+    "LATEST": "Latest time",
+    "TIME_HINT": "Times outside the window can't be answered. Leave a box empty for no limit.",
+    "TIME_ORDER": "The earliest time is after the latest time. No time can be answered.",
+    "LABEL": "Label",
+    "LABEL_PLACEHOLDER": "e.g. Arrival time",
+    "CURRENCIES": "Currencies",
+    "DEFAULT": "Default",
+    "MAKE_DEFAULT": "Make {{code}} the default",
+    "REMOVE_CURRENCY": "Remove {{code}}",
+    "ADD_CURRENCY": "Add a currency",
+    "CURRENCY_HINT": "Respondents choose from these. With one currency they only enter the amount. Calculations use the amount alone, so add up amounts of one currency.",
+    "LOWEST_AMOUNT": "Lowest amount",
+    "HIGHEST_AMOUNT": "Highest amount",
+    "NO_LIMIT": "No limit",
+    "AMOUNT_ORDER": "The lowest amount is more than the highest."
+  },
   "PREVIEW": {
     "DEFAULT": "Preview"
   },
