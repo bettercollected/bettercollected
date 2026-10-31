@@ -1097,11 +1097,8 @@
       "RECIPIENTS_HINT": "Choose the team, a copy for the respondent, or both.",
       "TEAM": "Team addresses",
       "TEAM_HINT": "One address per line, at most {{count}}. Each must be the address of a member of this workspace, and is checked again every time a mail is sent.",
-      "COPY": "Send the respondent a copy of their own answers",
-      "COPY_HINT": "The copy goes only to the address they entered in the question you choose, in fixed wording that you do not write, with the answers of the questions below. It is limited to a few per address and hour.",
-      "COPY_QUESTION": "Email question",
-      "COPY_CHOOSE": "Choose a question…",
-      "NO_EMAIL_QUESTION": "This form has no email question yet. Add one to send a copy.",
+      "COPY": "Send signed-in respondents a copy of their own answers",
+      "COPY_HINT": "The copy goes to the verified email address of the account the respondent is signed in with (email code, Google or single sign-on), never to an address typed in an answer. It is in fixed wording that you do not write, with the answers of the questions below, and limited to a few per address and hour. Anonymous respondents get no copy: not those who are not signed in, and not those who choose to submit anonymously.",
       "FIELDS": "Questions the email may use",
       "FIELDS_HINT": "Tick the questions the email may name and show. Give each the name you will use in the text, as {{name}}.",
       "NO_FIELDS": "This form has no questions that can be used yet.",
@@ -1126,14 +1123,16 @@
       "ENABLED_HINT": "Turn this off to pause it without deleting it. Submissions made while it is off are not mailed later.",
       "ADD": "Add email action",
       "SAVE": "Save changes",
-      "CANCEL": "Cancel"
+      "CANCEL": "Cancel",
+      "COPY_VERIFIED": "This form asks respondents to sign in before they answer, so each gets a copy at the email address of their account.",
+      "COPY_UNVERIFIED": "This form does not ask respondents to sign in, so anonymous respondents get no copy, and no copies will be sent to them. Turn on \"Require verified identity\" in this form's settings so every respondent signs in before answering."
     },
     "LIST": {
       "LABEL": "Email actions of this form",
       "NONE": "No email actions yet. Add one to mail the team when someone submits.",
       "TEAM_one": "Mails {{count}} team address",
       "TEAM_other": "Mails {{count}} team addresses",
-      "COPY": "Copy to the respondent",
+      "COPY": "Copy to signed-in respondents",
       "ENABLED_FOR": "Send email for {{name}}",
       "ON": "On",
       "OFF": "Off",
@@ -1142,7 +1141,7 @@
       "TEST": "Send test email",
       "TEST_NAMED": "Send a test email for {{name}} to yourself",
       "TEST_COPY": "Test the copy",
-      "TEST_COPY_NAMED": "Send a test of the respondent's copy of {{name}} to yourself",
+      "TEST_COPY_NAMED": "Send a test of the signed-in respondent's copy of {{name}} to yourself",
       "DELETE": "Delete",
       "DELETE_NAMED": "Delete the email action {{name}}",
       "ADD": "Add email action",
@@ -1160,8 +1159,7 @@
       "invalid_recipient": "Use one plain email address per line, without names or extra characters.",
       "recipient_not_allowed": "A team address must be the address of a member of this workspace.",
       "too_many_recipients": "At most 5 team addresses.",
-      "no_recipient": "Add a team address, or choose an email question for a copy.",
-      "invalid_respondent_field": "Choose an email question of this form.",
+      "no_recipient": "Add a team address, or turn on the copy to signed-in respondents.",
       "unknown_placeholder": "The text uses a placeholder that is not available. Use the buttons to insert one.",
       "invalid_placeholder": "A placeholder is a name between double curly braces. Other double braces are not allowed.",
       "template_missing": "Write a subject and a message in both English and Dutch.",
@@ -1234,7 +1232,9 @@
         "condition_invalid": "The condition could not be read (a question was removed), so nothing was sent.",
         "internal_error": "Something went wrong on our side.",
         "unknown": "It was not sent.",
-        "address_not_supported": "The address cannot be sent to: this mail server accepts only addresses with plain letters before the @. We do not retry that."
+        "address_not_supported": "The address cannot be sent to: this mail server accepts only addresses with plain letters before the @. We do not retry that.",
+        "not_verified": "No copy was sent: the respondent was not signed in with a verified email address, or submitted anonymously.",
+        "account_gone": "No copy was sent: the account the respondent signed in with no longer exists."
       }
     }
   },

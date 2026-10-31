@@ -1,5 +1,8 @@
 """Builders shared by the email action tests. Everything here is synthetic."""
 
+from common.ids import RecordId
+from common.models.user import User
+
 from backend.app.container import container
 from backend.app.services.email_actions.service import (
     EmailActionCreateDto,
@@ -31,7 +34,7 @@ async def make_action(
         nl=NL,
         fields=[FieldDto(source=f) if isinstance(f, str) else f for f in fields],
         team_recipients=list(team),
-        respondent_field=respondent,
+        respondent_copy=bool(respondent),
         condition=condition,
     )
     values.update(overrides)
@@ -68,3 +71,30 @@ async def age(row, delta):
         await session.execute(
             update(table).where(table.c.id == str(row.id)).values(created_at=utcnow() - delta)
         )
+
+
+# the accounts the (faked) auth service knows, by id: ``verified`` adds to it
+ACCOUNTS: dict = {}
+
+
+def verified(address: str, *, proven: bool = True) -> User:
+    """A signed-in respondent whose account email is ``address`` (``proven``:
+    the session's email was verified at sign-in, by email code or single sign-on).
+    The account exists at the faked auth service until it is removed from ``ACCOUNTS``."""
+    user = User(
+        id=str(RecordId()), sub=address, roles=["FORM_RESPONDER"], email_verified=True if proven else None
+    )
+    ACCOUNTS[user.id] = address
+    return user
+
+
+async def submit_as_owner_of_the_address(workspace, form, answers=None, **kwargs):
+    """Submits as the person whose address the ``mail`` answer holds, signed in
+    with a verified session (their account email is that address): the one case
+    in which a copy is sent."""
+    from tests.app.registration.helpers import ANSWERS, submit
+
+    answers = answers or ANSWERS
+    address = (answers.get("mail") or {}).get("email")
+    user = kwargs.pop("user", None) or (verified(address) if address else testUser)
+    return await submit(workspace, form, answers=answers, user=user, **kwargs)

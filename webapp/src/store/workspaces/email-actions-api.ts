@@ -23,7 +23,8 @@ export interface EmailAction {
     nl: EmailTemplate;
     fields: EmailActionField[];
     teamRecipients: string[];
-    respondentField?: string | null;
+    /** a signed-in respondent with a verified email gets a copy, at that account email */
+    respondentCopy?: boolean;
     condition?: ActionCondition | null;
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -36,8 +37,7 @@ export interface EmailActionInput {
     nl?: EmailTemplate;
     fields?: Array<{ source: string; key?: string | null }>;
     teamRecipients?: string[];
-    /** null removes the copy; leaving it out keeps it */
-    respondentField?: string | null;
+    respondentCopy?: boolean;
     /** null removes the condition; leaving it out keeps it */
     condition?: ActionCondition | null;
 }

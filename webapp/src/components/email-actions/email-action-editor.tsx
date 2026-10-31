@@ -8,6 +8,8 @@ import ActionConditionEditor, { conditionIncomplete } from '@app/components/emai
 import { Field, inputClass } from '@app/components/registration/field';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { EmailAction, EmailVariable, useCreateEmailActionMutation, usePreviewEmailMutation, useUpdateEmailActionMutation } from '@app/store/workspaces/email-actions-api';
 import type { ActionCondition } from '@app/store/workspaces/webhooks-api';
 import { DEFAULT_TEMPLATES, EditorField, LANGUAGES, MAX_TEAM, NAME_MAX, TemplateLanguage, addressProblem, errorField, errorKey, insertPlaceholder, parseRecipients, placeholdersFor, templateProblem } from '@app/utils/email-actions';
@@ -35,8 +37,8 @@ function Err({ id, text }: { id: string; text?: string }) {
 type Templates = Record<TemplateLanguage, { subject: string; body: string }>;
 
 /**
- * Adds or edits one email action: who is mailed (the form's team, and/or the
- * address a respondent typed into an email question), the words in English and
+ * Adds or edits one email action: who is mailed (the form's team, and/or a copy to
+ * the signed-in respondent's verified account email), the words in English and
  * Dutch with a placeholder picker and a preview, the questions the words may
  * name, when it runs and whether it is on. The server has the last word.
  */
@@ -46,13 +48,14 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
         const key = variableTypeKey(type);
         return key ? t(key) : type.replace(/_/g, ' ');
     };
+    // a copy goes only to an address its owner proved by signing in: the form asks for that when it requires a verified identity
+    const asksForSignIn = !!useAppSelector(selectForm)?.settings?.requireVerifiedIdentity;
     const [create, { isLoading: creating }] = useCreateEmailActionMutation();
     const [update, { isLoading: updating }] = useUpdateEmailActionMutation();
     const [preview, { isLoading: previewing }] = usePreviewEmailMutation();
     const [name, setName] = useState(action?.name ?? '');
     const [team, setTeam] = useState((action?.teamRecipients ?? []).join('\n'));
-    const [copy, setCopy] = useState(!!action?.respondentField);
-    const [respondentField, setRespondentField] = useState(action?.respondentField ?? '');
+    const [copy, setCopy] = useState(!!action?.respondentCopy);
     const [chosen, setChosen] = useState<Record<string, string>>(() => Object.fromEntries((action?.fields ?? []).map((f) => [f.source, f.key])));
     const [templates, setTemplates] = useState<Templates>({ en: action?.en ?? DEFAULT_TEMPLATES.en, nl: action?.nl ?? DEFAULT_TEMPLATES.nl });
     const [language, setLanguage] = useState<TemplateLanguage>('en');
@@ -70,7 +73,6 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
         heading.current?.focus();
     }, []);
 
-    const emailQuestions = useMemo(() => variables.filter((v) => v.supported && v.type === 'email'), [variables]);
     const choosable = useMemo(() => variables.filter((v) => v.supported), [variables]);
     const keys = Object.values(chosen)
         .map((k) => k.trim())
@@ -136,8 +138,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
         const addresses = parseRecipients(team);
         if (addresses.length > MAX_TEAM) problems.recipients = t('EMAIL_ACTIONS.ERROR.too_many_recipients');
         else if (addresses.some(addressProblem)) problems.recipients = t('EMAIL_ACTIONS.ERROR.invalid_recipient');
-        else if (addresses.length === 0 && !(copy && respondentField)) problems.recipients = t('EMAIL_ACTIONS.ERROR.no_recipient');
-        if (copy && !respondentField) problems.respondent = t('EMAIL_ACTIONS.ERROR.invalid_respondent_field');
+        else if (addresses.length === 0 && !copy) problems.recipients = t('EMAIL_ACTIONS.ERROR.no_recipient');
         for (const lang of LANGUAGES) {
             const tpl = templates[lang];
             if (!tpl.subject.trim() || !tpl.body.trim()) problems.templates = t('EMAIL_ACTIONS.ERROR.template_missing');
@@ -158,7 +159,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
             nl: templates.nl,
             fields: Object.entries(chosen).map(([source, key]) => ({ source, key: key.trim() })),
             teamRecipients: addresses,
-            respondentField: copy ? respondentField : null,
+            respondentCopy: copy,
             condition
         };
         const response: any = action ? await update({ workspaceId, formId, actionId: action.id, body }) : await create({ workspaceId, formId, body });
@@ -190,27 +191,17 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                 </Field>
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-3">
-                        <Switch id="email-copy" checked={copy} aria-labelledby="email-copy-label" onCheckedChange={(v) => (clear('respondent'), setCopy(v), v && !respondentField && setRespondentField(emailQuestions[0]?.source ?? ''))} />
+                        <Switch id="email-copy" checked={copy} aria-labelledby="email-copy-label" onCheckedChange={(v) => (clear('recipients'), setCopy(v))} />
                         <label id="email-copy-label" htmlFor="email-copy" className="cursor-pointer text-sm font-medium text-black-900">
                             {t('EMAIL_ACTIONS.EDITOR.COPY')}
                         </label>
                     </div>
                     <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('EMAIL_ACTIONS.EDITOR.COPY_HINT')}</p>
                     {copy && (
-                        <Field id="email-copy-question" label={t('EMAIL_ACTIONS.EDITOR.COPY_QUESTION')} error={errors.respondent}>
-                            {(props) => (
-                                <select {...props} className={inputClass + ' sm:max-w-96'} value={respondentField} onChange={(e) => (clear('respondent'), setRespondentField(e.target.value))}>
-                                    <option value="">{t('EMAIL_ACTIONS.EDITOR.COPY_CHOOSE')}</option>
-                                    {emailQuestions.map((v) => (
-                                        <option key={v.source} value={v.source}>
-                                            {v.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </Field>
+                        <p role={asksForSignIn ? undefined : 'alert'} data-testid="email-copy-verification" className={asksForSignIn ? 'max-w-[62ch] text-xs leading-relaxed text-black-700' : 'max-w-[62ch] rounded-md border border-[#E5B9B9] bg-[#FBEFEF] px-3 py-2 text-xs leading-relaxed font-medium text-[#8A2B2B]'}>
+                            {t(asksForSignIn ? 'EMAIL_ACTIONS.EDITOR.COPY_VERIFIED' : 'EMAIL_ACTIONS.EDITOR.COPY_UNVERIFIED')}
+                        </p>
                     )}
-                    {copy && emailQuestions.length === 0 && <p className="text-xs text-black-700">{t('EMAIL_ACTIONS.EDITOR.NO_EMAIL_QUESTION')}</p>}
                 </div>
             </fieldset>
 

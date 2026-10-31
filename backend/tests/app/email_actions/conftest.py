@@ -6,6 +6,7 @@ from backend.app.container import container
 from backend.app.services.email_actions.transport import MailFailed
 from backend.config import settings
 from tests.app.controllers.data import invited_user, testUser, testUser1
+from tests.app.email_actions.helpers import ACCOUNTS
 from tests.app.registration.conftest import memory_jobs  # noqa: F401
 
 # who the (faked) auth service knows, by account id
@@ -48,11 +49,12 @@ def auth_users():
     """User details come from the auth service, outside the test."""
 
     async def users(url, params=None, **kwargs):
+        known = {**EMAILS, **ACCOUNTS}
         return {
             "users_info": [
-                {"_id": user_id, "email": EMAILS[user_id]}
+                {"_id": user_id, "email": known[user_id]}
                 for user_id in params["user_ids"]
-                if user_id in EMAILS
+                if user_id in known
             ]
         }
 

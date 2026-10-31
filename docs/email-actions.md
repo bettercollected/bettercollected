@@ -25,7 +25,7 @@ One action belongs to one form (at most 5 per form). It has:
 |---|---|
 | Name | Up to 80 characters, one line. |
 | Team addresses | Up to 5, one plain address each, stored and mailed **as typed** (surrounding space removed); each mailbox once, and compared with the members' addresses case-folded (plus tags and dots are kept, so a tagged address counts only if it matches a member's exactly). **Each must be the address of a current, enabled member of the workspace**: checked when saved (422 `recipient_not_allowed`) and again every time a mail is sent, so a removed member stops receiving mail. Same rule as the "send me a copy" action. |
-| Respondent copy | An `email` question of the form. Its answer in *this* submission receives a copy. See "The respondent's copy". |
+| Respondent copy | On or off: a signed-in respondent with a verified email gets a copy of their own submission, at their account email. See "The respondent's copy". |
 | Questions | The questions the text may name, each with a name (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique, never `form_title`, `submitted_at` or `answers`). Same variables as webhooks; files are never sent; a repeating group is a list. |
 | Templates | A subject and a message in **English and Dutch**, both required. The form's language (`nl`, `nl-BE`, ... is Dutch, anything else English) picks which one the team gets. |
 | Condition | Optional: it runs only when a condition on the answers holds (see "Conditions"). |
@@ -67,21 +67,27 @@ The editor's **preview** (`POST .../email-actions/preview`) renders a template w
 
 A respondent-supplied address is the one place the system mails someone nobody on the team chose, so it is the most restricted:
 
-- The address comes only from the `email` question of this very submission, read from the stored (decrypted in memory) answers at send time, never from a request, a header or the
-  queue. It receives a copy of **their own** submission and nothing else. There is no endpoint that mails an address a caller supplies.
+- **Only to a signed-in respondent, at their verified account email.** The copy goes to the **email of the account the respondent submitted signed in with**, read from the account when the copy is
+  sent, and only when that session's email was verified at sign-in (email code, Google or single sign-on). It is **never** sent to an address typed into an answer: the form has no question that
+  chooses the recipient. Anonymous respondents get no copy: a respondent who is not signed in, one whose session did not verify its email, and one who ticked "submit anonymously" (their submission
+  is kept apart from their account on purpose, so the log row never stores the account id for it). To get signed-in respondents, turn on **"Require verified identity"** in the form's settings, which
+  makes every respondent sign in with an email code before answering (the builder says so, and warns that no copies will be sent to anonymous respondents while the form does not ask for it). There is no
+  other verification step.
+  The decision is made twice. When the submission is queued, a copy with no verified, non-anonymous account writes no job: only a `cancelled` log row with the code `not_verified` (ids and status,
+  never an address). For a verified account the copy's log row names the **account id** (an id, never an address; not shown in the API, deleted with the row). When the job runs, the account's current
+  email is read; an account that no longer exists gets nothing and the row says `account_gone`. A copy that is not planned, or whose account is gone, counts against **no** budget.
 - **Fixed wording** (English or Dutch, by the form's language), not a template the creator wrote: a line saying what it is, a line saying why they got it, the answers of the
   mapped questions under their question labels (their own; a calculation kept from respondents is left out) and the time. **No form title**, in the subject or the body. The question
   labels and the answers are the only free text, so they are limited **there and only there** (the team's mail is not):
   every label and every answer is cut to 200 characters (with an ellipsis), normalised to NFKC (the copy is plain text: fullwidth, ideographic and other compatibility forms of dots, slashes, colons and letters become the plain ones, so `evil。example` and `ｈｔｔｐｓ：／／evil．example` are links too), the whole answers block to 2,000, and anything URL-like (`scheme://...`, `mailto:`, `www....`, a bare
   `domain.tld/path`) becomes `[link removed]` (an email address in an answer stays). So the copy cannot carry a page or an advertisement of any size to someone who never asked for it.
-  Limiting the copy to *verified* addresses (the email-code gate) is a possible later step; this is the default.
 - Rate limited, counted in keyed hashes that name no address: 3 per hour per mailbox and form, 10 per hour per mailbox (all forms), 600 per hour per form and **1,000 per hour per workspace**. A
   *mailbox* is the address reduced to a key: lower case, the `+tag` dropped, the dots of a Gmail / Googlemail local part dropped (`googlemail.com` is `gmail.com`), the domain IDNA-encoded with a
-  trailing dot removed. So `A.B+x@GMAIL.com` and `ab@gmail.com` share one budget, and so do an internationalised domain and its punycode form; the mail itself goes to the address exactly as typed.
+  trailing dot removed. So `A.B+x@GMAIL.com` and `ab@gmail.com` share one budget, and so do an internationalised domain and its punycode form; the mail itself goes to the account's address as the account holds it.
   Over a limit, the run is `cancelled` (`rate_limited`) and not retried. A mail counts against the limits **once**, however many attempts it takes, and an attempt that is denied counts
   against **none** of the budgets (so someone over one limit cannot use up the workspace's or another mailbox's). Each budget is checked and counted in one locked step (`admit`), so mails sent at the same time
   cannot overshoot it; a mail one budget refuses gives back what the narrower budgets admitted.
-- A submission without a usable address queues no copy.
+- A copy goes only to a verified account (above): there is no "address in the answers" to be usable or not.
 
 ## Conditions
 
@@ -103,7 +109,7 @@ was removed) never runs the action (`condition_invalid`). A condition cannot be 
 - The log is the shared action log (`action_logs`, type `email`): one row per mail (the team's and the respondent's copy are two rows), with the ids (workspace, form, action, response),
   the channel (`team` or `respondent`), a status (`pending`, `in_progress`, `retrying`, `delivered`, `failed`, `cancelled`), the attempt count, timings and one of our codes
   (`recipient_rejected`, `smtp_rejected`, `smtp_busy`, `smtp_auth`, `smtp_unavailable`, `smtp_error`, `timeout`, `tls_error`, `invalid_message`, `mail_not_configured`,
-  `answers_unreadable`, `address_not_supported`, `recipient_not_allowed`, `no_address`, `rate_limited`, `disabled`, `condition_not_met`, `condition_invalid`, `internal_error`). **No address, hash or domain of
+  `answers_unreadable`, `address_not_supported`, `not_verified`, `account_gone`, `recipient_not_allowed`, `no_address`, `rate_limited`, `disabled`, `condition_not_met`, `condition_invalid`, `internal_error`). **No address, hash or domain of
   one, subject or content.** Kept 30 days.
 - **At least once.** A worker that dies after the mail server accepted a message but before the row says `delivered` is rescued after 30 minutes and sends it again (the retry does not count against the limits a second time). A duplicate mail is possible; a lost one is not.
 - **Addresses at rest.** The team addresses an action lists are stored in clear (admins read them in the list). When a member is removed from a workspace, or their account is deleted (every workspace they were in), their address is removed from every email action's team (also when the workspace's SCIM directory deprovisions them: their membership is only disabled, but they are no longer "the form's team"; an admin adds the address again if they come back. A plan downgrade that disables members does not erase anything, it is undone by an upgrade; an action left with no recipient and no copy question is switched off).
@@ -129,8 +135,8 @@ logs the outcome. 5 per action and 20 per workspace per minute, 20 per user per 
 | `GET /workspaces/{ws}/email-actions/status` | `{"enabled": bool, "configured": bool}` (any member) |
 | `GET /workspaces/{ws}/forms/{form}/email-actions` | the form's actions |
 | `GET .../email-actions/variables` | the form's questions that can be mapped |
-| `POST .../email-actions` | `{name, en:{subject,body}, nl:{...}, fields:[{source,key}], teamRecipients, respondentField, condition, enabled}` -> 201 |
-| `PATCH .../email-actions/{id}` | any of those; `respondentField: null` / `condition: null` remove them |
+| `POST .../email-actions` | `{name, en:{subject,body}, nl:{...}, fields:[{source,key}], teamRecipients, respondentCopy, condition, enabled}` -> 201 |
+| `PATCH .../email-actions/{id}` | any of those; `condition: null` removes the condition |
 | `DELETE .../email-actions/{id}` | 204 |
 | `POST .../email-actions/preview` | `{language, subject, body, fields}` -> the rendered text with made-up answers |
 | `POST .../email-actions/{id}/test` | a test mail to yourself; returns its log row |

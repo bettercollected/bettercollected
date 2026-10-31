@@ -138,7 +138,7 @@ export function EmailActionsSettings({ workspaceId, formId, configured }: { work
                                                     <span className="text-xs text-black-600">
                                                         {[
                                                             action.teamRecipients.length > 0 ? t('EMAIL_ACTIONS.LIST.TEAM', { count: action.teamRecipients.length }) : null,
-                                                            action.respondentField ? t('EMAIL_ACTIONS.LIST.COPY') : null,
+                                                            action.respondentCopy ? t('EMAIL_ACTIONS.LIST.COPY') : null,
                                                             action.condition && action.condition.conditions.length > 0 ? t('ACTION_CONDITION.BADGE') : null
                                                         ]
                                                             .filter(Boolean)
@@ -180,7 +180,7 @@ export function EmailActionsSettings({ workspaceId, formId, configured }: { work
                                                 >
                                                     {t('EMAIL_ACTIONS.LIST.TEST')}
                                                 </Button>
-                                                {action.respondentField && (
+                                                {action.respondentCopy && (
                                                     <Button
                                                         type="button"
                                                         variant="v2Button"

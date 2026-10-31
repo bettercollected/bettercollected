@@ -483,7 +483,7 @@ describe('Privacy panel: answers also emailed', () => {
         setBrowserLanguages(['en']);
         renderPanel({ ownerName: 'Acme', emailDestination: { team: false, copy: true } });
         openPanel();
-        expect(row('email')).toHaveTextContent('A copy to you: a copy of your answers is emailed to the address you enter.');
+        expect(row('email')).toHaveTextContent('A copy to you: if you are signed in, a copy of your answers is emailed to the email address of your account. If you are not signed in, or you submit anonymously, you get no copy.');
         expect(row('email')).not.toHaveTextContent("emailed to the form's team");
     });
 
@@ -492,7 +492,7 @@ describe('Privacy panel: answers also emailed', () => {
         renderPanel({ ownerName: 'Acme', emailDestination: { team: true, copy: true } });
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(row('email')).toHaveTextContent('Je antwoorden worden ook gemaild naar het team achter dit formulier.');
-        expect(row('email')).toHaveTextContent('Een kopie voor jou: een kopie van je antwoorden wordt gemaild naar het adres dat je invult.');
+        expect(row('email')).toHaveTextContent('Een kopie voor jou: als je bent ingelogd, wordt een kopie van je antwoorden gemaild naar het e-mailadres van je account. Als je niet bent ingelogd, of anoniem indient, krijg je geen kopie.');
     });
 });
 

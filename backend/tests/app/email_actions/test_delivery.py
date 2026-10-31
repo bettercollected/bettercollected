@@ -26,7 +26,9 @@ from backend.app.services.email_actions.transport import MailFailed
 from backend.jobs import tasks
 from tests.app.controllers.data import invited_user, testUser, testUser1
 from tests.app.email_actions.helpers import OWNER, age, logs_of, make_action
-from tests.app.registration.helpers import ANSWERS, FIELDS, publish, submit
+from tests.app.email_actions.helpers import submit_as_owner_of_the_address as submit, verified
+from tests.app.registration.helpers import ANSWERS, FIELDS, publish
+from tests.app.registration.helpers import submit as submit_as
 
 pytestmark = pytest.mark.asyncio
 
@@ -83,12 +85,6 @@ async def test_a_repeat_queue_call_is_a_no_op(setup):
         setup.workspace.id, setup.form.form_id, response.response_id, form=None, answers={}
     )
     assert again == [] and len(setup.jobs.jobs) == 2
-
-
-async def test_no_respondent_row_without_an_address_in_the_answers(setup):
-    answers = {k: v for k, v in ANSWERS.items() if k != "mail"}
-    response = await submit(setup.workspace, setup.form, answers=answers)
-    assert [r.channel for r in await rows_of(setup, response)] == ["team"]
 
 
 async def test_a_disabled_action_queues_nothing(setup):
@@ -798,3 +794,134 @@ async def test_team_mails_in_parallel_never_overshoot_the_form_cap(setup, monkey
         *[container.email_action_service()._team_within_limit(setup.form.form_id) for _ in range(25)]
     )
     assert sum(results) == 4
+
+
+# ------------------------------- the copy goes only to a signed-in respondent's verified account email
+
+
+async def _rows(setup, response):
+    return [r for r in await logs_of(setup.form) if r.response_id == response.response_id]
+
+
+async def _budgets_untouched(setup, address="ada@example.test"):
+    from backend.app.services.copy_recipient import rate_limit_key
+    from backend.app.services.email_actions import service as module
+
+    limiter = container.rate_limiter()
+
+    async def seen(scope, client):
+        return (await limiter.hit(scope, client, 10_000, module.HOUR, amount=0)).count
+
+    return [
+        await seen(module.COPY_WORKSPACE_SCOPE, str(setup.workspace.id)),
+        await seen(module.COPY_FORM_SCOPE, setup.form.form_id),
+        await seen(module.COPY_ADDRESS_SCOPE, rate_limit_key(address)),
+        await seen(module.COPY_ADDRESS_FORM_SCOPE, f"{setup.form.form_id}:{rate_limit_key(address)}"),
+    ]
+
+
+async def test_signed_in_with_a_verified_address_gets_the_copy_at_the_account_email(setup):
+    user = verified("Ada@Example.test")
+    response = await submit_as(setup.workspace, setup.form, answers=ANSWERS, user=user)
+    rows = {r.channel: r for r in await _rows(setup, response)}
+    copy = rows["respondent"]
+    assert copy.status is LogStatus.PENDING and copy.account_id == user.id
+    assert (await run(copy)).status == "delivered"
+    assert setup.transport.sent[0]["recipients"] == ["Ada@Example.test"]
+
+
+async def test_the_copy_never_goes_to_an_address_from_an_answer(setup):
+    """The email question holds another address (the respondent's, or someone
+    else's): the copy goes to the account's verified email, not to the answer."""
+    user = verified("account@example.test")
+    answers = {**ANSWERS, "mail": {"type": "email", "email": "victim@elsewhere.example"}}
+    response = await submit_as(setup.workspace, setup.form, answers=answers, user=user)
+    (copy,) = [r for r in await _rows(setup, response) if r.channel == "respondent"]
+    assert copy.status is LogStatus.PENDING
+    assert (await run(copy)).status == "delivered"
+    assert [m["recipients"] for m in setup.transport.sent] == [["account@example.test"]]
+    assert "elsewhere.example" not in json.dumps(setup.transport.sent)
+
+
+async def test_the_copy_is_planned_whatever_the_answers_hold(setup):
+    # even with no email answer at all: the question is not the recipient
+    answers = {k: v for k, v in ANSWERS.items() if k != "mail"}
+    response = await submit_as(setup.workspace, setup.form, answers=answers, user=verified("ada@example.test"))
+    assert sorted(r.channel for r in await _rows(setup, response)) == ["respondent", "team"]
+
+
+async def test_the_account_email_is_read_when_the_copy_is_sent(setup):
+    from tests.app.email_actions.helpers import ACCOUNTS
+
+    user = verified("old@example.test")
+    response = await submit_as(setup.workspace, setup.form, answers=ANSWERS, user=user)
+    (copy,) = [r for r in await _rows(setup, response) if r.channel == "respondent"]
+    ACCOUNTS[user.id] = "new@example.test"  # the account's email changed before the job ran
+    assert (await run(copy)).status == "delivered"
+    assert setup.transport.sent[0]["recipients"] == ["new@example.test"]
+
+
+async def test_an_account_that_is_gone_when_the_copy_is_sent_gets_nothing_and_the_log_says_so(setup):
+    from tests.app.email_actions.helpers import ACCOUNTS
+
+    user = verified("ada@example.test")
+    response = await submit_as(setup.workspace, setup.form, answers=ANSWERS, user=user)
+    (copy,) = [r for r in await _rows(setup, response) if r.channel == "respondent"]
+    del ACCOUNTS[user.id]
+    outcome = await run(copy)
+    row = await container.action_log_repo().get(copy.id)
+    assert (outcome.status, outcome.retry) == ("cancelled", False)
+    assert row.status is LogStatus.CANCELLED and row.last_error_code == "account_gone"
+    assert setup.transport.sent == [] and await _budgets_untouched(setup) == [0, 0, 0, 0]
+    assert "ada" not in json.dumps(row.model_dump(mode="json")).lower()
+
+
+async def test_an_anonymous_respondent_gets_no_copy_and_the_log_says_why(setup):
+    from tests.app.controllers.data import testUser
+
+    # not signed in with a verified email (here: a session that proved nothing)
+    response = await submit_as(setup.workspace, setup.form, answers=ANSWERS, user=testUser)
+    rows = {r.channel: r for r in await _rows(setup, response)}
+    copy = rows["respondent"]
+    assert copy.status is LogStatus.CANCELLED and copy.last_error_code == "not_verified"
+    assert copy.finished_at is not None and copy.attempts == 0 and copy.account_id is None
+    assert "ada" not in json.dumps(copy.model_dump(mode="json")).lower()  # ids and status only
+    # no job for it (the team's mail is queued as ever), nothing sent, no budget used
+    assert [j["args"]["log_id"] for j in setup.jobs.jobs.values()] == [str(rows["team"].id)]
+    assert (await run(copy)).status == "skipped" and setup.transport.sent == []
+    assert await _budgets_untouched(setup) == [0, 0, 0, 0]
+    # the team's mail is unaffected
+    assert (await run(rows["team"])).status == "delivered" and len(setup.transport.sent) == 1
+
+
+async def test_a_session_whose_email_was_not_verified_gets_no_copy(setup):
+    user = verified("ada@example.test", proven=False)
+    response = await submit_as(setup.workspace, setup.form, answers=ANSWERS, user=user)
+    (copy,) = [r for r in await _rows(setup, response) if r.channel == "respondent"]
+    assert copy.last_error_code == "not_verified" and copy.status is LogStatus.CANCELLED
+    assert await _budgets_untouched(setup) == [0, 0, 0, 0]
+
+
+async def test_a_signed_in_respondent_who_submits_anonymously_gets_no_copy(setup, monkeypatch):
+    from backend.app.services.copy_recipient import verified_account_id_of
+
+    assert verified_account_id_of(verified("ada@example.test"), anonymous=True) is None
+    response = await container.email_action_service().queue_for_submission(
+        setup.workspace.id, setup.form.form_id, "r-anon", form=None, answers={},
+        verified_account_id=verified_account_id_of(verified("ada@example.test"), anonymous=True),
+    )
+    rows = [r for r in await logs_of(setup.form) if r.response_id == "r-anon"]
+    assert [(r.channel, r.status, r.last_error_code) for r in rows if r.channel == "respondent"] == [
+        ("respondent", LogStatus.CANCELLED, "not_verified")
+    ]
+    assert response is not None
+
+
+def test_only_a_verified_signed_in_account_is_a_copy_recipient():
+    from backend.app.services.copy_recipient import verified_account_id_of
+
+    user = verified("ada@example.test")
+    assert verified_account_id_of(user) == user.id
+    assert verified_account_id_of(verified("ada@example.test", proven=False)) is None
+    assert verified_account_id_of(None) is None
+    assert verified_account_id_of(user, anonymous=True) is None

@@ -73,6 +73,19 @@ def normalize_address(value: Any) -> Optional[str]:
     return address
 
 
+
+def verified_account_id_of(user: Any, anonymous: bool = False) -> Optional[str]:
+    """The id of the account a copy may go to: a signed-in respondent whose
+    session's email was verified at sign-in (email code, a provider that says
+    so, or single sign-on), who did not ask to submit anonymously. ``None`` for
+    anyone else, an anonymous respondent included. The id, not the address: the
+    address is read from the account when the copy is sent."""
+    if user is None or anonymous or getattr(user, "email_verified", None) is not True:
+        return None
+    account_id = getattr(user, "id", None)
+    return str(account_id) if account_id else None
+
+
 _PLUS_TAG_FREE = ("gmail.com", "googlemail.com")
 
 
@@ -182,6 +195,23 @@ class CopyRecipientService:
             return []
         allowed = await self._allowed_addresses(workspace_id, form_id)
         return [typed for folded, typed in wanted.items() if folded in allowed]
+
+    async def email_of_account(self, account_id: Any) -> Optional[str]:
+        """The email of an account as the auth service has it now (trimmed,
+        one plain address), or None when the account is gone or has none. A
+        failure to reach the auth service raises (the caller retries)."""
+        response = await self._http_client.get(
+            settings.auth_settings.BASE_URL + "/users",
+            params={"user_ids": [str(account_id)]},
+            headers=auth_service_headers(),
+        )
+        for info in (response or {}).get("users_info") or []:
+            if str((info or {}).get("_id") or (info or {}).get("id")) != str(account_id):
+                continue
+            email = (info or {}).get("email")
+            if normalize_address(email) is not None:
+                return email.strip()
+        return None
 
     async def is_allowed(self, address: Any, workspace_id, form_id) -> bool:
         wanted = normalize_address(address)

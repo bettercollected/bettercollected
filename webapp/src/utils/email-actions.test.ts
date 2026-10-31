@@ -46,7 +46,6 @@ describe('error keys', () => {
 
     it('puts a refusal next to the part of the editor it is about', () => {
         expect(errorField('recipient_not_allowed')).toBe('recipients');
-        expect(errorField('invalid_respondent_field')).toBe('respondent');
         expect(errorField('unknown_placeholder')).toBe('templates');
         expect(errorField('invalid_condition')).toBe('condition');
         expect(errorField('email_actions_off')).toBeNull();

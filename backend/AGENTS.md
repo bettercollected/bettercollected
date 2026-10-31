@@ -1058,8 +1058,12 @@ the instance's `MAIL_*` settings (`config/mail_settings.py`, the auth service's 
   `service.py` the logic), table `form_email_actions` (revision 0026), router `controllers/email_actions_router.py`. Runs in the backend
   jobs worker on the **`emails` queue** (`deliver_email(log_id)`, `emails_redefer`, `purge_email_logs`), never the actions executor;
   `bc_jobs_exec` must stay unable to see or queue it (`tests/app/jobs/test_executor_role.py`).
+- **The copy goes only to a signed-in respondent, at their verified account email** (`verified_account_id_of` in `copy_recipient.py`, `CopyRecipientService.email_of_account`): planned at submit
+  (`queue_for_submission(verified_account_id=...)`: the session's email was verified at sign-in and the respondent did not submit anonymously; otherwise a `cancelled` row `not_verified`, no job, no
+  budget), the account email is read when it is sent (an account that is gone: `account_gone`). The recipient is **never** an answer value, and the form has no question that names it; the log row holds the
+  account **id** (never an address) only for a verified, non-anonymous copy. Never relax it to "typed by the respondent"; the builder text and the privacy panel say the same.
 - **No open relay.** Team addresses are members of the workspace only (`CopyRecipientService.allowed_among`, at save and again at send). A
-  respondent's copy goes only to the `email` answer of its own submission, read from the stored answers at send time, in fixed wording
+  respondent's copy goes only to the verified account email above, in fixed wording
   (never a creator template, no form title; labels and answers cut to 200 characters, 2,000 in all, links removed: `copy_answers_block`),
   rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget
   (each budget is `RateLimiter.admit`, atomic: check and count in one locked step, then `release` what a later budget refused),
