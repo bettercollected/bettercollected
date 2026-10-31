@@ -177,6 +177,15 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   `COLLECTION_GROUPS` map). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
   (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
   machine-readable view.
+- **The staff responses list pages by keyset** (`GET .../forms/{form_id}/submissions` with `paging=keyset`, any of the
+  filters `submittedFrom`/`submittedTo`/`status`/`respondent`/`formVersion`, or a `cursor`; `list_form_page` in
+  `postgres/responses.py`, plan in `services/response_paging.py`, cursor in `services/response_cursor.py`). Filters are
+  plaintext columns only (answers are encrypted: no answer-level filter exists or is to be added here). The page is
+  reached by a seek on the sort index plus a skip of a few rows: from a signed cursor (the first row of a page the client
+  has, at most 10 pages away), from the start (at most 10,000 rows) or, with an exact total, from the end. The total is
+  exact up to 10,000 (`COUNT_CAP`), then `totalExact` is false. A query predicate meant to match a partial or expression
+  index is written with its constant in the statement (`literal_column`), not bound, or the planner cannot use the index;
+  check with `tests/app/repositories/test_responses_list_performance.py` (`RESPONSES_PERF_ROWS=300000 pytest -s`).
 - **Tests:** the Postgres repositories' results are pinned in JSON fixtures written from the 4.0 parity runs
   (`tests/fixtures/forms_repositories.json`, `responses_repositories.json`; `tests/app/repositories/pinned.py`),
   never regenerated to make a change pass. Test fixtures go through `container.<repo>()`; Beanie appears only in the

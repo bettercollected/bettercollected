@@ -182,7 +182,17 @@ export const workspacesApi = createApi({
                     request_for_deletion: query.requestedForDeletionOly,
                     page: query.page,
                     size: query.size,
-                    dataOwnerIdentifier: query.dataOwnerIdentifier
+                    dataOwnerIdentifier: query.dataOwnerIdentifier,
+                    // keyset list: filters, sort and the cursor (undefined ones are not sent)
+                    paging: query.paging,
+                    sort_by: query.sort_by,
+                    sort_order: query.sort_order,
+                    submittedFrom: query.submittedFrom,
+                    submittedTo: query.submittedTo,
+                    status: query.status,
+                    respondent: query.respondent,
+                    formVersion: query.formVersion,
+                    cursor: query.cursor
                 },
                 method: 'GET'
             }),
