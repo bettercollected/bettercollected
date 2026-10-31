@@ -273,10 +273,22 @@ async def test_dns_rebinding_public_when_saved_private_when_called(
 async def test_an_erased_response_is_never_sent(setup):
     response = await submit(setup.workspace, setup.form)
     log = await log_of(setup, response)
-    await container.form_response_service().delete_response(response_id=response.response_id)
+    # the response vanishes without the service's hook (a cascade, an import
+    # cleanup): the job still never sends it and drops the row
+    await container.form_response_service()._form_response_repo.delete_response(
+        response_id=response.response_id
+    )
     outcome = await run(log)
     assert outcome.status == "gone" and setup.tls.requests == []
     assert await container.action_log_repo().get(log.id) is None
+
+
+async def test_erasing_a_response_through_the_service_removes_the_row_so_nothing_is_sent(setup):
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    await container.form_response_service().delete_response(response_id=response.response_id)
+    assert await container.action_log_repo().get(log.id) is None
+    assert (await run(log)).status == "skipped" and setup.tls.requests == []
 
 
 async def test_a_webhook_switched_off_meanwhile_cancels_the_delivery(setup):

@@ -23,10 +23,27 @@ from loguru import logger
 from backend.config import settings  # first of ours: it loads the settings snapshot
 from backend.app.container import container
 from backend.app.services.internal_auth import log_if_internal_key_missing
+from backend.app.services.webhooks.mode import webhooks_enabled
 from backend.app.utils import AiohttpClient
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
 from backend.jobs.app import DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
 from common.services.crypto_service import crypto_service
+
+
+def warn_if_webhooks_unserved(queues: list) -> bool:
+    """Webhooks are on but ``JOBS_QUEUES`` leaves out the ``webhooks`` queue:
+    deliveries would be queued and never sent. Warns (True) at worker start."""
+    if not webhooks_enabled() or WEBHOOKS_QUEUE in queues:
+        return False
+    logger.warning(
+        "WEBHOOKS_ENABLED is on but this worker does not serve the '{}' queue "
+        "(JOBS_QUEUES={}): webhook deliveries stay queued until a worker "
+        "serves it. Add '{}' to JOBS_QUEUES.",
+        WEBHOOKS_QUEUE,
+        ",".join(queues),
+        WEBHOOKS_QUEUE,
+    )
+    return True
 
 
 async def main() -> None:
@@ -41,6 +58,7 @@ async def main() -> None:
     AiohttpClient.get_aiohttp_client()
     await check_postgres_at_startup(container)
     logger.info("jobs worker: queues={} concurrency={}", queues, concurrency)
+    warn_if_webhooks_unserved(queues)
     try:
         async with app.open_async():
             await app.run_worker_async(

@@ -72,7 +72,8 @@ URL_CHECK_SCOPE = "webhook_url_check"
 URL_CHECK_PER_WINDOW = 30
 URL_CHECK_WINDOW_SECONDS = 60
 TEST_SCOPE = "webhook_test"
-TEST_PER_WINDOW = 5
+TEST_PER_WINDOW = 5  # per webhook
+TEST_WORKSPACE_PER_WINDOW = 20  # all webhooks of a workspace together
 TEST_WINDOW_SECONDS = 60
 _OPEN_STATES = (LogStatus.PENDING, LogStatus.RETRYING)
 SECRET_PREFIX = "whsec_"
@@ -687,10 +688,19 @@ class WebhookService:
         await self._manage(user, workspace_id, form_id)
         refuse_when_off()
         document = await self._webhook_of(workspace_id, form_id, webhook_id)
+        # one webhook cannot use up the workspace's budget, nor can one workspace
+        # send without bound through many webhooks
+        await self._rate_limit(
+            TEST_SCOPE,
+            f"{workspace_id}:{document.id}",
+            TEST_PER_WINDOW,
+            TEST_WINDOW_SECONDS,
+            "Too many test events; try again later.",
+        )
         await self._rate_limit(
             TEST_SCOPE,
             workspace_id,
-            TEST_PER_WINDOW,
+            TEST_WORKSPACE_PER_WINDOW,
             TEST_WINDOW_SECONDS,
             "Too many test events; try again later.",
         )

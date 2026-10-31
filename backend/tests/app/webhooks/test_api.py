@@ -570,3 +570,79 @@ async def test_address_checks_are_rate_limited_per_workspace(workspace, workspac
     other_form = await publish(workspace_1, user=testUser1)
     error = await refused(make_webhook(workspace_1, other_form, user=testUser1))
     assert code_of(error) == "not_allowed"
+
+
+# ------------------------------------------ erasure, the worker's queues, the test limit
+
+
+async def test_deleting_a_response_deletes_its_webhook_log_rows(workspace, tls, memory_jobs):
+    from backend.app.container import container as c
+
+    form = await publish(workspace)
+    await make_webhook(workspace, form)
+    first = await submit(workspace, form)
+    second = await submit(workspace, form)
+    rows = await logs_of(form)
+    assert len(rows) == 2
+    for row in rows:
+        await service().run_delivery(str(row.id))  # delivered rows are kept 30 days...
+    # ...unless the response is erased: the workspace-side deletion
+    await c.form_response_service().delete_form_response(
+        form_id=form.form_id, response_id=first.response_id, workspace_id=workspace.id
+    )
+    left = {r.response_id for r in await logs_of(form)}
+    assert left == {second.response_id}
+
+
+async def test_the_job_side_response_deletion_deletes_the_log_rows_too(workspace, memory_jobs):
+    from backend.app.container import container as c
+
+    form = await publish(workspace)
+    await make_webhook(workspace, form)
+    first = await submit(workspace, form)
+    second = await submit(workspace, form)
+    await c.form_response_service().delete_response(response_id=first.response_id)
+    assert {r.response_id for r in await logs_of(form)} == {second.response_id}
+
+
+async def test_the_worker_warns_when_webhooks_are_on_and_the_queue_is_not_served(webhooks_on, monkeypatch):
+    from backend.jobs import worker
+
+    seen = []
+    handler = logger.add(lambda message: seen.append(str(message)), level="WARNING")
+    try:
+        assert worker.warn_if_webhooks_unserved(["default"]) is True
+        assert any("webhooks" in line and "JOBS_QUEUES=default" in line for line in seen)
+        seen.clear()
+        assert worker.warn_if_webhooks_unserved(["default", "webhooks"]) is False
+        monkeypatch.setattr(settings.webhooks, "ENABLED", False)
+        assert worker.warn_if_webhooks_unserved(["default"]) is False
+        assert seen == []
+    finally:
+        logger.remove(handler)
+
+
+async def test_test_events_are_limited_per_webhook_and_per_workspace(workspace, tls, memory_jobs):
+    from backend.app.services.webhooks.service import TEST_PER_WINDOW, TEST_WORKSPACE_PER_WINDOW
+
+    form = await publish(workspace)
+    hooks = [await make_webhook(workspace, form, ["name"]) for _ in range(5)]
+    ws, fid = workspace.id, form.form_id
+    # one webhook uses up its own budget and leaves the others theirs
+    for _ in range(TEST_PER_WINDOW):
+        await service().send_test(ws, fid, hooks[0].id, testUser)
+    error = await refused(service().send_test(ws, fid, hooks[0].id, testUser))
+    assert error.status_code == 429 and code_of(error) == "rate_limited"
+    await service().send_test(ws, fid, hooks[1].id, testUser)
+    # the workspace as a whole is bounded too
+    sent = TEST_PER_WINDOW + 1
+    for hook in hooks[1:]:
+        while sent < TEST_WORKSPACE_PER_WINDOW:
+            try:
+                await service().send_test(ws, fid, hook.id, testUser)
+            except HTTPException:
+                break
+            sent += 1
+    error = await refused(service().send_test(ws, fid, hooks[4].id, testUser))
+    assert error.status_code == 429
+    assert len(memory_jobs.jobs) <= TEST_WORKSPACE_PER_WINDOW

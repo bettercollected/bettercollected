@@ -421,6 +421,7 @@ class AppContainer(containers.DeclarativeContainer):
         aws_service=aws_service,
         workspace_repo=workspace_repo,
         registration_delivery_repo=registration_delivery_repo,
+        webhook_log_repo=action_log_repo,
     )
 
     respondent_feedback_service: RespondentFeedbackService = providers.Singleton(

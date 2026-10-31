@@ -18,7 +18,7 @@ One webhook belongs to one form (at most 5 per form). It has:
 
 | Part | Rule |
 |---|---|
-| Address | https only, port 443 only, no user name or password, no fragment. Stored and used in its ASCII (IDNA) form. See the SSRF rules below. May carry a query (some receivers put a token there), so the address is **sealed** at rest like the secret (bound to the workspace, the webhook and its purpose). Only the host is kept in clear. The list shows the host only; the owner-facing detail read (`workspace.manage`) and the delivery job are the only places it is opened. Never logged or queued. |
+| Address | https only, port 443 only, no user name or password; a fragment (`#...`) is dropped. Stored and used in its ASCII (IDNA) form. See the SSRF rules below. May carry a query (some receivers put a token there), so the address is **sealed** at rest like the secret (bound to the workspace, the webhook and its purpose). Only the host is kept in clear. The list shows the host only; the owner-facing detail read (`workspace.manage`) and the delivery job are the only places it is opened. Never logged or queued. |
 | Questions | Which questions are sent and the name each gets in the body (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique). Hidden fields can be sent too. File questions cannot (webhooks never carry files); calculated values can; a repeating group is one list. A multiple choice answer is a list of the chosen options' texts. |
 | Secret | Generated (`whsec_` + 256 random bits), shown **once**, when the webhook is created or its secret rotated, and stored encrypted (the same credential encryption as other secrets, bound to the workspace and the webhook). No other response returns it. |
 | On or off | A switched-off webhook sends nothing; a test event may still be sent to it. |
@@ -100,7 +100,7 @@ delivery whose job was never queued, or whose worker died, is queued again by a 
 
 Applied when the address is saved, again when a webhook is switched on, and **at every connection**:
 
-- https only; port 443 only (anything else would reach services that were never meant to be called from here); no user name or password; no fragment, dot
+- https only; port 443 only (anything else would reach services that were never meant to be called from here); no user name or password; a fragment is dropped (it is never sent to a server); no dot
   segments or encoded slashes in the path; no whitespace, control characters or backslashes;
 - an internationalised host is converted to its ASCII (IDNA) form first, so what is checked, stored and connected to is one name; a host that does not
   convert is refused;
@@ -139,7 +139,7 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Where it runs, and what it cannot reach
 
 - Job `deliver_webhook`, plus the sweep `webhooks_redefer` and the purge `purge_action_logs`, on the queue **`webhooks`** of the Postgres job queue, in the
-  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks`; override with `JOBS_QUEUES`). The job's only argument is the
+  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks`; override with `JOBS_QUEUES`: if you set it, include `webhooks`, or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
   delivery id.
 - The actions executor, which runs creator code, connects as `bc_jobs_exec`. Its row-level security policy limits it to `run_action` rows of the `actions`
   queue, so it cannot see, change, cancel or queue a webhook job, nor take a lock name that blocks one. `tests/app/jobs/test_executor_role.py` proves it
@@ -148,7 +148,7 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Limits and abuse
 
 - 5 webhooks per form; 100 questions per webhook; bodies up to 1 MB.
-- Test events: 5 per workspace per minute; address checks (create, address edits, switching on, each of which resolves the name): 30 per workspace per minute, so the
+- Test events: 5 per webhook and 20 per workspace per minute, so one webhook cannot use up the workspace's budget; address checks (create, address edits, switching on, each of which resolves the name): 30 per workspace per minute, so the
   answers "not public" / "does not resolve" cannot be used to probe names in bulk (429 `rate_limited` with `Retry-After`).
 - Rotating a secret has **no grace period**: the old one stops working at once. Deliveries are signed when they are sent, so one that was queued earlier is signed
   with the new secret. Update the receiving system right after rotating.
