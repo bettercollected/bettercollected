@@ -1,3 +1,4 @@
+import { codePointLength } from '@app/lib/expressions/ast';
 import { formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -77,6 +78,22 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
     }
 }
 
+/** Is `text` longer than `max` code points? Cheap for a long one: more than twice `max` UTF-16 units is over without counting. */
+const overCap = (text: string, max: number): boolean => text.length > 2 * max || (text.length > max && codePointLength(text) > max);
+
+/**
+ * `value` as a condition may read it when `textMax` is set (field rules): a
+ * text longer than that counts as empty (a list drops such texts), as the
+ * expressions' inputs do, so the cost of a condition does not grow with the
+ * length of an answer. Twin of the server's `_capped`.
+ */
+function capped(value: any, textMax?: number): any {
+    if (textMax === undefined) return value;
+    if (typeof value === 'string') return overCap(value, textMax) ? undefined : value;
+    if (Array.isArray(value)) return value.filter((item) => !(typeof item === 'string' && overCap(item, textMax)));
+    return value;
+}
+
 const isEmpty = (v: any): boolean => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
 
 const toNumber = (v: any): number => (Array.isArray(v) ? NaN : Number(v));
@@ -94,14 +111,14 @@ export function getGroupAnswerItems(answer: any): Array<Record<string, any>> {
  * layered over the rest of the form's, exactly like visibility inside an item.
  * ALL over zero items does not match (there is nothing to match).
  */
-function evaluateGroupCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources): boolean {
+function evaluateGroupCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources, textMax?: number): boolean {
     const items = getGroupAnswerItems(answers?.[condition.fieldId]);
     if (condition.groupMode === 'COUNT') {
-        return compareValue(items.length, condition.comparison, condition.value);
+        return compareValue(items.length, condition.comparison, condition.value, textMax);
     }
     if (!condition.childFieldId) return false;
     const child: LogicCondition = { fieldId: condition.childFieldId, fieldType: condition.childFieldType ?? '', comparison: condition.comparison, value: condition.value };
-    const matches = items.map((item) => evaluateCondition({ ...(answers || {}), ...item }, child, sources));
+    const matches = items.map((item) => evaluateCondition({ ...(answers || {}), ...item }, child, sources, textMax));
     if (condition.groupMode === 'ANY') return matches.some(Boolean);
     if (condition.groupMode === 'ALL') return matches.length > 0 && matches.every(Boolean);
     return false;
@@ -153,29 +170,30 @@ export function choiceAnswerText(answer: any, field: StandardFormFieldDto | unde
  * condition holds when it holds for any of what the option answers to; "is
  * not" and "does not contain" when they hold for all of them.
  */
-function evaluateChoiceCondition(answer: any, source: StandardFormFieldDto | undefined, comparison: Comparison, target: any): boolean {
+function evaluateChoiceCondition(answer: any, source: StandardFormFieldDto | undefined, comparison: Comparison, target: any, textMax?: number): boolean {
     const many = answer?.choices;
     if (many && typeof many === 'object' && !Array.isArray(many)) {
         const tokens = (Array.isArray(many.values) ? many.values : []).filter(filledText).flatMap((v: string | number) => choiceTokens(String(v), source));
         if (filledText(many.other)) tokens.push(String(many.other));
-        return compareValue(tokens, comparison, target);
+        return compareValue(tokens, comparison, target, textMax);
     }
     const one = answer?.choice;
     const tokens = [...(filledText(one?.value) ? choiceTokens(String(one.value), source) : []), ...(filledText(one?.other) ? [String(one.other)] : [])];
-    if (!tokens.length) return compareValue(undefined, comparison, target);
-    const results = tokens.map((token) => compareValue(token, comparison, target));
+    if (!tokens.length) return compareValue(undefined, comparison, target, textMax);
+    const results = tokens.map((token) => compareValue(token, comparison, target, textMax));
     return NEGATED_COMPARISONS.has(comparison) ? results.every(Boolean) : results.some(Boolean);
 }
 
-function evaluateCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources): boolean {
-    if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources);
+function evaluateCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources, textMax?: number): boolean {
+    if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources, textMax);
     const answer = answers?.[condition.fieldId];
-    if (CHOICE_TYPES.has(condition.fieldType)) return evaluateChoiceCondition(answer, sources?.[condition.fieldId], condition.comparison, condition.value);
+    if (CHOICE_TYPES.has(condition.fieldType)) return evaluateChoiceCondition(answer, sources?.[condition.fieldId], condition.comparison, condition.value, textMax);
     const value = getComparableAnswerValue(answer, condition.fieldType);
-    return compareValue(value, condition.comparison, condition.value);
+    return compareValue(value, condition.comparison, condition.value, textMax);
 }
 
-function compareValue(value: any, comparison: Comparison, target: any): boolean {
+function compareValue(read: any, comparison: Comparison, target: any, textMax?: number): boolean {
+    const value = capped(read, textMax);
     switch (comparison) {
         case Comparison.IS_EMPTY:
             return isEmpty(value);
@@ -214,12 +232,13 @@ function compareValue(value: any, comparison: Comparison, target: any): boolean 
  * Fold a set of conditions with AND/OR. Empty/incomplete condition sets never match.
  * `sources`: the form's questions by id (`logicSourcesById`), which a condition on a
  * choice question needs to match an option's text; without it, only option ids match.
+ * `textMax`: see `capped` (field rules set it; logic does not).
  */
-export function evaluateConditions(operator: LogicalOperator | undefined, conditions: LogicCondition[] | undefined, answers: Record<string, any>, sources?: LogicSources): boolean {
+export function evaluateConditions(operator: LogicalOperator | undefined, conditions: LogicCondition[] | undefined, answers: Record<string, any>, sources?: LogicSources, textMax?: number): boolean {
     const valid = (conditions ?? []).filter((c) => c && c.fieldId && c.comparison);
     if (valid.length === 0) return false;
-    if (operator === LogicalOperator.OR) return valid.some((c) => evaluateCondition(answers, c, sources));
-    return valid.every((c) => evaluateCondition(answers, c, sources));
+    if (operator === LogicalOperator.OR) return valid.some((c) => evaluateCondition(answers, c, sources, textMax));
+    return valid.every((c) => evaluateCondition(answers, c, sources, textMax));
 }
 
 /** Are a rule's conditions satisfied given the current answers? */

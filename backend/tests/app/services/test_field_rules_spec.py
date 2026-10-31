@@ -15,6 +15,7 @@ from backend.app.services.ai.prompt_builder import build_chat_system_prompt
 from backend.app.services.field_rules import (
     ensure_rules_allowed,
     ensure_valid_field_rules,
+    field_rule_problems,
     new_or_changed_rules,
 )
 from backend.app.services.form_spec.checks import check_spec_document
@@ -230,9 +231,6 @@ def test_a_rule_moved_to_another_question_under_a_reused_id_is_a_change():
     # "b" is replaced by a question of another type that keeps the id and the rule
     other_type = _form([_q("a"), _q("b", "number", rules=[REQUIRE_B]), _q("c")])
     assert new_or_changed_rules(other_type, stored) == [("b", "r1")]
-    # ... or one of the same type that sits on another page
-    other_page = _form([_q("a"), _q("c")], [_q("b", rules=[REQUIRE_B])])
-    assert new_or_changed_rules(other_page, stored) == [("b", "r1")]
     # the rule's own content counts too
     edited = _form(
         [
@@ -245,6 +243,45 @@ def test_a_rule_moved_to_another_question_under_a_reused_id_is_a_change():
     # and another question's rule under the same rule id
     moved = _form([_q("a"), _q("b"), _q("c", rules=[REQUIRE_B])])
     assert new_or_changed_rules(moved, stored) == [("c", "r1")]
+
+
+def test_moving_a_question_to_another_page_or_group_changes_no_rule():
+    stored = _form([_q("a"), _q("b", rules=[REQUIRE_B]), _q("c")])
+    # the same question (id, type, rules) on another page
+    other_page = _form([_q("a"), _q("c")], [_q("b", rules=[REQUIRE_B])])
+    assert new_or_changed_rules(other_page, stored) == []
+    # ... or in a group
+    group = {
+        "id": "g",
+        "type": "group",
+        "title": "G",
+        "properties": {
+            "repeat": {"minItems": 1, "maxItems": 3},
+            "fields": [_q("b", rules=[REQUIRE_B])],
+        },
+    }
+    assert new_or_changed_rules(_form([_q("a"), group, _q("c")]), stored) == []
+    # a moved question that is edited is still a change, and so is another type
+    edited = _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "y")])])
+    assert new_or_changed_rules(_form([_q("a"), _q("c")], [edited]), stored) == [
+        ("b", "r1")
+    ]
+    other_type = _form([_q("a"), _q("c")], [_q("b", "number", rules=[REQUIRE_B])])
+    assert new_or_changed_rules(other_type, stored) == [("b", "r1")]
+
+
+def test_a_save_that_moves_a_ruled_question_passes_with_the_flag_off(rules_off):
+    stored = _form([_q("a"), _q("b", rules=[REQUIRE_B]), _q("c")])
+    moved = _form([_q("a"), _q("c")], [_q("b", rules=[REQUIRE_B])])
+    ensure_rules_allowed(moved, stored)  # no 422
+    # a new rule on the moved question is still refused
+    changed = _form(
+        [_q("a"), _q("c")],
+        [_q("b", rules=[REQUIRE_B, _rule("r2", {"required": False}, [_is("a", "y")])])],
+    )
+    with pytest.raises(HTTPException) as error:
+        ensure_rules_allowed(changed, stored)
+    assert error.value.content["code"] == "field_rules_disabled"
 
 
 def test_two_questions_with_one_id_cannot_hide_a_copied_rule():
@@ -530,3 +567,238 @@ def test_set_field_rules_is_not_refused_for_a_problem_another_question_had(rules
     form = _form([_q("a"), _q("b"), stored_broken])
     after, results = apply_form_ops(form, _set("b", [_spec_rule()]))
     assert results[0].ok, results[0].message
+
+
+# --- review fixes: dropped rules are noted, deep expressions, per-op cost ------------
+
+SETS_COUNTRY = _rule("r1", {"setValue": {"const": "nl"}}, [_is("a", "x")])
+
+
+def _choice_question(rules=None):
+    return {
+        "id": "c",
+        "type": "dropdown",
+        "title": "C",
+        "properties": {
+            "choices": [
+                {"id": "nl", "value": "Netherlands"},
+                {"id": "be", "value": "Belgium"},
+            ],
+            **({"rules": rules} if rules else {}),
+        },
+    }
+
+
+def test_replacing_the_options_says_which_rules_went_with_them():
+    form = _form([_q("a"), _choice_question([SETS_COUNTRY])])
+    patch = {"choices": ["Belgium", "France"]}
+    after, results = apply_form_ops(
+        form,
+        parse_ops([{"op": "update_field", "fieldId": "c", "patch": patch}]),
+    )
+    assert results[0].ok, results[0].message
+    assert "1 field rule(s)" in results[0].message
+    assert _rules_of(after, "c") is None
+    # an option edit that keeps the option the rule sets says nothing
+    keep = {"choices": ["Netherlands", "France"]}
+    _, results = apply_form_ops(
+        form,
+        parse_ops([{"op": "update_field", "fieldId": "c", "patch": keep}]),
+    )
+    assert "field rule" not in results[0].message
+
+
+def test_removing_an_option_says_which_rules_went_with_it():
+    form = _form([_q("a"), _choice_question([SETS_COUNTRY])])
+    after, results = apply_form_ops(
+        form,
+        parse_ops(
+            [{"op": "remove_choice", "fieldId": "c", "choiceId": "nl"}],
+            allow_editor_ops=True,
+        ),
+    )
+    assert results[0].ok, results[0].message
+    assert "1 field rule(s)" in results[0].message
+    assert _rules_of(after, "c") is None
+
+
+def _nested(depth, leaf=None):
+    node = leaf or {"var": "a"}
+    for _ in range(depth):
+        node = {"+": [node, 1]}
+    return node
+
+
+@pytest.mark.parametrize("depth", [33, 250, 1000, 5000])
+def test_an_expression_nested_too_deep_is_refused_cleanly(rules_on, depth):
+    """Not a RecursionError (a 500): a refusal, from the parse for a rule and
+    from the walks for anything else."""
+    rule = {
+        "id": "r1",
+        "when": {"expression": _nested(depth)},
+        "then": {"required": True},
+    }
+    with pytest.raises(ValidationError) as error:
+        _set("b", [rule])
+    assert "nested at most 32 levels" in str(error.value)
+    # a value formula is checked the same way
+    value_rule = {
+        "id": "r1",
+        "when": {"conditions": [_spec_rule()["when"]["conditions"][0]]},
+        "then": {"setValue": {"expression": _nested(depth)}},
+    }
+    with pytest.raises(ValidationError):
+        _set("b", [value_rule])
+
+
+def test_an_expression_at_the_depth_limit_is_checked_by_the_rule_check(rules_on):
+    form = _form([_q("a", "number"), _q("b")])
+    ok = {"id": "r1", "when": {"expression": _nested(30)}, "then": {"required": True}}
+    after, results = apply_form_ops(form, _set("b", [ok]))
+    assert results[0].ok, results[0].message
+    too_deep = {
+        "id": "r1",
+        "when": {"expression": _nested(32)},
+        "then": {"required": True},
+    }
+    _, results = apply_form_ops(form, _set("b", [too_deep]))
+    assert results[0].ok is False
+    assert "32 levels" in results[0].message
+
+
+@pytest.mark.parametrize("depth", [250, 5000])
+def test_the_ref_walks_survive_any_depth(depth):
+    from backend.app.services.ai.ops import ref_dependencies
+
+    form = _form([_q("a", "number")])
+    op = {
+        "op": "add_field",
+        "pageId": "p0",
+        "field": {"type": "calculated", "title": "c", "expression": _nested(depth)},
+    }
+    ops = parse_ops([op])
+    assert ref_dependencies(ops) == [set()]
+    _, results = apply_form_ops(form, ops)
+    assert results[0].ok is False
+    assert "not valid" in results[0].message
+    # refs are still resolved, wherever they sit
+    batch = parse_ops(
+        [
+            {
+                "op": "add_field",
+                "pageId": "p0",
+                "ref": "n",
+                "field": {"type": "number", "title": "N"},
+            },
+            {"op": "update_field", "fieldId": "$ref:n", "patch": {"title": "M"}},
+        ]
+    )
+    assert ref_dependencies(batch) == [set(), {0}]
+    after, results = apply_form_ops(form, batch)
+    assert [r.ok for r in results] == [True, True], results
+
+
+def test_a_rule_op_does_not_copy_the_form_for_its_expressions(rules_on):
+    from backend.app.services.ai.ops import _carries_calculation
+
+    (op,) = _set(
+        "b",
+        [
+            {
+                "id": "r1",
+                "when": {"expression": {"var": "a"}},
+                "then": {"required": True},
+            }
+        ],
+    )
+    assert _carries_calculation(op) is False
+    # a calculated field still is
+    (calc,) = parse_ops(
+        [
+            {
+                "op": "add_field",
+                "pageId": "p0",
+                "field": {
+                    "type": "calculated",
+                    "title": "c",
+                    "expression": {"var": "a"},
+                },
+            }
+        ]
+    )
+    assert _carries_calculation(calc) is True
+
+
+def test_an_op_works_out_the_cost_of_the_other_questions_once(rules_on, monkeypatch):
+    from backend.app.services import field_rules
+    from backend.app.services.ai.ops import _apply_set_field_rules
+
+    others = [
+        _q(f"q{i}", rules=[_rule(f"rq{i}", {"required": True}, [_is("a", "x")])])
+        for i in range(10)
+    ]
+    form = _form([_q("a"), _q("b"), *others])
+    calls = []
+    real = field_rules._question_cost
+    monkeypatch.setattr(
+        field_rules,
+        "_question_cost",
+        lambda target, maxima: calls.append(target.id) or real(target, maxima),
+    )
+    # the op itself (apply_form_ops also prunes the finished form, which
+    # checks every rule again)
+    message = _apply_set_field_rules(form, _set("b", [_spec_rule()])[0])
+    assert message.startswith("Set 1 rule(s)")
+    # the first run costs the ten questions that have rules; the second only
+    # the one whose rules were replaced
+    assert sorted(calls) == sorted([f"q{i}" for i in range(10)] + ["b"])
+
+
+def _circle_form():
+    to = lambda target: _rule(  # noqa: E731
+        f"r-{target}",
+        {"setValue": {"expression": {"+": [{"var": target}, 1]}}},
+        expression=True,
+    )
+    return _form(
+        [
+            _q("a"),
+            _q("s1", "number", rules=[to("s2")]),
+            _q("s2", "number", rules=[to("s1")]),
+            _q("q"),
+        ]
+    )
+
+
+def test_a_problem_the_form_already_had_does_not_stop_an_unrelated_rule(rules_on):
+    """The baseline: a circle that was stored before (data no save would
+    accept) is not this op's doing, so a valid rule elsewhere still applies;
+    a new problem still does not."""
+    form = _circle_form()
+    assert any("circle" in p.message for p in field_rule_problems(form))
+    after, results = apply_form_ops(form, _set("q", [_spec_rule()]))
+    assert results[0].ok, results[0].message
+    assert _rules_of(after, "q") is not None
+    # the same op with a new problem of its own is refused, circle or not
+    broken = _spec_rule()
+    broken["when"]["conditions"][0]["fieldId"] = "gone"
+    _, results = apply_form_ops(form, _set("q", [broken]))
+    assert results[0].ok is False
+    assert "'gone'" in results[0].message
+
+
+def test_a_question_with_a_stored_problem_can_still_have_its_rules_replaced(rules_on):
+    """The question's own earlier problem is the baseline: replacing its
+    rules by ones that keep it is not blamed on the op, a new one is."""
+
+    def reads(rule_id, key):
+        return _rule(rule_id, {"required": True}, expression={"var": key})
+
+    stored = _form([_q("a"), _q("b", rules=[reads("r1", "gone")]), _q("c")])
+    assert field_rule_problems(stored)
+    _, results = apply_form_ops(stored, _set("b", [reads("r2", "gone")]))
+    # r2 reads the same missing variable as r1 did: the same problem, not new
+    assert results[0].ok, results[0].message
+    _, results = apply_form_ops(stored, _set("b", [reads("r3", "other")]))
+    assert results[0].ok is False
+    assert "'other'" in results[0].message

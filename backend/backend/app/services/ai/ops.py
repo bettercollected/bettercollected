@@ -40,7 +40,7 @@ from common.form_spec.models import (
     checked_pattern,
     count_fields,
 )
-from common.expressions import validate_expression
+from common.expressions import MAX_DEPTH as EXPRESSION_DEPTH_MAX, validate_expression
 from common.models.standard_form import (
     DATE_RULES_MAX,
     FIELD_RULES_MAX,
@@ -113,10 +113,10 @@ from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.field_rules import (
     DISABLED_MESSAGE,
+    field_rule_checker,
     field_rule_problems,
     field_rules_enabled,
     new_or_changed_rules,
-    parent_id,
     prune_field_rules,
 )
 from backend.app.services.image_urls import (
@@ -481,6 +481,26 @@ class SetFieldLogicOp(_CamelModel):
     logic: Optional[FieldLogicSpec] = None
 
 
+def _expression_depth_checked(expression: Any) -> Any:
+    """An expression no deeper than expressions allow, checked before
+    anything walks or copies it (a hostile one nested thousands of levels
+    deep must be refused cleanly, not exhaust the stack). The exact problems
+    of a malformed one are reported later, with their paths."""
+    pending = [(expression, 1)]
+    while pending:
+        node, depth = pending.pop()
+        if isinstance(node, dict):
+            if depth > EXPRESSION_DEPTH_MAX + 1:
+                raise ValueError(
+                    f"An expression can be nested at most {EXPRESSION_DEPTH_MAX} "
+                    "levels deep."
+                )
+            pending.extend((child, depth + 1) for child in node.values())
+        elif isinstance(node, list):
+            pending.extend((child, depth) for child in node)
+    return expression
+
+
 class RuleWhenSpec(_CamelModel):
     """When a field rule is active: ``conditions`` (as in set_field_logic;
     ``operator`` AND when left out) or an expressions-v1 ``expression``
@@ -492,6 +512,8 @@ class RuleWhenSpec(_CamelModel):
     )
     expression: Optional[Any] = None
 
+    _expression_depth = field_validator("expression")(_expression_depth_checked)
+
 
 class RuleSetValueSpec(_CamelModel):
     """The value a rule gives the question: a fixed ``const`` (text, number,
@@ -500,6 +522,8 @@ class RuleSetValueSpec(_CamelModel):
 
     const: Optional[Union[bool, int, float, str]] = None
     expression: Optional[Any] = None
+
+    _expression_depth = field_validator("expression")(_expression_depth_checked)
 
 
 class RuleThenSpec(_CamelModel):
@@ -1440,8 +1464,13 @@ def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
         _check_date_rules_patch(form, field, op.patch.date_rules)
     changed = _patch_field(field, op.patch)
     # Field rules apply to what respondents answer: an internal question
-    # loses its own, and the ones that read it, as a save would refuse them.
-    note = _dropped_rules_note(form) if op.patch.internal else ""
+    # loses its own, and the ones that read it, as a save would refuse them;
+    # replacing the options drops a rule that sets one that is gone.
+    note = (
+        _dropped_rules_note(form)
+        if op.patch.internal or op.patch.choices is not None
+        else ""
+    )
     return f"Updated '{_title_text(field)}' ({', '.join(changed)}){note}"
 
 
@@ -1766,11 +1795,14 @@ def _apply_set_field_rules(form: StandardForm, op: SetFieldRulesOp) -> str:
     probe.properties.rules = rules
     _check_rules_allowed(probe, form)
     # Only this question's rules changed: check them (and what spans the
-    # form), not every rule of the form again, for each op of a batch.
-    known = {p.message for p in field_rule_problems(form, only={field.id})}
+    # form), not every rule of the form again, for each op of a batch. One
+    # checker does both runs, so the form's structure and the cost of the
+    # other questions' rules are worked out once.
+    checker = field_rule_checker(form, only={field.id})
+    known = {p.message for p in checker.run()}
     previous = field.properties.rules
     field.properties.rules = rules
-    for problem in field_rule_problems(form, only={field.id}):
+    for problem in checker.run():
         if problem.message not in known:
             field.properties.rules = previous
             raise OpError(problem.message)
@@ -2546,10 +2578,7 @@ def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
     the form already has them (services/field_rules.py)."""
     if field_rules_enabled():
         return
-    # ``item`` is compared where it sits in ``form`` (its page or group)
-    if new_or_changed_rules(
-        StandardForm(fields=[item]), form, parent=parent_id(form, item.id)
-    ):
+    if new_or_changed_rules(StandardForm(fields=[item]), form):
         raise OpError(DISABLED_MESSAGE)
 
 
@@ -2991,7 +3020,7 @@ def _apply_add_choice(form: StandardForm, op: AddChoiceOp) -> str:
 def _apply_remove_choice(form: StandardForm, op: RemoveChoiceOp) -> str:
     field, choices = _choice_field(form, op.field_id, change=True)
     choices.pop(_choice_position(field, choices, op.choice_id))
-    return f"Removed a choice of '{_title_text(field)}'"
+    return f"Removed a choice of '{_title_text(field)}'{_dropped_rules_note(form)}"
 
 
 def _apply_move_choice(form: StandardForm, op: MoveChoiceOp) -> str:
@@ -3182,24 +3211,54 @@ def _ref_target(name: str, refs: Dict[str, Tuple[int, Optional[str]]]) -> str:
     return created
 
 
+_END = object()
+
+
+def _scalars(root: Any):
+    """Every value of a nested dict/list structure that is not itself a dict
+    or list, depth first and in order, as ``(container, key, value)`` (``key``
+    is the dict key, or the position in a list). Iterative: a structure of
+    any depth (an expression nested 250 levels) must never exhaust the
+    interpreter's stack."""
+    if not isinstance(root, (dict, list)):
+        return
+    stack = [(root, iter(list(root) if isinstance(root, dict) else range(len(root))))]
+    while stack:
+        node, keys = stack[-1]
+        key = next(keys, _END)
+        if key is _END:
+            stack.pop()
+            continue
+        value = node[key]
+        if isinstance(value, (dict, list)):
+            stack.append(
+                (value, iter(list(value) if isinstance(value, dict) else range(len(value))))
+            )
+        else:
+            yield node, key, value
+
+
+def _is_ref(node: Any, key: Any, value: Any) -> bool:
+    """Is ``value`` a ``"$ref:<name>"`` under an id key (REF_ID_KEYS) of a
+    dict (list elements are never refs)?"""
+    return (
+        isinstance(node, dict)
+        and key in REF_ID_KEYS
+        and isinstance(value, str)
+        and value.startswith(REF_PREFIX)
+    )
+
+
 def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
     """``op`` with every ``"$ref:<name>"`` under an id key (REF_ID_KEYS)
     replaced by the id that name was given to. Other values are left as
     they are."""
     found = False
-
-    def walk(value, key=None):
-        nonlocal found
-        if isinstance(value, dict):
-            return {k: walk(v, k) for k, v in value.items()}
-        if isinstance(value, list):
-            return [walk(v) for v in value]
-        if key in REF_ID_KEYS and isinstance(value, str) and value.startswith(REF_PREFIX):
+    resolved = op.model_dump(exclude_unset=True)  # a fresh structure: edited in place
+    for node, key, value in _scalars(resolved):
+        if _is_ref(node, key, value):
             found = True
-            return _ref_target(value[len(REF_PREFIX):], refs)
-        return value
-
-    resolved = walk(op.model_dump(exclude_unset=True))
+            node[key] = _ref_target(value[len(REF_PREFIX):], refs)
     if not found:
         return op
     try:
@@ -3216,19 +3275,10 @@ def ref_dependencies(ops: List[FormOp]) -> List[Set[int]]:
     definers: Dict[str, int] = {}
     needs: List[Set[int]] = []
 
-    def used(value, key=None):
-        if isinstance(value, dict):
-            for k, v in value.items():
-                yield from used(v, k)
-        elif isinstance(value, list):
-            for v in value:
-                yield from used(v)
-        elif (
-            key in REF_ID_KEYS
-            and isinstance(value, str)
-            and value.startswith(REF_PREFIX)
-        ):
-            yield value[len(REF_PREFIX) :]
+    def used(root):
+        for node, key, value in _scalars(root):
+            if _is_ref(node, key, value):
+                yield value[len(REF_PREFIX) :]
 
     for i, op in enumerate(ops):
         needs.append(
@@ -3261,6 +3311,10 @@ def _calculation_problems(form: StandardForm) -> Optional[List[Any]]:
 
 def _carries_calculation(op) -> bool:
     """Does the op bring a calculated field or an expression?"""
+    if isinstance(op, SetFieldRulesOp):
+        # a rule's expressions are the rules' to check (set_field_rules does
+        # it); none of them is a calculation, so no copy of the form is made
+        return False
     # typed specs and the editor ops' raw questions and pages alike
     pending = [op.model_dump(exclude_none=True)]
     while pending:

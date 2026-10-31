@@ -33,6 +33,14 @@ export const CALCULATION_STYLES: CalculationStyle[] = ['number', 'currency', 'pe
 export const CALCULATION_MAX_DECIMALS = 6;
 export const DEFAULT_CURRENCY = 'EUR';
 
+/**
+ * A map keyed by question ids, which are creator content: no prototype, so
+ * that an id such as `__proto__` is stored like any other key.
+ */
+export function idMap<T = unknown>(init?: Record<string, T> | null): Record<string, T> {
+    return Object.assign(Object.create(null), init ?? {}) as Record<string, T>;
+}
+
 /** Field types whose answer a formula cannot read (backend NOT_VARIABLES). */
 const NOT_VARIABLE_TYPES = new Set<string>([
     FieldTypes.SLIDE,
@@ -46,7 +54,17 @@ const NOT_VARIABLE_TYPES = new Set<string>([
     FieldTypes.IMAGE_CONTENT,
     'page_break',
     'hidden',
-    'conditional'
+    'conditional',
+    // content blocks (rich text and dividers) hold no answer either
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'p',
+    'strong',
+    'divider',
+    'markdown'
 ]);
 
 export const isCalculatedField = (field: StandardFormFieldDto | undefined | null): boolean => field?.type === FieldTypes.CALCULATED;
@@ -310,7 +328,7 @@ export function pruneOrphanedCalculationRefs(slides: StandardFormFieldDto[], hid
 
 /** The variables map of the answer-based keys (calculated values are added while evaluating). */
 export function buildVariables(slides: StandardFormFieldDto[] | undefined | null, answers: Record<string, any>, hiddenValues: Record<string, string> = {}, hiddenNames?: string[]): Record<string, unknown> {
-    const variables: Record<string, unknown> = {};
+    const variables = idMap<unknown>();
     Object.entries(hiddenValues ?? {}).forEach(([name, value]) => {
         if ((!hiddenNames || hiddenNames.includes(name)) && typeof value === 'string') variables[name] = value;
     });
@@ -345,7 +363,7 @@ export function unansweredAsZero(field: StandardFormFieldDto | undefined | null)
 /** The variables a calculation reads: with "unanswered as 0", its empty question and calculation values become 0. */
 export function readingFor(field: StandardFormFieldDto, variables: Record<string, unknown>, questions: Set<string>): Record<string, unknown> {
     if (!unansweredAsZero(field)) return variables;
-    const reading = { ...variables };
+    const reading = idMap(variables);
     expressionVariables(field.properties?.expression).forEach((key) => {
         if (questions.has(key) && (reading[key] === undefined || reading[key] === null || reading[key] === '')) reading[key] = 0;
     });
@@ -403,7 +421,7 @@ export function computeCalculatedValues(slides: StandardFormFieldDto[] | undefin
     if (!calcs.length) return {};
     const variables = buildVariables(slides, answers, hiddenValues, hiddenNames);
     const questions = questionKeys(slides);
-    const values: Record<string, ExprValue> = {};
+    const values = idMap<ExprValue>();
     calcs.forEach((field) => (values[field.id] = null));
     evaluationOrder(calcs).forEach((field) => {
         const expression = field.properties?.expression;
@@ -455,7 +473,7 @@ export function withCalculatedAnswers(slides: StandardFormFieldDto[] | undefined
     Object.entries(values).forEach(([id, value]) => {
         const answer = calculatedAnswer(value);
         if (sameAnswer(answers?.[id], answer)) return;
-        next = next ?? { ...(answers ?? {}) };
+        next = next ?? idMap(answers);
         if (answer) next[id] = answer;
         else delete next[id];
     });

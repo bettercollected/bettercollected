@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,11 +12,15 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import { resetSingleForm, setForm } from '@app/store/forms/slice';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { store } from '@app/store/store';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 
+import DateField from './date-field';
+import DropDownField from './drop-down-field';
 import FieldRuleAnnouncer from './field-rule-announcer';
 import InputField from './input-field';
+import QuestionWrapper from './question-wrapper';
 import TextAreaField from './text-area-field';
 import YesNoField from './yes-no-field';
 
@@ -52,8 +56,18 @@ const slide = (fields: StandardFormFieldDto[]) => ({ id: 'p1', index: 0, type: F
 const WITH_RULES = [slide([COUNTRY, POSTCODE, QTY, TOTAL, NOTE])];
 const WITHOUT_RULES = [slide([COUNTRY, { ...POSTCODE, properties: {} }, QTY])];
 
+/** The respondent is on the first page (rules are decided along the path they went). */
+function useOnFirstPage() {
+    const { responderState, setResponderState } = useResponderState();
+    useEffect(() => {
+        setResponderState({ ...responderState, currentSlide: 0 });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+}
+
 /** A page as FormSlide builds it: the derived-answers hook, the status region and the fields. */
 function Page({ fields }: { fields: StandardFormFieldDto[] }) {
+    useOnFirstPage();
     useDerivedAnswers(store.getState().form.fields);
     const { addFieldTextAnswer, addFieldNumberAnswer } = useFormResponse();
     const states = useFieldRuleStates();
@@ -164,6 +178,7 @@ describe('field rules on the respondent page', () => {
         const slides = [slide([COUNTRY, OK])];
         store.dispatch(setForm({ title: 'Form', fields: slides }));
         function YesNoPage() {
+            useOnFirstPage();
             useDerivedAnswers(store.getState().form.fields);
             const { addFieldTextAnswer, formResponse } = useFormResponse();
             return (
@@ -187,15 +202,21 @@ describe('field rules on the respondent page', () => {
         expect(group.getAttribute('aria-readonly')).toBe('true');
         const no = screen.getByRole('radio', { name: 'No' });
         expect((no as HTMLButtonElement).disabled).toBe(false);
-        // the question's own buttons do nothing: the click and the arrow key are cancelled before they reach them
+        // the question's own buttons do nothing: the click is cancelled before it reaches them,
+        // and an arrow key moves focus from option to option without choosing
         let clicked = true;
         let keyed = true;
+        no.focus();
         await act(async () => {
             clicked = fireEvent.click(no);
             keyed = fireEvent.keyDown(no, { key: 'ArrowDown' });
         });
         expect(clicked).toBe(false);
         expect(keyed).toBe(false);
+        expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Yes' }));
+        expect(screen.getByTestId('answer').textContent).toBe('{"type":"boolean","boolean":true}');
+        await act(async () => fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' }));
+        expect(document.activeElement).toBe(no);
         expect(screen.getByTestId('answer').textContent).toBe('{"type":"boolean","boolean":true}');
     });
 
@@ -210,6 +231,7 @@ describe('field rules on the respondent page', () => {
         const slides = [slide([COUNTRY, MEMO])];
         store.dispatch(setForm({ title: 'Form', fields: slides }));
         function MemoPage() {
+            useOnFirstPage();
             useDerivedAnswers(store.getState().form.fields);
             const { addFieldTextAnswer } = useFormResponse();
             return (

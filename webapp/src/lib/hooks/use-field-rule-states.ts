@@ -7,8 +7,10 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useRootFormAnswers } from '@app/store/jotai/responder-form-response';
+import { useVisitedSlides } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { localToday } from '@app/utils/calculated-fields';
+import { normalizeGroupAnswersForSubmit } from '@app/utils/repeating-groups';
 
 const hasRulesBySlides = new WeakMap<object, boolean>();
 
@@ -26,6 +28,7 @@ export function hasFieldRules(slides: StandardFormFieldDto[] | undefined): boole
 interface Resolved {
     slides: unknown;
     answers: unknown;
+    visited: unknown;
     hiddenValues: unknown;
     names: unknown;
     today: string;
@@ -33,16 +36,24 @@ interface Resolved {
 }
 
 // The last evaluation: every question of a page asks for the states, once per
-// change of the answers, not once per question.
+// change of the answers, not once per question. Keyed by identity, so the
+// answers must never be changed in place (a setter that did went stale).
 let last: Resolved | null = null;
 
-/** The states field rules give the questions of the form for these answers (shared by all callers with the same inputs). */
-export function statesFor(slides: StandardFormFieldDto[] | undefined, answers: Record<string, any> | undefined, hiddenValues: Record<string, string>, names: string[] | undefined): FieldRuleStates {
+/**
+ * The states field rules give the questions of the form for these answers
+ * (shared by all callers with the same inputs). Decided from the answers as a
+ * submission would carry them (`visited`: the pages the respondent went
+ * through; a hidden group and a page off that path count as unanswered),
+ * which is what the server replays.
+ */
+export function statesFor(slides: StandardFormFieldDto[] | undefined, answers: Record<string, any> | undefined, hiddenValues: Record<string, string>, names: string[] | undefined, visited?: number[]): FieldRuleStates {
     if (!hasFieldRules(slides)) return NO_RULES;
     const today = localToday();
-    if (last && last.slides === slides && last.answers === answers && last.hiddenValues === hiddenValues && last.names === names && last.today === today) return last.states;
-    const states = resolveFieldRules(slides, answers, hiddenValues, today, names ?? []).states;
-    last = { slides, answers, hiddenValues, names, today, states };
+    if (last && last.slides === slides && last.answers === answers && last.visited === visited && last.hiddenValues === hiddenValues && last.names === names && last.today === today) return last.states;
+    const submitted = normalizeGroupAnswersForSubmit(slides, answers ?? {}, visited);
+    const states = resolveFieldRules(slides, submitted, hiddenValues, today, names ?? []).states;
+    last = { slides, answers, visited, hiddenValues, names, today, states };
     return states;
 }
 
@@ -57,5 +68,6 @@ export function useFieldRuleStates(): FieldRuleStates {
     const form = useAppSelector(selectResponderForm);
     const answers = useRootFormAnswers();
     const { hiddenValues } = useHiddenFieldValues();
-    return useMemo(() => statesFor(form?.fields, answers, hiddenValues, form?.hiddenFields), [form?.fields, answers, hiddenValues, form?.hiddenFields]);
+    const visited = useVisitedSlides();
+    return useMemo(() => statesFor(form?.fields, answers, hiddenValues, form?.hiddenFields, visited), [form?.fields, answers, hiddenValues, form?.hiddenFields, visited]);
 }

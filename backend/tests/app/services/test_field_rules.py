@@ -2109,3 +2109,112 @@ def test_affected_keys_are_linear_in_a_long_chain():
     keys = rule_keys_affected(form, ["s0"])
     assert time.perf_counter() - start < 0.1
     assert keys == {f"s{i}" for i in range(1, n + 1)} | {"q"}
+
+
+# --- review fixes: the text a condition reads is capped ------------------------------
+
+
+@pytest.mark.parametrize(
+    "length, comparison, active",
+    [
+        (10_000, "IS_NOT_EMPTY", True),
+        (10_001, "IS_NOT_EMPTY", False),
+        (10_000, "IS_EMPTY", False),
+        (10_001, "IS_EMPTY", True),
+        (10_001, "CONTAINS", False),
+        (10_000, "CONTAINS", True),
+    ],
+)
+def test_a_condition_reads_no_text_over_ten_thousand_characters(
+    length, comparison, active
+):
+    """Like the inputs of expressions: over the cap counts as empty, so what a
+    condition costs does not grow with the length of an answer."""
+    form = _form(
+        [
+            _q("a", "long_text"),
+            _q(
+                "b",
+                rules=[
+                    _rule(
+                        "r1",
+                        {"required": True},
+                        [_is("a", "x", "long_text", comparison)],
+                    )
+                ],
+            ),
+        ]
+    )
+    _, states = resolve_field_rules(form, _answers({"a": _text("x" * length)}))
+    assert states.is_required(form.fields[0].properties.fields[1], False) is active
+
+
+def test_a_choice_condition_reads_no_other_text_over_the_cap():
+    choice = {
+        "id": "c",
+        "type": "dropdown",
+        "title": "C",
+        "properties": {
+            "choices": [{"id": "nl", "value": "Netherlands"}],
+            "allow_other_choice": True,
+        },
+    }
+    rule = _rule("r1", {"required": True}, [_is("c", "x", "dropdown", "CONTAINS")])
+    form = _form([choice, _q("b", rules=[rule])])
+    target = form.fields[0].properties.fields[1]
+    for length, active in ((10_000, True), (10_001, False)):
+        answer = {"type": "choice", "choice": {"other": "x" * length}}
+        _, states = resolve_field_rules(form, _answers({"c": answer}))
+        assert states.is_required(target, False) is active
+
+
+def test_the_cap_is_for_field_rules_only():
+    """Conditional logic (show/hide, jumps) reads the whole answer as before."""
+    from backend.app.services.repeating_groups import evaluate_conditions
+
+    conditions = [_is("a", "x", "long_text", "IS_NOT_EMPTY")]
+    answers = {"a": {"type": "text", "text": "x" * 20_000}}
+    assert evaluate_conditions("AND", conditions, answers) is True
+    assert evaluate_conditions("AND", conditions, answers, text_max=10_000) is False
+
+
+def test_the_budget_test_form_of_the_webapp_is_over_budget_here_too():
+    """The form of the webapp's own budget test, built in code: three
+    questions with eight rules of a 200-node formula over a group's list
+    (50 items at most) are over the evaluation budget, one rule is not."""
+    from backend.app.services import field_rules
+    from backend.app.services.field_rules import (
+        RULE_COST_PER_RESPONSE,
+        FieldRulesTooCostly,
+        worst_case_cost,
+    )
+
+    heavy = {"max": [V("g.c")] * 200}
+
+    def rules(question):
+        return [
+            _rule(f"{question}-{i}", {"description": "d"}, expression={">": [heavy, 0]})
+            for i in range(8)
+        ]
+
+    group = {
+        "id": "g",
+        "type": "group",
+        "title": "Rows",
+        "properties": {
+            "repeat": {"minItems": 1, "maxItems": 50},
+            "fields": [_q("c", "number")],
+        },
+    }
+    over = _form([group, *[_q(f"b{i}", rules=rules(f"b{i}")) for i in range(1, 4)]])
+    answers = _answers({"g": {"type": "group", "items": [{"c": _num(1)}]}})
+    assert RULE_COST_PER_RESPONSE == 200_000
+    assert worst_case_cost(over) > RULE_COST_PER_RESPONSE
+    assert any("too long to check" in p.message for p in field_rule_problems(over))
+    with pytest.raises(FieldRulesTooCostly):
+        resolve_field_rules(over, answers)
+    one = _form([group, _q("b1", rules=rules("b1")[:1])])
+    assert worst_case_cost(one) < RULE_COST_PER_RESPONSE
+    _, states = resolve_field_rules(one, answers)
+    assert states.texts
+    assert field_rules.FieldRulesTooCostly is FieldRulesTooCostly

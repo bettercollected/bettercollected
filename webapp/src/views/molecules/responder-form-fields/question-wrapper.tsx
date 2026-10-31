@@ -22,6 +22,7 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { isServerProblem, serverProblemMessage } from '@app/utils/server-answer-errors';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
+import { Invalidations } from '@app/utils/vvalidation-utils';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
@@ -65,8 +66,10 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const isAnswerable = isAnswerableField(field);
     // Required unless a rule says otherwise (never for a locked question).
     const isRequired = ruleStates.isRequired(field.id, !!field?.validations?.required, itemScope?.groupId, itemScope?.index);
-    // A "required" flagged earlier goes away when a rule stops requiring the question.
-    const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || (code !== 0 && code !== 'REQUIRED'));
+    // The page's own "required" (the enum's 0) flagged earlier goes away when a rule
+    // stops requiring the question. What the server said stays: it is the server's
+    // word on the answer it was sent, and only the next Continue replaces it.
+    const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || code !== Invalidations.REQUIRED);
     const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
@@ -188,8 +191,25 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
         event.preventDefault();
         event.stopPropagation();
     };
+    // In a locked radio group the arrow keys still move focus from option to
+    // option (as in any radio group), without choosing: the group's own handler
+    // would choose, so it never sees them.
+    const moveFocusInRadioGroup = (event: KeyboardEvent): boolean => {
+        const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
+        const target = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('[role=radio]') : null;
+        const group = target?.closest<HTMLElement>('[role=radiogroup]');
+        if (!step || !target || !group) return false;
+        const radios = Array.from(group.querySelectorAll<HTMLElement>('[role=radio]'));
+        const at = radios.indexOf(target);
+        if (at < 0 || !radios.length) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        radios[(at + step + radios.length) % radios.length].focus();
+        return true;
+    };
     const blockKeys = (event: KeyboardEvent) => {
         if (isTextBox(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (moveFocusInRadioGroup(event)) return;
         if (event.key === 'Enter' || event.key.length === 1 || event.key.startsWith('Arrow')) {
             event.preventDefault();
             event.stopPropagation();

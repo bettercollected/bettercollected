@@ -4,10 +4,11 @@ A question may carry ordered rules at ``properties.rules`` (common
 ``FieldRule``): ``when`` (the conditions of ``properties.logic``, or an
 expressions-v1 ``expression`` that is active when truthy) and ``then`` (at
 least one of ``required``, ``readOnly``, ``title``, ``description``,
-``setValue``). Spec: docs/spec/README.md "Field rules". The webapp twin is to
-come; until then the server is the only evaluator, and the shared cases in
-``docs/spec/answer-validation.cases.json`` (checks ``fieldRules``) pin the
-semantics for it.
+``setValue``). Spec: docs/spec/README.md "Field rules". The webapp's twin is
+``src/lib/field-rules.ts``; the shared cases in
+``docs/spec/field-rules.cases.json`` and ``docs/spec/answer-validation.cases.json``
+(checks ``fieldRules``) run on both sides, so change one evaluator only
+together with the other. The server is the authority.
 
 - **Precedence:** a field's rules apply in order; for each property the last
   active rule wins. ``required`` starts from ``validations.required``. Rules
@@ -39,7 +40,8 @@ semantics for it.
   structural edit broke is dropped instead (the builder cannot edit rules).
 
 Creator expressions are untrusted: the evaluator bounds them (depth 32, 500
-nodes, inputs over 10,000 characters or 1,000 items count as empty), at most
+nodes, inputs over 10,000 characters or 1,000 items count as empty, and so
+does a text over 10,000 characters that a condition reads), at most
 ``FIELD_RULES_MAX`` rules per field and ``FORM_FIELD_RULES_MAX`` per form are
 read, an expression may read at most ``RULE_VARIABLES_MAX`` variables, and
 callers run the replay and the save check off the event loop. Each response
@@ -71,6 +73,7 @@ from typing import (
 )
 
 from common.expressions import (
+    MAX_INPUT_STRING_LENGTH,
     ExpressionError,
     evaluate_expression,
     format_expression_value,
@@ -370,17 +373,22 @@ def _has_state_effect(rule: Any) -> bool:
     )
 
 
+def _question_cost(target: "_Target", maxima: Mapping[str, int]) -> int:
+    """The worst case of one question's rules: each at its worst, once per
+    pass that reads it (value, state), once per item in a group."""
+    times = maxima.get(target.group_id, 1) if target.group is not None else 1
+    total = 0
+    for rule in _rules(target.field)[:FIELD_RULES_MAX]:
+        passes = int(_has_value_effect(rule)) + int(_has_state_effect(rule))
+        total += rule_cost(rule, maxima) * times * passes
+    return total
+
+
 def worst_case_cost(form: Any) -> int:
     """The most a response's replay can cost: each rule at its worst, once
     per pass that reads it (value, state), once per item in a group."""
     maxima = _group_maxima(form)
-    total = 0
-    for target in _rule_targets(form):
-        times = maxima.get(target.group_id, 1) if target.group is not None else 1
-        for rule in _rules(target.field)[:FIELD_RULES_MAX]:
-            passes = int(_has_value_effect(rule)) + int(_has_state_effect(rule))
-            total += rule_cost(rule, maxima) * times * passes
-    return total
+    return sum(_question_cost(target, maxima) for target in _rule_targets(form))
 
 
 def _dangling(rule: Any, owner: str, scope: _Scope) -> bool:
@@ -425,6 +433,7 @@ def _is_active(rule: Any, owner: str, scope: _Scope) -> bool:
             _get(when, "conditions"),
             scope.answers,
             scope.sources,
+            MAX_INPUT_STRING_LENGTH,
         )
     except (TypeError, ValueError):
         return False
@@ -645,7 +654,13 @@ def resolve_field_rules(
     variables = build_variables(form, plain, hidden_values)
     context = {"today": today} if today else {}
     known = variable_keys(form)
-    sources = logic_sources(slides or [])
+    # What respondents are served: no internal question (a condition that
+    # reads one is not active, as in the browser, which never gets it).
+    sources = {
+        key: field
+        for key, field in logic_sources(slides or []).items()
+        if not _get(field, "internal")
+    }
     question_keys = _question_keys(form)
     states = FieldRuleStates()
     allowance = [FORM_FIELD_RULES_MAX]
@@ -687,7 +702,12 @@ def resolve_field_rules(
         setter = next(
             (rule for rule in reversed(active) if _effect(rule, "set_value")), None
         )
-        answer = _set_value(field, setter, scope) if setter is not None else None
+        # a value in a circle has no value (as a calculation in one has not)
+        answer = (
+            _set_value(field, setter, scope)
+            if setter is not None and field_id not in cyclic
+            else None
+        )
         states.locked.add(field_id)
         if answer is not None:
             out[field_id] = answer
@@ -876,6 +896,56 @@ class _Checker:
         self.calc_ids = {
             str(_get(f, "id")) for f in calculated_fields(form) if _get(f, "id")
         }
+        # worked out once per checker, not once per rule or per run
+        self.maxima = _group_maxima(form)
+        self._costs: Dict[int, int] = {}
+        self._siblings: Dict[int, Set[str]] = {}
+
+    def run(self) -> List[FieldRuleProblem]:
+        """The problems of the form as it is now. A checker may run again
+        after the rules of the questions in ``only`` were replaced (nothing
+        else changed): what does not depend on them is kept, and the cost of
+        the other questions' rules is not worked out again."""
+        self.problems = []
+        total = _total_rules(self.form)
+        if not total:
+            return self.problems
+        if total > FORM_FIELD_RULES_MAX:
+            # Nothing else is looked at: the per-rule checks would be paid
+            # for every rule of an oversized form.
+            return [
+                FieldRuleProblem(
+                    "",
+                    "",
+                    f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this "
+                    f"one has {total}.",
+                )
+            ]
+        try:
+            self.check()
+        except _Enough:
+            pass
+        return self.problems
+
+    def siblings(self, target: _Target) -> Set[str]:
+        key = id(target.group)
+        if key not in self._siblings:
+            self._siblings[key] = _sibling_ids(target)
+        return self._siblings[key]
+
+    def cost(self) -> int:
+        """``worst_case_cost`` of the form, with each question's cost kept
+        between runs unless ``only`` says its rules may have changed."""
+        total = 0
+        for target in self.targets:
+            if not _rules(target.field):
+                continue
+            key = id(target.field)
+            stale = self.only is None or target.id in self.only
+            if stale or key not in self._costs:
+                self._costs[key] = _question_cost(target, self.maxima)
+            total += self._costs[key]
+        return total
 
     def add(
         self,
@@ -933,7 +1003,7 @@ class _Checker:
                 if checked:
                     self.rule(target, index, rule)
         self.cycles()
-        cost = worst_case_cost(self.form)
+        cost = self.cost()
         if cost > RULE_COST_PER_RESPONSE:
             self.add(
                 "",
@@ -1123,10 +1193,12 @@ class _Checker:
                     index,
                 )
             return
-        known = set(self.known)
-        if target.group is not None:
-            # inside an item, a sibling's id reads that item's answer
-            known |= _sibling_ids(target)
+        # inside an item, a sibling's id reads that item's answer
+        siblings = self.siblings(target) if target.group is not None else ()
+
+        def reads(key: str) -> bool:
+            return key in self.known or key in siblings
+
         keys = expression_variables(ast)
         if len(keys) > RULE_VARIABLES_MAX:
             self.add(
@@ -1138,7 +1210,7 @@ class _Checker:
             )
             return
         for key in keys:
-            if key in known and key != target.id and key not in self.internal:
+            if reads(key) and key != target.id and key not in self.internal:
                 continue
             path = _pointer(index, *where) + _var_pointer(ast, key)
             if key == target.id:
@@ -1156,7 +1228,7 @@ class _Checker:
                     "never answer internal fields.",
                     index,
                 )
-            elif key not in known:
+            elif not reads(key):
                 self.add(
                     target.id,
                     path,
@@ -1313,26 +1385,20 @@ def field_rule_problems(
     (question ids) checks the rules of those questions alone, plus what spans
     the form (rule ids, circles, cost): for a caller that changed just them
     and must not pay for every rule of the form again."""
-    total = _total_rules(form)
-    if not total:
+    if not _total_rules(form):
         return []
-    if total > FORM_FIELD_RULES_MAX:
-        # Nothing else is looked at: the per-rule checks would be paid for
-        # every rule of an oversized form.
-        return [
-            FieldRuleProblem(
-                "",
-                "",
-                f"A form can have at most {FORM_FIELD_RULES_MAX} rules; this one "
-                f"has {total}.",
-            )
-        ]
-    checker = _Checker(form, limit, only)
-    try:
-        checker.check()
-    except _Enough:
-        pass
-    return checker.problems
+    return field_rule_checker(form, limit, only).run()
+
+
+def field_rule_checker(
+    form: Any,
+    limit: Optional[int] = PROBLEMS_MAX,
+    only: Optional[Collection[str]] = None,
+) -> _Checker:
+    """A checker for ``form`` (``.run()`` gives ``field_rule_problems``). Run
+    it before and after replacing the rules of the questions in ``only``, and
+    nothing that does not depend on them is worked out twice."""
+    return _Checker(form, limit, only)
 
 
 def _total_rules(form: Any) -> int:
@@ -1351,36 +1417,18 @@ def _rule_signature(rule: Any) -> Any:
     return rule.model_dump() if hasattr(rule, "model_dump") else rule
 
 
-def _walk_with_parent(form: Any, parent: str = "") -> Iterable[Tuple[Any, str]]:
-    """Every field of ``form`` with the id of the field it sits in (``parent``
-    for the top level)."""
-    pending = [(field, parent) for field in _get(form, "fields") or []]
-    while pending:
-        field, above = pending.pop()
-        yield field, above
-        here = str(_get(field, "id") or "")
-        pending.extend((child, here) for child in _children(field))
-
-
-def parent_id(form: Any, field_id: str) -> str:
-    """The id of the page or group ``field_id`` sits in, in ``form`` (empty
-    when it is not there, or at the top level)."""
-    for field, above in _walk_with_parent(form):
-        if str(_get(field, "id") or "") == field_id:
-            return above
-    return ""
-
-
-def _stored_rules(form: Any, parent: str = "") -> Dict[Tuple[str, str], Counter]:
+def _stored_rules(form: Any) -> Dict[Tuple[str, str], Counter]:
     """The rules of ``form`` by ``(question id, rule id)``, each as what makes
     it the same rule: its content, and which question it is on (the
-    question's type and where it sits), so a rule that moved to another
-    question under a reused id reads as a different one."""
+    question's id and type), so a rule that moved to another question, or to
+    a question of another type under a reused id, reads as a different one.
+    Where the question sits (its page or group) does not count: moving a
+    question keeps its rules as they are."""
     stored: Dict[Tuple[str, str], Counter] = {}
-    for field, above in _walk_with_parent(form, parent):
+    for field in _walk(form):
         for rule in _rules(field):
             signature = json.dumps(
-                [_type(field), above, _rule_signature(rule)],
+                [_type(field), _rule_signature(rule)],
                 sort_keys=True,
                 default=str,
             )
@@ -1496,20 +1544,17 @@ def _dropped_rule_id(
     return None
 
 
-def new_or_changed_rules(
-    form: Any, existing: Any = None, parent: str = ""
-) -> List[Tuple[str, str]]:
+def new_or_changed_rules(form: Any, existing: Any = None) -> List[Tuple[str, str]]:
     """``(field id, rule id)`` of the rules ``form`` has that ``existing``
     (the stored version, or None) does not have exactly as they are: the same
-    content, on a question of the same type that sits in the same page or
-    group, in the same order on that question (the last active rule wins, so
-    an order change is a change: every rule of that question counts).
-    ``parent`` is the id of the page or group the top-level fields of
-    ``form`` sit in, when ``form`` is only a part of the stored form."""
+    content, on a question of the same id and type (wherever it sits: moving
+    a question to another page or group changes no rule), in the same order on
+    that question (the last active rule wins, so an order change is a change:
+    every rule of that question counts)."""
     stored = _stored_rules(existing) if existing is not None else {}
     changed = [
         key
-        for key, signatures in _stored_rules(form, parent).items()
+        for key, signatures in _stored_rules(form).items()
         if stored.get(key) != signatures
     ]
     before = _rule_orders(existing) if existing is not None else {}

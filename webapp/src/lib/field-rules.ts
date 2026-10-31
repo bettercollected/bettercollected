@@ -1,7 +1,7 @@
-import { ExprNode, ExprValue, evaluateExpression, formatExpressionValue } from '@app/lib/expressions';
+import { ExprNode, ExprValue, MAX_INPUT_STRING_LENGTH, evaluateExpression, formatExpressionValue } from '@app/lib/expressions';
 import { Dec } from '@app/lib/expressions/decimal';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { buildVariables, calculatedAnswer, calculationVariables, expressionVariables, getCalculatedFields, pageFields, questionKeys, readingFor } from '@app/utils/calculated-fields';
+import { buildVariables, calculatedAnswer, calculationVariables, expressionVariables, getCalculatedFields, idMap, pageFields, questionKeys, readingFor } from '@app/utils/calculated-fields';
 import { LogicSources, evaluateConditions, getComparableAnswerValue, getGroupAnswerItems, logicSourcesById } from '@app/utils/conditional-logic';
 import { getRepeatSettings, isRepeatingGroup } from '@app/utils/repeating-groups';
 
@@ -153,6 +153,7 @@ class Budget {
 
 /** Nodes of an AST, plus the items of every group list it reads. */
 function astCost(ast: unknown, groupItems: Record<string, number>): number {
+    // (a loop, not `push(...value)`: an argument list has a size limit)
     let cost = 0;
     const pending: unknown[] = [ast];
     while (pending.length) {
@@ -163,7 +164,7 @@ function astCost(ast: unknown, groupItems: Record<string, number>): number {
         if (entries.length !== 1) continue;
         const [op, value] = entries[0];
         if (op === 'var' && typeof value === 'string' && value.includes('.')) cost += groupItems[answerKey(value)] ?? LIST_ITEMS_MAX;
-        else if (Array.isArray(value)) pending.push(...value);
+        else if (Array.isArray(value)) for (const child of value) pending.push(child);
     }
     return cost;
 }
@@ -183,7 +184,7 @@ function ruleCost(rule: FieldRule, groupItems: Record<string, number>): number {
 }
 
 function groupMaxima(targets: Target[]): Record<string, number> {
-    const found: Record<string, number> = {};
+    const found = idMap<number>();
     targets.forEach(({ field }) => {
         if (isRepeatingGroup(field)) found[field.id] = getRepeatSettings(field).maxItems;
     });
@@ -241,7 +242,7 @@ function isActive(rule: FieldRule, owner: string, scope: Scope): boolean {
     const when = rule.when;
     if (present(when?.expression)) return truthy(evaluate(when.expression, scope));
     try {
-        return evaluateConditions((when?.operator || 'AND') as any, when?.conditions as any, scope.answers, scope.sources);
+        return evaluateConditions((when?.operator || 'AND') as any, when?.conditions as any, scope.answers, scope.sources, MAX_INPUT_STRING_LENGTH);
     } catch {
         return false;
     }
@@ -437,13 +438,17 @@ export function resolveFieldRules(slides: StandardFormFieldDto[] | undefined | n
     const derivedIds = new Set<string>();
     if (!calculated.length && !targets.length) return { answers: input, states: NO_RULES, derivedIds };
 
-    const out: Answers = { ...input };
+    // No prototype: a question id is creator content, `__proto__` included.
+    const out: Answers = idMap(input);
     calculated.forEach((calc) => delete out[calc.id]);
-    const plain: Answers = { ...out };
+    const plain: Answers = idMap(out);
     const names = hiddenNames ?? Object.keys(hiddenValues ?? {});
     const variables = buildVariables(slides, plain, hiddenValues, hiddenNames);
     const known = new Set(calculationVariables(slides, names).map((variable) => variable.key));
-    const sources = logicSourcesById(slides);
+    // What respondents are served: no internal question (a condition that reads
+    // one is not active, as on the server, which drops their answers).
+    const sources = idMap<StandardFormFieldDto>();
+    Object.entries(logicSourcesById(slides)).forEach(([id, field]) => !field.internal && (sources[id] = field));
     const questions = questionKeys(slides);
     const states = new FieldRuleStates();
     const allowance = { left: FORM_FIELD_RULES_MAX };
@@ -476,7 +481,8 @@ export function resolveFieldRules(slides: StandardFormFieldDto[] | undefined | n
             const active = (read.get(field) ?? []).filter((rule) => hasValueEffect(rule) && isActive(rule, id, scope));
             if (!active.length) return;
             const setter = [...active].reverse().find((rule) => present(effect(rule, 'setValue')));
-            const answer = setter ? setValueOf(field, setter, scope) : undefined;
+            // a value in a circle has no value (as a calculation in one has not), so the answers settle
+            const answer = setter && !cyclic.has(id) ? setValueOf(field, setter, scope) : undefined;
             states.locked.add(id);
             derivedIds.add(id);
             if (answer) {
@@ -503,9 +509,9 @@ export function resolveFieldRules(slides: StandardFormFieldDto[] | undefined | n
             const siblings = new Set(children.map((child) => child.id).filter(Boolean));
             for (let index = 0; index < itemCount(group, items); index++) {
                 const item = items[index] ?? {};
-                const siblingVariables: Record<string, unknown> = {};
+                const siblingVariables = idMap<unknown>();
                 children.forEach((child) => child.id && (siblingVariables[child.id] = getComparableAnswerValue(item[child.id], child.type) ?? null));
-                const itemScope: Scope = { ...scope, answers: { ...plain, ...item }, variables: { ...variables, ...siblingVariables }, known: new Set([...known, ...siblings]) };
+                const itemScope: Scope = { ...scope, answers: idMap({ ...plain, ...item }), variables: idMap({ ...variables, ...siblingVariables }), known: new Set([...known, ...siblings]) };
                 children.forEach((child) => {
                     const rules = read.get(child) ?? [];
                     if (rules.length) applyStates(rules, child.id, itemScope, stateKey(child.id, groupId, index), states);
@@ -529,15 +535,24 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === 
 /**
  * `answers` with the form's values written in (calculated fields and the
  * values rules set or lock), and the states. The same `answers` object when
- * nothing differs, so an effect that writes them settles.
+ * nothing differs, so an effect that writes them settles. `basis`: the answers
+ * the values are worked out from (what a submission would carry); only the
+ * derived answers are written into `answers`, the rest is left as it is.
  */
-export function withDerivedAnswers(slides: StandardFormFieldDto[] | undefined | null, answers: Answers | undefined | null, hiddenValues: Record<string, string> = {}, today?: string, hiddenNames?: string[]): { answers: Answers; states: FieldRuleStates } {
+export function withDerivedAnswers(
+    slides: StandardFormFieldDto[] | undefined | null,
+    answers: Answers | undefined | null,
+    hiddenValues: Record<string, string> = {},
+    today?: string,
+    hiddenNames?: string[],
+    basis?: (answers: Answers) => Answers
+): { answers: Answers; states: FieldRuleStates } {
     const current = answers ?? {};
-    const resolved = resolveFieldRules(slides, current, hiddenValues, today, hiddenNames);
+    const resolved = resolveFieldRules(slides, basis ? basis(current) : current, hiddenValues, today, hiddenNames);
     let next: Answers | null = null;
     resolved.derivedIds.forEach((id) => {
         if (same(current[id], resolved.answers[id])) return;
-        next = next ?? { ...current };
+        next = next ?? idMap(current);
         if (resolved.answers[id] === undefined) delete next[id];
         else next[id] = resolved.answers[id];
     });

@@ -120,7 +120,7 @@
         "NOW_REQUIRED": "\u201c{{title}}\u201d is nu verplicht.",
         "NOW_OPTIONAL": "\u201c{{title}}\u201d is nu optioneel.",
         "NOW_READ_ONLY": "\u201c{{title}}\u201d is nu alleen lezen.",
-        "NOW_FILLED_IN": "\u201c{{title}}\u201d is voor u ingevuld en is alleen lezen.",
+        "NOW_FILLED_IN": "\u201c{{title}}\u201d is voor je ingevuld en is alleen lezen.",
         "NOW_EDITABLE": "\u201c{{title}}\u201d kan weer worden aangepast.",
         "NOW_TITLED": "Een vraag heet nu \u201c{{title}}\u201d.",
         "DESCRIPTION_CHANGED": "De toelichting bij \u201c{{title}}\u201d is gewijzigd.",
