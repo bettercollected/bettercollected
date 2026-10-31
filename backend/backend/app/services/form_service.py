@@ -547,6 +547,8 @@ class FormService:
             workspace_form.settings.show_submission_number = (
                 settings.show_submission_number
             )
+        if settings.show_review_page is not None:
+            workspace_form.settings.show_review_page = settings.show_review_page
         if settings.allow_editing_response is not None:
             workspace_form.settings.allow_editing_response = (
                 settings.allow_editing_response

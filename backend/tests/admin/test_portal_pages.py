@@ -157,9 +157,9 @@ async def test_secrets_never_appear_in_any_response(portal, app, runtime_engine,
         await conn.execute(
             text(
                 "INSERT INTO settings.service_state (service, instance, revision_applied, env_overrides) "
-                "VALUES ('backend', 'b1', 1, ARRAY['MAIL_PASSWORD', :plant])"
+                "VALUES ('backend', 'b1', 1, ARRAY[:auth_only, :plant])"
             ),
-            {"plant": PLANT},
+            {"plant": PLANT, "auth_only": AUTH_ONLY},
         )
     await write_audit(
         runtime_engine, before={"password": PLANT, "note": "x"},

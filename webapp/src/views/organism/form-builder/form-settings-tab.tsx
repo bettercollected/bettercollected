@@ -3,11 +3,12 @@
 import FormLanguageSetting from '@app/views/molecules/form-builder/form-language-setting';
 import HiddenFieldsEditor from '@app/views/molecules/form-builder/hidden-fields-editor';
 import QuestionNumberingSetting from '@app/views/molecules/form-builder/question-numbering-setting';
+import ReviewPageSetting from '@app/views/molecules/form-builder/review-page-setting';
 import TrustSettingsEditor from '@app/views/molecules/form-builder/trust-settings-editor';
 
 /**
- * Form-wide settings: language, hidden fields, question numbering, trust &
- * privacy.
+ * Form-wide settings: language, hidden fields, question numbering, the
+ * review page, trust & privacy.
  * They used to live at the bottom of the Page tab, which made one endless
  * scroll where page-scoped and form-scoped settings were indistinguishable —
  * and they were only reachable from content pages.
@@ -19,6 +20,9 @@ export default function FormSettingsTab() {
             <HiddenFieldsEditor />
             <div className="border-t border-black-300">
                 <QuestionNumberingSetting />
+            </div>
+            <div className="border-t border-black-300">
+                <ReviewPageSetting />
             </div>
             <div className="border-t border-black-300">
                 <TrustSettingsEditor />

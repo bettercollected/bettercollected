@@ -16,6 +16,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { endingToShow } from '@app/utils/endings';
 import { progressPercent } from '@app/utils/form-progress';
 import { respondentSignInUrl } from '@app/utils/respondent-lang-query';
+import { REVIEW_SLIDE } from '@app/utils/review-page';
 import { greetingCover, hasPictureSlot } from '@app/views/molecules/theme/theme-artwork';
 import { useBodyFormFace } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -23,6 +24,7 @@ import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 
 import LayoutWrapper from '../layout/layout-wrapper';
 import FormSlide from './form-slide';
+import ReviewPage from './review-page';
 import ThankyouPage from './thankyou-page';
 import WelcomePage from './welcome-page';
 
@@ -107,9 +109,10 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const getProgressValue = () => progressPercent(standardForm?.fields, currentSlide, formResponse.answers || {});
 
     // Position of a slide along the journey: welcome → pages → thank-you.
-    // The sentinels (-1 welcome, -2 thank-you) don't compare numerically.
+    // The sentinels (-1 welcome, -2 thank-you, -3 review) don't compare numerically.
     const ordinalOf = (slide: number) => {
         if (slide === -1) return 0;
+        if (slide === REVIEW_SLIDE) return (standardForm?.fields?.length || 0) + 0.5;
         if (slide === -2) return (standardForm?.fields?.length || 0) + 1;
         return slide + 1;
     };
@@ -167,6 +170,11 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                                 logoAction={logo ? <UserAvatarDropDown inline responderSignInUrl={responderSignInUrl} /> : undefined}
                             >
                                 <WelcomePage isPreviewMode={isPreviewMode} accountInStrip={!!logo} theme={cover?.theme} />
+                            </LayoutWrapper>
+                        )}
+                        {currentSlide === REVIEW_SLIDE && (
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled topAligned={topAligned} logo={logo}>
+                                <ReviewPage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         )}
                         {currentSlide >= 0 && <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} logo={logo} />}

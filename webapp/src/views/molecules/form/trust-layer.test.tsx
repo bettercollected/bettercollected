@@ -450,3 +450,48 @@ describe('Privacy panel: answers also sent by a webhook', () => {
         expect(row('webhooks')).toBeInTheDocument();
     });
 });
+
+describe('Privacy panel: answers also emailed', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('says nothing when no email action is on', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-email')).not.toBeInTheDocument();
+        unmount();
+        renderPanel({ ownerName: 'Acme', emailDestination: { team: false, copy: false } });
+        openPanel();
+        expect(screen.queryByTestId('privacy-email')).not.toBeInTheDocument();
+    });
+
+    it('says the form\'s team gets the answers, and what deleting here does not do (English)', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', emailDestination: { team: true, copy: false } });
+        openPanel();
+        expect(row('email')).toHaveTextContent("Your answers are also emailed to the form's team.");
+        expect(row('email')).not.toHaveTextContent('A copy to you');
+        expect(row('email')).toHaveTextContent('does not delete the emails already sent');
+        const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
+        expect(keys.indexOf('privacy-email')).toBeLessThan(keys.indexOf('privacy-rights'));
+    });
+
+    it('says a copy goes to the respondent', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', emailDestination: { team: false, copy: true } });
+        openPanel();
+        expect(row('email')).toHaveTextContent('A copy to you: a copy of your answers is emailed to the address you enter.');
+        expect(row('email')).not.toHaveTextContent("emailed to the form's team");
+    });
+
+    it('says both, in Dutch to a Dutch browser', () => {
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', emailDestination: { team: true, copy: true } });
+        fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
+        expect(row('email')).toHaveTextContent('Je antwoorden worden ook gemaild naar het team achter dit formulier.');
+        expect(row('email')).toHaveTextContent('Een kopie voor jou: een kopie van je antwoorden wordt gemaild naar het adres dat je invult.');
+    });
+});

@@ -67,6 +67,36 @@ class FixedWindowRateLimiter:
             retry_after=max(1, math.ceil(ends - now)),
         )
 
+    def _window(self, scope: str, client: str, window_seconds: int):
+        window_seconds = max(1, int(window_seconds))
+        now = self._clock()
+        window = int(now // window_seconds)
+        ends = (window + 1) * window_seconds
+        return (
+            self.counter_id(scope, client, window),
+            dt.datetime.fromtimestamp(ends + window_seconds, dt.timezone.utc),
+            max(1, math.ceil(ends - now)),
+        )
+
+    async def admit(
+        self, scope: str, client: str, limit: int, window_seconds: int
+    ) -> Verdict:
+        """Count one request of ``client`` in ``scope`` only if the window's
+        count is below ``limit``, checked and incremented in one locked step:
+        parallel requests are admitted exactly ``limit`` times (``hit`` counts
+        first and judges after, so a denied request still uses up the budget).
+        ``allowed`` says whether this one was admitted; a refused one changes
+        nothing."""
+        counter, expires, retry_after = self._window(scope, client, window_seconds)
+        admitted, count = await self._repo.admit(counter, expires, limit)
+        return Verdict(allowed=admitted, count=count, retry_after=retry_after)
+
+    async def release(self, scope: str, client: str, window_seconds: int) -> None:
+        """Give back one request that ``admit`` admitted (a request another
+        budget then refused)."""
+        counter, _expires, _retry = self._window(scope, client, window_seconds)
+        await self._repo.release(counter)
+
     async def claim(self, scope: str, key: str, expires_at: dt.datetime) -> bool:
         """True for the first caller only, on any replica: a one-time claim
         on ``key`` in ``scope`` (one counter, not windowed), kept until

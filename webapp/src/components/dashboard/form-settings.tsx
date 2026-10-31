@@ -139,6 +139,14 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             });
     };
 
+    const onShowReviewPageChange = (event: any, f: StandardFormDto = form) => {
+        patchSettings({ showReviewPage: !f?.settings?.showReviewPage }, f)
+            .then()
+            .catch((e) => {
+                toast({ description: e.data, variant: 'destructive' });
+            });
+    };
+
     const onAllowResponseEditingChange = (event: any, f: StandardFormDto = form) => {
         patchSettings({ allowEditingResponse: !f?.settings?.allowEditingResponse }, f)
             .then()
@@ -347,6 +355,19 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     checked={!!form?.settings?.showSubmissionNumber}
                                     onCheckedChange={(checked) => {
                                         onShowSubmissionNumberChange(checked, form);
+                                    }}
+                                />
+                            </SettingRow>
+                        )}
+                        {form?.settings?.provider === 'self' && (
+                            <SettingRow title={t(formPage.reviewPageTitle)} description={t(formPage.reviewPageDescription)}>
+                                <Switch
+                                    data-umami-event="Show Review Page Switch"
+                                    data-testid="show-review-page-switch"
+                                    checked={!!form?.settings?.showReviewPage}
+                                    disabled={!canEditForm}
+                                    onCheckedChange={(checked) => {
+                                        onShowReviewPageChange(checked, form);
                                     }}
                                 />
                             </SettingRow>

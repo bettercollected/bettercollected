@@ -18,7 +18,7 @@ import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-lan
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-import AutoSaveForm, { flushAutosave, isFieldRulesDisabled, isQuestionTypeDisabled, saveOutcomeOf } from './audo-save-form';
+import AutoSaveForm, { droppedOptionLogicOf, flushAutosave, isChoiceLogicDisabled, isFieldRulesDisabled, isQuestionTypeDisabled, newlyRepairedOptionLogic, resetRepairedOptionLogicNotices, saveOutcomeOf } from './audo-save-form';
 import PublishButton from './publish-button';
 
 const patchFormMock = vi.fn();
@@ -326,6 +326,24 @@ describe('isFieldRulesDisabled', () => {
         expect(isFieldRulesDisabled({ error: { status: 403, data: { code: 'field_rules_disabled' } } })).toBe(false);
         expect(isFieldRulesDisabled({ data: {} })).toBe(false);
         expect(isFieldRulesDisabled(undefined)).toBe(false);
+    });
+});
+
+describe('option logic in a save', () => {
+    it('recognises the 422 the server answers while choice logic is switched off', () => {
+        expect(isChoiceLogicDisabled({ error: { status: 422, data: { code: 'choice_logic_disabled' } } })).toBe(true);
+        expect(isChoiceLogicDisabled({ error: { status: 422, data: { code: 'invalid_option_logic' } } })).toBe(false);
+        expect(isChoiceLogicDisabled({ error: { status: 500 } })).toBe(false);
+    });
+
+    it('reads what the server repaired and tells about each repair once', () => {
+        resetRepairedOptionLogicNotices();
+        const data = { droppedOptionLogic: [{ fieldId: 'city', optionId: 'ams', message: 'x' }, { fieldId: 'city', optionId: null, message: 'y' }, { optionId: 'z' }] };
+        const repaired = droppedOptionLogicOf(data);
+        expect(repaired).toHaveLength(2);
+        expect(newlyRepairedOptionLogic('f1', repaired)).toBe(2);
+        expect(newlyRepairedOptionLogic('f1', repaired)).toBe(0);
+        expect(droppedOptionLogicOf({})).toEqual([]);
     });
 });
 

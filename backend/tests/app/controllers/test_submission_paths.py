@@ -1,6 +1,6 @@
 """The flow view's insights read each submission's path through the pages
 (``.../submission-paths``, response.read) and never the answers; the
-decrypted bulk (``.../all-submissions`` and ``.../all-submissions/export``)
+decrypted bulk (``.../all-submissions`` and the export, ``.../exports``)
 is an export (response.export)."""
 
 import json
@@ -214,7 +214,7 @@ async def test_a_read_only_role_gets_paths_without_answers(
 
 
 async def test_the_bulk_needs_the_export_permission(client: AsyncClient, paths_form):
-    for route in ("all-submissions", "all-submissions/export"):
+    for route in ("all-submissions",):
         for user in (viewer, reviewer, officer):
             refused = await client.get(f"{paths_form}/{route}", cookies=_cookies(user))
             assert refused.status_code == 403, (route, user.sub)
@@ -224,6 +224,17 @@ async def test_the_bulk_needs_the_export_permission(client: AsyncClient, paths_f
             assert allowed.status_code == 200, allowed.text
             assert len(allowed.json()) == 2
             assert SECRET in allowed.text
+
+
+async def test_the_export_needs_the_export_permission_too(client: AsyncClient, paths_form):
+    for user in (viewer, reviewer, officer):
+        refused = await client.post(f"{paths_form}/exports", json={}, cookies=_cookies(user))
+        assert refused.status_code == 403, user.sub
+        assert SECRET not in refused.text
+    for user in (editor, testUser):
+        allowed = await client.post(f"{paths_form}/exports", json={}, cookies=_cookies(user))
+        assert allowed.status_code == 200, allowed.text
+        assert SECRET in allowed.text
 
 
 async def test_paths_need_response_read(client: AsyncClient, paths_form):

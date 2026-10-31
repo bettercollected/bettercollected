@@ -384,6 +384,8 @@ class AuthService:
         # the account, its sessions and its workspace data go first: nothing
         # about a provider service may hold them back
         await self.workspace_service.delete_workspaces_of_user_with_forms(user=user)
+        # the export audit rows the user leaves in other workspaces stay, without them
+        await self.workspace_service.forget_exports_of_user(user.id)
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
         # then the stored provider credentials, deleted now or purged by a

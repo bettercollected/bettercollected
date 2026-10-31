@@ -17,6 +17,7 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.services.field_rules import strip_field_rules
 from backend.app.services.new_question_types import ensure_question_types_allowed
+from backend.app.services.option_logic import strip_option_logic
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -45,11 +46,13 @@ class FormImportService:
         workspace_repo: PostgresWorkspaceRepository,
         form_response_repo: PostgresFormResponseRepository,
         workspace_form_repo=None,
+        response_export_repo=None,
     ):
         self.form_service = form_service
         self._workspace_repo = workspace_repo
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo  # routed
+        self._response_exports = response_export_repo
 
     async def get_form_workspace_by_id(self, workspace_id: RecordId):
         return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
@@ -82,6 +85,10 @@ class FormImportService:
         # is off.
         if form_data.form is not None:
             ensure_question_types_allowed(form_data.form)
+        # ... nor option logic (services/option_logic.py): the providers have
+        # none, and CHOICE_LOGIC_ENABLED is for what people write here.
+        if form_data.form is not None and strip_option_logic(form_data.form):
+            logger.warning("A form import carried choice logic; it was dropped")
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.
@@ -136,9 +143,15 @@ class FormImportService:
             await self._form_response_repo.save(response_document)
             updated_responses_id.append(response.response_id)
 
-        await self._form_response_repo.delete_by_form_id_except(
+        deleted = await self._form_response_repo.delete_by_form_id_except(
             scope, updated_responses_id
         )
+        if deleted and self._response_exports is not None:
+            # responses the provider no longer has were deleted: no stored
+            # export file keeps them (a sync that deletes nothing leaves them)
+            await self._response_exports.forget_files_of_form(
+                workspace_id, standard_form.form_id
+            )
 
         modified_count = (
             await self._form_response_repo.mark_deletion_requests_success_except(

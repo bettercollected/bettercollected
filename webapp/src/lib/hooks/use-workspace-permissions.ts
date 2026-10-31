@@ -50,7 +50,9 @@ export function useWorkspacePermissions() {
     const answered = !!workspaceId && !!userId && !!isSuccess && !isError;
     // Whether the server takes field rules (its FIELD_RULES_ENABLED), told with the permissions.
     const fieldRulesEnabled = !!userId && !isError && !!data?.fieldRulesEnabled;
+    // Likewise for choice logic (its CHOICE_LOGIC_ENABLED): option logic and filters in the builder.
+    const choiceLogicEnabled = !!userId && !isError && !!data?.choiceLogicEnabled;
     // The same for the newer question types (its NEW_QUESTION_TYPES_ENABLED): the builder offers them from it.
     const newQuestionTypesEnabled = !!userId && !isError && !!data?.newQuestionTypesEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, newQuestionTypesEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled };
 }

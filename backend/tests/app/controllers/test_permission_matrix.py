@@ -795,12 +795,50 @@ CASES = [
         P.RESPONSE_READ,
         ok=200,
     ),
+    # the export of a form's responses (streamed, or a job): its own routes
     Case(
         "responses.form.export",
+        "POST",
+        F + "/exports",
+        P.RESPONSE_EXPORT,
+        lambda c: {"json": {}},
+        ok=200,
+    ),
+    Case(
+        "responses.form.export.columns",
         "GET",
-        F + "/all-submissions/export",
+        F + "/exports/columns",
         P.RESPONSE_EXPORT,
         ok=200,
+    ),
+    Case(
+        "responses.form.export.list",
+        "GET",
+        F + "/exports",
+        P.RESPONSE_EXPORT,
+        ok=200,
+    ),
+    Case(
+        "responses.form.export.status",
+        "GET",
+        F + "/exports/000000000000000000000000",
+        P.RESPONSE_EXPORT,
+        ok=404,
+    ),
+    Case(
+        "responses.form.export.discard",
+        "DELETE",
+        F + "/exports/000000000000000000000000",
+        P.RESPONSE_EXPORT,
+        ok=404,
+    ),
+    Case(
+        "responses.form.export.download",
+        "GET",
+        F + "/exports/000000000000000000000000/download",
+        P.RESPONSE_EXPORT,
+        lambda c: {"params": {"token": "0.0"}},
+        ok=404,
     ),
     Case("responses.workspace", "GET", W + "/all-submissions", P.RESPONSE_READ),
     Case(
@@ -1315,6 +1353,20 @@ async def test_effective_permissions_say_whether_field_rules_are_on(
     )
     assert response.status_code == 200, response.text
     assert response.json()["fieldRulesEnabled"] is enabled
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_effective_permissions_say_whether_choice_logic_is_on(
+    client: AsyncClient, matrix, monkeypatch, enabled: bool
+):
+    """The builder shows its option logic settings from this (CHOICE_LOGIC_ENABLED)."""
+    monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", enabled)
+    response = await client.get(
+        f"/api/v1/workspaces/{matrix['ws']}/permissions",
+        cookies=_cookies(USERS[ROLES[0]]),
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["choiceLogicEnabled"] is enabled
 
 
 async def test_effective_permissions_need_a_signed_in_user(client: AsyncClient, matrix):

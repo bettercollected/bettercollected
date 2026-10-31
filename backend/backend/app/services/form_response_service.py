@@ -15,7 +15,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
-from fastapi_pagination import Page
+from fastapi_pagination import Page, Params
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
@@ -38,7 +38,9 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormFieldCamelModel,
     StandardFormResponseCamelModel,
 )
+from backend.app.models.dtos.response_list_page import ResponseListPage
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.response_list import ResponseListQuery
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
@@ -57,7 +59,9 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
+from backend.app.services import response_cursor
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.response_paging import PageTooDeep
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.calculated_fields import (
     drop_answers,
@@ -137,6 +141,7 @@ class FormResponseService:
         workspace_repo: PostgresWorkspaceRepository,
         registration_delivery_repo=None,
         webhook_log_repo=None,
+        response_export_repo=None,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
@@ -148,6 +153,9 @@ class FormResponseService:
         self._registration_deliveries = registration_delivery_repo
         # so do the webhook action-log rows that name it (ids only, 30 days)
         self._webhook_logs = webhook_log_repo
+        # stored export files (a job's) hold decrypted answers: any deletion of
+        # a form's responses drops them with it (services/response_export)
+        self._response_exports = response_export_repo
 
     async def get_all_workspace_responses(
         self,
@@ -279,6 +287,79 @@ class FormResponseService:
         if request_for_deletion:
             await self._withhold_receipt_numbers(form_responses, user, workspace_id)
         return form_responses
+
+    async def get_workspace_form_response_page(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        query: ResponseListQuery,
+        user: User,
+    ) -> ResponseListPage:
+        """The form's responses, filtered and sorted on plaintext columns and
+        paged by keyset (``response.read``; the answers are decrypted after
+        the page is chosen, as in ``get_workspace_form_submissions``)."""
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_READ, workspace_id
+        )
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id, form_id
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
+        anchor = None
+        if query.cursor:
+            try:
+                anchor = response_cursor.read(
+                    query.cursor, workspace_id, form_id, query
+                )
+            except response_cursor.InvalidCursor:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    content={
+                        "code": "invalid_cursor",
+                        "message": "The cursor is not valid for this list.",
+                    },
+                ) from None
+        try:
+            listed = await self._form_response_repo.list_form_page(
+                await self.scope(workspace_id, [form_id]), query, anchor
+            )
+        except PageTooDeep:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content={
+                    "code": "page_too_deep",
+                    "message": "That page is too far from the start; "
+                    "move there with the pager.",
+                },
+            ) from None
+        page = ResponseListPage.create(
+            [StandardFormResponseCamelModel.model_validate(i) for i in listed.items],
+            Params(page=query.page, size=query.size),
+            total=listed.total,
+            total_exact=listed.total_exact,
+            has_next=listed.has_next,
+            cursor=(
+                response_cursor.issue(workspace_id, form_id, query, listed.first)
+                if listed.first is not None
+                else None
+            ),
+        )
+        page = self.decrypt_response_page(
+            workspace_id=workspace_id, responses_page=page
+        )
+        form = await self._form_repo.get_form_document_by_id(form_id)
+        file_fields = get_fields_of_type_file_upload(form) if form is not None else []
+        if file_fields:
+            for response in page.items:
+                self.generate_presigned_url_for_each_response(
+                    file_fields, response, workspace_id
+                )
+        return page
 
     async def _withhold_receipt_numbers(
         self, page: Any, user: User, workspace_id: RecordId
@@ -618,20 +699,37 @@ class FormResponseService:
     ):
         """A form unlinked from one of several workspaces: the responses and
         deletion requests collected through that workspace go with it."""
-        return await self._form_response_repo.delete_in_scope(
+        deleted = await self._form_response_repo.delete_in_scope(
             ResponseScope(
                 workspace_id=RecordId(workspace_id), form_ids=(str(form_id),)
             )
         )
+        await self._forget_export_files([form_id], workspace_id)
+        return deleted
+
+    async def _forget_export_files(self, form_ids, workspace_id=None) -> None:
+        """Responses of these forms were deleted: so is every stored export
+        file that could hold them."""
+        if self._response_exports is None:
+            return
+        if workspace_id is not None:
+            for form_id in form_ids:
+                await self._response_exports.forget_files_of_form(workspace_id, form_id)
+        else:
+            await self._response_exports.forget_files_of_forms(list(form_ids))
 
     async def delete_form_responses(self, form_id):
-        return await self._form_response_repo.delete_by_form_id(form_id)
+        deleted = await self._form_response_repo.delete_by_form_id(form_id)
+        await self._forget_export_files([form_id])
+        return deleted
 
     async def delete_deletion_requests(self, form_id):
         return await self._form_response_repo.delete_deletion_requests(form_id=form_id)
 
     async def delete_form_responses_of_form_ids(self, form_ids):
-        return await self._form_response_repo.delete_by_form_ids(form_ids=form_ids)
+        deleted = await self._form_response_repo.delete_by_form_ids(form_ids=form_ids)
+        await self._forget_export_files(form_ids)
+        return deleted
 
     async def delete_deletion_requests_of_form_ids(self, form_ids):
         return await self._form_response_repo.delete_deletion_requests_by_form_ids(
@@ -668,6 +766,7 @@ class FormResponseService:
                     legacy_form_ids=(str(form_id),),
                 )
             )
+        await self._forget_export_files([form_id])
 
     def decrypt_form_responses(
         self,
@@ -782,6 +881,7 @@ class FormResponseService:
         await self._form_response_repo.delete_form_response(
             existing, expected_closures=expected_closures
         )
+        await self._forget_export_files([form_id], workspace_id)
         prefix = f"private/{workspace_id}/{form_id}/{response_id}"
         self._aws_service.delete_folder_from_s3(prefix)
         if self._registration_deliveries is not None:
@@ -905,10 +1005,14 @@ class FormResponseService:
         # read first: the webhook log rows are scoped by workspace and form
         existing = (
             await self._form_response_repo.get_response(response_id)
-            if self._webhook_logs is not None
+            if self._webhook_logs is not None or self._response_exports is not None
             else None
         )
         deleted = await self._form_response_repo.delete_response(response_id=response_id)
+        if existing is not None and existing.workspace_id is not None:
+            await self._forget_export_files([existing.form_id], existing.workspace_id)
+        elif existing is not None:
+            await self._forget_export_files([existing.form_id])
         if self._registration_deliveries is not None:
             await self._registration_deliveries.delete_by_response_id(response_id)
         if (

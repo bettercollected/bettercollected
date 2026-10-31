@@ -18,6 +18,26 @@ export function dropFieldRules(field: StandardFormFieldDto | undefined): void {
     }
 }
 
+/**
+ * Option logic (an option's `logic`, a question's `optionFilter`) is not copied
+ * either: its conditions and its filter name the original's options and
+ * questions. A copy starts with every option offered. Removes it from `field`
+ * and every question inside it, in place.
+ */
+export function dropOptionLogic(field: StandardFormFieldDto | undefined): void {
+    const pending: Array<StandardFormFieldDto | undefined> = [field];
+    while (pending.length) {
+        const current = pending.pop();
+        const properties = current?.properties;
+        if (!properties) continue;
+        if ('optionFilter' in properties) delete properties.optionFilter;
+        (properties.choices ?? []).forEach((choice) => {
+            if ('logic' in choice) delete choice.logic;
+        });
+        pending.push(...(properties.fields ?? []));
+    }
+}
+
 /** A rule the server left out of a save: its question and its id. */
 export interface DroppedRule {
     fieldId?: string | null;

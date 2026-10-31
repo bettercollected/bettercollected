@@ -4,51 +4,6 @@
     "DEFAULT": "Insert",
     "A_FIELD": "Insert a Field"
   },
-  "FIELD_TYPES": {
-    "time": {
-      "NAME": "Time",
-      "DESCRIPTION": "A time of day, such as 09:30"
-    },
-    "day": {
-      "NAME": "Day (d-m-y)",
-      "DESCRIPTION": "A date typed as day, month and year"
-    },
-    "currency": {
-      "NAME": "Amount of money",
-      "DESCRIPTION": "An amount with its currency"
-    },
-    "date_range": {
-      "NAME": "Date range",
-      "DESCRIPTION": "A first and a last day, such as a stay"
-    },
-    "tags": {
-      "NAME": "Tags",
-      "DESCRIPTION": "Short labels the respondent types"
-    }
-  },
-  "TYPED_SETTINGS": {
-    "EARLIEST": "Earliest time",
-    "LATEST": "Latest time",
-    "TIME_HINT": "Times outside the window can't be answered. Leave a box empty for no limit.",
-    "TIME_ORDER": "The earliest time is after the latest time. No time can be answered.",
-    "LABEL": "Label",
-    "LABEL_PLACEHOLDER": "e.g. Arrival time",
-    "CURRENCIES": "Currencies",
-    "DEFAULT": "Default",
-    "MAKE_DEFAULT": "Make {{code}} the default",
-    "REMOVE_CURRENCY": "Remove {{code}}",
-    "ADD_CURRENCY": "Add a currency",
-    "CURRENCY_HINT": "Respondents choose from these. With one currency they only enter the amount. Calculations use the amount alone, so add up amounts of one currency.",
-    "LOWEST_AMOUNT": "Lowest amount",
-    "HIGHEST_AMOUNT": "Highest amount",
-    "NO_LIMIT": "No limit",
-    "AMOUNT_ORDER": "The lowest amount is more than the highest.",
-    "FEWEST_TAGS": "Fewest tags",
-    "MOST_TAGS": "Most tags",
-    "LONGEST_TAG": "Longest tag (characters)",
-    "TAGS_ORDER": "The fewest tags is more than the most.",
-    "TAGS_HINT": "At most {{most}} tags, and each tag at most {{length}} characters. Tags are compared ignoring capitals, and a tag has no comma or semicolon."
-  },
   "PREVIEW": {
     "DEFAULT": "Preview"
   },
@@ -787,6 +742,12 @@
     "SYNTAX": "Patterns use RE2 syntax: there are no lookarounds and no backreferences.",
     "KEPT": "The pattern the question already has stays in use until this one is valid."
   },
+  "REVIEW_PAGE": {
+    "TITLE": "Before sending",
+    "LABEL": "Review answers before sending",
+    "HINT": "Respondents see all their answers on one page after the last question, with a button to change each page, and send from there. Nothing is sent or stored until they do.",
+    "ERROR": "The setting could not be saved. Please try again."
+  },
   "FIELD_RULES": {
     "DROPPED_one": "{{count}} question lost a rule that no longer fits the form.",
     "DROPPED_other": "{{count}} questions lost a rule that no longer fits the form.",
@@ -898,14 +859,6 @@
       "IS_EMPTY": "is empty",
       "IS_NOT_EMPTY": "is not empty"
     },
-    "RANGE_COMPARISON": {
-      "CONTAINS": "includes",
-      "DOES_NOT_CONTAIN": "does not include",
-      "GREATER_THAN": "starts after",
-      "LESS_THAN": "ends before",
-      "IS_EMPTY": "is empty",
-      "IS_NOT_EMPTY": "is not empty"
-    },
     "COUNT_COMPARISON": {
       "IS_EQUAL": "is",
       "GREATER_THAN_EQUAL": "is at least",
@@ -915,6 +868,14 @@
       "COUNT": "Number of items",
       "ANY": "Any item",
       "ALL": "All items"
+    },
+    "RANGE_COMPARISON": {
+      "CONTAINS": "includes",
+      "DOES_NOT_CONTAIN": "does not include",
+      "GREATER_THAN": "starts after",
+      "LESS_THAN": "ends before",
+      "IS_EMPTY": "is empty",
+      "IS_NOT_EMPTY": "is not empty"
     }
   },
   "WEBHOOKS": {
@@ -996,7 +957,8 @@
       "forbidden": "You do not have permission to change webhooks.",
       "not_found": "This webhook no longer exists. Reload the page.",
       "url_unreadable": "The address of this webhook could not be read. Enter it again.",
-      "unknown": "That did not work. Try again."
+      "unknown": "That did not work. Try again.",
+      "invalid_condition": "The condition could not be saved. Check that every question still exists and every condition is complete."
     },
     "DELIVERIES": {
       "TITLE": "Deliveries",
@@ -1044,7 +1006,9 @@
         "disabled": "The webhook was turned off or deleted before this was sent.",
         "destination_changed": "The address of the webhook now points to another host than the one this submission was queued for, so nothing was sent. Respondents were told about the first host only.",
         "internal_error": "Something went wrong on our side.",
-        "unknown": "It was not sent."
+        "unknown": "It was not sent.",
+        "condition_not_met": "The answers did not match the condition, so nothing was sent.",
+        "condition_invalid": "The condition could not be read (a question was removed), so nothing was sent."
       }
     },
     "CHANGES": {
@@ -1067,6 +1031,257 @@
         "enabled": "on or off"
       }
     }
+  },
+  "OPTION_LOGIC": {
+    "TITLE": "Options",
+    "HINT": "Show or hide an option based on an earlier answer.",
+    "NO_SOURCES": "Add a question before this one to show or hide its options based on an earlier answer.",
+    "UNNAMED": "Item {{n}}",
+    "SWITCH": "Show or hide the option “{{option}}” based on answers",
+    "SHOW_WHEN": "Show this option when…",
+    "HIDE_WHEN": "Hide this option when…",
+    "MATCH": "Match",
+    "ALL": "all",
+    "ANY": "any",
+    "OF_THESE": "of these:",
+    "ADD_CONDITION": "+ Add condition",
+    "BADGE": "Conditional",
+    "BADGE_FILTERED": "Filtered",
+    "FILTER_TITLE": "Filter options by an earlier answer",
+    "FILTER_HINT": "Tick the options to offer for each answer to the earlier question. With no answer there, every option is offered.",
+    "FILTER_SOURCE": "Earlier question",
+    "FILTER_NO_SOURCES": "Add a single or multiple choice question before this one to filter its options by it.",
+    "FILTER_TABLE": "Options of “{{question}}” to offer for each answer to “{{source}}”",
+    "FILTER_OPTION": "Option",
+    "FILTER_CELL": "Offer “{{option}}” when “{{source}}” is “{{answer}}”",
+    "FILTER_ANSWER": "When the answer is “{{answer}}”",
+    "WARNING_UNREACHABLE": "“{{option}}” is never offered: no answer to “{{source}}” shows it.",
+    "WARNING_UNMAPPED": "Choosing “{{option}}” in “{{source}}” leaves no option to choose here.",
+    "WARNING_EMPTY": "Some answers leave nothing to choose here. The question is then not required.",
+    "WARNINGS": "Check these",
+    "UNTITLED": "Untitled question",
+    "DISABLED_NOTE": "Option logic cannot be created or changed on this server yet. The logic this question has is still applied to responses.",
+    "WARNING_TOO_MANY": "This question has more than {{max}} options, too many for option logic: remove its option logic or some options, or the form cannot be saved.",
+    "DROPPED_one": "{{count}} piece of option logic no longer fitted the form and was removed.",
+    "DROPPED_other": "{{count}} pieces of option logic no longer fitted the form and were removed.",
+    "DISABLED": "Option logic cannot be saved: it is switched off on this server. Option logic already saved is kept.",
+    "REMOVE_LIST": "Remove option logic",
+    "REMOVE_OPTION": "Remove the logic of “{{option}}”",
+    "REMOVE_FILTER": "Remove the filter"
+  },
+  "ACTION_CONDITION": {
+    "TITLE": "Only run when",
+    "HINT": "Run this only for submissions whose answers match. The server checks the answers when the submission arrives. Without a condition, every submission runs it.",
+    "NO_QUESTIONS": "This form has no questions to base a condition on yet.",
+    "MATCH": "Match",
+    "ALL": "all",
+    "ANY": "any",
+    "OF_THESE": "of these:",
+    "ADD": "+ Add condition",
+    "NOT_MET": "A submission that does not match is not sent. It shows in the log as cancelled, with the reason, and holds no answers.",
+    "INCOMPLETE": "Finish every condition: a question, a comparison and, where it is needed, a value.",
+    "BADGE": "Runs only when conditions match"
+  },
+  "EMAIL_ACTIONS": {
+    "TITLE": "Email",
+    "INTRO": "Send an email when someone submits this form: to the form's team, and, if you choose, a copy to the person who answered. You write the words in English and Dutch; the language of the form picks which one is sent.",
+    "NOTICE": "Respondents are told, in the privacy panel of the form, that their answers are also emailed to the form's team and, if you turn it on, that they get a copy. Mail to the team only goes to members of this workspace. A copy to a respondent uses fixed wording, goes only to the address they typed in this submission, and is limited per address and form.",
+    "NOT_CONFIGURED": "This server has no mail server set up, so no email can be sent. Ask the person who runs it to configure one.",
+    "LOADING": "Loading email actions…",
+    "LOAD_ERROR": "The email actions could not be loaded. Reload the page to try again.",
+    "EDITOR": {
+      "TITLE_ADD": "Add an email action",
+      "TITLE_EDIT": "Edit email action",
+      "NAME": "Name",
+      "RECIPIENTS": "Who gets the email",
+      "RECIPIENTS_HINT": "Choose the team, a copy for the respondent, or both.",
+      "TEAM": "Team addresses",
+      "TEAM_HINT": "One address per line, at most {{count}}. Each must be the address of a member of this workspace, and is checked again every time a mail is sent.",
+      "COPY": "Send the respondent a copy of their own answers",
+      "COPY_HINT": "The copy goes only to the address they entered in the question you choose, in fixed wording that you do not write, with the answers of the questions below. It is limited to a few per address and hour.",
+      "COPY_QUESTION": "Email question",
+      "COPY_CHOOSE": "Choose a question…",
+      "NO_EMAIL_QUESTION": "This form has no email question yet. Add one to send a copy.",
+      "FIELDS": "Questions the email may use",
+      "FIELDS_HINT": "Tick the questions the email may name and show. Give each the name you will use in the text, as {{name}}.",
+      "NO_FIELDS": "This form has no questions that can be used yet.",
+      "FILE_NOT_SENT": "files are not sent",
+      "TYPE_NOT_SUPPORTED": "cannot be used yet",
+      "KEY": "Name in the text",
+      "KEY_TAKEN": "Another question already uses this name.",
+      "TEMPLATES": "The email",
+      "TEMPLATES_HINT": "Write both languages. The form's language decides which is sent to the team. Plain text only: what respondents typed is never treated as formatting or as a placeholder.",
+      "LANGUAGE": "Language of the text",
+      "LANGUAGE_EN": "English",
+      "LANGUAGE_NL": "Dutch",
+      "SUBJECT": "Subject",
+      "BODY": "Message",
+      "PLACEHOLDERS": "Insert a placeholder",
+      "INSERT": "Insert {{name}}",
+      "PLAIN_TEXT": "{{answers}} is one line per question you ticked. The subject has no {{answers}} and is always one line.",
+      "UNKNOWN_PLACEHOLDER": "{{name}} is not one of the questions ticked above, nor form_title, submitted_at or answers.",
+      "PREVIEW": "Preview",
+      "PREVIEW_NOTE": "Preview with made-up answers. Nothing was sent.",
+      "ENABLED": "Send an email for new submissions",
+      "ENABLED_HINT": "Turn this off to pause it without deleting it. Submissions made while it is off are not mailed later.",
+      "ADD": "Add email action",
+      "SAVE": "Save changes",
+      "CANCEL": "Cancel"
+    },
+    "LIST": {
+      "LABEL": "Email actions of this form",
+      "NONE": "No email actions yet. Add one to mail the team when someone submits.",
+      "TEAM_one": "Mails {{count}} team address",
+      "TEAM_other": "Mails {{count}} team addresses",
+      "COPY": "Copy to the respondent",
+      "ENABLED_FOR": "Send email for {{name}}",
+      "ON": "On",
+      "OFF": "Off",
+      "EDIT": "Edit",
+      "EDIT_NAMED": "Edit the email action {{name}}",
+      "TEST": "Send test email",
+      "TEST_NAMED": "Send a test email for {{name}} to yourself",
+      "TEST_COPY": "Test the copy",
+      "TEST_COPY_NAMED": "Send a test of the respondent's copy of {{name}} to yourself",
+      "DELETE": "Delete",
+      "DELETE_NAMED": "Delete the email action {{name}}",
+      "ADD": "Add email action",
+      "CONFIRM_DELETE": "Delete {{name}}? Nothing more is mailed for it. Its log stays for 30 days.",
+      "SWITCHED_ON": "{{name}} is on.",
+      "SWITCHED_OFF": "{{name}} is off.",
+      "TEST_SENT": "A test email for {{name}} was sent to your own address, with made-up answers.",
+      "TEST_FAILED": "The test email for {{name}} could not be sent. See the log below.",
+      "DELETED": "{{name}} was deleted.",
+      "SAVED": "{{name}} was saved."
+    },
+    "ERROR": {
+      "email_actions_off": "Email actions are turned off on this server. Ask the person who runs it to turn them on.",
+      "mail_not_configured": "This server has no mail server set up, so an email action cannot be turned on.",
+      "invalid_recipient": "Use one plain email address per line, without names or extra characters.",
+      "recipient_not_allowed": "A team address must be the address of a member of this workspace.",
+      "too_many_recipients": "At most 5 team addresses.",
+      "no_recipient": "Add a team address, or choose an email question for a copy.",
+      "invalid_respondent_field": "Choose an email question of this form.",
+      "unknown_placeholder": "The text uses a placeholder that is not available. Use the buttons to insert one.",
+      "invalid_placeholder": "A placeholder is a name between double curly braces. Other double braces are not allowed.",
+      "template_missing": "Write a subject and a message in both English and Dutch.",
+      "invalid_name": "Give the action a name.",
+      "invalid_key": "Names use letters, digits and underscores only, start with a letter or underscore, are unique, and are at most 64 characters.",
+      "unknown_variable": "This form has no such question. Reload the page and choose again.",
+      "variable_not_supported": "This kind of question cannot be used yet.",
+      "file_not_sent": "Files are not sent by email.",
+      "too_many_fields": "That is more questions than one email can use.",
+      "too_many_actions": "A form can have at most 5 email actions.",
+      "invalid_condition": "The condition could not be saved. Check that every question still exists and every condition is complete.",
+      "no_copy": "This action sends no copy to the respondent.",
+      "no_address": "Your account has no email address to send the test to.",
+      "rate_limited": "Too many test emails. Wait a while and try again.",
+      "forbidden": "You do not have permission to change email actions.",
+      "not_found": "This email action no longer exists. Reload the page.",
+      "unknown": "That did not work. Try again."
+    },
+    "DELIVERIES": {
+      "TITLE": "Sent mails",
+      "INTRO": "What the email actions of this form did, newest first. This log holds ids, statuses, attempt counts and timings only: never an address, a subject or an answer.",
+      "SENT": "Sent",
+      "WAITING": "Waiting",
+      "NOT_SENT": "Not sent",
+      "NONE": "Nothing has been mailed yet. Submissions appear here as they are sent, and so do test emails.",
+      "FILTER": "Show",
+      "FILTER_ALL": "All mails",
+      "FILTER_DELIVERED": "Sent",
+      "FILTER_FAILED": "Not sent",
+      "FILTER_WAITING": "Waiting",
+      "LOAD_ERROR": "The sent mails could not be loaded.",
+      "LIST": "Sent mails",
+      "SHOWING": "Showing {{shown}} of {{total}}",
+      "SHOW_MORE": "Show more",
+      "RETENTION": "The log is kept for 30 days.",
+      "TEST": "test email",
+      "SUBMISSION": "Submission",
+      "ATTEMPTS_one": "{{count}} attempt",
+      "ATTEMPTS_other": "{{count}} attempts",
+      "NEXT_ATTEMPT": "Next attempt: {{time}}.",
+      "CHANNEL": {
+        "team": "To the team",
+        "respondent": "Copy to the respondent"
+      },
+      "STATUS": {
+        "pending": "Queued",
+        "in_progress": "Sending",
+        "retrying": "Will retry",
+        "delivered": "Sent",
+        "failed": "Not sent",
+        "cancelled": "Not sent"
+      },
+      "ERROR": {
+        "recipient_rejected": "The mail server refused the recipient. Check the address.",
+        "smtp_rejected": "The mail server refused the message. We do not retry that.",
+        "smtp_busy": "The mail server was busy and asked us to try again later.",
+        "smtp_auth": "The mail server did not accept this server's login. Ask the person who runs it to check the mail settings.",
+        "smtp_unavailable": "The mail server could not be reached.",
+        "smtp_error": "The mail server reported a problem.",
+        "timeout": "The mail server did not answer in time.",
+        "tls_error": "The secure connection to the mail server failed.",
+        "invalid_message": "The message could not be built, so nothing was sent.",
+        "mail_not_configured": "This server has no mail server set up.",
+        "answers_unreadable": "The answers of this submission could not be read, so nothing was sent.",
+        "recipient_not_allowed": "None of the team addresses belongs to a member of this workspace any more, so nothing was sent.",
+        "no_address": "The respondent gave no usable address, so no copy was sent.",
+        "rate_limited": "The limit of copies for this address or form was reached, so this copy was not sent.",
+        "disabled": "The email action was turned off or deleted before this was sent.",
+        "condition_not_met": "The answers did not match the condition, so nothing was sent.",
+        "condition_invalid": "The condition could not be read (a question was removed), so nothing was sent.",
+        "internal_error": "Something went wrong on our side.",
+        "unknown": "It was not sent.",
+        "address_not_supported": "The address cannot be sent to: this mail server accepts only addresses with plain letters before the @. We do not retry that."
+      }
+    }
+  },
+  "FIELD_TYPES": {
+    "time": {
+      "NAME": "Time",
+      "DESCRIPTION": "A time of day, such as 09:30"
+    },
+    "day": {
+      "NAME": "Day (d-m-y)",
+      "DESCRIPTION": "A date typed as day, month and year"
+    },
+    "currency": {
+      "NAME": "Amount of money",
+      "DESCRIPTION": "An amount with its currency"
+    },
+    "date_range": {
+      "NAME": "Date range",
+      "DESCRIPTION": "A first and a last day, such as a stay"
+    },
+    "tags": {
+      "NAME": "Tags",
+      "DESCRIPTION": "Short labels the respondent types"
+    }
+  },
+  "TYPED_SETTINGS": {
+    "EARLIEST": "Earliest time",
+    "LATEST": "Latest time",
+    "TIME_HINT": "Times outside the window can't be answered. Leave a box empty for no limit.",
+    "TIME_ORDER": "The earliest time is after the latest time. No time can be answered.",
+    "LABEL": "Label",
+    "LABEL_PLACEHOLDER": "e.g. Arrival time",
+    "CURRENCIES": "Currencies",
+    "DEFAULT": "Default",
+    "MAKE_DEFAULT": "Make {{code}} the default",
+    "REMOVE_CURRENCY": "Remove {{code}}",
+    "ADD_CURRENCY": "Add a currency",
+    "CURRENCY_HINT": "Respondents choose from these. With one currency they only enter the amount. Calculations use the amount alone, so add up amounts of one currency.",
+    "LOWEST_AMOUNT": "Lowest amount",
+    "HIGHEST_AMOUNT": "Highest amount",
+    "NO_LIMIT": "No limit",
+    "AMOUNT_ORDER": "The lowest amount is more than the highest.",
+    "FEWEST_TAGS": "Fewest tags",
+    "MOST_TAGS": "Most tags",
+    "LONGEST_TAG": "Longest tag (characters)",
+    "TAGS_ORDER": "The fewest tags is more than the most.",
+    "TAGS_HINT": "At most {{most}} tags, and each tag at most {{length}} characters. Tags are compared ignoring capitals, and a tag has no comma or semicolon."
   },
   "NEW_TYPES": {
     "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are.",

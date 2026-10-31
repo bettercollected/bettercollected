@@ -29,6 +29,15 @@ from backend.app.services.new_question_types import (
     GATED_TYPES,
     new_question_types_enabled,
 )
+from backend.app.services.option_logic import (
+    CAN_END_EMPTY,
+    SOURCE_OPTION_UNMAPPED,
+    TOO_MANY_OPTIONS,
+    choice_logic_enabled,
+    UNREACHABLE_OPTION,
+    option_logic_problems,
+    option_logic_warnings,
+)
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.publish_checks import (
     MISSING_ENDING,
@@ -366,6 +375,18 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "already has are kept.",
                     )
                 )
+    if not choice_logic_enabled():
+        # a write with new or changed choice logic is refused (422 choice_logic_disabled)
+        for path, field, _ in index.questions.values():
+            if field.option_filter or any(c.logic for c in field.choices or []):
+                warnings.append(
+                    _problem(
+                        path,
+                        "Choice logic is switched off on this server: saving "
+                        "options with logic or a filter, new or changed, is "
+                        "refused. Choice logic the form already has is kept.",
+                    )
+                )
     for problem in publish_problems(form):
         if problem["code"] == MISSING_ENDING:
             continue  # already an error (_check_endings)
@@ -417,6 +438,78 @@ def _check_rules(form: Any, index: "_Index") -> List[Dict[str, str]]:
     return problems
 
 
+def _check_option_logic(form: Any, index: "_Index") -> List[Dict[str, str]]:
+    """Choice logic, as a save checks it: the path points at the option's
+    ``logic`` (``/pages/0/fields/2/choices/1/logic``) or the question's
+    ``optionFilter``."""
+    problems = []
+    for problem in option_logic_problems(form):
+        entry = index.questions.get(problem.field_id)
+        path = entry[0] if entry else ""
+        if entry and problem.in_filter:
+            path += "/optionFilter"
+        elif entry and problem.option_id:
+            position = next(
+                (
+                    i
+                    for i, choice in enumerate(entry[1].choices or [])
+                    if choice.id == problem.option_id
+                ),
+                None,
+            )
+            if position is not None:
+                path += f"/choices/{position}/logic"
+        problems.append(_problem(path, problem.message))
+    return problems
+
+
+def _option_logic_warning_messages(form: Any, index: "_Index") -> List[Dict[str, str]]:
+    warnings = []
+    for warning in option_logic_warnings(form):
+        entry = index.questions.get(warning.field_id)
+        if entry is None:
+            continue
+        path, field, _ = entry
+        label = next(
+            (
+                (c.value or c.label or c.id)
+                for c in field.choices or []
+                if c.id == warning.option_id
+            ),
+            None,
+        )
+        if warning.code == UNREACHABLE_OPTION:
+            message = (
+                f"'{label}' is never offered: no row of the filter shows it."
+            )
+        elif warning.code == SOURCE_OPTION_UNMAPPED:
+            source = index.questions.get(field.option_filter.field_id)
+            source_options = (source[1].choices or []) if source else []
+            label = next(
+                (
+                    (c.value or c.label or c.id)
+                    for c in source_options
+                    if c.id == warning.option_id
+                ),
+                warning.option_id,
+            )
+            message = f"Choosing '{label}' leaves no option to choose here."
+        elif warning.code == TOO_MANY_OPTIONS:
+            message = (
+                "Too many options for option logic: a save is refused until "
+                "the logic or some options go."
+            )
+        elif warning.code == CAN_END_EMPTY:
+            message = (
+                "Some answers leave nothing to choose here; the question is "
+                "then not required."
+            )
+        else:
+            continue
+        warnings.append(_problem(path, message))
+    return warnings
+
+
 def check_spec_document(raw: Any) -> Dict[str, Any]:
     """Check a spec document; see the module docstring for the result."""
     result: Dict[str, Any] = {
@@ -448,7 +541,10 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors += _check_hidden_fields(spec)
     errors += _check_calculations(form, index)
     errors += _check_rules(form, index)
+    errors += _check_option_logic(form, index)
     result["errors"] = errors
     result["valid"] = not errors
-    result["warnings"] = _warnings(spec, form, index)
+    result["warnings"] = _warnings(spec, form, index) + _option_logic_warning_messages(
+        form, index
+    )
     return result

@@ -2,7 +2,7 @@
 
 import { v4 } from 'uuid';
 
-
+import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 
 import type { BuilderContext } from './index';
 
@@ -40,6 +40,8 @@ export function choiceMutators(ctx: BuilderContext) {
     const removeChoiceField = (fieldIndex: number, slideIndex: number, choiceId: string) => {
         const field = formFields[slideIndex].properties!.fields![fieldIndex];
         field.properties && (field.properties.choices = field?.properties?.choices?.filter((choice) => choice.id != choiceId));
+        // filter entries that named the option (here or on a later question) go with it
+        pruneOptionLogic(formFields);
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };

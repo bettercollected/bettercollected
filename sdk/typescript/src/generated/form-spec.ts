@@ -361,6 +361,10 @@ export interface FormField {
   whyWeAsk?: string | null;
   logic?: Logic | null;
   /**
+   * A choice question's options filtered by an earlier choice question's answer (see OptionFilter).
+   */
+  optionFilter?: OptionFilter | null;
+  /**
    * At most 8 rules per question and 100 per form (see Rule).
    */
   rules?: Rule[] | null;
@@ -425,6 +429,22 @@ export interface Choice {
   value?: string | null;
   label?: string | null;
   attachment?: Attachment | null;
+  /**
+   * Offer this option only (SHOW) or unless (HIDE) its conditions hold, at most 20. The conditions read earlier questions of the form. An answer that selects an option that is not offered is refused.
+   */
+  logic?: Logic | null;
+}
+/**
+ * Show or hide this question when its conditions match (operator:
+ * AND = all, OR = any; AND when absent).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "Logic".
+ */
+export interface Logic {
+  action?: ("SHOW" | "HIDE") | null;
+  operator?: ("AND" | "OR") | null;
+  conditions?: Condition[] | null;
 }
 /**
  * The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),
@@ -440,16 +460,35 @@ export interface DateRule {
   fieldId?: string | null;
 }
 /**
- * Show or hide this question when its conditions match (operator:
- * AND = all, OR = any; AND when absent).
+ * Filter a choice question's options by an earlier choice question's
+ * answer: the options offered are those the chosen options of ``fieldId``
+ * map to (the union over a multiple choice's selection). Without an answer
+ * to it (or with only "Other" text) nothing is filtered; a chosen option
+ * with no entry offers nothing.
  *
  * This interface was referenced by `FormSpec`'s JSON-Schema
- * via the `definition` "Logic".
+ * via the `definition` "OptionFilter".
  */
-export interface Logic {
-  action?: ("SHOW" | "HIDE") | null;
-  operator?: ("AND" | "OR") | null;
-  conditions?: Condition[] | null;
+export interface OptionFilter {
+  fieldId: string;
+  /**
+   * @maxItems 2000
+   */
+  mapping?: OptionFilterEntry[];
+}
+/**
+ * While the earlier question's option ``when`` (its id) is chosen, the
+ * question offers the options in ``show`` (their ids).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "OptionFilterEntry".
+ */
+export interface OptionFilterEntry {
+  when: string;
+  /**
+   * @maxItems 2000
+   */
+  show?: string[];
 }
 /**
  * A field rule: while ``when`` holds, ``then`` applies. A field's rules
@@ -621,6 +660,10 @@ export interface Trust {
   requireVerifiedIdentity?: boolean | null;
   allowEditingResponse?: boolean | null;
   showSubmissionNumber?: boolean | null;
+  /**
+   * Respondents see their answers on a page of their own, with a link back to each page, before they send them.
+   */
+  showReviewPage?: boolean | null;
 }
 /**
  * How long answers are kept: a number of days, until a date

@@ -31,6 +31,11 @@ submission and the respondent's edit of it). Shared cases with the webapp:
   ``PATTERN_MAX_LENGTH`` or with a program over ``PATTERN_MAX_PROGRAM``, and
   text longer than ``PATTERN_INPUT_MAX_LENGTH`` (the browser checks it), are
   not checked here; only the field id is logged.
+- **Choice logic** (``services/option_logic.py``): an answer that selects an
+  option the question does not offer (its own logic, or a filter by an earlier
+  answer) is refused (``hidden_option``) on a question the respondent is asked;
+  a question with nothing to choose is never required and ``minChoices`` is held
+  to what is offered. Answers to hidden questions and skipped pages stay kept.
 - **Cost:** a creator's pattern is untrusted. One response compiles at most
   ``PATTERN_COMPILES_PER_RESPONSE`` patterns not in the cache and spends at
   most ``PATTERN_SECONDS_PER_RESPONSE`` on patterns; past either, the
@@ -88,6 +93,15 @@ from backend.app.services.field_rules import (
     NO_RULES,
     FieldRuleStates,
     field_rule_states,
+)
+from backend.app.services.option_logic import (
+    COSTLY_CODE,
+    HIDDEN_OPTION,
+    NO_OPTION_LOGIC,
+    OptionLogicTooCostly,
+    OptionStates,
+    hidden_selection,
+    option_states,
 )
 from backend.app.services.repeating_groups import (
     evaluate_conditions,
@@ -192,7 +206,7 @@ _JS_WHITESPACE = (
     "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006"
     "\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
 )
-_JS_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
+_JS_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)")
 _JS_RADIX = {"x": 16, "o": 8, "b": 2}
 
 
@@ -742,10 +756,15 @@ def _choice_problem(
 
 
 def answer_rule_problems(
-    field: Any, answer: Any, budget: Optional[PatternBudget] = None
+    field: Any,
+    answer: Any,
+    budget: Optional[PatternBudget] = None,
+    options: OptionStates = NO_OPTION_LOGIC,
 ) -> List[str]:
     """Twin of the webapp's ``checkAnswerRules``: the rules a given answer
-    breaks (none for an empty answer: that is Required's to say)."""
+    breaks (none for an empty answer: that is Required's to say).
+    ``options``: choice logic (``services/option_logic.py``) holds a minimum
+    number of choices to what the question offers."""
     budget = budget if budget is not None else PatternBudget()
     if not isinstance(answer, dict):
         return []
@@ -818,7 +837,12 @@ def answer_rule_problems(
         )
         if count == 0:
             return []
-        if _is_set(rules.min_choices) and count < rules.min_choices:
+        minimum = (
+            options.min_choices(field, rules.min_choices)
+            if _is_set(rules.min_choices)
+            else None
+        )
+        if _is_set(minimum) and count < minimum:
             problems.append(TOO_FEW_CHOICES)
         if _is_set(rules.max_choices) and count > rules.max_choices:
             problems.append(TOO_MANY_CHOICES)
@@ -933,11 +957,17 @@ def _check_question(
     budget: PatternBudget,
     item: Optional[int] = None,
     required: Optional[bool] = None,
+    options: OptionStates = NO_OPTION_LOGIC,
 ) -> None:
     """``required``: the effective flag (field rules applied); the static
-    one when None."""
+    one when None. ``options``: what choice logic offers (a question with
+    nothing to choose is never required; an answer that selects an option
+    that is not offered is refused)."""
     field_id = str(field.id)
     required = _required(field) if required is None else required
+    required = required and not options.is_none_left(field_id)
+    if hidden_selection(field, answer, options):
+        out.append(AnswerProblem(field_id, HIDDEN_OPTION, item, key))
     if _type(field) == MATRIX:
         if required and _matrix_unanswered(field, scope):
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
@@ -946,7 +976,7 @@ def _check_question(
         if required:
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
-    for rule in answer_rule_problems(field, answer, budget):
+    for rule in answer_rule_problems(field, answer, budget, options):
         out.append(AnswerProblem(field_id, rule, item, key))
 
 
@@ -1044,6 +1074,9 @@ def validate_answers(
     states = (
         rule_states if rule_states is not None else field_rule_states(form, answers)
     )
+    # What choice logic offers, from the answers as handed here (after the
+    # field rules' values); a locked question is not filtered.
+    options = option_states(form, answers, locked=states.locked)
     by_id: Dict[str, Any] = {}
     matrix_of: Dict[str, Any] = {}
     for slide in slides:
@@ -1079,6 +1112,7 @@ def validate_answers(
                     str(field.id),
                     budget,
                     required=states.is_required(field, _required(field)),
+                    options=options,
                 )
     budget.log()
     if only is not None:
@@ -1101,9 +1135,21 @@ def check_answers(
     number of problems and their rule codes, never a value."""
     if form is None:
         return
-    problems = validate_answers(
-        form, answers, known_ids=known_ids, only=only, rule_states=rule_states
-    )
+    try:
+        problems = validate_answers(
+            form, answers, known_ids=known_ids, only=only, rule_states=rule_states
+        )
+    except OptionLogicTooCostly:
+        # a crafted form or answer: nothing is stored unchecked
+        logger.warning("Form {}: option logic over its evaluation budget", form_id)
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": COSTLY_CODE,
+                "message": "This form's option logic is too costly to check; "
+                "the response was not stored.",
+            },
+        )
     if not problems:
         return
     if enforce is None:

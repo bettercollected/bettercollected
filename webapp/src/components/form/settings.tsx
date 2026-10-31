@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import FormIntegrations from '@app/components/form/integrations';
 import FormRegistrationSection from '@app/components/registration/form-registration-settings';
+import FormEmailActionsSection from '@app/components/email-actions/email-actions-section';
 import FormWebhooksSection from '@app/components/webhooks/webhooks-section';
 import { useModal } from '@app/components/modal-views/context';
 import { memberRoles } from '@app/constants/locales/member-roles';
@@ -60,6 +61,8 @@ export default function FormSettings() {
 
             {/* Owners and admins configure, editors see the deliveries, while this server has webhooks on; renders nothing otherwise. */}
             <FormWebhooksSection />
+            {/* Mail to the form's team and a copy to the respondent, while this server has email actions on; renders nothing otherwise. */}
+            <FormEmailActionsSection />
 
             {can(WorkspacePermission.FORM_DELETE) && (
             <section className="flex flex-col gap-2">

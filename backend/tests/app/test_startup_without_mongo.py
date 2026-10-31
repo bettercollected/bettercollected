@@ -105,7 +105,7 @@ def test_the_api_starts_and_serves_without_mongo_when_every_group_is_on_postgres
 def test_the_job_worker_starts_without_mongo_when_every_group_is_on_postgres():
     result = boot(WORKER, ALL_POSTGRES, mongo_uri="")
     assert result.returncode == 0, result.stderr[-3000:]
-    assert "worker ran: ['default', 'webhooks']" in result.stdout
+    assert "worker ran: ['default', 'webhooks', 'emails', 'exports']" in result.stdout
     assert "mongo clients: 0" in result.stdout
 
 
