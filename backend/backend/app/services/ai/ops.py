@@ -42,6 +42,11 @@ from common.form_spec.models import (
 )
 from common.expressions import MAX_DEPTH as EXPRESSION_DEPTH_MAX, validate_expression
 from common.models.standard_form import (
+    FORM_OPTION_CONDITIONS_MAX,
+    OPTION_CONDITIONS_MAX,
+    raw_option_logic_counts,
+    OptionFilter,
+    OptionFilterEntry,
     DATE_RULES_MAX,
     FIELD_RULES_MAX,
     FORM_FIELD_RULES_MAX,
@@ -127,6 +132,14 @@ from backend.app.services.image_urls import (
 from backend.app.services.internal_fields import (
     INTERNAL_CAPABLE_TYPES,
     internal_logic_violations,
+)
+from backend.app.services.option_logic import (
+    DISABLED_MESSAGE as CHOICE_LOGIC_DISABLED_MESSAGE,
+    choice_logic_enabled,
+    form_has_option_logic,
+    new_or_changed_option_logic,
+    option_logic_problems,
+    prune_option_logic,
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.rich_text import style_value_problem
@@ -479,6 +492,46 @@ class SetFieldLogicOp(_CamelModel):
     op: Literal["set_field_logic"] = "set_field_logic"
     field_id: str
     logic: Optional[FieldLogicSpec] = None
+
+
+class SetOptionLogicOp(_CamelModel):
+    """Choice-level logic: offer one option of a choice question only (SHOW)
+    or unless (HIDE) earlier answers match ("show 'Other country' only when
+    the country is not the Netherlands"). ``choice`` is the option's label
+    (or id); conditions are written as in ``set_field_logic`` and read an
+    **earlier** question of the form. ``logic: null`` clears it. An answer
+    that selects an option that is not offered is refused."""
+
+    op: Literal["set_option_logic"] = "set_option_logic"
+    field_id: str
+    choice: str
+    logic: Optional[FieldLogicSpec] = None
+
+
+class OptionFilterRowSpec(_CamelModel):
+    """While the earlier question's option ``when`` (label or id) is chosen,
+    offer the options ``show`` (labels or ids)."""
+
+    when: str
+    show: List[str] = Field(default_factory=list)
+
+
+class OptionFilterSpec(_CamelModel):
+    field_id: str
+    mapping: List[OptionFilterRowSpec] = Field(..., min_length=1)
+
+
+class SetOptionFilterOp(_CamelModel):
+    """Filter a choice question's options by an earlier choice question's
+    answer ("only the cities of the chosen country"): ``filter.fieldId`` is
+    that earlier question and each ``mapping`` row says which of this
+    question's options to offer while one of its options is chosen (the
+    union over a multiple choice's selection; with no answer there, nothing
+    is filtered). ``filter: null`` clears it."""
+
+    op: Literal["set_option_filter"] = "set_option_filter"
+    field_id: str
+    filter: Optional[OptionFilterSpec] = None
 
 
 def _expression_depth_checked(expression: Any) -> Any:
@@ -901,6 +954,8 @@ FormOp = Annotated[
         UpdateFormInfoOp,
         UpdateFormSettingsOp,
         SetFieldLogicOp,
+        SetOptionLogicOp,
+        SetOptionFilterOp,
         SetFieldRulesOp,
         SetPageJumpsOp,
         DuplicatePageOp,
@@ -948,6 +1003,23 @@ def _raw_rules_in_ops(ops: Any) -> int:
     return total
 
 
+def _raw_option_conditions_in_ops(ops: Any) -> int:
+    """Option conditions in a raw ops payload (``set_option_logic`` and the
+    editor ops' whole questions and pages), counted before parsing."""
+    total = 0
+    for op in ops if isinstance(ops, list) else []:
+        if not isinstance(op, dict):
+            continue
+        logic = op.get("logic")
+        if op.get("op") == "set_option_logic" and isinstance(logic, dict):
+            conditions = logic.get("conditions")
+            total += len(conditions) if isinstance(conditions, list) else 0
+        for key in ("field", "page"):
+            if isinstance(op.get(key), dict):
+                total += raw_option_logic_counts([op[key]])[0]
+    return total
+
+
 class FormOps(_CamelModel):
     """Envelope for parsing an AI/MCP payload of operations."""
 
@@ -963,6 +1035,13 @@ class FormOps(_CamelModel):
                 raise ValueError(
                     f"A form can have at most {FORM_FIELD_RULES_MAX} rules; these "
                     f"operations bring {total}."
+                )
+            # likewise option conditions (choice logic)
+            conditions = _raw_option_conditions_in_ops(data.get("ops"))
+            if conditions > FORM_OPTION_CONDITIONS_MAX:
+                raise ValueError(
+                    f"A form can have at most {FORM_OPTION_CONDITIONS_MAX} option "
+                    f"conditions; these operations bring {conditions}."
                 )
         return data
 
@@ -1354,6 +1433,15 @@ def _logic_sources(form: StandardForm) -> set:
                     sources.add(c.field_id)
                     if c.child_field_id:
                         sources.add(c.child_field_id)
+                # option logic reads questions too (choices' logic and filters)
+                properties = question.properties
+                for choice in (properties.choices if properties else None) or []:
+                    for c in (choice.logic.conditions if choice.logic else None) or []:
+                        sources.add(c.field_id)
+                        if c.child_field_id:
+                            sources.add(c.child_field_id)
+                if properties is not None and properties.option_filter is not None:
+                    sources.add(properties.option_filter.field_id)
     for page in _pages(form):
         for jump in (page.properties.jumps if page.properties else None) or []:
             sources.update(c.child_field_id for c in jump.conditions or [] if c.child_field_id)
@@ -1479,7 +1567,10 @@ def _dropped_rules_note(form: StandardForm) -> str:
     note = f" (and {dropped} date rule(s) that used it)" if dropped else ""
     # field rules that read it (or sat on it) go too
     dropped = len(prune_field_rules(form))
-    return note + (f" (and {dropped} field rule(s) that used it)" if dropped else "")
+    note += f" (and {dropped} field rule(s) that used it)" if dropped else ""
+    # option conditions and filters that read it (or a removed option) go too
+    dropped = prune_option_logic(form)
+    return note + (f" (and {dropped} option logic piece(s) that used it)" if dropped else "")
 
 
 def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
@@ -1517,9 +1608,22 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
         target = container  # reorder within its group
         where = None
 
+    known = {p.message for p in option_logic_problems(form)} if form_has_option_logic(form) else set()
     container.pop(position)
     insert_at = len(target) if op.index is None else max(0, min(op.index, len(target)))
     target.insert(insert_at, field)
+    # Option logic reads earlier questions: a move may not break that (it
+    # would silently drop the logic), nor take a question with option logic
+    # into a repeating group.
+    if form_has_option_logic(form):
+        problem = next(
+            (p.message for p in option_logic_problems(form) if p.message not in known),
+            None,
+        )
+        if problem:
+            target.pop(insert_at)
+            container.insert(position, field)
+            raise OpError(f"Moving '{_title_text(field)}' there would break option logic: {problem}")
     # In or out of a repeating group: rules across the boundary don't apply.
     note = _dropped_rules_note(form)
     if where is None:
@@ -1742,6 +1846,118 @@ def _apply_set_field_logic(form: StandardForm, op: SetFieldLogicOp) -> str:
     return f"{verb} '{_title_text(field)}' when {len(conditions)} condition(s) match"
 
 
+def _option_question(form: StandardForm, field_id: str) -> StandardFormField:
+    """A page-level choice question: what option logic may sit on."""
+    _, parent, _, field, _ = _locate_field(form, field_id)
+    if parent is not None:
+        raise OpError(
+            f"'{_title_text(field)}' is in a repeating group: option logic is not "
+            "supported there yet."
+        )
+    if field.type not in CHOICE_TYPES or field.internal:
+        raise OpError(
+            f"'{_title_text(field)}' is not a single or multiple choice or dropdown "
+            "question (or is internal), so its options cannot have logic."
+        )
+    if field.properties is None:
+        field.properties = StandardFieldProperty()
+    return field
+
+
+def _option_of(field: StandardFormField, name: str, what: str = "option") -> StandardChoice:
+    """The option of ``field`` named by its id or its label (unique)."""
+    choices = (field.properties.choices if field.properties else None) or []
+    by_id = [c for c in choices if c.id == name]
+    found = by_id or [c for c in choices if name in (c.value, c.label)]
+    if not found:
+        labels = ", ".join(c.value or c.label or c.id or "?" for c in choices)
+        raise OpError(f"'{name}' is not an {what} of '{_title_text(field)}'. Options: {labels}")
+    if len(found) > 1:
+        raise OpError(f"'{name}' names more than one option of '{_title_text(field)}'; use the option's id.")
+    if not found[0].id:
+        raise OpError(f"An option of '{_title_text(field)}' has no id, so logic cannot name it.")
+    return found[0]
+
+
+def _new_option_problems(form: StandardForm, field_id: str, before: set) -> Optional[str]:
+    """The first problem option logic has now that it did not have
+    ``before`` (messages), for the question that changed."""
+    for problem in option_logic_problems(form):
+        if problem.field_id in (field_id, "") and problem.message not in before:
+            return problem.message
+    return None
+
+
+def _option_problem_messages(form: StandardForm, field_id: str) -> set:
+    return {p.message for p in option_logic_problems(form) if p.field_id in (field_id, "")}
+
+
+def _apply_set_option_logic(form: StandardForm, op: SetOptionLogicOp) -> str:
+    field = _option_question(form, op.field_id)
+    choice = _option_of(field, op.choice)
+    label = choice.value or choice.label or choice.id
+    if op.logic is None:
+        choice.logic = None
+        return f"Cleared the logic of the option '{label}' of '{_title_text(field)}'"
+    if len(op.logic.conditions) > OPTION_CONDITIONS_MAX:
+        raise OpError(f"An option can have at most {OPTION_CONDITIONS_MAX} conditions.")
+    conditions = _validated_conditions(form, op.logic.conditions, None)
+    previous = choice.logic
+    known = _option_problem_messages(form, field.id)
+    new_logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
+    # While CHOICE_LOGIC_ENABLED is off, only the logic the option already has
+    probe = field.model_copy(deep=True)
+    next(c for c in probe.properties.choices if c.id == choice.id).logic = new_logic
+    _check_choice_logic_allowed(probe, form)
+    choice.logic = new_logic
+    problem = _new_option_problems(form, field.id, known)
+    if problem:
+        choice.logic = previous
+        raise OpError(problem)
+    verb = "Offer" if op.logic.action == "SHOW" else "Hide"
+    return f"{verb} the option '{label}' of '{_title_text(field)}' when {len(conditions)} condition(s) match"
+
+
+def _apply_set_option_filter(form: StandardForm, op: SetOptionFilterOp) -> str:
+    field = _option_question(form, op.field_id)
+    if op.filter is None:
+        field.properties.option_filter = None
+        return f"Cleared the option filter of '{_title_text(field)}'"
+    _, source_parent, _, source, _ = _locate_field(form, op.filter.field_id)
+    if source_parent is not None or source.type not in CHOICE_TYPES:
+        raise OpError(
+            f"'{_title_text(source)}' is not a single or multiple choice or dropdown "
+            "question of a page, so options cannot be filtered by it."
+        )
+    mapping = []
+    for row in op.filter.mapping:
+        when = _option_of(source, row.when)
+        show = []
+        for name in row.show:
+            option = _option_of(field, name)
+            if option.id not in show:
+                show.append(option.id)
+        mapping.append(OptionFilterEntry(when=when.id, show=show))
+    try:
+        option_filter = OptionFilter(field_id=source.id, mapping=mapping)
+    except ValidationError as error:
+        raise OpError(_validation_message(error))
+    previous = field.properties.option_filter
+    known = _option_problem_messages(form, field.id)
+    probe = field.model_copy(deep=True)
+    probe.properties.option_filter = option_filter
+    _check_choice_logic_allowed(probe, form)
+    field.properties.option_filter = option_filter
+    problem = _new_option_problems(form, field.id, known)
+    if problem:
+        field.properties.option_filter = previous
+        raise OpError(problem)
+    return (
+        f"Filtered the options of '{_title_text(field)}' by the answer to "
+        f"'{_title_text(source)}' ({len(mapping)} row(s))"
+    )
+
+
 def _field_rule(
     form: StandardForm, spec: FieldRuleSpec, scope_group_id: Optional[str]
 ) -> FieldRule:
@@ -1863,9 +2079,14 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     # Field rules are not copied (rule ids are unique per form, and their
     # references point at the original page), as in the builder
     # (webapp utils/field-rule-copies.ts).
+    # Option logic is not copied either: a copy starts with every option
+    # offered (its conditions and filter name the original's options).
     for field in _subtree(clone):
         if field.properties is not None:
             field.properties.rules = None
+            field.properties.option_filter = None
+            for choice in field.properties.choices or []:
+                choice.logic = None
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None
@@ -2042,6 +2263,8 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
     if op.index < 0:
         raise OpError("A page's new position (index) must be 0 or more.")
     old = _pages(form).index(page)
+    before = list(form.fields)
+    known = {p.message for p in option_logic_problems(form)} if form_has_option_logic(form) else set()
     form.fields.remove(page)
     rest = _pages(form)
     target = min(op.index, len(rest))
@@ -2049,6 +2272,14 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
         form.fields.append(page)
     else:
         form.fields.insert(form.fields.index(rest[target]), page)
+    if form_has_option_logic(form):
+        problem = next(
+            (p.message for p in option_logic_problems(form) if p.message not in known),
+            None,
+        )
+        if problem:
+            form.fields[:] = before
+            raise OpError(f"Moving that page would break option logic: {problem}")
     if target == old:
         return f"Page {old + 1} stays at position {old + 1}"
     return f"Moved page {old + 1} to position {target + 1}"
@@ -2582,6 +2813,16 @@ def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
         raise OpError(DISABLED_MESSAGE)
 
 
+def _check_choice_logic_allowed(item: StandardFormField, form: StandardForm) -> None:
+    """While CHOICE_LOGIC_ENABLED is off, an op may give a question option
+    logic or a filter only as the form already has them
+    (services/option_logic.py)."""
+    if choice_logic_enabled():
+        return
+    if new_or_changed_option_logic(StandardForm(fields=[item]), form):
+        raise OpError(CHOICE_LOGIC_DISABLED_MESSAGE)
+
+
 def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> StandardFormField:
     """A question or page as the editor sends it, read the way a whole-form
     save reads it and checked like one: the stored model (its group and date
@@ -2602,6 +2843,7 @@ def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> Standar
     except ValueError as error:
         raise OpError(_validation_message(error))
     _check_rules_allowed(item, form)
+    _check_choice_logic_allowed(item, form)
     is_page = item.type == StandardFormFieldType.SLIDE
     if page and not is_page:
         raise OpError("insert_page needs a page: a field of type 'slide'.")
@@ -2638,7 +2880,7 @@ def _field_rule_messages(form: StandardForm) -> List[str]:
 
 def _new_problems(
     form: StandardForm,
-    before: Tuple[Set[str], Set[str], Set[str], Set[str]],
+    before: Tuple[Set[str], Set[str], Set[str], Set[str], Set[str]],
     prune_rules: bool = False,
 ) -> Optional[str]:
     """The first problem of ``form`` a whole-form save would refuse (logic
@@ -2662,15 +2904,23 @@ def _new_problems(
             continue
         if problem.message not in before[3]:
             return problem.message
+    for problem in _option_logic_messages(form):
+        if problem not in before[4]:
+            return problem
     return None
 
 
-def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str], Set[str]]:
+def _option_logic_messages(form: StandardForm) -> List[str]:
+    return [p.message for p in option_logic_problems(form)] if form_has_option_logic(form) else []
+
+
+def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str], Set[str], Set[str]]:
     return (
         set(internal_logic_violations(form)),
         set(date_rule_problems(form.fields)),
         set(_calculation_messages(form)),
         set(_field_rule_messages(form)),
+        set(_option_logic_messages(form)),
     )
 
 
@@ -3142,6 +3392,8 @@ _HANDLERS = {
     "update_form_info": _apply_update_form_info,
     "update_form_settings": _apply_update_form_settings,
     "set_field_logic": _apply_set_field_logic,
+    "set_option_logic": _apply_set_option_logic,
+    "set_option_filter": _apply_set_option_filter,
     "set_field_rules": _apply_set_field_rules,
     "set_page_jumps": _apply_set_page_jumps,
     "duplicate_page": _apply_duplicate_page,
@@ -3357,6 +3609,7 @@ def finished_form(working: StandardForm) -> StandardForm:
     # question with rules internal).
     prune_date_rules(working.fields)
     prune_field_rules(working)
+    prune_option_logic(working)
     # The schema is the final arbiter — a structurally invalid result must
     # never leave this function.
     return StandardForm.model_validate(working.model_dump())

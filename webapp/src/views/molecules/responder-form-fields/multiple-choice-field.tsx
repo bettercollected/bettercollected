@@ -1,16 +1,19 @@
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { offeredChoices, useOptionStates } from '@app/lib/hooks/use-option-states';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
-
+import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
+import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { moveOnFrom } from '@app/utils/scroll-utils';
-import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { cn } from '@app/shadcn/util/lib';
+import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+
+import OptionClearedNotice from './option-cleared-notice';
 import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -20,6 +23,9 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
     const { t } = useRespondentLanguage();
     const contentLang = useFormContentLanguage();
     const tokens = styleTokens(theme?.style);
+    // Only the options the form's option logic offers now (utils/option-logic.ts).
+    const optionStates = useOptionStates();
+    const inGroup = !!useGroupItemScope();
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
@@ -43,7 +49,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
 
     return (
         <QuestionWrapper field={field}>
-            <div className="w-full space-y-2 p-0">
+            <div className="space-y-2 w-full p-0">
                 {/* A real radio group: one tab stop, arrow keys move between the
                     options, and each option is announced as a radio button. */}
                 <WithQuestionLabel>
@@ -54,10 +60,16 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                             value={getSelectedValue() ?? null}
                             onChange={(value, { viaKeys }) => handleClick(value, !viaKeys)}
                             className={cn(tokens.ruledChoices ? '' : 'space-y-2')}
-                            options={(field.properties?.choices ?? []).map((choice, index) => ({ key: choice.id ?? String(index), value: choice.id ?? '', label: choice.value ? choice.value : `Item ${index + 1}`, lang: choice.value ? contentLang : undefined }))}
+                            options={offeredChoices(field.properties?.choices, field.id, optionStates, inGroup).map(({ choice, index }) => ({
+                                key: choice.id ?? String(index),
+                                value: choice.id ?? '',
+                                label: choice.value ? choice.value : `Item ${index + 1}`,
+                                lang: choice.value ? contentLang : undefined
+                            }))}
                         />
                     )}
                 </WithQuestionLabel>
+                {!inGroup && <OptionClearedNotice fieldId={field.id} />}
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
                         type="text"

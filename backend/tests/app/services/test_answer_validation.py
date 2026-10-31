@@ -161,6 +161,17 @@ def test_js_number(text, expected):
     assert (math.isnan(value) and math.isnan(expected)) or value == expected
 
 
+@pytest.mark.parametrize("tail", ["x", ".x", "e", "1e+", " 1"])
+def test_a_long_digit_string_that_is_not_a_number_is_read_in_linear_time(tail):
+    # The decimal pattern must fail in linear time on a long run of digits
+    # that is not a number.
+    text = "1" * 50_000 + tail
+    started = time.monotonic()
+    value = js_number(text)
+    assert math.isnan(value)
+    assert time.monotonic() - started < 1.0
+
+
 def test_javascript_escapes_are_rewritten_for_re2():
     assert to_re2_syntax("^caf\\u00e9$") == "^caf\\x{00e9}$"
     assert to_re2_syntax("\\u{1F600}") == "\\x{1F600}"
@@ -889,3 +900,47 @@ def test_a_huge_number_answer_is_a_type_problem_not_an_error():
     problems = _problems(pages, {"n": {"type": "number", "number": 10**400}})
     # Infinity is not a number answer; it is still greater than 5
     assert problems == sorted([("n", "type", None), ("q", "required", None)], key=str)
+
+
+# ---------------------------------------------------------------------------
+# A long digit string that ends in a letter (the decimal pattern must not
+# backtrack): linear time, and the same answers as the pattern it replaced
+# ---------------------------------------------------------------------------
+
+
+def test_a_long_digit_string_ending_in_a_letter_is_read_in_linear_time():
+    import math
+
+    for text in ("1" * 50_000 + "x", "1" * 50_000 + ".5" + "9" * 50_000 + "y", "-" + "1" * 50_000 + "e"):
+        started = time.perf_counter()
+        assert math.isnan(answer_validation.js_number(text))
+        assert time.perf_counter() - started < 0.5
+    # also through the comparison a date or text condition makes
+    from backend.app.services.repeating_groups import compare
+
+    started = time.perf_counter()
+    assert compare("1" * 50_000 + "x", "GREATER_THAN", "5") is False
+    assert time.perf_counter() - started < 0.5
+    # and through the type check of a number answer (a text where a number goes)
+    form = _form(
+        [{"id": "p1", "type": "slide", "properties": {"fields": [{"id": "n", "type": "number", "title": "N"}]}}]
+    )
+    started = time.perf_counter()
+    found = validate_answers(
+        form,
+        _answers({"n": {"type": "number", "number": "1" * 50_000 + "x"}}),
+        known_ids=answer_ids(form),
+    )
+    assert [(p.field_id, p.rule) for p in found] == [("n", "type")]
+    assert time.perf_counter() - started < 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["0", "1.", "1.5", ".5", "-.5e3", "+1E-2", "Infinity", "-Infinity", "1e", "e1", ".", "", "1..2", "1.e5", " 7 ", "1_0", "0x1f", "12.", "1.5.2", "+", "-", "++1", "1e+", "1ee1", "inf", "nan", "1,5"],
+)
+def test_the_decimal_pattern_accepts_what_it_accepted(text):
+    import re
+
+    old = re.compile(r"[+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
+    assert bool(answer_validation._JS_DECIMAL.fullmatch(text)) == bool(old.fullmatch(text))

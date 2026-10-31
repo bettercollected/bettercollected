@@ -9,6 +9,7 @@ import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { compilePattern } from '@app/utils/answer-rules';
+import type { OptionStates } from '@app/utils/option-logic';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 /**
@@ -297,7 +298,7 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
  * when it carries a value (`hasAnswerValue`), the same test the server applies
  * on submit (backend services/answer_validation.py).
  */
-export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>, states?: FieldRuleStates) {
+export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>, states?: FieldRuleStates, options?: OptionStates) {
     const invalidFields: Record<string, Array<Invalidations>> = {};
     slide?.properties?.fields?.forEach((field) => {
         // Repeating groups validate per item (utils/repeating-groups.ts).
@@ -314,7 +315,7 @@ export function validateSlide(slide: StandardFormFieldDto, answers: Record<strin
                     }
                 }
             });
-        } else if ((states ? states.isRequired(field.id, !!field?.validations?.required) : field?.validations?.required) && !hasAnswerValue(answers[field.id])) {
+        } else if ((states ? states.isRequired(field.id, !!field?.validations?.required) : field?.validations?.required) && !options?.isNoneLeft(field.id) && !hasAnswerValue(answers[field.id])) {
             invalidFields[field.id] = [Invalidations.REQUIRED];
         }
     });

@@ -25,6 +25,7 @@ applies its change to the stored copy, never to one read earlier.
 import datetime as dt
 import hashlib
 from contextlib import contextmanager
+from dataclasses import dataclass
 import json
 import re
 from http import HTTPStatus
@@ -34,12 +35,31 @@ from uuid import uuid4
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import EmailStr
-from sqlalchemy import and_, func, literal, or_, select
+from sqlalchemy import (
+    and_,
+    exists,
+    func,
+    literal,
+    literal_column,
+    not_,
+    or_,
+    select,
+    tuple_,
+)
 from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.orm import aliased
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.response_list import (
+    COUNT_CAP,
+    SORT_VERSION,
+    DeletionStatusFilter,
+    RespondentFilter,
+    ResponseListFilters,
+    ResponseListQuery,
+)
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.metric_periods import postgres_counts_per_period, utc
 from backend.app.repositories.postgres.forms import (
@@ -52,6 +72,8 @@ from backend.app.repositories.postgres.forms import (
     _text,
 )
 from backend.app.services import form_availability
+from backend.app.services.response_cursor import Anchor
+from backend.app.services.response_paging import Seek, plan
 from backend.app.repositories.response_scope import (
     ResponseScope,
     form_importers,
@@ -183,6 +205,124 @@ async def _locked_doc(session, row, *where: Any, document=None):
     return None if doc is None else decode(document, doc)
 
 
+@dataclass
+class ListedPage:
+    """One page of a form's responses from :meth:`list_form_page`."""
+
+    items: List[dict]
+    total: int
+    total_exact: bool
+    has_next: bool
+    # where this page begins (None for an empty page): the next cursor's anchor
+    first: Optional[Anchor]
+
+
+# ``doc ? 'answers'`` with the key written into the statement (not bound), so
+# the planner can match it against the partial index of revision 0025.
+_HAS_ANSWERS = FormResponseRow.doc.op("?")(literal_column("'answers'"))
+
+
+def _version_expr():
+    # the 0 is written into the statement (not bound) to match the expression
+    # of the index ``ix_form_responses_list_version``
+    return func.coalesce(FormResponseRow.form_version, literal_column("0"))
+
+
+def _first_request():
+    """$arrayElemAt [deletion_request.status, 0]: the first request, in natural
+    order, of this copy's workspace (or stored before requests had one)."""
+    r, dr = FormResponseRow, ResponseDeletionRequestRow
+    return (
+        select(dr.doc)
+        .where(
+            dr.response_id == r.response_id,
+            or_(dr.workspace_id == r.workspace_id, dr.workspace_id.is_(None)),
+        )
+        .order_by(dr.created_at, dr.id)
+        .limit(1)
+        .correlate(r)
+        .scalar_subquery()
+    )
+
+
+def _instant(moment: dt.datetime) -> dt.datetime:
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=dt.timezone.utc)
+    return moment.astimezone(dt.timezone.utc)
+
+
+def _requests_of(r, dr):
+    """The deletion requests a response row shows (those of this copy's
+    workspace, or stored before requests had one)."""
+    return and_(
+        dr.response_id == r.response_id,
+        or_(dr.workspace_id == r.workspace_id, dr.workspace_id.is_(None)),
+    )
+
+
+def _list_filters(filters: ResponseListFilters) -> list:
+    """The SQL conditions of the list filters (plaintext columns only; every
+    value is bound)."""
+    r, dr = FormResponseRow, ResponseDeletionRequestRow
+    where = []
+    # the instants as given, to the microsecond (``utc`` truncates to the second)
+    if filters.submitted_from is not None:
+        where.append(r.created_at >= _instant(filters.submitted_from))
+    if filters.submitted_to is not None:
+        where.append(r.created_at < _instant(filters.submitted_to))
+    if filters.respondent == RespondentFilter.ANONYMOUS:
+        where.append(
+            or_(r.data_owner_identifier.is_(None), r.data_owner_identifier == "")
+        )
+    elif filters.respondent == RespondentFilter.KNOWN:
+        where.append(
+            and_(r.data_owner_identifier.is_not(None), r.data_owner_identifier != "")
+        )
+    if filters.form_version:
+        # a response without a stored version is version 0, as the sort reads it
+        where.append(_version_expr().in_(sorted(set(filters.form_version))))
+    if filters.status:
+        # the status the row shows is that of its first request
+        # (``_first_request``): "none" is no request at all; any other is a
+        # request with that status that no earlier request of the row
+        # precedes. Written as (anti-)semi-joins, so a rare status is found
+        # from the requests, not by probing every response.
+        wanted = sorted(
+            s.value for s in filters.status if s != DeletionStatusFilter.NONE
+        )
+        terms = []
+        if DeletionStatusFilter.NONE in filters.status:
+            terms.append(not_(exists().where(_requests_of(r, dr)).correlate(r)))
+        if wanted:
+            earlier = aliased(ResponseDeletionRequestRow)
+            terms.append(
+                exists()
+                .where(
+                    _requests_of(r, dr),
+                    dr.status.in_(wanted),
+                    not_(
+                        exists()
+                        .where(
+                            _requests_of(r, earlier),
+                            tuple_(earlier.created_at, earlier.id)
+                            < tuple_(dr.created_at, dr.id),
+                        )
+                        .correlate(r, dr)
+                    ),
+                )
+                .correlate(r)
+            )
+        where.append(or_(*terms))
+    if filters.search:
+        where.extend(
+            _filter_terms(
+                FormResponseRow.doc,
+                FormResponseFilterQuery(data_owner_identifier=filters.search),
+            )
+        )
+    return where
+
+
 class PostgresFormResponseRepository(RecordRepository):
     row = FormResponseRow
     document = FormResponseDocument
@@ -213,7 +353,6 @@ class PostgresFormResponseRepository(RecordRepository):
         sort: SortRequest = None,
     ) -> Page:
         titles = await self._form_titles(list(scope.form_ids))
-        dr = ResponseDeletionRequestRow
         where = [
             _in_scope(FormResponseRow, scope),
             FormResponseRow.form_id.in_(list(titles)),
@@ -222,24 +361,8 @@ class PostgresFormResponseRepository(RecordRepository):
         ]
         if data_owner_identifier is not None:
             where.append(FormResponseRow.data_owner_identifier == data_owner_identifier)
-        # $arrayElemAt [deletion_request.status, 0]: the first request, in natural
-        # order, of this copy's workspace (or stored before requests had one)
-        first_request = (
-            select(dr.doc)
-            .where(
-                dr.response_id == FormResponseRow.response_id,
-                or_(
-                    dr.workspace_id == FormResponseRow.workspace_id,
-                    dr.workspace_id.is_(None),
-                ),
-            )
-            .order_by(dr.created_at, dr.id)
-            .limit(1)
-            .correlate(FormResponseRow)
-            .scalar_subquery()
-        )
         stmt = (
-            select(FormResponseRow.doc, first_request)
+            select(FormResponseRow.doc, _first_request())
             .where(*where)
             .order_by(
                 *_sort_terms(
@@ -264,6 +387,123 @@ class PostgresFormResponseRepository(RecordRepository):
 
         async with self._session() as session:
             return await apaginate(session, stmt, transformer=transform, unique=False)
+
+    async def list_form_page(
+        self,
+        scope: ResponseScope,
+        query: ResponseListQuery,
+        anchor: Optional[Anchor] = None,
+    ) -> ListedPage:
+        """One page of one form's responses, filtered and sorted on plaintext
+        columns, reached by a seek on the sort index (``response_paging``)
+        instead of counting every row before it. The total is exact up to
+        ``COUNT_CAP`` rows. Answers stay encrypted: this reads and returns the
+        stored documents as ``get_form_responses`` does."""
+        (form_id,) = scope.form_ids
+        titles = await self._form_titles([form_id])
+        if form_id not in titles:
+            return ListedPage([], 0, True, False, None)
+        r, dr = FormResponseRow, ResponseDeletionRequestRow
+        # this workspace's copies of the form's responses (or, stored before
+        # #768 and with the form linked here alone, those without a workspace):
+        # ``form_id`` is the one leading condition, so the sort indexes, which
+        # start with it, apply whatever the workspace condition is
+        in_workspace = r.workspace_id == str(scope.workspace_id)
+        if form_id in scope.legacy_form_ids:
+            in_workspace = or_(in_workspace, r.workspace_id.is_(None))
+        here = and_(r.form_id == form_id, in_workspace)
+        # a response without a stored submission time cannot be placed in the
+        # order (none is expected); it is left out of the list and of its count
+        where = [
+            here,
+            _HAS_ANSWERS,
+            r.created_at.is_not(None),
+            *_list_filters(query.filters),
+        ]
+
+        async with self._session() as session:
+            counted = (
+                await session.execute(
+                    select(func.count()).select_from(
+                        # in index order: the scan stops at the cap instead of
+                        # reading the form to find enough rows
+                        select(literal(1))
+                        .where(*where)
+                        .order_by(r.created_at)
+                        .limit(COUNT_CAP + 1)
+                        .subquery()
+                    )
+                )
+            ).scalar_one()
+        total_exact = counted <= COUNT_CAP
+        total = min(counted, COUNT_CAP)
+
+        seek = plan(
+            query.page,
+            query.size,
+            total,
+            total_exact,
+            anchor.page if anchor is not None else None,
+        )
+        if seek.empty:
+            return ListedPage([], total, total_exact, False, None)
+
+        by_version = query.sort_by == SORT_VERSION
+        keys = [*([_version_expr()] if by_version else []), r.created_at, r.id]
+        # forward = along the requested order; a reverse seek scans against it
+        ascending = (not query.descending) != seek.reverse
+        order = [k.asc() if ascending else k.desc() for k in keys]
+        stmt_where = list(where)
+        if seek.anchor is not None:
+            # row comparison on the index columns: after (or from) the anchor
+            # in the scan direction; the anchor's values are bound parameters
+            bound = tuple_(
+                *[literal(v, type_=k.type) for v, k in zip(anchor.key(), keys)]
+            )
+            mine = tuple_(*keys)
+            inclusive = seek.anchor == "inclusive"
+            if ascending:
+                stmt_where.append(mine >= bound if inclusive else mine > bound)
+            else:
+                stmt_where.append(mine <= bound if inclusive else mine < bound)
+
+        stmt = (
+            select(r.doc, _first_request(), _version_expr(), r.created_at, r.id)
+            .where(*stmt_where)
+            .order_by(*order)
+            .offset(seek.offset)
+            .limit(seek.limit)
+        )
+        async with self._session() as session:
+            rows = (await session.execute(stmt)).all()
+        if seek.reverse:
+            rows.reverse()
+
+        if seek.source == "end":
+            has_next = query.page * query.size < total
+        elif seek.reverse:
+            has_next = True  # the anchor row follows this page
+        else:
+            has_next = len(rows) > query.size
+        rows = rows[: query.size]
+
+        items = []
+        for doc, request_doc, _, _, _ in rows:
+            response = from_canonical_document(doc)
+            response["form_title"] = titles[response["form_id"]]
+            if request_doc is not None:  # $arrayElemAt: unset without a request
+                response["status"] = from_canonical_document(request_doc).get("status")
+            items.append(response)
+        first = None
+        if rows:
+            _, _, version, created_at, row_id = rows[0]
+            first = Anchor(
+                page=query.page,
+                version=version if by_version else None,
+                created_at=created_at,
+                row_id=row_id,
+            )
+        return ListedPage(items, total, total_exact, has_next, first)
 
     async def get_workspace_responders(
         self,

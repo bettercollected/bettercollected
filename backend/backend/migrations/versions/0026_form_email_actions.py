@@ -1,7 +1,7 @@
 """form email actions, and the action type of the action log
 
 Revision ID: 0026
-Revises: 0024
+Revises: 0025
 Create Date: 2026-10-31
 
 One new table (``backend/app/services/email_actions``): a form's email
@@ -25,7 +25,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0026"
-down_revision: Union[str, None] = "0024"
+down_revision: Union[str, None] = "0025"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -134,6 +134,10 @@
         "MORE_one": "{{count}} more change on this page.",
         "MORE_other": "{{count}} more changes on this page."
     },
+    "OPTIONS": {
+        "CLEARED_one": "{{options}} is no longer available, so it was removed from your answer. Please check your answer.",
+        "CLEARED_other": "{{options}} are no longer available, so they were removed from your answer. Please check your answer."
+    },
     "RULE": {
         "TOO_SHORT_one": "Use at least {{count}} character.",
         "TOO_SHORT_other": "Use at least {{count}} characters.",
@@ -152,7 +156,8 @@
         "TOO_MANY_CHOICES_one": "Choose at most {{count}} option.",
         "TOO_MANY_CHOICES_other": "Choose at most {{count}} options.",
         "SERVER_TYPE": "This answer could not be accepted. Please answer the question again.",
-        "SERVER_CHOICE": "Choose one of the options shown."
+        "SERVER_CHOICE": "Choose one of the options shown.",
+        "SERVER_OPTION": "One of the options you chose is no longer available. Please choose again."
     },
     "DATE": {
         "PICK": "Pick a date",

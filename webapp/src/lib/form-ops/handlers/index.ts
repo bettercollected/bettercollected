@@ -4,6 +4,7 @@ import { addChoice, insertField, insertPage, moveChoice, removeChoice, replaceFi
 import { addEnding, removeEnding, setEndings, updateEnding } from './endings';
 import { addField, addGroup, moveField, removeField, setFieldLogic, setFieldValidation, updateField } from './fields';
 import { setFormLanguage, setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
+import { setOptionFilter, setOptionLogic } from './options';
 import { addPage, duplicatePage, movePage, removePage, setPageJumps, setQuestionNumbering, setSectionTitle } from './pages';
 import { setFieldRules } from './rules';
 
@@ -19,6 +20,8 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     update_form_info: updateFormInfo,
     update_form_settings: updateFormSettings,
     set_field_logic: setFieldLogic,
+    set_option_logic: setOptionLogic,
+    set_option_filter: setOptionFilter,
     set_field_rules: setFieldRules,
     set_page_jumps: setPageJumps,
     duplicate_page: duplicatePage,

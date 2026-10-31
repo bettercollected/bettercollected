@@ -85,6 +85,13 @@ class Application(StoreBackedSettings):
     # until an operator turns rules on): those saves are refused with 422
     # field_rules_disabled; stored rules are kept and still enforced.
     FIELD_RULES_ENABLED: bool = False
+    # Choice logic (services/option_logic.py: options shown or hidden by
+    # answers, options filtered by an earlier answer) may be created or
+    # changed through the API, the builder save, edit operations, templates and
+    # the AI and MCP paths. Off (the default, kept off until the 4.2
+    # release): those saves are refused with 422 choice_logic_disabled;
+    # stored choice logic is kept and still enforced.
+    CHOICE_LOGIC_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

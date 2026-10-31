@@ -9,6 +9,7 @@ import { FormTheme } from '@app/constants/theme';
 import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
 import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { useClearUnavailableOptions, useOptionStates } from '@app/lib/hooks/use-option-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
@@ -153,6 +154,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);
     // What the rules decide now: effective Required, locked questions.
     const ruleStates = useFieldRuleStates();
+    // Options the form's option logic no longer offers are cleared from the
+    // answers (the question says so), and a question with nothing to choose
+    // is not required.
+    useClearUnavailableOptions(standardForm?.fields);
+    const optionStates = useOptionStates();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
@@ -317,7 +323,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // Only validate fields the responder can actually see.
         const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
         const invalidations = {
-            ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}, ruleStates),
+            ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}, ruleStates, optionStates),
             // Repeating groups: item limits, and required questions per item
             // (keyed by the item-scoped id the question renders under).
             ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources, ruleStates)
@@ -325,7 +331,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // Answer rules (length, format, value range, number of options) on
         // answers given; a missing one is Required's to report.
         // (A question the form sets or locks is not the respondent's to correct.)
-        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources, ruleStates.locked)).forEach(([id, problems]) => {
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources, ruleStates.locked, optionStates)).forEach(([id, problems]) => {
             if (!invalidations[id]) invalidations[id] = problems as any;
         });
         // Date rules (e.g. "after Start date"), on top of a missing answer.

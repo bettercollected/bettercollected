@@ -84,6 +84,7 @@ environment, whatever the tier.
 | `API_ENABLE_EXPORT_CSV` | features | backend | bool |  | R | T1 | `false` |
 | `API_ENABLE_FORM_CREATION` | features | backend | bool |  | R | T1 | `false` |
 | `API_ENABLE_GOOGLE_PICKER_API` | features | backend | bool |  | R | T1 | `false` |
+| `CHOICE_LOGIC_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |

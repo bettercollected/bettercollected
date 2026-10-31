@@ -17,9 +17,11 @@ interface ISearchInputProps {
     ariaLabel?: string;
     /** The search already in effect (a list opened again where it was left). */
     defaultValue?: string;
+    /** The longest search the server takes. */
+    maxLength?: number;
 }
 
-export default function SearchInput({ handleSearch, className, placeholder, ariaLabel, defaultValue }: ISearchInputProps) {
+export default function SearchInput({ handleSearch, className, placeholder, ariaLabel, defaultValue, maxLength }: ISearchInputProps) {
     const { t } = useTranslation();
     // The debounce is created once and calls the latest handler: callers pass a
     // fresh function on every render, and a re-render inside the 500 ms window
@@ -38,6 +40,7 @@ export default function SearchInput({ handleSearch, className, placeholder, aria
             name="search-input"
             placeholder={placeholderText}
             defaultValue={defaultValue}
+            maxLength={maxLength}
             onChange={debouncedResults}
             className={cn('w-full bg-white h-[40px] rounded', className)}
             icon={<SearchIcon />}
