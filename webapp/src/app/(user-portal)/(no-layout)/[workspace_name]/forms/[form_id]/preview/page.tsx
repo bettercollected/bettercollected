@@ -50,7 +50,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
             <Form isPreviewMode />
         </div>
         <div className="relative z-40 shrink-0">
-            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
+            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} emailDestination={data?.emailDestination} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
         </div>
     </div>
 }

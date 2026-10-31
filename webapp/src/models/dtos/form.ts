@@ -166,6 +166,12 @@ export interface StandardFormDto {
      * answers on: the host names of the destinations. The privacy panel names them.
      */
     webhookDestination?: { hosts: string[] } | null;
+    /**
+     * Only on the published form read, while an enabled email action mails this
+     * form's answers on: `team` to the form's team, `copy` a copy to the
+     * respondent. The privacy panel says so.
+     */
+    emailDestination?: { team: boolean; copy: boolean } | null;
     welcomePage?: {
         title?: string;
         description?: string;

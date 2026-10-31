@@ -5,11 +5,12 @@ webhooks, the action log and the audit trail. Queries use the spine columns of
 import datetime as dt
 from typing import Iterable, List, Optional, Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.schemas.webhook import (
     ActionLogDocument,
+    ActionType,
     FormWebhookDocument,
     LogStatus,
     WebhookAuditDocument,
@@ -162,8 +163,9 @@ class PostgresActionLogRepository(RecordRepository):
         statuses: Optional[Sequence[str]] = None,
         limit: int = 50,
         offset: int = 0,
+        action_type: ActionType = ActionType.WEBHOOK,
     ) -> List[ActionLogDocument]:
-        where = self._form_where(workspace_id, form_id, statuses)
+        where = self._form_where(workspace_id, form_id, statuses, action_type)
         async with self._session() as session:
             docs = (
                 (
@@ -180,35 +182,61 @@ class PostgresActionLogRepository(RecordRepository):
             )
         return [decode(self.document, d) for d in docs]
 
-    async def count_for_form(self, workspace_id, form_id, statuses=None) -> int:
-        return await self.count(*self._form_where(workspace_id, form_id, statuses))
+    async def count_for_form(
+        self, workspace_id, form_id, statuses=None, action_type=ActionType.WEBHOOK
+    ) -> int:
+        return await self.count(
+            *self._form_where(workspace_id, form_id, statuses, action_type)
+        )
 
     @staticmethod
-    def _form_where(workspace_id, form_id, statuses):
+    def _of_type(action_type: ActionType):
+        """Rows of one kind of action (a row without a type is a webhook's)."""
+        if action_type is ActionType.WEBHOOK:
+            return or_(
+                ActionLogRow.action_type == ActionType.WEBHOOK.value,
+                ActionLogRow.action_type.is_(None),
+            )
+        return ActionLogRow.action_type == action_type.value
+
+    @classmethod
+    def _form_where(cls, workspace_id, form_id, statuses, action_type=ActionType.WEBHOOK):
         where = [
             ActionLogRow.workspace_id == _id(workspace_id),
             ActionLogRow.form_id == _id(form_id),
+            cls._of_type(action_type),
         ]
         if statuses:
             where.append(ActionLogRow.status.in_(list(statuses)))
         return where
 
-    async def list_pending_before(self, created_before: dt.datetime, limit: int) -> List[ActionLogDocument]:
+    async def list_pending_before(
+        self,
+        created_before: dt.datetime,
+        limit: int,
+        action_type: ActionType = ActionType.WEBHOOK,
+    ) -> List[ActionLogDocument]:
         return await self.many(
             ActionLogRow.status == LogStatus.PENDING.value,
             ActionLogRow.created_at < created_before,
+            self._of_type(action_type),
             order_by=(ActionLogRow.created_at, ActionLogRow.id),
             limit=limit,
         )
 
     async def list_stuck(
-        self, status: LogStatus, updated_before: dt.datetime, limit: int
+        self,
+        status: LogStatus,
+        updated_before: dt.datetime,
+        limit: int,
+        action_type: ActionType = ActionType.WEBHOOK,
     ) -> List[ActionLogDocument]:
         """``in_progress`` or ``retrying`` rows that did not move for a while:
         the worker died, or the job of a retry is gone."""
         return await self.many(
             ActionLogRow.status == status.value,
             ActionLogRow.updated_at < updated_before,
+            self._of_type(action_type),
             order_by=(ActionLogRow.updated_at, ActionLogRow.id),
             limit=limit,
         )

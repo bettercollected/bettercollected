@@ -46,7 +46,7 @@ T1 = "API_FLOW_EVENTS_PER_WINDOW"
 T2 = "AI_DEFAULT_PROVIDER"
 T3 = "AI_COMPAT_BASE_URL"
 SECRET = "SSO_POLIS_API_KEY"  # secret, T3, read by backend
-AUTH_ONLY = "MAIL_PASSWORD"  # secret, T3, read by auth and admin
+AUTH_ONLY = "STRIPE_WEBHOOK_SECRET"  # secret, T3, read by auth only (admin has no view)
 T4 = "AUTH_JWT_SECRET"
 
 

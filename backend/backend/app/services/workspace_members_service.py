@@ -55,9 +55,11 @@ class WorkspaceMembersService:
         workspace_form_service: WorkspaceFormService,
         authorization_service: AuthorizationService,
         scim_directory_repo=None,
+        email_action_service=None,
     ):
         # a membership the workspace's SCIM directory manages is shown as such
         self._scim_directories = scim_directory_repo
+        self._email_action_service = email_action_service
         self.workspace_user_service = workspace_user_service
         self.authorization_service = authorization_service
         self.workspace_invitation_repository = workspace_invitation_repo
@@ -332,6 +334,11 @@ class WorkspaceMembersService:
             await self.workspace_invitation_repository.update_status_to_removed(
                 workspace_id, users_info[0].get("email")
             )
+            if self._email_action_service is not None:
+                # their address leaves the email actions' team lists
+                await self._email_action_service.forget_address(
+                    users_info[0].get("email"), workspace_id
+                )
         return {"message": "Deleted Successfully"}
 
     async def delete_workspace_invitation_by_token(
