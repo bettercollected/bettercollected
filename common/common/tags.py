@@ -2,12 +2,13 @@
 
 An answer is ``{"type": "tags", "tags": ["a", "b"]}``. A tag is stored the way
 it is shown: trimmed and not empty, without ``,`` or ``;`` (they separate tags
-in the input and in an export) or control characters, at most ``TAG_LENGTH_MAX``
+in the input and in an export), control characters or format characters
+(zero-width and bidirectional marks), at most ``TAG_LENGTH_MAX``
 characters, and no two tags are the same ignoring case. At most ``TAGS_MAX``
 tags. The webapp keeps the same rules (``webapp/src/utils/tags.ts``).
 """
 
-import re
+import unicodedata
 from typing import Iterable, List, Optional
 
 # Tags one answer may hold, and the characters of one tag (the hard caps: a
@@ -15,7 +16,18 @@ from typing import Iterable, List, Optional
 TAGS_MAX = 30
 TAG_LENGTH_MAX = 40
 
-_FORBIDDEN = re.compile(r"[,;\x00-\x1f\x7f-\x9f  ]")
+# ``,`` and ``;`` separate tags; control characters (Cc), format characters (Cf:
+# zero-width and bidirectional marks, the byte order mark, the soft hyphen) and the
+# line and paragraph separators (Zl, Zp) never belong in one: they reverse or hide
+# text in a view and defeat the comparison of two tags.
+_FORBIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp"})
+
+
+def _has_forbidden(value: str) -> bool:
+    return any(
+        char in ",;" or unicodedata.category(char) in _FORBIDDEN_CATEGORIES
+        for char in value
+    )
 
 
 def is_tag(value: object) -> bool:
@@ -25,7 +37,7 @@ def is_tag(value: object) -> bool:
         isinstance(value, str)
         and value != ""
         and value == value.strip()
-        and _FORBIDDEN.search(value) is None
+        and not _has_forbidden(value)
     )
 
 

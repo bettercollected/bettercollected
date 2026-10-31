@@ -28,9 +28,35 @@ describe('tags', () => {
         expect(isTag(tag)).toBe(false);
     });
 
-    it('trims as the server does, not as JavaScript does (U+FEFF is not trimmed there)', () => {
-        expect(isTag('﻿a')).toBe(true);
-        expect(isTag('a　')).toBe(false);
+    it('trims as the server does: an ideographic space at the edge is refused', () => {
+        expect(isTag('a\u3000')).toBe(false);
+        expect(isTag('\u3000a')).toBe(false);
+        expect(isTag('a\u3000b')).toBe(true);
+    });
+
+    // Format characters (Cf) reverse text in a view, hide in it, and defeat the comparison of two tags.
+    it.each([
+        ['U+061C Arabic letter mark', '\u061c'],
+        ['U+200B zero-width space', '\u200b'],
+        ['U+200C zero-width non-joiner', '\u200c'],
+        ['U+200D zero-width joiner', '\u200d'],
+        ['U+200E left-to-right mark', '\u200e'],
+        ['U+200F right-to-left mark', '\u200f'],
+        ['U+202A left-to-right embedding', '\u202a'],
+        ['U+202B right-to-left embedding', '\u202b'],
+        ['U+202C pop directional formatting', '\u202c'],
+        ['U+202D left-to-right override', '\u202d'],
+        ['U+202E right-to-left override', '\u202e'],
+        ['U+2066 left-to-right isolate', '\u2066'],
+        ['U+2067 right-to-left isolate', '\u2067'],
+        ['U+2068 first strong isolate', '\u2068'],
+        ['U+2069 pop directional isolate', '\u2069'],
+        ['U+FEFF byte order mark', '\ufeff'],
+        ['U+00AD soft hyphen', '\u00ad']
+    ])('refuses %s, inside a tag and alone', (_name, character) => {
+        expect(isTag(`re${character}d`)).toBe(false);
+        expect(isTag(character)).toBe(false);
+        expect(isTag(`${character}red`)).toBe(false);
     });
 
     it('compares ignoring case with toLowerCase, and finds the first repeat', () => {

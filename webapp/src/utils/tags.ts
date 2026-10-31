@@ -2,7 +2,8 @@
  * What a tags answer may hold: short free-entry labels. An answer is
  * `{ type: 'tags', tags: ['a', 'b'] }`. A tag is stored the way it is shown:
  * trimmed and not empty, without `,` or `;` (they separate tags in the input
- * and in an export) or control characters, at most TAG_LENGTH_MAX characters,
+ * and in an export), control characters or format characters (zero-width and
+ * bidirectional marks), at most TAG_LENGTH_MAX characters,
  * and no two tags the same ignoring case. At most TAGS_MAX tags. The server's
  * twin: common `tags.py`.
  */
@@ -11,8 +12,10 @@
 export const TAGS_MAX = 30;
 export const TAG_LENGTH_MAX = 40;
 
-// , and ; separate tags; the C0 and C1 control characters, and the line and paragraph separators, never belong in one.
-const FORBIDDEN = /[,;\x00-\x1f\x7f-\x9f\u2028\u2029]/;
+// , and ; separate tags; control characters (Cc), format characters (Cf: zero-width and bidirectional marks, the byte
+// order mark, the soft hyphen) and the line and paragraph separators (Zl, Zp) never belong in one: they reverse or hide
+// text in a view and defeat the comparison of two tags (the server's twin: common `tags.py`).
+const FORBIDDEN = /[,;]|[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
 // What Python's str.strip() removes (the server's notion of "trimmed"), not what JavaScript's trim() does (it also strips U+FEFF).
 const PY_SPACE = '\\t\\n\\v\\f\\r \\x1c-\\x1f\\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
 const EDGE_SPACE = new RegExp(`^[${PY_SPACE}]|[${PY_SPACE}]$`);

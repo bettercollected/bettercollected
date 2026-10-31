@@ -80,9 +80,13 @@ currency). In the exports a time is `HH:MM`, a day `YYYY-MM-DD` and a currency
 A date range needs both ends once either is typed, and the end is not before
 the start (the same day is fine). A tag is stored the way it is shown: trimmed,
 not empty, without `,` or `;` (they separate tags in the box and in an export)
-or control characters, and no two tags are the same ignoring case; a question
-holds at most 30 tags of at most 40 characters, and its own limits can only be
-lower. The server refuses an answer with the rule codes `format` (a day that
+or control or format characters (zero-width and bidirectional marks, the byte
+order mark, the soft hyphen: they reverse or hide text and defeat the
+comparison), and no two tags are the same ignoring case; a question holds at
+most 30 tags of at most 40 characters, and its own limits can only be lower.
+These hard rules hold for every stored tags answer, a hidden or skipped
+question's too; the question's own limits are checked for the questions a
+respondent answers. The server refuses an answer with the rule codes `format` (a day that
 does not exist, a tag that is empty, untrimmed or has a forbidden character),
 `required` (only one end of a range), `range_order` (the end is before the
 start), `too_long` (a tag over its length), `duplicate`, `too_few_choices` and

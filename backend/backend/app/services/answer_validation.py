@@ -685,10 +685,33 @@ def type_problem(
             return TYPE
         if slot == "date_range" and not _date_range_shape(value):
             return TYPE
-        if slot == "tags" and not (
-            isinstance(value, list) and all(isinstance(tag, str) for tag in value)
-        ):
-            return TYPE
+        if slot == "tags":
+            if not (
+                isinstance(value, list) and all(isinstance(tag, str) for tag in value)
+            ):
+                return TYPE
+            # the hard rules hold for every stored tags answer, a hidden or
+            # skipped question's too (the question's own limits are the
+            # rule check's, for the questions a respondent answers)
+            hard = _tags_hard_problem(value)
+            if hard:
+                return hard
+    return None
+
+
+def _tags_hard_problem(tags: List[str]) -> Optional[str]:
+    """What no tags answer may break whatever the question says: a tag that is
+    not well-formed (empty, untrimmed, ``,`` ``;`` or a control or format
+    character), one over ``TAG_LENGTH_MAX``, a repeat ignoring case, more than
+    ``TAGS_MAX`` tags."""
+    if not all(is_tag(tag) for tag in tags):
+        return FORMAT
+    if any(len(tag) > TAG_LENGTH_MAX for tag in tags):
+        return TOO_LONG
+    if duplicate_index(tags) is not None:
+        return DUPLICATE
+    if len(tags) > TAGS_MAX:
+        return TOO_MANY_CHOICES
     return None
 
 
@@ -1117,6 +1140,16 @@ def validate_answers(
                     options=options,
                 )
     budget.log()
+    # the type check and the rule check can both say the same thing of one
+    # answer (a tags answer with a repeat): once is enough
+    seen = set()
+    unique: List[AnswerProblem] = []
+    for problem in problems:
+        marker = (problem.field_id, problem.rule, problem.item, problem.key)
+        if marker not in seen:
+            seen.add(marker)
+            unique.append(problem)
+    problems = unique
     if only is not None:
         keys = set(only)
         problems = [problem for problem in problems if problem.key in keys]

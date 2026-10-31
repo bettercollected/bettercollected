@@ -14297,6 +14297,1091 @@
           "rule": "too_small"
         }
       ]
+    },
+    {
+      "name": "tags with a right-to-left override inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re‮d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a zero-width space inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re​d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a right-to-left mark inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re‏d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with an Arabic letter mark inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re؜d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a bidirectional isolate inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re⁦d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a byte order mark inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re﻿d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a soft hyphen inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re­d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a zero-width joiner inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re‍d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a zero-width non-joiner inside a label is not a tag",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re‌d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a zero-width space do not pass for a different label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "re​d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a right-to-left override at the start",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "‮txet"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a byte order mark alone",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "﻿"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with accented and right-to-left letters are fine",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "café",
+            "שלום",
+            "日本語"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a hidden tags question keeps the caps: too many tags",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29",
+            "t30"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question keeps the caps: a tag over 40 characters",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question keeps the caps: a tag with a comma",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red,blue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question keeps the caps: a tag with a right-to-left override",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "re‮d"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question keeps the caps: the same tag twice",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "A"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        }
+      ]
+    },
+    {
+      "name": "a hidden tags question does not take the question's own limits",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "b",
+            "c",
+            "d"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a hidden tags question holds what is within the caps",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              },
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 3,
+                  "maxLength": 10
+                },
+                "properties": {
+                  "logic": {
+                    "action": "HIDE",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q0",
+                        "fieldType": "short_text",
+                        "comparison": "IS_EQUAL",
+                        "value": "hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "hide"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a shown tags question with a repeat is told once",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "A"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        }
+      ]
+    },
+    {
+      "name": "a tags question left out by a page jump keeps the caps",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "jumps": [
+              {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "fieldId": "q0",
+                    "fieldType": "short_text",
+                    "comparison": "IS_EQUAL",
+                    "value": "skip"
+                  }
+                ],
+                "target": "p3"
+              }
+            ],
+            "fields": [
+              {
+                "id": "q0",
+                "type": "short_text",
+                "title": "q0"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p3",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q0": {
+          "type": "text",
+          "text": "skip"
+        },
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29",
+            "t30"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
     }
   ]
 }
