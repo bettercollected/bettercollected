@@ -126,6 +126,10 @@ export interface FormSettingsPatch {
     requireVerifiedIdentity?: boolean | null;
     allowEditingResponse?: boolean | null;
     showSubmissionNumber?: boolean | null;
+    /** Let respondents save a draft and continue later (off by default). */
+    allowSaveDraft?: boolean | null;
+    /** Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30. */
+    draftRetentionDays?: number | null;
 }
 
 // ---------------------------------------------------------------------------

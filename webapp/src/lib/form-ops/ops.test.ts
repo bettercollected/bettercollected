@@ -237,6 +237,19 @@ describe('form-level ops', () => {
         expect((untouched.doc.settings as any).purpose).toBe('Research');
     });
 
+    it('sets the save-and-continue-later switch and its days like the server: 0 is the default, 91 is refused', () => {
+        const on = one({ op: 'update_form_settings', patch: { allowSaveDraft: true, draftRetentionDays: 45 } });
+        expect(on.result.message).toBe('Updated form settings: saving drafts, how long drafts are kept');
+        expect(on.doc.settings).toMatchObject({ allowSaveDraft: true, draftRetentionDays: 45 });
+        const reset = applyOps(on.doc, [{ op: 'update_form_settings', patch: { draftRetentionDays: 0 } }]);
+        expect(reset.results[0].ok).toBe(true);
+        expect(reset.doc.settings).toMatchObject({ allowSaveDraft: true });
+        expect((reset.doc.settings as any).draftRetentionDays).toBeUndefined();
+        for (const days of [91, -1, 2.5]) expect(one({ op: 'update_form_settings', patch: { draftRetentionDays: days } }).result.ok).toBe(false);
+        expect(one({ op: 'update_form_settings', patch: { draftRetentionDays: 91 } }).result.message).toBe('Drafts are kept between 1 and 90 days (0 is the default of 30).');
+        expect(one({ op: 'update_form_settings', patch: {} }).result.message).toContain('allowSaveDraft, draftRetentionDays');
+    });
+
     it('applies presets by name, legacy names included, and keeps the style', () => {
         const ocean = one({ op: 'set_theme_preset', name: ' blue ' });
         expect(ocean.result.message).toBe("Applied the 'Ocean' theme");

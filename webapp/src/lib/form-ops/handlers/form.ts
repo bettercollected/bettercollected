@@ -29,10 +29,22 @@ const SETTINGS_LABELS: Record<keyof FormSettingsPatch, string> = {
     privacyPolicyUrl: 'privacy policy link',
     requireVerifiedIdentity: 'verified-identity requirement',
     allowEditingResponse: 'response editing',
-    showSubmissionNumber: 'submission numbers'
+    showSubmissionNumber: 'submission numbers',
+    allowSaveDraft: 'saving drafts',
+    draftRetentionDays: 'how long drafts are kept'
 };
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'allowSaveDraft'] as const;
+
+const MAX_DRAFT_DAYS = 90;
+const DEFAULT_DRAFT_DAYS = 30;
+
+/** The days a draft is kept (backend `normalized_draft_retention_days`): a whole number from 1 to 90, or 0 for the default. */
+export function checkedDraftRetentionDays(days: unknown): number {
+    if (typeof days !== 'number' || !Number.isInteger(days)) throw new OpError('Drafts are kept a whole number of days.');
+    if (days < 0 || days > MAX_DRAFT_DAYS) throw new OpError(`Drafts are kept between 1 and ${MAX_DRAFT_DAYS} days (0 is the default of ${DEFAULT_DRAFT_DAYS}).`);
+    return days;
+}
 
 const MAX_POLICY_URL_LENGTH = 2048;
 const UNSAFE_URL = /[\s\x00-\x1f\x7f]/;
@@ -65,6 +77,8 @@ export function applySettingsPatch(settings: Record<string, any>, patch: FormSet
         const value = patch[key];
         if (value != null && settings[key] !== value) settings[key] = value;
     }
+    // 0 goes back to the default (none stored)
+    if (patch.draftRetentionDays != null) setKey(settings, 'draftRetentionDays', patch.draftRetentionDays || undefined);
 }
 
 /**
@@ -77,9 +91,10 @@ export const updateFormSettings: Handler<UpdateFormSettingsOp> = (ctx, op) => {
     const patch = op.patch ?? {};
     const changed = (Object.keys(SETTINGS_LABELS) as Array<keyof FormSettingsPatch>).filter((key) => patch[key] != null).map((key) => SETTINGS_LABELS[key]);
     if (!changed.length) {
-        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber.');
+        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, allowSaveDraft, draftRetentionDays.');
     }
     if (patch.privacyPolicyUrl != null) checkedPolicyUrl(patch.privacyPolicyUrl);
+    if (patch.draftRetentionDays != null) checkedDraftRetentionDays(patch.draftRetentionDays);
     if (ctx.options.applySettings !== false) {
         if (ctx.draft.settings == null) ctx.draft.settings = {} as any;
         applySettingsPatch(ctx.draft.settings as Record<string, any>, patch);

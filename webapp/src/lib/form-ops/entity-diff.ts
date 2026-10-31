@@ -28,7 +28,7 @@ const LOGO_KEYS = { logoPosition: 'position', logoAlt: 'alt', useWorkspaceLogo: 
 const WELCOME_KEYS = ['title', 'description', 'layout', 'imageUrl', 'buttonText'];
 const PAGE_KEYS = ['layout', 'theme', 'position', 'showQuestionNumbers', 'sectionTitle'];
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'allowSaveDraft'] as const;
 
 function formLevelOps(from: FormDoc, to: FormDoc): FormOp[] {
     const ops: FormOp[] = [];
@@ -60,6 +60,8 @@ function formLevelOps(from: FormDoc, to: FormDoc): FormOp[] {
         const patch: FormSettingsPatch = {};
         for (const key of SETTINGS_TEXT_KEYS) if ((a[key] ?? '') !== (b[key] ?? '')) patch[key] = b[key] ?? '';
         for (const key of SETTINGS_SWITCH_KEYS) if ((a[key] ?? null) !== (b[key] ?? null)) patch[key] = !!b[key];
+        // days: 0 = the default
+        if ((a.draftRetentionDays ?? 0) !== (b.draftRetentionDays ?? 0)) patch.draftRetentionDays = b.draftRetentionDays ?? 0;
         if (Object.keys(patch).length) ops.push({ op: 'update_form_settings', patch });
         // the form's own language (set_form_language)
         if ((a.language ?? null) !== (b.language ?? null)) ops.push({ op: 'set_form_language', language: b.language ?? null });

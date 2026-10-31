@@ -1,5 +1,6 @@
 'use client';
 
+import DraftResume from '@app/components/drafts/draft-resume';
 import Loader from '@app/components/ui/loader';
 import { trackCanonicalFormView } from '@app/lib/analytics/umami';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -187,6 +188,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         // never covers the form's button. dvh keeps the strip on screen under
         // a phone's browser bars.
         <RespondentPageShell
+            // A saved draft, picked up from the link or the account (components/drafts).
+            notice={<DraftResume form={data} />}
             footer={
                 <TrustLayer
                     {...ownerProps(workspace)}

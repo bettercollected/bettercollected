@@ -394,6 +394,14 @@
         "REMOVE": "Remove limit",
         "NOTE": "Leave empty for no limit. Editing a response is not affected.",
         "INVALID": "Enter a whole number from 1 to {{max}}."
+      },
+      "SAVE_DRAFT": {
+        "TITLE": "Let respondents save and continue later",
+        "DESCRIPTION": "Respondents can save what they typed and finish later: signed-in ones from their account, others with a link sent to the address they enter. Drafts are encrypted, kept apart from the responses and not visible to you until the form is submitted. Turning this off stops saving and opening drafts, and they are deleted within a day.",
+        "DAYS_LABEL": "Keep drafts for (days)",
+        "SAVE": "Save",
+        "NOTE": "1 to 90 days after the last save. Empty: {{default}} days. Files are not saved in a draft.",
+        "INVALID": "Enter a whole number from 1 to 90."
       }
     },
     "DELETION_REQUEST": {

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
+import SaveDraftControl from '@app/components/drafts/save-draft-control';
 import { FormTheme } from '@app/constants/theme';
 import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
 import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
@@ -19,6 +20,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import useFormAtom from '@app/store/jotai/form-file';
+import { useRespondentDraft } from '@app/store/jotai/respondent-draft';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
@@ -148,6 +150,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
+    // The key of the anonymous draft this browser holds, if any: the submit deletes that draft.
+    const { draft: savedDraft } = useRespondentDraft();
     // Calculated fields, and the values field rules set or lock, follow the
     // answers live (logic, jumps and piping read them).
     useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);
@@ -184,6 +188,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         formData.append('today', localToday());
         const aiNoticeToken = aiNoticeTokenToSend(standardForm);
         if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
+        if (savedDraft.editKey) formData.append('draft_key', savedDraft.editKey);
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
             formData.append('file_field_ids', fileObj.fieldId);
@@ -514,6 +519,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         >
                             {submitsHere ? t('NAV.SUBMIT') : t('NAV.CONTINUE')}
                         </Button>
+                        {/* "Save and continue later", when the form lets respondents (not in the builder's preview). */}
+                        {!isPreviewMode && <SaveDraftControl ink={leaflet ? leafletHeaderInk : standardForm?.theme?.primary} />}
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>

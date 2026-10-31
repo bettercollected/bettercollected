@@ -44,6 +44,7 @@ import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import FeedbackStatusesEditor from '@Components/dashboard/feedback-statuses-editor';
 import { OpenDateControl, ResponseLimitControl } from '@Components/dashboard/form-availability-controls';
+import { DraftRetentionControl } from '@Components/dashboard/form-draft-controls';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -378,6 +379,20 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     data-testid="respondent-feedback-switch"
                                     checked={!!form?.settings?.respondentFeedbackEnabled}
                                     onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
+                                />
+                            </SettingRow>
+                        )}
+                        {form?.settings?.provider === 'self' && (
+                            <SettingRow
+                                title={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.TITLE')}
+                                description={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.DESCRIPTION')}
+                                hint={form?.settings?.allowSaveDraft ? <DraftRetentionControl key={`draft-days-${form.formId}`} value={form?.settings?.draftRetentionDays} onSave={(draftRetentionDays) => patchSettings({ draftRetentionDays }, form)} /> : undefined}
+                            >
+                                <Switch
+                                    data-umami-event="Save Draft Switch"
+                                    data-testid="save-draft-switch"
+                                    checked={!!form?.settings?.allowSaveDraft}
+                                    onCheckedChange={(checked) => patchSettings({ allowSaveDraft: checked }, form)}
                                 />
                             </SettingRow>
                         )}
