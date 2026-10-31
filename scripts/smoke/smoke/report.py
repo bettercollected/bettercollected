@@ -48,6 +48,8 @@ class Report:
         self.started = dt.datetime.now(dt.timezone.utc)
         self.checks: List[CheckResult] = []
         self.cleanup: List[str] = []
+        # things to look at that are not a failed check (a form left behind)
+        self.warnings: List[str] = []
 
     # -- recording -----------------------------------------------------------
     def check(self, number: str, name: str) -> "_Timer":
@@ -57,6 +59,9 @@ class Report:
 
     def note_cleanup(self, text: str) -> None:
         self.cleanup.append(self.redactor.scrub(text)[:MAX_DETAIL])
+
+    def warn(self, text: str) -> None:
+        self.warnings.append(self.redactor.scrub(text)[:MAX_DETAIL])
 
     @property
     def ok(self) -> bool:
@@ -81,6 +86,7 @@ class Report:
                 for c in self.checks
             ],
             "cleanup": self.cleanup,
+            "warnings": self.warnings,
         }
         return self.redactor.scrub_tree(data)
 
@@ -104,6 +110,8 @@ class Report:
             )
         if data["cleanup"]:
             lines += ["", "Cleanup: " + "; ".join(data["cleanup"])]
+        for text in data["warnings"]:
+            lines += ["", f"**Warning:** {text}"]
         return self.redactor.scrub("\n".join(lines) + "\n")
 
     def write(self, directory: Path) -> None:

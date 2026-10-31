@@ -12,6 +12,7 @@ All values are made up; none is personal data.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Mapping, Optional
 
 STANDING_TITLE = "Smoke test standing set (keep, do not edit)"
@@ -106,6 +107,23 @@ PERSONAL_TYPES = {"email", "phone_number"}
 
 def run_title(tag: str) -> str:
     return f"Smoke run {tag}"
+
+
+# The title every run form gets (see config.run_tag: the Actions run id, the
+# attempt and 6 random hex digits, or "local" and 6 random hex digits).
+RUN_TITLE = re.compile(r"^Smoke run smoke-(?:[0-9]{1,20}-[0-9]{1,4}|local)-[0-9a-f]{6}$")
+
+
+def is_run_form(title: Any, purpose: Any) -> bool:
+    """Whether a form carries both markers every run form is created with:
+    the exact title shape of ``run_title`` and the exact ``PURPOSE`` text.
+    Neither alone is enough, and the standing set (which has the purpose but
+    another title) never matches."""
+    return (
+        isinstance(title, str)
+        and bool(RUN_TITLE.fullmatch(title))
+        and purpose == PURPOSE
+    )
 
 
 def run_spec(tag: str) -> dict:

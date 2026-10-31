@@ -33,6 +33,16 @@ Stripe is not part of it.
   response and the deletion request), the run's respondent account (through
   the product's account deletion, which finishes in the background) and the
   run's code mail (where the mailbox access allows deleting).
+- **Only what the run created.** The forms to delete are the ids the API
+  answered with when the run created them, nothing found by title or by
+  searching. The delete runs in a `finally`, so a run that failed halfway
+  cleans up too.
+- **A key without `forms:delete`** does not fail the run. Deleting needs that
+  scope (`forms:write` is not enough): the report's summary then carries a
+  warning that names the scope and lists the ids of the forms left behind (and
+  the run shows a warning annotation). Add the scope by issuing a new key
+  (step 3 below), then remove the leftovers with the
+  [one-off cleanup](#cleaning-up-after-earlier-runs).
 
 ### Safety rules it follows
 
@@ -59,7 +69,7 @@ Everything comes from the `production-smoke` environment.
 
 | Name | What |
 |---|---|
-| `SMOKE_API_KEY` | API key of the test workspace with the scopes `forms:read`, `forms:write`, `forms:delete`, `responses:read` (with its acknowledgement), `deletion_requests:read` and `deletion_requests:write` |
+| `SMOKE_API_KEY` | API key of the test workspace with the scopes `forms:read`, `forms:write`, **`forms:delete`** (without it the run cannot delete its own forms), `responses:read` (with its acknowledgement), `deletion_requests:read` and `deletion_requests:write` |
 | `SMOKE_IMAP_APP_PASSWORD` | Gmail app password for IMAP, **or instead** the three below |
 | `SMOKE_GMAIL_CLIENT_ID`, `SMOKE_GMAIL_CLIENT_SECRET`, `SMOKE_GMAIL_REFRESH_TOKEN` | Gmail API access with the `gmail.readonly` scope |
 
@@ -102,6 +112,11 @@ pasted into an issue, a pull request or a chat.
 2. **Test account and workspace in production.** Sign up with the mailbox's
    base address. Its workspace is the test workspace; give it a plan that
    allows custom domains. Note its name (or id) for `SMOKE_WORKSPACE_ID`.
+   Give the workspace a **title** in its settings (onboarding asks for one; "Untitled"
+   does not count): the product refuses to publish any form into a workspace
+   without a title (`form_not_publishable`, problem `workspace_title_missing`),
+   and every run publishes its form. A refused publish shows in the report as
+   `... answered 422 (form_not_publishable); problem workspace_title_missing: ...`.
 3. **API key.** In the test workspace, as its owner: dashboard → AI → MCP →
    new key, with the six scopes above and the acknowledgement for
    `responses:read`. Store it as `SMOKE_API_KEY`.
@@ -139,12 +154,58 @@ uncomment it (monthly by default): a monthly run also keeps the stored Google
 connection in use, which otherwise expires after about six months idle.
 Scheduled runs wait for the same approval.
 
+## Cleaning up after earlier runs
+
+Runs made with a key that lacked `forms:delete` left their forms in the test
+workspace. Once the key has the scope, remove them once:
+
+Actions → **Production smoke test** → Run workflow, on `develop` or a
+`release/**` branch, with **cleanup** set to `list (dry run)`. It waits for the
+owner's approval like any run, then lists what it would delete (the summary
+page shows the list) and deletes nothing. Look at the list, then run it again
+with **cleanup** set to `delete`. The same from a terminal:
+
+```bash
+gh workflow run smoke-production.yml --ref develop -f cleanup="list (dry run)"
+gh workflow run smoke-production.yml --ref develop -f cleanup=delete
+```
+
+Without GitHub Actions, with the key in the environment (`SMOKE_API_KEY`,
+`SMOKE_WORKSPACE_ID`, `SMOKE_APP_URL`; no mailbox or browser is needed):
+
+```bash
+cd scripts/smoke
+uv sync --no-dev
+uv run python -m smoke.cleanup            # dry run: lists what it would delete
+uv run python -m smoke.cleanup --delete   # deletes it
+```
+
+What it deletes, and what it never touches:
+
+- A form is deleted only when it carries **both** markers every run form is
+  created with: the exact title shape `Smoke run smoke-<run id>-<attempt>-<6 hex>`
+  (or `smoke-local-<6 hex>`), and, read from the stored form, the exact
+  purpose text of the suite's forms. The standing set, and every other form
+  (including one that merely starts with "Smoke run"), is left alone.
+- A form changed in the last 60 minutes (`--min-age-minutes`) is skipped, so a
+  run in progress is never hit.
+- Before anything is deleted it checks that the key's workspace is
+  `SMOKE_WORKSPACE_ID` and stops otherwise.
+- It does not delete without `--delete` (or the `delete` choice). A form it
+  cannot delete (missing scope) is listed with a warning, and the exit status
+  is 1.
+
+Only forms are cleaned up this way: the respondent accounts of earlier runs
+are removed by each run's account deletion, and old code mails by the mailbox
+cleanup.
+
 ## Rotating the secrets
 
 Rotate after anyone who could read them leaves, when a value may have leaked,
 and at least yearly. Each one can be replaced without a code change:
 
-- **API key:** create a new key with the same scopes (step 3), replace
+- **API key:** create a new key with the same scopes, `forms:delete` included
+  (step 3), replace
   `SMOKE_API_KEY`, then revoke the old key in the same tab. Its calls stop at
   once.
 - **App password:** create a new app password, replace
@@ -180,8 +241,10 @@ replace it.
 ## Developing the suite
 
 The self-test runs in CI whenever `scripts/smoke/` changes: configuration,
-code-mail matching (with a fixture mail), the report's redaction and the
-standing-set comparison. No secrets, browser or network.
+code-mail matching (with a fixture mail), the report's redaction, the
+standing-set comparison and the form cleanup (a mocked API: only the run's own
+forms are deleted, also after a failed step; a missing scope is a warning; the
+one-off cleanup is a dry run unless asked). No secrets, browser or network.
 
 ```bash
 cd scripts/smoke
@@ -191,7 +254,8 @@ uv run pytest
 
 **Dry run.** `.github/workflows/smoke-dry-run.yml` runs the whole suite
 against a throwaway stack it builds itself (Postgres, auth, backend, web app
-and a Mailpit inbox for the codes): by hand, and on pull requests that change
+and a Mailpit inbox for the codes; `smoke.devstack` gives its workspace a title,
+which publishing needs): by hand, and on pull requests that change
 the suite. It is not part of `CI ok`. The Google Forms check is skipped there
 (no provider) and the run account's deletion stays queued (no worker).
 

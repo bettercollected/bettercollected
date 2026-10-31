@@ -19,10 +19,22 @@ MAX_RETRY_AFTER = 30
 
 
 class HttpError(Exception):
-    def __init__(self, method: str, path: str, status: int, code: str = "") -> None:
+    def __init__(
+        self,
+        method: str,
+        path: str,
+        status: int,
+        code: str = "",
+        problems: tuple = (),
+    ) -> None:
         self.status = status
         self.code = code
+        # the codes of the 422's ``problems`` (e.g. why a form can't be
+        # published): codes only, never their messages
+        self.problems = tuple(problems)
         detail = f" ({code})" if code else ""
+        if self.problems:
+            detail = f" ({code}: {', '.join(self.problems)})"
         super().__init__(f"{method} {path} answered {status}{detail}")
 
 
@@ -31,6 +43,33 @@ class Reply:
     status: int
     headers: dict
     body: Any
+
+
+def _is_code(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) < 60
+        and value.replace("_", "").isalnum()
+    )
+
+
+def _problem_codes(raw: bytes) -> tuple:
+    """The ``code`` of each entry of the error body's ``problems`` list (at
+    most 10, in order, no repeats); anything that is not a plain code is
+    dropped."""
+    try:
+        body = json.loads(raw)
+    except ValueError:
+        return ()
+    problems = body.get("problems") if isinstance(body, dict) else None
+    if not isinstance(problems, list):
+        return ()
+    codes: list = []
+    for problem in problems:
+        code = problem.get("code") if isinstance(problem, dict) else None
+        if _is_code(code) and code not in codes:
+            codes.append(code)
+    return tuple(codes[:10])
 
 
 def _error_code(raw: bytes) -> str:
@@ -91,7 +130,13 @@ class Http:
                         self.sleep(int(retry_after) + 1)
                         continue
             if status not in expect:
-                raise HttpError(method, shown_path, status, _error_code(raw))
+                raise HttpError(
+                    method,
+                    shown_path,
+                    status,
+                    _error_code(raw),
+                    _problem_codes(raw),
+                )
             parsed: Any = None
             if raw:
                 try:

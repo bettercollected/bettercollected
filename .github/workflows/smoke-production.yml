@@ -12,6 +12,14 @@ on:
                 description: "What the run is for (shown in the run's name, e.g. 4.0.6 release check)"
                 type: string
                 default: ""
+            cleanup:
+                description: "One-off: instead of the smoke test, list (or delete) the forms earlier runs left behind. Needs forms:delete on the key."
+                type: choice
+                options:
+                    - "no"
+                    - "list (dry run)"
+                    - "delete"
+                default: "no"
     # Off until the owner turns it on. Once a month keeps the stored Google
     # connection in use (it expires after about six months idle).
     # schedule:
@@ -59,12 +67,14 @@ jobs:
               run: uv sync --frozen --no-dev
 
             - name: Install the browser
+              if: inputs.cleanup == '' || inputs.cleanup == 'no'
               run: uv run --frozen --no-dev playwright install --with-deps chromium
 
             # Exactly one mailbox set is configured (IMAP app password, or the
             # three Gmail API values); the suite refuses both or neither.
             # One attempt only: a failed run is looked at, not retried.
             - name: Run the smoke test
+              if: inputs.cleanup == '' || inputs.cleanup == 'no'
               env:
                   SMOKE_API_KEY: ${{ secrets.SMOKE_API_KEY }}
                   SMOKE_IMAP_APP_PASSWORD: ${{ secrets.SMOKE_IMAP_APP_PASSWORD }}
@@ -78,6 +88,23 @@ jobs:
                   SMOKE_GOOGLE_FORM_ID: ${{ vars.SMOKE_GOOGLE_FORM_ID }}
                   REPORT_DIR: ${{ runner.temp }}/smoke-report
               run: uv run --frozen --no-dev python -m smoke --report-dir "$REPORT_DIR"
+
+            # The one-off cleanup (docs/smoke-test.md): only forms that carry
+            # both markers every run form is created with, a dry run unless
+            # "delete" was chosen. Needs only the key, the app and the workspace.
+            - name: Clean up forms earlier runs left behind
+              if: inputs.cleanup == 'list (dry run)' || inputs.cleanup == 'delete'
+              env:
+                  SMOKE_API_KEY: ${{ secrets.SMOKE_API_KEY }}
+                  SMOKE_APP_URL: ${{ vars.SMOKE_APP_URL }}
+                  SMOKE_WORKSPACE_ID: ${{ vars.SMOKE_WORKSPACE_ID }}
+                  CLEANUP_MODE: ${{ inputs.cleanup }}
+              run: |
+                  if [ "$CLEANUP_MODE" = "delete" ]; then
+                      uv run --frozen --no-dev python -m smoke.cleanup --delete
+                  else
+                      uv run --frozen --no-dev python -m smoke.cleanup
+                  fi
 
             # pass/fail, timings and test-workspace ids only (no codes, tokens
             # or mail contents); the same summary is on the run's page

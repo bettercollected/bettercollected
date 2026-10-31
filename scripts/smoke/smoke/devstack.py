@@ -28,6 +28,11 @@ from smoke.config import MAILPIT, MailboxSettings
 from smoke.mailbox import MailpitMailbox
 from smoke.redact import Redactor
 
+# A new workspace has no title, and a form cannot be published into a
+# workspace without one (publish check workspace_title_missing). Production's
+# test workspace needs a title the same way (docs/smoke-test.md).
+WORKSPACE_TITLE = "Smoke test workspace"
+
 SCOPES = [
     "forms:read",
     "forms:write",
@@ -36,6 +41,17 @@ SCOPES = [
     "deletion_requests:read",
     "deletion_requests:write",
 ]
+
+
+def multipart_form(fields: dict[str, str]) -> tuple[bytes, str]:
+    """A multipart/form-data body (the workspace patch takes a form)."""
+    boundary = "smoke" + os.urandom(8).hex()
+    parts = [
+        f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
+        for name, value in fields.items()
+    ]
+    body = "".join(parts) + f"--{boundary}--\r\n"
+    return body.encode(), f"multipart/form-data; boundary={boundary}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -83,6 +99,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     workspace = call("GET", "/workspaces/mine")[0]
+    data, content_type = multipart_form({"title": WORKSPACE_TITLE})
+    patch = urllib.request.Request(
+        args.api.rstrip("/") + f"/workspaces/{workspace['id']}",
+        data=data,
+        method="PATCH",
+        headers={"Content-Type": content_type, "Origin": args.origin},
+    )
+    with opener.open(patch, timeout=60) as response:
+        response.read()
     key = call(
         "POST",
         f"/workspaces/{workspace['id']}/api-keys",
