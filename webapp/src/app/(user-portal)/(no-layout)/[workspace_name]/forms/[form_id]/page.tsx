@@ -13,7 +13,7 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ownerProps } from '@app/utils/workspace-display-name';
 import { captureHiddenFieldValues, getPrefillEntries } from '@app/utils/answer-piping';
-import { isClosedForm } from '@app/utils/closed-form';
+import { isUnavailableForm } from '@app/utils/closed-form';
 import { httpUrl } from '@app/utils/http-url';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
@@ -136,7 +136,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     // A respondent on an ending keeps it: a refetch (focus, reconnect) that
     // brings the form back closed has no endings, and an ending may pipe their
     // answers into its text. The closed form is shown once they leave it.
-    const keepEnding = isClosedForm(data) && currentSlide === -2 && sameForm;
+    const keepEnding = isUnavailableForm(data) && currentSlide === -2 && sameForm;
 
     useEffect(() => {
         if (!data?.formId || keepEnding) return;
@@ -179,7 +179,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     // A closed form is served without its questions or its imported id,
     // whichever builder made it: it shows the closed notice, never the
     // original.
-    if (data?.builderVersion !== 'v2' && !isClosedForm(data)) return <div className="relative flex h-dvh w-screen flex-col" />;
+    if (data?.builderVersion !== 'v2' && !isUnavailableForm(data)) return <div className="relative flex h-dvh w-screen flex-col" />;
 
     return (
         // The form above, the trust strip (and its panel) below, in flow: the

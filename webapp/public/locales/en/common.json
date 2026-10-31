@@ -377,6 +377,23 @@
         "DESCRIPTION": "This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.",
         "SCHEDULE": "Schedule a date",
         "AUTOMATICALLY_CLOSE_ON": "This form will automatically close on"
+      },
+      "OPEN_DATE": {
+        "TITLE": "Open on a date",
+        "DESCRIPTION": "Before this date and time, respondents see a notice that the form is not open yet, and no response is taken. You still see the whole form.",
+        "SAVE": "Save date",
+        "REMOVE": "Remove date",
+        "ZONE": "Entered in your time zone ({{zone}}). Respondents see it in theirs.",
+        "AFTER_CLOSE": "The open date must be before the close date."
+      },
+      "RESPONSE_LIMIT": {
+        "TITLE": "Limit the number of responses",
+        "DESCRIPTION": "After this many responses the form stops accepting new ones and respondents see that it is no longer accepting responses. Deleting a response frees its place.",
+        "PLACEHOLDER": "No limit",
+        "SAVE": "Save limit",
+        "REMOVE": "Remove limit",
+        "NOTE": "Leave empty for no limit. Editing a response is not affected.",
+        "INVALID": "Enter a whole number from 1 to {{max}}."
       }
     },
     "DELETION_REQUEST": {

@@ -377,6 +377,23 @@
         "DESCRIPTION": "Deze actie zorgt ervoor dat niemand toegang heeft tot of het formulier kan invullen. U kunt ervoor kiezen om een sluitingsdatum in te plannen of ervoor kiezen om het onmiddellijk te sluiten.",
         "SCHEDULE": "Plan een datum in",
         "AUTOMATICALLY_CLOSE_ON": "Dit formulier wordt automatisch gesloten op"
+      },
+      "OPEN_DATE": {
+        "TITLE": "Openen op een datum",
+        "DESCRIPTION": "Vóór deze datum en tijd zien respondenten dat het formulier nog niet open is en worden er geen antwoorden aangenomen. U ziet zelf wel het hele formulier.",
+        "SAVE": "Datum opslaan",
+        "REMOVE": "Datum verwijderen",
+        "ZONE": "Ingevoerd in uw tijdzone ({{zone}}). Respondenten zien het in hun eigen tijdzone.",
+        "AFTER_CLOSE": "De openingsdatum moet vóór de sluitingsdatum liggen."
+      },
+      "RESPONSE_LIMIT": {
+        "TITLE": "Aantal antwoorden beperken",
+        "DESCRIPTION": "Na dit aantal antwoorden neemt het formulier geen nieuwe meer aan en zien respondenten dat het geen antwoorden meer aanneemt. Een antwoord verwijderen maakt weer een plek vrij.",
+        "PLACEHOLDER": "Geen limiet",
+        "SAVE": "Limiet opslaan",
+        "REMOVE": "Limiet verwijderen",
+        "NOTE": "Laat leeg voor geen limiet. Een antwoord bewerken valt hier niet onder.",
+        "INVALID": "Voer een geheel getal in van 1 tot {{max}}."
       }
     },
     "DELETION_REQUEST": {

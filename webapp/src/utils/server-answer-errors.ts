@@ -43,6 +43,21 @@ export function isFormClosedError(error: any): boolean {
     return error?.status === 409 && error?.data?.code === 'form_closed';
 }
 
+/** Why the server refused a submission to a form that takes no responses (409): closed, not open yet, or full; null for any other failure. */
+export function formRefusal(error: any): 'closed' | 'not_yet_open' | 'full' | null {
+    if (error?.status !== 409) return null;
+    switch (error?.data?.code) {
+        case 'form_closed':
+            return 'closed';
+        case 'form_not_open':
+            return 'not_yet_open';
+        case 'form_full':
+            return 'full';
+        default:
+            return null;
+    }
+}
+
 /** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 export function serverAnswerErrors(error: any): ServerAnswerError[] | null {
     const data = error?.data;

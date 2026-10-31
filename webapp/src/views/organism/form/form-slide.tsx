@@ -36,7 +36,7 @@ import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
-import { firstPageWithError, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
+import { firstPageWithError, formRefusal, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
@@ -129,6 +129,9 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <QuestionWrapper field={field} />;
     }
 }
+
+/** The message for a submission the server refused because the form takes no responses. */
+const SUBMIT_REFUSED = { closed: 'NAV.SUBMIT_CLOSED', not_yet_open: 'NAV.SUBMIT_NOT_OPEN', full: 'NAV.SUBMIT_FULL' } as const;
 
 export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout, logo }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean; logo?: ResolvedFormLogo | null }) {
     const { toast } = useToast();
@@ -241,8 +244,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {}, logicSources)?.target === JUMP_TARGET_SUBMIT;
     const submitsHere = isLastPage || endsHere;
     // A failed submission, shown by the button until the next attempt:
-    // "closed" when the form closed before it was sent (409 form_closed).
-    const [submitError, setSubmitError] = useState<false | 'failed' | 'closed'>(false);
+    // "closed", "not_yet_open" or "full" when the form stopped taking responses
+    // before it was sent (409 form_closed / form_not_open / form_full).
+    const [submitError, setSubmitError] = useState<false | 'failed' | 'closed' | 'not_yet_open' | 'full'>(false);
 
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
@@ -266,11 +270,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    // The form closed while it was being filled in: say so,
-                    // and keep the answers (nothing was stored).
-                    if (isFormClosedError(e?.response)) {
-                        toast({ description: t('NAV.SUBMIT_CLOSED'), variant: 'destructive' });
-                        setSubmitError('closed');
+                    // The form stopped taking responses while it was being filled
+                    // in (closed, not open, full): say so, and keep the answers
+                    // (nothing was stored).
+                    const refusal = formRefusal(e?.response);
+                    if (refusal) {
+                        toast({ description: t(SUBMIT_REFUSED[refusal]), variant: 'destructive' });
+                        setSubmitError(refusal);
                     } else if (!showServerAnswerErrors(e?.response)) {
                         toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
                         setSubmitError('failed');
@@ -503,7 +509,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>
-                                {t(submitError === 'closed' ? 'NAV.SUBMIT_CLOSED' : 'NAV.SUBMIT_ERROR')}
+                                {t(submitError === 'failed' ? 'NAV.SUBMIT_ERROR' : SUBMIT_REFUSED[submitError])}
                             </p>
                         )}
                     </div>
