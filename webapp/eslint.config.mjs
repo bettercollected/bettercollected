@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import next from "eslint-config-next";
 import prettier from "eslint-config-prettier";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import { plugin as shadcn } from "@shadcn/lint";
 
 // eslint-plugin-jsx-a11y's recommended rules, reported as warnings while the
 // existing hits are worked down. eslint-config-next already registers the
@@ -47,6 +48,22 @@ export default defineConfig([
             "react-hooks/globals": "warn",
             "react-hooks/purity": "warn",
             "react-hooks/preserve-manual-memoization": "warn",
+        },
+    },
+    {
+        // @shadcn/lint: Tailwind design-system rules. Registered but all OFF; turning rules on is a
+        // separate decision. Counts per rule and a suggested order: docs/webapp-shadcn-lint-baseline.md.
+        // Components and theme are discovered from components.json. To check code against one rule
+        // without enabling it: yarn lint --rule 'shadcn/no-raw-colors: warn' <paths>
+        files: ["src/**/*.{ts,tsx,js,jsx}"],
+        plugins: { shadcn },
+        rules: {
+            "shadcn/no-restyle": "off",
+            "shadcn/no-raw-colors": "off",
+            "shadcn/no-arbitrary-values": "off",
+            "shadcn/no-inline-styles": "off",
+            "shadcn/no-unknown-classes": "off",
+            "shadcn/require-static-classes": "off",
         },
     },
 ]);

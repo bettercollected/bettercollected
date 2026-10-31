@@ -69,6 +69,29 @@ describe('the type and shape editor', () => {
         expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Set a colour' }));
     });
 
+    it('sets and clears the answer text colour, starting from one that reads on white', () => {
+        const Editor = ({ start }: { start: FormTheme }) => {
+            const [theme, setTheme] = useState<FormTheme>(start);
+            return <ThemeTypeShapeEditor theme={theme} onChange={setTheme} />;
+        };
+        // Light questions on a dark page don't read on white: it starts from the default ink.
+        const { unmount } = render(<Editor start={{ ...base, primary: '#F9FAFB', accent: '#111827' }} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Set an answer colour' }));
+        expect(screen.getByLabelText('Answer text')).toHaveValue('#101828');
+        unmount();
+        // Dark questions are the starting point as they are.
+        render(<Editor start={{ ...base, primary: '#334155' }} />);
+        const add = screen.getByRole('button', { name: 'Set an answer colour' });
+        add.focus();
+        fireEvent.click(add);
+        const colour = screen.getByLabelText('Answer text');
+        expect(colour).toHaveAttribute('type', 'color');
+        expect(colour).toHaveValue('#334155');
+        expect(document.activeElement).toBe(colour);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove answer text colour' }));
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Set an answer colour' }));
+    });
+
     it('labels the data face control', () => {
         render(<ThemeTypeShapeEditor theme={{ ...base, dataFont: 'atkinson-mono' }} onChange={vi.fn()} />);
         expect(screen.getByRole('combobox', { name: 'Data font' })).toHaveTextContent('Atkinson Hyperlegible Mono');

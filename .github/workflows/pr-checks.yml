@@ -75,7 +75,7 @@ jobs:
                       echo "No image input changed; the image build is skipped."
                   fi
 
-            # The image uses a public base (node:22-alpine) and this job only
+            # The image uses a public base (node:26-alpine) and this job only
             # builds (no push), so Docker Hub login is optional. Skip it when the
             # secret is unavailable — e.g. Dependabot PRs, which have no access to
             # repository secrets and would otherwise fail here.

@@ -72,7 +72,7 @@ Python services double-nest the package: the FastAPI code for `backend` lives at
 
 ## Environment & setup
 
-- **Prereqs:** Python **3.11** (see `.python-version`; the backend, auth and Google integration require `>=3.11`), **uv**, **Node 22** (see `.nvmrc`), **Yarn 1.x**, Docker.
+- **Prereqs:** Python **3.11** (see `.python-version`; the backend, auth and Google integration require `>=3.11`), **uv**, **Node 26** (see `.nvmrc`), **Yarn 1.x**, Docker.
 - **One-shot setup:** `./install.sh` (`uv sync` for the Python services + `yarn` for the webapp; skips missing dirs).
 - **Env file:** `.env.deployment` is the operator's own, untracked file: `deploy.sh` creates it (mode 600)
   from the tracked template `.env.deployment.example` when it is missing (keys: Stripe, Google
@@ -114,6 +114,10 @@ yarn format:check   # prettier --check
 yarn test           # jest (watch mode) + Testing Library + MSW
 yarn storybook      # component explorer on :6006
 ```
+
+The `@shadcn/lint` design-system rules are registered but off (counts and an adoption order in
+[docs/webapp-shadcn-lint-baseline.md](docs/webapp-shadcn-lint-baseline.md)). Check new code
+against one without enabling it: `yarn eslint --rule 'shadcn/no-raw-colors: warn' <files>`.
 
 ## Code style & quality gates
 

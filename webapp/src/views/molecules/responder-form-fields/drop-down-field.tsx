@@ -17,6 +17,7 @@ import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
 import { moveOnFrom } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -62,8 +63,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         if (choiceValue) {
             return {
                 borderColor: theme?.secondary,
-                // The chosen answer is content — ink, not the action colour.
-                color: theme?.primary
+                // The chosen answer is content — ink (or the theme's input text), not the action colour.
+                color: inputTextOf(theme)
             };
         }
         // Placeholder state: the theme's border colour (3:1 on its ground),
@@ -92,7 +93,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                                 className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                             >
                                 <span id={valueId} className="truncate" lang={choiceValue ? contentLang : undefined}>
-                                    {choiceValue ? choiceValue : label?.readOnly ? READ_ONLY_EMPTY : t('FIELD.SELECT_OPTION')}
+                                    {choiceValue ? choiceValue : label?.readOnly ? <span aria-hidden="true">{READ_ONLY_EMPTY}</span> : t('FIELD.SELECT_OPTION')}
                                 </span>
                                 <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                             </button>

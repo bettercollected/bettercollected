@@ -43,6 +43,17 @@ describe('useWorkspacePermissions', () => {
         expect(query.calls.at(-1)?.arg).toEqual({ workspaceId: 'workspace-1', userId: 'admin-1' });
     });
 
+    it('tells whether the server takes field rules, from the same answer', () => {
+        query.result = { data: { permissions: [], fieldRulesEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.fieldRulesEnabled).toBe(true);
+        query.result = { data: { permissions: [], fieldRulesEnabled: false } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.fieldRulesEnabled).toBe(false);
+        query.result = { data: { permissions: [] } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.fieldRulesEnabled).toBe(false);
+        query.result = { isError: true, data: { permissions: [], fieldRulesEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.fieldRulesEnabled).toBe(false);
+    });
+
     it('grants nothing until the permissions have loaded', () => {
         const { result } = renderHook(() => useWorkspacePermissions(), { wrapper });
         expect(result.current.can(WorkspacePermission.FORM_READ)).toBe(false);

@@ -56,7 +56,19 @@ export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
 export const REF_PREFIX = '$ref:';
 export const REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 /** Keys whose values may be a client reference (`"$ref:<name>"`). */
-export const REF_ID_KEYS = new Set(['pageId', 'fieldId', 'groupId', 'afterFieldId', 'toPageId', 'toGroupId', 'childFieldId', 'target', 'endingId']);
+export const REF_ID_KEYS = new Set([
+    'pageId',
+    'fieldId',
+    'groupId',
+    'afterFieldId',
+    'toPageId',
+    'toGroupId',
+    'childFieldId',
+    'target',
+    'endingId',
+    // a calculated field's or a field rule's expression: {"var": "$ref:<name>"}
+    'var'
+]);
 
 /** Field types an op may create (backend ADDABLE_FIELD_TYPES). */
 export const ADDABLE_FIELD_TYPES = new Set<string>([
@@ -266,6 +278,12 @@ export function pyG(value: number): string {
 
 /** Length in code points, as Python's `len` counts a string. */
 export const pyLen = (text: string) => [...text].length;
+
+// Python's str.strip() whitespace: not U+FEFF (which JavaScript's trim() removes), and U+001C to U+001F (which it does not).
+const PY_SPACE_START = /^[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/;
+const PY_SPACE_END = /[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/;
+/** `text.strip()` as Python does it, so that "is it blank" gives the same answer here and on the server. */
+export const pyStrip = (text: string) => text.replace(PY_SPACE_START, '').replace(PY_SPACE_END, '');
 
 /** Python's `" ".join(text.split())`. */
 export const collapseWhitespace = (text: string) => text.split(/\s+/u).filter(Boolean).join(' ');

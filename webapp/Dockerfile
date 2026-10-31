@@ -1,10 +1,16 @@
 # Install dependencies only when needed
-FROM node:22-alpine AS base
+# Node 26 LTS, pinned by the digest of the multi-arch index (amd64 + arm64). To move
+# to a newer 26.x: `docker buildx imagetools inspect node:<version>-alpine`.
+FROM node:26.13.0-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS base
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 #RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 FROM base AS prod
+# The Node 25+ images no longer bundle Yarn (or Corepack), so the build stages
+# install the Yarn 1 classic release the lockfile was written with. The final
+# stage starts from `base` again, so the running image carries no Yarn.
+RUN npm install --global --ignore-scripts --no-audit --no-fund yarn@1.22.22
 COPY ./webapp/package.json ./webapp/yarn.lock ./
 RUN yarn install --prod --frozen-lockfile
 

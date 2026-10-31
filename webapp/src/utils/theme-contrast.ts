@@ -2,7 +2,7 @@ import { type FormTheme, isHexColour } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn, mixColours } from './color-contrast';
 
-type ThemeColours = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent'>;
+type ThemeColours = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent'> & Partial<Pick<FormTheme, 'inputText'>>;
 
 /** The ink of an outlined button when the theme gives none of its own (the questions' default colour). */
 const DEFAULT_INK = '#101828';
@@ -98,7 +98,7 @@ export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme
     const ink = outlinedButtonInk(theme);
     const pairs: Array<Omit<ContrastCheck, 'ratio' | 'passes'>> = [
         { key: 'text', kind: 'role', label: 'Questions and text on the background', foreground: theme.primary, background: theme.accent, minimum: AA_TEXT },
-        { key: 'answer', kind: 'role', label: 'Answers in the white input boxes', foreground: theme.primary, background: '#FFFFFF', minimum: AA_TEXT },
+        { key: 'answer', kind: 'role', label: 'Answers in the white input boxes', foreground: inputTextColour(theme), background: '#FFFFFF', minimum: AA_TEXT },
         ...(isOutlined(theme)
             ? [
                   { key: 'outlined-text', kind: 'role' as const, label: 'Text on outlined buttons', foreground: ink, background: theme.accent, minimum: AA_TEXT },
@@ -132,7 +132,7 @@ export interface ContrastIssue {
     minimum: number;
 }
 
-type GuardedTheme = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent' | 'background'> & Partial<Pick<FormTheme, 'buttonStyle'>>;
+type GuardedTheme = Pick<FormTheme, 'primary' | 'secondary' | 'tertiary' | 'accent' | 'background'> & Partial<Pick<FormTheme, 'buttonStyle' | 'inputText'>>;
 
 export interface ContrastGuard {
     /** The failing pairings, in a fixed order; empty when the theme passes. */
@@ -184,14 +184,27 @@ export function outlinedButtonInk(theme?: Partial<FormTheme> | null): string {
 }
 
 /**
+ * The colour of the answers in the white input boxes: the theme's own
+ * `inputText`, else its questions' colour (`primary`), as the respondent form
+ * draws them (`inputTextOf` in theme-root.ts). The server's
+ * `input_text_colour` (services/theme_contrast.py) is the same.
+ */
+export function inputTextColour(theme: Partial<Pick<FormTheme, 'primary' | 'inputText'>>): string {
+    return isHexColour(theme.inputText) ? theme.inputText : (theme.primary as string);
+}
+
+/**
  * What each role must reach, and on what (one list per role the creator
  * picks). An outlined button has no white text on the button colour: its
- * real colours are measured by `outlinedRules`.
+ * real colours are measured by `outlinedRules`. `input` is the colour of the
+ * answers (`inputText`, else `primary`) in the white input box.
  */
 function roleRules(grounds: string[], outlined = false) {
     return {
-        // questions on the page, answers in the white input boxes
-        primary: [...grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT })), { key: 'answer' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }],
+        // questions on the page
+        primary: grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT })),
+        // answers in the white input boxes
+        input: [{ key: 'answer' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }],
         // white text on the button; the chosen answer, icons and progress on the page
         secondary: [...(outlined ? [] : [{ key: 'button' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }]), ...grounds.map((ground) => ({ key: 'action' as ContrastIssueKey, ground, minimum: AA_NON_TEXT }))],
         // input borders on the page
@@ -214,7 +227,11 @@ const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'outlined',
 function failures(theme: GuardedTheme, grounds: string[]): ContrastIssue[] {
     const outlined = isOutlined(theme);
     const rules = roleRules(grounds, outlined);
-    const checks = [...(['primary', 'secondary', 'tertiary'] as const).flatMap((role) => rules[role].map((rule) => ({ ...rule, colour: theme[role] }))), ...(outlined ? outlinedRules(theme, grounds) : [])];
+    const checks = [
+        ...(['primary', 'secondary', 'tertiary'] as const).flatMap((role) => rules[role].map((rule) => ({ ...rule, colour: theme[role] }))),
+        ...rules.input.map((rule) => ({ ...rule, colour: inputTextColour(theme) })),
+        ...(outlined ? outlinedRules(theme, grounds) : [])
+    ];
     const worst = new Map<ContrastIssueKey, ContrastIssue>();
     for (const rule of checks) {
         const raw = contrast(rule.colour, rule.ground);
@@ -287,8 +304,10 @@ function lightenGround(theme: GuardedTheme, weight: number): Pick<GuardedTheme, 
  * its own colours that fails WCAG 2.2 AA (text 4.5:1, controls 3:1) where the
  * respondent form shows it, and the nearest colours that pass. The fix moves
  * the questions, button and border colours first, each only as far as it
- * must (keeping its hue), and lightens the page only when no colour reads on it and in the
- * white input boxes at once (a dark page). Presets pass by construction
+ * must (keeping its hue). Answers that don't read in the white input boxes get
+ * their own `inputText` (the nearest shade of the answers' colour that does),
+ * so a dark page stays dark; the page is lightened only when the other
+ * colours can't read on it. Presets pass by construction
  * (theme-contrast.test.ts); a theme with a failing pairing can't be saved or
  * published.
  */
@@ -308,10 +327,21 @@ export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
         const secondary = nearestPassing(theme.secondary, rules.secondary);
         const tertiary = nearestPassing(theme.tertiary, rules.tertiary);
         if (!primary || !secondary || !tertiary) continue;
-        const fixed: GuardedTheme = { ...candidate, primary, secondary, tertiary };
+        // The answers keep what they have where it reads in the white boxes
+        // (the questions' colour moved above, or their own inputText); else
+        // they get an inputText: the nearest shade of what they were.
+        const own = isHexColour(theme.inputText) ? theme.inputText : undefined;
+        let inputText: string | undefined = own;
+        if (contrast(own ?? primary, WHITE) < AA_TEXT) {
+            const moved = nearestPassing(own ?? theme.primary, rules.input);
+            if (!moved) continue;
+            inputText = moved;
+        }
+        const fixed: GuardedTheme = { ...candidate, primary, secondary, tertiary, inputText };
         if (failures(fixed, pageGrounds(fixed)).length) continue;
         const fix: Partial<GuardedTheme> = {};
         for (const role of ['primary', 'secondary', 'tertiary', 'accent'] as const) if (fixed[role] !== theme[role]) fix[role] = fixed[role];
+        if (inputText && inputText !== theme.inputText) fix.inputText = inputText;
         if (fixed.background !== theme.background) fix.background = fixed.background;
         return { issues, fix, imageGround };
     }
@@ -322,7 +352,8 @@ export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
 const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase() : value);
 
 /**
- * Everything the contrast guard reads from a theme: its four colours, whether
+ * Everything the contrast guard reads from a theme: its four colours, the
+ * colour of the answers (`inputText`, else `primary`), whether
  * its buttons are outlined, and the ground the page puts behind the text, as
  * `pageGrounds` reads it (an image with an address; both stops of a gradient;
  * the white sheet of the `margin` pattern; anything else, an absent background
@@ -337,5 +368,5 @@ const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase
 export function contrastKey(theme: Partial<FormTheme> | null | undefined): string {
     const bg = theme?.background;
     const ground = bg?.type === 'image' && bg.imageUrl ? ['image'] : bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo ? ['gradient', upper(bg.gradientFrom), upper(bg.gradientTo)] : bg?.type === 'pattern' && bg.pattern === 'margin' ? ['margin'] : ['plain'];
-    return JSON.stringify([upper(theme?.primary) ?? null, upper(theme?.secondary) ?? null, upper(theme?.tertiary) ?? null, upper(theme?.accent) ?? null, isOutlined(theme), ...ground]);
+    return JSON.stringify([upper(theme?.primary) ?? null, upper(theme?.secondary) ?? null, upper(theme?.tertiary) ?? null, upper(theme?.accent) ?? null, upper(isHexColour(theme?.inputText) ? theme!.inputText : theme?.primary) ?? null, isOutlined(theme), ...ground]);
 }

@@ -115,9 +115,9 @@ ThemeHexColour = Annotated[
 
 def theme_problems(theme: Any, path: str = "theme") -> List[str]:
     """What is wrong with a theme's type, shape and highlight keys: each one
-    must be absent (or null) or one of its listed values, ``highlight`` and
-    ``selection`` 6-digit hex colours, and the background's ``artwork`` on
-    its list. Every writer checks a theme with this (the edit
+    must be absent (or null) or one of its listed values, ``highlight``,
+    ``selection`` and ``inputText`` 6-digit hex colours, and the background's
+    ``artwork`` on its list. Every writer checks a theme with this (the edit
     operations, whole-form saves, saved workspace themes)."""
     if theme is None:
         return []
@@ -141,6 +141,11 @@ def theme_problems(theme: Any, path: str = "theme") -> List[str]:
         isinstance(selection, str) and THEME_HEX_COLOUR.fullmatch(selection)
     ):
         problems.append(f"{path}.selection must be a 6-digit hex colour, e.g. #1E4D3B.")
+    input_text = get("inputText")
+    if input_text is not None and not (
+        isinstance(input_text, str) and THEME_HEX_COLOUR.fullmatch(input_text)
+    ):
+        problems.append(f"{path}.inputText must be a 6-digit hex colour, e.g. #101828.")
     background = get("background")
     artwork = (
         background.get("artwork")
@@ -212,6 +217,13 @@ class Theme(BaseModel):
             "The chosen answer alone, when it should differ from the highlight "
             "(which then keeps the notes and the focus ring). Absent: the "
             "highlight, else secondary."
+        ),
+    )
+    inputText: Optional[ThemeHexColour] = Field(
+        None,
+        description=(
+            "The colour of the answers typed in the white input boxes (4.5:1 on "
+            "white). Absent: primary, as before."
         ),
     )
 
@@ -911,6 +923,56 @@ def raw_rule_count(fields: Any) -> int:
         if isinstance(children, list):
             pending.extend(children)
     return total
+
+
+def _expression_too_deep(expression: Any, limit: int) -> bool:
+    """Is a raw (JSON) expression nested deeper than ``limit`` levels?
+    Iterative, so one nested thousands of levels deep is measured without
+    exhausting the stack."""
+    pending = [(expression, 1)]
+    while pending:
+        node, depth = pending.pop()
+        if isinstance(node, dict):
+            if depth > limit + 1:
+                return True
+            pending.extend((child, depth + 1) for child in node.values())
+        elif isinstance(node, list):
+            pending.extend((child, depth) for child in node)
+    return False
+
+
+def raw_expression_depth_problem(fields: Any) -> Optional[str]:
+    """A readable problem when a calculated field's or a field rule's raw
+    (JSON) expression is nested deeper than expressions allow, or None. For a
+    payload checked before anything is parsed: parsing (and dumping) a
+    hostile one nested hundreds of levels deep fails in pydantic with an
+    unhelpful "circular reference". Walks fields only, never into rules
+    beyond their expressions."""
+    from common.expressions import MAX_DEPTH
+
+    pending = list(fields) if isinstance(fields, list) else []
+    while pending:
+        field = pending.pop()
+        properties = field.get("properties") if isinstance(field, dict) else None
+        if not isinstance(properties, dict):
+            continue
+        roots = [properties.get("expression")]
+        rules = properties.get("rules")
+        for rule in rules if isinstance(rules, list) else []:
+            if not isinstance(rule, dict):
+                continue
+            when, then = rule.get("when"), rule.get("then")
+            roots.append(when.get("expression") if isinstance(when, dict) else None)
+            set_value = then.get("setValue") if isinstance(then, dict) else None
+            roots.append(
+                set_value.get("expression") if isinstance(set_value, dict) else None
+            )
+        if any(_expression_too_deep(root, MAX_DEPTH) for root in roots):
+            return f"An expression can be nested at most {MAX_DEPTH} levels deep."
+        children = properties.get("fields")
+        if isinstance(children, list):
+            pending.extend(children)
+    return None
 
 
 def is_iso_date(value: Any) -> bool:

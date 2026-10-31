@@ -33,6 +33,18 @@ updates:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "python"]
 
+  # Webapp image base (pinned by tag and digest in webapp/Dockerfile). Only
+  # patch and minor updates of the pinned Node major; the major follows the
+  # LTS line and is moved by hand together with .nvmrc and @types/node.
+  - package-ecosystem: "docker"
+    directory: "/webapp"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "webapp"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

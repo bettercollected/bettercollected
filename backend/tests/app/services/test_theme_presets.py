@@ -348,6 +348,7 @@ def test_theme_problems_names_every_unlisted_key():
             "radius": "6px",
             "buttonStyle": "link",
             "highlight": "#A3305AFF",
+            "inputText": "#fff0",
         },
         "page.theme",
     ) == [
@@ -357,7 +358,10 @@ def test_theme_problems_names_every_unlisted_key():
         "page.theme.radius must be one of: sharp, soft, round.",
         "page.theme.buttonStyle must be one of: filled, outlined, pill.",
         "page.theme.highlight must be a 6-digit hex colour, e.g. #A3305A.",
+        "page.theme.inputText must be a 6-digit hex colour, e.g. #101828.",
     ]
+    assert theme_problems({**LEAFLET, "inputText": "#101828"}) == []
+    assert theme_problems({**LEAFLET, "inputText": None}) == []
 
 
 def test_saved_themes_take_type_and_shape():
@@ -383,3 +387,13 @@ def test_saved_themes_take_type_and_shape():
         "customThemes.0.bodyFont must be one of: public-sans, atkinson-next, archivo, besley, rubik, atkinson-mono.",
         "customThemes.0.highlight must be a 6-digit hex colour, e.g. #A3305A.",
     ]
+
+
+def test_a_saved_theme_takes_an_input_text_colour_and_checks_it():
+    saved = WorkspaceThemeDto(**LEAFLET, inputText="#101828")
+    assert saved.inputText == "#101828"
+    # Left out, it stays empty: the answers keep the questions' colour.
+    assert WorkspaceThemeDto(**LEAFLET).inputText is None
+    for bad in ("black", "#101", "#101828FF", "#10182"):
+        with pytest.raises(ValidationError):
+            WorkspaceThemeDto(**LEAFLET, inputText=bad)

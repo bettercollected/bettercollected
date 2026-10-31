@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { calculationsTouched, newCalculationProblem } from './calculations';
 import { dateRuleFixes } from './date-rules';
+import { fieldRuleFixes } from './field-rule-checks';
 import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
 import { editorGrowth } from './handlers/editor';
@@ -62,7 +63,7 @@ const STRUCTURAL = new Set(['add_field', 'add_group', 'remove_field', 'move_fiel
  * exist, where they are, their type or whether they are internal.
  */
 function mayStrandDateRules(op: FormOp): boolean {
-    return STRUCTURAL.has(op.op) || (op.op === 'update_field' && (op.patch?.internal != null || op.patch?.dateRules != null));
+    return STRUCTURAL.has(op.op) || op.op === 'remove_choice' || (op.op === 'update_field' && (op.patch?.internal != null || op.patch?.dateRules != null || op.patch?.choices != null));
 }
 
 /**
@@ -93,10 +94,12 @@ export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): Form
         });
     });
     const fixes = sweepRules ? dateRuleFixes(doc.fields as FormField[]) : [];
-    if (!renumber.length && !fixes.length) return doc;
+    const ruleFixes = sweepRules ? fieldRuleFixes(doc) : [];
+    if (!renumber.length && !fixes.length && !ruleFixes.length) return doc;
     return immer.produce(doc, (draft) => {
         for (const [path, index] of renumber) draftAt(draft, path).index = index;
         for (const fix of fixes) setKey(draftAt(draft, fix.path).properties, 'dateRules', fix.rules);
+        for (const fix of ruleFixes) setKey(draftAt(draft, fix.path).properties, 'rules', fix.rules);
     });
 }
 
@@ -115,7 +118,15 @@ function settleMarks(doc: FormDoc, message: string, ctx: OpContext | null): [For
                 for (const fix of fixes) setKey(draftAt(draft, fix.path).properties, 'dateRules', fix.rules);
             });
         }
-        text = text.replace(DROPPED_RULES_MARK, droppedRulesText(fixes.reduce((sum, fix) => sum + fix.dropped, 0)));
+        // field rules that read it (or sat on it) go too
+        const ruleFixes = fieldRuleFixes(next);
+        if (ruleFixes.length) {
+            next = immer.produce(next, (draft) => {
+                for (const fix of ruleFixes) setKey(draftAt(draft, fix.path).properties, 'rules', fix.rules);
+            });
+        }
+        const droppedFieldRules = ruleFixes.reduce((sum, fix) => sum + fix.dropped, 0);
+        text = text.replace(DROPPED_RULES_MARK, droppedRulesText(fixes.reduce((sum, fix) => sum + fix.dropped, 0)) + (droppedFieldRules ? ` (and ${droppedFieldRules} field rule(s) that used it)` : ''));
     }
     const hidden = text.includes(DROPPED_HIDDEN_REFERENCES_MARK);
     if (hidden || text.includes(DROPPED_REFERENCES_MARK)) {

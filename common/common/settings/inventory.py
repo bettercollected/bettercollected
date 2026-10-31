@@ -689,6 +689,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Proxies trusted by the admin portal: addresses, CIDRs and host names.", tier=T5),
     _int("ADMIN_TRUSTED_PROXY_REFRESH_SECONDS", "admin", (ADMIN,), 60, 10, 3600,
          "How often the admin portal looks up the proxy host names again.", tier=T5),
+    _bool("ADMIN_TRUST_CLOUDFLARE", "admin", (ADMIN,), False,
+          "Takes the admin portal's client address from Cloudflare's header, for a request "
+          "that came through a trusted proxy from a Cloudflare range.", tier=T5),
+    _text("ADMIN_CLOUDFLARE_IPS", "admin", (ADMIN,),
+          "Comma separated Cloudflare ranges for the admin portal (empty: the built-in list).",
+          tier=T5, format="cidr_list"),
     _text("ADMIN_DB_RUNTIME_ROLE", "admin", (ADMIN,), "Database role the admin portal runs as.",
           "bc_admin", tier=T5),
     _secret("TASKS_DATABASE_URL", "admin", (ADMIN,),

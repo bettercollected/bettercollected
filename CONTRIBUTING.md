@@ -31,8 +31,8 @@ can agree on the approach before you invest a lot of time.
 |---|---|---|
 | [uv](https://docs.astral.sh/uv/) | latest | Python dependency & environment manager (replaces Poetry) |
 | Python | 3.11+ | uv will fetch a compatible interpreter; see [`.python-version`](.python-version) |
-| Node.js | 20+ | see [`.nvmrc`](.nvmrc) |
-| Yarn | 1.x (Classic) | `corepack enable` or `npm i -g yarn` |
+| Node.js | 26 LTS (22.12+ works) | see [`.nvmrc`](.nvmrc) |
+| Yarn | 1.x (Classic) | `npm i -g yarn` (Node 25+ no longer ships Corepack) |
 | Docker + Docker Compose | latest | for MongoDB, nginx, and Mailpit |
 
 ## Local development

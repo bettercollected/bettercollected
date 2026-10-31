@@ -111,6 +111,20 @@ compose_project=$shell_project
 [ -n "$compose_project" ] || compose_project=$dir_project
 export COMPOSE_PROJECT_NAME="$compose_project"
 
+# The image tag of the first-party services (BC_IMAGE_TAG in docker-compose.deployment.yml).
+# An operator's choice wins (the shell's, else the root .env's: `nightly` follows
+# develop). Otherwise it is the release this checkout is on, so the images always
+# match the compose file and scripts of the release; a checkout between releases
+# keeps the compose file's own default, the latest release, and says so.
+if [ -z "${BC_IMAGE_TAG:-}" ] && [ -z "$(dotenv_value .env BC_IMAGE_TAG)" ]; then
+  release_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+  if [ -n "$release_tag" ]; then
+    export BC_IMAGE_TAG="$release_tag"
+  else
+    image_tag_unpinned=true
+  fi
+fi
+
 compose_files=(-f "docker-compose.deployment.yml")
 sso_enabled=false
 # compose substitutes the shell's SSO_ENABLED, else the root .env's, and the services
@@ -854,7 +868,7 @@ fi
 # The admin settings are read by docker compose from the root .env only. A value in
 # .env.deployment has no effect on the portal (it used to be listed there), so say so
 # instead of letting an operator believe a restriction is in force.
-for var in ADMIN_PORT ADMIN_ALLOWED_IPS ADMIN_ALLOWED_HOSTS ADMIN_PUBLIC_ORIGINS ADMIN_TRUSTED_PROXIES ADMIN_EDGE_SUBNET ADMIN_EDGE_GATEWAY; do
+for var in ADMIN_PORT ADMIN_ALLOWED_IPS ADMIN_ALLOWED_HOSTS ADMIN_PUBLIC_ORIGINS ADMIN_TRUSTED_PROXIES ADMIN_TRUST_CLOUDFLARE ADMIN_CLOUDFLARE_IPS ADMIN_EDGE_SUBNET ADMIN_EDGE_GATEWAY; do
   if file_has .env.deployment "$var" && ! file_has .env "$var"; then
     echo "NOTE: ${var} is set in .env.deployment but the admin service ignores it there: put it in the root .env."
   fi
@@ -1571,6 +1585,10 @@ function dockerup() {
     fi
   done
 
+  if [ "${image_tag_unpinned:-false}" = true ]; then
+    echo "NOTE: this checkout is not on a release tag, so the images are the compose file's default release." >&2
+    echo "      Check out a release tag, or set BC_IMAGE_TAG in .env (nightly follows develop)." >&2
+  fi
   # Schema migrations run once, here, before the services roll
   # (plans/postgres-consolidation.md). Each service owns one schema and its own
   # Alembic history; `run --rm --no-deps` executes inside the freshly pulled

@@ -120,6 +120,7 @@ class TestWorkspaces:
                 "buttonStyle": None,
                 "highlight": None,
                 "selection": None,
+                "inputText": None,
             }
         ]
 

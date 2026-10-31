@@ -5,11 +5,12 @@ import { Provider } from 'jotai';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { useOpenAIProposal } from '@app/store/jotai/ai-proposal';
 
 import LeftDrawer from './left-drawer';
 
@@ -20,9 +21,15 @@ vi.mock('@dnd-kit/core', async (importOriginal) => ({ ...(await importOriginal<t
 vi.mock('./add-slide/add-slide-popover', () => ({ default: () => <button type="button" aria-label="Add page" /> }));
 
 const q = (id: string, title: string, extra: Partial<StandardFormFieldDto> = {}) => ({ id, index: 0, type: FieldTypes.SHORT_TEXT, title, ...extra }) as StandardFormFieldDto;
+// Set to put field rules on "Your name" (the rules badge).
+let nameRules: unknown[] | undefined;
 const pages = (): StandardFormFieldDto[] =>
     [
-        { id: 'p1', type: FieldTypes.SLIDE, properties: { sectionTitle: 'About you', fields: [q('name', 'Your name'), q('email', 'Your email', { type: FieldTypes.EMAIL })] } },
+        {
+            id: 'p1',
+            type: FieldTypes.SLIDE,
+            properties: { sectionTitle: 'About you', fields: [q('name', 'Your name', nameRules ? { properties: { rules: nameRules } as any } : {}), q('email', 'Your email', { type: FieldTypes.EMAIL })] }
+        },
         { id: 'p2', type: FieldTypes.SLIDE, properties: { fields: [q('city', 'Your city'), q('ref', 'Reference', { internal: true })] } },
         { id: 'p3', type: FieldTypes.SLIDE, properties: { fields: [] } }
     ].map((slide, index) => ({ ...slide, index, properties: { ...slide.properties, fields: slide.properties.fields.map((f, i) => ({ ...f, index: i })) } })) as StandardFormFieldDto[];
@@ -345,5 +352,26 @@ describe('builder outline', () => {
         await openEndingMenu('Ending 2', 'Delete');
         fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Thank you' }), { key: 'Enter' });
         expect(await screen.findByRole('menuitem', { name: /Delete \(a form keeps one ending\)/ })).toHaveAttribute('aria-disabled', 'true');
+    });
+});
+
+describe('the rules badge', () => {
+    const rule = (id: string) => ({ id, when: { expression: true }, then: { required: true } });
+
+    it('marks a question that has rules, with how many, and no other', () => {
+        nameRules = [rule('r1'), rule('r2')];
+        renderOutline();
+        const badge = screen.getByTestId('rules-badge');
+        expect(badge).toHaveTextContent('2 rules');
+        expect(badge).toHaveAttribute('title', 'This question has 2 rules');
+        expect(screen.getAllByTestId('rules-badge')).toHaveLength(1);
+        nameRules = undefined;
+    });
+
+    it('says "1 rule" for one', () => {
+        nameRules = [rule('r1')];
+        renderOutline();
+        expect(screen.getByTestId('rules-badge')).toHaveTextContent('1 rule');
+        nameRules = undefined;
     });
 });

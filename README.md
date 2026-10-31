@@ -115,7 +115,7 @@ upgrade. Temporal is not part of the stack since 4.1. A deep dive lives in
 
 ## Quick start (local development)
 
-**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node 20+ (see
+**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node 26 LTS (see
 [`.nvmrc`](.nvmrc)), Yarn 1.x, and Docker.
 
 ```bash

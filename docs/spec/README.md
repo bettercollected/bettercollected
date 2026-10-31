@@ -22,7 +22,7 @@ A test fails when the committed file is out of date.
 | `welcomePage` | Title, description, layout, image and button text of the first screen. |
 | `pages` | The question pages in order. Each page has an `id`, an optional `sectionTitle`, `layout`, `imageUrl`, `theme` override, `showQuestionNumbers`, flow-view `position`, `jumps` (branching) and its `fields`. |
 | `endings` | The pages shown after submitting. Each has an `id` (given when left out), an internal `name`, `isDefault` (at most one; else the first ending is the default), `title`, `message`, `buttonText`, `buttonLink`, `layout` and `imageUrl`. |
-| `theme` | Colours, background and style; optionally type and shape (`titleFont`, `bodyFont`, `dataFont` from `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono`; `titleWidth` `normal` or `expanded`; `radius` `sharp`, `soft` or `round`; `buttonStyle` `filled`, `outlined` or `pill`) and a `highlight` colour (`#rrggbb`). A key left out keeps the look forms had before it existed. |
+| `theme` | Colours, background and style; optionally type and shape (`titleFont`, `bodyFont`, `dataFont` from `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono`; `titleWidth` `normal` or `expanded`; `radius` `sharp`, `soft` or `round`; `buttonStyle` `filled`, `outlined` or `pill`) a `highlight` colour (`#rrggbb`) and an `inputText` colour (`#rrggbb`, the answers typed in the white input boxes; absent: `primary`). A key left out keeps the look forms had before it existed. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
 | `logo` | Position, alt text and whether to use the workspace logo. `url` is read-only: a logo is set by uploading it. |
 | `trust` | Purpose, retention text, privacy policy link, retention period, and the identity, editing and submission-number switches. |
@@ -305,9 +305,9 @@ should pass every case.
   It is left out when the form does not change, and for generated forms.
 - `expect` without `error` means every operation applies.
 - `engines` (optional): the engines that run the case. A case without it is
-  run by every implementation; `["backend"]` marks behaviour the form
-  builder's TypeScript engine does not have. A case that brings field rules
-  assumes the server setting `FIELD_RULES_ENABLED` is on.
+  run by every implementation; `["backend"]` would mark behaviour the form
+  builder's TypeScript engine does not have (no case does today). A case that
+  brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.
