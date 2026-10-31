@@ -6,8 +6,8 @@ The export row never holds an answer: who asked, when, for which form, how many
 rows, which columns and which filters (the search text only as "a search was
 used"), the state of the job and when its file goes. The job's own parameters
 (the real filters) sit sealed in ``params_sealed`` until the job ends. A file is
-stored only for a job, only as encrypted chunks, and goes at its first complete
-download or when it expires.
+stored only for a job, only as encrypted chunks, and goes 24 hours after it was
+built, when its requester deletes it, or when responses of the form are deleted.
 """
 
 import datetime as dt
@@ -24,6 +24,10 @@ def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
     return value
 
 
+# what actor_id becomes when the account is deleted: the audit row stays
+DELETED_ACTOR = "deleted-user"
+
+
 class ExportKind(str, enum.Enum):
     STREAM = "stream"
     JOB = "job"
@@ -37,10 +41,10 @@ class ExportStatus(str, enum.Enum):
     QUEUED = "queued"
     RUNNING = "running"
     READY = "ready"
-    # a job's file is gone: fetched once, past its time, or responses of the
-    # form were deleted after it was built
-    DOWNLOADED = "downloaded"
+    # a job's file is gone: past its 24 hours, deleted by its requester, or
+    # responses of the form were deleted after it was built
     EXPIRED = "expired"
+    DISCARDED = "discarded"
     ERASED = "erased"
     FAILED = "failed"
     # stopped before it was built: responses were deleted meanwhile, or the
@@ -55,8 +59,11 @@ class ExportStatus(str, enum.Enum):
 class ResponseExportDocument(Record):
     workspace_id: RecordId
     form_id: str
-    # who asked (the user's id)
+    # who asked (the user's id; DELETED_ACTOR once that account was deleted)
     actor_id: str
+    # how the data left: "export" (the export control, POST .../exports) or
+    # "all_submissions" (the bulk JSON route, audited the same way)
+    channel: str = "export"
     kind: ExportKind
     status: ExportStatus
     # "csv", or "zip" when the form's repeating groups export as tables
@@ -71,7 +78,10 @@ class ResponseExportDocument(Record):
     # matching rows when it was asked for, and rows written
     expected_rows: Optional[int] = None
     row_count: Optional[int] = None
+    # claims of the job so far; a run owns the export only while this is still
+    # the value it claimed (a swept and re-run job makes the old run stop)
     attempts: int = 0
+    # when the job was claimed and, while it builds, when it last stored a chunk
     started_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
     # file: name offered to the user, size, and when it is deleted at the latest
@@ -79,10 +89,10 @@ class ResponseExportDocument(Record):
     file_size: Optional[int] = None
     chunk_count: Optional[int] = None
     expires_at: Optional[dt.datetime] = None
+    # the last complete download and how many there were (the file stays
+    # until it expires: any number of downloads)
     downloaded_at: Optional[dt.datetime] = None
-    # a download is in progress since then (one at a time, so a file is never
-    # deleted under a second reader)
-    download_started_at: Optional[dt.datetime] = None
+    download_count: int = 0
     file_deleted_at: Optional[dt.datetime] = None
     # set when responses of the form were deleted: a job still building then
     # throws its file away instead of keeping it
@@ -95,7 +105,6 @@ class ResponseExportDocument(Record):
         "finished_at",
         "expires_at",
         "downloaded_at",
-        "download_started_at",
         "file_deleted_at",
         "invalidated_at",
     )(_utc)
@@ -113,6 +122,8 @@ class ResponseExportChunkDocument(Record):
     form_id: str
     index: int
     data: str
+    # the claim of the run that wrote it (a chunk of another claim is not the file)
+    attempt: int = 0
 
     class Settings:
         name = "response_export_chunks"

@@ -9,7 +9,10 @@ export const responseExportLocale = {
     download: 'RESPONSE_EXPORT.DOWNLOAD',
     downloading: 'RESPONSE_EXPORT.DOWNLOADING',
     downloaded: 'RESPONSE_EXPORT.DOWNLOADED',
-    deletedAfterDownload: 'RESPONSE_EXPORT.DELETED_AFTER_DOWNLOAD',
+    downloadedStays: 'RESPONSE_EXPORT.DOWNLOADED_STAYS',
+    discard: 'RESPONSE_EXPORT.DISCARD',
+    discarding: 'RESPONSE_EXPORT.DISCARDING',
+    discarded: 'RESPONSE_EXPORT.DISCARDED',
     readyUntil: 'RESPONSE_EXPORT.READY_UNTIL',
     dismiss: 'RESPONSE_EXPORT.DISMISS',
     errorRateLimited: 'RESPONSE_EXPORT.ERROR_RATE_LIMITED',
@@ -21,5 +24,7 @@ export const responseExportLocale = {
     errorPermission: 'RESPONSE_EXPORT.ERROR_PERMISSION',
     errorTooLarge: 'RESPONSE_EXPORT.ERROR_TOO_LARGE',
     errorGone: 'RESPONSE_EXPORT.ERROR_GONE',
+    errorReady: 'RESPONSE_EXPORT.ERROR_READY',
+    errorBusy: 'RESPONSE_EXPORT.ERROR_BUSY',
     errorGeneric: 'RESPONSE_EXPORT.ERROR_GENERIC'
 };

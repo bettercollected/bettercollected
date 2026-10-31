@@ -16,12 +16,15 @@ const server: {
     startError: any;
     mine: any[];
     status: any;
+    statusError: any;
     statusOptions: any[];
     downloadError: any;
     starts: any[];
     downloads: any[];
+    discards: any[];
+    discardError: any;
     saved: Array<{ blob: Blob; name: string }>;
-} = { started: undefined, startError: undefined, mine: [], status: undefined, statusOptions: [], downloadError: undefined, starts: [], downloads: [], saved: [] };
+} = { started: undefined, startError: undefined, mine: [], status: undefined, statusError: undefined, statusOptions: [], downloadError: undefined, starts: [], downloads: [], discards: [], discardError: undefined, saved: [] };
 
 vi.mock('@app/utils/response-export', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -44,13 +47,26 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useGetResponseExportsQuery: () => ({ data: server.mine, refetch: () => ({ unwrap: async () => server.mine }) }),
         useGetResponseExportQuery: (arg: any, options: any) => {
             server.statusOptions.push({ arg, options });
-            return { data: options?.skip ? undefined : server.status, refetch: () => ({ unwrap: async () => server.status }) };
+            return { data: options?.skip ? undefined : server.status, error: options?.skip ? undefined : server.statusError, refetch: () => ({ unwrap: async () => server.status }) };
         },
+        useDiscardResponseExportMutation: () => [
+            (arg: any) => ({
+                unwrap: async () => {
+                    server.discards.push(arg);
+                    if (server.discardError) throw server.discardError;
+                    return null;
+                }
+            })
+        ],
         useDownloadResponseExportMutation: () => [
             (arg: any) => ({
                 unwrap: async () => {
                     server.downloads.push(arg);
-                    if (server.downloadError) throw server.downloadError;
+                    if (server.downloadError) {
+                        const failure = server.downloadError;
+                        if (failure.once) server.downloadError = undefined;
+                        throw failure;
+                    }
                     return new Blob(['csv']);
                 }
             })
@@ -70,7 +86,7 @@ const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('butto
 const lastStatusQuery = () => server.statusOptions.at(-1);
 
 beforeEach(() => {
-    Object.assign(server, { started: undefined, startError: undefined, mine: [], status: undefined, statusOptions: [], downloadError: undefined, starts: [], downloads: [], saved: [] });
+    Object.assign(server, { started: undefined, startError: undefined, mine: [], status: undefined, statusError: undefined, statusOptions: [], downloadError: undefined, starts: [], downloads: [], discards: [], discardError: undefined, saved: [] });
 });
 
 describe('a small export', () => {
@@ -132,7 +148,7 @@ describe('a large export', () => {
         server.status = ready();
         rerender(tree());
         expect(await screen.findByText('Your export is ready.')).toBeInTheDocument();
-        expect(screen.getByText(/deleted when you download it/)).toBeInTheDocument();
+        expect(screen.getByText(/as often as you like/)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Export CSV' })).not.toBeDisabled();
         // a ready export is not polled
         expect(lastStatusQuery().options.pollingInterval).toBe(0);
@@ -142,8 +158,11 @@ describe('a large export', () => {
         // the link used is the one of a fresh status read
         expect(server.downloads).toEqual([{ downloadUrl: '/workspaces/ws-1/forms/form-1/exports/exp-1/download?token=1.abc' }]);
         expect(server.saved[0].name).toBe('Colours.csv');
-        expect(await screen.findByText('Your export was downloaded.')).toBeInTheDocument();
-        expect(screen.getByText(/We deleted the file from our servers/)).toBeInTheDocument();
+        // the file stays, for as long as the server says: the button stays for another download
+        expect(await screen.findByText(/The file stays on our servers until/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
+        click('Download');
+        await waitFor(() => expect(server.saved).toHaveLength(2));
     });
 
     it('follows the same export through queued and running', async () => {
@@ -210,7 +229,7 @@ describe('when it is refused', () => {
     it.each([
         [{ status: 429, data: { code: 'rate_limited', retryAfter: 125 } }, 'Try again in 3 minutes'],
         [{ status: 429, data: { code: 'rate_limited', retryAfter: 5 } }, 'Try again in 1 minutes'],
-        [{ status: 413, data: { code: 'too_many_rows' } }, 'too many responses for one file'],
+        [{ status: 413, data: { code: 'too_many_rows' } }, 'more responses than one export can hold'],
         [{ status: 403, data: {} }, 'not allowed to export'],
         [{ status: 500, data: {} }, 'did not work'],
         [{ status: 'FETCH_ERROR' }, 'did not work']
@@ -242,6 +261,127 @@ describe('when it is refused', () => {
         click('Export CSV');
         await screen.findByRole('alert');
         expect(document.getElementById(button.getAttribute('aria-describedby')!)).toBe(screen.getByRole('alert'));
+    });
+});
+
+describe('when following or fetching goes wrong', () => {
+    it.each([
+        [403, 'no longer export'],
+        [404, 'no longer available']
+    ])('stops following an export the poll is refused with %s', async (status, words) => {
+        server.started = { kind: 'job', export: job() };
+        const { rerender } = render(tree());
+        click('Export CSV');
+        await screen.findByRole('status');
+        server.statusError = { status, data: {} };
+        rerender(tree());
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent(words);
+        // no longer asked about: the poll is skipped
+        expect(lastStatusQuery().options.skip).toBe(true);
+        expect(screen.getByRole('button', { name: 'Export CSV' })).not.toBeDisabled();
+    });
+
+    it('keeps the Download button after a failed download of a file that is still there', async () => {
+        server.mine = [ready()];
+        server.status = ready();
+        server.downloadError = { status: 500, data: {}, once: true };
+        render(tree());
+        await screen.findByText('Your export is ready.');
+        click('Download');
+        expect(await screen.findByText(/did not work/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
+        click('Download');
+        await waitFor(() => expect(server.saved).toHaveLength(1));
+    });
+
+    it('picks an export up again after the person dismisses a refusal', async () => {
+        server.mine = [ready()];
+        server.status = ready();
+        server.downloadError = { status: 410, data: { code: 'export_gone' } };
+        const { rerender } = render(tree());
+        await screen.findByText('Your export is ready.');
+        click('Download');
+        expect(await screen.findByRole('alert')).toHaveTextContent('no longer available');
+        // a new export of theirs is ready by now
+        server.downloadError = undefined;
+        server.mine = [ready({ id: 'exp-2' })];
+        server.status = ready({ id: 'exp-2' });
+        click('Dismiss');
+        rerender(tree());
+        expect(await screen.findByText('Your export is ready.')).toBeInTheDocument();
+        expect(lastStatusQuery().arg.exportId).toBe('exp-2');
+    });
+
+    it('follows a ready export when a new one is refused for it', async () => {
+        server.startError = { status: 409, data: { code: 'export_ready' } };
+        render(tree());
+        server.mine = [ready()];
+        server.status = ready();
+        click('Export CSV');
+        expect(await screen.findByText('Your export is ready.')).toBeInTheDocument();
+    });
+
+    it.each([
+        [{ status: 409, data: { code: 'export_ready' } }, 'delete the file to start a new one'],
+        [{ status: 429, data: { code: 'workspace_busy' } }, 'Several exports of this workspace']
+    ])('names the refusal %j', async (error, words) => {
+        server.startError = error;
+        render(tree());
+        click('Export CSV');
+        expect(await screen.findByRole('alert')).toHaveTextContent(words);
+    });
+
+    it('says what the too-many-responses refusal offers: a search', async () => {
+        server.startError = { status: 413, data: { code: 'too_many_rows' } };
+        render(tree());
+        click('Export CSV');
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent('100,000');
+        expect(alert).toHaveTextContent('Search for a responder');
+    });
+});
+
+describe('deleting a ready file', () => {
+    it('deletes it on request, says so and frees the button for a new export', async () => {
+        server.mine = [ready()];
+        server.status = ready();
+        const { rerender } = render(tree());
+        await screen.findByText('Your export is ready.');
+        click('Delete the file');
+        expect(await screen.findByText(/The file was deleted from our servers/)).toBeInTheDocument();
+        expect(server.discards).toEqual([{ workspaceId: 'ws-1', formId: 'form-1', exportId: 'exp-1' }]);
+        expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
+        expect(screen.getByRole('button', { name: 'Export CSV' })).not.toBeDisabled();
+        // the export is no longer followed
+        server.mine = [];
+        rerender(tree());
+        expect(lastStatusQuery().options.skip).toBe(true);
+    });
+
+    it('leaves the file where it was when deleting fails, and lets the person try again', async () => {
+        server.mine = [ready()];
+        server.status = ready();
+        server.discardError = { status: 500, data: {} };
+        render(tree());
+        await screen.findByText('Your export is ready.');
+        click('Delete the file');
+        expect(await screen.findByText(/did not work/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
+        server.discardError = undefined;
+        click('Delete the file');
+        expect(await screen.findByText(/The file was deleted from our servers/)).toBeInTheDocument();
+        expect(server.discards).toHaveLength(2);
+    });
+
+    it('says a file that is already gone is gone', async () => {
+        server.mine = [ready()];
+        server.status = ready();
+        server.discardError = { status: 404, data: {} };
+        render(tree());
+        await screen.findByText('Your export is ready.');
+        click('Delete the file');
+        expect(await screen.findByRole('alert')).toHaveTextContent('no longer available');
     });
 });
 

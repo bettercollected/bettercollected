@@ -19,11 +19,15 @@ FILE_TTL = dt.timedelta(hours=24)
 # export requests per user and form in a window (the limiter's window)
 REQUESTS_PER_WINDOW = 10
 WINDOW_SECONDS = 3600
-# a download that did not finish within this long may be started again
-DOWNLOAD_CLAIM_TTL = dt.timedelta(minutes=10)
 # sweeps: a queued export whose job never got queued, a running one whose worker died
 REDEFER_AFTER = dt.timedelta(minutes=2)
 STALE_RUNNING_AFTER = dt.timedelta(minutes=30)
 MAX_ATTEMPTS = 3
 # a streamed export still "streaming" after this long was cut off (the process died)
 STALE_STREAMING_AFTER = dt.timedelta(hours=1)
+# jobs in flight (queued or running) per workspace; more wait for these to end
+WORKSPACE_MAX_JOBS = 3
+# a failed or cancelled job is shown to its requester for this long
+FAILURE_NEWS_FOR = dt.timedelta(hours=24)
+# export jobs have a queue of their own, so they cannot hold up deletions
+EXPORTS_QUEUE = "exports"

@@ -131,12 +131,12 @@ class FormImportService:
             await self._form_response_repo.save(response_document)
             updated_responses_id.append(response.response_id)
 
-        await self._form_response_repo.delete_by_form_id_except(
+        deleted = await self._form_response_repo.delete_by_form_id_except(
             scope, updated_responses_id
         )
-        if self._response_exports is not None:
+        if deleted and self._response_exports is not None:
             # responses the provider no longer has were deleted: no stored
-            # export file keeps them
+            # export file keeps them (a sync that deletes nothing leaves them)
             await self._response_exports.forget_files_of_form(
                 workspace_id, standard_form.form_id
             )

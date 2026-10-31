@@ -89,7 +89,7 @@ async def ready_export(client, workspace, form, count=5, body=None):
 # --------------------------------------------------------------- the job itself
 
 
-async def test_a_large_export_is_queued_built_and_downloaded_once(client: AsyncClient, workspace, small_threshold):
+async def test_a_large_export_is_queued_built_and_downloadable_until_it_expires(client: AsyncClient, workspace, small_threshold):
     form = await publish(workspace, hidden=["ref"])
     await submit_many(workspace, form, 5)
     first = await queued(client, workspace, form)
@@ -97,7 +97,7 @@ async def test_a_large_export_is_queued_built_and_downloaded_once(client: AsyncC
     # the job is queued by id only
     (job,) = small_threshold.jobs.values()
     assert job["task_name"] == "build_response_export" and job["args"] == {"export_id": first["id"]}
-    assert job["queue_name"] == "default"
+    assert job["queue_name"] == "exports"
 
     pending = (await status(client, workspace, form, first["id"])).json()
     assert pending["status"] == "queued" and "downloadUrl" not in pending
@@ -116,13 +116,17 @@ async def test_a_large_export_is_queued_built_and_downloaded_once(client: AsyncC
     assert table[0][:3] == ["Responder ID", "Full name", "Phone"] and len(table) == 6
     assert {r[1] for r in table[1:]} == {f"Person {n}" for n in range(5)}
 
-    # fetched once: the file is gone, the audit entry stays
+    # the file stays: any number of downloads, each only counted in the audit entry
     entry = await repo().get_by_id(first["id"])
-    assert entry.status == ExportStatus.DOWNLOADED and entry.downloaded_at and entry.file_deleted_at
+    assert entry.status == ExportStatus.READY and entry.download_count == 1 and entry.downloaded_at
+    assert entry.file_deleted_at is None and await repo().count_chunks(first["id"]) == entry.chunk_count
     assert entry.kind == ExportKind.JOB and entry.row_count == 5 and entry.params_sealed is None
-    assert await repo().count_chunks(first["id"]) == 0
     again = await fetch(client, workspace, form, first["id"])
-    assert again.status_code == 410 and again.json()["code"] == "export_gone"
+    assert again.status_code == 200 and again.content == file.content
+    assert (await repo().get_by_id(first["id"])).download_count == 2
+    assert "Person" not in json.dumps((await repo().get_by_id(first["id"])).model_dump(mode="json"))
+    view = (await status(client, workspace, form, first["id"])).json()
+    assert view["status"] == "ready" and view["downloadCount"] == 2 and "downloadUrl" in view
 
 
 def limits_link_ttl():
@@ -213,10 +217,12 @@ async def test_a_second_job_waits_for_the_first(client: AsyncClient, workspace):
     first = await queued(client, workspace, form)
     refused = await start(client, workspace, form)
     assert refused.status_code == 409 and refused.json()["code"] == "export_in_progress"
-    # another user may ask meanwhile, and once the first is built so may they
+    # another user may ask meanwhile
     assert (await start(client, workspace, form, user=invited_user)).status_code == 202
+    # built, the file still counts: it waits for its requester, or its 24 hours
     await build(first["id"])
-    assert (await start(client, workspace, form)).status_code == 202
+    refused = await start(client, workspace, form)
+    assert refused.status_code == 409 and refused.json()["code"] == "export_ready"
 
 
 async def test_a_failed_build_is_marked_and_leaves_no_file(client: AsyncClient, workspace, monkeypatch):
@@ -307,13 +313,16 @@ async def test_an_expired_link_is_refused_and_a_new_one_works(client: AsyncClien
 async def test_a_link_belongs_to_one_export_and_one_user(client: AsyncClient, workspace):
     form = await publish(workspace)
     first = await ready_export(client, workspace, form)
-    second_export = await queued(client, workspace, form)
+    other_form = await publish(workspace)
+    await submit_many(workspace, other_form, 3)
+    second_export = await queued(client, workspace, other_form)
     await build(second_export["id"])
     link_of_first = (await status(client, workspace, form, first)).json()["downloadUrl"]
     token_of_first = link_of_first.split("token=")[1]
     base = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/exports/"
     # the first export's link on the second export
-    cross = await client.get(f"{base}{second_export['id']}/download?token={token_of_first}", cookies=_cookies(testUser))
+    cross_base = f"/api/v1/workspaces/{workspace.id}/forms/{other_form.form_id}/exports/"
+    cross = await client.get(f"{cross_base}{second_export['id']}/download?token={token_of_first}", cookies=_cookies(testUser))
     assert cross.status_code == 403
     # a link made for another user on this user's export
     entry = await repo().get_by_id(first)
@@ -341,23 +350,19 @@ async def test_the_status_and_the_list_are_the_requesters_alone(client: AsyncCli
     assert (await status(client, workspace, form, "0" * 24)).status_code == 404
 
 
-async def test_one_download_at_a_time_and_a_broken_one_can_be_retried(workspace, client: AsyncClient):
+async def test_downloads_may_overlap_and_a_broken_one_costs_nothing(workspace, client: AsyncClient):
     form = await publish(workspace)
     export_id = await ready_export(client, workspace, form)
     ready = (await status(client, workspace, form, export_id)).json()
     token = ready["downloadUrl"].split("token=")[1]
-    claimed, body = await service().download(workspace.id, form.form_id, export_id, token, testUser)
-    first = await body.__anext__()
-    assert first
-    from backend.app.exceptions import HTTPException
-
-    with pytest.raises(HTTPException) as busy:
-        await service().download(workspace.id, form.form_id, export_id, token, testUser)
-    assert busy.value.status_code == 409
-    # the reader goes away: the file stays and may be fetched again
-    await body.aclose()
+    _, first = await service().download(workspace.id, form.form_id, export_id, token, testUser)
+    _, second = await service().download(workspace.id, form.form_id, export_id, token, testUser)
+    assert await first.__anext__() == await second.__anext__()
+    # one reader goes away mid-way: nothing is recorded, the file is untouched
+    await first.aclose()
     entry = await repo().get_by_id(export_id)
-    assert entry.status == ExportStatus.READY and entry.download_started_at is None
+    assert entry.status == ExportStatus.READY and entry.download_count == 0
+    assert b"".join([chunk async for chunk in second]) and (await repo().get_by_id(export_id)).download_count == 1
     assert (await fetch(client, workspace, form, export_id)).status_code == 200
 
 

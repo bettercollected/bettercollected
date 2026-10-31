@@ -1126,18 +1126,23 @@
     "DOWNLOAD": "Download",
     "DOWNLOADING": "Downloading…",
     "DOWNLOADED": "Your export was downloaded.",
-    "DELETED_AFTER_DOWNLOAD": "We deleted the file from our servers. Export again if you need another copy.",
-    "READY_UNTIL": "The file is kept until {{time}} and is deleted when you download it.",
+    "READY_UNTIL": "The file is kept until {{time}} and you can download it as often as you like until then.",
     "DISMISS": "Dismiss",
     "ERROR_RATE_LIMITED": "You exported this form too often. Try again in {{minutes}} minutes.",
     "ERROR_IN_PROGRESS": "An export of this form is already being prepared.",
-    "ERROR_TOO_MANY": "This export would hold too many responses for one file. Narrow it down with a search and try again.",
+    "ERROR_TOO_MANY": "This form has more responses than one export can hold (100,000). Search for a responder to export a smaller set.",
     "ERROR_FORBIDDEN": "You are not allowed to export these responses.",
     "ERROR_FAILED": "The export could not be prepared. Nothing was kept. Try again.",
     "ERROR_DELETED": "Responses were deleted while your export was being prepared, so we threw the file away. Start the export again.",
     "ERROR_PERMISSION": "You can no longer export this form's responses.",
-    "ERROR_TOO_LARGE": "The export is too large for one file. Narrow it down with a search and try again.",
+    "ERROR_TOO_LARGE": "The export is too large for one file. Search for a responder to export a smaller set.",
     "ERROR_GONE": "This export is no longer available. Start it again.",
-    "ERROR_GENERIC": "The export did not work. Try again."
+    "ERROR_GENERIC": "The export did not work. Try again.",
+    "ERROR_READY": "You already have an export of this form ready. Download it, or delete the file to start a new one.",
+    "ERROR_BUSY": "Several exports of this workspace are being prepared. Try again in a few minutes.",
+    "DOWNLOADED_STAYS": "Downloaded. The file stays on our servers until {{time}}, so you can download it again.",
+    "DISCARD": "Delete the file",
+    "DISCARDING": "Deleting the file…",
+    "DISCARDED": "The file was deleted from our servers. You can start a new export."
   }
 }

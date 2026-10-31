@@ -1126,18 +1126,23 @@
     "DOWNLOAD": "Downloaden",
     "DOWNLOADING": "Bezig met downloaden…",
     "DOWNLOADED": "Uw export is gedownload.",
-    "DELETED_AFTER_DOWNLOAD": "We hebben het bestand van onze servers verwijderd. Exporteer opnieuw als u nog een kopie nodig hebt.",
-    "READY_UNTIL": "Het bestand blijft bewaard tot {{time}} en wordt verwijderd zodra u het downloadt.",
+    "READY_UNTIL": "Het bestand blijft bewaard tot {{time}} en u kunt het tot dan zo vaak downloaden als u wilt.",
     "DISMISS": "Sluiten",
     "ERROR_RATE_LIMITED": "U hebt dit formulier te vaak geëxporteerd. Probeer het over {{minutes}} minuten opnieuw.",
     "ERROR_IN_PROGRESS": "Er wordt al een export van dit formulier voorbereid.",
-    "ERROR_TOO_MANY": "Deze export bevat te veel reacties voor één bestand. Beperk hem met een zoekopdracht en probeer het opnieuw.",
+    "ERROR_TOO_MANY": "Dit formulier heeft meer reacties dan één export kan bevatten (100.000). Zoek op een respondent om een kleinere set te exporteren.",
     "ERROR_FORBIDDEN": "U mag deze reacties niet exporteren.",
     "ERROR_FAILED": "De export kon niet worden voorbereid. Er is niets bewaard. Probeer het opnieuw.",
     "ERROR_DELETED": "Tijdens het voorbereiden van uw export zijn reacties verwijderd, daarom hebben we het bestand weggegooid. Start de export opnieuw.",
     "ERROR_PERMISSION": "U mag de reacties van dit formulier niet meer exporteren.",
-    "ERROR_TOO_LARGE": "De export is te groot voor één bestand. Beperk hem met een zoekopdracht en probeer het opnieuw.",
+    "ERROR_TOO_LARGE": "De export is te groot voor één bestand. Zoek op een respondent om een kleinere set te exporteren.",
     "ERROR_GONE": "Deze export is niet meer beschikbaar. Start hem opnieuw.",
-    "ERROR_GENERIC": "De export is niet gelukt. Probeer het opnieuw."
+    "ERROR_GENERIC": "De export is niet gelukt. Probeer het opnieuw.",
+    "ERROR_READY": "Er staat al een export van dit formulier klaar. Download die, of verwijder het bestand om een nieuwe te starten.",
+    "ERROR_BUSY": "Er worden meerdere exports van deze werkruimte voorbereid. Probeer het over een paar minuten opnieuw.",
+    "DOWNLOADED_STAYS": "Gedownload. Het bestand blijft tot {{time}} op onze servers staan, dus u kunt het opnieuw downloaden.",
+    "DISCARD": "Bestand verwijderen",
+    "DISCARDING": "Bestand wordt verwijderd…",
+    "DISCARDED": "Het bestand is van onze servers verwijderd. U kunt een nieuwe export starten."
   }
 }

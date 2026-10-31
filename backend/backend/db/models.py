@@ -669,6 +669,17 @@ class ResponseExportRow(Base, BaseRow):
         Index(None, "workspace_id", "form_id", "created_at"),
         Index(None, "actor_id", "form_id", "created_at"),
         Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one export in flight or waiting to be fetched per requester and form:
+        # the check and the insert of a request cannot race past each other
+        Index(
+            "uq_response_exports_one_open",
+            "workspace_id",
+            "form_id",
+            "actor_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running', 'ready')"),
+        ),
     )
 
 
@@ -681,4 +692,5 @@ class ResponseExportChunkRow(Base, BaseRow):
     __table_args__ = (
         UniqueConstraint("export_id", "chunk_index"),
         Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
     )

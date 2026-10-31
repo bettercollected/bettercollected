@@ -4,7 +4,7 @@ written as a cell.
 This is the rule the webapp used to apply in the browser
 (``webapp/src/utils/response-export.ts`` and the helpers behind it), moved
 here so a form's responses never have to travel to the browser as one JSON
-document. ``tests/app/services/response_export/test_table.py`` pins it with the
+document. ``tests/app/response_export/test_table.py`` pins it with the
 output of that TypeScript on the same data. The Google Sheets action keeps its
 own, older formatting (``temporal/actions-executor/utilities/form.py``).
 

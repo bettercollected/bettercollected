@@ -18,7 +18,7 @@ import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
-export type ResponseExportStatus = 'queued' | 'running' | 'ready' | 'downloaded' | 'expired' | 'erased' | 'failed' | 'cancelled' | 'streaming' | 'completed';
+export type ResponseExportStatus = 'queued' | 'running' | 'ready' | 'discarded' | 'expired' | 'erased' | 'failed' | 'cancelled' | 'streaming' | 'completed';
 
 export interface ResponseExportDto {
     id: string;
@@ -31,6 +31,8 @@ export interface ResponseExportDto {
     fileName?: string | null;
     fileSize?: number | null;
     expiresAt?: string | null;
+    downloadedAt?: string | null;
+    downloadCount?: number;
     errorCode?: string | null;
     downloadUrl?: string;
     linkExpiresInSeconds?: number;
@@ -276,7 +278,11 @@ export const workspacesApi = createApi({
         getResponseExport: builder.query<ResponseExportDto, { workspaceId: string; formId: string; exportId: string }>({
             query: ({ workspaceId, formId, exportId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports/${pathSegment(exportId)}`, method: 'GET' })
         }),
-        // The file of a ready export, through the link its status gave; the server deletes it once sent.
+        // Delete a ready file now (its requester only), so a new export can start before it expires.
+        discardResponseExport: builder.mutation<null, { workspaceId: string; formId: string; exportId: string }>({
+            query: ({ workspaceId, formId, exportId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports/${pathSegment(exportId)}`, method: 'DELETE' })
+        }),
+        // The file of a ready export, through the link its status gave; it can be fetched again until it is deleted.
         downloadResponseExport: builder.mutation<Blob, { downloadUrl: string }>({
             query: ({ downloadUrl }) => ({ url: downloadUrl, method: 'GET', responseHandler: responseExportFileHandler })
         }),
@@ -874,6 +880,7 @@ export const {
     useGetResponseExportsQuery,
     useGetResponseExportQuery,
     useDownloadResponseExportMutation,
+    useDiscardResponseExportMutation,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
     useUpdateInternalAnswersMutation,

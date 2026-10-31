@@ -826,6 +826,13 @@ CASES = [
         ok=404,
     ),
     Case(
+        "responses.form.export.discard",
+        "DELETE",
+        F + "/exports/000000000000000000000000",
+        P.RESPONSE_EXPORT,
+        ok=404,
+    ),
+    Case(
         "responses.form.export.download",
         "GET",
         F + "/exports/000000000000000000000000/download",

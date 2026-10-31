@@ -3,11 +3,15 @@ rows (audit entries and job state) and the encrypted chunks of a job's file.
 Queries use the spine columns of :mod:`backend.db.models`. Nothing here holds or
 reads an answer."""
 
+import datetime as dt
+import hashlib
 from typing import Callable, List, Optional, Sequence
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.schemas.response_export import (
+    DELETED_ACTOR,
     ExportStatus,
     ResponseExportChunkDocument,
     ResponseExportDocument,
@@ -20,6 +24,17 @@ from common.records.repository import RecordRepository
 
 def _id(value) -> str:
     return str(value)
+
+
+class OpenExportExists(Exception):
+    """The requester already has an export of this form in flight or waiting to be fetched."""
+
+
+class WorkspaceBusy(Exception):
+    """The workspace already has its share of jobs in flight."""
+
+
+CHUNK_OWNED, CHUNK_LOST, CHUNK_INVALIDATED = "owned", "lost", "invalidated"
 
 
 class PostgresResponseExportRepository(RecordRepository):
@@ -86,12 +101,54 @@ class PostgresResponseExportRepository(RecordRepository):
             )
         return [decode(self.document, d) for d in docs]
 
-    async def unfinished_for(self, workspace_id, form_id, actor_id) -> Optional[ResponseExportDocument]:
-        """A job of this requester for this form that has not ended."""
+    async def open_for(self, workspace_id, form_id, actor_id) -> Optional[ResponseExportDocument]:
+        """A job of this requester for this form that is in flight or whose
+        file waits to be fetched (one live export per requester and form)."""
         return await self.one(
             ResponseExportRow.workspace_id == _id(workspace_id),
             ResponseExportRow.form_id == _id(form_id),
             ResponseExportRow.actor_id == _id(actor_id),
+            ResponseExportRow.status.in_(
+                [s.value for s in (ExportStatus.QUEUED, ExportStatus.RUNNING, ExportStatus.READY)]
+            ),
+        )
+
+    async def admit_job(self, document: ResponseExportDocument, workspace_cap: int) -> ResponseExportDocument:
+        """Store a new job unless the workspace already has ``workspace_cap``
+        in flight (``WorkspaceBusy``) or the requester already has a live export
+        of the form (``OpenExportExists``). The count and the insert share one
+        transaction under a lock on the workspace, and the partial unique index
+        of revision 0028 backs the second rule, so concurrent requests cannot
+        both get in."""
+        digest = hashlib.sha1(("response-export|" + _id(document.workspace_id)).encode()).digest()
+        key = int.from_bytes(digest[:8], "big", signed=True)
+        document.ensure_id()
+        values = row_values(document)
+        try:
+            async with self._session() as session, session.begin():
+                await session.execute(select(func.pg_advisory_xact_lock(key)))
+                in_flight = (
+                    await session.execute(
+                        select(func.count())
+                        .select_from(ResponseExportRow)
+                        .where(
+                            ResponseExportRow.workspace_id == _id(document.workspace_id),
+                            ResponseExportRow.status.in_(
+                                [ExportStatus.QUEUED.value, ExportStatus.RUNNING.value]
+                            ),
+                        )
+                    )
+                ).scalar_one()
+                if in_flight >= workspace_cap:
+                    raise WorkspaceBusy()
+                await session.execute(self._upsert_statement(values))
+        except IntegrityError:
+            raise OpenExportExists() from None
+        return document
+
+    async def count_unfinished_in_workspace(self, workspace_id) -> int:
+        return await self.count(
+            ResponseExportRow.workspace_id == _id(workspace_id),
             ResponseExportRow.status.in_([ExportStatus.QUEUED.value, ExportStatus.RUNNING.value]),
         )
 
@@ -184,6 +241,32 @@ class PostgresResponseExportRepository(RecordRepository):
                 deleted += 1
         return deleted
 
+    async def forget_actor(self, user_id) -> int:
+        """The account was deleted: its exports keep their audit row, with the
+        user replaced by ``DELETED_ACTOR``; a file it had waiting is deleted, a job
+        of it that is still running is told to stop. Returns the rows changed."""
+        changed = 0
+        for found in await self.many(ResponseExportRow.actor_id == _id(user_id)):
+
+            def change(document: ResponseExportDocument):
+                if document.actor_id != _id(user_id):
+                    return None
+                if document.status == ExportStatus.READY:
+                    document.status = ExportStatus.ERASED
+                    document.file_deleted_at = utcnow()
+                    document.expires_at = None
+                elif document.status == ExportStatus.RUNNING:
+                    document.invalidated_at = utcnow()
+                document.actor_id = DELETED_ACTOR
+                return document
+
+            was_ready = found.status == ExportStatus.READY
+            if await self.update_locked(found.id, change) is not None:
+                changed += 1
+                if was_ready:
+                    await self.delete_chunks(found.id)
+        return changed
+
     async def delete_for_form(self, workspace_id, form_id) -> int:
         await self.delete_where(
             ResponseExportChunkRow.workspace_id == _id(workspace_id),
@@ -214,6 +297,35 @@ class PostgresResponseExportRepository(RecordRepository):
     # -- chunks ---------------------------------------------------------------
     async def add_chunk(self, chunk: ResponseExportChunkDocument) -> None:
         await self.upsert(chunk, row=ResponseExportChunkRow)
+
+    async def add_chunk_if_owned(
+        self, chunk: ResponseExportChunkDocument, attempt: int, now: dt.datetime
+    ) -> str:
+        """Store a chunk only while the run that wrote it still owns the export:
+        the row is locked, still RUNNING, still on this claim (``attempt``) and not
+        invalidated; the same transaction records the heartbeat (``started_at``).
+        Returns ``CHUNK_OWNED``, ``CHUNK_LOST`` (another claim took over) or
+        ``CHUNK_INVALIDATED`` (responses were deleted)."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(ResponseExportRow.doc)
+                    .where(ResponseExportRow.id == chunk.export_id)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return CHUNK_LOST
+            document = decode(self.document, doc)
+            if document.status != ExportStatus.RUNNING or document.attempts != attempt:
+                return CHUNK_LOST
+            if document.invalidated_at is not None:
+                return CHUNK_INVALIDATED
+            document.started_at = now
+            document.touch()
+            await session.execute(self._upsert_statement(row_values(document)))
+            await session.execute(self._upsert_statement(row_values(chunk), ResponseExportChunkRow))
+            return CHUNK_OWNED
 
     async def get_chunk(self, export_id, index: int) -> Optional[ResponseExportChunkDocument]:
         return await self.one_of(

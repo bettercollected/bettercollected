@@ -26,7 +26,7 @@ from backend.app.services.registration.retry import (
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.app.services.webhooks.retry import WebhookRetry, WebhookRetryStrategy
-from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
+from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, EXPORTS_QUEUE, WEBHOOKS_QUEUE, app
 
 RUN_ACTION = "run_action"
 
@@ -374,7 +374,7 @@ async def purge_action_logs(timestamp: int) -> str:
 
 @app.task(
     name="build_response_export",
-    queue=DEFAULT_QUEUE,
+    queue=EXPORTS_QUEUE,
 )
 async def build_response_export(export_id: str) -> str:
     """Build the file of a large responses export (docs/response-export.md).
@@ -407,6 +407,6 @@ async def response_export_redefer(timestamp: int) -> str:
 )
 async def response_export_purge(timestamp: int) -> str:
     """Hourly: delete the stored files of exports that outlived their 24 hours
-    (a file is also deleted at its first complete download). Counts only."""
+    (a file is also deleted when its requester discards it or responses of the form are deleted). Counts only."""
     deleted = await _container().response_export_service().purge_expired()
     return f"{deleted} deleted"

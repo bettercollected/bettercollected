@@ -700,6 +700,12 @@ class WorkspaceService:
             )
         return workspace
 
+    async def forget_exports_of_user(self, user_id: str) -> None:
+        """An account is being deleted: the export audit rows it leaves in other
+        workspaces lose the user (the rows stay), and files it had waiting go."""
+        if self._response_export_service is not None:
+            await self._response_export_service.forget_actor(user_id)
+
     async def apply_custom_domain_event(self, event) -> str:
         """Apply a verified webhook event to the workspace that owns the domain.
         Deliveries are at least once and unordered: an event older than what the

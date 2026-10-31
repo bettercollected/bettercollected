@@ -61,6 +61,7 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useGetResponseExportQuery: () => ({ data: undefined, refetch: vi.fn() }),
         useStartResponseExportMutation: () => [vi.fn()],
         useDownloadResponseExportMutation: () => [vi.fn()],
+        useDiscardResponseExportMutation: () => [vi.fn()],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
         useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
     };

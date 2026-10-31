@@ -4,19 +4,20 @@
 repeating groups export as tables) for a small set, or ``202`` and an export to
 follow for a large one, built by a background job; ``GET .../exports/{id}``
 reports it and, once ready, hands its requester a short-lived signed link to
-``.../download``. Every route needs ``response.export``; an export is its
+``.../download`` (as often as wanted until the file is deleted, 24 hours after it was
+built or sooner by ``DELETE .../exports/{id}``). Every route needs ``response.export``; an export is its
 requester's alone. The old whole-set JSON route is gone.
 """
 
 from typing import Any, Dict, List
 from urllib.parse import quote
 
-from classy_fastapi import Routable, get, post
+from classy_fastapi import Routable, delete, get, post
 from common.ids import RecordId
 from common.models.user import User
 from fastapi import Body, Depends, Query
 from fastapi.encoders import jsonable_encoder
-from starlette.responses import JSONResponse, StreamingResponse
+from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from backend.app.container import container
 from backend.app.models.dtos.response_export_dto import ResponseExportRequest
@@ -31,7 +32,7 @@ def _attachment(file_name: str) -> str:
     """``Content-Disposition`` for a name made from a form title: a plain ASCII
     fallback and the full name percent-encoded (never a raw character of the
     title in the header)."""
-    ascii_name = "".join(c if c.isascii() and c.isprintable() and c not in '"\;' else "_" for c in file_name)
+    ascii_name = "".join(c if c.isascii() and c.isprintable() and c not in '"\\;' else "_" for c in file_name)
     return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(file_name, safe='')}"
 
 
@@ -120,6 +121,24 @@ class ResponseExportsRouter(Routable):
         )
         return JSONResponse(jsonable_encoder(view), headers=_NO_STORE)
 
+    @delete(
+        "/{export_id}",
+        status_code=204,
+        responses={409: {"description": "export_not_ready: still being prepared"}},
+    )
+    async def discard(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        export_id: str,
+        user: User = Depends(get_full_user),
+    ):
+        """Delete the file of a ready export now (its requester only), so a new
+        export can be started without waiting for the file to expire. The audit
+        entry stays."""
+        await container.response_export_service().discard(workspace_id, form_id, export_id, user)
+        return Response(status_code=204, headers=_NO_STORE)
+
     @get("/{export_id}/download")
     async def download(
         self,
@@ -129,8 +148,8 @@ class ResponseExportsRouter(Routable):
         token: str = Query(..., max_length=200),
         user: User = Depends(get_full_user),
     ):
-        """The file of a ready export, once: the caller's own, with the link
-        the status gave them. The file is deleted when it has been sent."""
+        """The file of a ready export, as often as wanted until it is deleted: the
+        caller's own, with the link the status gave them."""
         export, body = await container.response_export_service().download(
             workspace_id, form_id, export_id, token, user
         )

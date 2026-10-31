@@ -8,9 +8,10 @@ for a large one, and keep an audit entry of each (docs/response-export.md).
 * **Small sets** (``STREAM_MAX_ROWS`` or fewer matching responses) stream in the
   response: nothing is stored, memory is one batch.
 * **Large sets** become a job on the jobs worker (argument: the export id). Its
-  file is stored as encrypted chunks, handed out through a short-lived signed
-  link once, and deleted at its first complete download, at ``FILE_TTL``, or as
-  soon as responses of the form are deleted. The job reads the live rows when it
+  file is stored as encrypted chunks and handed out, as often as its requester
+  asks, through short-lived signed links until ``FILE_TTL`` after it was built;
+  it is deleted sooner by its requester (``discard``) or as soon as responses of
+  the form are deleted. The job reads the live rows when it
   runs, so a response deleted before then is never in it.
 * **Audit.** One row per export: who, when, form, row count, columns, filters
   (the search text only as "a search was used"), kind, state. Never an answer.
@@ -21,6 +22,7 @@ for a large one, and keep an audit entry of each (docs/response-export.md).
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import datetime as dt
 import json
@@ -36,7 +38,11 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.response_export import ResponseExportFilters
 from backend.app.repositories.postgres.response_exports import (
+    CHUNK_INVALIDATED,
+    CHUNK_LOST,
+    OpenExportExists,
     PostgresResponseExportRepository,
+    WorkspaceBusy,
 )
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
 from backend.app.schemas.response_export import (
@@ -75,6 +81,20 @@ def _error(status: HTTPStatus, code: str, message: str, **headers) -> HTTPExcept
         content={"code": code, "message": message},
         headers=headers or None,
     )
+
+
+class _Superseded(Exception):
+    """Another claim of the job took over: this run stops without touching anything."""
+
+
+async def _settle(awaitable) -> None:
+    """Finish bookkeeping that must outlive a cancelled request (a client that
+    went away): shielded, so the cancellation does not cut it short."""
+    task = asyncio.ensure_future(awaitable)
+    try:
+        await asyncio.shield(task)
+    except asyncio.CancelledError:
+        pass
 
 
 @dataclass
@@ -210,6 +230,48 @@ class ResponseExportService:
         await self._authorize(user, workspace_id, form_id)
         return column_catalogue(await self._form(form_id))
 
+    # ----------------------------------------------------------- the bulk JSON route
+    async def bulk_read(self, workspace_id: RecordId, form_id: str, user: User):
+        """``GET .../all-submissions``: every response of the form as decrypted
+        JSON. It is an export like any other, so it takes the same permission,
+        rate limit and audit entry (channel ``all_submissions``, one row per
+        read, never an answer)."""
+        await self._authorize(user, workspace_id, form_id)
+        verdict = await self._limiter.hit(
+            f"response-export:{workspace_id}:{form_id}",
+            str(user.id),
+            limits.REQUESTS_PER_WINDOW,
+            limits.WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "rate_limited",
+                f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
+                **{"Retry-After": str(verdict.retry_after)},
+            )
+        now = self._clock()
+        entry = ResponseExportDocument(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            actor_id=str(user.id),
+            channel="all_submissions",
+            kind=ExportKind.STREAM,
+            status=ExportStatus.STREAMING,
+            format="json",
+            started_at=now,
+        ).ensure_id()
+        await self._exports.save(entry)
+        try:
+            responses = await self._responses.get_workspace_form_all_submissions(
+                form_id, workspace_id, user
+            )
+        except BaseException:
+            await _settle(self._finish_stream(entry, 0, False))
+            raise
+        await _settle(self._finish_stream(entry, len(responses), True))
+        return responses
+
     # ------------------------------------------------------------------- request
     async def request(
         self,
@@ -255,7 +317,7 @@ class ResponseExportService:
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                 "too_many_rows",
                 f"This export would hold {count} responses; at most {limits.MAX_ROWS} fit in one. "
-                "Narrow it with a date range.",
+                "Narrow it with filters (for example submittedFrom and submittedTo).",
             )
         file_format = "zip" if plan.group_tables else "csv"
         export = ResponseExportDocument(
@@ -282,13 +344,6 @@ class ResponseExportService:
                 body=self._stream(export, plan, title, workspace_id, scope, filters),
             )
 
-        running = await self._exports.unfinished_for(workspace_id, form_id, user.id)
-        if running is not None:
-            raise _error(
-                HTTPStatus.CONFLICT,
-                "export_in_progress",
-                "An export of this form is already being prepared.",
-            )
         export.status = ExportStatus.QUEUED
         export.started_at = None
         export.file_name = file_name
@@ -299,7 +354,28 @@ class ResponseExportService:
                 "columns": columns,
             },
         )
-        await self._exports.save(export)
+        try:
+            await self._exports.admit_job(export, limits.WORKSPACE_MAX_JOBS)
+        except OpenExportExists:
+            waiting = await self._exports.open_for(workspace_id, form_id, user.id)
+            if waiting is not None and waiting.status == ExportStatus.READY:
+                raise _error(
+                    HTTPStatus.CONFLICT,
+                    "export_ready",
+                    "An export of this form is ready to download. Download it first.",
+                ) from None
+            raise _error(
+                HTTPStatus.CONFLICT,
+                "export_in_progress",
+                "An export of this form is already being prepared.",
+            ) from None
+        except WorkspaceBusy:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "workspace_busy",
+                "Several exports of this workspace are being prepared. Try again in a few minutes.",
+                **{"Retry-After": "60"},
+            ) from None
         await self._queue(export)
         return export
 
@@ -332,7 +408,7 @@ class ResponseExportService:
                 yield piece
             finished = True
         finally:
-            await self._finish_stream(export, counter.rows, finished)
+            await _settle(self._finish_stream(export, counter.rows, finished))
 
     async def _finish_stream(self, export: ResponseExportDocument, rows: int, finished: bool) -> None:
         def done(document: ResponseExportDocument):
@@ -352,17 +428,24 @@ class ResponseExportService:
     # -------------------------------------------------------------------- the job
     async def run_job(self, export_id: str) -> str:
         """The job: build the file as encrypted chunks. Returns the status the
-        export ended in. Never raises for a failed build: the row says so."""
+        export ended in. Never raises for a failed build: the row says so.
+
+        A run owns the export only while its claim (``attempts``) is current:
+        every chunk it stores and its final state are written under the row lock
+        and refused once another claim has taken over (a worker presumed dead that
+        was only slow), so two runs never mix chunks."""
         claimed = await self._exports.update_locked(export_id, self._claim)
         if claimed is None:
             found = await self._exports.get_by_id(export_id)
             return found.status.value if found else "missing"
         try:
             outcome = await self._build(claimed)
+        except _Superseded:
+            found = await self._exports.get_by_id(export_id)
+            return found.status.value if found else "missing"
         except Exception as error:  # noqa: BLE001
             logger.warning("response export {} failed ({})", export_id, type(error).__name__)
-            await self._exports.delete_chunks(export_id)
-            outcome = await self._end(export_id, ExportStatus.FAILED, "build_failed")
+            outcome = await self._end_owned(claimed, ExportStatus.FAILED, "build_failed")
         return outcome.value
 
     def _claim(self, document: ResponseExportDocument):
@@ -396,8 +479,34 @@ class ResponseExportService:
         updated = await self._exports.update_locked(export_id, change)
         return updated.status if updated else status
 
+    async def _end_owned(
+        self, export: ResponseExportDocument, status: ExportStatus, error_code: Optional[str] = None
+    ) -> ExportStatus:
+        """End the export as ``status`` if this run still owns it, and delete the
+        chunks it wrote (never those of a run that took over). Returns the state
+        the export is in."""
+        attempt = export.attempts
+
+        def change(document: ResponseExportDocument):
+            if document.status != ExportStatus.RUNNING or document.attempts != attempt:
+                return None
+            document.status = status
+            document.error_code = error_code
+            document.finished_at = self._clock()
+            document.params_sealed = None
+            document.expires_at = None
+            return document
+
+        updated = await self._exports.update_locked(export.id, change)
+        if updated is None:
+            found = await self._exports.get_by_id(export.id)
+            return found.status if found else status
+        await self._exports.delete_chunks(export.id)
+        return updated.status
+
     async def _build(self, export: ResponseExportDocument) -> ExportStatus:
         workspace_id, form_id = export.workspace_id, export.form_id
+        attempt = export.attempts
         params = self._unseal(export)
         filters = ResponseExportFilters.model_validate(params.get("filters") or {})
         actor = User(id=export.actor_id, sub=export.actor_id)
@@ -405,16 +514,16 @@ class ResponseExportService:
         if not await self._authorization.has_permission(
             actor, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_id
         ):
-            return await self._end(export.id, ExportStatus.CANCELLED, "permission_removed")
+            return await self._end_owned(export, ExportStatus.CANCELLED, "permission_removed")
         document = await self._forms.get_form_document_by_id(form_id)
         if document is None:
-            return await self._end(export.id, ExportStatus.CANCELLED, "form_gone")
+            return await self._end_owned(export, ExportStatus.CANCELLED, "form_gone")
         form = document.model_dump(mode="json", exclude_none=True)
         try:
             plan = build_plan(form, params.get("columns"))
         except UnknownColumn:
             # the form changed between the request and the job
-            return await self._end(export.id, ExportStatus.FAILED, "columns_changed")
+            return await self._end_owned(export, ExportStatus.FAILED, "columns_changed")
         scope = await self._responses.scope(workspace_id, [form_id])
         counter = RowCount()
         index = 0
@@ -422,23 +531,27 @@ class ResponseExportService:
         pending = bytearray()
 
         async def store(data: bytes) -> bool:
-            """Encrypt and keep one chunk; False when the job must stop."""
+            """Encrypt and keep one chunk, if this run still owns the export (its
+            heartbeat is written with it); False when the job must stop."""
             nonlocal index, size
-            await self._exports.add_chunk(
+            sealed = await run_in_threadpool(self._encrypt_chunk, export, index, data)
+            result = await self._exports.add_chunk_if_owned(
                 ResponseExportChunkDocument(
                     export_id=str(export.id),
                     workspace_id=workspace_id,
                     form_id=form_id,
                     index=index,
-                    data=base64.b64encode(
-                        await run_in_threadpool(self._encrypt_chunk, export, index, data)
-                    ).decode(),
-                )
+                    data=base64.b64encode(sealed).decode(),
+                    attempt=attempt,
+                ),
+                attempt,
+                self._clock(),
             )
+            if result == CHUNK_LOST:
+                raise _Superseded()
             index += 1
             size += len(data)
-            current = await self._exports.get_by_id(export.id)
-            return current is not None and current.invalidated_at is None
+            return result != CHUNK_INVALIDATED
 
         stopped = False
         async for piece in write_export(
@@ -446,8 +559,7 @@ class ResponseExportService:
         ):
             pending.extend(piece)
             if size + len(pending) > limits.MAX_FILE_BYTES:
-                await self._exports.delete_chunks(export.id)
-                return await self._end(export.id, ExportStatus.FAILED, "too_large")
+                return await self._end_owned(export, ExportStatus.FAILED, "too_large")
             while len(pending) >= limits.CHUNK_BYTES:
                 head, pending = bytes(pending[: limits.CHUNK_BYTES]), pending[limits.CHUNK_BYTES :]
                 if not await store(head):
@@ -458,13 +570,17 @@ class ResponseExportService:
         if not stopped and pending:
             stopped = not await store(bytes(pending))
         if stopped:
-            await self._exports.delete_chunks(export.id)
-            return await self._end(export.id, ExportStatus.CANCELLED, "responses_deleted")
+            return await self._end_owned(export, ExportStatus.CANCELLED, "responses_deleted")
 
         ready_at = self._clock()
+        outcome: List[str] = []
 
         def ready(row: ResponseExportDocument):
+            if row.status != ExportStatus.RUNNING or row.attempts != attempt:
+                outcome.append("lost")
+                return None
             if row.invalidated_at is not None:
+                outcome.append("invalidated")
                 return None
             row.status = ExportStatus.READY
             row.row_count = counter.rows
@@ -477,9 +593,10 @@ class ResponseExportService:
             return row
 
         if await self._exports.update_locked(export.id, ready) is None:
+            if outcome and outcome[0] == "lost":
+                raise _Superseded()
             # responses were deleted while the file was being finished
-            await self._exports.delete_chunks(export.id)
-            return await self._end(export.id, ExportStatus.CANCELLED, "responses_deleted")
+            return await self._end_owned(export, ExportStatus.CANCELLED, "responses_deleted")
         return ExportStatus.READY
 
     def _chunk_context(self, export: ResponseExportDocument, index: int) -> bytes:
@@ -522,7 +639,6 @@ class ResponseExportService:
             document.status = status
             document.file_deleted_at = self._clock()
             document.expires_at = None
-            document.download_started_at = None
             return document
 
         updated = await self._exports.update_locked(export_id, change)
@@ -544,6 +660,8 @@ class ResponseExportService:
             "fileName": export.file_name,
             "fileSize": export.file_size,
             "expiresAt": export.expires_at,
+            "downloadedAt": export.downloaded_at,
+            "downloadCount": export.download_count,
             "errorCode": export.error_code,
         }
         if export.status == ExportStatus.READY:
@@ -561,20 +679,22 @@ class ResponseExportService:
 
     async def recent(self, workspace_id: RecordId, form_id: str, user: User, limit: int = 5):
         """The requester's latest exports of the form that still matter to
-        them: unfinished or with a file to fetch."""
+        them: unfinished, with a file to fetch, or that ended without one in the
+        last day."""
         await self._authorize(user, workspace_id, form_id)
         found = await self._exports.list_for_actor(workspace_id, form_id, user.id, limit=limit)
         views = []
         for export in found:
             export = await self._expire_if_due(export)
-            if export.kind == ExportKind.JOB and export.status in (
-                ExportStatus.QUEUED,
-                ExportStatus.RUNNING,
-                ExportStatus.READY,
-                ExportStatus.FAILED,
-                ExportStatus.CANCELLED,
-            ):
+            if export.kind != ExportKind.JOB:
+                continue
+            if export.status in (ExportStatus.QUEUED, ExportStatus.RUNNING, ExportStatus.READY):
                 views.append(self.present(export, user))
+            elif export.status in (ExportStatus.FAILED, ExportStatus.CANCELLED):
+                # a failure is news for a day, not on every visit for ever
+                ended = export.finished_at or export.created_at
+                if ended is not None and ended >= self._clock() - limits.FAILURE_NEWS_FOR:
+                    views.append(self.present(export, user))
         return views
 
     # ------------------------------------------------------------------- download
@@ -586,10 +706,10 @@ class ResponseExportService:
         token: str,
         user: User,
     ):
-        """Claim a ready file for one reader and return ``(export, body)``.
-        403 for a link that is not this user's or this export's, 410 for an
-        expired link or a file that is gone, 409 while another download of it
-        runs."""
+        """The ready file as ``(export, body)``, as often as its requester asks
+        until it is deleted (24 hours after it was built, or sooner by
+        ``discard`` or an erasure). 403 for a link that is not this user's or
+        this export's, 410 for an expired link or a file that is gone."""
         await self._authorize(user, workspace_id, form_id)
         export = await self._exports.get(workspace_id, form_id, export_id)
         if export is None or export.actor_id != str(user.id):
@@ -607,33 +727,15 @@ class ResponseExportService:
         if export.status != ExportStatus.READY:
             raise _error(HTTPStatus.GONE, GONE_CODE, "This export is no longer available. Export again.")
 
-        now = self._clock()
-        refused: List[str] = []
-
-        def claim(document: ResponseExportDocument):
-            if document.status != ExportStatus.READY:
-                refused.append("gone")
-                return None
-            started = document.download_started_at
-            if started is not None and now - started < limits.DOWNLOAD_CLAIM_TTL:
-                refused.append("busy")
-                return None
-            document.download_started_at = now
-            return document
-
-        claimed = await self._exports.update_locked(export.id, claim)
-        if claimed is None:
-            if refused and refused[0] == "busy":
-                raise _error(HTTPStatus.CONFLICT, "download_in_progress", "This file is being downloaded.")
-            raise _error(HTTPStatus.GONE, GONE_CODE, "This export is no longer available. Export again.")
-        return claimed, self._file_body(claimed)
+        return export, self._file_body(export)
 
     async def _file_body(self, export: ResponseExportDocument) -> AsyncIterator[bytes]:
         complete = False
         try:
             for index in range(export.chunk_count or 0):
                 chunk = await self._exports.get_chunk(export.id, index)
-                if chunk is None:
+                if chunk is None or chunk.attempt != export.attempts:
+                    # deleted under the reader (an erasure, or its time): the response breaks off
                     raise RuntimeError("export chunk missing")
                 data = await run_in_threadpool(
                     self._decrypt_chunk, export, index, base64.b64decode(chunk.data)
@@ -641,35 +743,41 @@ class ResponseExportService:
                 yield data
             complete = True
         finally:
-            await self._release(export, complete)
-
-    async def _release(self, export: ResponseExportDocument, complete: bool) -> None:
-        try:
             if complete:
-                now = self._clock()
+                await _settle(self._record_download(export))
 
-                def done(document: ResponseExportDocument):
-                    document.status = ExportStatus.DOWNLOADED
-                    document.downloaded_at = now
-                    document.file_deleted_at = now
-                    document.download_started_at = None
-                    document.expires_at = None
-                    return document
+    async def _record_download(self, export: ResponseExportDocument) -> None:
+        """A complete download: when and how often, nothing else. The file stays."""
+        now = self._clock()
 
-                await self._exports.update_locked(export.id, done)
-                await self._exports.delete_chunks(export.id)
-            else:
+        def done(document: ResponseExportDocument):
+            if document.status != ExportStatus.READY:
+                return None
+            document.downloaded_at = now
+            document.download_count += 1
+            return document
 
-                def unclaim(document: ResponseExportDocument):
-                    if document.status != ExportStatus.READY:
-                        return None
-                    document.download_started_at = None
-                    return document
-
-                await self._exports.update_locked(export.id, unclaim)
-        except Exception as error:  # noqa: BLE001 - the sweep deletes it at its time
+        try:
+            await self._exports.update_locked(export.id, done)
+        except Exception as error:  # noqa: BLE001 - the file was sent; this is bookkeeping
             logger.warning(
-                "could not close download of export {} ({})", export.id, type(error).__name__
+                "could not record download of export {} ({})", export.id, type(error).__name__
+            )
+
+    async def discard(self, workspace_id: RecordId, form_id: str, export_id: str, user: User) -> None:
+        """Delete a ready file now (its requester only), so a new export can be
+        started without waiting for the 24 hours. The audit entry stays. A file
+        that is already gone is already discarded; an export still being built
+        is not a file (409)."""
+        export = await self._mine(workspace_id, form_id, export_id, user)
+        if export.status == ExportStatus.READY:
+            await self._drop_file(export.id, ExportStatus.DISCARDED)
+            return
+        if export.status.unfinished:
+            raise _error(
+                HTTPStatus.CONFLICT,
+                "export_not_ready",
+                "This export is still being prepared; there is no file to delete yet.",
             )
 
     # ---------------------------------------------------------------------- sweeps
@@ -696,23 +804,38 @@ class ResponseExportService:
         for export in await self._exports.list_by_status([ExportStatus.QUEUED]):
             if export.created_at and export.created_at < now - limits.REDEFER_AFTER:
                 queued += 1 if await self._queue(export) else 0
+        cutoff = now - limits.STALE_RUNNING_AFTER
         for export in await self._exports.list_by_status([ExportStatus.RUNNING]):
-            if export.started_at is None or export.started_at >= now - limits.STALE_RUNNING_AFTER:
-                continue
-            await self._exports.delete_chunks(export.id)
-            if export.attempts >= limits.MAX_ATTEMPTS:
-                await self._end(export.id, ExportStatus.FAILED, "worker_lost")
-                failed += 1
+            if export.started_at is None or export.started_at >= cutoff:
                 continue
 
-            def requeue(document: ResponseExportDocument):
-                if document.status != ExportStatus.RUNNING:
+            def lose(document: ResponseExportDocument, cutoff=cutoff):
+                # still the same silent claim: a run that stores chunks writes
+                # its heartbeat with each, so this one is not alive
+                if (
+                    document.status != ExportStatus.RUNNING
+                    or document.started_at is None
+                    or document.started_at >= cutoff
+                ):
                     return None
-                document.status = ExportStatus.QUEUED
+                if document.attempts >= limits.MAX_ATTEMPTS:
+                    document.status = ExportStatus.FAILED
+                    document.error_code = "worker_lost"
+                    document.finished_at = self._clock()
+                    document.params_sealed = None
+                else:
+                    document.status = ExportStatus.QUEUED
                 return document
 
-            if await self._exports.update_locked(export.id, requeue) is not None:
-                rescued += 1 if await self._queue(export) else 0
+            updated = await self._exports.update_locked(export.id, lose)
+            if updated is None:
+                continue
+            # after the state change: the old run can no longer store a chunk
+            await self._exports.delete_chunks(export.id)
+            if updated.status == ExportStatus.QUEUED:
+                rescued += 1 if await self._queue(updated) else 0
+            else:
+                failed += 1
         return {"queued": queued, "rescued": rescued, "failed": failed}
 
     def _interrupted(self, document: ResponseExportDocument):
@@ -726,6 +849,11 @@ class ResponseExportService:
     # ------------------------------------------------------------ deletion hooks
     async def forget_files_of_form(self, workspace_id: RecordId, form_id: str) -> int:
         return await self._exports.forget_files_of_form(workspace_id, form_id)
+
+    async def forget_actor(self, user_id: str) -> int:
+        """The account of ``user_id`` was deleted: its export audit rows stay,
+        without the user (``DELETED_ACTOR``); a file it had waiting is deleted."""
+        return await self._exports.forget_actor(user_id)
 
     async def delete_for_form(self, workspace_id: RecordId, form_id: str) -> None:
         await self._exports.delete_for_form(workspace_id, form_id)

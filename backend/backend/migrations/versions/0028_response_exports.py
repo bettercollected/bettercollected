@@ -7,7 +7,8 @@ Create Date: 2026-10-31
 Two new tables (``backend/app/services/response_export``): one row per export of
 a form's responses (who, when, how many rows, which columns and filters, the
 state of its background job: no answer content) and the encrypted chunks of a
-job's file, deleted at the first complete download or when they expire. New
+job's file, deleted 24 hours after it was built, when its requester deletes it, or
+when responses of the form are deleted. New
 tables only, so expand-only. Written by hand in the shape autogenerate produces
 for a BaseRow table.
 
@@ -85,6 +86,16 @@ def upgrade() -> None:
         ["actor_id", "form_id", "created_at"],
     )
     _index("ix_app_response_exports_status", "response_exports", ["status", "created_at"])
+    _index("ix_app_response_exports_form_id", "response_exports", ["form_id"])
+    # one export in flight or waiting to be fetched per requester and form
+    op.create_index(
+        "uq_response_exports_one_open",
+        "response_exports",
+        ["workspace_id", "form_id", "actor_id"],
+        unique=True,
+        schema=SCHEMA,
+        postgresql_where=sa.text("status IN ('queued', 'running', 'ready')"),
+    )
     _create(
         "response_export_chunks",
         [
@@ -107,16 +118,24 @@ def upgrade() -> None:
         "response_export_chunks",
         ["workspace_id", "form_id"],
     )
+    _index("ix_app_response_export_chunks_form_id", "response_export_chunks", ["form_id"])
 
 
 def downgrade() -> None:
+    op.drop_index(
+        op.f("ix_app_response_export_chunks_form_id"),
+        table_name="response_export_chunks",
+        schema=SCHEMA,
+    )
     op.drop_index(
         op.f("ix_app_response_export_chunks_workspace_id"),
         table_name="response_export_chunks",
         schema=SCHEMA,
     )
     op.drop_table("response_export_chunks", schema=SCHEMA)
+    op.drop_index("uq_response_exports_one_open", table_name="response_exports", schema=SCHEMA)
     for name in (
+        "ix_app_response_exports_form_id",
         "ix_app_response_exports_status",
         "ix_app_response_exports_actor_id",
         "ix_app_response_exports_workspace_id",
