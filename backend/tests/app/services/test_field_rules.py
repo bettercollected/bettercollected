@@ -4,6 +4,8 @@ references), the save checks, the submit and edit paths, the form spec and
 the edit operations. The shared cases are in
 docs/spec/answer-validation.cases.json (checks ``fieldRules``)."""
 
+import json
+
 import pytest
 from common.form_spec import FormSpec, form_to_spec_dict, spec_to_form
 from common.models.standard_form import (
@@ -268,6 +270,70 @@ def test_the_builder_payload_keeps_rules():
     )
     rule = form.fields[0].properties.fields[0].properties.rules[0]
     assert rule.then.required is True and rule.then.read_only is True
+
+
+def _deep(levels):
+    node = 1
+    for _ in range(levels):
+        node = {"+": [node, 1]}
+    return node
+
+
+@pytest.mark.parametrize("where", ["rule_when", "rule_value", "calculated"])
+def test_a_builder_payload_with_a_deep_expression_is_a_clean_422(where):
+    deep = _deep(300)
+    if where == "rule_when":
+        properties = {"rules": [{"id": "r1", "when": {"expression": deep}, "then": {"required": True}}]}
+    elif where == "rule_value":
+        properties = {"rules": [{"id": "r1", "when": {"expression": True}, "then": {"setValue": {"expression": deep}}}]}
+    else:
+        properties = {"expression": deep}
+    body = json.dumps(
+        {
+            "title": "x",
+            "builderVersion": "v2",
+            "fields": [
+                {
+                    "id": "p",
+                    "type": "slide",
+                    "properties": {"fields": [{"id": "a", "type": "number", "properties": properties}]},
+                }
+            ],
+        }
+    )
+    with pytest.raises(HTTPException) as error:
+        _parse_form_body(body)
+    assert error.value.status_code == 422
+    assert "nested at most 32 levels" in str(error.value.content)
+
+
+def test_an_expression_at_the_depth_limit_still_parses():
+    body = json.dumps(
+        {
+            "title": "x",
+            "builderVersion": "v2",
+            "fields": [
+                {
+                    "id": "p",
+                    "type": "slide",
+                    "properties": {
+                        "fields": [
+                            {
+                                "id": "a",
+                                "type": "short_text",
+                                "properties": {
+                                    "rules": [
+                                        {"id": "r1", "when": {"expression": _deep(30)}, "then": {"required": True}}
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+    )
+    assert _parse_form_body(body).fields[0].properties.fields[0].properties.rules
 
 
 # --- replay: required --------------------------------------------------------

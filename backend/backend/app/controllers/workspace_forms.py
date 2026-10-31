@@ -12,6 +12,7 @@ from common.models.standard_form import (
     StandardForm,
     StandardFormSettings,
     Trigger,
+    raw_expression_depth_problem,
     raw_rule_count,
 )
 from common.models.user import User
@@ -119,6 +120,15 @@ def _parse_form_body(form_body: str) -> StandardForm:
                 status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 content=f"A form can have at most {FORM_FIELD_RULES_MAX} rules; "
                 f"this one has {rules}.",
+            )
+        too_deep = (
+            raw_expression_depth_problem(body.get("fields"))
+            if isinstance(body, dict)
+            else None
+        )
+        if too_deep:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=too_deep
             )
         minified_form = FormDtoCamelModel(**body)
         form = StandardForm(**minified_form.model_dump(mode="json"))

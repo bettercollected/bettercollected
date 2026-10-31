@@ -92,7 +92,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                                 className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                             >
                                 <span id={valueId} className="truncate" lang={choiceValue ? contentLang : undefined}>
-                                    {choiceValue ? choiceValue : label?.readOnly ? READ_ONLY_EMPTY : t('FIELD.SELECT_OPTION')}
+                                    {choiceValue ? choiceValue : label?.readOnly ? <span aria-hidden="true">{READ_ONLY_EMPTY}</span> : t('FIELD.SELECT_OPTION')}
                                 </span>
                                 <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                             </button>

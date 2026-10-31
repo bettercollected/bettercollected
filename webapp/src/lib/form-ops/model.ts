@@ -56,7 +56,19 @@ export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
 export const REF_PREFIX = '$ref:';
 export const REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 /** Keys whose values may be a client reference (`"$ref:<name>"`). */
-export const REF_ID_KEYS = new Set(['pageId', 'fieldId', 'groupId', 'afterFieldId', 'toPageId', 'toGroupId', 'childFieldId', 'target', 'endingId']);
+export const REF_ID_KEYS = new Set([
+    'pageId',
+    'fieldId',
+    'groupId',
+    'afterFieldId',
+    'toPageId',
+    'toGroupId',
+    'childFieldId',
+    'target',
+    'endingId',
+    // a calculated field's or a field rule's expression: {"var": "$ref:<name>"}
+    'var'
+]);
 
 /** Field types an op may create (backend ADDABLE_FIELD_TYPES). */
 export const ADDABLE_FIELD_TYPES = new Set<string>([

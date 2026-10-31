@@ -50,7 +50,7 @@ function plainText(node: any): string {
 }
 
 /** A calculation's name in messages (backend calculated_fields `_title`). */
-function calcTitle(field: FormField): string {
+export function calcTitle(field: FormField): string {
     const title = field.title as any;
     if (typeof title === 'string' && title.trim()) return title.trim();
     if (title && typeof title === 'object') {
@@ -60,7 +60,7 @@ function calcTitle(field: FormField): string {
     return String(field.id || 'a calculation');
 }
 
-function pageFields(doc: FormDoc): FormField[] {
+export function pageFields(doc: FormDoc): FormField[] {
     const fields = (doc.fields ?? []) as FormField[];
     if (!fields.length || fields.some((field) => !isSlide(field))) return [];
     return fields.flatMap((page) => ((page.properties?.fields as FormField[] | undefined) ?? []).filter(Boolean));
@@ -104,6 +104,8 @@ function scanCalculations(doc: FormDoc): boolean {
 
 /** Does an op bring a calculated field or an expression? (backend `_carries_calculation`) */
 export function carriesCalculation(op: unknown): boolean {
+    // a rule's expressions are for set_field_rules to check, and none of them is a calculation
+    if ((op as { op?: unknown } | null)?.op === 'set_field_rules') return false;
     const pending: unknown[] = [op];
     while (pending.length) {
         const value = pending.pop();
@@ -124,7 +126,7 @@ export function carriesCalculation(op: unknown): boolean {
  */
 export const calculationsTouched = (before: FormDoc, after: FormDoc, op: unknown): boolean => before !== after && (hasCalculations(before) || carriesCalculation(op));
 
-function variableKeys(doc: FormDoc): Set<string> {
+export function variableKeys(doc: FormDoc): Set<string> {
     const keys = new Set<string>((doc.hiddenFields ?? []).map(String));
     for (const field of pageFields(doc)) {
         if (!field.id || field.internal) continue;

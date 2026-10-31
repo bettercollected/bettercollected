@@ -23,6 +23,16 @@ describe('readRuntimeFlags', () => {
     });
 });
 
+describe('readRuntimeFlags: field rules', () => {
+    it.each(['true', ' TRUE ', '1', 'on'])('FIELD_RULES_ENABLED=%j shows the rules editor', (value) => {
+        expect(readRuntimeFlags({ FIELD_RULES_ENABLED: value }).fieldRulesEnabled).toBe(true);
+    });
+
+    it.each([undefined, '', 'false', '0', 'off', 'maybe'])('FIELD_RULES_ENABLED=%j leaves it hidden', (value) => {
+        expect(readRuntimeFlags({ FIELD_RULES_ENABLED: value }).fieldRulesEnabled).toBe(false);
+    });
+});
+
 describe('the sign-in page follows the runtime flag', () => {
     const renderWith = (ssoEnabled?: boolean) =>
         render(

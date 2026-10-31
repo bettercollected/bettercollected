@@ -88,6 +88,8 @@ export const duplicatePage: Handler<DuplicatePageOp> = (ctx, op) => {
             if (condition.childFieldId && idMap.has(condition.childFieldId)) condition.childFieldId = idMap.get(condition.childFieldId)!;
         }
         for (const rule of field.properties?.dateRules ?? []) if (rule.fieldId && idMap.has(rule.fieldId)) rule.fieldId = idMap.get(rule.fieldId)!;
+        // Field rules are not copied: their ids are unique per form, and their references point at the original page.
+        if (field.properties && 'rules' in field.properties) delete (field.properties as any).rules;
         const repeat = field.properties?.repeat;
         if (repeat?.itemTitle) for (const [oldId, newId] of idMap) repeat.itemTitle = repeat.itemTitle.split(oldId).join(newId);
     }

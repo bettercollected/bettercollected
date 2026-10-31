@@ -11,6 +11,7 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { styleValueProblem } from '@app/utils/rich-text-style';
 
 import { dateRuleProblems, questionsWithScope } from '../date-rules';
+import { fieldRuleProblems } from '../field-rule-checks';
 import { IMAGE_URL_ERROR, firstPartyImageUrl, formImageUrls } from '../images';
 import {
     KNOWN_FIELD_TYPES,
@@ -36,7 +37,7 @@ import {
     withoutNulls
 } from '../model';
 import type { AddChoiceOp, ApplyOptions, FormDoc, FormField, InsertFieldOp, InsertPageOp, MoveChoiceOp, RemoveChoiceOp, ReplaceFieldOp, SetChoiceOp, SetHiddenFieldsOp, UpdateLogoOp, UpdatePageOp, UpdateWelcomePageOp } from '../types';
-import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, ensureProperties, insertedAt, setFields, setKey } from './context';
+import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, setFields, setKey } from './context';
 import { checkedPattern, repeatProblems } from './fields';
 
 /** A rich-text title, serialised: at most this many characters, nested at most this deep. */
@@ -320,6 +321,8 @@ function newProblem(before: FormDoc, after: FormDoc): string | null {
     for (const problem of internalLogicViolations(after)) if (!known.has(problem)) return problem;
     const knownRules = new Set(dateRuleProblems(before.fields));
     for (const problem of dateRuleProblems(after.fields)) if (!knownRules.has(problem)) return problem;
+    const knownFieldRules = new Set(fieldRuleProblems(before).map((problem) => problem.message));
+    for (const problem of fieldRuleProblems(after)) if (!knownFieldRules.has(problem.message)) return problem.message;
     return null;
 }
 
@@ -542,7 +545,7 @@ export const removeChoice: Handler<RemoveChoiceOp> = (ctx, op) => {
     const { field, choices, target } = choiceField(ctx, op.fieldId, true);
     const position = choicePosition(field, choices, op.choiceId);
     target.choices = choices.filter((_, i) => i !== position);
-    return `Removed a choice of '${titleText(field)}'`;
+    return `Removed a choice of '${titleText(field)}'${droppedRulesNote()}`;
 };
 
 export const moveChoice: Handler<MoveChoiceOp> = (ctx, op) => {

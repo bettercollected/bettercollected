@@ -8,6 +8,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { store } from '@app/store/store';
 
@@ -94,5 +95,14 @@ describe('flow view page nodes', () => {
         // six: three not shown
         expect(node('p5').getByText('+3 more')).toBeTruthy();
         expect(node('p5').getByText('6 questions')).toBeTruthy();
+    });
+
+    it('counts the questions with rules on the node, in its own words', async () => {
+        const ruled = page('p1', 0, 3);
+        (ruled.properties!.fields as any[])[0].properties = { rules: [{ id: 'r1', when: { expression: true }, then: { required: true } }] };
+        (ruled.properties!.fields as any[])[2].properties = { rules: [{ id: 'r2', when: { expression: true }, then: { required: true } }] };
+        await renderFlow([ruled, page('p2', 1, 2)]);
+        expect(within(screen.getByTestId('node-p1')).getByTestId('flow-rules-badge')).toHaveTextContent('2 with rules');
+        expect(within(screen.getByTestId('node-p2')).queryByTestId('flow-rules-badge')).toBeNull();
     });
 });

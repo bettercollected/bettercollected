@@ -157,6 +157,7 @@ export function ConditionRow({
                 </button>
             )}
             <select
+                aria-label="Question"
                 className={selectClass}
                 value={condition.fieldId}
                 onChange={(e) => {
@@ -197,7 +198,7 @@ export function ConditionRow({
                     ))}
                 </select>
             )}
-            <select className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
+            <select aria-label="Comparison" className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
                 {comparisons.map((c) => (
                     <option key={c} value={c}>
                         {labels[c]}
@@ -214,7 +215,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     const cls = invalid ? invalidSelectClass : selectClass;
     if (field?.type === FieldTypes.YES_NO) {
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select aria-label="Value" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
@@ -224,7 +225,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     if (field?.type === FieldTypes.MULTIPLE_CHOICE || field?.type === FieldTypes.DROP_DOWN) {
         const choices = field?.properties?.choices ?? [];
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select aria-label="Value" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 {choices.map((c) => (
                     <option key={c.id} value={c.value ?? c.label ?? ''}>
@@ -236,7 +237,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     }
     const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING;
     const date = field?.type === FieldTypes.DATE;
-    return <input className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+    return <input aria-label="Value" className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

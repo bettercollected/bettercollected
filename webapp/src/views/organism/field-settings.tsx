@@ -22,6 +22,7 @@ import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-
 import CalculatedFieldSettings from '@app/views/molecules/form-builder/calculated-field-settings';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
+import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 
@@ -114,9 +115,7 @@ export default function FieldSettings() {
 
             <InspectorSection title="Basics">
                 <SettingSwitch label="Description" checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.id, checked ? '' : undefined)} />
-                {showRequired && (
-                    <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.id, checked)} />
-                )}
+                {showRequired && <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.id, checked)} />}
                 {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label="“Other” option" checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.id, 'allowOtherChoice', checked)} />}
                 {isChoice && (
                     <SettingSwitch
@@ -167,9 +166,7 @@ export default function FieldSettings() {
             {(ruleKind || field.type === FieldTypes.DATE) && (
                 <InspectorSection title="Answer rules">
                     {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.id, patch)} />}
-                    {field.type === FieldTypes.DATE && (
-                        <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />
-                    )}
+                    {field.type === FieldTypes.DATE && <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />}
                 </InspectorSection>
             )}
 
@@ -198,6 +195,8 @@ export default function FieldSettings() {
                     </div>
                 </InspectorSection>
             )}
+
+            <FieldRulesSection field={field} />
 
             <InspectorSection title="Appearance">
                 <div className="flex w-full flex-col gap-1.5">
