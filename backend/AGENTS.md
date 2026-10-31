@@ -1133,7 +1133,9 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   never fails the submission. Finished `actions` rows are deleted by the `purge_finished_action_jobs` periodic task (a
   week, a month for failed). `python -m backend.jobs.schema` (run by `deploy.sh`) also applies the executor-role
   restriction and runs `backend/jobs/legacy.py`, which removes 4.1.x's response data from the `actions` queue in any
-  status (finished rows deleted, waiting or running ones rewritten to ids and a token; counts only in the log).
+  status (finished rows deleted, waiting or running ones rewritten to ids and a token; counts only in the log). With
+  `DB_AUTO_MIGRATE` on, the backend's startup runs the same scrub (`backend/db/startup.py`), so a stack upgraded by
+  swapping images gets it too; a failure there is logged and the start goes on.
   The executor's role `bc_jobs_exec` sees only the `actions` queue's rows and writes only `run_action` rows whose locks
   start with `action_` (a row-level policy on `jobs.procrastinate_jobs`, `backend/jobs/schema.py`; the unique lock
   indexes are shared by every queue, so a free lock name would block a deletion), cannot write the events or
