@@ -2,7 +2,7 @@ import datetime as dt
 import enum
 import re
 from enum import Enum
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
 from common.ids import RecordId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
@@ -394,6 +394,20 @@ class StandardChoice(BaseModel):
     value: Optional[str] = None
     label: Optional[str] = None
     attachment: Optional[StandardFieldAttachment] = None
+    # Choice-level logic: while it does not allow the option, respondents are
+    # not offered it (``FieldLogic``: SHOW = offered only while the conditions
+    # hold, HIDE = offered unless they hold). Enforced by the server on every
+    # submission and edit (backend services/option_logic.py).
+    logic: Optional["FieldLogic"] = None
+
+    @model_validator(mode="after")
+    def _bounded_logic(self):
+        conditions = self.logic.conditions if self.logic else None
+        if conditions and len(conditions) > OPTION_CONDITIONS_MAX:
+            raise ValueError(
+                f"An option can have at most {OPTION_CONDITIONS_MAX} conditions."
+            )
+        return self
 
 
 class StandardAnswerField(BaseModel):
@@ -596,6 +610,54 @@ class FieldLogic(BaseModel):
     conditions: Optional[List[FieldLogicCondition]] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
+# Choice-level logic (``choices[].logic`` and ``properties.option_filter``):
+# caps, so that one response's evaluation is bounded.
+OPTION_CONDITIONS_MAX = 20  # conditions of one option
+OPTION_LOGIC_OPTIONS_MAX = 200  # options of a question that has option logic/a filter
+FORM_OPTION_CONDITIONS_MAX = 1000  # option conditions in one form
+FORM_OPTION_FILTERS_MAX = 50  # option filters in one form
+OPTION_FILTER_PAIRS_MAX = 2000  # (when, show) pairs of one filter
+OPTION_ID_MAX_LENGTH = 200
+
+
+class OptionFilterEntry(BaseModel):
+    """One row of an option filter: while the earlier question's option
+    ``when`` (its id) is chosen, the question offers the options in ``show``
+    (their ids)."""
+
+    when: str = Field(..., min_length=1, max_length=OPTION_ID_MAX_LENGTH)
+    show: List[str] = Field(
+        default_factory=list, max_length=OPTION_FILTER_PAIRS_MAX
+    )
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
+class OptionFilter(BaseModel):
+    """Filters a choice question's options by an earlier choice question's
+    answer (``properties.option_filter``): the options offered are those the
+    chosen options of question ``field_id`` map to (the union over a multiple
+    choice's selection). Without an answer to that question (or with only
+    "Other" text) nothing is filtered; a chosen option with no row offers
+    nothing. Enforced by the server (backend services/option_logic.py)."""
+
+    field_id: str = Field(..., min_length=1)
+    mapping: List[OptionFilterEntry] = Field(
+        default_factory=list, max_length=OPTION_FILTER_PAIRS_MAX
+    )
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _bounded(self):
+        if sum(len(entry.show) + 1 for entry in self.mapping) > OPTION_FILTER_PAIRS_MAX:
+            raise ValueError(
+                f"An option filter can have at most {OPTION_FILTER_PAIRS_MAX} "
+                "entries in all."
+            )
+        return self
 
 
 # Jump target meaning "submit the form" (and show an ending).
@@ -925,6 +987,48 @@ def raw_rule_count(fields: Any) -> int:
     return total
 
 
+def raw_option_logic_counts(fields: Any) -> Tuple[int, int]:
+    """``(option conditions, option filters)`` in a form's raw (JSON)
+    fields, counted before anything is parsed (as ``raw_rule_count`` does
+    for rules): a payload far over the form caps is refused without
+    validating each option. Walks fields only."""
+    conditions = filters = 0
+    pending = list(fields) if isinstance(fields, list) else []
+    while pending:
+        field = pending.pop()
+        properties = field.get("properties") if isinstance(field, dict) else None
+        if not isinstance(properties, dict):
+            continue
+        if isinstance(properties.get("optionFilter", properties.get("option_filter")), dict):
+            filters += 1
+        for choice in properties.get("choices") or []:
+            logic = choice.get("logic") if isinstance(choice, dict) else None
+            found = logic.get("conditions") if isinstance(logic, dict) else None
+            if isinstance(found, list):
+                conditions += len(found)
+        children = properties.get("fields")
+        if isinstance(children, list):
+            pending.extend(children)
+    return conditions, filters
+
+
+def raw_option_logic_problem(fields: Any) -> Optional[str]:
+    """What is wrong, in a sentence, with the amount of choice logic in raw
+    fields (None when it is within the form caps)."""
+    conditions, filters = raw_option_logic_counts(fields)
+    if conditions > FORM_OPTION_CONDITIONS_MAX:
+        return (
+            f"A form can have at most {FORM_OPTION_CONDITIONS_MAX} option "
+            f"conditions; this one has {conditions}."
+        )
+    if filters > FORM_OPTION_FILTERS_MAX:
+        return (
+            f"A form can have at most {FORM_OPTION_FILTERS_MAX} option filters; "
+            f"this one has {filters}."
+        )
+    return None
+
+
 def is_iso_date(value: Any) -> bool:
     """Is ``value`` a calendar date written exactly as ``YYYY-MM-DD``?"""
     if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
@@ -1004,6 +1108,9 @@ class StandardFieldProperty(BaseModel):
     # Checked on every form save and replayed by the server on submit and
     # edit (backend services/field_rules.py), never trusted from clients.
     rules: Optional[List[FieldRule]] = Field(None, max_length=FIELD_RULES_MAX)
+    # Filter this choice question's options by an earlier choice question's
+    # answer (see OptionFilter); per-option conditions are ``choices[].logic``.
+    option_filter: Optional[OptionFilter] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -1296,6 +1403,7 @@ def _find_cycle(edges: Dict[str, List[str]]) -> Optional[List[str]]:
     return None
 
 
+StandardChoice.model_rebuild()
 StandardFieldProperty.model_rebuild()
 Condition.model_rebuild()
 StandardFormField.model_rebuild()

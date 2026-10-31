@@ -1,0 +1,4820 @@
+{
+  "description": "Which options of a choice question respondents are offered (choices[].logic and properties.optionFilter), and what follows from it. 'form' is the list of pages as the respondent page receives it; 'answers' are the answers as handed to validation; 'locked' lists questions a field rule sets or locks (not filtered). Every case has 'hidden' (question id -> the option ids that are not available; questions with none left out) and 'noneLeft' (questions with no available option and no \"Other\"), checked on both sides, and optionally 'warnings' ({fieldId, code, optionId?}, any order). Checks 'validate' add 'errors' (every problem of server answer validation, any order; run by backend tests/app/services/test_option_logic_cases.py), checks 'clear' add 'answersAfter' (what the respondent page leaves after clearing selections of options that are not available; null: no answer; run by webapp src/utils/option-logic.cases.test.ts). Backend src: services/option_logic.py; webapp twin: src/utils/option-logic.ts.",
+  "cases": [
+    {
+      "name": "option SHOW: offered while its conditions hold",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 20
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "option SHOW: not offered while they do not hold",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 16
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "option SHOW: not offered while the question it reads is unanswered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {
+        "drink": [
+          "wine"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "option HIDE: not offered while its conditions hold",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "surprise",
+                      "value": "Surprise",
+                      "logic": {
+                        "action": "HIDE",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "surprise"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "option HIDE: offered while they do not hold",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "surprise",
+                      "value": "Surprise",
+                      "logic": {
+                        "action": "HIDE",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a condition names a choice by its id as well as its text (not matching)",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "a",
+                      "value": "By id",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "c-nl"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "b",
+                      "value": "By text",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "a",
+          "b"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "a condition names a choice by its id as well as its text (matching)",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "a",
+                      "value": "By id",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "c-nl"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "b",
+                      "value": "By text",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "AND needs every condition, OR any",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "x",
+                      "value": "X",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "AND"
+                      }
+                    },
+                    {
+                      "id": "y",
+                      "value": "Y",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "OR"
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 30
+        },
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "x"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "AND and OR both hold",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "x",
+                      "value": "X",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "AND"
+                      }
+                    },
+                    {
+                      "id": "y",
+                      "value": "Y",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "OR"
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 30
+        },
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "AND and OR both fail",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "x",
+                      "value": "X",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "AND"
+                      }
+                    },
+                    {
+                      "id": "y",
+                      "value": "Y",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          },
+                          {
+                            "fieldId": "country",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ],
+                        "operator": "OR"
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "x",
+          "y"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "a multiple choice source: a condition holds for any chosen option",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "dutch",
+                      "value": "Stroopwafel",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "c-de",
+              "c-nl"
+            ]
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a multiple choice source: not chosen",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "dutch",
+                      "value": "Stroopwafel",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "c-de"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "dutch"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "IS_EMPTY on an unanswered question shows the option",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "any",
+                      "value": "Any",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "IS_EMPTY"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a condition that reads a removed question is not active: the option is offered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "ghost",
+                      "value": "Ghost",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "gone",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a condition that reads its own question is not active",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "self",
+                      "value": "Self",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "drink",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Soda"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda"
+            ]
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a condition that reads an internal question is not active",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "note",
+                "type": "short_text",
+                "title": "Note",
+                "internal": true
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "n",
+                      "value": "N",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "note",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "yes"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "an option logic with no conditions offers the option",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "e",
+                      "value": "E",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": []
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: only the options the chosen option maps to are offered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter: another choice, another set",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ams",
+          "ct-rot",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter: no answer to the earlier question filters nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: only \"Other\" text filters nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowOtherChoice": true
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "other": "Norway"
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a multiple choice offers the union of its chosen options",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "c-nl",
+              "c-be"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a chosen option with no row offers nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ams",
+          "ct-rot",
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [
+        "city"
+      ]
+    },
+    {
+      "name": "filter: with \"Other\" something is still offered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "allowOtherChoice": true,
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ams",
+          "ct-rot",
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter and option logic: both must allow the option",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ams",
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a source the form does not have filters nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "gone",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a source that is not a choice question filters nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "name",
+                "type": "short_text",
+                "title": "Name"
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "name",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "name": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a question never filters itself",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "city",
+                    "mapping": [
+                      {
+                        "when": "ct-ams",
+                        "show": [
+                          "ct-rot"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ams"
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a question a field rule locks is not filtered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "locked": [
+        "city"
+      ],
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "filter: an entry naming an option the question does not have adds nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "nowhere"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-rot",
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "filter: a row's repeated source option adds up",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      },
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-rot"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "validate: a selected option that is not available is refused",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": [
+        {
+          "fieldId": "city",
+          "rule": "hidden_option"
+        }
+      ]
+    },
+    {
+      "name": "validate: a selected option that is available is accepted",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ams"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: one unavailable option among several chosen is refused",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda",
+              "wine"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine"
+        ]
+      },
+      "noneLeft": [],
+      "errors": [
+        {
+          "fieldId": "drink",
+          "rule": "hidden_option"
+        }
+      ]
+    },
+    {
+      "name": "validate: the same answer is accepted once the option is available",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 40
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda",
+              "wine"
+            ]
+          }
+        }
+      },
+      "hidden": {},
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: an answer to a question hidden by logic is kept, not refused",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  },
+                  "logic": {
+                    "action": "SHOW",
+                    "conditions": [
+                      {
+                        "fieldId": "country",
+                        "fieldType": "dropdown",
+                        "comparison": "IS_EQUAL",
+                        "value": "Germany"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: an answer on a page the respondent skips is kept, not refused",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              }
+            ],
+            "jumps": [
+              {
+                "conditions": [
+                  {
+                    "fieldId": "country",
+                    "fieldType": "dropdown",
+                    "comparison": "IS_EQUAL",
+                    "value": "Netherlands"
+                  }
+                ],
+                "target": "__SUBMIT__"
+              }
+            ]
+          }
+        },
+        {
+          "id": "p2",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: a required question with nothing to choose is not required",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-de"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ams",
+          "ct-rot",
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [
+        "city"
+      ],
+      "errors": []
+    },
+    {
+      "name": "validate: a required question with something to choose is still required",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": [
+        {
+          "fieldId": "city",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "validate: a minimum number of choices is held to what is offered",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "beer",
+                      "value": "Beer",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                },
+                "validations": {
+                  "minChoices": 3
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine",
+          "beer"
+        ]
+      },
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: a minimum is only lowered to what is offered",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "beer",
+                      "value": "Beer",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "tea",
+                      "value": "Tea"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                },
+                "validations": {
+                  "minChoices": 3
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine",
+          "beer"
+        ]
+      },
+      "noneLeft": [],
+      "errors": [
+        {
+          "fieldId": "drink",
+          "rule": "too_few_choices"
+        }
+      ]
+    },
+    {
+      "name": "validate: \"Other\" text is not an option and is never refused",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowOtherChoice": true
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "allowOtherChoice": true,
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "other": "Utrecht"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "validate: a locked question is not filtered",
+      "checks": [
+        "evaluate",
+        "validate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "locked": [
+        "city"
+      ],
+      "hidden": {},
+      "noneLeft": [],
+      "errors": []
+    },
+    {
+      "name": "clear: a selected option that stops being available is cleared",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "answersAfter": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": null
+      }
+    },
+    {
+      "name": "clear: a selection that is still available stays",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-rot"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ]
+      },
+      "noneLeft": [],
+      "answersAfter": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-rot"
+          }
+        }
+      }
+    },
+    {
+      "name": "clear: only the unavailable options of a multiple choice are removed",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda",
+              "wine"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine"
+        ]
+      },
+      "noneLeft": [],
+      "answersAfter": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "soda"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "clear: \"Other\" text stays when the chosen options are cleared",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "wine",
+                      "value": "Wine",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true,
+                  "allowOtherChoice": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "wine"
+            ],
+            "other": "Mead"
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "wine"
+        ]
+      },
+      "noneLeft": [],
+      "answersAfter": {
+        "age": {
+          "type": "number",
+          "number": 10
+        },
+        "drink": {
+          "type": "choices",
+          "choices": {
+            "other": "Mead"
+          }
+        }
+      }
+    },
+    {
+      "name": "clear: a clear can take the next question's options away too",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "id": "street",
+                "type": "dropdown",
+                "title": "Street",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "s-1",
+                      "value": "Damrak",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "city",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Amsterdam"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "s-3",
+                      "value": "Unter den Linden",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "city",
+                            "fieldType": "dropdown",
+                            "comparison": "IS_EQUAL",
+                            "value": "Berlin"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        },
+        "street": {
+          "type": "choice",
+          "choice": {
+            "value": "s-3"
+          }
+        }
+      },
+      "hidden": {
+        "city": [
+          "ct-ber",
+          "ct-bru"
+        ],
+        "street": [
+          "s-1"
+        ]
+      },
+      "noneLeft": [],
+      "answersAfter": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": null,
+        "street": null
+      }
+    },
+    {
+      "name": "clear: a question a field rule locks keeps its selection",
+      "checks": [
+        "evaluate",
+        "clear"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      },
+      "locked": [
+        "city"
+      ],
+      "hidden": {},
+      "noneLeft": [],
+      "answersAfter": {
+        "country": {
+          "type": "choice",
+          "choice": {
+            "value": "c-nl"
+          }
+        },
+        "city": {
+          "type": "choice",
+          "choice": {
+            "value": "ct-ber"
+          }
+        }
+      }
+    },
+    {
+      "name": "warnings: an option no row shows, and an earlier option with no row",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": [],
+      "warnings": [
+        {
+          "fieldId": "city",
+          "code": "unreachable_option",
+          "optionId": "ct-bru"
+        },
+        {
+          "fieldId": "city",
+          "code": "source_option_unmapped",
+          "optionId": "c-be"
+        }
+      ]
+    },
+    {
+      "name": "warnings: an empty row counts as no row",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot",
+                          "ct-ber",
+                          "ct-bru"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": []
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": [],
+      "warnings": [
+        {
+          "fieldId": "city",
+          "code": "source_option_unmapped",
+          "optionId": "c-de"
+        }
+      ]
+    },
+    {
+      "name": "warnings: a required question whose every option is conditional can end empty",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "dropdown",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "b",
+                      "value": "B",
+                      "logic": {
+                        "action": "HIDE",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 20
+        }
+      },
+      "hidden": {
+        "drink": [
+          "b"
+        ]
+      },
+      "noneLeft": [],
+      "warnings": [
+        {
+          "fieldId": "drink",
+          "code": "can_end_empty"
+        }
+      ]
+    },
+    {
+      "name": "warnings: no warning when one option is always offered",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "age",
+                "type": "number",
+                "title": "Age"
+              },
+              {
+                "id": "drink",
+                "type": "dropdown",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "a",
+                      "value": "A",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "age",
+                            "fieldType": "number",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "b",
+                      "value": "B"
+                    }
+                  ]
+                },
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "age": {
+          "type": "number",
+          "number": 20
+        }
+      },
+      "hidden": {},
+      "noneLeft": [],
+      "warnings": []
+    }
+  ]
+}

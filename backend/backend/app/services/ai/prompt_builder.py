@@ -158,6 +158,16 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   "comparison":"GREATER_THAN_EQUAL","value":2} (number of items), or "groupMode":"ANY"|"ALL"
   with "childFieldId":"<question in the group>" plus comparison/value. There is no
   condition on a specific item position.)
+- {"op":"set_option_logic","fieldId":"<choice question>","choice":"<option label>","logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR","conditions":[...as set_field_logic]}}
+  (choice-level logic: offer ONE option only when ("SHOW") or unless ("HIDE") an EARLIER answer
+  matches, e.g. offer "Wine" only when the age is 18 or more. For a single or multiple choice or
+  dropdown question of a page, not inside a repeating group. "logic":null clears. Respondents who
+  chose an option that stops being offered have that answer cleared. Use it only when the user asks
+  for options that depend on answers.)
+- {"op":"set_option_filter","fieldId":"<choice question>","filter":{"fieldId":"<earlier choice question>","mapping":[{"when":"<its option label>","show":["<option label of this question>"]}]}}
+  (filter this question's options by the earlier question's answer, e.g. the cities of the chosen
+  country: each row lists the options offered while that option is chosen. With no answer there,
+  every option is offered. "filter":null clears.)
 - {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>","endingId":"<ending id>"?}]}
   (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.
   "__SUBMIT__" submits the form and shows the default ending; add "endingId" to show another

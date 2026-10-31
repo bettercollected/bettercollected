@@ -32,6 +32,7 @@ document that can pipe answers). Depending on the type it also has `choices`,
 `validations` (`required`, `minLength`, `maxLength`, `minValue`, `maxValue`,
 `pattern`, `minChoices`, `maxChoices`), `colSpan` (1 to 12), `logic` (show or
 hide it), `rules` (see [Field rules](#field-rules)), `dateRules`, `whyWeAsk`,
+`optionFilter` (see [Choice logic](#choice-logic); a choice also has its own `logic`),
 `internal`, and for a repeating group `repeat` and its own `fields`. Unknown keys are refused. Types the builder
 no longer offers are marked `deprecated` in the schema: they are still
 accepted so that older forms can be read, and validation warns about them.
@@ -163,6 +164,67 @@ rule sets in a hidden question is stored. One exception exists, unchanged:
 the answers of a repeating group hidden by its own `logic` are dropped
 before the response is stored, so a hidden group stores no items.
 
+## Choice logic
+
+A single choice, multiple choice or dropdown question can offer its options
+conditionally. Both forms of it leave the question's own `logic` (show or hide
+the whole question) as it is.
+
+```jsonc
+{ "id": "drink", "type": "multiple_choice", "title": "Drink",
+  "choices": [
+    { "id": "soda", "value": "Soda" },
+    { "id": "wine", "value": "Wine",
+      "logic": { "action": "SHOW",
+        "conditions": [ { "fieldId": "age", "comparison": "GREATER_THAN_EQUAL", "value": "18" } ] } } ] },
+{ "id": "city", "type": "dropdown", "title": "City",
+  "choices": [ { "id": "ams", "value": "Amsterdam" }, { "id": "ber", "value": "Berlin" } ],
+  "optionFilter": { "fieldId": "country",
+    "mapping": [ { "when": "nl", "show": ["ams"] }, { "when": "de", "show": ["ber"] } ] } }
+```
+
+- **`choices[].logic`** is the question-level logic (`action` `SHOW` or `HIDE`,
+  `operator`, `conditions`, the same conditions): `SHOW` offers the option only
+  while they hold, `HIDE` offers it unless they hold. At most 20 conditions per
+  option.
+- **`optionFilter`** filters a question's options by an earlier choice
+  question's answer: `fieldId` is that question, and each `mapping` row lists
+  (by option id) the options offered while its option `when` is chosen. With
+  several chosen options (multiple choice) the options offered are the union.
+  With no answer to that question (or only "Other" text) nothing is filtered;
+  a chosen option with no row offers nothing. The question's options must carry ids.
+- An option is **available** when its own logic allows it and the filter lets it
+  through. Conditions and filters read the answers as given, hidden or not, as
+  `logic` does.
+
+**Where it may sit and what it may read.** Only page-level choice questions
+(not inside a repeating group, not internal). A condition or a filter reads an
+**earlier** respondent-facing question of the form (never the question itself,
+an internal one, or a question of a repeating group; a repeating group as a whole
+by `groupMode`), so the evaluation has no circle. A filter's ids name real
+options of the two questions. At most 200 options on a question that has option
+logic, 1,000 option conditions and 50 filters in a form. Validation and the API
+refuse a document that breaks these rules (`errors` with JSON pointers); the
+builder's whole-form save repairs instead what a structural edit broke (a
+removed or moved question, a removed option), so autosave never stops.
+
+**What the server does.** On every submission and every edit of a response,
+the server evaluates which options are available from the answers as submitted
+and refuses (422 `invalid_answers`, rule `hidden_option`, never the value) an
+answer that selects an option that is not available, on a question the
+respondent is asked (on their path, not hidden by logic; answers to hidden
+questions and skipped pages are kept as ever). An edit also checks the choice
+questions whose options read an answer it changed, so an edit that strands a
+later selection is reported on that question (send it again with an available
+option). The respondent page clears such a selection itself and says so
+politely; the server never deletes an answer silently. A question with nothing
+available (and no "Other") is never required, `minChoices` is held to the
+number of options offered, and a question a field rule sets or locks is not
+filtered.
+
+**Warnings** (never refused): an option no filter row shows, an earlier option
+with no row, and a required question whose every option is conditional.
+
 ## What is not in the document
 
 - Data the server owns: workspace, owner and form ids, timestamps, publish
@@ -259,6 +321,16 @@ logo settings (`update_logo`), choices by id (`set_choice`, `add_choice`,
 (ids unique in the form, size limits, image addresses, answer patterns,
 repeating group rules). The public API, the MCP server and the AI assistant
 refuse them, with an error for each such operation.
+
+`set_option_logic {fieldId, choice, logic}` gives one option of a page-level
+choice question its own logic (`choice` is the option's label or id, `logic` is
+written as in `set_field_logic`, `null` clears it) and
+`set_option_filter {fieldId, filter}` sets or (with `null`) clears the filter of
+a question (`filter` is `{fieldId, mapping: [{when, show: [...]}]}` with the
+options named by label or id; stored by id). See "Choice logic" above. Removing a
+question or an option removes the conditions and filter entries that read it and
+says so in the result; moving a question or page so that an option would read a
+later question is refused.
 
 `set_field_rules {fieldId, rules}` sets the rules of a question (see
 "Field rules" above): `rules` replaces the question's list, in order, and

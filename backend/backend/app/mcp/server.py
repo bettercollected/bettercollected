@@ -382,6 +382,16 @@ async def update_form(
     "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No";
     a repeating group is referenced as a whole: "groupMode":"COUNT"|"ANY"|"ALL", with
     "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
+    {"op":"set_option_logic","fieldId":str,"choice":str,"logic":{...as set_field_logic}|null}
+    (offer one option of a single/multiple choice or dropdown question only (SHOW) or unless (HIDE)
+    earlier answers match; "choice" is the option's label or id; the conditions read EARLIER
+    questions of the page level; an answer that selects an option that is not offered is refused;
+    null clears) ·
+    {"op":"set_option_filter","fieldId":str,"filter":{"fieldId":str,"mapping":[{"when":str,"show":[str]}]}|null}
+    (filter this choice question's options by an EARLIER choice question's answer: "filter.fieldId" is
+    that question, each row says which of this question's options to offer while its option "when" is
+    chosen (labels or ids); several chosen options offer the union; no answer there filters nothing;
+    null clears) ·
     {"op":"set_field_rules","fieldId":str,"rules":[{"id":str,"when":{"operator"?:"AND"|"OR",
     "conditions"?:[...as set_field_logic] | "expression"?:<expressions-v1 tree>},"then":{"required"?:bool,
     "readOnly"?:true,"title"?:str,"description"?:str,"setValue"?:{"const"?:value | "expression"?:tree}}}]|null}
