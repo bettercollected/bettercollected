@@ -26,7 +26,15 @@ from backend.app.services.registration.retry import (
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.app.services.webhooks.retry import WebhookRetry, WebhookRetryStrategy
-from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, EXPORTS_QUEUE, WEBHOOKS_QUEUE, app
+from backend.app.services.email_actions.retry import EmailRetry, EmailRetryStrategy
+from backend.jobs.app import (
+    ACTIONS_QUEUE,
+    DEFAULT_QUEUE,
+    EMAILS_QUEUE,
+    EXPORTS_QUEUE,
+    WEBHOOKS_QUEUE,
+    app,
+)
 
 RUN_ACTION = "run_action"
 
@@ -369,6 +377,53 @@ async def purge_action_logs(timestamp: int) -> str:
     """Daily: delete the action log rows (ids, statuses and timings of each
     webhook delivery) older than 30 days. Counts only."""
     deleted = await _container().webhook_service().purge_expired()
+    return f"{deleted} deleted"
+
+
+@app.task(
+    name="deliver_email",
+    queue=EMAILS_QUEUE,
+    retry=EmailRetryStrategy(),
+    pass_context=True,
+)
+async def deliver_email(context, log_id: str) -> str:
+    """One attempt to send one email of an email action (docs/email-actions.md).
+    The only argument is the log row's id: the message is built here, from the
+    decrypted answers, and never queued. A transient failure raises so the job is
+    retried with exponential backoff and jitter; a permanent one, or the last
+    attempt, ends with the delivery ``failed``."""
+    outcome = await _container().email_action_service().run_delivery(
+        log_id, job_attempt=context.job.attempts
+    )
+    if outcome.retry:
+        raise EmailRetry(outcome.retry_after)
+    return outcome.status
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="emails_redefer")
+@app.task(
+    name="emails_redefer",
+    queue=EMAILS_QUEUE,
+    queueing_lock="emails_redefer",
+)
+async def emails_redefer(timestamp: int) -> str:
+    """Queue again emails whose job was never queued or whose worker died (no-op
+    while EMAIL_ACTIONS_ENABLED is off). Counts only."""
+    counts = await _container().email_action_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+
+
+@app.periodic(cron="43 3 * * *", periodic_id="purge_email_logs")
+@app.task(
+    name="purge_email_logs",
+    queue=EMAILS_QUEUE,
+    queueing_lock="purge_email_logs",
+)
+async def purge_email_logs(timestamp: int) -> str:
+    """Daily: delete the action log rows older than 30 days, so the log is kept
+    that long even where this worker does not serve the webhooks queue (which
+    has the same purge for every action type). Counts only."""
+    deleted = await _container().email_action_service().purge_expired()
     return f"{deleted} deleted"
 
 

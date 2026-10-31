@@ -502,6 +502,31 @@ class WorkspaceFormsRouter(Routable):
                     form["webhookDestination"] = webhooks
                 else:
                     form.webhook_destination = webhooks
+            # ... and whether the form's team, and the respondent, are also
+            # emailed (``{"team": bool, "copy": bool}``). Fail closed too.
+            try:
+                emails = await container.email_action_service().destination_for(
+                    workspace_id, str(form_id)
+                )
+            except Exception as error:  # noqa: BLE001
+                logger.error(
+                    "email destination not read, form not served: workspace={} form={} ({})",
+                    workspace_id,
+                    form_id,
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                    content={
+                        "code": "form_unavailable",
+                        "message": "This form is temporarily unavailable. Try again in a moment.",
+                    },
+                )
+            if emails:
+                if isinstance(form, dict):
+                    form["emailDestination"] = emails
+                else:
+                    form.email_destination = emails
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag

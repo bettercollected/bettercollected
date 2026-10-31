@@ -21,6 +21,7 @@ member's ``+tag`` address counts only when it matches exactly. The refusal
 message names the rule and never lists members.
 """
 
+import unicodedata
 from http import HTTPStatus
 from typing import Any, Iterable, List, Optional, Set
 
@@ -43,14 +44,14 @@ COPY_RECIPIENT_MESSAGE = (
 
 _ADDRESS_MAX = 254
 #: characters an address in a header or an address list could not carry
-_FORBIDDEN = set('<>(),;:"\\[]')
+_FORBIDDEN = set('<>(),;:"\\[]%')
 
 
 def normalize_address(value: Any) -> Optional[str]:
     """``value`` trimmed and case-folded, or None when it cannot be one plain
     address: not text, empty, over 254 characters, not exactly one ``@`` with
     something on both sides, or holding whitespace, a control character, or
-    one of ``<>(),;:"\\[]`` (so a second address, a display name or an extra
+    one of ``<>(),;:"\\[]%`` (``%`` is legacy source routing; so a second address, a display name or an extra
     header line never gets through)."""
     if not isinstance(value, str):
         return None
@@ -59,12 +60,44 @@ def normalize_address(value: Any) -> Optional[str]:
         return None
     if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in address):
         return None
+    # no format character (bidirectional overrides and isolates, zero width
+    # characters), surrogate, private-use or unassigned code point: an address
+    # that renders as another one in a header or on a screen is not one
+    if any(unicodedata.category(ch) in ("Cf", "Cs", "Co", "Cn") for ch in address):
+        return None
     if any(ch in _FORBIDDEN for ch in address):
         return None
     local, separator, domain = address.partition("@")
     if not separator or not local or not domain or "@" in domain:
         return None
     return address
+
+
+_PLUS_TAG_FREE = ("gmail.com", "googlemail.com")
+
+
+def rate_limit_key(address: Any) -> Optional[str]:
+    """What counts as *one mailbox* for a rate limit: ``address`` lower-cased,
+    its ``+tag`` dropped, the dots of a Gmail / Googlemail local part dropped
+    (``googlemail.com`` is ``gmail.com``), the domain IDNA-encoded with a
+    trailing dot removed. Only ever a **key**: the address is mailed exactly as
+    it was typed. ``None`` for something that is not one plain address. So
+    ``A.B+x@GMAIL.com`` and ``ab@gmail.com`` share one budget, as do an
+    internationalised domain and its punycode form."""
+    normal = normalize_address(address)
+    if normal is None:
+        return None
+    local, _, domain = normal.rpartition("@")
+    domain = domain.rstrip(".")
+    try:
+        domain = domain.encode("idna").decode("ascii")
+    except UnicodeError:
+        pass
+    local = local.split("+", 1)[0]
+    if domain in _PLUS_TAG_FREE:
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}" if local and domain else normal
 
 
 def recipient_values(parameters: Optional[Iterable[Any]]) -> List[Optional[str]]:
@@ -131,6 +164,24 @@ class CopyRecipientService:
             if address:
                 allowed.add(address)
         return allowed
+
+    async def allowed_among(
+        self, addresses: Iterable[Any], workspace_id, form_id
+    ) -> List[str]:
+        """Those of ``addresses`` (in order, each mailbox once, **as typed**
+        apart from surrounding space: only the comparison is case-folded) that
+        belong to a current, enabled member of the workspace now. One
+        membership read for all of them. Nothing for a form that is not the
+        workspace's."""
+        wanted: dict = {}
+        for value in addresses:
+            folded = normalize_address(value)
+            if folded is not None and folded not in wanted:
+                wanted[folded] = value.strip()
+        if not wanted:
+            return []
+        allowed = await self._allowed_addresses(workspace_id, form_id)
+        return [typed for folded, typed in wanted.items() if folded in allowed]
 
     async def is_allowed(self, address: Any, workspace_id, form_id) -> bool:
         wanted = normalize_address(address)

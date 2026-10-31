@@ -939,13 +939,42 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
 - The address is sealed (`services/webhooks/sealing.py`, `url_sealed`; only `host` in clear): open it only in the delivery job and `get_webhook` (the owner-facing detail read); lists, DTOs, audit and logs never carry it.
 - The log row is the delivery (its id is the `X-Bettercollected-Delivery` header on every attempt): ids, status,
   counters, timings and one of our codes. **Never** an answer, body, address, secret or the destination's text, in the
-  row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types may write the same
-  table (`action_type`); only webhooks do today.
+  row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types write the same
+  table (`action_type`): webhooks and email actions.
 - Outbound calls go through `registration/client.py` (`safe_http.py` rules): never a second HTTP path, never an
   http/private allowance. The guard runs when an address is saved, when a webhook is switched on and at every
   connection. Webhooks carry no files.
 - Tests: `tests/app/webhooks/` (SSRF matrix `test_guard.py`, delivery, retries, rebinding and erasure
   `test_delivery.py`, secrets, audit, log, purge, privacy `test_api.py`, roles `test_permissions.py`).
+
+## Email actions (per form)
+
+Behind `EMAIL_ACTIONS_ENABLED` (default off; `config/email_actions_settings.py`, read at call time through
+`services/email_actions/mode.py`: off means 422 `email_actions_off` on create/enable/test, nothing queued or sent). Mail goes through
+the instance's `MAIL_*` settings (`config/mail_settings.py`, the auth service's names; no per-workspace server). Docs:
+`docs/email-actions.md`. Rules to keep:
+
+- Code in `services/email_actions/` (`templates.py` the words and every escaping rule, `transport.py` the one SMTP send, `retry.py`,
+  `service.py` the logic), table `form_email_actions` (revision 0026), router `controllers/email_actions_router.py`. Runs in the backend
+  jobs worker on the **`emails` queue** (`deliver_email(log_id)`, `emails_redefer`, `purge_email_logs`), never the actions executor;
+  `bc_jobs_exec` must stay unable to see or queue it (`tests/app/jobs/test_executor_role.py`).
+- **No open relay.** Team addresses are members of the workspace only (`CopyRecipientService.allowed_among`, at save and again at send). A
+  respondent's copy goes only to the `email` answer of its own submission, read from the stored answers at send time, in fixed wording
+  (never a creator template, no form title; labels and answers cut to 200 characters, 2,000 in all, links removed: `copy_answers_block`),
+  rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget,
+  a mail counts once across retries. Team mail is capped per form. An address is erased from the team lists when its member leaves or is deleted (`forget_address`). No endpoint mails an address it is given: the
+  test mail goes to the caller. Never add one.
+- **Plain text only, one pass.** Template values pass through `templates.clean` (controls, line/paragraph separators, NEL, bidi overrides and
+  isolates, zero width characters out); the subject is one line; addresses are validated by `copy_recipient.normalize_address` (which refuses
+  whitespace, control and format characters). The injection matrix is `tests/app/email_actions/test_templates.py`: add a case there for any
+  new header value.
+- The log row (`action_logs`, `action_type` email, channel `team` / `respondent`, the copy under `<action id>.copy`) holds ids, status,
+  counters, timings and one of our codes: **never** an address, a hash or domain of one, a subject or content, in the row, a log line or the
+  queue. Each action type's lists and sweeps read their own rows (`action_type` spine column, revision 0026).
+- **Action conditions** (`services/action_conditions.py`, shared with webhooks): the form's `FieldLogicCondition` model, saved only against
+  the form's page questions (types written from the form), evaluated at enqueue on the submitted answers in memory; unreadable means not run.
+- Tests: `tests/app/email_actions/` (templates and injection matrix, configuration and limits, delivery and retries, rate limits, erasure,
+  conditions, roles).
 
 ## Registration of submissions (case systems)
 
@@ -1098,7 +1127,7 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
   here, pinned by `tests/app/response_export/test_table.py` against its recorded output), `writer.py` (CSV, or a ZIP of
   CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `links.py` (the signed
   link), `limits.py` (constants), `service.py`. Tables `response_exports` (the audit entry and the job state, revision
-  0028) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
+  0027) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
 - Up to `STREAM_MAX_ROWS` matching responses stream, nothing stored; above it a job (`build_response_export(export_id)`,
   `exports` queue, served by the jobs worker; a `JOBS_QUEUES` that leaves it out strands large exports) builds **encrypted chunks** bound to workspace, form, export, index and requester. Filters of a job
   wait sealed in `params_sealed` (never the search text in clear, and the audit `filters` keep it only as `true`).

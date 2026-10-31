@@ -79,6 +79,7 @@ environment, whatever the tier.
 | `VERIFIED_DOMAINS_NAMESERVERS` | domains | backend | str max 500 ip_list |  | R | T3 |  |
 | `VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS` | domains | backend | int 1..720 |  | R | T1 | `24` |
 | `VERIFIED_DOMAINS_RESERVED` | domains | backend | str max 4000 |  | R | T2 |  |
+| `EMAIL_ACTIONS_ENABLED` | email_actions | backend | bool |  | R | T2 | `false` |
 | `API_EDITOR_OPS_SAVE_ENABLED` | features | backend | bool |  | H | T1 | `false` |
 | `API_ENABLE_EXPORT_CSV` | features | backend | bool |  | R | T1 | `false` |
 | `API_ENABLE_FORM_CREATION` | features | backend | bool |  | R | T1 | `false` |
@@ -115,15 +116,15 @@ environment, whatever the tier.
 | `COUPON_EXPIRY_IN_DAYS` | limits | backend | int 1..3650 |  | R | T1 | `60` |
 | `MAIL_AVATAR_URL_PREFIXES` | mail | auth | str max 2000 |  | R | T3 | `https://lh3.googleusercontent.com/` |
 | `MAIL_IMAGE_URL_PREFIXES` | mail | auth | str max 2000 |  | R | T3 | `https://s3.eu-central-1.wasabisys.com/bettercollected/public/` |
-| `MAIL_PASSWORD` | mail | auth, admin | str | yes | R | T3 |  |
-| `MAIL_SENDER` | mail | auth, admin | str max 320 |  | R | T3 |  |
-| `MAIL_SMTP_PORT` | mail | auth, admin | int 1..65535 |  | R | T3 | `587` |
-| `MAIL_SMTP_SERVER` | mail | auth, admin | str host |  | R | T3 |  |
-| `MAIL_SSL_TLS` | mail | auth, admin | bool |  | R | T3 | `false` |
-| `MAIL_STARTTLS` | mail | auth, admin | bool |  | R | T3 | `true` |
-| `MAIL_USER` | mail | auth, admin | str |  | R | T3 |  |
-| `MAIL_USE_CREDENTIALS` | mail | auth, admin | bool |  | R | T3 | `true` |
-| `MAIL_VALIDATE_CERTS` | mail | auth, admin | bool |  | R | T3 | `true` |
+| `MAIL_PASSWORD` | mail | backend, auth, admin | str | yes | R | T3 |  |
+| `MAIL_SENDER` | mail | backend, auth, admin | str max 320 |  | R | T3 |  |
+| `MAIL_SMTP_PORT` | mail | backend, auth, admin | int 1..65535 |  | R | T3 | `587` |
+| `MAIL_SMTP_SERVER` | mail | backend, auth, admin | str host |  | R | T3 |  |
+| `MAIL_SSL_TLS` | mail | backend, auth, admin | bool |  | R | T3 | `false` |
+| `MAIL_STARTTLS` | mail | backend, auth, admin | bool |  | R | T3 | `true` |
+| `MAIL_USER` | mail | backend, auth, admin | str |  | R | T3 |  |
+| `MAIL_USE_CREDENTIALS` | mail | backend, auth, admin | bool |  | R | T3 | `true` |
+| `MAIL_VALIDATE_CERTS` | mail | backend, auth, admin | bool |  | R | T3 | `true` |
 | `API_CLOUDFLARE_IPS` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUSTED_PROXIES` | network | backend | str cidr_list |  | R | T3 |  |
 | `API_TRUST_CLOUDFLARE` | network | backend | bool |  | R | T3 | `true` |
@@ -181,7 +182,7 @@ environment, whatever the tier.
 | `API_VERSION` | server | backend, auth, google | str max 64 |  | R | T1 |  |
 | `CLIENT_ADMIN_URL` | server | auth | url |  | R | T3 |  |
 | `DEBUG` | server | backend, auth, google | bool |  | R | T2 | `false` |
-| `ORGANIZATION_NAME` | server | auth, actions_executor | str max 100 |  | R | T1 | `Better Collected` |
+| `ORGANIZATION_NAME` | server | backend, auth, actions_executor | str max 100 |  | R | T1 | `Better Collected` |
 | `AUTH_ACCESS_TOKEN_EXPIRY_IN_MINUTES` | session | backend | int 1..1440 |  | R | T2 | `15` |
 | `AUTH_REFRESH_REUSE_GRACE_SECONDS` | session | backend | int 0..3600 |  | R | T2 | `60` |
 | `AUTH_REFRESH_TOKEN_EXPIRY_IN_DAYS` | session | backend | int 1..365 |  | R | T2 | `30` |

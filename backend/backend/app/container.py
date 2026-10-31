@@ -60,6 +60,9 @@ from backend.app.repositories.postgres.identity import (
 from backend.app.repositories.postgres.response_exports import (
     PostgresResponseExportRepository,
 )
+from backend.app.repositories.postgres.email_actions import (
+    PostgresFormEmailActionRepository,
+)
 from backend.app.repositories.postgres.webhooks import (
     PostgresActionLogRepository,
     PostgresFormWebhookRepository,
@@ -149,6 +152,7 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
 from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.response_export.service import ResponseExportService
+from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
@@ -249,6 +253,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     form_webhook_repo: PostgresFormWebhookRepository = providers.Singleton(
         PostgresFormWebhookRepository, pg_sessionmaker
+    )
+    form_email_action_repo: PostgresFormEmailActionRepository = providers.Singleton(
+        PostgresFormEmailActionRepository, pg_sessionmaker
     )
     action_log_repo: PostgresActionLogRepository = providers.Singleton(
         PostgresActionLogRepository, pg_sessionmaker
@@ -522,6 +529,7 @@ class AppContainer(containers.DeclarativeContainer):
         registration_service=LazyRepository(lambda: container.registration_service()),
         webhook_service=LazyRepository(lambda: container.webhook_service()),
         response_export_service=LazyRepository(lambda: container.response_export_service()),
+        email_action_service=LazyRepository(lambda: container.email_action_service()),
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -562,6 +570,18 @@ class AppContainer(containers.DeclarativeContainer):
         response_repo=form_response_repo,
         export_repo=response_export_repo,
         crypto=providers.Object(crypto_service),
+        rate_limiter=rate_limiter,
+    )
+
+    email_action_service: EmailActionService = providers.Singleton(
+        EmailActionService,
+        authorization_service=authorization_service,
+        action_repo=form_email_action_repo,
+        log_repo=action_log_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_response_service=form_response_service,
+        copy_recipient_service=copy_recipient_service,
         rate_limiter=rate_limiter,
     )
 
@@ -662,6 +682,7 @@ class AppContainer(containers.DeclarativeContainer):
         registration_service=registration_service,
         webhook_service=webhook_service,
         response_export_service=response_export_service,
+        email_action_service=email_action_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
@@ -878,6 +899,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         workspace_form_service=workspace_form_service,
         scim_directory_repo=scim_directory_repo,
+        email_action_service=email_action_service,
     )
 
     stripe_service: StripeService = providers.Singleton(
