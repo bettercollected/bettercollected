@@ -318,9 +318,12 @@ export const useFormResponse = () => {
         });
     };
 
+    // A new answers object, never the old one changed: whatever reads the answers by
+    // identity (the field rule states) would not see the change.
     const removeAnswer = (fieldId: string) => {
-        delete formResponse!.answers![fieldId];
-        setFormResponse({ ...formResponse });
+        const answers = { ...(formResponse.answers ?? {}) };
+        delete answers[fieldId];
+        setFormResponse({ ...formResponse, answers });
     };
 
     const resetFormResponseAnswer = () => {

@@ -16,6 +16,7 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDate, resolveDateRuleBounds, toIsoDate, todayIso } from '@app/utils/date-rules';
+import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { joinIds, useQuestionLabel } from './question-label-context';
@@ -88,6 +89,9 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
     // "Pick a date", describes it. Empty on the builder canvas.
     const { label: question, group } = useQuestionLabel(valueId);
     const labelledBy = question?.labelledBy ? joinIds(question.labelledBy, label && labelId) : undefined;
+    // A field rule locks the question: the trigger is a read-only combobox (a button
+    // has no read-only state), the wrapper keeps it from opening.
+    const readOnly = !!question?.readOnly;
 
     return (
         <div className="flex flex-col gap-1">
@@ -103,6 +107,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         type="button"
                         aria-labelledby={labelledBy}
                         aria-describedby={group['aria-describedby']}
+                        {...(readOnly ? { role: 'combobox', 'aria-readonly': true } : {})}
                         className={cn('flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg', isBuilder && 'pointer-events-none')}
                         style={{
                             ['--hover-border' as string]: theme?.primary ?? '#101828',
@@ -120,7 +125,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             </span>
                         ) : (
                             <span id={valueId} style={{ color: '#667085' }}>
-                                {t('DATE.PICK')}
+                                {readOnly ? READ_ONLY_EMPTY : t('DATE.PICK')}
                             </span>
                         )}
                     </button>

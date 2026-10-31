@@ -7,7 +7,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { getRespondentPlaceholder } from '@app/utils/form-utils';
+import { READ_ONLY_EMPTY, getRespondentPlaceholder } from '@app/utils/form-utils';
 
 import { useEnterToNextQuestion } from './next-question';
 import { useQuestionLabel } from './question-label-context';
@@ -70,6 +70,9 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
         }
     };
 
+    const value = getFieldValue();
+    // A read-only question with no value says so with a dash, not with the prompt "Answer".
+    const placeholder = locked && (value === '' || value === undefined || value === null) ? READ_ONLY_EMPTY : field?.properties?.placeholder || getRespondentPlaceholder(field.type, t);
     const TextFields = [FieldTypes.LONG_TEXT, FieldTypes.SHORT_TEXT];
     const theme = form?.theme || form.fields[currentSlide]?.properties?.theme;
 
@@ -79,9 +82,9 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
             <LabelledInput
                 id={`input-field-${field.id}`}
                 type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
-                placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
+                placeholder={placeholder}
                 multiple={field.type === FieldTypes.LONG_TEXT}
-                value={getFieldValue()}
+                value={value}
                 onChange={(value: any) => handleChange(value)}
                 onKeyDown={onKeyDown}
             />

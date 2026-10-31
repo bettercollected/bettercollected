@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { atom, useAtom, useAtomValue } from 'jotai';
 
 import { shownSlide } from '@app/utils/closed-form';
@@ -142,6 +144,16 @@ export const useResponderState = () => {
         setResponderState,
         setCurrentSlideToWelcomePage
     };
+};
+
+/**
+ * The pages the respondent has been through, with the one they are on: the
+ * path a submission is read along (utils/repeating-groups.ts
+ * `normalizeGroupAnswersForSubmit`), and so what field rules are decided from.
+ */
+export const useVisitedSlides = (): number[] => {
+    const { history, currentSlide } = useAtomValue(responderFormStateAtom);
+    return useMemo(() => [...(history || []), currentSlide], [history, currentSlide]);
 };
 
 /**

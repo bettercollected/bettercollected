@@ -48,6 +48,15 @@ const hasFocus = (fieldId: string): boolean => typeof document !== 'undefined' &
  * One message per change batch; nothing when the page first shows, and
  * nothing about the question the respondent is in (they hear its state
  * through the control itself). Renders nothing for a form without rules.
+ *
+ * Two things to know about wording changes:
+ * - A new title or description on the question that has focus IS announced:
+ *   the control's name and description are read when focus lands, so a change
+ *   made while it is focused would otherwise go unheard. Only the required,
+ *   read-only and filled-in states are left to the control itself there.
+ * - A title that goes back to the question's own is silent (the line only
+ *   names a title a rule gave); a description that goes away is announced as
+ *   changed. At most NAMED_MAX changes are named in a message; the rest are counted.
  */
 export default function FieldRuleAnnouncer({ fields }: { fields: StandardFormFieldDto[] }) {
     const form = useAppSelector(selectResponderForm);

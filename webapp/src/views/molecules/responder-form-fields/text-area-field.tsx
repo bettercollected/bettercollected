@@ -9,7 +9,7 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { getRespondentPlaceholder } from '@app/utils/form-utils';
+import { READ_ONLY_EMPTY, getRespondentPlaceholder } from '@app/utils/form-utils';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useQuestionLabel } from './question-label-context';
@@ -103,7 +103,8 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     resize: 'none'
                 }}
                 id={`input-field-${field.id}`}
-                placeholder={field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
+                // a read-only question with no value shows a dash, not the prompt "Answer"
+                placeholder={locked && !answerText ? READ_ONLY_EMPTY : field?.properties?.placeholder || getRespondentPlaceholder(field.type, t)}
             />
         </QuestionWrapper>
     );

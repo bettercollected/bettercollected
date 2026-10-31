@@ -13,6 +13,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
 import { moveOnFrom } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -85,11 +86,13 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                                 // Named by the question; the chosen answer (or "Select an option") describes it.
                                 aria-labelledby={label?.labelledBy}
                                 aria-describedby={group['aria-describedby']}
+                                // Locked by a field rule: a read-only combobox (a button has no read-only state); the wrapper keeps it from opening.
+                                {...(label?.readOnly ? { role: 'combobox', 'aria-readonly': true } : {})}
                                 style={{ ...getTextStyle(), borderRadius: tokens.fieldRadius, ['--hover-border' as string]: theme?.primary ?? '#101828' }}
                                 className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg"
                             >
                                 <span id={valueId} className="truncate" lang={choiceValue ? contentLang : undefined}>
-                                    {choiceValue ? choiceValue : t('FIELD.SELECT_OPTION')}
+                                    {choiceValue ? choiceValue : label?.readOnly ? READ_ONLY_EMPTY : t('FIELD.SELECT_OPTION')}
                                 </span>
                                 <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                             </button>

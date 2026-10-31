@@ -41,6 +41,12 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
  * respondent's language (`t` from useRespondentLanguage). Number, link and
  * phone examples read the same in every language.
  */
+/**
+ * What an empty read-only question shows where a box shows its prompt: a dash,
+ * not "Answer" (nothing can be answered there).
+ */
+export const READ_ONLY_EMPTY = '\u2013';
+
 export function getRespondentPlaceholder(fieldType: FieldTypes | undefined, t: (key: string) => string): string {
     switch (fieldType) {
         case FieldTypes.SHORT_TEXT:
