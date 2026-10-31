@@ -53,8 +53,21 @@ function wrap(node: React.ReactElement) {
     return <ReduxProvider store={store}>{node}</ReduxProvider>;
 }
 
+// A request the test did not stub must never leave the machine. Node 26's fetch
+// (undici 8) keeps an HTTP/2 session open to a real host and raises an uncaught
+// "socket idle timeout" later, which fails the whole run.
+function blockNetwork() {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => json(404, {}))
+    );
+}
+
+beforeEach(blockNetwork);
+
 afterEach(async () => {
     vi.unstubAllGlobals();
+    blockNetwork();
     push.mockClear();
     store.dispatch(openFormulierenImportApi.util.resetApiState());
     await i18n.changeLanguage('en');
