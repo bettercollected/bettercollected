@@ -433,6 +433,45 @@ async def test_batched_events(client, workspace, directory, scim_on):
 
 # -- deprovisioning -----------------------------------------------------------
 @pytest.mark.parametrize("kind", ["user.updated", "user.deleted"])
+async def test_a_deprovisioned_user_is_erased_from_the_email_action_teams_of_the_workspace(
+    client, workspace, directory, scim_on, kind
+):
+    """Their membership is only disabled, but a person who was removed at their
+    organisation must not stay listed as "the form's team" in the workspace's
+    email actions (the other addresses, and other workspaces' actions, stay)."""
+    from backend.app.schemas.email_action import EmailTemplate, FormEmailActionDocument
+
+    polis, auth = scim_on
+    await deliver(client, directory, polis, event(directory, "user.created", user_data("u1", JANE)))
+    await deliver(client, directory, polis, event(directory, "user.created", user_data("u2", BOB)))
+
+    async def action(workspace_id, team):
+        return await container.form_email_action_repo().save(
+            FormEmailActionDocument(
+                workspace_id=workspace_id, form_id="f1", name="Notify", enabled=True,
+                en=EmailTemplate(subject="s", body="b"), nl=EmailTemplate(subject="s", body="b"),
+                team_recipients=team,
+            )
+        )
+
+    here = await action(workspace.id, [JANE.upper(), BOB])
+    only_jane = await action(workspace.id, [JANE])
+    elsewhere = await action(RecordId(), [JANE])
+
+    reply = await deliver(
+        client, directory, polis,
+        event(directory, kind, user_data("u1", JANE, active=kind == "user.deleted")),
+    )
+    assert reply.status_code == 200, reply.text
+
+    repo = container.form_email_action_repo()
+    assert (await repo.get(here.workspace_id, "f1", here.id)).team_recipients == [BOB]
+    gone = await repo.get(only_jane.workspace_id, "f1", only_jane.id)
+    assert gone.team_recipients == [] and gone.enabled is False  # no recipient left: off
+    assert (await repo.get(elsewhere.workspace_id, "f1", elsewhere.id)).team_recipients == [JANE]
+
+
+@pytest.mark.parametrize("kind", ["user.updated", "user.deleted"])
 async def test_deactivated_users_are_disabled_and_signed_out(
     client, workspace, directory, scim_on, kind
 ):

@@ -1138,20 +1138,24 @@ class EmailActionService:
         )
 
     async def _within(self, checks) -> bool:
-        """``checks``: ``(scope, client, limit)`` triples. True, and every
-        counter goes up, only when **all** of them have room: a denied attempt
-        counts against none of the budgets, so someone who is over one limit
-        cannot use up the others (a victim's mailbox, the workspace)."""
+        """``checks``: ``(scope, client, limit)`` triples, narrowest first.
+        True, and every counter goes up by one, only when **all** have room;
+        each is checked and counted in one locked step (``admit``), so parallel
+        mails cannot overshoot a budget, and a mail that one budget refuses
+        gives back what the narrower ones admitted: a denied attempt counts
+        against none of the budgets (someone over one limit cannot use up a
+        victim's mailbox or the workspace's budget)."""
         if self._limiter is None:
             return True
+        admitted = []
         for scope, client, limit in checks:
-            seen = await self._limiter.hit(scope, client, limit, HOUR, amount=0)
-            if seen.count >= limit:
+            verdict = await self._limiter.admit(scope, client, limit, HOUR)
+            if not verdict.allowed:
+                for done_scope, done_client in admitted:
+                    await self._limiter.release(done_scope, done_client, HOUR)
                 return False
-        allowed = True
-        for scope, client, limit in checks:
-            allowed = (await self._limiter.hit(scope, client, limit, HOUR)).allowed and allowed
-        return allowed
+            admitted.append((scope, client))
+        return True
 
     async def _team_within_limit(self, form_id: str) -> bool:
         return await self._within(((TEAM_FORM_SCOPE, str(form_id), TEAM_FORM_PER_HOUR),))
@@ -1165,10 +1169,10 @@ class EmailActionService:
         key = rate_limit_key(address) or address.casefold()
         return await self._within(
             (
-                (COPY_WORKSPACE_SCOPE, str(workspace_id), COPY_WORKSPACE_PER_HOUR),
-                (COPY_FORM_SCOPE, str(form_id), COPY_FORM_PER_HOUR),
-                (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{key}", COPY_ADDRESS_FORM_PER_HOUR),
                 (COPY_ADDRESS_SCOPE, key, COPY_ADDRESS_PER_HOUR),
+                (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{key}", COPY_ADDRESS_FORM_PER_HOUR),
+                (COPY_FORM_SCOPE, str(form_id), COPY_FORM_PER_HOUR),
+                (COPY_WORKSPACE_SCOPE, str(workspace_id), COPY_WORKSPACE_PER_HOUR),
             )
         )
 
