@@ -23,6 +23,7 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
+import { forgetResumeToken, takeResumeToken } from '@app/utils/form-drafts';
 import Form from '@app/views/organism/form/form';
 import RespondentPageShell from '@app/views/organism/form/respondent-page-shell';
 
@@ -67,13 +68,15 @@ const FORM = {
 let probe: { responder: ReturnType<typeof useResponderState>; response: ReturnType<typeof useFormResponse>; hidden: ReturnType<typeof useHiddenFieldValues>; draft: ReturnType<typeof useRespondentDraft> } | null = null;
 
 function Page({ form }: { form: StandardFormDto }) {
+    // as the form page does: the link is taken from the address bar as the page starts
+    const [token] = React.useState(() => takeResumeToken());
     probe = { responder: useResponderState(), response: useFormResponse(), hidden: useHiddenFieldValues(), draft: useRespondentDraft() };
     const { updateFormTheme } = useFormState();
     React.useEffect(() => {
         updateFormTheme(ThemeColors[0], { undoable: false });
     }, []);
     return (
-        <RespondentPageShell notice={<DraftResume form={form} />}>
+        <RespondentPageShell notice={<DraftResume form={form} token={token} />}>
             <Form isPreviewMode={false} />
         </RespondentPageShell>
     );
@@ -99,8 +102,10 @@ describe('resuming a saved draft', () => {
         Element.prototype.scrollIntoView = vi.fn();
         for (const mock of [openDraft, getMyDraft, discard]) mock.mockReset();
         probe = null;
+        forgetResumeToken();
     });
     afterEach(() => {
+        forgetResumeToken();
         window.history.replaceState(null, '', '/');
         store.dispatch(setAuth({ id: '', email: '' }));
     });
@@ -204,6 +209,36 @@ describe('resuming a saved draft', () => {
         expect(screen.queryByTestId('draft-notice')).toBeNull();
     });
 
+    it('takes the link out of the address bar before the form has loaded, and opens it once it has', async () => {
+        link();
+        openDraft.mockResolvedValue({ data: { ...SAVED, answers: ANSWERS, hiddenFields: {}, position: null } });
+        function Starting() {
+            // the page starts (takes the link) but the form is still loading
+            const [token] = React.useState(() => takeResumeToken());
+            const [loaded, setLoaded] = React.useState(false);
+            return (
+                <>
+                    <button onClick={() => setLoaded(true)}>loaded</button>
+                    {loaded && <DraftResume form={FORM} token={token} />}
+                </>
+            );
+        }
+        store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+        store.dispatch(setForm(FORM as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Starting />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(window.location.hash).toBe('');
+        expect(window.location.href).not.toContain(TOKEN);
+        expect(openDraft).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'loaded' }));
+        await waitFor(() => expect(openDraft).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'form-1', token: TOKEN }));
+    });
+
     it('ignores an address fragment that is not a link in its exact shape', async () => {
         window.history.replaceState(null, '', `/acme/forms/f1?lang=en#resume=${TOKEN}x`);
         show();
@@ -262,8 +297,12 @@ describe.each(['en', 'nl'] as const)('the draft notes pass axe (%s)', (lang) => 
         window.PUBLIC_CONFIG = { HTTP_SCHEME: 'http://', FORM_DOMAIN: 'localhost:3000' } as any;
         Element.prototype.scrollIntoView = vi.fn();
         for (const mock of [openDraft, getMyDraft, discard]) mock.mockReset();
+        forgetResumeToken();
     });
-    afterEach(() => window.history.replaceState(null, '', '/'));
+    afterEach(() => {
+        forgetResumeToken();
+        window.history.replaceState(null, '', '/');
+    });
 
     it.each([
         ['restored', { data: { ...SAVED, answers: ANSWERS, hiddenFields: {}, position: null } }],

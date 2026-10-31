@@ -473,8 +473,8 @@ describe('Privacy panel: saved drafts', () => {
         renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 14 } as any });
         openPanel();
         expect(screen.getByText('Saved drafts')).toBeInTheDocument();
-        expect(row('drafts')).toHaveTextContent('If you save and continue later, your draft is kept encrypted for 14 days, then deleted. The form owner cannot see it until you submit.');
-        expect(row('drafts')).toHaveTextContent('we use your email address only to send it and do not keep it.');
+        expect(row('drafts')).toHaveTextContent('If you save and continue later, your draft is kept encrypted for 14 days after your last save, and deleted within a day after that. The form owner cannot see it until you submit.');
+        expect(row('drafts')).toHaveTextContent('your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.');
         const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
         expect(keys.indexOf('privacy-drafts')).toBeLessThan(keys.indexOf('privacy-rights'));
     });
@@ -483,11 +483,11 @@ describe('Privacy panel: saved drafts', () => {
         setBrowserLanguages(['en']);
         const { unmount } = renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true } as any });
         openPanel();
-        expect(row('drafts')).toHaveTextContent('kept encrypted for 30 days, then deleted');
+        expect(row('drafts')).toHaveTextContent('kept encrypted for 30 days after your last save, and deleted within a day after that');
         unmount();
         renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 1 } as any });
         openPanel();
-        expect(row('drafts')).toHaveTextContent('kept encrypted for 1 day, then deleted');
+        expect(row('drafts')).toHaveTextContent('kept encrypted for 1 day after your last save, and deleted within a day after that');
     });
 
     it('says it in Dutch, in the "je" register', () => {
@@ -495,7 +495,7 @@ describe('Privacy panel: saved drafts', () => {
         renderPanel({ ownerName: 'Acme', settings: { allowSaveDraft: true, draftRetentionDays: 14 } as any });
         fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
         expect(screen.getByText('Opgeslagen concepten')).toBeInTheDocument();
-        expect(row('drafts')).toHaveTextContent('wordt je concept 14 dagen versleuteld bewaard en daarna verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt.');
-        expect(row('drafts')).toHaveTextContent('bewaren we het niet');
+        expect(row('drafts')).toHaveTextContent('wordt je concept 14 dagen na je laatste keer opslaan versleuteld bewaard en daarna binnen een dag verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt.');
+        expect(row('drafts')).toHaveTextContent('wordt je e-mailadres niet bij het concept bewaard');
     });
 });

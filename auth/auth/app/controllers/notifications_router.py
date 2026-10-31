@@ -17,6 +17,7 @@ from auth.app.container import container
 from auth.app.controllers.internal_key import require_internal_key
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
+from auth.app.services import notification_service as notices
 from auth.app.services.auth_service import AuthService
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.notification_service import (
@@ -62,6 +63,9 @@ class DraftLinkNotice(BaseModel):
 
     recipient: EmailStr
     link: str = Field(..., max_length=2000)
+    # the workspace the form belongs to: only to count mails per workspace, never
+    # in the mail
+    workspace_id: str = Field(..., pattern=r"^[0-9a-f]{24}$")
     # how long the link works, named in the mail
     days: int = Field(7, ge=1, le=90)
     locale: Optional[str] = Field(None, max_length=35)
@@ -142,7 +146,10 @@ class NotificationsRouter(Routable):
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "The link must point at a form page of this instance.",
             )
-        if not self.notification_service.allow("draft-link"):
+        if not self.notification_service.allow(
+            f"draft-link:{notice.workspace_id}",
+            limit=notices.DRAFT_LINKS_PER_WORKSPACE_PER_HOUR,
+        ):
             raise HTTPException(
                 HTTPStatus.TOO_MANY_REQUESTS, "Too many notices; try again later."
             )

@@ -19,6 +19,7 @@ from tests.integration.conftest import INTERNAL_KEY, without_internal_key
 URL = "notifications/draft-link"
 CLIENT = "https://forms.example.com"
 TOKEN = "6a0000000000000000000001." + "A" * 43
+WORKSPACE = "6a00000000000000000000aa"
 LINK = f"{CLIENT}/acme/forms/6a0000000000000000000002#resume={TOKEN}"
 
 
@@ -26,6 +27,7 @@ def notice(**overrides) -> dict:
     return {
         "recipient": "applicant@example.com",
         "link": LINK,
+        "workspace_id": WORKSPACE,
         "days": 7,
         **overrides,
     }
@@ -106,7 +108,13 @@ def test_only_structured_fields(app_runner, sent):
     ):
         response = app_runner.post(URL, json=notice(**extra), headers=key())
         assert response.status_code == 422, extra
-    for bad in ({"recipient": "nope"}, {"days": 0}, {"days": 500}):
+    for bad in (
+        {"recipient": "nope"},
+        {"days": 0},
+        {"days": 500},
+        {"workspace_id": "not-an-id"},
+        {"workspace_id": ""},
+    ):
         response = app_runner.post(URL, json=notice(**bad), headers=key())
         assert response.status_code == 422, bad
     sent.assert_not_called()
@@ -167,12 +175,22 @@ def test_a_mail_failure_is_swallowed_and_logs_no_link(app_runner):
     assert "applicant@example.com" not in logged and "resume=" not in logged
 
 
-def test_a_burst_guard_stops_a_flood(app_runner, sent, monkeypatch):
+def test_a_burst_guard_counts_per_workspace_and_stops_a_flood(
+    app_runner, sent, monkeypatch
+):
     from auth.app.container import container
 
     container.notification_service()._sent.clear()
-    monkeypatch.setattr(notification_service, "NOTICES_PER_HOUR", 2)
+    monkeypatch.setattr(notification_service, "DRAFT_LINKS_PER_WORKSPACE_PER_HOUR", 2)
     codes = [
         app_runner.post(URL, json=notice(), headers=key()).status_code for _ in range(3)
     ]
     assert codes == [200, 200, 429]
+    # another workspace has its own count: one cannot use up everyone's mails
+    other = notice(workspace_id="6a00000000000000000000bb")
+    assert app_runner.post(URL, json=other, headers=key()).status_code == 200
+
+
+def test_the_guard_sits_above_the_backends_own_cap():
+    # the backend allows 1,000 per workspace per hour; this is only a backstop
+    assert notification_service.DRAFT_LINKS_PER_WORKSPACE_PER_HOUR > 1000

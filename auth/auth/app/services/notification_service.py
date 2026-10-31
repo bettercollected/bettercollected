@@ -45,6 +45,10 @@ _DRAFT_PATH = re.compile(r"/[A-Za-z0-9._~%-]{1,200}/forms/[A-Za-z0-9-]{1,64}")
 _DRAFT_FRAGMENT = re.compile(r"resume=[0-9a-f]{24}\.[A-Za-z0-9_-]{43}")
 # Per signed-in sender and process: a burst guard, not an accounting limit.
 NOTICES_PER_HOUR = 300
+# Draft-link mails, per workspace (the backend names it) and process. Above the
+# backend's own cap of 1,000 per workspace per hour (services/form_drafts/limits.py),
+# so this is only a backstop, and one workspace can never use up another's mails.
+DRAFT_LINKS_PER_WORKSPACE_PER_HOUR = 1200
 
 
 def _origin_and_prefix(base_url: Optional[str]) -> Optional[Tuple[str, str]]:
@@ -196,13 +200,14 @@ class NotificationService:
     def __init__(self):
         self._sent: Dict[str, Deque[float]] = defaultdict(deque)
 
-    def allow(self, sender_id: str) -> bool:
-        """Count one notice for ``sender_id``; False once over the hourly cap."""
+    def allow(self, sender_id: str, limit: Optional[int] = None) -> bool:
+        """Count one notice for ``sender_id``; False once over the hourly cap
+        (``limit``, default ``NOTICES_PER_HOUR``)."""
         now = time.monotonic()
         sent = self._sent[sender_id]
         while sent and now - sent[0] > 3600:
             sent.popleft()
-        if len(sent) >= NOTICES_PER_HOUR:
+        if len(sent) >= (NOTICES_PER_HOUR if limit is None else limit):
             return False
         sent.append(now)
         return True

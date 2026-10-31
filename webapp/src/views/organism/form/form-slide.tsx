@@ -152,7 +152,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
     // The key of the anonymous draft this browser holds, if any: the submit deletes that draft.
-    const { draft: savedDraft } = useRespondentDraft();
+    const { draft: savedDraft } = useRespondentDraft(standardForm?.formId);
     // Calculated fields, and the values field rules set or lock, follow the
     // answers live (logic, jumps and piping read them).
     useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);

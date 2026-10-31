@@ -110,7 +110,7 @@ async def test_saving_opening_and_discarding_start_no_action_webhook_or_registra
 ):
     form = await drafting_form(workspace)
     await client.put(url(workspace, form), json=body(), cookies=cookies())
-    await client.post(url(workspace, form, "/mine"), cookies=cookies())
+    await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     sent = (
         await client.post(url(workspace, form, "/link"), json=body(email=ADDRESS))
     ).json()
@@ -315,7 +315,7 @@ async def test_a_form_that_turned_drafts_off_stops_serving_them_at_once(
     token = token_of(mails[0])
     await settings_of(workspace, form, allow_save_draft=False)
     for call in (
-        client.post(url(workspace, form, "/mine"), cookies=cookies()),
+        client.post(url(workspace, form, "/mine"), json={}, cookies=cookies()),
         client.post(url(workspace, form, "/open"), json={"token": token}),
         client.put(url(workspace, form), json=body(editKey=sent["editKey"])),
     ):

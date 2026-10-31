@@ -35,7 +35,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
     const { formResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
     const { responderState } = useResponderState();
-    const { draft, setDraft, resetDraft } = useRespondentDraft();
+    const { draft, setDraft, resetDraft } = useRespondentDraft(standardForm?.formId);
     const [saveDraft, { isLoading: saving }] = useSaveDraftMutation();
     const [requestLink, { isLoading: sending }] = useRequestDraftLinkMutation();
     const [discardDraft, { isLoading: deleting }] = useDiscardDraftMutation();

@@ -55,11 +55,14 @@ DRAFT_NOT_FOUND = "draft_not_found"
 SIGN_IN_REQUIRED = "sign_in_required"
 DRAFT_TOO_LARGE = "draft_too_large"
 LINK_NOT_SENT = "link_not_sent"
+DRAFT_LIMIT = "draft_limit"
 NOTIFY_PATH = "/notifications/draft-link"
 NOTIFY_TIMEOUT_SECONDS = 10
 MAX_DEPTH = 16
 MAX_HIDDEN_FIELDS = 100
 MAX_POSITION_PAGES = 500
+# forms the purge looks at in one go
+PURGE_PAGE = 1000
 
 
 def _error(status: int, code: str, message: str, **headers: str) -> HTTPException:
@@ -74,6 +77,14 @@ def not_found() -> HTTPException:
     """The one answer for a draft that cannot be opened, whatever the
     reason (unknown, expired, another form's, a wrong or malformed token)."""
     return _error(HTTPStatus.NOT_FOUND, DRAFT_NOT_FOUND, "There is no such draft.")
+
+
+def _draft_limit() -> HTTPException:
+    return _error(
+        HTTPStatus.CONFLICT,
+        DRAFT_LIMIT,
+        "Too many drafts are kept right now.",
+    )
 
 
 def _too_many(verdict: Verdict) -> HTTPException:
@@ -193,13 +204,17 @@ class DraftUnavailableDto(_Camel):
 
 
 def _address(value: str) -> str:
-    """A normalised address, or 422. Checked with the same validator the
-    other address inputs use; no look-up, no verification beyond the mail."""
+    """The address as the respondent typed it (stripped), or 422. Checked with
+    the same validator the other address inputs use; no look-up, no
+    verification beyond the mail. The mail goes to this spelling (a different
+    case or letter can be a different mailbox); only the hash and the caps
+    fold it (``DraftKeys.address_key``)."""
     from pydantic import TypeAdapter, EmailStr, ValidationError
 
     text = (value or "").strip()
     try:
-        return str(TypeAdapter(EmailStr).validate_python(text)).casefold()
+        TypeAdapter(EmailStr).validate_python(text)
+        return text
     except ValidationError:
         raise _error(
             HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -419,6 +434,13 @@ class FormDraftService:
             return await self._save_for_owner(
                 workspace_id, real_form_id, link, version, user, body, now
             )
+        if link.settings.require_verified_identity:
+            # the form asks for a sign-in now: an anonymous draft is not saved to
+            raise _error(
+                HTTPStatus.FORBIDDEN,
+                SIGN_IN_REQUIRED,
+                "Sign in to save a draft of this form.",
+            )
         draft = await self._by_secret(
             workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY
         )
@@ -437,6 +459,11 @@ class FormDraftService:
         for attempt in (1, 2):
             draft = await self._drafts.for_owner(workspace_id, form_id, owner)
             if draft is None:
+                if (
+                    await self._drafts.count_live_for_owner(owner, now)
+                    >= limits.MAX_DRAFTS_PER_ACCOUNT
+                ):
+                    raise _draft_limit()
                 draft = FormDraftDocument(
                     workspace_id=workspace_id,
                     form_id=form_id,
@@ -467,8 +494,8 @@ class FormDraftService:
         received_at: Optional[dt.datetime] = None,
     ) -> LinkSentDto:
         """Create (or, with the browser's edit key, update) an anonymous draft
-        and mail its link to the address the respondent entered. The mail
-        holds the form, the organisation and the link; never an answer."""
+        and mail its link to the address the respondent entered. The mail is
+        fixed wording and the link; never an answer."""
         link, version = await self._form(workspace_id, form_id, user)
         real_form_id = str(link.form_id)
         if link.settings.require_verified_identity:
@@ -487,7 +514,8 @@ class FormDraftService:
         address = _address(body.email)
         email_key = self._keys.address_key(real_form_id, address)
         # every request counts, wherever it is refused later: per client, per
-        # address on this form, and per form (one form cannot mail the world)
+        # address on this form, per form (one form cannot mail the world) and
+        # per workspace
         await self._limit(limits.LINK_PER_CLIENT, client)
         await self._limit_key(limits.LINK_PER_ADDRESS, email_key)
         await self._limit_key(limits.LINK_PER_FORM, f"{workspace_id}:{real_form_id}")
@@ -497,7 +525,26 @@ class FormDraftService:
         draft = await self._by_secret(
             workspace_id, real_form_id, body.edit_key, tokens.EDIT_KEY
         )
-        if draft is None:
+        created = draft is None
+        if created:
+            if (
+                await self._drafts.count_live_anonymous_for_form(real_form_id, now)
+                >= limits.MAX_ANONYMOUS_DRAFTS_PER_FORM
+            ):
+                raise _draft_limit()
+            if (
+                await self._drafts.count_live_for_address(real_form_id, email_key, now)
+                >= limits.MAX_DRAFTS_PER_ADDRESS
+            ):
+                # Somebody else may have filled this address's drafts: answer as
+                # for any request, send nothing, store nothing. Neither the
+                # status nor a wait tells that the address holds drafts.
+                logger.info("Draft not stored: address at its draft limit")
+                return LinkSentDto(
+                    saved_at=now,
+                    expires_at=self._expiry(link, now, now),
+                    edit_key=tokens.compose(RecordId(), tokens.new_secret()),
+                )
             draft = FormDraftDocument(
                 workspace_id=workspace_id,
                 form_id=real_form_id,
@@ -505,9 +552,6 @@ class FormDraftService:
                 payload="",
                 expires_at=now,
             ).ensure_id()
-            created = True
-        else:
-            created = False
         draft.payload = self._seal(workspace_id, real_form_id, draft.id, body)
         draft.form_version = body.form_version or version.version
         draft.expires_at = self._expiry(link, draft.created_at, now)
@@ -520,18 +564,22 @@ class FormDraftService:
             tokens.EDIT_KEY, draft.id, edit_secret
         )
         draft.email_key = email_key
+        # The mail goes first and nothing is stored until it was accepted: a
+        # failed mail leaves the old link and the browser's edit key working and
+        # adds no draft that counts against the caps.
+        await self._mail_link(
+            link, workspace_id, address, tokens.compose(draft.id, secret), body.locale
+        )
         if created:
             saved = await self._drafts.create_for_address(
                 draft, limits.MAX_DRAFTS_PER_ADDRESS, now
             )
             if saved is None:
-                logger.info("Draft refused: address at its draft limit")
-                raise _too_many(Verdict(False, 0, limits.HOUR))
+                # lost a race for the last place: the mail went, its link is dead
+                logger.info("Draft not stored: address at its draft limit")
+                saved = draft
         else:
             saved = await self._drafts.save(draft)
-        await self._mail_link(
-            link, workspace_id, address, tokens.compose(saved.id, secret), body.locale
-        )
         return LinkSentDto(
             saved_at=saved.updated_at,
             expires_at=saved.expires_at,
@@ -560,6 +608,8 @@ class FormDraftService:
                     # no form title, no organisation: fixed wording and the link
                     "recipient": address,
                     "link": url,
+                    # for the auth service's per-workspace mail count, not the mail
+                    "workspace_id": str(workspace_id),
                     "days": limits.LINK_LIFETIME.days,
                     **({"locale": chosen} if chosen else {}),
                 },
@@ -636,7 +686,8 @@ class FormDraftService:
             draft = await self._by_secret(
                 workspace_id, str(link.form_id), body.token, tokens.TOKEN
             )
-            if draft is None:
+            if draft is None or link.settings.require_verified_identity:
+                # the form asks for a sign-in now: an anonymous link opens nothing
                 raise not_found()
         except HTTPException as refused:
             if refused.status_code == HTTPStatus.NOT_FOUND:
@@ -645,10 +696,14 @@ class FormDraftService:
                 raise not_found()
             raise
         edit_secret = tokens.new_secret()
-        draft.edit_key_hash = self._keys.hash_secret(
-            tokens.EDIT_KEY, draft.id, edit_secret
-        )
-        await self._drafts.save(draft)
+        # only the edit key moves: not "saved on", not a save that landed meanwhile
+        if not await self._drafts.replace_edit_key(
+            workspace_id,
+            str(link.form_id),
+            draft.id,
+            self._keys.hash_secret(tokens.EDIT_KEY, draft.id, edit_secret),
+        ):
+            raise not_found()
         return await self._view(
             link, version, workspace_id, draft, tokens.compose(draft.id, edit_secret)
         )
@@ -779,17 +834,25 @@ class FormDraftService:
         workspace). Counts only."""
         expired = await self._drafts.delete_expired(self._clock())
         orphaned = 0
-        for workspace_id, form_id in await self._drafts.form_keys():
-            link = await self._workspace_forms.find_workspace_form(
-                workspace_id, form_id
-            )
-            if (
-                link is None
-                or not save_drafts_enabled()
-                or not limits.saving_enabled(link.settings)
-            ):
-                orphaned += await self._drafts.delete_for_form(workspace_id, form_id)
-            await asyncio.sleep(0)
+        after = None
+        while True:
+            page = await self._drafts.form_keys(after, PURGE_PAGE)
+            for workspace_id, form_id in page:
+                link = await self._workspace_forms.find_workspace_form(
+                    workspace_id, form_id
+                )
+                if (
+                    link is None
+                    or not save_drafts_enabled()
+                    or not limits.saving_enabled(link.settings)
+                ):
+                    orphaned += await self._drafts.delete_for_form(
+                        workspace_id, form_id
+                    )
+                await asyncio.sleep(0)
+            if len(page) < PURGE_PAGE:
+                break
+            after = page[-1]
         return {"expired": expired, "unwanted": orphaned}
 
 

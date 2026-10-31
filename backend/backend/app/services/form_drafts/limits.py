@@ -24,6 +24,10 @@ LINK_LIFETIME = dt.timedelta(days=7)
 MAX_PAYLOAD_BYTES = 256 * 1024
 # live drafts one address may hold on one form
 MAX_DRAFTS_PER_ADDRESS = 5
+# live anonymous drafts one form may hold in all, and live drafts one account may hold
+# (one per form): storage bounds, 409 ``draft_limit`` past them
+MAX_ANONYMOUS_DRAFTS_PER_FORM = 2000
+MAX_DRAFTS_PER_ACCOUNT = 50
 
 HOUR = 3600
 # mails the link: per address and form, per client, per form (one form cannot

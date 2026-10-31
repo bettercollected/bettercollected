@@ -295,7 +295,7 @@ async def test_while_off_a_draft_is_neither_saved_nor_opened(
     monkeypatch.setattr(settings, "SAVE_DRAFTS_ENABLED", False)
     for call in (
         client.put(url(workspace, form), json=body(), cookies=cookies()),
-        client.post(url(workspace, form, "/mine"), cookies=cookies()),
+        client.post(url(workspace, form, "/mine"), json={}, cookies=cookies()),
         client.post(url(workspace, form, "/open"), json={"token": token}),
         client.put(url(workspace, form), json=body(editKey=sent["editKey"])),
     ):
@@ -357,5 +357,5 @@ async def test_a_form_that_requires_sign_in_offers_no_link_with_the_switch_on_or
     assert (
         await client.put(url(workspace, form), json=body(), cookies=cookies())
     ).status_code == 200
-    # no anonymous save either: there is no draft without an account or a link
-    assert (await client.put(url(workspace, form), json=body())).status_code == 404
+    # no anonymous save either: the form asks for a sign-in
+    assert (await client.put(url(workspace, form), json=body())).status_code == 403

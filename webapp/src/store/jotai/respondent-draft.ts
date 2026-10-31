@@ -15,9 +15,22 @@ export interface RespondentDraft {
     status: 'none' | 'saved_account' | 'link_sent' | 'resumed' | 'changes_saved' | 'deleted';
 }
 
-const respondentDraftAtom = atom<RespondentDraft>({ status: 'none' });
+const NONE: RespondentDraft = { status: 'none' };
 
-export const useRespondentDraft = () => {
-    const [draft, setDraft] = useAtom(respondentDraftAtom);
-    return { draft, setDraft, resetDraft: () => setDraft({ status: 'none' }) };
+// The form the state belongs to: one respondent session can move from one form
+// to another without a reload, and form B must never see form A's key or note.
+const respondentDraftAtom = atom<RespondentDraft & { formId?: string }>(NONE);
+
+/**
+ * The draft state of `formId`. Another form's state reads as none, and what is
+ * set is stamped with `formId`, so a key never crosses from one form to another.
+ */
+export const useRespondentDraft = (formId?: string) => {
+    const [stored, setStored] = useAtom(respondentDraftAtom);
+    const draft: RespondentDraft = !formId || stored.formId === formId ? stored : NONE;
+    return {
+        draft,
+        setDraft: (next: RespondentDraft) => setStored({ ...next, formId }),
+        resetDraft: () => setStored(NONE)
+    };
 };

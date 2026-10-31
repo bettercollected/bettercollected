@@ -67,7 +67,8 @@ export const draftsApi = formsApi.injectEndpoints({
             query: ({ token, ...key }) => ({ url: url(key, '/open'), method: 'POST', body: { token } })
         }),
         getMyDraft: builder.mutation<OpenedDraft | UnavailableDraft, FormKey>({
-            query: (key) => ({ url: url(key, '/mine'), method: 'POST' })
+            // JSON like every draft route (the server takes nothing else), though it has nothing to send
+            query: (key) => ({ url: url(key, '/mine'), method: 'POST', body: {} })
         }),
         discardDraft: builder.mutation<{ deleted: boolean }, FormKey & { editKey?: string; token?: string }>({
             query: ({ editKey, token, ...key }) => ({ url: url(key, '/discard'), method: 'POST', body: { editKey, token } })

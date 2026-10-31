@@ -981,6 +981,16 @@ router `controllers/form_drafts_router.py`, daily job `purge_form_drafts` (defau
   opens only its draft. The fragment keeps it out of server logs and Referer. The browser that created the draft also
   gets an *edit key* (another purpose, never valid as a token) to save again without another mail. Forms that
   require a verified identity send no links (403 `sign_in_required`).
+- **JSON only.** Every draft route takes `application/json` and nothing else (415 `json_required`, `require_json` in the
+  router): the session cookie is SameSite=None, so a cross-site `text/plain` or form POST would otherwise reach discard.
+- **A mail that fails loses nothing.** `request_link` mails first and stores the new token and edit-key hashes only after
+  auth accepted the message; a failure (503 `link_not_sent`) leaves the old link and the browser's edit key working and adds
+  no draft. At an address's cap (5) the answer is an ordinary 200 with a key that opens nothing, no mail, nothing stored.
+  Opening a link changes only the edit key (`replace_edit_key`, row-locked: "saved on" does not move, a concurrent save is
+  kept). The mail goes to the address as typed; only hashes and caps fold it. A form that starts to require a sign-in
+  stops opening and saving anonymous drafts (404 / 403 `sign_in_required`; discard still works).
+- **Storage caps** (`limits.py`): 2,000 live anonymous drafts per form and 50 live drafts per account, 409 `draft_limit`.
+  The purge pages through the forms that hold drafts (`PURGE_PAGE`).
 - **Every refusal alike.** An unknown, expired, malformed, other-form or other-workspace token is one 404
   `draft_not_found`; the compare runs even when there is no draft. Open failures count per client.
 - **Rate limits** (`limits.py`, `rate_limiter.py`): link requests per address+form, per client and per form; saves per

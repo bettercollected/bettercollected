@@ -13,7 +13,7 @@ from classy_fastapi import Routable, post, put
 from common.ids import RecordId
 from common.models.user import User
 from fastapi import Depends
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.requests import Request
 
 from backend.app.container import container
@@ -34,10 +34,31 @@ M = TypeVar("M", bound=BaseModel)
 MAX_BODY_BYTES = limits.MAX_PAYLOAD_BYTES + 64 * 1024
 
 
+def require_json(request: Request) -> None:
+    """415 unless the request says it is ``application/json``. A cross-site
+    page can post ``text/plain`` or a form with the respondent's cookies (the
+    session cookie is SameSite=None) without a CORS preflight; it cannot send
+    JSON that way, so a JSON-only route cannot be driven from another site."""
+    kind = request.headers.get("content-type", "").split(";")[0].strip().lower()
+    if kind != "application/json":
+        raise HTTPException(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            content={
+                "code": "json_required",
+                "message": "Send the request as application/json.",
+            },
+        )
+
+
+class NoBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 async def read_body(request: Request, model: Type[M]) -> M:
-    """The request's JSON as ``model``: read with a hard cap (413 past it,
-    whatever the headers say), and a body json cannot parse or nests too deeply
-    is a clean 422, never a 500."""
+    """The request's JSON as ``model``: ``application/json`` only (415), read
+    with a hard cap (413 past it, whatever the headers say), and a body json
+    cannot parse or nests too deeply is a clean 422, never a 500."""
+    require_json(request)
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
         raise _too_large()
@@ -144,6 +165,7 @@ class FormDraftsRouter(Routable):
         user: Optional[User] = Depends(get_user_if_logged_in),
     ):
         """The signed-in respondent's own draft of the form."""
+        await read_body(request, NoBody)
         if user is None:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED,

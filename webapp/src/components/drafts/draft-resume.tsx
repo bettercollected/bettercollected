@@ -15,7 +15,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { OpenedDraft, UnavailableDraft, isUnavailableDraft, useDiscardDraftMutation, useGetMyDraftMutation, useOpenDraftMutation } from '@app/store/redux/drafts-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { formatDraftDate, restoreDraft, resumeTokenOf } from '@app/utils/form-drafts';
+import { formatDraftDate, restoreDraft } from '@app/utils/form-drafts';
 
 type Notice = { kind: 'restored'; date?: string } | { kind: 'changed'; dropped: number } | { kind: 'unavailable'; reason: UnavailableDraft['unavailable']; date?: string } | { kind: 'not_found' } | { kind: 'failed' };
 
@@ -27,7 +27,7 @@ type Notice = { kind: 'restored'; date?: string } | { kind: 'changed'; dropped: 
  * says so when the form changed, closed or filled since. Renders nothing for a
  * form that keeps no drafts.
  */
-export default function DraftResume({ form }: { form?: Pick<StandardFormDto, 'formId' | 'fields' | 'hiddenFields' | 'settings'> }) {
+export default function DraftResume({ form, token: linkToken }: { token?: string | null; form?: Pick<StandardFormDto, 'formId' | 'fields' | 'hiddenFields' | 'settings'> }) {
     const { t, language } = useRespondentLanguage();
     const workspace = useAppSelector(selectWorkspace);
     const shown = useAppSelector(selectResponderForm);
@@ -35,27 +35,20 @@ export default function DraftResume({ form }: { form?: Pick<StandardFormDto, 'fo
     const { setFormResponse } = useFormResponse();
     const { setHiddenValues } = useHiddenFieldValues();
     const { setResponderState } = useResponderState();
-    const { setDraft } = useRespondentDraft();
+    const { setDraft } = useRespondentDraft(form?.formId);
     const [openDraft] = useOpenDraftMutation();
     const [getMyDraft] = useGetMyDraftMutation();
     const [discardDraft, { isLoading: deleting }] = useDiscardDraftMutation();
     const [notice, setNotice] = useState<Notice | null>(null);
-    // the link's token: read once from the address, kept only to open or delete this draft
-    const token = useRef<string | null>(null);
-    const read = useRef(false);
+    // The link's token, taken from the address bar by the page as it started
+    // (utils/form-drafts.ts takeResumeToken) and kept here only to open or delete this draft.
+    const token = useRef<string | null>(linkToken ?? null);
+    if (linkToken && !token.current) token.current = linkToken;
     const started = useRef({ link: false, account: false });
 
     const enabled = !!form?.settings?.allowSaveDraft && !!form?.formId;
     const ready = enabled && !!workspace?.id && shown?.formId === form?.formId;
     const signedIn = !!auth?.id;
-
-    useEffect(() => {
-        if (read.current || typeof window === 'undefined') return;
-        read.current = true;
-        token.current = resumeTokenOf(window.location.hash);
-        // the token is a credential: out of the address bar, history and shares at once
-        if (token.current) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
-    }, []);
 
     const apply = (draft: OpenedDraft | UnavailableDraft) => {
         if (isUnavailableDraft(draft)) {

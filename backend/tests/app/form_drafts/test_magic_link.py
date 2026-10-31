@@ -57,8 +57,8 @@ async def test_the_mail_carries_only_the_address_the_link_and_fixed_values(
     payload = mail["json"]
     assert payload["recipient"] == ADDRESS and payload["locale"] == "nl"
     assert payload["days"] == 7
-    # no form title and no organisation: the address, the link, the days, the language
-    assert set(payload) == {"recipient", "link", "days", "locale"}
+    # no form title and no organisation: the address, the link, the workspace (to count mails), the days, the language
+    assert set(payload) == {"recipient", "link", "workspace_id", "days", "locale"}
     # the link: the client host, the form's page, the token in the fragment
     link = payload["link"]
     assert f"/{workspace.workspace_name}/forms/{form.form_id}#resume=" in link
@@ -398,17 +398,30 @@ async def test_one_address_holds_at_most_a_few_drafts_on_a_form(
     monkeypatch.setattr(limits, "LINK_PER_CLIENT", ("draft-link-client", 100, 3600))
     for _ in range(limits.MAX_DRAFTS_PER_ADDRESS):
         assert (await ask_for_link(client, workspace, form)).status_code == 200
-    refused = await ask_for_link(client, workspace, form)
-    assert refused.status_code == 429
-    assert len(await draft_rows()) == limits.MAX_DRAFTS_PER_ADDRESS
-    assert len(mails) == limits.MAX_DRAFTS_PER_ADDRESS
+    # at the cap a request is answered like any other: no status and no wait
+    # tells that the address holds drafts, but nothing is sent or stored
+    normal = (
+        await ask_for_link(client, workspace, form, address="x@example.org")
+    ).json()
+    full = await ask_for_link(client, workspace, form)
+    assert full.status_code == 200 and "retry-after" not in full.headers
+    assert set(full.json()) == set(normal)
+    assert len(await draft_rows()) == limits.MAX_DRAFTS_PER_ADDRESS + 1
+    assert len(mails) == limits.MAX_DRAFTS_PER_ADDRESS + 1
+    # the key it hands out opens nothing, as a lost key would
+    assert (
+        await client.put(
+            url(workspace, form), json=body(editKey=full.json()["editKey"])
+        )
+    ).status_code == 404
     # another address is unaffected, and upper case is the same address
     assert (
         await ask_for_link(client, workspace, form, address="other@example.org")
     ).status_code == 200
     assert (
         await ask_for_link(client, workspace, form, address=ADDRESS.upper())
-    ).status_code == 429
+    ).json()["editKey"] not in {None}
+    assert len(mails) == limits.MAX_DRAFTS_PER_ADDRESS + 2
 
 
 async def test_failed_opens_are_counted_and_end_in_a_wait(

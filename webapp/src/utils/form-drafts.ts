@@ -119,6 +119,32 @@ export function resumeTokenOf(hash: string): string | null {
     return match ? match[1] : null;
 }
 
+let taken: { token: string; at: number } | null = null;
+
+/**
+ * The link's token, taken from the address bar and kept in memory: read once
+ * and the fragment removed from the address bar and the history entry at once,
+ * before the form has loaded (a slow or failed fetch must not leave a
+ * credential in the address bar). Call it where the page starts. A development
+ * double render calls it again after the fragment is gone, so a token taken a
+ * moment ago is handed out again.
+ */
+export function takeResumeToken(now: number = Date.now()): string | null {
+    if (typeof window === 'undefined') return null;
+    const token = resumeTokenOf(window.location.hash);
+    if (token) {
+        taken = { token, at: now };
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+        return token;
+    }
+    return taken && now - taken.at < 2000 ? taken.token : null;
+}
+
+/** Forget a token taken (for tests). */
+export function forgetResumeToken(): void {
+    taken = null;
+}
+
 /** The translation key (respondent namespace) for why a draft request failed. */
 export function draftErrorKey(error: unknown): string {
     const failure = error as { status?: number; data?: { code?: string } } | undefined;
@@ -135,6 +161,7 @@ export function draftErrorKey(error: unknown): string {
         case 422:
             return code === 'invalid_email' ? 'DRAFT.ERR_EMAIL' : 'DRAFT.ERR_FAILED';
         case 409:
+            if (code === 'draft_limit') return 'DRAFT.ERR_LIMIT';
             return code === 'drafts_off' ? 'DRAFT.ERR_OFF' : 'DRAFT.ERR_CLOSED';
         case 404:
             return code === 'drafts_off' ? 'DRAFT.ERR_OFF' : 'DRAFT.ERR_NOT_FOUND';

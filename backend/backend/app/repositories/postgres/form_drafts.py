@@ -6,9 +6,9 @@ columns of :mod:`backend.db.models`."""
 import datetime as dt
 from typing import List, Optional, Sequence, Tuple
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 
-from backend.app.repositories.postgres.responses import _advisory_lock
+from backend.app.repositories.postgres.responses import _advisory_lock, _locked_doc
 from backend.app.schemas.form_draft import FormDraftDocument
 from backend.db.models import FormDraftRow
 from common.records.codec import row_values
@@ -48,6 +48,40 @@ class PostgresFormDraftRepository(RecordRepository):
             FormDraftRow.email_key == email_key,
             FormDraftRow.expires_at > now,
         )
+
+    async def count_live_anonymous_for_form(self, form_id, now: dt.datetime) -> int:
+        return await self.count(
+            FormDraftRow.form_id == _id(form_id),
+            FormDraftRow.owner_id.is_(None),
+            FormDraftRow.expires_at > now,
+        )
+
+    async def count_live_for_owner(self, owner_id, now: dt.datetime) -> int:
+        return await self.count(
+            FormDraftRow.owner_id == _id(owner_id), FormDraftRow.expires_at > now
+        )
+
+    async def replace_edit_key(
+        self, workspace_id, form_id, draft_id, edit_key_hash: str
+    ) -> bool:
+        """Set the edit key hash of a draft and nothing else: the row is locked,
+        read afresh (a save that landed meanwhile is kept) and written back with
+        ``updated_at`` as it was, so "saved on" does not move. False when the
+        draft is gone."""
+        async with self._session() as session, session.begin():
+            draft = await _locked_doc(
+                session,
+                FormDraftRow,
+                FormDraftRow.id == _id(draft_id),
+                FormDraftRow.workspace_id == _id(workspace_id),
+                FormDraftRow.form_id == _id(form_id),
+                document=FormDraftDocument,
+            )
+            if draft is None:
+                return False
+            draft.edit_key_hash = edit_key_hash
+            await session.execute(self._upsert_statement(row_values(draft)))
+        return True
 
     async def save(self, document: FormDraftDocument) -> FormDraftDocument:
         return await self.save_document(document)
@@ -123,15 +157,20 @@ class PostgresFormDraftRepository(RecordRepository):
     async def delete_expired(self, now: dt.datetime) -> int:
         return await self.delete_where(FormDraftRow.expires_at <= now)
 
-    async def form_keys(self, limit: int = 5000) -> List[Tuple[str, str]]:
-        """The (workspace id, form id) pairs that hold drafts (the purge asks
-        whether each form still takes them)."""
+    async def form_keys(
+        self, after: Optional[Tuple[str, str]] = None, limit: int = 1000
+    ) -> List[Tuple[str, str]]:
+        """A page of the (workspace id, form id) pairs that hold drafts, in
+        order, after ``after`` (the purge pages through all of them and asks
+        whether each form still takes drafts)."""
+        statement = select(FormDraftRow.workspace_id, FormDraftRow.form_id).distinct()
+        if after is not None:
+            statement = statement.where(
+                tuple_(FormDraftRow.workspace_id, FormDraftRow.form_id) > tuple_(*after)
+            )
+        statement = statement.order_by(
+            FormDraftRow.workspace_id, FormDraftRow.form_id
+        ).limit(limit)
         async with self._session() as session:
-            rows = (
-                await session.execute(
-                    select(FormDraftRow.workspace_id, FormDraftRow.form_id)
-                    .distinct()
-                    .limit(limit)
-                )
-            ).all()
+            rows = (await session.execute(statement)).all()
         return [(str(w), str(f)) for w, f in rows]

@@ -251,6 +251,22 @@ describe('save and continue later', () => {
         expect(body.get('draft_key')).toBe(`${'a'.repeat(24)}.${'K'.repeat(43)}`);
     });
 
+    it("does not carry one form's draft into another form (no key, no note, nothing sent)", async () => {
+        open({ allowSaveDraft: true }, { fields: [q('a', 'Your name')] });
+        await type('a', 'Ada');
+        await click(COPY.en.save);
+        fireEvent.change(screen.getByLabelText(COPY.en.label), { target: { value: 'ada@example.com' } });
+        await click(COPY.en.send);
+        await screen.findByText(/We sent a link/);
+        // the respondent moves on to another form without a reload
+        act(() => void store.dispatch(setForm({ formId: 'another-form', builderVersion: 'v2', version: 1, title: 'Other', settings: { allowSaveDraft: true }, fields: [page('s1', [q('a', 'Your name')])] } as any)));
+        await screen.findByRole('button', { name: COPY.en.save });
+        expect(screen.queryByText(/We sent a link/)).toBeNull();
+        expect(screen.queryByRole('button', { name: COPY.en.changes })).toBeNull();
+        await click('Submit response');
+        expect((submit.mock.calls[0][0].body as FormData).has('draft_key')).toBe(false);
+    });
+
     it('sends no draft key with a submission that has no draft', async () => {
         open({ allowSaveDraft: true }, { fields: [q('a', 'Your name')] });
         await type('a', 'Ada');

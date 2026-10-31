@@ -38,7 +38,7 @@ async def test_the_setting_is_off_by_default_and_a_form_without_it_keeps_no_draf
     form = await publish(workspace)
     for call in (
         client.put(url(workspace, form), json=body(), cookies=cookies()),
-        client.post(url(workspace, form, "/mine"), cookies=cookies()),
+        client.post(url(workspace, form, "/mine"), json={}, cookies=cookies()),
         client.post(url(workspace, form, "/link"), json=body(email=ADDRESS)),
     ):
         refused = await call
@@ -59,7 +59,7 @@ async def test_a_signed_in_respondent_saves_one_draft_per_form_and_reopens_it(
     )
     assert second.status_code == 200
     assert len(await draft_rows()) == 1
-    mine = await client.post(url(workspace, form, "/mine"), cookies=cookies())
+    mine = await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     assert mine.status_code == 200
     opened = mine.json()
     assert opened["answers"] == changed
@@ -67,7 +67,9 @@ async def test_a_signed_in_respondent_saves_one_draft_per_form_and_reopens_it(
     assert opened["position"] == POSITION
     assert opened["formChanged"] is False and "editKey" not in opened
     # another account has none
-    other = await client.post(url(workspace, form, "/mine"), cookies=cookies(testUser2))
+    other = await client.post(
+        url(workspace, form, "/mine"), json={}, cookies=cookies(testUser2)
+    )
     assert other.status_code == 404 and other.json()["code"] == "draft_not_found"
 
 
@@ -106,7 +108,9 @@ async def test_a_ciphertext_moved_to_another_draft_is_not_readable(client, works
     one, two = sorted(await draft_rows(), key=lambda r: r.owner_id != testUser1.id)
     two.payload = one.payload
     await container.form_draft_repo().save(two)
-    moved = await client.post(url(workspace, form, "/mine"), cookies=cookies(testUser2))
+    moved = await client.post(
+        url(workspace, form, "/mine"), json={}, cookies=cookies(testUser2)
+    )
     assert moved.status_code == 404
 
 
@@ -151,7 +155,7 @@ async def test_a_body_that_is_too_large_or_malformed_is_refused_cleanly(
 async def test_every_draft_response_is_marked_uncacheable(client, workspace):
     form = await drafting_form(workspace)
     saved = await client.put(url(workspace, form), json=body(), cookies=cookies())
-    mine = await client.post(url(workspace, form, "/mine"), cookies=cookies())
+    mine = await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     for response in (saved, mine):
         assert response.headers["cache-control"] == "no-store"
 
@@ -219,7 +223,7 @@ async def test_an_expired_draft_cannot_be_opened(client, workspace):
     (row,) = await draft_rows()
     row.expires_at = utcnow() - dt.timedelta(seconds=1)
     await container.form_draft_repo().upsert(row)
-    gone = await client.post(url(workspace, form, "/mine"), cookies=cookies())
+    gone = await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     assert gone.status_code == 404
 
 
@@ -228,7 +232,7 @@ async def test_a_changed_form_opens_with_a_notice(client, workspace):
     await client.put(url(workspace, form), json=body(), cookies=cookies())
     await republish(workspace, form)
     opened = (
-        await client.post(url(workspace, form, "/mine"), cookies=cookies())
+        await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     ).json()
     assert opened["formChanged"] is True
     assert opened["currentVersion"] == opened["formVersion"] + 1
@@ -246,7 +250,7 @@ async def test_a_form_that_stopped_taking_responses_hands_back_no_answers(
         form_close_date=(utcnow() - dt.timedelta(minutes=1)).isoformat(),
     )
     closed = (
-        await client.post(url(workspace, form, "/mine"), cookies=cookies())
+        await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
     ).json()
     assert closed["unavailable"] == "closed" and "answers" not in closed
     refused = await client.put(url(workspace, form), json=body(), cookies=cookies())
@@ -258,9 +262,9 @@ async def test_a_form_that_stopped_taking_responses_hands_back_no_answers(
         form_close_date=None,
         form_open_date=(utcnow() + dt.timedelta(days=1)).isoformat(),
     )
-    assert (await client.post(url(workspace, form, "/mine"), cookies=cookies())).json()[
-        "unavailable"
-    ] == "not_yet_open"
+    assert (
+        await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
+    ).json()["unavailable"] == "not_yet_open"
     assert (
         await client.put(url(workspace, form), json=body(), cookies=cookies())
     ).json()["code"] == "form_not_open"
@@ -271,9 +275,9 @@ async def test_a_form_that_stopped_taking_responses_hands_back_no_answers(
         StandardFormResponseCamelModel(answers={}),
         testUser2,
     )
-    assert (await client.post(url(workspace, form, "/mine"), cookies=cookies())).json()[
-        "unavailable"
-    ] == "full"
+    assert (
+        await client.post(url(workspace, form, "/mine"), json={}, cookies=cookies())
+    ).json()["unavailable"] == "full"
     assert (
         await client.put(url(workspace, form), json=body(), cookies=cookies())
     ).json()["code"] == "form_full"
@@ -298,11 +302,14 @@ async def test_a_draft_is_found_only_through_its_own_workspace_and_form(
     await client.put(url(workspace, form), json=body(), cookies=cookies())
     # the same account asking for another form of the workspace has no draft
     assert (
-        await client.post(url(workspace, other_form, "/mine"), cookies=cookies())
+        await client.post(
+            url(workspace, other_form, "/mine"), json={}, cookies=cookies()
+        )
     ).status_code == 404
     # and the form id under another workspace's path is not a form of it
     elsewhere = await client.post(
         f"/api/v1/workspaces/{workspace_1.id}/forms/{form.form_id}/drafts/mine",
+        json={},
         cookies=cookies(),
     )
     assert elsewhere.status_code == 404

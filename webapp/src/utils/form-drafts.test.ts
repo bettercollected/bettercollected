@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { DEFAULT_DRAFT_DAYS, answersForDraft, draftDays, draftErrorKey, draftsOffered, hasFileQuestion, positionForDraft, restoreDraft, resumeTokenOf } from './form-drafts';
+import { DEFAULT_DRAFT_DAYS, answersForDraft, draftDays, draftErrorKey, draftsOffered, forgetResumeToken, hasFileQuestion, positionForDraft, restoreDraft, resumeTokenOf, takeResumeToken } from './form-drafts';
 
 const q = (id: string, type: FieldTypes, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index: 0, type, title: id, properties: { fields: [] }, ...extra });
 const page = (id: string, fields: StandardFormFieldDto[]): StandardFormFieldDto => ({ id, index: 0, type: FieldTypes.SLIDE, title: '', properties: { fields } });
@@ -95,9 +95,43 @@ describe('errors', () => {
         [{ status: 422, data: { code: 'invalid_email' } }, 'DRAFT.ERR_EMAIL'],
         [{ status: 409, data: { code: 'form_closed' } }, 'DRAFT.ERR_CLOSED'],
         [{ status: 409, data: { code: 'drafts_off' } }, 'DRAFT.ERR_OFF'],
+        [{ status: 409, data: { code: 'draft_limit' } }, 'DRAFT.ERR_LIMIT'],
         [{ status: 404, data: { code: 'drafts_off' } }, 'DRAFT.ERR_OFF'],
         [{ status: 404, data: { code: 'draft_not_found' } }, 'DRAFT.ERR_NOT_FOUND'],
         [{ status: 500 }, 'DRAFT.ERR_FAILED'],
         [undefined, 'DRAFT.ERR_FAILED']
     ])('%j is %s', (error, key) => expect(draftErrorKey(error)).toBe(key));
+});
+
+describe('taking the link from the address bar', () => {
+    const TOKEN = `${'a'.repeat(24)}.${'B'.repeat(43)}`;
+    afterEach(() => {
+        forgetResumeToken();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('returns the token and removes the fragment from the address bar at once', () => {
+        window.history.replaceState(null, '', `/acme/forms/f1?lang=nl#resume=${TOKEN}`);
+        expect(takeResumeToken()).toBe(TOKEN);
+        expect(window.location.hash).toBe('');
+        expect(window.location.pathname + window.location.search).toBe('/acme/forms/f1?lang=nl');
+        expect(window.location.href).not.toContain(TOKEN);
+    });
+
+    it('hands the token out again to a development double render, and not for long', () => {
+        window.history.replaceState(null, '', `/acme/forms/f1#resume=${TOKEN}`);
+        const at = 1_000_000;
+        expect(takeResumeToken(at)).toBe(TOKEN);
+        expect(takeResumeToken(at + 10)).toBe(TOKEN);
+        expect(takeResumeToken(at + 5000)).toBeNull();
+    });
+
+    it('takes nothing from an address without a link, or with one that is not in its exact shape', () => {
+        window.history.replaceState(null, '', `/acme/forms/f1#resume=${TOKEN}x`);
+        expect(takeResumeToken()).toBeNull();
+        // left as it is: it is not ours
+        expect(window.location.hash).toBe(`#resume=${TOKEN}x`);
+        window.history.replaceState(null, '', '/acme/forms/f1');
+        expect(takeResumeToken()).toBeNull();
+    });
 });
