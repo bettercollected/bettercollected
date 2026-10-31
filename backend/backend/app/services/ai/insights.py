@@ -266,6 +266,11 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
         return "yes" if answer["boolean"] else "no"
     if answer.get("date"):
         return str(answer["date"])
+    if answer.get("time"):
+        return str(answer["time"])
+    currency = answer.get("currency")
+    if isinstance(currency, dict) and currency.get("amount"):
+        return f"{currency.get('code') or ''} {currency['amount']}".strip()
     choice = answer.get("choice")
     if isinstance(choice, dict) and choice.get("value"):
         return _resolve_choice(str(choice["value"]), choice_labels)

@@ -28,7 +28,7 @@ from backend.app.services.ai.chat import camel_form_reply, persist_ops_to_form
 from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
 from backend.app.services.ai.prompt_builder import (
-    OPS_GUIDE,
+    ops_guide,
     project_form,
 )
 from backend.app.services.ai.structured import chat_json
@@ -138,7 +138,7 @@ def build_review_system_prompt(form_snapshot: str, profile) -> str:
         parts.append(block)
     parts.append(
         "When you propose a fix, use the typed operations described next.\n\n"
-        + OPS_GUIDE
+        + ops_guide()
     )
     parts.append(REVIEW_OUTPUT_CONTRACT)
     return "\n\n".join(parts)

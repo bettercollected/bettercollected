@@ -9,6 +9,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -20,6 +21,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -61,6 +63,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -72,6 +75,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -120,6 +124,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -131,6 +136,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -1739,6 +1745,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -1750,6 +1757,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -1790,6 +1798,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -1801,6 +1810,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -1841,6 +1851,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -1852,6 +1863,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "respondent",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -1964,6 +1976,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -1975,6 +1988,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "original",
+     "time": null,
      "type": null,
      "url": null
     }
@@ -2014,6 +2028,7 @@
      "boolean": null,
      "choice": null,
      "choices": null,
+     "currency": null,
      "date": null,
      "email": null,
      "field": null,
@@ -2025,6 +2040,7 @@
      "phone_number": null,
      "tabular_value": null,
      "text": "original",
+     "time": null,
      "type": null,
      "url": null
     }

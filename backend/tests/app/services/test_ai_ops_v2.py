@@ -521,7 +521,7 @@ def test_values_and_choices(form):
     "field_id, validation, expected",
     [
         ("age", {"minLength": 2}, "only apply to short or long text questions"),
-        ("name", {"minValue": 1}, "only apply to number questions"),
+        ("name", {"minValue": 1}, "only apply to number and currency questions"),
         ("notes", {"preset": "digits"}, "only apply to short text questions"),
         ("colour", {"maxChoices": 1}, "allows several answers"),
         ("topics", {"maxChoices": 4}, "has 3 choice(s)"),

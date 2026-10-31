@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:d26e70a8dd952ad7dad5c988d3785bac17d9172e637561944b74de83ab89f809",
+  "checksum": "sha256:555667ee8d2c1550ed7d416645ccec91bd551c17a1909c976b841d0a2d8f9777",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2235,6 +2235,10 @@
      "choices": {
       "other": null,
       "values": null
+     },
+     "currency": {
+      "amount": null,
+      "code": null
      },
      "date": "FormResponseDocument.answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
      "email": "FormResponseDocument.answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2256,6 +2260,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2267,6 +2272,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2276,6 +2282,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2287,6 +2294,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2310,6 +2318,7 @@
       ]
      ],
      "text": "FormResponseDocument.answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
+     "time": "FormResponseDocument.answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
      "type": "group",
      "url": "FormResponseDocument.answers.value.url tëxt ✓ \"quoted\" \\ line\nbreak"
     }
@@ -2356,6 +2365,10 @@
       "other": null,
       "values": null
      },
+     "currency": {
+      "amount": null,
+      "code": null
+     },
      "date": "FormResponseDocument.internal_answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
      "email": "FormResponseDocument.internal_answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
@@ -2376,6 +2389,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2387,6 +2401,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2396,6 +2411,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2407,6 +2423,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2430,6 +2447,7 @@
       ]
      ],
      "text": "FormResponseDocument.internal_answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
+     "time": "FormResponseDocument.internal_answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
      "type": "group",
      "url": "FormResponseDocument.internal_answers.value.url tëxt ✓ \"quoted\" \\ line\nbreak"
     }
@@ -2600,7 +2618,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:839e351c85db665b21d4b21f412a5a886c390223f2891b24e5f0edf404239216",
+  "checksum": "sha256:13bf1363d7985997016bca4c0c362bce767cb77d3335cd7c5cc46e5b450f4255",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2618,6 +2636,10 @@
      "choices": {
       "other": null,
       "values": null
+     },
+     "currency": {
+      "amount": null,
+      "code": null
      },
      "date": "FormResponseDocument.answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
      "email": "FormResponseDocument.answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2639,6 +2661,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2650,6 +2673,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2659,6 +2683,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2670,6 +2695,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2693,6 +2719,7 @@
       ]
      ],
      "text": "FormResponseDocument.answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
+     "time": "FormResponseDocument.answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
      "type": "group",
      "url": "FormResponseDocument.answers.value.url tëxt ✓ \"quoted\" \\ line\nbreak"
     }
@@ -2739,6 +2766,10 @@
       "other": null,
       "values": null
      },
+     "currency": {
+      "amount": null,
+      "code": null
+     },
      "date": "FormResponseDocument.internal_answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
      "email": "FormResponseDocument.internal_answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
@@ -2759,6 +2790,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2770,6 +2802,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2779,6 +2812,7 @@
         "boolean": null,
         "choice": null,
         "choices": null,
+        "currency": null,
         "date": null,
         "email": null,
         "field": null,
@@ -2790,6 +2824,7 @@
         "phone_number": null,
         "tabular_value": null,
         "text": null,
+        "time": null,
         "type": null,
         "url": null
        }
@@ -2813,6 +2848,7 @@
       ]
      ],
      "text": "FormResponseDocument.internal_answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
+     "time": "FormResponseDocument.internal_answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
      "type": "group",
      "url": "FormResponseDocument.internal_answers.value.url tëxt ✓ \"quoted\" \\ line\nbreak"
     }
@@ -2983,7 +3019,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:4f1cc53f33bc1ce1b1150f9d993535fb4083717901224da56def3e9cb3c26988",
+  "checksum": "sha256:e5bc35ed0aa75b45a5a8febcc82874ebc49bedb43b2352c684d1328df365ac74",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3020,6 +3056,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3035,7 +3072,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -3093,6 +3132,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3108,7 +3148,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -3260,7 +3302,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:35120c1c8f71b0c1f32fedd307ea34f8ed8a1542d822a7595b524ebc4cb057dc",
+  "checksum": "sha256:6064a8fe3e677d4e52cd6b3e58f8714c09bb42cf4c450a8573bbcdfcd41cb025",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3297,6 +3339,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3312,7 +3355,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -3370,6 +3415,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3385,7 +3431,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -3532,7 +3580,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:d2e8b3f74bf426d512d238dbb06d26700518962ae5b89fe175598ea27b41b1ee",
+  "checksum": "sha256:20e1f9a61a5f2177f2f5e9744b45ffa17701cd210750f5d9dc3fa0ab8d8845fa",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3605,6 +3653,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3620,7 +3669,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -3678,6 +3729,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -3693,7 +3745,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -4072,7 +4126,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:8e2b8f3cfd5df9f94f40e8c3103ed2ff71f1b811840972debf3af4a7c5f4d789",
+  "checksum": "sha256:c9527c18dca7068756d7963dd8fabece63dc493fd30b8f14f49fbc3284e3b1cf",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4145,6 +4199,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -4160,7 +4215,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -4218,6 +4275,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -4233,7 +4291,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -4593,7 +4653,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:0233ece10612accee68b3ce3d141dd55f57de87f0e6b7297055503a52e61a953",
+  "checksum": "sha256:2dc12f348bc79ed759f6912911d8b6003ed17d53213aa99b7df4c28e9822f57d",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4666,6 +4726,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -4681,7 +4742,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -4739,6 +4802,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -4754,7 +4818,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -5131,7 +5197,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:b5ae09c711729248cafd9701eb8fae1f1a23d7072b37584853a74893c81fa8b8",
+  "checksum": "sha256:0c3571bfa4f10196a7bbbd6c1b085616de8688761f1281abe80c68f99068a5d7",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5204,6 +5270,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -5219,7 +5286,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,
@@ -5277,6 +5346,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "currencies": null,
       "dateFormat": null,
       "dateRules": null,
       "description": null,
@@ -5292,7 +5362,9 @@
       "layout": null,
       "logic": null,
       "logicalOperator": null,
+      "maxTime": null,
       "mentions": null,
+      "minTime": null,
       "optionFilter": null,
       "placeholder": null,
       "position": null,

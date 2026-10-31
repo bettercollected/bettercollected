@@ -43,7 +43,7 @@ describe('add_field', () => {
         expect(result.message).toBe("Added 'School' (short_text) to the group 'Children'");
         expect(field(doc, 'kids').properties!.fields!.map((f) => f.id)).toEqual(['kid-name', 'new-1', 'kid-born', 'kid-yes']);
         expect(one({ op: 'add_field', groupId: 'kids', field: { title: 'Up', type: 'file_upload' } }).result.message).toBe(
-            "A 'file_upload' question cannot be placed inside a repeating group (allowed: date, dropdown, email, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, url, yes_no)."
+            "A 'file_upload' question cannot be placed inside a repeating group (allowed: currency, date, day, dropdown, email, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, time, url, yes_no)."
         );
         expect(one({ op: 'add_field', groupId: 'name', field: { title: 'x', type: 'short_text' } }).result.message).toBe("'Your name' is not a repeating group.");
     });
@@ -52,11 +52,11 @@ describe('add_field', () => {
         expect(one({ op: 'add_field', field: { title: 'x', type: 'email' } }).result.message).toBe('add_field needs a pageId (or a groupId to add into a repeating group).');
         expect(one({ op: 'add_field', pageId: 'nope', field: { title: 'x', type: 'email' } }).result.message).toBe("Page 'nope' was not found — it may have been removed.");
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'matrix' } }).result.message).toBe(
-            "Field type 'matrix' cannot be created by AI ops (allowed: calculated, date, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, url, yes_no)."
+            "Field type 'matrix' cannot be created by AI ops (allowed: calculated, currency, date, day, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, text, time, url, yes_no)."
         );
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'dropdown', choices: ['one'] } }).result.message).toBe("'dropdown' needs at least 2 choices.");
         expect(one({ op: 'add_field', pageId: 'p1', afterFieldId: 'age', field: { title: 'x', type: 'email' } }).result.message).toBe("Field 'age' is not in page 'p1'.");
-        expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'email', label: 'L' } }).result.message).toBe('A label only applies to date questions.');
+        expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'email', label: 'L' } }).result.message).toBe('A label only applies to date, day and time questions.');
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'file_upload', internal: true } }).result.message).toMatch(/^'file_upload' fields can't be internal/);
     });
 });
@@ -101,7 +101,7 @@ describe('update_field', () => {
         expect(one({ op: 'update_field', fieldId: 'start', patch: { dateRules: [{ comparison: 'before', target: 'date', date: '2026-02-30' }] } }).result.message).toBe('A date rule needs a date written as YYYY-MM-DD.');
         const ok = one({ op: 'update_field', fieldId: 'start', patch: { dateRules: [{ comparison: 'after', target: 'today', date: '2020-01-01' }], label: ' From ' } });
         expect(field(ok.doc, 'start').properties).toMatchObject({ dateRules: [{ comparison: 'after', target: 'today' }], label: 'From' });
-        expect(one({ op: 'update_field', fieldId: 'name', patch: { dateRules: [] } }).result.message).toBe('Date rules only apply to date questions.');
+        expect(one({ op: 'update_field', fieldId: 'name', patch: { dateRules: [] } }).result.message).toBe('Date rules only apply to date and day questions.');
     });
 
     it('keeps what was patched before a failing key, like the backend', () => {

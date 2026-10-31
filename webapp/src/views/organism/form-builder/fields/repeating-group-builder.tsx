@@ -3,6 +3,8 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 
 import { formFieldsList } from '@app/constants/form-fields';
+import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { jsonEqual } from '@app/lib/form-ops/model';
@@ -11,7 +13,7 @@ import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_TYPES } from '@app/utils/repeating-groups';
 import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, sameSourceFields, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
-import { getDateRuleSources } from '@app/utils/date-rules';
+import { getDateRuleSources, isDateRuleType } from '@app/utils/date-rules';
 import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
 
 const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type === FieldTypes.TEXT ? 'Statement' : (formFieldsList.find((f) => f.type === type)?.name ?? type.replaceAll('_', ' ')) }));
@@ -29,6 +31,10 @@ const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opaci
  */
 export default function RepeatingGroupBuilder({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled?: boolean }) {
     const { updateGroupChildren } = useBuilderActions();
+    // The newer question types are offered while the server takes them (NEW_QUESTION_TYPES_ENABLED);
+    // a child that already has one keeps it in its own list.
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const typesFor = (own?: string) => CHILD_TYPES.filter((option) => newQuestionTypesEnabled || !GATED_TYPES.has(option.type) || option.type === own);
     const children = getGroupChildren(field);
     const slideIndex = slide.index;
     const fieldIndex = field.index;
@@ -41,7 +47,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         sameSourceFields
     );
     const dateChildIds = children
-        .filter((child) => child.type === FieldTypes.DATE)
+        .filter((child) => isDateRuleType(child.type))
         .map((child) => child.id)
         .join(',');
     const dateSources = useBuilderFieldsValue((formFields) => Object.fromEntries(dateChildIds.split(',').filter(Boolean).map((id) => [id, getDateRuleSources(formFields || [], id)])), [dateChildIds], jsonEqual);
@@ -114,7 +120,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                     patchChild(child.id, { type: e.target.value, properties: { ...fresh.properties, placeholder: child.properties?.placeholder, logic: child.properties?.logic } });
                                 }}
                             >
-                                {CHILD_TYPES.map((option) => (
+                                {typesFor(child.type).map((option) => (
                                     <option key={option.type} value={option.type}>
                                         {option.name}
                                     </option>
@@ -205,7 +211,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                 </button>
                             </div>
                         )}
-                        {child.type === FieldTypes.DATE && (
+                        {isDateRuleType(child.type) && (
                             <DateFieldSettings
                                 field={child}
                                 sources={dateSources[child.id] ?? []}
@@ -240,7 +246,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                     }}
                 >
                     <option value="">Add a question to the group…</option>
-                    {CHILD_TYPES.map((option) => (
+                    {typesFor().map((option) => (
                         <option key={option.type} value={option.type}>
                             {option.name}
                         </option>

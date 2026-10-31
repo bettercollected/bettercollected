@@ -134,6 +134,10 @@ def test_case(case, monkeypatch):
     # the cases describe what the operations do; the server flag that
     # refuses new field rules is tested on its own (test_field_rules_ops.py)
     monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    # the switch for the newer question types is on unless a case says so
+    monkeypatch.setattr(
+        settings, "NEW_QUESTION_TYPES_ENABLED", case.get("newQuestionTypes", True)
+    )
     monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", True)
     run_case(case, _corpus()["forms"])
 

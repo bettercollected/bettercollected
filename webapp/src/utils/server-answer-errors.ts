@@ -32,6 +32,8 @@ const CLIENT_CODES: Record<string, string> = {
     not_integer: 'NOT_INTEGER',
     too_few_choices: 'TOO_FEW_CHOICES',
     too_many_choices: 'TOO_MANY_CHOICES',
+    format: 'FORMAT',
+    currency: 'CURRENCY',
     type: 'SERVER_TYPE',
     choice: 'SERVER_CHOICE',
     hidden_option: 'SERVER_OPTION'

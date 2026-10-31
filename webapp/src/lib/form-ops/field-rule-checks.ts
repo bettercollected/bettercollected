@@ -44,7 +44,7 @@ const COMPARISONS = new Set(['IS_EMPTY', 'IS_NOT_EMPTY', 'IS_EQUAL', 'IS_NOT_EQU
 const GROUP_MODES = new Set(['COUNT', 'ANY', 'ALL']);
 const TEXT_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT]);
 const CHOICE_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
-const VALUE_TYPES = new Set<string>([...TEXT_TYPES, ...CHOICE_TYPES, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.YES_NO]);
+const VALUE_TYPES = new Set<string>([...TEXT_TYPES, ...CHOICE_TYPES, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.DAY, FieldTypes.TIME, FieldTypes.CURRENCY, FieldTypes.YES_NO]);
 /** Types that hold no answer a rule could apply to (content, pages, hidden and calculated fields, groups). */
 const NOT_RULE_TARGETS = new Set<string>([
     'slide',
@@ -304,7 +304,7 @@ class Checker {
         if (hasValueEffect(rule)) {
             let problem: string | null = null;
             if (target.group) problem = `'${name}' is in a repeating group: rules cannot lock or set the value of a group's questions.`;
-            else if (!VALUE_TYPES.has(field.type)) problem = `Rules can lock or set the value of short and long text, number, date, yes/no and single-choice questions, not '${name}'.`;
+            else if (!VALUE_TYPES.has(field.type)) problem = `Rules can lock or set the value of short and long text, number, date, day, time, currency, yes/no and single-choice questions, not '${name}'.`;
             else if (isMultiple(field)) problem = `'${name}' allows several choices: rules can only set the value of a single-choice question.`;
             if (problem) this.add(field.id, pointer(index, 'then', present(then?.setValue) ? 'setValue' : 'readOnly'), problem, index);
             else this.setValue(target, index, then?.setValue);
@@ -405,6 +405,9 @@ class Checker {
                     {
                         [FieldTypes.NUMBER]: 'a number',
                         [FieldTypes.DATE]: 'a date written as YYYY-MM-DD',
+                        [FieldTypes.DAY]: 'a date written as YYYY-MM-DD',
+                        [FieldTypes.TIME]: 'a time written as HH:MM (24-hour)',
+                        [FieldTypes.CURRENCY]: "an amount such as 12.50 (in the question's first currency)",
                         [FieldTypes.YES_NO]: 'true or false',
                         [FieldTypes.MULTIPLE_CHOICE]: 'the id of one of its options',
                         [FieldTypes.DROP_DOWN]: 'the id of one of its options'

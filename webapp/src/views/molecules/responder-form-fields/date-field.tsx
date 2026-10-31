@@ -31,7 +31,7 @@ interface IDateField {
 }
 
 /** Date rules see the answers as this question does (an item's scope inside a repeating group). */
-function useDateRuleContext(): DateRuleContext {
+export function useDateRuleContext(): DateRuleContext {
     const { formResponse } = useFormResponse();
     const standardForm = useAppSelector(selectForm);
     const fieldsById = useMemo(() => getInputFieldsById(standardForm?.fields), [standardForm?.fields]);

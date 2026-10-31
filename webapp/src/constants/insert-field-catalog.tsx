@@ -13,7 +13,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { AlignLeft, Calculator, Image as ImageIcon, Repeat, Table2, Type, Video } from 'lucide-react';
+import { AlignLeft, Banknote, Calculator, CalendarDays, Clock, Image as ImageIcon, Repeat, Table2, Type, Video } from 'lucide-react';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
@@ -62,6 +62,9 @@ export const insertCatalog: InsertCatalogItem[] = [
     { type: FieldTypes.RATING, name: 'Rating', description: 'Stars from 1 to 5', category: 'Scale', keywords: ['stars', 'score'], icon: <RatingIcon className={ICON} style={iconStyle} /> },
     { type: FieldTypes.LINEAR_RATING, name: '1-10 Rate', description: 'A score on a 1 to 10 scale', category: 'Scale', keywords: ['scale', 'nps', 'linear', 'score', 'opinion'], icon: <LinearRatingIcon className={ICON} style={iconStyle} /> },
     { type: FieldTypes.DATE, name: 'Date', description: 'A day picked from a calendar', category: 'Date & number', keywords: ['calendar', 'day', 'birthday'], icon: <CalenderIcon className={ICON} style={iconStyle} /> },
+    { type: FieldTypes.DAY, name: 'Day (d-m-y)', description: 'A date typed as day, month and year', category: 'Date & number', keywords: ['date', 'birthday', 'birth', 'dag', 'typed'], icon: <CalendarDays className={ICON} strokeWidth={1.75} style={iconStyle} /> },
+    { type: FieldTypes.TIME, name: 'Time', description: 'A time of day, such as 09:30', category: 'Date & number', keywords: ['clock', 'hour', 'tijd', 'appointment'], icon: <Clock className={ICON} strokeWidth={1.75} style={iconStyle} /> },
+    { type: FieldTypes.CURRENCY, name: 'Amount of money', description: 'An amount with its currency', category: 'Date & number', keywords: ['currency', 'money', 'euro', 'price', 'cost', 'bedrag'], icon: <Banknote className={ICON} strokeWidth={1.75} style={iconStyle} /> },
     { type: FieldTypes.NUMBER, name: 'Number', description: 'A number, such as an amount', category: 'Date & number', keywords: ['amount', 'quantity', 'digits'], icon: <NumberIcon className={ICON} style={iconStyle} /> },
     {
         type: FieldTypes.CALCULATED,

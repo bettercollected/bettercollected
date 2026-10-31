@@ -4,6 +4,7 @@ import re
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
+from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
 from common.ids import RecordId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 from pydantic import (
@@ -279,6 +280,11 @@ class FormBuilderTagTypes(str, enum.Enum):
 class StandardFormFieldType(str, Enum):
     SLIDE = "slide"
     DATE = "date"
+    # A wall-clock time ("HH:MM"), a date entered as three boxes
+    # (day, month, year) and an amount of money with its currency.
+    TIME = "time"
+    DAY = "day"
+    CURRENCY = "currency"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
     MULTIPLE_CHOICE = "multiple_choice"
@@ -366,6 +372,8 @@ class StandardResponseType(str, Enum):
     FILE_URL = "file_url"
     PAYMENT = "payment"
     TABULAR_INPUT = "tabular_input"
+    TIME = "time"
+    CURRENCY = "currency"
     # A repeating group: the answer carries one answers-dict per item in
     # ``StandardFormResponseAnswer.items``.
     GROUP = "group"
@@ -427,6 +435,15 @@ class FileMetadata(BaseModel):
     type: Optional[str] = None
     size: Optional[float] = None
     url: Optional[str] = None
+
+
+class StandardCurrencyAnswer(BaseModel):
+    """The answer of a ``currency`` question: an ISO 4217 ``code`` and the
+    ``amount`` as a plain decimal string ("12.50": digits, an optional
+    leading ``-``, a dot, at most the currency's own number of decimals)."""
+
+    code: Optional[str] = None
+    amount: Optional[str] = None
 
 
 class StandardChoiceAnswer(BaseModel):
@@ -711,6 +728,9 @@ REPEAT_CHILD_FIELD_TYPES = {
     "url",
     "phone_number",
     "date",
+    "day",
+    "time",
+    "currency",
     "yes_no",
     "multiple_choice",
     "dropdown",
@@ -766,6 +786,10 @@ class RepeatSettings(BaseModel):
 
 # At most this many date rules per date question.
 DATE_RULES_MAX = 5
+# Question types that answer with a calendar day (``YYYY-MM-DD`` in the
+# ``date`` slot) and so carry date rules and are compared as dates: a date
+# picked from a calendar, and a day typed as day, month and year.
+DATE_RULE_TYPES = ("date", "day")
 # Length cap of a question's "why we ask this" line (StandardFieldProperty).
 WHY_WE_ASK_MAX_LENGTH = 280
 # Length cap of a page's own section title (StandardFieldProperty).
@@ -1092,6 +1116,27 @@ def is_iso_date(value: Any) -> bool:
     return True
 
 
+def check_type_settings(
+    min_time: Optional[str], max_time: Optional[str], currencies: Optional[List[str]]
+) -> None:
+    """The settings of time and currency questions: limits written as HH:MM
+    with the earliest not after the latest, and a non-empty list of listed
+    currencies without repeats. Raises ``ValueError``."""
+    for value in (min_time, max_time):
+        if value is not None and not is_time(value):
+            raise ValueError("A time limit is written as HH:MM (24-hour).")
+    if min_time is not None and max_time is not None and min_time > max_time:
+        raise ValueError("The earliest time is after the latest time.")
+    if currencies is not None:
+        if not currencies:
+            raise ValueError("A currency question needs at least one currency.")
+        for code in currencies:
+            if not is_currency_code(code):
+                raise ValueError(f"'{code}' is not a currency the form offers.")
+        if len(set(currencies)) != len(currencies):
+            raise ValueError("A currency is listed twice.")
+
+
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
@@ -1125,6 +1170,13 @@ class StandardFieldProperty(BaseModel):
     col_span: Optional[int] = Field(None, ge=1, le=12)
     # Present only on a repeating ``group`` field (see RepeatSettings).
     repeat: Optional[RepeatSettings] = None
+    # ``time`` questions: the earliest and latest time ("HH:MM") that can be
+    # answered (min <= max; an answer on the bound is fine).
+    min_time: Optional[str] = None
+    max_time: Optional[str] = None
+    # ``currency`` questions: the currencies a respondent may pick (ISO 4217
+    # codes, ``common.currencies``); the first is the default.
+    currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
     # Short label shown with the control itself (e.g. "Start date" above a
     # date picker), distinct from the question title. Date questions only
     # for now.
@@ -1165,6 +1217,11 @@ class StandardFieldProperty(BaseModel):
     option_filter: Optional[OptionFilter] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _check_type_settings(self):
+        check_type_settings(self.min_time, self.max_time, self.currencies)
+        return self
 
 
 class StandardFieldValidations(BaseModel):
@@ -1257,7 +1314,7 @@ def check_field_date_rules(field: Any) -> None:
     rules = getattr(properties, "date_rules", None) if properties else None
     if not rules:
         return
-    if _type_value(getattr(field, "type", None)) != StandardFormFieldType.DATE.value:
+    if _type_value(getattr(field, "type", None)) not in DATE_RULE_TYPES:
         raise ValueError("Only date questions can have date rules.")
     field_id = getattr(field, "id", None)
     for rule in rules:
@@ -1314,10 +1371,7 @@ def date_rule_problems(fields: Any) -> List[str]:
         if not rules:
             continue
         title = _question_title(question)
-        if (
-            _type_value(getattr(question, "type", None))
-            != StandardFormFieldType.DATE.value
-        ):
+        if _type_value(getattr(question, "type", None)) not in DATE_RULE_TYPES:
             problems.append(
                 f"'{title}' is not a date question, so it cannot have date rules."
             )
@@ -1339,10 +1393,7 @@ def date_rule_problems(fields: Any) -> List[str]:
                 continue
             ref, ref_group = entry
             ref_title = _question_title(ref)
-            if (
-                _type_value(getattr(ref, "type", None))
-                != StandardFormFieldType.DATE.value
-            ):
+            if _type_value(getattr(ref, "type", None)) not in DATE_RULE_TYPES:
                 problems.append(
                     f"A date rule of '{title}' uses '{ref_title}', which is not a date question."
                 )
@@ -1383,7 +1434,7 @@ def _usable_date_rule_source(question: Any, group: Any, entry: Any) -> bool:
     ref, ref_group = entry
     if ref is question:
         return False
-    if _type_value(getattr(ref, "type", None)) != StandardFormFieldType.DATE.value:
+    if _type_value(getattr(ref, "type", None)) not in DATE_RULE_TYPES:
         return False
     if getattr(ref, "internal", None):
         return False
@@ -1410,10 +1461,7 @@ def prune_date_rules(fields: Any) -> int:
         rules = (getattr(properties, "date_rules", None) if properties else None) or []
         if not rules:
             continue
-        if (
-            _type_value(getattr(question, "type", None))
-            != StandardFormFieldType.DATE.value
-        ):
+        if _type_value(getattr(question, "type", None)) not in DATE_RULE_TYPES:
             kept = []
         else:
             kept = [
@@ -1651,6 +1699,10 @@ class StandardFormResponseAnswer(BaseModel):
     file_url: Optional[str] = None
     payment: Optional[StandardPaymentAnswer] = None
     phone_number: Optional[str] = None
+    # A ``time`` question's answer, "HH:MM" (24-hour); a ``currency``
+    # question's code and amount.
+    time: Optional[str] = None
+    currency: Optional[StandardCurrencyAnswer] = None
     file_metadata: Optional[FileMetadata] = None
     tabular_value: Optional[List[List[str]]] = None
     # Repeating group answer (type ``group``): one answers-dict per item, keyed

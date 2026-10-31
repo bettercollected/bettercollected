@@ -2,6 +2,7 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
+import { currencyExportText } from '@app/utils/currency';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
@@ -37,8 +38,14 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FormBuilderTagNames.INPUT_EMAIL:
             return answer?.email;
         case FieldTypes.DATE:
+        case FieldTypes.DAY:
         case FormBuilderTagNames.INPUT_DATE:
             return answer?.date;
+        case FieldTypes.TIME:
+            return answer?.time;
+        case FieldTypes.CURRENCY:
+            // "EUR 12.50": the code, a space and the dot-decimal amount, the same in every language and in the CSV
+            return currencyExportText(answer?.currency);
         case FieldTypes.YES_NO:
             return answer?.boolean === true ? 'Yes' : answer?.boolean === false ? 'No' : '';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -11,7 +11,19 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { InsertTarget, useInsertTarget } from '@app/store/jotai/insert-target';
 import { store } from '@app/store/store';
 
+import '@app/shared/hocs/i18n-provider';
+import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { builderShortcutFor, isTypingTarget, useBuilderShortcuts } from './use-builder-shortcuts';
+
+// What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, can: () => true }) }));
+// Set to add a time question as a fourth.
+let withTime = false;
+afterEach(() => {
+    served.newQuestionTypesEnabled = false;
+    withTime = false;
+});
 
 const pages = (): StandardFormFieldDto[] => [
     {
@@ -22,7 +34,8 @@ const pages = (): StandardFormFieldDto[] => [
             fields: [
                 { id: 'q-1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name' },
                 { id: 'q-2', index: 1, type: FieldTypes.EMAIL, title: 'Email' },
-                { id: 'q-3', index: 2, type: FieldTypes.SHORT_TEXT, title: 'City' }
+                { id: 'q-3', index: 2, type: FieldTypes.SHORT_TEXT, title: 'City' },
+                ...(withTime ? [{ id: 'q-4', index: 3, type: FieldTypes.TIME, title: 'Arrival' }] : [])
             ]
         }
     } as StandardFormFieldDto,
@@ -59,6 +72,7 @@ function Builder({ select = 'q-2', openHelp }: { select?: string | null; openHel
                 <div contentEditable suppressContentEditableWarning aria-label="Title editor" role="textbox" />
             </div>
             <button type="button">Outside the canvas</button>
+            <Toaster />
         </>
     );
 }
@@ -171,6 +185,24 @@ describe('builder shortcuts on the canvas', () => {
         expect(ids()[1]).toBe('q-2');
         expect(seen.builder!.formFields[0].properties!.fields![2].type).toBe(FieldTypes.EMAIL);
         expect(seen.active?.id).toBe(ids()[2]);
+    });
+
+    it('Ctrl/Cmd+D does not copy a time, day or currency question while the server does not take them, and says so', async () => {
+        withTime = true;
+        renderBuilder('q-4');
+        const canvas = await screen.findByRole('button', { name: 'On the canvas' });
+        await press(canvas, { key: 'd', ctrlKey: true });
+        expect(ids()).toEqual(['q-1', 'q-2', 'q-3', 'q-4']);
+        expect(await screen.findByText(/can't be copied on this server yet/)).toBeInTheDocument();
+    });
+
+    it('Ctrl/Cmd+D copies it once the server takes them', async () => {
+        withTime = true;
+        served.newQuestionTypesEnabled = true;
+        renderBuilder('q-4');
+        const canvas = await screen.findByRole('button', { name: 'On the canvas' });
+        await press(canvas, { key: 'd', ctrlKey: true });
+        expect(ids()).toHaveLength(5);
     });
 
     it('Delete removes it (with the undo message)', async () => {

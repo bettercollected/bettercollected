@@ -37,7 +37,10 @@ import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
+import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
+import DayField from '@app/views/molecules/responder-form-fields/day-field';
+import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FieldRuleAnnouncer from '@app/views/molecules/responder-form-fields/field-rule-announcer';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
@@ -103,6 +106,12 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <RatingField field={field} />;
         case FieldTypes.DATE:
             return <DateField field={field} />;
+        case FieldTypes.DAY:
+            return <DayField field={field} />;
+        case FieldTypes.TIME:
+            return <TimeField field={field} />;
+        case FieldTypes.CURRENCY:
+            return <CurrencyField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
         case FieldTypes.IMAGE_CONTENT:

@@ -3,6 +3,7 @@ import { JSONContent } from '@tiptap/react';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { calculatedAnswerValue, formatCalculatedValue, isCalculatedField } from '@app/utils/calculated-fields';
 import { choiceAnswerText, getComparableAnswerValue } from '@app/utils/conditional-logic';
+import { formatAmount } from '@app/utils/currency';
 import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
 
 /**
@@ -109,6 +110,8 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     // A calculated value is shown as its field formats it.
     if (isCalculatedField(field)) return formatCalculatedValue(calculatedAnswerValue(context.answers?.[pipeKey]), field.properties?.format, context.language) || undefined;
     if (field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.DROP_DOWN) return formatPipeValue(choiceAnswerText(context.answers?.[pipeKey], field));
+    // An amount is shown as people write it in the form's language, with its currency.
+    if (field.type === FieldTypes.CURRENCY) return formatAmount(context.answers?.[pipeKey]?.currency, context.language) || undefined;
     return formatPipeValue(getComparableAnswerValue(context.answers?.[pipeKey], field.type));
 }
 

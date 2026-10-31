@@ -225,6 +225,9 @@ export interface FormField {
   type:
     | (
         | "date"
+        | "time"
+        | "day"
+        | "currency"
         | "short_text"
         | "long_text"
         | "multiple_choice"
@@ -337,7 +340,22 @@ export interface FormField {
    * Short label shown with a date picker.
    */
   label?: string | null;
+  /**
+   * Constraints on a date or day question's answer.
+   */
   dateRules?: DateRule[] | null;
+  /**
+   * A time question: the earliest time that can be answered (HH:MM, 24-hour).
+   */
+  minTime?: string | null;
+  /**
+   * A time question: the latest time that can be answered (HH:MM, 24-hour).
+   */
+  maxTime?: string | null;
+  /**
+   * A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.
+   */
+  currencies?: [string, ...string[]] | null;
   whyWeAsk?: string | null;
   logic?: Logic | null;
   /**

@@ -118,6 +118,14 @@ repaired: `droppedOptionLogic`). Page-level choice questions only. The section s
 option logic is listed read-only. A copy of a question or page starts without option logic (`dropOptionLogic`). The server
 stays authoritative (`hidden_option`).
 
+**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day and currency
+questions) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
+from `useWorkspacePermissions`). While off, the Insert menu and a repeating group's type lists leave those types out,
+and `FieldSettings` shows an existing question's settings read-only (`NEW_TYPES.LOCKED`). `lib/form-ops/new-question-types.ts`
+twins the backend module, and `applyOps` applies it when given `newQuestionTypes: false` (the shared corpus cases with
+`newQuestionTypes: false`); the builder's own edits do not pass it, because the server checks every save and undo must
+be able to put an existing question back. Respondent inputs, the response view and exports never read it.
+
 ## Commands
 
 ```bash

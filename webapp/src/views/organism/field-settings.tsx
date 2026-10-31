@@ -3,17 +3,20 @@
 import { ComponentProps, useId, useState } from 'react';
 
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import globalConstants from '@app/constants/global';
 import { jsonEqual } from '@app/lib/form-ops/model';
+import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { activeFieldAtom, activeSlideAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '@app/store/jotai/entity-hooks';
 import useFormFieldsAtom, { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { answerRuleKind } from '@app/utils/answer-rules';
-import { getDateRuleSources } from '@app/utils/date-rules';
+import { getDateRuleSources, isDateRuleType } from '@app/utils/date-rules';
 import { canBeInternal } from '@app/utils/internal-fields';
 import { WHY_WE_ASK_MAX_LENGTH, asksForIdentity } from '@app/utils/publish-checks';
 import { isRepeatingGroup } from '@app/utils/repeating-groups';
@@ -65,6 +68,10 @@ export default function FieldSettings() {
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
     const baseId = useId();
+    // The newer question types are read-only while the server does not take them (NEW_QUESTION_TYPES_ENABLED):
+    // a question a form already has keeps its settings, and they are shown, not changed.
+    const { t } = useTranslation('builder');
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
     // Another question selected (or the steps changed elsewhere): show its steps.
     const [shownSteps, setShownSteps] = useState(activeField?.properties?.steps);
     if (shownSteps !== activeField?.properties?.steps) {
@@ -92,6 +99,7 @@ export default function FieldSettings() {
         setStepValue(e.target.value);
     };
 
+    const lockedType = GATED_TYPES.has(String(field.type)) && !newQuestionTypesEnabled;
     const typeName = formFieldsList.find((f) => f.type === field.type)?.name ?? field.type?.replaceAll('_', ' ').toLowerCase();
     const title = extractTextfromJSON(field);
     const isChoice = field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.MATRIX;
@@ -164,10 +172,25 @@ export default function FieldSettings() {
                 </InspectorSection>
             )}
 
-            {(ruleKind || field.type === FieldTypes.DATE) && (
+            {(ruleKind || isDateRuleType(field.type)) && (
                 <InspectorSection title="Answer rules">
-                    {ruleKind && <AnswerRulesSettings field={field} onChange={(patch) => updateFieldValidations(field.id, patch)} />}
-                    {field.type === FieldTypes.DATE && <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />}
+                    {lockedType && (
+                        <p className="text-black-600 text-xs" role="note">
+                            {t('NEW_TYPES.LOCKED')}
+                        </p>
+                    )}
+                    <fieldset disabled={lockedType} className={`m-0 flex min-w-0 flex-col gap-3 border-0 p-0 ${lockedType ? 'opacity-70' : ''}`} data-locked={lockedType || undefined}>
+                        {ruleKind && (
+                            <AnswerRulesSettings
+                                field={field}
+                                onChange={(patch) => updateFieldValidations(field.id, patch)}
+                                onPropertyChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))}
+                            />
+                        )}
+                        {isDateRuleType(field.type) && (
+                            <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />
+                        )}
+                    </fieldset>
                 </InspectorSection>
             )}
 

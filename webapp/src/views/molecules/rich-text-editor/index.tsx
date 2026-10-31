@@ -48,6 +48,12 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Rate from 1 to 5';
         case FieldTypes.DATE:
             return 'Select a date';
+        case FieldTypes.DAY:
+            return 'Enter a date';
+        case FieldTypes.TIME:
+            return 'Select a time';
+        case FieldTypes.CURRENCY:
+            return 'Enter an amount';
         case FieldTypes.LINEAR_RATING:
             return 'Rate from 1 to 10';
         case FieldTypes.MATRIX:
@@ -181,7 +187,7 @@ export function RichTextEditor({
                 }
             })
         ],
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
         []
     );
 
