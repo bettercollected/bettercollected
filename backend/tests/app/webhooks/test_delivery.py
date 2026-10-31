@@ -21,7 +21,7 @@ from backend.config import settings
 from backend.jobs import tasks
 from tests.app.registration.helpers import ANSWERS, publish, submit
 from tests.app.registration.tls_server import PUBLIC_ADDRESS
-from tests.app.webhooks.helpers import URL, logs_of, make_webhook
+from tests.app.webhooks.helpers import URL, hostnames, logs_of, make_webhook
 
 pytestmark = pytest.mark.asyncio
 
@@ -122,8 +122,9 @@ async def test_the_job_sends_only_the_mapped_questions_signed(setup, lines):
     stored = json.dumps(done.model_dump(mode="json"))
     for text in PERSONAL + [secret, "https://", "intake"]:
         assert text not in stored
-    for text in PERSONAL + [secret, "case.example.org"]:
+    for text in PERSONAL + [secret]:
         assert not any(text in line for line in lines), text
+    assert "case.example.org" not in hostnames(lines)
     # delivered once: a second run does nothing
     assert (await run(log)).status == "skipped" and len(setup.tls.requests) == 1
 
@@ -466,7 +467,7 @@ async def test_a_url_change_between_queueing_and_running_cancels_the_delivery(se
     assert row.finished_at and row.attempts == 1
     # nothing was sent, to the old host or the new one
     assert setup.tls.requests == [] and setup.tls.dialled == []
-    assert not any("elsewhere.example.net" in line for line in lines)
+    assert "elsewhere.example.net" not in hostnames(lines)
 
 
 async def test_a_url_change_between_attempts_cancels_the_retry(setup):

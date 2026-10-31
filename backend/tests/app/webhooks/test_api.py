@@ -189,7 +189,7 @@ async def test_update_enable_disable_and_delete_are_audited_without_values(works
     assert entries[3].changed == ["url", "fields"]
     assert all(e.actor_id == str(testUser.id) and e.webhook_id == created.id for e in entries)
     stored = json.dumps([e.model_dump(mode="json") for e in entries])
-    for text in ("whsec_", "example.org/x", "hooks/intake", created.secret):
+    for text in ("whsec_", "https://", "hooks/intake", created.secret):
         assert text not in stored
     assert await container.form_webhook_repo().count_for_form(ws, fid) == 0
     assert not any(created.secret in line or "hooks/intake" in line for line in lines)

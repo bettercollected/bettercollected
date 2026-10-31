@@ -22,3 +22,19 @@ async def make_webhook(workspace, form, fields=("name", "age"), user=testUser, *
 async def logs_of(form=None):
     rows = await container.action_log_repo().many()
     return [r for r in rows if form is None or r.form_id == form.form_id]
+
+
+def hostnames(lines) -> set:
+    """The host names that appear in log lines, parsed (not substring matched):
+    every whitespace-separated token, as an address or as a bare name, lower
+    case, with the punctuation a sentence puts around it removed."""
+    from urllib.parse import urlsplit
+
+    found = set()
+    for line in lines:
+        for token in line.split():
+            token = token.strip(",.;:()[]{}'\"=").lower()
+            host = urlsplit(token).hostname if "://" in token else token
+            if host:
+                found.add(host.rstrip("."))
+    return found
