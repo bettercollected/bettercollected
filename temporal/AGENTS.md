@@ -38,10 +38,8 @@ SECURITY DEFINER function of the queue's schema: owner `bc_jobs_def` (NOLOGIN) a
 runs again). `JOBS_BACKEND=temporal` runs the
 workflow below instead.
 
-**Not isolated (open, executor track):** the `exec` that runs creator code is not a sandbox; code in it reaches the
-process's environment (`API_KEY`, `AES_HEX_KEY`, `DATABASE_URL`), can mark an `actions` row `doing`, and `API_KEY` plus
-`AES_HEX_KEY` (when it equals the stack's `AUTH_AES_HEX_KEY`) are enough to forge `X-User-Deletion` for
-`DELETE /auth/user`: the executor must never hold both. Keep form actions off until this is done.
+**Not isolated (open, executor track):** the `exec` that runs creator code is not a sandbox and not a security
+boundary; code in it reaches the process's environment. Keep form actions off until the executor isolation work lands.
 
 ## Tech
 

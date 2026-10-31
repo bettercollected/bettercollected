@@ -331,11 +331,8 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   A failed action run is raised with the action and form ids and the kind of error only,
   and the job's result is a single word instead of the action's log.
 - This narrows what a compromised executor can reach. It does not make form actions safe
-  to enable. The executor still runs creator code in a restricted `exec` that is not a
-  boundary, and it holds the job key and the stack's AES key. Together those two let code
-  in it forge the header that deletes an account, so the executor must never hold both:
-  taking one of them out is part of the executor isolation work. Keep form actions off
-  until that is done.
+  to enable: the executor's sandbox is not a security boundary yet. Keep form actions off
+  until the executor isolation work lands.
 - The "send me a copy" address rule now also refuses an address that holds a format character (bidirectional
   overrides and isolates, zero width characters) or an unassigned code point, so an address cannot render as another
   one in a mail header.
