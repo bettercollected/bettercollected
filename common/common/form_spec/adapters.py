@@ -100,6 +100,28 @@ def _conditions_to_spec(conditions) -> Optional[List[Dict[str, Any]]]:
     ]
 
 
+def _logic_to_spec(logic) -> Optional[Dict[str, Any]]:
+    if logic is None:
+        return None
+    return {
+        "action": logic.action,
+        "operator": logic.operator,
+        "conditions": _conditions_to_spec(logic.conditions),
+    }
+
+
+def _option_filter_to_spec(option_filter) -> Optional[Dict[str, Any]]:
+    if option_filter is None:
+        return None
+    return {
+        "fieldId": option_filter.field_id,
+        "mapping": [
+            {"when": entry.when, "show": list(entry.show)}
+            for entry in option_filter.mapping
+        ],
+    }
+
+
 def _rules_to_spec(rules) -> Optional[List[Dict[str, Any]]]:
     if rules is None:
         return None
@@ -181,6 +203,7 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                             "value": c.value,
                             "label": c.label,
                             "attachment": _attachment_to_spec(c.attachment),
+                            "logic": _logic_to_spec(c.logic),
                         }
                         for c in p.choices
                     ]
@@ -223,6 +246,7 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                     if p.logic is not None
                     else None
                 ),
+                "optionFilter": _option_filter_to_spec(p.option_filter),
                 "rules": _rules_to_spec(p.rules),
                 "repeat": (
                     p.repeat.model_dump(by_alias=True) if p.repeat is not None else None
@@ -410,6 +434,16 @@ def _conditions_from_spec(conditions) -> Optional[List[Dict[str, Any]]]:
     return [c.model_dump() for c in conditions]
 
 
+def _logic_from_spec(logic) -> Optional[Dict[str, Any]]:
+    if logic is None:
+        return None
+    return {
+        "action": logic.action,
+        "operator": logic.operator,
+        "conditions": _conditions_from_spec(logic.conditions),
+    }
+
+
 def _rules_from_spec(rules) -> Optional[List[Dict[str, Any]]]:
     if rules is None:
         return None
@@ -451,6 +485,7 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
                     "value": c.value,
                     "label": c.label,
                     "attachment": _attachment_from_spec(c.attachment),
+                    "logic": _logic_from_spec(c.logic),
                 }
                 for c in field.choices
             ]
@@ -483,6 +518,11 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
                 "conditions": _conditions_from_spec(field.logic.conditions),
             }
             if field.logic is not None
+            else None
+        ),
+        "option_filter": (
+            field.option_filter.model_dump()
+            if field.option_filter is not None
             else None
         ),
         "rules": _rules_from_spec(field.rules),

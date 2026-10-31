@@ -59,22 +59,6 @@ class CalculationFormat(BaseModel):
     )
 
 
-class Choice(BaseModel):
-    """
-    One option of a choice question. Logic conditions compare with
-    ``value``.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    id: str | None = Field(None, title="Id")
-    value: str | None = Field(None, title="Value")
-    label: str | None = Field(None, title="Label")
-    attachment: Attachment | None = None
-
-
 class Condition(BaseModel):
     """
     One condition of a visibility rule or a page jump: the answer of
@@ -258,6 +242,20 @@ class Logo(BaseModel):
     use_workspace_logo: bool | None = Field(
         None, alias="useWorkspaceLogo", title="Useworkspacelogo"
     )
+
+
+class OptionFilterEntry(BaseModel):
+    """
+    While the earlier question's option ``when`` (its id) is chosen, the
+    question offers the options in ``show`` (their ids).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    when: str = Field(..., max_length=200, min_length=1, title="When")
+    show: list[str] | None = Field(None, max_length=2000, title="Show")
 
 
 class SectionTitle(RootModel[str]):
@@ -607,6 +605,26 @@ class WelcomePage(BaseModel):
     button_text: str | None = Field(None, alias="buttonText", title="Buttontext")
 
 
+class Choice(BaseModel):
+    """
+    One option of a choice question. Logic conditions compare with
+    ``value``.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str | None = Field(None, title="Id")
+    value: str | None = Field(None, title="Value")
+    label: str | None = Field(None, title="Label")
+    attachment: Attachment | None = None
+    logic: Logic | None = Field(
+        None,
+        description="Offer this option only (SHOW) or unless (HIDE) its conditions hold, at most 20. The conditions read earlier questions of the form. An answer that selects an option that is not offered is refused.",
+    )
+
+
 class Ending(BaseModel):
     """
     A page shown after submitting. A page jump may choose one by its
@@ -642,6 +660,25 @@ class Ending(BaseModel):
     )
     layout: Layout | None = None
     image_url: str | None = Field(None, alias="imageUrl", title="Imageurl")
+
+
+class OptionFilter(BaseModel):
+    """
+    Filter a choice question's options by an earlier choice question's
+    answer: the options offered are those the chosen options of ``fieldId``
+    map to (the union over a multiple choice's selection). Without an answer
+    to it (or with only "Other" text) nothing is filtered; a chosen option
+    with no entry offers nothing.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_id: str = Field(..., alias="fieldId", min_length=1, title="Fieldid")
+    mapping: list[OptionFilterEntry] | None = Field(
+        None, max_length=2000, title="Mapping"
+    )
 
 
 class Rule(BaseModel):
@@ -912,6 +949,11 @@ class FormField(BaseModel):
     date_rules: DateRules | None = Field(None, alias="dateRules", title="Daterules")
     why_we_ask: WhyWeAsk | None = Field(None, alias="whyWeAsk", title="Whyweask")
     logic: Logic | None = None
+    option_filter: OptionFilter | None = Field(
+        None,
+        alias="optionFilter",
+        description="A choice question's options filtered by an earlier choice question's answer (see OptionFilter).",
+    )
     rules: Rules | None = Field(
         None,
         description="At most 8 rules per question and 100 per form (see Rule).",

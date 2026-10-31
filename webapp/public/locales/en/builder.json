@@ -1020,5 +1020,42 @@
         "enabled": "on or off"
       }
     }
+  },
+  "OPTION_LOGIC": {
+    "TITLE": "Options",
+    "HINT": "Show or hide an option based on an earlier answer.",
+    "NO_SOURCES": "Add a question before this one to show or hide its options based on an earlier answer.",
+    "UNNAMED": "Item {{n}}",
+    "SWITCH": "Show or hide the option “{{option}}” based on answers",
+    "SHOW_WHEN": "Show this option when…",
+    "HIDE_WHEN": "Hide this option when…",
+    "MATCH": "Match",
+    "ALL": "all",
+    "ANY": "any",
+    "OF_THESE": "of these:",
+    "ADD_CONDITION": "+ Add condition",
+    "BADGE": "Conditional",
+    "BADGE_FILTERED": "Filtered",
+    "FILTER_TITLE": "Filter options by an earlier answer",
+    "FILTER_HINT": "Tick the options to offer for each answer to the earlier question. With no answer there, every option is offered.",
+    "FILTER_SOURCE": "Earlier question",
+    "FILTER_NO_SOURCES": "Add a single or multiple choice question before this one to filter its options by it.",
+    "FILTER_TABLE": "Options of “{{question}}” to offer for each answer to “{{source}}”",
+    "FILTER_OPTION": "Option",
+    "FILTER_CELL": "Offer “{{option}}” when “{{source}}” is “{{answer}}”",
+    "FILTER_ANSWER": "When the answer is “{{answer}}”",
+    "WARNING_UNREACHABLE": "“{{option}}” is never offered: no answer to “{{source}}” shows it.",
+    "WARNING_UNMAPPED": "Choosing “{{option}}” in “{{source}}” leaves no option to choose here.",
+    "WARNING_EMPTY": "Some answers leave nothing to choose here. The question is then not required.",
+    "WARNINGS": "Check these",
+    "UNTITLED": "Untitled question",
+    "DISABLED_NOTE": "Option logic cannot be created or changed on this server yet. The logic this question has is still applied to responses.",
+    "WARNING_TOO_MANY": "This question has more than {{max}} options, too many for option logic: remove its option logic or some options, or the form cannot be saved.",
+    "DROPPED_one": "{{count}} piece of option logic no longer fitted the form and was removed.",
+    "DROPPED_other": "{{count}} pieces of option logic no longer fitted the form and were removed.",
+    "DISABLED": "Option logic cannot be saved: it is switched off on this server. Option logic already saved is kept.",
+    "REMOVE_LIST": "Remove option logic",
+    "REMOVE_OPTION": "Remove the logic of “{{option}}”",
+    "REMOVE_FILTER": "Remove the filter"
   }
 }

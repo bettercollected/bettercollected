@@ -33,4 +33,15 @@ export interface IGetAllSubmissionsQuery {
 
 export interface IGetFormSubmissionsQuery extends IGetAllSubmissionsQuery {
     formId: string;
+    /** Keyset paging with filters and sort: see the responses list endpoint (utils/response-list-state.ts). */
+    paging?: 'keyset';
+    sort_by?: 'created_at' | 'form_version';
+    sort_order?: 'ASCENDING' | 'DESCENDING';
+    /** UTC instants: from inclusive, to exclusive. */
+    submittedFrom?: string;
+    submittedTo?: string;
+    status?: 'none' | 'pending' | 'declined';
+    respondent?: 'anonymous' | 'known';
+    formVersion?: number;
+    cursor?: string;
 }

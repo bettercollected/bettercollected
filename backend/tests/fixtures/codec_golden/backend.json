@@ -2983,7 +2983,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:2136b2371308d31f35b7f98a65a8e6ecbf440e35442d73da6b25c3ac4a8e96ea",
+  "checksum": "sha256:4f1cc53f33bc1ce1b1150f9d993535fb4083717901224da56def3e9cb3c26988",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3036,6 +3036,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3108,6 +3109,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3258,7 +3260,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:0b3b195d9c12b3efcc2a955771d4b8e7c4b21e06effbac7546e465a74c13335b",
+  "checksum": "sha256:35120c1c8f71b0c1f32fedd307ea34f8ed8a1542d822a7595b524ebc4cb057dc",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3311,6 +3313,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3383,6 +3386,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3528,7 +3532,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:ff21645e9099b59c0cd104c1a5ae9b479ea170afff2cd181c0d6bd6c064bfd49",
+  "checksum": "sha256:d2e8b3f74bf426d512d238dbb06d26700518962ae5b89fe175598ea27b41b1ee",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3617,6 +3621,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3689,6 +3694,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4066,7 +4072,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:460ab3a8c93e6833f0e55366a30bf8a6d93469223e8d27a1e9f7d1af1ad25b56",
+  "checksum": "sha256:8e2b8f3cfd5df9f94f40e8c3103ed2ff71f1b811840972debf3af4a7c5f4d789",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4155,6 +4161,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4227,6 +4234,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4585,7 +4593,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:20f4b8e0cdf722bfee32797049b1445893a81e5deff35d021f52420c26bf7da7",
+  "checksum": "sha256:0233ece10612accee68b3ce3d141dd55f57de87f0e6b7297055503a52e61a953",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4674,6 +4682,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4746,6 +4755,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5121,7 +5131,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:de2dace9f7f41db8052c0c7ecc0b978f54019f028f1a3d64a5e993921f05faa2",
+  "checksum": "sha256:b5ae09c711729248cafd9701eb8fae1f1a23d7072b37584853a74893c81fa8b8",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5210,6 +5220,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5282,6 +5293,7 @@
       "logic": null,
       "logicalOperator": null,
       "mentions": null,
+      "optionFilter": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,

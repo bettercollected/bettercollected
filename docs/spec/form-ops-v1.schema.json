@@ -2350,6 +2350,96 @@
       "title": "NewFieldSpec",
       "type": "object"
     },
+    "OptionFilter": {
+      "description": "Filters a choice question's options by an earlier choice question's\nanswer (``properties.option_filter``): the options offered are those the\nchosen options of question ``field_id`` map to (the union over a multiple\nchoice's selection). Without an answer to that question (or with only\n\"Other\" text) nothing is filtered; a chosen option with no row offers\nnothing. Enforced by the server (backend services/option_logic.py).",
+      "properties": {
+        "fieldId": {
+          "minLength": 1,
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "mapping": {
+          "items": {
+            "$ref": "#/$defs/OptionFilterEntry"
+          },
+          "maxItems": 2000,
+          "title": "Mapping",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "OptionFilter",
+      "type": "object"
+    },
+    "OptionFilterEntry": {
+      "description": "One row of an option filter: while the earlier question's option\n``when`` (its id) is chosen, the question offers the options in ``show``\n(their ids).",
+      "properties": {
+        "when": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "When",
+          "type": "string"
+        },
+        "show": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2000,
+          "title": "Show",
+          "type": "array"
+        }
+      },
+      "required": [
+        "when"
+      ],
+      "title": "OptionFilterEntry",
+      "type": "object"
+    },
+    "OptionFilterRowSpec": {
+      "description": "While the earlier question's option ``when`` (label or id) is chosen,\noffer the options ``show`` (labels or ids).",
+      "properties": {
+        "when": {
+          "title": "When",
+          "type": "string"
+        },
+        "show": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Show",
+          "type": "array"
+        }
+      },
+      "required": [
+        "when"
+      ],
+      "title": "OptionFilterRowSpec",
+      "type": "object"
+    },
+    "OptionFilterSpec": {
+      "properties": {
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "mapping": {
+          "items": {
+            "$ref": "#/$defs/OptionFilterRowSpec"
+          },
+          "minItems": 1,
+          "title": "Mapping",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fieldId",
+        "mapping"
+      ],
+      "title": "OptionFilterSpec",
+      "type": "object"
+    },
     "PageJump": {
       "description": "v2 page-jump / branching rule stored on a slide at ``properties.jumps``.\n``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same\nrationale as :class:`FieldLogic`.\n\n``ending_id`` (only with ``__SUBMIT__``): the ending shown after the\nsubmission; without it, or when that ending is gone, the form's default\nending. Kept beside the target rather than in it, so a reader that does\nnot know endings still sees \"submit\" and ends the path there.",
       "properties": {
@@ -3229,6 +3319,73 @@
       "type": "object",
       "x-editorOnly": true
     },
+    "SetOptionFilterOp": {
+      "description": "Filter a choice question's options by an earlier choice question's\nanswer (\"only the cities of the chosen country\"): ``filter.fieldId`` is\nthat earlier question and each ``mapping`` row says which of this\nquestion's options to offer while one of its options is chosen (the\nunion over a multiple choice's selection; with no answer there, nothing\nis filtered). ``filter: null`` clears it.",
+      "properties": {
+        "op": {
+          "const": "set_option_filter",
+          "default": "set_option_filter",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionFilterSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "SetOptionFilterOp",
+      "type": "object"
+    },
+    "SetOptionLogicOp": {
+      "description": "Choice-level logic: offer one option of a choice question only (SHOW)\nor unless (HIDE) earlier answers match (\"show 'Other country' only when\nthe country is not the Netherlands\"). ``choice`` is the option's label\n(or id); conditions are written as in ``set_field_logic`` and read an\n**earlier** question of the form. ``logic: null`` clears it. An answer\nthat selects an option that is not offered is refused.",
+      "properties": {
+        "op": {
+          "const": "set_option_logic",
+          "default": "set_option_logic",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "choice": {
+          "title": "Choice",
+          "type": "string"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogicSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "fieldId",
+        "choice"
+      ],
+      "title": "SetOptionLogicOp",
+      "type": "object"
+    },
     "SetPageJumpsOp": {
       "description": "Branching: after this page, jump to a target page (or submit) when the\nconditions match; first matching jump wins, no match = next page.\n``jumps: null`` clears.",
       "properties": {
@@ -3459,6 +3616,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/StandardFieldAttachment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogic"
             },
             {
               "type": "null"
@@ -4041,6 +4209,17 @@
           ],
           "default": null,
           "title": "Rules"
+        },
+        "optionFilter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionFilter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "StandardFieldProperty",
@@ -4552,6 +4731,17 @@
           ],
           "default": null,
           "title": "Rules"
+        },
+        "optionFilter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionFilter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "StandardFieldPropertyCamelModel",
@@ -5780,6 +5970,8 @@
             "set_field_validation": "#/$defs/SetFieldValidationOp",
             "set_form_language": "#/$defs/SetFormLanguageOp",
             "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
+            "set_option_filter": "#/$defs/SetOptionFilterOp",
+            "set_option_logic": "#/$defs/SetOptionLogicOp",
             "set_page_jumps": "#/$defs/SetPageJumpsOp",
             "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
             "set_section_title": "#/$defs/SetSectionTitleOp",
@@ -5825,6 +6017,12 @@
           },
           {
             "$ref": "#/$defs/SetFieldLogicOp"
+          },
+          {
+            "$ref": "#/$defs/SetOptionLogicOp"
+          },
+          {
+            "$ref": "#/$defs/SetOptionFilterOp"
           },
           {
             "$ref": "#/$defs/SetFieldRulesOp"

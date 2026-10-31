@@ -11,11 +11,14 @@ import pytest
 from common.ids import RecordId
 from sqlalchemy import select
 
+import backend
 from backend.app.container import container
+from backend.db.base import SCHEMA
 from backend.db.groups import COLLECTION_GROUPS, GROUPS
 from backend.db.models import AllowedOriginRow, MigrationProgress, MirrorWriteFailure
 from backend.migrate.__main__ import _tables
 from common.db.marker import SCOPE_GROUP, SCOPE_SERVICE, migration_verified
+from common.db.schema_guard import MigrationTarget
 from common.db.migrate import Runner
 from common.db.migrate.cli import (
     build_parser,
@@ -115,7 +118,9 @@ async def test_backfill_never_writes_and_a_clean_full_verify_writes_the_marker(t
     # the Postgres-only groups are imported, never verified: not in the marker
     assert set(marker.collections) == set(_tables()) - POSTGRES_ONLY_COLLECTIONS
     assert list(marker.groups) == MIGRATING
-    assert "+schema.0024" in marker.code_version
+    # the schema head this code carries, whichever migration is newest
+    heads, _ = MigrationTarget.for_package(backend, SCHEMA).code_revisions()
+    assert heads and f"+schema.{'.'.join(heads)}" in marker.code_version
     assert marker.run_id == runner.run_id
     rows = await marker_rows()
     assert sorted(r["scope"] for r in rows) == [SCOPE_GROUP] * len(MIGRATING) + [

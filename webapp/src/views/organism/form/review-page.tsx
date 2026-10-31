@@ -6,6 +6,7 @@ import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
 import { statesFor } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { useOptionStates } from '@app/lib/hooks/use-option-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
@@ -62,6 +63,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const corner = leaflet ? '4px' : '8px';
     const serif = leaflet ? { fontFamily: leafletSerif.style.fontFamily } : undefined;
 
+    const optionStates = useOptionStates();
     const path = useMemo(() => pathPages(responderState.history), [responderState.history]);
     const { sections, alsoSent } = useMemo(() => {
         const answers = formResponse.answers ?? {};
@@ -79,7 +81,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const goFix = (slideIndex: number, key?: string) => {
         const answers = formResponse.answers ?? {};
         const states = statesFor(standardForm?.fields, answers, hiddenValues, standardForm?.hiddenFields, [...path, responderState.currentSlide]);
-        const invalid = pageInvalidations(standardForm?.fields?.[slideIndex], standardForm?.fields, answers, states);
+        const invalid = pageInvalidations(standardForm?.fields?.[slideIndex], standardForm?.fields, answers, states, undefined, optionStates);
         editFromReview(slideIndex);
         setInvalidFields(invalid);
         const target = key ?? Object.keys(invalid)[0];

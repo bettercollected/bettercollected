@@ -326,6 +326,7 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "hidden_from_respondents",
         "unanswered_as_zero",
         "rules",
+        "option_filter",
     }
     assert (
         set(StandardFieldProperty.model_fields)

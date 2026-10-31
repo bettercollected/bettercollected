@@ -7,6 +7,7 @@ import { FormTheme } from '@app/constants/theme';
 import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
 import { statesFor, useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { useClearUnavailableOptions, useOptionStates } from '@app/lib/hooks/use-option-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
@@ -145,6 +146,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);
     // What the rules decide now: effective Required, locked questions.
     const ruleStates = useFieldRuleStates();
+    // Options the form's option logic no longer offers are cleared from the
+    // answers (the question says so), and a question with nothing to choose
+    // is not required.
+    useClearUnavailableOptions(standardForm?.fields);
+    const optionStates = useOptionStates();
     const workspace = useAppSelector(selectWorkspace);
     const authState = useAppSelector(selectAuth);
     // Sending the form (here on the last page, or from the review page), and what shows when it fails.
@@ -201,7 +207,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // This page is complete, or says what is not (focus goes to the first question with a problem).
     const pageIsComplete = (): boolean => {
         setSubmitError(false);
-        const invalidations = pageInvalidations(formSlide, standardForm?.fields, formResponse.answers || {}, ruleStates, logicSources);
+        const invalidations = pageInvalidations(formSlide, standardForm?.fields, formResponse.answers || {}, ruleStates, logicSources, optionStates);
         setInvalidFields(invalidations);
         if (Object.keys(invalidations).length === 0) return true;
         // Every key is the id of the element to bring into view; questions
@@ -230,7 +236,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         else {
             // a page after this one is not complete any more: there, with what it lacks marked
             continueFrom(walk.path, walk.page);
-            setInvalidFields(pageInvalidations(standardForm?.fields?.[walk.page], standardForm?.fields, answers, states, logicSources));
+            setInvalidFields(pageInvalidations(standardForm?.fields?.[walk.page], standardForm?.fields, answers, states, logicSources, optionStates));
         }
     };
 
