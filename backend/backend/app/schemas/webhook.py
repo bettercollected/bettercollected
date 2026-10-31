@@ -98,6 +98,10 @@ class ActionLogDocument(Record):
     # email actions only: ``team`` (the staff addresses) or ``respondent`` (the
     # copy to the address the respondent gave); never an address
     channel: Optional[str] = None
+    # respondent copies only: the **account** (an id, never an address) whose
+    # verified email the copy goes to, resolved when it is sent; None for
+    # anything else and for an anonymised submission
+    account_id: Optional[str] = None
     # the host this delivery was queued for (the one the respondent was shown):
     # a run whose webhook points to another host by then is cancelled
     host: Optional[str] = None

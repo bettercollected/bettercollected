@@ -25,7 +25,7 @@
         "DRAFTS_DETAIL_other": "If you save and continue later, your draft is kept encrypted for {{count}} days after your last save, and deleted within a day after that. The form owner cannot see it until you submit. If you ask for a link, your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.",
         "EMAIL": "Also emailed to",
         "EMAIL_TEAM": "Your answers are also emailed to the form's team.",
-        "EMAIL_COPY": "A copy to you: a copy of your answers is emailed to the address you enter.",
+        "EMAIL_COPY": "A copy to you: if you are signed in, a copy of your answers is emailed to the email address of your account. If you are not signed in, or you submit anonymously, you get no copy.",
         "EMAIL_NO_DELETION": "Deleting your answers here does not delete the emails already sent. Contact the form's team to have them deleted.",
         "STRIP_AI_USED": "Answers may be analysed by AI ({{provider}}).",
         "STRIP_AI_USED_NO_PROVIDER": "Answers may be analysed by AI.",

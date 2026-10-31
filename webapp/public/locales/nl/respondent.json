@@ -25,7 +25,7 @@
         "DRAFTS_DETAIL_other": "Als je opslaat en later verdergaat, wordt je concept {{count}} dagen na je laatste keer opslaan versleuteld bewaard en daarna binnen een dag verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt. Vraag je een link aan, dan wordt je e-mailadres niet bij het concept bewaard: het wordt gebruikt om het bericht te versturen, dat de mailservice die het bezorgt afhandelt.",
         "EMAIL": "Ook gemaild naar",
         "EMAIL_TEAM": "Je antwoorden worden ook gemaild naar het team achter dit formulier.",
-        "EMAIL_COPY": "Een kopie voor jou: een kopie van je antwoorden wordt gemaild naar het adres dat je invult.",
+        "EMAIL_COPY": "Een kopie voor jou: als je bent ingelogd, wordt een kopie van je antwoorden gemaild naar het e-mailadres van je account. Als je niet bent ingelogd, of anoniem indient, krijg je geen kopie.",
         "EMAIL_NO_DELETION": "Als je je antwoorden hier verwijdert, worden de al verstuurde e-mails niet verwijderd. Neem contact op met het team achter dit formulier om ze te laten verwijderen.",
         "STRIP_AI_USED": "Antwoorden kunnen door AI ({{provider}}) worden geanalyseerd.",
         "STRIP_AI_USED_NO_PROVIDER": "Antwoorden kunnen door AI worden geanalyseerd.",

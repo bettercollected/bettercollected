@@ -128,7 +128,10 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.utils import AiohttpClient
 from backend.app.utils.respondent_identity import identity_of
 from backend.app.models.enum.permission import Permission
-from backend.app.services.copy_recipient import CREATOR_COPY_ACTION
+from backend.app.services.copy_recipient import (
+    CREATOR_COPY_ACTION,
+    verified_account_id_of,
+)
 from backend.config import settings
 
 crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
@@ -1457,6 +1460,11 @@ class WorkspaceFormService:
                 response_id=str(form_response.response_id),
                 form=latest_version_of_form,
                 answers=form_response.answers,
+                # the copy goes only to the verified account email of a signed-in
+                # respondent who did not submit anonymously
+                verified_account_id=verified_account_id_of(
+                    user, anonymous=bool(getattr(response, "anonymize", False))
+                ),
             )
         return form_response
 

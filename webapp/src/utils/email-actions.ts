@@ -17,7 +17,6 @@ export const ERROR_CODES = [
     'recipient_not_allowed',
     'too_many_recipients',
     'no_recipient',
-    'invalid_respondent_field',
     'unknown_placeholder',
     'invalid_placeholder',
     'template_missing',
@@ -47,6 +46,8 @@ export const DELIVERY_ERROR_CODES = [
     'tls_error',
     'invalid_message',
     'address_not_supported',
+    'not_verified',
+    'account_gone',
     'mail_not_configured',
     'answers_unreadable',
     'recipient_not_allowed',
@@ -63,7 +64,7 @@ const isKnown = (list: readonly string[], code: unknown): code is string => type
 export const errorKey = (code: unknown) => `EMAIL_ACTIONS.ERROR.${isKnown(ERROR_CODES, code) ? code : 'unknown'}`;
 export const deliveryErrorKey = (code?: string | null) => `EMAIL_ACTIONS.DELIVERIES.ERROR.${isKnown(DELIVERY_ERROR_CODES, code) ? code : 'unknown'}`;
 
-export type EditorField = 'name' | 'recipients' | 'respondent' | 'templates' | 'fields' | 'condition';
+export type EditorField = 'name' | 'recipients' | 'templates' | 'fields' | 'condition';
 
 /** Which part of the editor a refusal belongs to (so it sits next to it), or null for the form as a whole. */
 export function errorField(code: string): EditorField | null {
@@ -75,8 +76,6 @@ export function errorField(code: string): EditorField | null {
         case 'too_many_recipients':
         case 'no_recipient':
             return 'recipients';
-        case 'invalid_respondent_field':
-            return 'respondent';
         case 'unknown_placeholder':
         case 'invalid_placeholder':
         case 'template_missing':

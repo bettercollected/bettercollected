@@ -18,7 +18,8 @@ from backend.config import settings
 from tests.app.controllers.data import testUser, testUser1
 from tests.app.controllers.test_permission_matrix import _cookies
 from tests.app.email_actions.helpers import EN, NL, OWNER, logs_of, make_action
-from tests.app.registration.helpers import publish, submit
+from tests.app.email_actions.helpers import submit_as_owner_of_the_address as submit
+from tests.app.registration.helpers import publish
 
 pytestmark = pytest.mark.asyncio
 
@@ -80,13 +81,13 @@ async def test_at_most_five_team_addresses_and_five_actions(workspace):
     assert code_of(await refused(make_action(workspace, form))) == "too_many_actions"
 
 
-async def test_a_recipient_is_required_and_the_respondent_question_must_be_an_email_one(workspace):
+async def test_a_recipient_is_required_a_team_address_or_the_copy_to_signed_in_respondents(workspace):
     form = await publish(workspace)
     assert code_of(await refused(make_action(workspace, form, team=[]))) == "no_recipient"
-    for source in ("name", "nope", "people"):
-        assert code_of(await refused(make_action(workspace, form, team=[], respondent=source))) == "invalid_respondent_field"
-    ok = await make_action(workspace, form, team=[], respondent="mail")
-    assert ok.respondent_field == "mail" and ok.team_recipients == []
+    ok = await make_action(workspace, form, team=[], respondent=True)
+    # the copy has no question and no address: it goes to the signed-in respondent's own account email
+    assert ok.respondent_copy is True and ok.team_recipients == []
+    assert "respondent_field" not in ok.model_dump() and "respondentField" not in ok.model_dump(by_alias=True)
 
 
 @pytest.mark.parametrize(
@@ -136,11 +137,11 @@ async def test_an_update_checks_the_whole_action_again(workspace):
     error = await refused(service().update_action(
         workspace.id, form.form_id, created.id, EmailActionUpdateDto(fields=[]), testUser))
     assert code_of(error) == "unknown_placeholder"
-    # an explicit null removes the respondent question
-    withcopy = await make_action(workspace, form, respondent="mail")
+    # the copy can be turned off, and an action keeps its team
+    withcopy = await make_action(workspace, form, respondent=True)
     updated = await service().update_action(
-        workspace.id, form.form_id, withcopy.id, EmailActionUpdateDto(respondent_field=None), testUser)
-    assert updated.respondent_field is None
+        workspace.id, form.form_id, withcopy.id, EmailActionUpdateDto(respondent_copy=False), testUser)
+    assert updated.respondent_copy is False
     # nothing changed: unchanged
     same = await service().update_action(
         workspace.id, form.form_id, created.id, EmailActionUpdateDto(name="Notify the team"), testUser)
