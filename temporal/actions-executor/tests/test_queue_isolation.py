@@ -37,4 +37,12 @@ def test_the_check_asks_only_the_catalog_and_changes_nothing():
     sql = re.sub(r"'[^']*'", "''", queue_isolation.ISOLATION_SQL).upper()
     assert sql.lstrip().startswith("SELECT")
     for word in ("INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"):
-        assert word not in sql
+        assert not re.search(rf"\b{word}\b", sql), word
+
+
+def test_the_check_names_the_definer_role_and_its_search_path():
+    sql = queue_isolation.isolation_sql("bc_other_def")
+    assert "'bc_other_def'" in sql
+    # pg_temp last: the temporary schema is searched first otherwise
+    assert queue_isolation.DEFINER_SEARCH_PATH.endswith("pg_temp")
+    assert queue_isolation.DEFINER_SEARCH_PATH in sql

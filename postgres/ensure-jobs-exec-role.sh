@@ -53,6 +53,7 @@ SELECT count(set_config('bc.jobs_exec_pw', :'jobs_pw', false)) \gset
 DO $do$
 DECLARE
     owner_name text;
+    owner_seq text;
     s text;
 BEGIN
     IF NOT (SELECT rolsuper FROM pg_catalog.pg_roles WHERE rolname = current_user) THEN
@@ -95,18 +96,49 @@ BEGIN
 
     -- except what only procrastinate's own triggers may write: the events and the
     -- periodic defers (the second would let the role suppress periodic jobs). The
-    -- triggers write them as the table's owner for it (SECURITY DEFINER), the same
-    -- as backend.jobs.schema asserts.
+    -- triggers write them for it as SECURITY DEFINER functions of a role of their
+    -- own, bc_jobs_def: it cannot log in and holds only what the triggers need.
+    -- Their search_path ends in pg_temp: without it the session's temporary schema
+    -- is searched first, and the role (it may create temp tables) could shadow
+    -- procrastinate_events with one of its own and have a trigger of its own run as
+    -- the functions' owner. Same as backend.jobs.schema asserts.
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'bc_jobs_def') THEN
+        CREATE ROLE bc_jobs_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+    END IF;
+    ALTER ROLE bc_jobs_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE bc_jobs_def SET search_path = pg_catalog;
+    GRANT USAGE ON SCHEMA jobs TO bc_jobs_def;
+    GRANT SELECT, INSERT ON jobs.procrastinate_events TO bc_jobs_def;
+    GRANT SELECT, UPDATE ON jobs.procrastinate_periodic_defers TO bc_jobs_def;
+    owner_seq := pg_catalog.pg_get_serial_sequence('jobs.procrastinate_events', 'id');
+    IF owner_seq IS NOT NULL THEN
+        EXECUTE 'GRANT USAGE ON SEQUENCE ' || owner_seq || ' TO bc_jobs_def';
+    END IF;
+    -- the roles that own the queue's objects (the backend's) hand functions to it
+    -- in backend.jobs.schema, which needs their membership
+    FOR owner_name IN
+        SELECT DISTINCT pg_catalog.pg_get_userbyid(o) FROM (
+            SELECT n.nspowner AS o FROM pg_catalog.pg_namespace n WHERE n.nspname = 'jobs'
+            UNION SELECT c.relowner FROM pg_catalog.pg_class c
+                   JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'jobs'
+        ) owners
+        WHERE NOT (SELECT rolsuper FROM pg_catalog.pg_roles WHERE oid = owners.o)
+    LOOP
+        EXECUTE 'GRANT bc_jobs_def TO ' || quote_ident(owner_name);
+    END LOOP;
     FOR s IN
-        SELECT p.proname FROM pg_catalog.pg_proc p
+        SELECT p.oid::regprocedure::text FROM pg_catalog.pg_proc p
           JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
          WHERE n.nspname = 'jobs'
-           AND (starts_with(p.proname, 'procrastinate_trigger_function_')
+           AND (starts_with(p.proname, 'procrastinate_trigger_')
                 OR p.proname = 'procrastinate_unlink_periodic_defers_v1')
     LOOP
-        EXECUTE 'ALTER FUNCTION jobs.' || quote_ident(s) || '() SECURITY DEFINER SET search_path = jobs, pg_catalog';
+        EXECUTE 'ALTER FUNCTION ' || s || ' OWNER TO bc_jobs_def';
+        EXECUTE 'ALTER FUNCTION ' || s || ' SECURITY DEFINER SET search_path = jobs, pg_catalog, pg_temp';
     END LOOP;
     REVOKE ALL ON jobs.procrastinate_events, jobs.procrastinate_periodic_defers FROM bc_jobs_exec;
+    -- nothing the executor does needs temporary tables
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM bc_jobs_exec', current_database());
 
     -- and those a later procrastinate migration creates, for every role that owns objects in `jobs`
     FOR owner_name IN

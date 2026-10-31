@@ -32,7 +32,10 @@ the run no longer applies or is over a day old, skipped). Three runs at most (wa
 90 s; a failure names ids and the error's class, never its message (it can hold an answer); the job's result is one
 word; `utilities/job_logging.py` keeps job arguments out of procrastinate's log lines. Jobs queued by 4.1.x with the
 whole run in them are still run once (and `python -m backend.jobs.schema` scrubs them). Tests:
-`tests/test_run_job.py`, `tests/test_queue_isolation.py`, `tests/test_job_logging.py`. `JOBS_BACKEND=temporal` runs the
+`tests/test_run_job.py`, `tests/test_queue_isolation.py`, `tests/test_job_logging.py`. The start check also verifies each
+SECURITY DEFINER function of the queue's schema: owner `bc_jobs_def` (NOLOGIN) and `search_path` ending in `pg_temp`
+(procrastinate's `CREATE OR REPLACE FUNCTION` resets both: the check fails closed until `python -m backend.jobs.schema`
+runs again). `JOBS_BACKEND=temporal` runs the
 workflow below instead.
 
 **Not isolated (open, executor track):** the `exec` that runs creator code is not a sandbox; code in it reaches the

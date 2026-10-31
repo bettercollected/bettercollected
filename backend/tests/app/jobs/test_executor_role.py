@@ -67,6 +67,16 @@ class Db:
     def exec_role(self):
         return f"bc_jobs_exec_{self.suffix}"
 
+    @property
+    def definer_role(self):
+        return f"bc_jobs_def_{self.suffix}"
+
+    async def ensure(self):
+        """The backend's schema step, with this database's role names."""
+        await ensure_schema(
+            self.queue_app("app"), role=self.exec_role, definer=self.definer_role
+        )
+
     def queue_app(self, role):
         return App(connector=build_connector(self.url(role)))
 
@@ -90,17 +100,20 @@ async def db():
             _with_database(admin, name),
             "CREATE TABLE app.canary (v text); CREATE TABLE auth.canary (v text);"
             " CREATE TABLE google.canary (v text); CREATE TABLE public.canary (v text);"
-            " INSERT INTO app.canary VALUES ('an answer');",
+            " INSERT INTO app.canary VALUES ('an answer');"
+            # the backend's role reads application data; that is what the trigger
+            # functions' owner must never be
+            f' GRANT SELECT ON app.canary TO "bc_app_{suffix}";',
         )
         database = Db(admin, name, suffix, passwords)
-        await ensure_schema(database.queue_app("app"), role=database.exec_role)
+        await database.ensure()
         yield database
     finally:
         await _execute(
             _with_database(admin, "postgres"),
             f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)',
         )
-        for role in ROLES:
+        for role in (*ROLES, "jobs_def"):
             await _execute(
                 _with_database(admin, "postgres"),
                 f'DROP ROLE IF EXISTS "bc_{role}_{suffix}"',
@@ -391,9 +404,9 @@ async def test_every_other_role_sees_the_whole_queue_as_before(db):
 
 
 async def test_the_restriction_is_asserted_again_and_only_for_an_existing_role(db):
-    sql = isolate_executor_sql(db.exec_role)
+    sql = isolate_executor_sql(db.exec_role, db.definer_role)
     assert EXECUTOR_POLICY in sql and OPEN_POLICY in sql
-    await ensure_schema(db.queue_app("app"), role=db.exec_role)  # idempotent
+    await db.ensure()  # idempotent
     await ensure_schema(db.queue_app("app"), role="bc_jobs_exec_never_created")
     with pytest.raises(ValueError):
         isolate_executor_sql("x'; DROP TABLE y; --")
@@ -412,10 +425,11 @@ async def test_the_restriction_is_asserted_again_and_only_for_an_existing_role(d
 
 async def test_the_executors_startup_check_follows_the_policy(db):
     guard = _executor_guard()
+    isolation_sql = guard.isolation_sql(db.definer_role)
     assert guard.POLICY == EXECUTOR_POLICY  # the two sides name the same policy
     exec_conn = await db.connect("jobs_exec")
     try:
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             True,
         )
         # a stale or hand-made policy of the same name fails it, whatever its name
@@ -431,18 +445,18 @@ async def test_the_executors_startup_check_follows_the_policy(db):
         ):
             await owner.execute(f"DROP POLICY {EXECUTOR_POLICY} ON jobs.procrastinate_jobs")
             await owner.execute(statement)
-            assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+            assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
                 False,
             ), statement
-        await ensure_schema(db.queue_app("app"), role=db.exec_role)  # the real one
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        await db.ensure()  # the real one
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             True,
         )
         # a grant on the events table, or a trigger that runs as the role, fails it
         await owner.execute(
             f"GRANT INSERT ON jobs.procrastinate_events TO {db.exec_role}"
         )
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             False,
         )
         await owner.execute(
@@ -452,12 +466,27 @@ async def test_the_executors_startup_check_follows_the_policy(db):
             "ALTER FUNCTION jobs.procrastinate_trigger_function_status_events_insert_v1()"
             " SECURITY INVOKER"
         )
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             False,
         )
+        fn = "jobs.procrastinate_trigger_function_status_events_insert_v1()"
+        # no pg_temp at the end of the path, or an owner that is not the definer role
+        await owner.execute(
+            f"ALTER FUNCTION {fn} SECURITY DEFINER SET search_path = jobs, pg_catalog"
+        )
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (False,)
+        await owner.execute(
+            f"ALTER FUNCTION {fn} SET search_path = pg_temp, jobs, pg_catalog"
+        )
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (False,)
+        await owner.execute(
+            f"ALTER FUNCTION {fn} SET search_path = jobs, pg_catalog, pg_temp"
+        )
+        await owner.execute(f'ALTER FUNCTION {fn} OWNER TO "bc_app_{db.suffix}"')
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (False,)
         await owner.close()
-        await ensure_schema(db.queue_app("app"), role=db.exec_role)  # repaired
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        await db.ensure()  # repaired
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             True,
         )
         owner = await db.connect("app")
@@ -467,7 +496,7 @@ async def test_the_executors_startup_check_follows_the_policy(db):
             )
         finally:
             await owner.close()
-        assert await (await exec_conn.execute(guard.ISOLATION_SQL)).fetchone() == (
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             False,
         )
     finally:
@@ -539,3 +568,130 @@ async def test_the_purge_deletes_only_old_finished_actions_rows(db):
 
     remaining = {row[0] for row in await _as_backend(db, "SELECT id FROM jobs.procrastinate_jobs")}
     assert remaining == set(kept), (remaining, gone, kept)
+
+
+TRIGGER_FUNCTIONS = (
+    "procrastinate_trigger_function_status_events_insert_v1",
+    "procrastinate_trigger_function_status_events_update_v1",
+    "procrastinate_trigger_function_scheduled_events_v1",
+    "procrastinate_trigger_abort_requested_events_procedure_v1",
+    "procrastinate_unlink_periodic_defers_v1",
+)
+
+
+async def _definer_functions(db):
+    return await _as_backend(
+        db,
+        "SELECT p.proname, p.prosecdef, p.proconfig, pg_get_userbyid(p.proowner)::text"
+        " FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
+        " WHERE n.nspname = 'jobs' AND (p.proname LIKE 'procrastinate\\_trigger\\_%%'"
+        " OR p.proname = 'procrastinate_unlink_periodic_defers_v1') ORDER BY 1",
+    )
+
+
+async def test_the_trigger_functions_belong_to_the_definer_role_and_end_in_pg_temp(db):
+    rows = await _definer_functions(db)
+    assert {row[0] for row in rows} == set(TRIGGER_FUNCTIONS)
+    for name, secdef, config, owner in rows:
+        assert secdef, name
+        assert config == ["search_path=jobs, pg_catalog, pg_temp"], name
+        assert owner == db.definer_role, name
+    # and the owner holds only what the triggers need
+    held = await _as_backend(
+        db,
+        "SELECT has_table_privilege(%s, 'jobs.procrastinate_events', 'INSERT'),"
+        " has_table_privilege(%s, 'jobs.procrastinate_jobs', 'SELECT'),"
+        " has_schema_privilege(%s, 'app', 'USAGE'),"
+        " has_schema_privilege(%s, 'auth', 'USAGE'),"
+        " has_schema_privilege(%s, 'google', 'USAGE'),"
+        " has_schema_privilege(%s, 'jobs', 'CREATE')",
+        *([db.definer_role] * 6),
+    )
+    assert held == [(True, False, False, False, False, False)]
+    login = await _as_backend(
+        db, "SELECT rolcanlogin, rolsuper FROM pg_roles WHERE rolname = %s", db.definer_role
+    )
+    assert login == [(False, False)]
+
+
+LEAK = "an answer"
+
+
+async def _run_the_temp_table_exploit(db):
+    """The executor's role, which may create temporary tables, shadows the table
+    the definer trigger functions write with one of its own, puts a trigger on it,
+    and queues a job: if the function resolves its table through the session's
+    temporary schema, the trigger runs as the function's owner. Returns the error
+    the trigger raises, with whatever the owner could read."""
+    conn = await db.connect("jobs_exec")
+    try:
+        await conn.execute(
+            "CREATE TEMP TABLE procrastinate_events"
+            " (id bigserial, job_id bigint, type text, at timestamptz DEFAULT now())"
+        )
+        owners = await (
+            await conn.execute(
+                "SELECT DISTINCT pg_get_userbyid(p.proowner)::text FROM pg_proc p"
+                " JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'jobs'"
+                " AND p.proname = 'procrastinate_trigger_function_status_events_insert_v1'"
+            )
+        ).fetchall()
+        (owner,) = owners[0]
+        await conn.execute(f'GRANT ALL ON procrastinate_events TO "{owner}"')
+        await conn.execute(
+            f'GRANT ALL ON SEQUENCE pg_temp.procrastinate_events_id_seq TO "{owner}"'
+        )
+        await conn.execute(
+            "CREATE FUNCTION pg_temp.steal() RETURNS trigger LANGUAGE plpgsql AS $f$"
+            " BEGIN RAISE EXCEPTION 'owner % read: %', current_user,"
+            " (SELECT string_agg(v, ',') FROM app.canary); END $f$"
+        )
+        await conn.execute(
+            "CREATE TRIGGER steal BEFORE INSERT ON pg_temp.procrastinate_events"
+            " FOR EACH ROW EXECUTE FUNCTION pg_temp.steal()"
+        )
+        try:
+            await conn.execute(
+                "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+                " VALUES ('actions', 'run_action', '{}')"
+            )
+        except psycopg.Error as error:
+            return str(error)
+        return ""
+    finally:
+        await conn.close()
+
+
+async def test_the_executor_cannot_run_code_as_the_trigger_functions_owner(db):
+    """Regression: the functions' path was ``jobs, pg_catalog`` with no ``pg_temp``,
+    so the temporary schema was searched first and the exploit below ran as the
+    owner (then the backend's role) and read the answers."""
+    message = await _run_the_temp_table_exploit(db)
+
+    assert LEAK not in message
+    # the real events table got the job's event: the function did not use the temp one
+    events = await _as_backend(db, "SELECT count(*) FROM jobs.procrastinate_events")
+    assert events == [(1,)]
+
+
+async def test_the_probe_does_leak_with_the_search_path_and_owner_the_review_found(db):
+    """The probe is real: with the functions as they were (owned by the backend's
+    role, ``search_path = jobs, pg_catalog``) it reads the answers."""
+    backend_role = f"bc_app_{db.suffix}"
+    conn = await db.connect("app")
+    try:
+        await _execute(db.url(), f'GRANT SELECT ON app.canary TO "{backend_role}"')
+        for row in await _definer_functions(db):
+            signature = (
+                f"jobs.{row[0]}()"
+            )
+            await conn.execute(f"ALTER FUNCTION {signature} OWNER TO \"{backend_role}\"")
+            await conn.execute(
+                f"ALTER FUNCTION {signature} SET search_path = jobs, pg_catalog"
+            )
+    finally:
+        await conn.close()
+
+    message = await _run_the_temp_table_exploit(db)
+
+    assert LEAK in message

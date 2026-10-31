@@ -5,7 +5,8 @@
 #   app    <- bc_app        (backend; also owns `jobs`, the queue's tables)
 #   auth   <- bc_auth       (auth service)
 #   google <- bc_google     (integrations/google)
-#   jobs   <- bc_app        (procrastinate; the actions-executor connects as
+#   jobs   <- bc_app        (procrastinate; its trigger functions belong to the
+#                            NOLOGIN role bc_jobs_def; the actions-executor connects as
 #                            bc_jobs_exec and can reach this schema and nothing
 #                            else — it runs user-authored code)
 #
@@ -34,6 +35,14 @@ CREATE ROLE bc_app       LOGIN PASSWORD :'app_pw';
 CREATE ROLE bc_auth      LOGIN PASSWORD :'auth_pw';
 CREATE ROLE bc_google    LOGIN PASSWORD :'google_pw';
 CREATE ROLE bc_jobs_exec LOGIN PASSWORD :'jobs_pw';
+
+-- The owner of the queue's trigger functions, which run as their owner
+-- (SECURITY DEFINER) so the executor's role needs no write on the tables they
+-- write. It cannot log in, owns nothing else and gets just what the triggers need
+-- once the tables exist (backend.jobs.schema); the backend's role is a member, to
+-- hand the functions over. See postgres/ensure-jobs-exec-role.sh.
+CREATE ROLE bc_jobs_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+GRANT bc_jobs_def TO bc_app;
 
 CREATE SCHEMA app    AUTHORIZATION bc_app;
 CREATE SCHEMA auth   AUTHORIZATION bc_auth;

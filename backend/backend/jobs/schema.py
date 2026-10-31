@@ -32,29 +32,38 @@ QUEUE_TABLE = "jobs.procrastinate_jobs"
 #   deletion, or take a lock name (``delete_response:<id>``) that makes the backend
 #   skip that deletion through the queue's unique indexes.
 # * it cannot write the events table or the periodic-defers table (the second
-#   would let it suppress periodic jobs). procrastinate's triggers write them as
-#   the table owner for it: they are SECURITY DEFINER.
+#   would let it suppress periodic jobs). procrastinate's triggers write them for
+#   it, so they are SECURITY DEFINER, owned by a role of their own
+#   (``bc_jobs_def``: NOLOGIN, holding only what those triggers need) and with
+#   ``search_path = jobs, pg_catalog, pg_temp``. ``pg_temp`` last matters: a path
+#   without it leaves the session's temporary schema to be searched FIRST, and a
+#   role with TEMPORARY rights (the executor's) could shadow ``procrastinate_events``
+#   with a temp table of its own, put a trigger on it, and have it run as the owner.
 #
 # Row-level security on the queue's table does the first: a restrictive policy
 # for this role, next to a policy that leaves every other role (the backend's owner
 # role bypasses policies anyway; the admin portal's counting function reads as
 # another role) exactly as before.
 EXECUTOR_ROLE = "bc_jobs_exec"
+DEFINER_ROLE = "bc_jobs_def"
 EXECUTOR_QUEUE = "actions"
 EXECUTOR_TASK = "run_action"
 EXECUTOR_LOCK_PREFIX = "action_"
 OPEN_POLICY = "bc_queue_open"
 EXECUTOR_POLICY = "bc_jobs_exec_actions_only"
+DEFINER_SEARCH_PATH = "jobs, pg_catalog, pg_temp"
 # tables the role may only read through procrastinate's own functions
 NO_WRITE_TABLES = ("procrastinate_events", "procrastinate_periodic_defers")
 _ROLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
 
-def isolate_executor_sql(role: str = EXECUTOR_ROLE) -> str:
+def isolate_executor_sql(
+    role: str = EXECUTOR_ROLE, definer: str = DEFINER_ROLE
+) -> str:
     """One DO block (idempotent; a no-op while the role does not exist yet, as
     on a stack whose role is created later: run this again then). It makes no
     use of ``%`` (procrastinate's connector reads it as a placeholder)."""
-    if not _ROLE_NAME.match(role):
+    if not _ROLE_NAME.match(role) or not _ROLE_NAME.match(definer):
         raise ValueError("not a role name")
     tables = ", ".join(f"jobs.{t}" for t in NO_WRITE_TABLES)
     lock_ok = lambda column: (  # noqa: E731
@@ -64,6 +73,7 @@ def isolate_executor_sql(role: str = EXECUTOR_ROLE) -> str:
 DO $isolate$
 DECLARE
     f record;
+    seq text;
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '{role}') THEN
         ALTER TABLE {QUEUE_TABLE} ENABLE ROW LEVEL SECURITY;
@@ -77,30 +87,48 @@ BEGIN
             WITH CHECK (queue_name = '{EXECUTOR_QUEUE}'
                 AND task_name = '{EXECUTOR_TASK}'
                 AND {lock_ok("lock")} AND {lock_ok("queueing_lock")});
-        -- the triggers that write the events and unlink periodic defers run as
-        -- the owner, then the role needs no write on those tables
-        FOR f IN
-            SELECT p.proname FROM pg_catalog.pg_proc p
-              JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-             WHERE n.nspname = 'jobs'
-               AND (starts_with(p.proname, 'procrastinate_trigger_function_')
-                    OR p.proname = 'procrastinate_unlink_periodic_defers_v1')
-        LOOP
-            EXECUTE 'ALTER FUNCTION jobs.' || quote_ident(f.proname)
-                || '() SECURITY DEFINER SET search_path = jobs, pg_catalog';
-        END LOOP;
-        REVOKE ALL ON {tables} FROM {role};
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '{definer}') THEN
+            -- what the triggers need and nothing more: write the events, and
+            -- unlink periodic defers (SELECT for its WHERE)
+            GRANT USAGE ON SCHEMA jobs TO {definer};
+            GRANT SELECT, INSERT ON jobs.procrastinate_events TO {definer};
+            GRANT SELECT, UPDATE ON jobs.procrastinate_periodic_defers TO {definer};
+            seq := pg_catalog.pg_get_serial_sequence('jobs.procrastinate_events', 'id');
+            IF seq IS NOT NULL THEN
+                EXECUTE 'GRANT USAGE ON SEQUENCE ' || seq || ' TO {definer}';
+            END IF;
+            -- handing a function to a role needs CREATE on its schema, for the
+            -- new owner; held for the length of this block only
+            GRANT CREATE ON SCHEMA jobs TO {definer};
+            FOR f IN
+                SELECT p.oid::regprocedure AS sig FROM pg_catalog.pg_proc p
+                  JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+                 WHERE n.nspname = 'jobs'
+                   AND (starts_with(p.proname, 'procrastinate_trigger_')
+                        OR p.proname = 'procrastinate_unlink_periodic_defers_v1')
+            LOOP
+                EXECUTE 'ALTER FUNCTION ' || f.sig::text || ' OWNER TO {definer}';
+                EXECUTE 'ALTER FUNCTION ' || f.sig::text
+                    || ' SECURITY DEFINER SET search_path = {DEFINER_SEARCH_PATH}';
+            END LOOP;
+            REVOKE CREATE ON SCHEMA jobs FROM {definer};
+            REVOKE ALL ON {tables} FROM {role};
+        END IF;
     END IF;
 END
 $isolate$
 """
 
 
-async def isolate_executor(jobs_app: App, role: str = EXECUTOR_ROLE) -> None:
-    await jobs_app.connector.execute_query_async(isolate_executor_sql(role))
+async def isolate_executor(
+    jobs_app: App, role: str = EXECUTOR_ROLE, definer: str = DEFINER_ROLE
+) -> None:
+    await jobs_app.connector.execute_query_async(isolate_executor_sql(role, definer))
 
 
-async def ensure_schema(jobs_app: App = app, role: str = EXECUTOR_ROLE) -> bool:
+async def ensure_schema(
+    jobs_app: App = app, role: str = EXECUTOR_ROLE, definer: str = DEFINER_ROLE
+) -> bool:
     """Returns True when the schema was applied, False when it was present.
     Either way the executor role's row restriction is (re)asserted."""
     async with jobs_app.open_async():
@@ -110,7 +138,7 @@ async def ensure_schema(jobs_app: App = app, role: str = EXECUTOR_ROLE) -> bool:
         applied = row["queue_table"] is None
         if applied:
             await jobs_app.schema_manager.apply_schema_async()
-        await isolate_executor(jobs_app, role)
+        await isolate_executor(jobs_app, role, definer)
         return applied
 
 

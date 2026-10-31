@@ -939,8 +939,14 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   The executor's role `bc_jobs_exec` sees only the `actions` queue's rows and writes only `run_action` rows whose locks
   start with `action_` (a row-level policy on `jobs.procrastinate_jobs`, `backend/jobs/schema.py`; the unique lock
   indexes are shared by every queue, so a free lock name would block a deletion), cannot write the events or
-  periodic-defers tables (procrastinate's triggers write them as the owner: SECURITY DEFINER), and
-  `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
+  periodic-defers tables. procrastinate's triggers write them for it as SECURITY DEFINER functions owned by the NOLOGIN
+  role `bc_jobs_def` (init script / `postgres/ensure-jobs-exec-role.sh` create it; `backend.jobs.schema` hands the
+  functions over) with `search_path = jobs, pg_catalog, pg_temp`: **`pg_temp` must be last** on every SECURITY DEFINER
+  function (`tests/admin/test_definer_functions.py` checks the database and every SQL source in the repo), or a role
+  with TEMPORARY rights shadows the table with a temp table of its own and its trigger runs as the owner. A later
+  procrastinate `CREATE OR REPLACE FUNCTION` resets a function to SECURITY INVOKER: the executor's start check then
+  fails closed until `python -m backend.jobs.schema` (every `deploy.sh`) has run again, so after upgrading procrastinate
+  run it before starting the executor. `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
   (`backend/jobs/log_safety.py`, installed when `backend.jobs.app` is imported; the executor has its own copy).
   **Not isolated yet (executor track):** the executor's `exec` is not a sandbox, so code in it can read the process's
   environment (job key, AES key, database URL), can mark an `actions` row `doing`, and with the job key and the AES key

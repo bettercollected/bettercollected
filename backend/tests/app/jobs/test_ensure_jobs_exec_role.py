@@ -51,11 +51,15 @@ async def db(tmp_path):
             f'DROP OWNED BY "{database.exec_role}"; DROP ROLE "{database.exec_role}";'
             " CREATE TABLE app.canary (v text);",
         )
-        await ensure_schema(database.queue_app("app"), role=database.exec_role)
+        await database.ensure()
         # the script with the role's name suffixed, like everything else here
         script = tmp_path / "ensure-jobs-exec-role.sh"
         script.write_text(
-            re.sub(r"\bbc_jobs_exec\b", database.exec_role, SCRIPT.read_text())
+            re.sub(
+                r"\bbc_jobs_def\b",
+                database.definer_role,
+                re.sub(r"\bbc_jobs_exec\b", database.exec_role, SCRIPT.read_text()),
+            )
         )
         database.script = script
         yield database
@@ -64,7 +68,7 @@ async def db(tmp_path):
             _with_database(admin, "postgres"),
             f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)',
         )
-        for role in ROLES:
+        for role in (*ROLES, "jobs_def"):
             await _execute(
                 _with_database(admin, "postgres"),
                 f'DROP ROLE IF EXISTS "bc_{role}_{suffix}"',
@@ -118,7 +122,7 @@ async def test_it_says_when_the_row_restriction_is_not_applied_yet(db):
     first = run_script(db, secrets.token_hex(12))
     assert "queue_policy=MISSING" in first.stdout and "backend.jobs.schema" in first.stdout
     # the backend applies it now that the role exists
-    await ensure_schema(db.queue_app("app"), role=db.exec_role)
+    await db.ensure()
     second = run_script(db)
     assert "queue_policy=present" in second.stdout
 
@@ -189,7 +193,7 @@ async def test_it_keeps_the_role_from_writing_the_events_and_periodic_defers(db)
             await owner.execute(
                 "SELECT bool_and(prosecdef) FROM pg_proc p JOIN pg_namespace n"
                 " ON n.oid = p.pronamespace WHERE n.nspname = 'jobs' AND"
-                " (starts_with(proname, 'procrastinate_trigger_function_')"
+                " (starts_with(proname, 'procrastinate_trigger_')"
                 " OR proname = 'procrastinate_unlink_periodic_defers_v1')"
             )
         ).fetchone()

@@ -49,7 +49,7 @@ def _url(base_url: str, database: str, user: str | None = None, pw: str = "") ->
 def _init_sql(database: str, suffix: str, passwords: dict) -> str:
     sql = INIT_SCRIPT.read_text().split("<<'SQL'\n", 1)[1].rsplit("\nSQL", 1)[0]
     sql = re.sub(r"^\\getenv .*\n", "", sql, flags=re.M)
-    sql = re.sub(r"\bbc_(app|auth|google|jobs_exec)\b", rf"bc_\1_{suffix}", sql)
+    sql = re.sub(r"\bbc_(app|auth|google|jobs_exec|jobs_def)\b", rf"bc_\1_{suffix}", sql)
     for role, var in zip(ROLES, ("app_pw", "auth_pw", "google_pw", "jobs_pw")):
         sql = sql.replace(f":'{var}'", f"'{passwords[role]}'")
     return sql.replace(':"DBNAME"', f'"{database}"')
@@ -106,7 +106,7 @@ async def stack():
         yield stack
     finally:
         await _execute(_url(admin, "postgres"), f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
-        for role in ROLES:
+        for role in (*ROLES, "jobs_def"):
             await _execute(_url(admin, "postgres"), f'DROP ROLE IF EXISTS "bc_{role}_{suffix}"')
 
 

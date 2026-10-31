@@ -34,13 +34,24 @@ def _q(text: str) -> str:
 
 _NORMALISE = r"::(text|character varying)|[ ()\n]"
 
+DEFINER_ROLE = "bc_jobs_def"
+DEFINER_SEARCH_PATH = "search_path=jobs, pg_catalog, pg_temp"
+
 # True when, for the role this connection is: row-level security is on for the
 # queue table and a restrictive policy of that name, for all commands and with
-# exactly the expressions above, applies to the role; the role
-# is no superuser, bypasses no policy and does not own the table (an owner skips
-# policies); it cannot write the events or periodic-defers tables; and the triggers
-# that write them run as their owner (SECURITY DEFINER).
-ISOLATION_SQL = f"""
+# exactly the expressions above, applies to the role; the role is no superuser,
+# bypasses no policy and does not own the table (an owner skips policies); it
+# cannot write the events or periodic-defers tables; and every SECURITY DEFINER
+# function of the queue's schema (the triggers that write those tables) belongs to
+# the dedicated definer role (NOLOGIN, no superuser, no bypass) and has a search
+# path that ends in pg_temp. Without pg_temp last the session's temporary schema is
+# searched first: this role may create temp tables, shadow ``procrastinate_events``
+# with one of its own, and have a trigger of its own run as the function's owner.
+# A later ``CREATE OR REPLACE FUNCTION`` by procrastinate resets a function to
+# SECURITY INVOKER with no path: this then fails closed until
+# ``python -m backend.jobs.schema`` has run again.
+def isolation_sql(definer: str = DEFINER_ROLE) -> str:
+    return f"""
 SELECT EXISTS (
     SELECT 1
       FROM pg_catalog.pg_class c
@@ -63,15 +74,32 @@ SELECT EXISTS (
                current_user, 'jobs.procrastinate_events', 'INSERT,UPDATE,DELETE')
        AND NOT has_table_privilege(
                current_user, 'jobs.procrastinate_periodic_defers', 'INSERT,UPDATE,DELETE')
+       -- the trigger functions exist, are SECURITY DEFINER, and belong to the
+       -- definer role
+       AND EXISTS (
+               SELECT 1 FROM pg_catalog.pg_proc f
+                 JOIN pg_catalog.pg_namespace n ON n.oid = f.pronamespace
+                WHERE n.nspname = 'jobs'
+                  AND starts_with(f.proname, 'procrastinate_trigger_'))
        AND NOT EXISTS (
                SELECT 1 FROM pg_catalog.pg_proc f
                  JOIN pg_catalog.pg_namespace n ON n.oid = f.pronamespace
                 WHERE n.nspname = 'jobs'
-                  AND (starts_with(f.proname, 'procrastinate_trigger_function_')
-                       OR f.proname = 'procrastinate_unlink_periodic_defers_v1')
-                  AND NOT f.prosecdef)
+                  AND (starts_with(f.proname, 'procrastinate_trigger_')
+                       OR f.proname = 'procrastinate_unlink_periodic_defers_v1'
+                       OR f.prosecdef)
+                  AND NOT (f.prosecdef
+                           AND f.proconfig = ARRAY['{DEFINER_SEARCH_PATH}']::text[]
+                           AND pg_catalog.pg_get_userbyid(f.proowner) = '{definer}'))
+       AND EXISTS (
+               SELECT 1 FROM pg_catalog.pg_roles d
+                WHERE d.rolname = '{definer}' AND NOT d.rolcanlogin
+                  AND NOT d.rolsuper AND NOT d.rolbypassrls AND NOT d.rolcreaterole)
 )
 """
+
+
+ISOLATION_SQL = isolation_sql()
 
 REFUSAL = (
     "the job queue does not restrict this database role to running action jobs "

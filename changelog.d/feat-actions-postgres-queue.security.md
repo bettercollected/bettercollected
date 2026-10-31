@@ -17,7 +17,9 @@
   below). It sees and writes only `run_action` jobs of the `actions` queue, with locks
   that start with `action_`, so it can no longer read, queue or cancel the other queues'
   jobs, or take the lock name of a response or account deletion. It cannot write the
-  events or periodic-defers tables. A row-level policy, applied by `python -m
+  events or periodic-defers tables: procrastinate's triggers write them for it as
+  SECURITY DEFINER functions of a dedicated login-less role (`bc_jobs_def`), with a
+  search path that ends in `pg_temp` so a temporary table cannot stand in for them. A row-level policy, applied by `python -m
   backend.jobs.schema`, does this, and the executor refuses to start without it.
 - Job arguments no longer reach the logs: the call string procrastinate prints at start,
   at the end and when a job fails for good is cut to the task name and the job id.
