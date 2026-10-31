@@ -2,6 +2,7 @@
 outside the workspace named in the URL), and still work for its members."""
 
 import json
+import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -19,10 +20,13 @@ from backend.app.models.dtos.action_dto import ActionDto
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.template import FormTemplateDocument
+from backend.app.services import integration_oauth_state
 from backend.app.services.form_service import FormService
+from backend.app.services.session_service import user_from_access_token
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
+from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import formData, testUser, testUser1
 
 
@@ -230,9 +234,13 @@ def google_provider():
 
 
 def _state_for(user) -> str:
-    return container.crypto().encrypt(
-        json.dumps({"client_referer_uri": None, "user_id": user.id})
-    )
+    """A state as ``GET .../oauth`` mints it for ``user``."""
+    return integration_oauth_state.mint(container.crypto(), user, None)
+
+
+def _session_state(cookies) -> str:
+    """A state as ``GET .../oauth`` mints it for the session these cookies carry."""
+    return _state_for(user_from_access_token(cookies["Authorization"]))
 
 
 CALLBACK_URL = f"/api/v1/integration/{FormIntegrationType.GOOGLE_SHEET.value}/oauth"
@@ -265,7 +273,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies_1,
             json={
-                "state": _state_for(testUser1),
+                "state": _session_state(test_user_cookies_1),
                 "code": "attacker-code",
                 "form_id": workspace_form.form_id,
                 "action_id": str(sheets_action.id),
@@ -323,7 +331,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies,
             json={
-                "state": _state_for(testUser),
+                "state": _session_state(test_user_cookies),
                 "code": "code",
                 "form_id": workspace_form.form_id,
                 "action_id": action_id,
@@ -346,7 +354,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies,
             json={
-                "state": _state_for(testUser),
+                "state": _session_state(test_user_cookies),
                 "code": "code",
                 "form_id": workspace_form.form_id,
                 "action_id": str(sheets_action.id),
@@ -357,6 +365,128 @@ class TestIntegrationOAuth:
         secrets = await _secrets(workspace_form.form_id)
         assert secrets[str(sheets_action.id)][0].value == "encrypted-credentials"
 
+
+
+async def _started_state(client, cookies, google_provider) -> str:
+    """The state ``GET .../oauth`` handed to this session."""
+    response = await client.get(CALLBACK_URL, cookies=cookies)
+    assert response.status_code == 200, response.text
+    return google_provider.get.call_args.kwargs["params"]["state"]
+
+
+async def _callback(client, cookies, state, form_id, action_id):
+    return await client.post(
+        f"{CALLBACK_URL}/callback",
+        cookies=cookies,
+        json={"state": state, "code": "code", "form_id": form_id, "action_id": action_id},
+    )
+
+
+class TestIntegrationOAuthState:
+    """The state is bound to the session that started the connection, expires,
+    and is accepted once."""
+
+    async def test_the_started_connection_completes(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, google_provider,
+    ):
+        state = await _started_state(client, test_user_cookies, google_provider)
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 200, response.text
+        assert google_provider.post.await_count == 1
+        assert await _secrets(workspace_form.form_id)
+
+    async def test_a_state_started_in_another_session_is_refused(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, google_provider,
+    ):
+        # a state handed out to another session, completed in this one
+        other = access_token(testUser)
+        state = await _started_state(
+            client, {"Authorization": other, "RefreshToken": other}, google_provider
+        )
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 403
+        google_provider.post.assert_not_called()
+        assert not await _secrets(workspace_form.form_id)
+
+    async def test_another_users_state_with_this_sessions_code_is_refused(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, test_user_cookies_1, google_provider,
+    ):
+        state = await _started_state(client, test_user_cookies_1, google_provider)
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 403
+        google_provider.post.assert_not_called()
+        assert not await _secrets(workspace_form.form_id)
+
+    async def test_a_state_is_accepted_once(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, google_provider,
+    ):
+        state = await _started_state(client, test_user_cookies, google_provider)
+        first = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+        assert first.status_code == 200, first.text
+
+        again = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert again.status_code == 400
+        assert google_provider.post.await_count == 1
+
+    async def test_an_expired_state_is_refused(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, google_provider,
+    ):
+        state = await _started_state(client, test_user_cookies, google_provider)
+        expired = (
+            container.crypto()
+            .encrypt_at_time(
+                container.crypto().decrypt(state).encode(),
+                int(time.time()) - integration_oauth_state.STATE_MAX_AGE_SECONDS - 60,
+            )
+            .decode()
+        )
+
+        response = await _callback(
+            client, test_user_cookies, expired, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 400
+        google_provider.post.assert_not_called()
+        assert not await _secrets(workspace_form.form_id)
+
+    async def test_a_state_without_a_nonce_is_refused(
+        self, client: AsyncClient, workspace, workspace_form, sheets_action,
+        test_user_cookies, google_provider,
+    ):
+        # the shape handed out before states were bound to a session
+        user = user_from_access_token(test_user_cookies["Authorization"])
+        state = container.crypto().encrypt(
+            json.dumps({"client_referer_uri": None, "user_id": user.id})
+        )
+
+        response = await _callback(
+            client, test_user_cookies, state, workspace_form.form_id, str(sheets_action.id)
+        )
+
+        assert response.status_code == 400
+        google_provider.post.assert_not_called()
 
 async def _deletion_requests(form_id):
     return await container.form_response_repo().list_deletion_requests_for_form_ids(

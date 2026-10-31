@@ -13,6 +13,74 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.0.15] - 2026-10-31
+
+### Upgrade notes
+
+- **Back up first.** Take a backup of Postgres and of Mongo right before the deploy.
+- **No migrations, roles, SQL or new settings,** and no compose change.
+- **Closed forms stop accepting responses** as soon as this version runs: a form whose close date
+  has already passed is closed to new responses from the deploy on. Respondents can still edit or
+  ask to delete what they already sent.
+- **Custom answer patterns** are checked when the answer is submitted, not while typing; the
+  respondent is taken back to the question with the message.
+- **Google Sheets connections in progress during the upgrade** are refused once: start the
+  connection again.
+- **Rollback:** 4.0.14 can run against a 4.0.15 database; nothing is stored differently.
+
+### Fixed
+
+- `deploy.sh` removes every scratch file or directory that holds a secret (the copies of `.env` and
+  `.env.deployment` used by the settings prune and the Umami blanking, the settings export, the
+  worker keys, the replacement of `.env`) when it is stopped by Ctrl-C, `kill` or a closed terminal,
+  and stops the one-off container first. A failed write while blanking `UMAMI_PASSWORD` in
+  `.env.deployment` or creating a service's env file is now reported instead of being passed over.
+- The actions executor starts again with `JOBS_BACKEND=postgres`. It crashed at start with
+  `ImportError: no pq wrapper available`: its slim image has no libpq, so the Postgres queue driver
+  (`psycopg`) now ships its bundled copy (`psycopg[binary]`).
+- A response sent to a form that was never published is refused with 404, as the form's
+  page is. Before, it was stored and the request then failed with a server error, without
+  starting the form's actions.
+
+### Security
+
+- The server now enforces a form's close date. Before, the date only hid the form from the
+  public listing and the share menus: a direct link to a closed form still loaded it and
+  accepted new responses. From the close instant on, a new response is refused with 409
+  `form_closed` before anything is stored, uploaded or started. The time the backend
+  received the request decides (behind a proxy that buffers uploads, the time the upload
+  finished), for at most 10 minutes after it arrived. Respondents can still edit or ask
+  to delete what they already sent. Forms whose close date has passed stop accepting
+  responses when this version is deployed.
+- A closed form's questions are no longer served on any respondent read: the published
+  form, any of its versions, the public listing and the search. Respondents get the
+  form's welcome page and look with a "closed" notice, without an AI notice token. A
+  respondent whose form closes while they fill it in sees the same notice, and keeps their
+  answers on the page. Workspace members still see the whole form, with a line saying
+  respondents can no longer answer it.
+- The close date is checked when it is saved: it is stored as a UTC instant (a value
+  without an offset counts as UTC), an empty value removes it, and anything that is not a
+  date is refused with 422. Values stored earlier, in any offset, are read as the same
+  instant, from MongoDB and PostgreSQL alike. The listing used to compare them as text,
+  which was off by the offset.
+- The sign-in page on the form host and on custom domains only follows a `redirect_to`
+  that is a path of this site. Before, a crafted sign-in link could send someone who
+  signed in (or was already signed in) to another site.
+- The respondent form no longer tests answer patterns written by a form's creator in the
+  browser. The server matches them with RE2 in linear time, but the browser used a
+  backtracking engine, where a pattern such as `^(a+)+$` could freeze a tab on one
+  unlucky answer. The browser now checks only the built-in formats and "whole numbers
+  only"; a custom pattern is checked when the answer is submitted, and the respondent is
+  taken back to the question with the message next to it.
+- Connecting Google Sheets to a form: the consent popup now hands its result only to the
+  dashboard origin, and only the code, the state or Google's error. The dashboard accepts
+  it only from the popup it opened, on the dashboard origin. The connection's state is
+  tied to the session that started it, expires after an hour and is accepted once. A
+  connection started before the upgrade and finished after it is refused: start it again.
+- An imported form's link to its original (opened or framed when the form is set to show
+  the original) is kept only when it is an http(s) address, and the respondent page opens
+  or frames nothing else.
+
 ## [4.0.14] - 2026-10-26
 
 ### Upgrade notes
@@ -1573,7 +1641,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.0.15...HEAD
+[4.0.15]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...v4.0.15
 [4.0.14]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...v4.0.14
 [4.0.13]: https://github.com/bettercollected/bettercollected/compare/v4.0.12...v4.0.13
 [4.0.12]: https://github.com/bettercollected/bettercollected/compare/v4.0.11...v4.0.12

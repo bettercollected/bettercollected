@@ -1245,6 +1245,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         authorization_service=authorization_service,
         action_repository=action_repository,
+        used_state_repo=sso_used_state_repo,
     )
 
     form_actions_service: FormActionsService = providers.Singleton(
