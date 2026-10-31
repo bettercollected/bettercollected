@@ -176,6 +176,10 @@ def _values_for(
     limit = SUBJECT_VALUE_MAX if subject else VALUE_MAX
     cap = (lambda v: one_line(v, limit)) if subject else (lambda v: multi_line(v, limit))
     values = {key: cap(format_value(value, language)) for key, _label, value in entries}
+    if not subject:
+        # a multi-line answer is indented after its first line, so no line of
+        # it can pass for a line of the template or of the answers block
+        values = {key: value.replace("\n", "\n  ") for key, value in values.items()}
     values["form_title"] = one_line(form_title, TITLE_MAX)
     values["submitted_at"] = one_line(submitted_at, 40)
     if not subject:
@@ -207,7 +211,7 @@ def render(
 RESPONDENT_TEXT = {
     "en": {
         "subject": "A copy of your submission",
-        "intro": 'This is the copy of your submission to the form "{title}".',
+        "intro": "This is the copy of your submission.",
         "why": (
             "You get this message because this address was entered in the form. "
             "If that was not you, you can ignore it: nothing else will be sent."
@@ -217,7 +221,7 @@ RESPONDENT_TEXT = {
     },
     "nl": {
         "subject": "Een kopie van uw inzending",
-        "intro": 'Dit is de kopie van uw inzending voor het formulier "{title}".',
+        "intro": "Dit is de kopie van uw inzending.",
         "why": (
             "U ontvangt dit bericht omdat dit e-mailadres in het formulier is ingevuld. "
             "Was u dit niet, dan kunt u het negeren: er wordt verder niets gestuurd."
@@ -229,14 +233,14 @@ RESPONDENT_TEXT = {
 
 
 def render_respondent(
-    entries: Sequence[Entry], *, form_title: str, submitted_at: str, language: str
+    entries: Sequence[Entry], *, submitted_at: str, language: str
 ) -> Tuple[str, str]:
     """``(subject, body)`` of the copy a respondent gets of their own
-    submission: fixed wording in the form's language, the form's title on one
-    line, and the mapped questions' answers (their own, each capped)."""
+    submission: fixed wording in the form's language and the mapped questions'
+    answers (their own, each capped) under their question labels. Nothing a
+    creator wrote besides those labels: no template, **no form title**."""
     words = RESPONDENT_TEXT.get(language, RESPONDENT_TEXT[DEFAULT_LANGUAGE])
-    title = one_line(form_title, TITLE_MAX)
-    parts = [words["intro"].format(title=title), "", words["why"]]
+    parts = [words["intro"], "", words["why"]]
     if entries:
         parts += ["", words["answers"], answers_block(entries, language)]
     if submitted_at:

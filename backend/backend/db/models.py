@@ -647,7 +647,7 @@ class ActionLogRow(Base, BaseRow):
     action_id = S.text("action_id")
     response_id = S.text("response_id")
     status = S.text("status")
-    # ``webhook`` or ``email`` (revision 0025): each kind's sweep and list read
+    # ``webhook`` or ``email`` (revision 0026): each kind's sweep and list read
     # only its own rows
     action_type = S.text("action_type")
     __table_args__ = (

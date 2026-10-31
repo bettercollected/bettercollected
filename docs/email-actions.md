@@ -40,7 +40,7 @@ Plain text only. No HTML is ever produced, so what a respondent typed is text an
 
 | Placeholder | Value |
 |---|---|
-| `{{name}}` | the answer to a mapped question (a list is joined with `, `; the items of a group are one per line; yes/no in the form's language) |
+| `{{name}}` | the answer to a mapped question (a list is joined with `, `; the items of a group are one per line; yes/no in the form's language; after its first line a multi-line answer is indented, so no line of it can pass for a line of the template) |
 | `{{form_title}}` | the form's title, one line, up to 120 characters |
 | `{{submitted_at}}` | `2026-10-31 09:00 UTC` |
 | `{{answers}}` (message only) | one `Question: answer` line for every mapped question; the lines of a long answer are indented |
@@ -52,6 +52,7 @@ Rules, all enforced by `backend/backend/app/services/email_actions/templates.py`
 - Every value: control characters, line and paragraph separators (U+2028, U+2029), NEL (U+0085), bidirectional overrides and isolates (U+202A-U+202E, U+2066-U+2069), zero
   width characters and unassigned code points are removed (a line break in the **subject** or a name becomes a space, in the message a line break); each value is capped (2,000
   characters in the message, 200 in the subject) and the message at 20,000.
+- The team's mails are also capped at 600 per hour per form, so a flood of submissions cannot drain the instance's mail quota (over the cap: `cancelled`, `rate_limited`).
 - The **subject is always one line**. The standard library refuses a header value with a line break, so nothing that slipped past cleaning could add a header. Recipients are
   validated as one plain address (no whitespace, control or format character, none of `<>(),;:"\[]`), all in `To`; there is no `Cc`, `Bcc` or `Reply-To`. Messages carry
   `Auto-Submitted: auto-generated`.
@@ -64,10 +65,13 @@ A respondent-supplied address is the one place the system mails someone nobody o
 
 - The address comes only from the `email` question of this very submission, read from the stored (decrypted in memory) answers at send time, never from a request, a header or the
   queue. It receives a copy of **their own** submission and nothing else. There is no endpoint that mails an address a caller supplies.
-- **Fixed wording** (English or Dutch, by the form's language), not a template the creator wrote: the form's title on one line, a line saying why they got it, the answers of the
-  mapped questions (their own, each capped; a calculation kept from respondents is left out) and the time. The subject is fixed wording with no title.
-- Rate limited, counted in keyed hashes that name no address: 3 per hour per address and form, 10 per hour per address (all forms), 600 per hour per form. Over a limit, the run is
-  `cancelled` (`rate_limited`) and not retried.
+- **Fixed wording** (English or Dutch, by the form's language), not a template the creator wrote: a line saying what it is, a line saying why they got it, the answers of the
+  mapped questions under their question labels (their own, each capped; a calculation kept from respondents is left out) and the time. **No form title**, in the subject or the body:
+  nothing a creator wrote reaches the copy except the question labels.
+- Rate limited, counted in keyed hashes that name no address: 3 per hour per mailbox and form, 10 per hour per mailbox (all forms), 600 per hour per form and **1,000 per hour per workspace**. A
+  *mailbox* is the address reduced to a key: lower case, the `+tag` dropped, the dots of a Gmail / Googlemail local part dropped (`googlemail.com` is `gmail.com`), the domain IDNA-encoded with a
+  trailing dot removed. So `A.B+x@GMAIL.com` and `ab@gmail.com` share one budget, and so do an internationalised domain and its punycode form; the mail itself goes to the address exactly as typed.
+  Over a limit, the run is `cancelled` (`rate_limited`) and not retried. A mail counts against the limits **once**, however many attempts it takes.
 - A submission without a usable address queues no copy.
 
 ## Conditions

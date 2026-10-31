@@ -168,22 +168,44 @@ def test_the_form_language_picks_the_template():
     assert templates.language_of({"settings": {"language": "NL"}}) == "nl"
 
 
-def test_the_respondents_copy_is_fixed_wording_with_the_form_title_on_one_line():
+def test_the_respondents_copy_is_fixed_wording_and_the_answers_with_no_form_title():
     entries = [("name", "Full name", "Ada")]
     for lang, word in (("en", "copy of your submission"), ("nl", "kopie van uw inzending")):
-        subject_line, text = templates.render_respondent(
-            entries, form_title="Intake\r\nBcc: x@y.example", submitted_at="now", language=lang
-        )
-        assert word in subject_line.lower() or word in text.lower()
-        assert "\n" not in subject_line and "Intake Bcc: x@y.example" in text
-        assert "Full name: Ada" in text
-    # a title that tries to be a format field changes nothing
-    _s, text = templates.render_respondent(
-        [], form_title="{title} {when}", submitted_at="now", language="en"
-    )
-    assert '"{title} {when}"' in text
+        subject_line, text = templates.render_respondent(entries, submitted_at="now", language=lang)
+        assert word in subject_line.lower() and word in text.lower()
+        assert "\n" not in subject_line and "Full name: Ada" in text
+        assert '"' not in text.split("\n")[0]  # the intro names no form
+    # nothing about the form reaches the copy, whatever the title is: render_respondent takes none
+    import inspect
+
+    assert "form_title" not in inspect.signature(templates.render_respondent).parameters
 
 
+def test_a_multi_line_value_in_the_team_template_is_indented_so_it_cannot_forge_lines():
+    entries = [("story", "Story", "first\nTotal: 0\nBcc: x@y.example")]
+    text = body("Story:\n{{story}}\nEnd", entries)
+    assert text == "Story:\nfirst\n  Total: 0\n  Bcc: x@y.example\nEnd"
+    # one-line values are untouched, and the subject stays one line
+    assert body("{{name}}") == "Ada"
+    assert "\n" not in subject("{{story}}", entries)
+
+
+@pytest.mark.parametrize(
+    "variants,expected",
+    [
+        (["A.B+x@GMAIL.com", "ab@gmail.com", "a.b@googlemail.com", "AB+news+more@Gmail.Com", "a.b@gmail.com."], "ab@gmail.com"),
+        (["victim+1@acme.example", "victim+2@ACME.example", "Victim@acme.example", "victim@acme.example."], "victim@acme.example"),
+        (["jan@bücher.example", "jan@xn--bcher-kva.example", "JAN+x@BÜCHER.example", "jan@xn--bcher-kva.example."], "jan@xn--bcher-kva.example"),
+        # dots are only dropped for Gmail
+        (["a.b@acme.example"], "a.b@acme.example"),
+    ],
+)
+def test_rate_limit_keys_treat_the_variants_of_one_mailbox_as_one(variants, expected):
+    from backend.app.services.copy_recipient import rate_limit_key
+
+    assert {rate_limit_key(v) for v in variants} == {expected}
+    assert rate_limit_key("a.b@acme.example") != rate_limit_key("ab@acme.example")
+    assert rate_limit_key("not an address") is None and rate_limit_key("a+b") is None
 def test_the_message_is_plain_text_from_the_instance_with_an_auto_submitted_header():
     message = transport.build_message(
         sender="noreply@example.test",

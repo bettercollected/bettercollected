@@ -204,7 +204,8 @@ async def test_the_respondent_copy_is_fixed_wording_to_the_address_of_this_submi
     (mail,) = setup.transport.sent
     assert mail["recipients"] == ["ada.example@example.test"]
     assert mail["subject"] == "A copy of your submission"
-    assert 'the form "Registration test"' in mail["body"]
+    # fixed wording and the answers: not the form's title
+    assert "Registration test" not in mail["body"] and "Registration test" not in mail["subject"]
     assert "Full name: Ada Example" in mail["body"] and "Age: 36" in mail["body"]
     # nothing the creator wrote reaches an address a respondent gave
     for text in ("Notify the team", "sent a response", "New response to"):
@@ -488,3 +489,76 @@ async def test_the_tasks_are_registered_on_the_emails_queue(setup):
     assert "deliver_email" in __import__("backend.jobs.app", fromlist=["JOB_NAMES"]).JOB_NAMES
     assert await tasks.emails_redefer(0) == "0 queued, 0 rescued"
     assert (await tasks.purge_email_logs(0)).endswith("deleted")
+
+
+async def _copy_to(setup, address):
+    response = await submit(
+        setup.workspace, setup.form,
+        answers={**ANSWERS, "mail": {"type": "email", "email": address}},
+    )
+    (log,) = await rows_of(setup, response, "respondent")
+    return log
+
+
+async def test_variants_of_one_mailbox_share_one_budget_and_are_mailed_as_typed(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 100)
+    monkeypatch.setattr(module, "COPY_ADDRESS_PER_HOUR", 3)
+    typed = ["A.B+1@GMAIL.com", "ab@gmail.com", "a.b+2@googlemail.com", "ab+x@gmail.com", "a.b@gmail.com"]
+    statuses = [(await run(await _copy_to(setup, address))).status for address in typed]
+    assert statuses == ["delivered"] * 3 + ["cancelled"] * 2
+    # mailed as typed (trimmed and lower-cased, tag and dots kept), never the key
+    assert [m["recipients"][0] for m in setup.transport.sent] == ["a.b+1@gmail.com", "ab@gmail.com", "a.b+2@googlemail.com"]
+
+
+async def test_an_idn_domain_and_its_punycode_form_are_one_mailbox(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 100)
+    monkeypatch.setattr(module, "COPY_ADDRESS_PER_HOUR", 1)
+    first = await run(await _copy_to(setup, "jan@b\u00fccher.example"))
+    second = await run(await _copy_to(setup, "jan@xn--bcher-kva.example"))
+    assert (first.status, second.status) == ("delivered", "cancelled")
+
+
+async def test_a_workspace_may_send_at_most_1000_copies_an_hour(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    assert module.COPY_WORKSPACE_PER_HOUR == 1000
+    monkeypatch.setattr(module, "COPY_WORKSPACE_PER_HOUR", 2)
+    statuses = [(await run(await _copy_to(setup, f"person{n}@example.test"))).status for n in range(4)]
+    assert statuses == ["delivered", "delivered", "cancelled", "cancelled"]
+    row = (await logs_of(setup.form))
+    assert any(r.last_error_code == "rate_limited" for r in row)
+
+
+async def test_the_team_mails_of_a_form_are_capped_per_hour(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    assert module.TEAM_FORM_PER_HOUR == 600
+    monkeypatch.setattr(module, "TEAM_FORM_PER_HOUR", 2)
+    statuses = []
+    for _ in range(4):
+        response = await submit(setup.workspace, setup.form)
+        (log,) = await rows_of(setup, response, "team")
+        statuses.append((await run(log)).status)
+    assert statuses == ["delivered", "delivered", "cancelled", "cancelled"]
+    assert len(setup.transport.sent) == 2
+
+
+async def test_a_retried_mail_counts_once_against_the_limits(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 1)
+    monkeypatch.setattr(module, "TEAM_FORM_PER_HOUR", 1)
+    response = await submit(setup.workspace, setup.form)
+    (copy,) = await rows_of(setup, response, "respondent")
+    (team,) = await rows_of(setup, response, "team")
+    setup.transport.fail = MailFailed("smtp_unavailable")
+    for log in (copy, team):
+        assert (await run(log, 0)).status == "retrying"
+        assert (await run(log, 1)).status == "retrying"  # not cancelled as rate_limited by itself
+    setup.transport.fail = None
+    assert (await run(copy, 2)).status == "delivered"
+    assert (await run(team, 2)).status == "delivered"

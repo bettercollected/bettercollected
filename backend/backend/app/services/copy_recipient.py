@@ -73,6 +73,33 @@ def normalize_address(value: Any) -> Optional[str]:
     return address
 
 
+_PLUS_TAG_FREE = ("gmail.com", "googlemail.com")
+
+
+def rate_limit_key(address: Any) -> Optional[str]:
+    """What counts as *one mailbox* for a rate limit: ``address`` lower-cased,
+    its ``+tag`` dropped, the dots of a Gmail / Googlemail local part dropped
+    (``googlemail.com`` is ``gmail.com``), the domain IDNA-encoded with a
+    trailing dot removed. Only ever a **key**: the address is mailed exactly as
+    it was typed. ``None`` for something that is not one plain address. So
+    ``A.B+x@GMAIL.com`` and ``ab@gmail.com`` share one budget, as do an
+    internationalised domain and its punycode form."""
+    normal = normalize_address(address)
+    if normal is None:
+        return None
+    local, _, domain = normal.rpartition("@")
+    domain = domain.rstrip(".")
+    try:
+        domain = domain.encode("idna").decode("ascii")
+    except UnicodeError:
+        pass
+    local = local.split("+", 1)[0]
+    if domain in _PLUS_TAG_FREE:
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}" if local and domain else normal
+
+
 def recipient_values(parameters: Optional[Iterable[Any]]) -> List[Optional[str]]:
     """The values the parameters give for the recipient (the parameter name
     compared ignoring case and surrounding space, as a looser reader would),

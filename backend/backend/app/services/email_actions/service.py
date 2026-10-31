@@ -52,7 +52,7 @@ from backend.app.schemas.webhook import (
 )
 from backend.app.services import action_conditions
 from backend.app.services.calculated_fields import hidden_calculation_ids
-from backend.app.services.copy_recipient import normalize_address
+from backend.app.services.copy_recipient import normalize_address, rate_limit_key
 from backend.app.services.email_actions import templates
 from backend.app.services.email_actions.mode import (
     email_actions_enabled,
@@ -102,6 +102,15 @@ COPY_ADDRESS_FORM_SCOPE = "email_copy_address_form"
 COPY_ADDRESS_FORM_PER_HOUR = 3
 COPY_ADDRESS_SCOPE = "email_copy_address"
 COPY_ADDRESS_PER_HOUR = 10
+# all the copies of one workspace together (owner decision)
+COPY_WORKSPACE_SCOPE = "email_copy_workspace"
+COPY_WORKSPACE_PER_HOUR = 1000
+# the team's mails of one form: a submission flood cannot drain the instance's mail quota
+TEAM_FORM_SCOPE = "email_team_form"
+TEAM_FORM_PER_HOUR = 600
+# a delivery counts against the limits once, however many attempts it takes
+COUNTED_SCOPE = "email_counted"
+COUNTED_TTL = dt.timedelta(hours=3)
 HOUR = 3600
 _OPEN_STATES = (LogStatus.PENDING, LogStatus.RETRYING)
 
@@ -851,7 +860,7 @@ class EmailActionService:
             )
         else:
             subject, body = templates.render_respondent(
-                entries, form_title=title, submitted_at=when, language=language
+                entries, submitted_at=when, language=language
             )
         now = self._clock()
         log = await self._logs.create(
@@ -1076,11 +1085,13 @@ class EmailActionService:
             address = respondent_address(form, action.respondent_field, answers)
             if address is None:
                 return await self._cancel(log, "no_address")
-            if not await self._copy_within_limits(log.form_id, address):
+            if await self._first_attempt(log) and not await self._copy_within_limits(
+                log.workspace_id, log.form_id, address
+            ):
                 return await self._cancel(log, "rate_limited")
             recipients = [address]
             subject, body = templates.render_respondent(
-                entries, form_title=title, submitted_at=when, language=language
+                entries, submitted_at=when, language=language
             )
         else:
             recipients = await self._copy.allowed_among(
@@ -1088,6 +1099,10 @@ class EmailActionService:
             )
             if not recipients:
                 return await self._cancel(log, "recipient_not_allowed")
+            if await self._first_attempt(log) and not await self._team_within_limit(
+                log.form_id
+            ):
+                return await self._cancel(log, "rate_limited")
             template = action.nl if language == "nl" else action.en
             subject = templates.render(
                 template.subject, entries, form_title=title, submitted_at=when,
@@ -1110,15 +1125,37 @@ class EmailActionService:
         logger.info("email delivered: delivery={} attempts={}", log.id, log.attempts)
         return Outcome("delivered")
 
-    async def _copy_within_limits(self, form_id: str, address: str) -> bool:
-        """The respondent's copy: per form, per address and form, per address.
-        The counters are keyed hashes: none names an address."""
+    async def _first_attempt(self, log: ActionLogDocument) -> bool:
+        """True the first time a delivery asks, False on every later attempt
+        (a one-time claim on its id, whichever replica): a mail counts against
+        the limits once, so a retried mail is not cancelled as ``rate_limited``
+        by its own earlier attempt."""
         if self._limiter is None:
             return True
+        return await self._limiter.claim(
+            COUNTED_SCOPE, str(log.id), self._clock() + COUNTED_TTL
+        )
+
+    async def _team_within_limit(self, form_id: str) -> bool:
+        if self._limiter is None:
+            return True
+        verdict = await self._limiter.hit(TEAM_FORM_SCOPE, str(form_id), TEAM_FORM_PER_HOUR, HOUR)
+        return verdict.allowed
+
+    async def _copy_within_limits(self, workspace_id, form_id: str, address: str) -> bool:
+        """The respondent's copy: per workspace, per form, per mailbox and
+        form, per mailbox. A mailbox is :func:`rate_limit_key` (case, ``+tag``,
+        Gmail dots and the spelling of the domain do not make a new one); the
+        address itself is mailed as typed. The counters are keyed hashes: none
+        names an address."""
+        if self._limiter is None:
+            return True
+        key = rate_limit_key(address) or address
         checks = (
+            (COPY_WORKSPACE_SCOPE, str(workspace_id), COPY_WORKSPACE_PER_HOUR),
             (COPY_FORM_SCOPE, str(form_id), COPY_FORM_PER_HOUR),
-            (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{address}", COPY_ADDRESS_FORM_PER_HOUR),
-            (COPY_ADDRESS_SCOPE, address, COPY_ADDRESS_PER_HOUR),
+            (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{key}", COPY_ADDRESS_FORM_PER_HOUR),
+            (COPY_ADDRESS_SCOPE, key, COPY_ADDRESS_PER_HOUR),
         )
         allowed = True
         for scope, client, limit in checks:
