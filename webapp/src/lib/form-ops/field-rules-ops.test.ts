@@ -236,3 +236,40 @@ describe('field rule checks', () => {
         expect(circles).toHaveLength(1);
     });
 });
+
+describe("replace_field (the builder's own edit) and field rules", () => {
+    const replaceWith = (doc: FormDoc, id: string, change: (field: any) => void) => {
+        const field = thawed(locateField(doc, id).field) as any;
+        change(field);
+        return run([{ op: 'replace_field', field }], doc);
+    };
+
+    it('drops the rules a question made internal leaves dangling, with a note, instead of refusing', () => {
+        const { doc, results } = replaceWith(withRules(), 'q_country', (field) => (field.internal = true));
+        expect(results[0].ok, results[0].message).toBe(true);
+        expect(results[0].message).toBe("Replaced 'Country' (and 1 field rule(s) that used it)");
+        expect(rulesOf(doc, 'q_postcode')).toBeUndefined();
+        expect(locateField(doc, 'q_country').field.internal).toBe(true);
+    });
+
+    it('drops the rules of a question retyped to one that cannot carry rules', () => {
+        const { doc, results } = replaceWith(withRules(), 'q_postcode', (field) => (field.type = 'statement'));
+        expect(results[0].ok, results[0].message).toBe(true);
+        expect(results[0].message).toContain('1 field rule(s)');
+        expect(rulesOf(doc, 'q_postcode')).toBeUndefined();
+    });
+
+    it('is undone exactly', () => {
+        const before = withRules();
+        const { doc, inverse } = replaceWith(before, 'q_country', (field) => (field.internal = true));
+        expect(applyOps(doc, inverse, { atomic: true }).doc).toEqual(before);
+    });
+
+    it('still refuses what no single rule is to blame for: a circle of set values', () => {
+        const set = (id: string, from: string) => ({ id, when: { expression: true }, then: { setValue: { expression: { '+': [{ var: from }, 1] } } } });
+        const doc = run([{ op: 'set_field_rules', fieldId: 'q_qty', rules: [set('ra', 'q_total')] }]).doc;
+        const { results } = replaceWith(doc, 'q_total', (field) => (field.properties = { ...(field.properties ?? {}), rules: [set('rb', 'q_qty')] }));
+        expect(results[0].ok).toBe(false);
+        expect(results[0].message).toContain('in a circle');
+    });
+});

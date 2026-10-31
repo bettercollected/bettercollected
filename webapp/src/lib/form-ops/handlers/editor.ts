@@ -315,14 +315,23 @@ function internalLogicViolations(doc: FormDoc): string[] {
     return problems;
 }
 
-/** The first problem a whole-form save would refuse in `after` that `before` did not have. */
-function newProblem(before: FormDoc, after: FormDoc): string | null {
+/**
+ * The first problem a whole-form save would refuse in `after` that `before`
+ * did not have. With `pruneRules`, a problem with one field rule (a reference
+ * it lost, a type it no longer fits) is not one: the caller drops such rules
+ * with a note, as the server's builder save does; only what no single rule
+ * is to blame for (too many rules, too costly, a circle) is still refused.
+ */
+function newProblem(before: FormDoc, after: FormDoc, pruneRules = false): string | null {
     const known = new Set(internalLogicViolations(before));
     for (const problem of internalLogicViolations(after)) if (!known.has(problem)) return problem;
     const knownRules = new Set(dateRuleProblems(before.fields));
     for (const problem of dateRuleProblems(after.fields)) if (!knownRules.has(problem)) return problem;
     const knownFieldRules = new Set(fieldRuleProblems(before).map((problem) => problem.message));
-    for (const problem of fieldRuleProblems(after)) if (!knownFieldRules.has(problem.message)) return problem.message;
+    for (const problem of fieldRuleProblems(after)) {
+        if (pruneRules && (problem.rule !== undefined || problem.wholeField)) continue;
+        if (!knownFieldRules.has(problem.message)) return problem.message;
+    }
     return null;
 }
 
@@ -392,12 +401,13 @@ export const replaceField: Handler<ReplaceFieldOp> = (ctx, op) => {
     if (location.parent) checkChildType(field.type, field.internal);
     const list = location.container.map((f, i) => (i === location.position ? field : f));
     const groupPos = location.parent ? location.parentPos : null;
-    const problem = newProblem(ctx.state, withList(ctx.state, location.pagePos, groupPos, list));
+    const problem = newProblem(ctx.state, withList(ctx.state, location.pagePos, groupPos, list), true);
     if (problem) throw new OpError(problem);
     setFields(ownerDraft(ctx, location.pagePos, groupPos), list);
     const kept = subtreeIds(field);
     const gone = new Set([...subtreeIds(location.field)].filter((id) => !kept.has(id)));
-    return `Replaced '${titleText(field)}'${droppedReferencesNote(ctx, gone)}`;
+    // Field rules the new question leaves dangling (made internal, retyped, or one that read it) are dropped, with a note.
+    return `Replaced '${titleText(field)}'${droppedRulesNote()}${droppedReferencesNote(ctx, gone)}`;
 };
 
 export const insertPage: Handler<InsertPageOp> = (ctx, op) => {

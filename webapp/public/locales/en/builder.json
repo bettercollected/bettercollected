@@ -817,6 +817,7 @@
     "BADGE_TITLE_other": "This question has {{count}} rules",
     "FLOW_BADGE_one": "{{count}} with rules",
     "FLOW_BADGE_other": "{{count}} with rules",
-    "MISSING_SOURCE": "(question no longer on the form)"
+    "MISSING_SOURCE": "(question no longer on the form)",
+    "REFUSED": "Not changed: it would break a rule of this form. {{reason}}"
   }
 }

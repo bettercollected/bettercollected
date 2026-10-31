@@ -817,6 +817,7 @@
     "BADGE_TITLE_other": "Deze vraag heeft {{count}} regels",
     "FLOW_BADGE_one": "{{count}} met regels",
     "FLOW_BADGE_other": "{{count}} met regels",
-    "MISSING_SOURCE": "(vraag staat niet meer in het formulier)"
+    "MISSING_SOURCE": "(vraag staat niet meer in het formulier)",
+    "REFUSED": "Niet aangepast: het zou een regel van dit formulier breken. {{reason}}"
   }
 }
