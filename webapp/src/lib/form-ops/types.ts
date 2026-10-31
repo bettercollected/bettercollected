@@ -126,6 +126,10 @@ export interface FormSettingsPatch {
     requireVerifiedIdentity?: boolean | null;
     allowEditingResponse?: boolean | null;
     showSubmissionNumber?: boolean | null;
+    /** Let respondents save a draft and continue later (off by default). */
+    allowSaveDraft?: boolean | null;
+    /** Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30. */
+    draftRetentionDays?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,6 +510,12 @@ export interface ApplyOptions {
      * backend's apply_settings_ops does to the stored settings. Default true;
      * false leaves settings alone, as the backend's form engine does.
      */
+    /**
+     * Whether the server lets respondents save drafts (its SAVE_DRAFTS_ENABLED).
+     * `false`: an op that turns "save and continue later" on is refused, as the
+     * server's engine refuses it; absent: the server decides.
+     */
+    saveDraftsEnabled?: boolean;
     applySettings?: boolean;
     /**
      * Is this address one of our own storage's public images? It depends on

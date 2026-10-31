@@ -44,6 +44,7 @@ import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import FeedbackStatusesEditor from '@Components/dashboard/feedback-statuses-editor';
 import { OpenDateControl, ResponseLimitControl } from '@Components/dashboard/form-availability-controls';
+import { DraftRetentionControl } from '@Components/dashboard/form-draft-controls';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -187,7 +188,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     };
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
-    const { can } = useWorkspacePermissions();
+    const { can, saveDraftsEnabled } = useWorkspacePermissions();
     // owners hold workspace.billing, so the Pro upsell is theirs
     const isAdmin = can(WorkspacePermission.WORKSPACE_BILLING);
     const canEditForm = can(WorkspacePermission.FORM_EDIT);
@@ -378,6 +379,30 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     data-testid="respondent-feedback-switch"
                                     checked={!!form?.settings?.respondentFeedbackEnabled}
                                     onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
+                                />
+                            </SettingRow>
+                        )}
+                        {form?.settings?.provider === 'self' && (
+                            <SettingRow
+                                title={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.TITLE')}
+                                description={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.DESCRIPTION')}
+                                hint={
+                                    !saveDraftsEnabled ? (
+                                        // Read-only while the server has the feature switched off (SAVE_DRAFTS_ENABLED).
+                                        <span data-testid="save-draft-off-note" className="text-black-600 flex items-center gap-1 text-xs">
+                                            <Lock className="h-3 w-3" /> {t('FORM_PAGE.SETTINGS.SAVE_DRAFT.OFF_NOTE')}
+                                        </span>
+                                    ) : form?.settings?.allowSaveDraft ? (
+                                        <DraftRetentionControl key={`draft-days-${form.formId}`} value={form?.settings?.draftRetentionDays} onSave={(draftRetentionDays) => patchSettings({ draftRetentionDays }, form)} />
+                                    ) : undefined
+                                }
+                            >
+                                <Switch
+                                    data-umami-event="Save Draft Switch"
+                                    data-testid="save-draft-switch"
+                                    disabled={!saveDraftsEnabled}
+                                    checked={!!form?.settings?.allowSaveDraft}
+                                    onCheckedChange={(checked) => patchSettings({ allowSaveDraft: checked }, form)}
                                 />
                             </SettingRow>
                         )}

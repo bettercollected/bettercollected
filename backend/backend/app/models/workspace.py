@@ -259,6 +259,11 @@ class WorkspaceFormSettings(BaseModel):
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
+    # "Let respondents save and continue later" (services/form_drafts): off by
+    # default; drafts are kept ``draft_retention_days`` days (none = the
+    # default of 30), encrypted, apart from the responses.
+    allow_save_draft: Optional[bool] = None
+    draft_retention_days: Optional[int] = None
     show_original_form: Optional[bool] = None
     # "Allow AI insights on responses" (#716): off by default, admins only.
     # While on, respondents see a notice naming the provider, and only

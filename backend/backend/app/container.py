@@ -4,6 +4,7 @@ from pathlib import Path
 from concurrent.futures.thread import ThreadPoolExecutor
 
 from common.configs.crypto import Crypto
+from common.services.crypto_service import crypto_service
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
@@ -56,6 +57,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
+from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepository
 from backend.app.repositories.postgres.webhooks import (
     PostgresActionLogRepository,
     PostgresFormWebhookRepository,
@@ -143,6 +145,7 @@ from backend.app.services.workspace_selection_service import (
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
+from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
@@ -250,6 +253,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     webhook_audit_repo: PostgresWebhookAuditRepository = providers.Singleton(
         PostgresWebhookAuditRepository, pg_sessionmaker
+    )
+    form_draft_repo: PostgresFormDraftRepository = providers.Singleton(
+        PostgresFormDraftRepository, pg_sessionmaker
     )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
@@ -424,6 +430,20 @@ class AppContainer(containers.DeclarativeContainer):
         webhook_log_repo=action_log_repo,
     )
 
+    # saved drafts of a form (answers encrypted with the response keyset)
+    form_draft_service: FormDraftService = providers.Singleton(
+        FormDraftService,
+        draft_repo=form_draft_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        workspace_repo=workspace_repo,
+        form_response_service=form_response_service,
+        crypto=providers.Object(crypto_service),
+        rate_limiter=rate_limiter,
+        http_client=http_client,
+        secret=settings.auth_settings.JWT_SECRET,
+    )
+
     respondent_feedback_service: RespondentFeedbackService = providers.Singleton(
         RespondentFeedbackService,
         form_response_repo=form_response_repo,
@@ -511,6 +531,7 @@ class AppContainer(containers.DeclarativeContainer):
         # the registration service needs this service's neighbours: looked up per call
         registration_service=LazyRepository(lambda: container.registration_service()),
         webhook_service=LazyRepository(lambda: container.webhook_service()),
+        draft_service=form_draft_service,
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -637,6 +658,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_domain_service=workspace_domain_service,
         registration_service=registration_service,
         webhook_service=webhook_service,
+        draft_service=form_draft_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
@@ -753,6 +775,7 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         allowed_origins_repo=allowed_origins_repo,
         sso_policy=sso_policy_service,
+        draft_service=form_draft_service,
     )
 
     # admin task auth.resolve_case_duplicate_accounts (admin_tasks_router)

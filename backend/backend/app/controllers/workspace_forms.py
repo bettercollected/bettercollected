@@ -608,6 +608,10 @@ class WorkspaceFormsRouter(Routable):
         ai_notice_token: Optional[str] = Form(None),
         # the respondent's local date (YYYY-MM-DD) their calculations used
         today: Optional[str] = Form(None),
+        # the edit key or magic-link token of the draft this submission
+        # finishes (services/form_drafts); the draft is deleted once the
+        # response is stored
+        draft_key: Optional[str] = Form(None, max_length=100),
         user: User = Depends(get_user_if_logged_in),
     ):
         form_files = None
@@ -636,6 +640,15 @@ class WorkspaceFormsRouter(Routable):
             # a closed form is judged at the time the request arrived
             received_at=getattr(request.state, "received_at", None),
         )
+        if user is not None or draft_key:
+            # the submission is stored: its draft goes (never fails the submit)
+            await container.form_draft_service().delete_after_submit(
+                workspace_id,
+                str(form_id),
+                user,
+                edit_key=draft_key,
+                token=draft_key,
+            )
         # The stored response carries the form's retention (applied by the
         # service), not only what the client sent.
         if response.expiration and response.expiration_type not in [

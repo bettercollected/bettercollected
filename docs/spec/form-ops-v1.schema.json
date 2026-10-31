@@ -1839,6 +1839,32 @@
           ],
           "default": null,
           "title": "Showsubmissionnumber"
+        },
+        "allowSaveDraft": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Let respondents save a draft and continue later (off by default).",
+          "title": "Allowsavedraft"
+        },
+        "draftRetentionDays": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
+          "title": "Draftretentiondays"
         }
       },
       "title": "FormSettingsPatch",

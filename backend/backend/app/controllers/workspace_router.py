@@ -11,6 +11,7 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.services.field_rules import field_rules_enabled
+from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -219,6 +220,7 @@ class WorkspaceRouter(Routable):
         return WorkspacePermissionsDto(
             permissions=sorted(permissions, key=lambda p: p.value),
             field_rules_enabled=field_rules_enabled(),
+            save_drafts_enabled=save_drafts_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")

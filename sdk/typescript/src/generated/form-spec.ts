@@ -601,6 +601,14 @@ export interface Trust {
   requireVerifiedIdentity?: boolean | null;
   allowEditingResponse?: boolean | null;
   showSubmissionNumber?: boolean | null;
+  /**
+   * Let respondents save a draft and continue later (off by default). Drafts are encrypted, kept apart from the responses and deleted after draftRetentionDays.
+   */
+  allowSaveDraft?: boolean | null;
+  /**
+   * How many days after the last save a draft is kept, 1 to 90; left out, 30.
+   */
+  draftRetentionDays?: number | null;
 }
 /**
  * How long answers are kept: a number of days, until a date

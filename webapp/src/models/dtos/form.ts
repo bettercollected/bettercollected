@@ -234,6 +234,10 @@ export interface StandardFormDto {
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
         allowEditingResponse?: boolean;
+        /** "Let respondents save and continue later": drafts kept apart from the responses (off by default). */
+        allowSaveDraft?: boolean | null;
+        /** Days a draft is kept after its last save, 1 to 90; absent = 30 (utils/form-drafts.ts DEFAULT_DRAFT_DAYS). */
+        draftRetentionDays?: number | null;
         showOriginalForm?: boolean;
         /** "Respond to submissions": staff post updates respondents see. */
         respondentFeedbackEnabled?: boolean;

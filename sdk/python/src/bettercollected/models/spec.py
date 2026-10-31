@@ -505,6 +505,16 @@ class ThemeBackground(BaseModel):
     )
 
 
+class DraftRetentionDays(RootModel[int]):
+    root: int = Field(
+        None,
+        description="How many days after the last save a draft is kept, 1 to 90; left out, 30.",
+        ge=1,
+        le=90,
+        title="Draftretentiondays",
+    )
+
+
 class Trust(BaseModel):
     """
     What respondents are told about their data, and how answers are
@@ -537,6 +547,18 @@ class Trust(BaseModel):
     )
     show_submission_number: bool | None = Field(
         None, alias="showSubmissionNumber", title="Showsubmissionnumber"
+    )
+    allow_save_draft: bool | None = Field(
+        None,
+        alias="allowSaveDraft",
+        description="Let respondents save a draft and continue later (off by default). Drafts are encrypted, kept apart from the responses and deleted after draftRetentionDays.",
+        title="Allowsavedraft",
+    )
+    draft_retention_days: DraftRetentionDays | None = Field(
+        None,
+        alias="draftRetentionDays",
+        description="How many days after the last save a draft is kept, 1 to 90; left out, 30.",
+        title="Draftretentiondays",
     )
 
 

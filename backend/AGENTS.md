@@ -909,6 +909,56 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
 - Tests: `tests/app/webhooks/` (SSRF matrix `test_guard.py`, delivery, retries, rebinding and erasure
   `test_delivery.py`, secrets, audit, log, purge, privacy `test_api.py`, roles `test_permissions.py`).
 
+## Drafts (save and continue later)
+
+Behind the server switch `SAVE_DRAFTS_ENABLED` (default off until it is released; `services/form_drafts/mode.py`, served as `saveDraftsEnabled` by `GET /workspaces/{id}/permissions`) and a per-form setting, off by default (`WorkspaceFormSettings.allow_save_draft`, `draft_retention_days` 1 to 90, none =
+30; settings PATCH, spec `trust.allowSaveDraft` / `draftRetentionDays`, the `update_form_settings` op, MCP and the SDKs)
+lets respondents save what they typed and carry on later. Code in `services/form_drafts/` (`limits.py` the numbers,
+`tokens.py` the secrets, `service.py` the logic), table `form_drafts` (revision 0027, in `NOT_IMPORTED_TABLES`),
+router `controllers/form_drafts_router.py`, daily job `purge_form_drafts` (default queue). Rules to keep:
+
+- **The switch.** Off: turning the setting on is refused (422 `save_drafts_disabled`, `ensure_save_drafts_allowed`) on the
+  settings PATCH, the spec API (create, replace, its dry run and validation), and the operations engine (so the AI, MCP,
+  the public API and the editor's dry run too); a form that already has it on keeps it. Saving, opening, and sending a
+  link are refused like a form that keeps none (404 `drafts_off`), respondents are served the form without the setting
+  (`strip_internal_fields`, the stubs), the purge removes what is left, and discard still works. Copies and templates
+  never carry the setting. Tests: `tests/app/form_drafts/test_switch.py`.
+- **The mail** carries fixed wording and the link only: no form title, no organisation, no answer. Link requests are also
+  capped at 1,000 per workspace per hour.
+- **A draft is not a response.** Own table, never read by the responses repositories, so it is in no list, export,
+  count, response limit, action, webhook or registration until submitted. The submit is the normal
+  `WorkspaceFormService.submit_response`, every gate included; the route takes an optional `draft_key` form field and
+  deletes the draft after the response is stored (`delete_after_submit`, never fails the submit). What a submit
+  stores is untouched.
+- **Encrypted** with the response keyset (`crypto_service`): answers, hidden-field values and the page position are one
+  payload, bound to workspace, form **and the draft id** (context `draft|<id>`), so it cannot be moved to another
+  draft or read as a response. Files are not saved. Never log or return it except to its owner; every draft route
+  is `no-store` (`middlewares/request_privacy.py`).
+- **Who owns it.** Signed in: one draft per (workspace, form, account) (unique index), found by the session. Not
+  signed in: the magic link, `POST .../drafts/link` with an address. The address is used for one mail through the
+  auth service (`/notifications/draft-link`, internal key, fixed EN/NL template, the link must be a form page of the
+  client host with `#resume=<token>`) and is **never stored** (only `email_key`, a keyed hash, to cap drafts per
+  address). The token is `<draft id>.<256 random bits>`, stored as a keyed hash (`tokens.py`, one label per purpose),
+  compared with `hmac.compare_digest`, expires after 7 days or with the draft, is replaced by every new link, and
+  opens only its draft. The fragment keeps it out of server logs and Referer. The browser that created the draft also
+  gets an *edit key* (another purpose, never valid as a token) to save again without another mail. Forms that
+  require a verified identity send no links (403 `sign_in_required`).
+- **Every refusal alike.** An unknown, expired, malformed, other-form or other-workspace token is one 404
+  `draft_not_found`; the compare runs even when there is no draft. Open failures count per client.
+- **Rate limits** (`limits.py`, `rate_limiter.py`): link requests per address+form, per client and per form; saves per
+  client; opens and failed opens per client; at most 5 live drafts per address and form; body capped at 256 KB (+ keys)
+  and nesting at 16 levels (413 `draft_too_large`, bad JSON 422, never a 500).
+- **Retention.** `draft_retention_days` from the last save, never past 90 days from the first save, never past a
+  fixed retention date of the form. Purge: expired rows, and rows of forms that no longer keep drafts or no longer
+  exist. Turning the setting off stops saves and opens at once (404 `drafts_off`).
+- **Erasure.** Discard (`POST .../drafts/discard`, allowed after the form stopped keeping drafts), submit, deleting a
+  form, unlinking it from a workspace, deleting a workspace and deleting an account (`delete_for_account`, every
+  workspace) all delete drafts.
+- **A form that changed, closed or filled.** The draft records the version the answers were given against; opening
+  says `formChanged`; a form that takes no responses answers `unavailable` (closed, not_yet_open, full) without
+  handing answers back, and refuses saves with the submit's 409s.
+- Tests: `tests/app/form_drafts/` (API, magic link, isolation/erasure/purge, setting), `auth/tests/.../test_draft_link_notice.py`.
+
 ## Registration of submissions (case systems)
 
 Behind `OPEN_FORMULIEREN_REGISTRATION=on|off` (default off; `config/registration_settings.py`, read at call time
