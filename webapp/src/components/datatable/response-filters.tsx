@@ -6,7 +6,7 @@ import { responsesListLocale as text } from '@app/constants/locales/responses-li
 import { cn } from '@app/shadcn/util/lib';
 import { DELETION_STATUSES, RESPONDENTS, ResponseListState, ResponseSort, SORTS, activeFilterCount } from '@app/utils/response-list-state';
 
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white px-3 text-sm focus:outline-hidden focus-visible:ring-2';
+const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
 
 const STATUS_LABEL = { none: text.statusNone, pending: text.statusPending, declined: text.statusDeclined } as const;
 const WHO_LABEL = { anonymous: text.whoAnonymous, known: text.whoKnown } as const;

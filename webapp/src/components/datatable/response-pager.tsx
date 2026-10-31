@@ -74,7 +74,7 @@ export default function ResponsePager({ label, page, size, total, totalExact, ha
                 <label className="text-black-700 flex items-center gap-2 text-sm">
                     {t(text.pageSize)}
                     <select
-                        className="border-black-300 text-black-900 focus-visible:ring-brand-500 h-9 rounded border bg-white px-2 text-sm focus:outline-hidden focus-visible:ring-2"
+                        className="border-black-300 text-black-900 focus-visible:ring-brand-500 h-9 w-20 rounded border bg-white py-0 pl-3 pr-8 text-sm focus:outline-hidden focus-visible:ring-2"
                         value={size}
                         onChange={(event) => onSizeChange(Number(event.target.value) as PageSize)}
                     >
