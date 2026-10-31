@@ -1,0 +1,1 @@
+- With `DB_AUTO_MIGRATE` on, the backend now also removes, at startup, the response data that 4.1.x left in queued action jobs, as `python -m backend.jobs.schema` does at deploy. A stack upgraded by swapping images no longer keeps that data until someone runs the command. The step is idempotent, logs counts only, and never stops the start.

@@ -13,6 +13,7 @@ from loguru import logger
 
 from backend.app.services.action_run_token import VALID, check_run_token
 from backend.jobs.legacy import run, scrub_legacy_action_jobs
+from common.db.flags import JobsBackend
 from tests.app.jobs.test_executor_role import db  # noqa: F401 - fixture
 from tests.app.jobs.test_executor_role import pytestmark  # noqa: F401
 
@@ -167,3 +168,70 @@ async def test_the_log_holds_counts_only(db):
     assert "1 deleted, 1 rewritten" in text
     for content in (ANSWER, SECRET, "responder@example.org", "r1", "a2", "w2"):
         assert content not in text
+
+
+# -- at the backend's startup, with DB_AUTO_MIGRATE on ------------------------------
+# A stack that upgrades by swapping images never runs ``python -m
+# backend.jobs.schema``; the backend's startup scrubs instead.
+
+
+class _Flags:
+    def __init__(self, backend):
+        self.backend = backend
+
+    def jobs_backend(self, job):
+        return self.backend
+
+
+class _Engine:
+    def __init__(self, url):
+        from sqlalchemy.engine import make_url
+
+        self.url = make_url(url)
+
+
+async def _startup_scrub(db, env, backend=JobsBackend.POSTGRES):
+    from backend.db.startup import scrub_legacy_action_jobs
+
+    await scrub_legacy_action_jobs(_Flags(backend), _Engine(db.url("app")), env=env)
+
+
+async def test_the_backend_start_scrubs_when_it_migrates(db):
+    await _insert(db, "succeeded", legacy_args(1))
+    waiting = await _insert(db, "todo", legacy_args(2))
+
+    await _startup_scrub(db, {"DB_AUTO_MIGRATE": "true"})
+
+    rows = await _rows(db)
+    assert [row[0] for row in rows] == [waiting]
+    assert "response" not in rows[0][2] and "run_token" in rows[0][2]
+
+
+@pytest.mark.parametrize(
+    "env, backend",
+    [({}, JobsBackend.POSTGRES), ({"DB_AUTO_MIGRATE": "true"}, JobsBackend.TEMPORAL)],
+    ids=["no-auto-migrate", "no-postgres-jobs"],
+)
+async def test_the_backend_start_leaves_the_queue_alone_otherwise(db, env, backend):
+    await _insert(db, "succeeded", legacy_args(1))
+    before = await _rows(db)
+    await _startup_scrub(db, env, backend)
+    assert await _rows(db) == before
+
+
+async def test_a_failed_scrub_at_startup_is_logged_and_the_start_goes_on(
+    db, monkeypatch
+):
+    async def broken(url):
+        raise RuntimeError(f"cannot reach {url}")
+
+    monkeypatch.setattr("backend.db.startup.scrub_at", broken)
+    lines = []
+    sink = logger.add(lambda message: lines.append(str(message)), level="DEBUG")
+    try:
+        await _startup_scrub(db, {"DB_AUTO_MIGRATE": "true"})
+    finally:
+        logger.remove(sink)
+    text = "".join(lines)
+    assert "scrub at startup failed (RuntimeError)" in text
+    assert "cannot reach" not in text  # no URL, no credentials in the log

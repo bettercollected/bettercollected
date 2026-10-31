@@ -4,7 +4,9 @@
 as the backend's role (bc_app owns ``jobs``). Idempotent: a no-op when the
 queue table already exists, so it cannot hang or half-apply a second time.
 With ``DB_AUTO_MIGRATE=true`` the backend applies it itself at startup under an
-advisory lock (:data:`JOBS_SCHEMA`, wired in ``backend.db.startup``).
+advisory lock (:data:`JOBS_SCHEMA`, wired in ``backend.db.startup``), and then
+also runs the scrub of 4.1.x action jobs (:func:`scrub_at`), so a stack that
+upgrades by swapping images gets it without running this command.
 """
 
 from __future__ import annotations
@@ -167,6 +169,16 @@ async def scrub() -> dict:
 
     async with app.open_async():
         return await run(app)
+
+
+async def scrub_at(database_url: str) -> dict:
+    """:func:`scrub` on a connector of its own (the backend's startup, where the
+    process-wide app is opened separately)."""
+    from backend.jobs.legacy import run
+
+    jobs_app = App(connector=build_connector(database_url))
+    async with jobs_app.open_async():
+        return await run(jobs_app)
 
 
 if __name__ == "__main__":
