@@ -489,3 +489,60 @@ async def test_a_test_event_is_bound_to_its_host_too(setup):
     await _change_url(setup, "https://elsewhere.example.net/hook")
     assert (await container.webhook_service().run_delivery(queued.id)).status == "cancelled"
     assert setup.tls.requests == []
+
+
+# --------------------------------------------------------- the attempt cap
+
+
+async def test_fresh_jobs_never_give_a_delivery_more_than_the_attempt_cap(setup):
+    """The sweep (or the switch coming back on) queues a new job, whose own
+    attempt count starts at 0: the row's count is what limits the delivery."""
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    setup.tls.script.answers = [(503, {}, b"down")]
+    repo = container.action_log_repo()
+    for _ in range(MAX_ATTEMPTS - 1):
+        outcome = await run(log, 0)  # a brand new job each time
+        assert (outcome.status, outcome.retry) == ("retrying", True)
+        row = await repo.get(log.id)
+        row.status = LogStatus.PENDING  # as the sweep puts a lost one back
+        await repo.upsert(row)
+    last = await run(log, 0)
+    row = await repo.get(log.id)
+    assert (last.status, last.retry) == ("failed", False)
+    assert row.status is LogStatus.FAILED and row.attempts == MAX_ATTEMPTS
+    assert len(setup.tls.requests) == MAX_ATTEMPTS
+    assert (await run(log, 0)).status == "skipped" and len(setup.tls.requests) == MAX_ATTEMPTS
+
+
+async def test_the_backoff_follows_the_rows_count_not_the_jobs(setup):
+    response = await submit(setup.workspace, setup.form)
+    log = await log_of(setup, response)
+    setup.tls.script.answers = [(503, {}, b"down")]
+    repo = container.action_log_repo()
+    waits = []
+    for _ in range(3):
+        await run(log, 0)
+        row = await repo.get(log.id)
+        waits.append((row.next_attempt_at - row.last_attempt_at).total_seconds())
+        row.status = LogStatus.PENDING
+        await repo.upsert(row)
+    assert waits[0] < waits[1] < waits[2]
+
+
+async def test_the_log_rows_of_a_response_are_deleted_within_its_workspace_and_form_only(setup):
+    response = await submit(setup.workspace, setup.form)
+    repo = container.action_log_repo()
+    (log,) = [r for r in await logs_of(setup.form) if r.response_id == response.response_id]
+    # the same response id under another workspace or form is not touched
+    for index, other in enumerate(({"workspace_id": "6a2f00000000000000000001"}, {"form_id": "6a2f00000000000000000002"})):
+        twin = log.model_copy(deep=True)
+        twin.id = None
+        twin.ensure_id()
+        twin.action_id = f"other-hook-{index}"
+        for key, value in other.items():
+            setattr(twin, key, value)
+        await repo.upsert(twin)
+    before = len(await repo.many())
+    assert await repo.delete_by_response_id(setup.workspace.id, setup.form.form_id, response.response_id) == 1
+    assert len(await repo.many()) == before - 1

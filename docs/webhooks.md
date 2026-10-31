@@ -7,10 +7,10 @@ A form's owners and admins can send the answers of chosen questions to an https 
 
 `WEBHOOKS_ENABLED` (`true` / `false`, default `false`; [settings inventory](settings-inventory.md)). While it is off:
 
-- creating a webhook, switching one on, rotating nothing and sending a test event answer **422** `webhooks_off`;
+- creating a webhook, switching one on and sending a test event answer **422** `webhooks_off`;
 - no submission queues a delivery, the jobs send nothing (a delivery waiting for a retry is parked and queued again when the switch is turned on), and the
   respondent's privacy panel names no destination;
-- saved webhooks and the delivery log stay as they are; a webhook can still be switched off, edited without switching on, or deleted.
+- everything else still answers: the list and detail reads, edits that do not switch one on, switching one off, deleting, rotating a secret, the delivery log and the change history. Saved webhooks and the log stay as they are.
 
 ## What a webhook is
 
@@ -148,7 +148,11 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Limits and abuse
 
 - 5 webhooks per form; 100 questions per webhook; bodies up to 1 MB.
-- Test events: 5 per workspace per minute (429 `rate_limited` with `Retry-After`).
+- Test events: 5 per workspace per minute; address checks (create, address edits, switching on, each of which resolves the name): 30 per workspace per minute, so the
+  answers "not public" / "does not resolve" cannot be used to probe names in bulk (429 `rate_limited` with `Retry-After`).
+- Rotating a secret has **no grace period**: the old one stops working at once. Deliveries are signed when they are sent, so one that was queued earlier is signed
+  with the new secret. Update the receiving system right after rotating.
+- The delivery's attempt count is the log row's own, so a job queued afresh (after the switch was off, or by the sweep) never gives a delivery more than 6 attempts.
 - The destination can learn that a submission happened and the mapped answers, nothing else. The creator learns only a status code, a time and one of our
   codes, never a reply: a webhook is not a way to read an internal service.
 - Deliveries are sent by at most `JOBS_CONCURRENCY` (default 4) at a time per worker, each bounded to 20 s.

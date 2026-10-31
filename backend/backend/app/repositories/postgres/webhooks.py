@@ -217,8 +217,14 @@ class PostgresActionLogRepository(RecordRepository):
         """Delete every row created before ``cutoff`` (the 30-day retention)."""
         return await self.delete_where(ActionLogRow.created_at < cutoff)
 
-    async def delete_by_response_id(self, response_id) -> int:
-        return await self.delete_where(ActionLogRow.response_id == _id(response_id))
+    async def delete_by_response_id(self, workspace_id, form_id, response_id) -> int:
+        """The rows of one response of one form of one workspace (a response id
+        alone is not scoped: a response is stored once per workspace)."""
+        return await self.delete_where(
+            ActionLogRow.workspace_id == _id(workspace_id),
+            ActionLogRow.form_id == _id(form_id),
+            ActionLogRow.response_id == _id(response_id),
+        )
 
     async def delete_for_form(self, workspace_id, form_id) -> int:
         return await self.delete_where(

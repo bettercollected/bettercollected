@@ -68,6 +68,9 @@ STUCK_AFTER = dt.timedelta(minutes=30)
 SWEEP_BATCH = 200
 MAX_WEBHOOKS_PER_FORM = 5
 MAX_FIELDS = 100
+URL_CHECK_SCOPE = "webhook_url_check"
+URL_CHECK_PER_WINDOW = 30
+URL_CHECK_WINDOW_SECONDS = 60
 TEST_SCOPE = "webhook_test"
 TEST_PER_WINDOW = 5
 TEST_WINDOW_SECONDS = 60
@@ -357,7 +360,27 @@ class WebhookService:
             **_webhook_dto(document).model_dump(), url=self._open_url(document)
         )
 
-    async def _checked_url(self, url: str) -> tuple[str, str]:
+    async def _rate_limit(self, scope, workspace_id, limit, window, message) -> None:
+        if self._limiter is None:
+            return
+        verdict = await self._limiter.hit(scope, str(workspace_id), limit, window)
+        if not verdict.allowed:
+            raise HTTPException(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                content={"code": "rate_limited", "message": message},
+                headers={"Retry-After": str(verdict.retry_after)},
+            )
+
+    async def _checked_url(self, url: str, workspace_id: RecordId) -> tuple[str, str]:
+        # the answers (not allowed / unreachable / ok) say whether a name
+        # resolves to a private address: bounded per workspace
+        await self._rate_limit(
+            URL_CHECK_SCOPE,
+            workspace_id,
+            URL_CHECK_PER_WINDOW,
+            URL_CHECK_WINDOW_SECONDS,
+            "Too many address checks; try again in a minute.",
+        )
         try:
             return await guard.check_destination(url)
         except guard.DestinationRefused as refused:
@@ -470,7 +493,7 @@ class WebhookService:
                 "too_many_webhooks",
                 f"At most {MAX_WEBHOOKS_PER_FORM} webhooks per form.",
             )
-        url, host = await self._checked_url(request.url)
+        url, host = await self._checked_url(request.url, workspace_id)
         fields = await self._checked_fields(
             await self._form_for_variables(form_id), request.fields
         )
@@ -514,7 +537,7 @@ class WebhookService:
             refuse_when_off()
         changed: List[str] = []
         if request.url is not None:
-            url, host = await self._checked_url(request.url)
+            url, host = await self._checked_url(request.url, workspace_id)
             try:
                 same = url == unseal_url(
                     self._crypto, workspace_id, document.id, document.url_sealed
@@ -530,7 +553,7 @@ class WebhookService:
         elif enabling and not document.enabled:
             # switched on: the address is checked again, not trusted from when
             # it was saved
-            await self._checked_url(self._open_url(document))
+            await self._checked_url(self._open_url(document), workspace_id)
         if request.fields is not None:
             fields = await self._checked_fields(
                 await self._form_for_variables(form_id), request.fields
@@ -664,19 +687,13 @@ class WebhookService:
         await self._manage(user, workspace_id, form_id)
         refuse_when_off()
         document = await self._webhook_of(workspace_id, form_id, webhook_id)
-        if self._limiter is not None:
-            verdict = await self._limiter.hit(
-                TEST_SCOPE, str(workspace_id), TEST_PER_WINDOW, TEST_WINDOW_SECONDS
-            )
-            if not verdict.allowed:
-                raise HTTPException(
-                    HTTPStatus.TOO_MANY_REQUESTS,
-                    content={
-                        "code": "rate_limited",
-                        "message": "Too many test events; try again later.",
-                    },
-                    headers={"Retry-After": str(verdict.retry_after)},
-                )
+        await self._rate_limit(
+            TEST_SCOPE,
+            workspace_id,
+            TEST_PER_WINDOW,
+            TEST_WINDOW_SECONDS,
+            "Too many test events; try again later.",
+        )
         log = await self._logs.create(
             ActionLogDocument(
                 workspace_id=workspace_id,
@@ -744,11 +761,10 @@ class WebhookService:
     # ------------------------------------------------------------- the job
 
     async def run_delivery(self, log_id: str, *, job_attempt: int = 0) -> Outcome:
-        """One attempt at one delivery (the ``deliver_webhook`` job).
-        ``job_attempt``: how many attempts this job had before (0 the first);
-        the last one (``MAX_ATTEMPTS - 1``) fails the delivery instead of
-        retrying."""
-        final = job_attempt + 1 >= MAX_ATTEMPTS
+        """One attempt at one delivery (the ``deliver_webhook`` job). The
+        attempt number is the log row's own count (``job_attempt``, how many
+        attempts the job had, is only a hint and is not trusted); the
+        ``MAX_ATTEMPTS``-th fails the delivery instead of retrying."""
         if not webhooks_enabled():
             # nothing leaves while the switch is off; a delivery that was
             # waiting for a retry goes back to pending (attempts kept), so the
@@ -762,6 +778,11 @@ class WebhookService:
         log = await self._logs.claim(log_id, _OPEN_STATES, now=self._clock())
         if log is None:
             return Outcome("skipped")
+        # the row, not the job, counts attempts: a job queued afresh after the
+        # switch was turned off, or by the sweep, starts at 0 and must not give
+        # a delivery more than MAX_ATTEMPTS
+        job_attempt = log.attempts - 1
+        final = log.attempts >= MAX_ATTEMPTS
         try:
             return await self._attempt(log, job_attempt)
         except client.SendFailed as failed:
@@ -876,7 +897,9 @@ class WebhookService:
             if response is None or str(response.form_id) != str(log.form_id):
                 # erasure wins over a late send: the submission is gone, so is
                 # the row
-                await self._logs.delete_by_response_id(str(log.response_id))
+                await self._logs.delete_by_response_id(
+                    log.workspace_id, log.form_id, str(log.response_id)
+                )
                 logger.info("webhook dropped, response gone: delivery={}", log.id)
                 return Outcome("gone")
             form = await self._form_of_response(response)
@@ -943,7 +966,9 @@ class WebhookService:
                 log.workspace_id, str(log.response_id)
             )
             if response is None or str(response.form_id) != str(log.form_id):
-                await self._logs.delete_by_response_id(str(log.response_id))
+                await self._logs.delete_by_response_id(
+                    log.workspace_id, log.form_id, str(log.response_id)
+                )
                 return Outcome("gone")
         hook = await self._hook_for(log)
         if hook is None:

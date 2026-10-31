@@ -541,3 +541,32 @@ async def test_the_form_is_not_served_when_the_disclosure_cannot_be_read(
     assert refused_load.json()["code"] == "form_unavailable"
     assert "webhookDestination" not in refused_load.text
     assert memory_jobs.jobs == {}
+
+
+async def test_address_checks_are_rate_limited_per_workspace(workspace, workspace_1, monkeypatch):
+    """Saving an address resolves the name and says whether it is public, so the
+    number of checks is bounded (the answer is an oracle for private names)."""
+    from backend.app.services.registration import client
+    from backend.app.services.webhooks.service import URL_CHECK_PER_WINDOW
+
+    form = await publish(workspace)
+    created = await make_webhook(workspace, form)
+    asked = []
+
+    async def resolve(host, port=443):
+        asked.append(host)
+        return ["10.0.0.9"]
+
+    monkeypatch.setattr(client, "resolve", resolve)
+    ws, fid = workspace.id, form.form_id
+    for _ in range(URL_CHECK_PER_WINDOW - 1):  # the create above was the first check
+        error = await refused(service().update_webhook(ws, fid, created.id, WebhookUpdateDto(url="https://probe.example.net/x"), testUser))
+        assert code_of(error) == "not_allowed"
+    error = await refused(service().update_webhook(ws, fid, created.id, WebhookUpdateDto(url="https://probe.example.net/x"), testUser))
+    assert error.status_code == 429 and code_of(error) == "rate_limited"
+    assert int(error.headers["Retry-After"]) >= 1
+    assert len(asked) == URL_CHECK_PER_WINDOW - 1  # the refused one did not resolve
+    # another workspace has its own budget
+    other_form = await publish(workspace_1, user=testUser1)
+    error = await refused(make_webhook(workspace_1, other_form, user=testUser1))
+    assert code_of(error) == "not_allowed"

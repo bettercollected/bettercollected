@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import { inputClass } from '@app/components/registration/field';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DeliveryStatus, WebhookDelivery, useGetWebhookAuditQuery, useGetWebhookDeliveriesQuery } from '@app/store/workspaces/webhooks-api';
 import { WAITING_STATUSES, deliveryErrorKey, formatDateTime, formatDuration } from '@app/utils/webhooks';
@@ -70,7 +71,7 @@ export default function WebhookDeliveries({ workspaceId, formId }: { workspaceId
                     </label>
                     <select
                         id="webhook-filter"
-                        className="h-10 w-full rounded-md border border-control bg-white px-3 text-sm text-black-900 sm:max-w-60"
+                        className={inputClass + ' sm:max-w-60'}
                         value={filter}
                         onChange={(e) => {
                             setFilter(e.target.value as Filter);

@@ -1,10 +1,11 @@
 """What the webhooks switch (``WEBHOOKS_ENABLED``) allows.
 
-On: everything. Off (the default): creating or enabling a webhook, rotating
-nothing and sending a test all answer 422 ``webhooks_off``; nothing is queued
-on submit, the jobs do nothing and the respondent's privacy panel names no
-destination. Saved webhooks and the delivery log stay as they are, and a
-webhook can still be disabled or deleted. Read at call time from
+On: everything. Off (the default): creating a webhook, switching one on and
+sending a test event answer 422 ``webhooks_off``; nothing is queued on submit,
+the jobs send nothing and the respondent's privacy panel names no destination.
+Everything else still answers: the list, the detail read, edits that do not
+switch one on, switching one off, deleting, rotating a secret, the delivery log
+and the change history. Saved webhooks and the log stay as they are. Read at call time from
 ``settings.webhooks.ENABLED``.
 """
 
