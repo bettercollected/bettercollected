@@ -478,3 +478,38 @@ describe('conditions on choice questions', () => {
         expect(computeFlowTraffic(form, [picked('c-billing'), picked('c-tech')]).nodeVisits.get('p2')).toBe(1);
     });
 });
+
+describe('time, day and currency conditions', () => {
+    const cond = (fieldType: string, comparison: Comparison, value: unknown) => ({ fieldId: 'q', fieldType, comparison, value }) as any;
+    const holds = (condition: any, answer: any) => evaluateConditions(undefined, [condition], { q: answer });
+
+    it('compares times as times', () => {
+        const at = (time: string) => ({ type: 'time', time });
+        expect(holds(cond('time', Comparison.LESS_THAN, '10:00'), at('09:30'))).toBe(true);
+        expect(holds(cond('time', Comparison.LESS_THAN, '10:00'), at('10:00'))).toBe(false);
+        expect(holds(cond('time', Comparison.LESS_THAN_EQUAL, '10:00'), at('10:00'))).toBe(true);
+        expect(holds(cond('time', Comparison.GREATER_THAN, '09:59'), at('10:00'))).toBe(true);
+        expect(holds(cond('time', Comparison.GREATER_THAN_EQUAL, '10:00'), at('09:59'))).toBe(false);
+        // a value that is not a time never matches
+        expect(holds(cond('time', Comparison.LESS_THAN, 'soon'), at('09:30'))).toBe(false);
+        expect(holds(cond('time', Comparison.LESS_THAN, '10:00'), { type: 'time', time: '9:30' })).toBe(false);
+        expect(holds(cond('time', Comparison.IS_EQUAL, '09:30'), at('09:30'))).toBe(true);
+    });
+
+    it('compares days and dates as calendar dates', () => {
+        const on = (date: string) => ({ type: 'date', date });
+        expect(holds(cond('day', Comparison.LESS_THAN, '2026-01-01'), on('2025-12-31'))).toBe(true);
+        expect(holds(cond('day', Comparison.GREATER_THAN_EQUAL, '2026-01-01'), on('2026-01-01'))).toBe(true);
+        expect(holds(cond('date', Comparison.GREATER_THAN, '2026-01-01'), on('2026-06-01'))).toBe(true);
+        expect(holds(cond('date', Comparison.GREATER_THAN, 'yesterday'), on('2026-06-01'))).toBe(false);
+        expect(holds(cond('day', Comparison.LESS_THAN, '2026-01-01'), on('2026-02-30'))).toBe(false);
+    });
+
+    it('reads a currency as its amount, a number', () => {
+        const amount = (value: string) => ({ type: 'currency', currency: { code: 'EUR', amount: value } });
+        expect(holds(cond('currency', Comparison.GREATER_THAN, '100'), amount('100.01'))).toBe(true);
+        expect(holds(cond('currency', Comparison.LESS_THAN, '100'), amount('9.50'))).toBe(true);
+        expect(holds(cond('currency', Comparison.IS_EMPTY, undefined), undefined)).toBe(true);
+        expect(holds(cond('currency', Comparison.IS_NOT_EMPTY, undefined), amount('0'))).toBe(true);
+    });
+});

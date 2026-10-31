@@ -8252,6 +8252,2613 @@
       ],
       "answers": {},
       "errors": []
+    },
+    {
+      "name": "time inside its window",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "properties": {
+                  "minTime": "09:00",
+                  "maxTime": "17:30"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "12:15"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time on the earliest and the latest bound",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "properties": {
+                  "minTime": "09:00",
+                  "maxTime": "17:30"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "09:00"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time on the latest bound",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "properties": {
+                  "minTime": "09:00",
+                  "maxTime": "17:30"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "17:30"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time before the earliest",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "properties": {
+                  "minTime": "09:00",
+                  "maxTime": "17:30"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "08:59"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_small"
+        }
+      ]
+    },
+    {
+      "name": "time after the latest",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "properties": {
+                  "minTime": "09:00",
+                  "maxTime": "17:30"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "17:31"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_large"
+        }
+      ]
+    },
+    {
+      "name": "time without a window",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "23:59"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time with an hour out of range is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "24:00"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time with minutes out of range is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "12:60"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time with a single-digit hour is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "9:30"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time with seconds is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "09:30:00"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time with text is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "noon"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time with a trailing newline is not a time",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "09:30\n"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "time in the text slot is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "09:30"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "required time unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required time answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "00:00"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day with a real date",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-02-28"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day on a leap day",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2028-02-29"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day that does not exist",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-02-30"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "day written day first is not stored",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "12-11-2026"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "day with a one-digit month",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-2-03"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "day in the text slot is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "2026-02-28"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "required day unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "currency in the default currency",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "12.50"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "currency with a whole amount",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "12"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "currency with a decimal comma",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "12,50"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with too many decimals",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "12.505"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a thousands separator",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "1,250.00"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with an exponent",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "1e3"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a plus sign",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "+5"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a leading zero",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "007"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a trailing point",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "12."
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a surrounding space",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": " 12"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a code in lower case",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "eur",
+            "amount": "12"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency with a code that is not a currency",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "XXX",
+            "amount": "12"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency code and no amount",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": ""
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "currency in a currency the question does not offer",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "properties": {
+                  "currencies": [
+                    "EUR",
+                    "GBP"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "USD",
+            "amount": "5"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "currency"
+        }
+      ]
+    },
+    {
+      "name": "currency in the second offered currency",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "properties": {
+                  "currencies": [
+                    "EUR",
+                    "GBP"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "GBP",
+            "amount": "5.25"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "currency without offered currencies is euro only",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "USD",
+            "amount": "5"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "currency"
+        }
+      ]
+    },
+    {
+      "name": "yen has no decimals",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "properties": {
+                  "currencies": [
+                    "JPY"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "JPY",
+            "amount": "100.5"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "yen whole amount",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "properties": {
+                  "currencies": [
+                    "JPY"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "JPY",
+            "amount": "1000"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "dinar has three decimals",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "properties": {
+                  "currencies": [
+                    "KWD"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "KWD",
+            "amount": "1.234"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "amount under the lowest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "minValue": 10
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "9.99"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_small"
+        }
+      ]
+    },
+    {
+      "name": "amount over the highest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "maxValue": 100
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "100.01"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_large"
+        }
+      ]
+    },
+    {
+      "name": "amount on the bounds",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "minValue": 10,
+                  "maxValue": 100
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "100"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a negative amount within a negative lowest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "minValue": -10
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "-5"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a negative amount under the lowest value",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "minValue": -10
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "-10.01"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_small"
+        }
+      ]
+    },
+    {
+      "name": "currency answered as a plain number is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "number",
+          "number": 12
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "currency with an extra key is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "1",
+            "note": "x"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "currency amount that is a number is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": 12
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "required currency unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required currency answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "0"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time after a time in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "GREATER_THAN",
+                        "value": "12:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "12:30"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "time not after a time in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "GREATER_THAN",
+                        "value": "12:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "12:00"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "time at or before a time in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "LESS_THAN_EQUAL",
+                        "value": "12:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "12:00"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "time compares as a time, not as text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "LESS_THAN",
+                        "value": "10:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "09:30"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "time rule with a value that is not a time never matches",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "LESS_THAN",
+                        "value": "soon"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "time",
+          "time": "09:30"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day before a date in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "day",
+                        "comparison": "LESS_THAN",
+                        "value": "2026-01-01"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2025-12-31"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "day not before a date in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "day",
+                        "comparison": "LESS_THAN",
+                        "value": "2026-01-01"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-01-01"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day on or after a date in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "day",
+                        "comparison": "GREATER_THAN_EQUAL",
+                        "value": "2026-01-01"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-01-01"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "date after a date in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date",
+                        "comparison": "GREATER_THAN",
+                        "value": "2026-01-01"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-06-01"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "date rule with a value that is not a date never matches",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date",
+                        "comparison": "GREATER_THAN",
+                        "value": "yesterday"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-06-01"
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "day equal to a date in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "day",
+                        "comparison": "IS_EQUAL",
+                        "value": "2026-01-01"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-01-01"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "currency above a number in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "currency",
+                        "comparison": "GREATER_THAN",
+                        "value": "100"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "100.01"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "currency not above a number in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "currency",
+                        "comparison": "GREATER_THAN",
+                        "value": "100"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "100.00"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "currency compares as a number, not as text",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "currency",
+                        "comparison": "LESS_THAN",
+                        "value": "100"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "9.50"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "currency left empty is empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "currency",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "currency",
+                        "comparison": "IS_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "time left empty is empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "time",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "time",
+                        "comparison": "IS_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
     }
   ]
 }

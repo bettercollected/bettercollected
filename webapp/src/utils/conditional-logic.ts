@@ -1,6 +1,8 @@
 import { codePointLength } from '@app/lib/expressions/ast';
 import { formatExpressionValue } from '@app/lib/expressions/evaluator';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { isIsoDate } from '@app/utils/iso-date';
+import { isTime } from '@app/utils/time-of-day';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
 export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -59,7 +61,13 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
         case FieldTypes.LINEAR_RATING:
             return answer.number;
         case FieldTypes.DATE:
+        case FieldTypes.DAY:
             return answer.date;
+        case FieldTypes.TIME:
+            return answer.time;
+        case FieldTypes.CURRENCY:
+            // the amount as written ("12.50"): a number to formulas and ordered comparisons; the code is not part of the value
+            return typeof answer.currency?.amount === 'string' && answer.currency.amount ? answer.currency.amount : undefined;
         case FieldTypes.PHONE_NUMBER:
             return answer.phoneNumber ?? answer.phone_number;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -184,9 +192,35 @@ function evaluateChoiceCondition(answer: any, source: StandardFormFieldDto | und
     return NEGATED_COMPARISONS.has(comparison) ? results.every(Boolean) : results.some(Boolean);
 }
 
+const ORDERED_COMPARISONS = new Set<string>([Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL]);
+/**
+ * Questions whose answer is text that sorts as the thing it is: a time
+ * ("HH:MM") or a calendar day ("YYYY-MM-DD"). Ordered comparisons compare
+ * them as such (both sides must be well-formed, else the condition does not
+ * hold); everything else reads numbers. Twin of the server's
+ * `_ordered_text_condition`.
+ */
+const ORDERED_TEXT_TYPES = new Set<string>([FieldTypes.TIME, FieldTypes.DAY, FieldTypes.DATE]);
+
+function compareOrderedText(value: any, fieldType: string, comparison: Comparison, target: any): boolean {
+    const wellFormed = fieldType === FieldTypes.TIME ? isTime : isIsoDate;
+    if (!wellFormed(value) || !wellFormed(target)) return false;
+    switch (comparison) {
+        case Comparison.GREATER_THAN:
+            return value > target;
+        case Comparison.GREATER_THAN_EQUAL:
+            return value >= target;
+        case Comparison.LESS_THAN:
+            return value < target;
+        default:
+            return value <= target;
+    }
+}
+
 function evaluateCondition(answers: Record<string, any>, condition: LogicCondition, sources?: LogicSources, textMax?: number): boolean {
     if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources, textMax);
     const answer = answers?.[condition.fieldId];
+    if (ORDERED_TEXT_TYPES.has(condition.fieldType) && ORDERED_COMPARISONS.has(condition.comparison)) return compareOrderedText(getComparableAnswerValue(answer, condition.fieldType), condition.fieldType, condition.comparison, condition.value);
     if (CHOICE_TYPES.has(condition.fieldType)) return evaluateChoiceCondition(answer, sources?.[condition.fieldId], condition.comparison, condition.value, textMax);
     const value = getComparableAnswerValue(answer, condition.fieldType);
     return compareValue(value, condition.comparison, condition.value, textMax);

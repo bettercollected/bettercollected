@@ -15,6 +15,7 @@ keys are refused, so a typo is reported instead of silently dropped.
 import enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
+from common.currencies import CURRENCIES_MAX, is_currency_code
 from common.models.standard_form import (
     CALCULATION_MAX_DECIMALS,
     DATE_RULES_MAX,
@@ -125,6 +126,9 @@ CURRENT_FIELD_TYPES = frozenset(
         "url",
         "phone_number",
         "date",
+        "day",
+        "time",
+        "currency",
         "yes_no",
         "multiple_choice",
         "dropdown",
@@ -572,7 +576,28 @@ class FormField(_Spec):
     label: Optional[str] = Field(
         None, max_length=120, description="Short label shown with a date picker."
     )
-    date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
+    date_rules: Optional[List[DateRule]] = Field(
+        None,
+        max_length=DATE_RULES_MAX,
+        description="Constraints on a date or day question's answer.",
+    )
+    min_time: Optional[str] = Field(
+        None,
+        pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$",
+        description="A time question: the earliest time that can be answered (HH:MM, 24-hour).",
+    )
+    max_time: Optional[str] = Field(
+        None,
+        pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$",
+        description="A time question: the latest time that can be answered (HH:MM, 24-hour).",
+    )
+    currencies: Optional[List[str]] = Field(
+        None,
+        min_length=1,
+        max_length=CURRENCIES_MAX,
+        description="A currency question: the ISO 4217 codes respondents may pick "
+        "(the first is the default). Amounts are answered with min/max in validations.",
+    )
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     logic: Optional[Logic] = None
     rules: Optional[List[Rule]] = Field(
@@ -603,6 +628,22 @@ class FormField(_Spec):
     fields: Optional[List["FormField"]] = Field(
         None, description="The questions of a group."
     )
+
+    @model_validator(mode="after")
+    def _check_type_settings(self):
+        if (
+            self.min_time is not None
+            and self.max_time is not None
+            and self.min_time > self.max_time
+        ):
+            raise ValueError("minTime is after maxTime.")
+        if self.currencies is not None:
+            for code in self.currencies:
+                if not is_currency_code(code):
+                    raise ValueError(f"'{code}' is not a currency the form offers.")
+            if len(set(self.currencies)) != len(self.currencies):
+                raise ValueError("A currency is listed twice.")
+        return self
 
 
 class Page(_Spec):

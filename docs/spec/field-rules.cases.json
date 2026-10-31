@@ -4022,6 +4022,1085 @@
           "text": "y"
         }
       }
+    },
+    {
+      "name": "set value: a time must be HH:MM",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "t1",
+                "type": "time",
+                "title": "t1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "09:30"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "t2",
+                "type": "time",
+                "title": "t2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "9:30"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "t3",
+                "type": "time",
+                "title": "t3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "24:00"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "t1": {
+          "type": "time",
+          "time": "01:00"
+        }
+      },
+      "states": {
+        "t2": {
+          "locked": true
+        },
+        "t1": {
+          "locked": true
+        },
+        "t3": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "t1": {
+          "type": "time",
+          "time": "09:30"
+        },
+        "t2": null,
+        "t3": null
+      }
+    },
+    {
+      "name": "set value: a day is a calendar date",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "d1",
+                "type": "day",
+                "title": "d1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "2026-03-01"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "d2",
+                "type": "day",
+                "title": "d2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "2026-02-30"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "states": {
+        "d2": {
+          "locked": true
+        },
+        "d1": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "d1": {
+          "type": "date",
+          "date": "2026-03-01"
+        },
+        "d2": null
+      }
+    },
+    {
+      "name": "set value: a day set by an expression",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "d1",
+                "type": "day",
+                "title": "d1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "var": "d0"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "d0",
+                "type": "day",
+                "title": "d0"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "d0": {
+          "type": "date",
+          "date": "2024-05-06"
+        }
+      },
+      "states": {
+        "d1": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "d1": {
+          "type": "date",
+          "date": "2024-05-06"
+        }
+      }
+    },
+    {
+      "name": "set value: a currency amount in the first currency",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "c1",
+                "type": "currency",
+                "title": "c1",
+                "properties": {
+                  "currencies": [
+                    "GBP",
+                    "EUR"
+                  ],
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "12.50"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c2",
+                "type": "currency",
+                "title": "c2",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r2",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "*": [
+                              {
+                                "var": "qty"
+                              },
+                              5
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c3",
+                "type": "currency",
+                "title": "c3",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r3",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "12.505"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "c4",
+                "type": "currency",
+                "title": "c4",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r4",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "const": "12,50"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "qty": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "states": {
+        "c2": {
+          "locked": true
+        },
+        "c4": {
+          "locked": true
+        },
+        "c1": {
+          "locked": true
+        },
+        "c3": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "c1": {
+          "type": "currency",
+          "currency": {
+            "code": "GBP",
+            "amount": "12.50"
+          }
+        },
+        "c2": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "15"
+          }
+        },
+        "c3": null,
+        "c4": null
+      }
+    },
+    {
+      "name": "set value: a currency left empty when the formula has no value",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "a",
+                "type": "short_text",
+                "title": "a"
+              },
+              {
+                "id": "qty",
+                "type": "number",
+                "title": "qty"
+              },
+              {
+                "id": "c1",
+                "type": "currency",
+                "title": "c1",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "a",
+                            "fieldType": "short_text",
+                            "comparison": "IS_EQUAL",
+                            "value": "x"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "setValue": {
+                          "expression": {
+                            "/": [
+                              {
+                                "var": "qty"
+                              },
+                              0
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "a": {
+          "type": "text",
+          "text": "x"
+        },
+        "qty": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "states": {
+        "c1": {
+          "locked": true
+        }
+      },
+      "answersAfter": {
+        "c1": null
+      }
+    },
+    {
+      "name": "rule: a time question compares as a time",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "time",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "t",
+                            "fieldType": "time",
+                            "comparison": "LESS_THAN",
+                            "value": "10:00"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "time",
+          "time": "09:30"
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a time not before the time does not hold",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "time",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "t",
+                            "fieldType": "time",
+                            "comparison": "LESS_THAN",
+                            "value": "10:00"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "time",
+          "time": "10:00"
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a day compares as a date",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "d",
+                "type": "day",
+                "title": "d"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "d",
+                            "fieldType": "day",
+                            "comparison": "GREATER_THAN_EQUAL",
+                            "value": "2008-01-01"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "d": {
+          "type": "date",
+          "date": "2008-01-01"
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a date compares as a date",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "d",
+                "type": "date",
+                "title": "d"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "d",
+                            "fieldType": "date",
+                            "comparison": "LESS_THAN",
+                            "value": "2008-01-01"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "d": {
+          "type": "date",
+          "date": "2007-12-31"
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a currency compares as a number",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "c",
+                "type": "currency",
+                "title": "c"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "c",
+                            "fieldType": "currency",
+                            "comparison": "GREATER_THAN",
+                            "value": "99.5"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "c": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "100.00"
+          }
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an unanswered currency is empty",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "c",
+                "type": "currency",
+                "title": "c"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "c",
+                            "fieldType": "currency",
+                            "comparison": "IS_EMPTY"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression compares times as text that sorts",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "time",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "<": [
+                            {
+                              "var": "t"
+                            },
+                            "12:00"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "time",
+          "time": "11:59"
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression reads a currency as a number",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "c",
+                "type": "currency",
+                "title": "c"
+              },
+              {
+                "id": "d",
+                "type": "currency",
+                "title": "d"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "+": [
+                                {
+                                  "var": "c"
+                                },
+                                {
+                                  "var": "d"
+                                }
+                              ]
+                            },
+                            100
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "c": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "60.25"
+          }
+        },
+        "d": {
+          "type": "currency",
+          "currency": {
+            "code": "EUR",
+            "amount": "40.00"
+          }
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression counts the days between two day questions",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "day",
+                "title": "s"
+              },
+              {
+                "id": "e",
+                "type": "day",
+                "title": "e"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "date_diff_days": [
+                                {
+                                  "var": "s"
+                                },
+                                {
+                                  "var": "e"
+                                }
+                              ]
+                            },
+                            6
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date",
+          "date": "2026-01-01"
+        },
+        "e": {
+          "type": "date",
+          "date": "2026-01-08"
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
     }
   ]
 }

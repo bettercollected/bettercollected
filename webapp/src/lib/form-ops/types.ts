@@ -36,6 +36,11 @@ export interface NewFieldSpec {
     internal?: boolean | null;
     allowMultiple?: boolean | null;
     label?: string | null;
+    /** time only: the earliest and latest time (HH:MM). */
+    minTime?: string | null;
+    maxTime?: string | null;
+    /** currency only: the allowed ISO 4217 codes, the first being the default. */
+    currencies?: string[] | null;
     whyWeAsk?: string | null;
     /** calculated only (backend NewFieldSpec): an expressions-v1 AST, its format, visibility and "unanswered as 0". */
     expression?: unknown;
@@ -73,6 +78,10 @@ export interface FieldPatch {
     exportLayout?: 'columns' | 'rows' | null;
     label?: string | null;
     dateRules?: DateRuleSpec[] | null;
+    /** time only ("" clears) and currency only ([] goes back to the default, EUR). */
+    minTime?: string | null;
+    maxTime?: string | null;
+    currencies?: string[] | null;
     whyWeAsk?: string | null;
     expression?: unknown;
     format?: Record<string, unknown> | null;

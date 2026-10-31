@@ -1,6 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule, DateRuleComparison } from '@app/models/types/form-builder-shared';
 import { isFieldHiddenByLogic } from '@app/utils/conditional-logic';
+import { isIsoDate } from '@app/utils/iso-date';
 import { getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers, plainTitle, scopedFieldId } from '@app/utils/repeating-groups';
 
 /**
@@ -22,6 +23,11 @@ import { getGroupChildren, getGroupItems, getItemHiddenChildIds, isRepeatingGrou
  * (`date_rule_problems` in common/models/standard_form.py) — keep them in step.
  */
 
+/** Question types that answer with a calendar day and carry date rules: a date from a calendar and a day typed as day, month and year (mirrors the backend's DATE_RULE_TYPES). */
+export const DATE_RULE_TYPES: ReadonlyArray<string> = [FieldTypes.DATE, FieldTypes.DAY];
+
+export const isDateRuleType = (type: unknown): boolean => typeof type === 'string' && DATE_RULE_TYPES.includes(type);
+
 /** At most this many rules per date question (mirrors the backend). */
 export const DATE_RULES_MAX = 5;
 
@@ -34,17 +40,8 @@ export const DATE_RULE_COMPARISON_LABELS: Record<DateRuleComparison, string> = {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_NL = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/** Is `value` a real calendar date written exactly as YYYY-MM-DD? */
-export function isIsoDate(value: unknown): value is string {
-    if (typeof value !== 'string') return false;
-    const match = ISO_DATE.exec(value);
-    if (!match) return false;
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    const date = new Date(Date.UTC(year, month - 1, day));
-    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-}
+export { isIsoDate };
 
 /** The local calendar day of `date` as YYYY-MM-DD (no time-zone shift). */
 export function toIsoDate(date: Date): string {
@@ -88,7 +85,7 @@ export function isDateRuleViolated(value: string, comparison: DateRuleComparison
 }
 
 export function getDateRules(field: StandardFormFieldDto | undefined): DateRule[] {
-    return field?.type === FieldTypes.DATE ? (field.properties?.dateRules ?? []) : [];
+    return isDateRuleType(field?.type) ? (field?.properties?.dateRules ?? []) : [];
 }
 
 export interface DateRuleContext {
@@ -150,7 +147,7 @@ export function resolveDateRuleBounds(field: StandardFormFieldDto, context: Date
         } else if (rule.target === 'field' && rule.fieldId) {
             const source = context.fieldsById[rule.fieldId];
             // Unanswered, hidden by logic or gone: the rule does not apply.
-            if (!source || source.type !== FieldTypes.DATE || isFieldHiddenByLogic(source, context.answers, context.fieldsById)) return;
+            if (!source || !isDateRuleType(source.type) || isFieldHiddenByLogic(source, context.answers, context.fieldsById)) return;
             const value = context.answers?.[rule.fieldId]?.date;
             if (!isIsoDate(value)) return;
             bounds.push({ rule, bound: value, label: `${dateFieldName(source, messages)} (${formatDate(value)})` });
@@ -260,7 +257,7 @@ function questionsByScope(slides: Array<StandardFormFieldDto>): Record<string, S
 
 /** Could `owner` use `source` in a rule: a respondent-facing date question of the same scope, not itself. */
 function isUsableSource(owner: ScopedQuestion, source: ScopedQuestion | undefined): boolean {
-    return !!source && source.field !== owner.field && source.field.type === FieldTypes.DATE && !source.field.internal && source.groupId === owner.groupId;
+    return !!source && source.field !== owner.field && isDateRuleType(source.field.type) && !source.field.internal && source.groupId === owner.groupId;
 }
 
 /**
@@ -275,7 +272,7 @@ export function pruneOrphanedDateRules(slides: Array<StandardFormFieldDto>): Arr
     Object.values(byId).forEach((owner) => {
         const rules = owner.field.properties?.dateRules;
         if (!rules) return;
-        const kept = owner.field.type === FieldTypes.DATE ? rules.filter((rule) => rule.target !== 'field' || (!!rule.fieldId && isUsableSource(owner, byId[rule.fieldId]))) : [];
+        const kept = isDateRuleType(owner.field.type) ? rules.filter((rule) => rule.target !== 'field' || (!!rule.fieldId && isUsableSource(owner, byId[rule.fieldId]))) : [];
         if (kept.length) owner.field.properties!.dateRules = kept;
         else delete owner.field.properties!.dateRules;
     });

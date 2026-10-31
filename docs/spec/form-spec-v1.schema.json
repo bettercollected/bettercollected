@@ -492,6 +492,9 @@
             {
               "enum": [
                 "date",
+                "time",
+                "day",
+                "currency",
                 "short_text",
                 "long_text",
                 "multiple_choice",
@@ -879,7 +882,54 @@
             }
           ],
           "default": null,
+          "description": "Constraints on a date or day question's answer.",
           "title": "Daterules"
+        },
+        "minTime": {
+          "anyOf": [
+            {
+              "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A time question: the earliest time that can be answered (HH:MM, 24-hour).",
+          "title": "Mintime"
+        },
+        "maxTime": {
+          "anyOf": [
+            {
+              "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A time question: the latest time that can be answered (HH:MM, 24-hour).",
+          "title": "Maxtime"
+        },
+        "currencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.",
+          "title": "Currencies"
         },
         "whyWeAsk": {
           "anyOf": [

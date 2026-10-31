@@ -25,7 +25,9 @@ from common.models.standard_form import (
     Theme,
     check_field_date_rules,
     check_repeating_group_structure,
+    check_type_settings,
 )
+from common.currencies import CURRENCIES_MAX
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, model_validator
@@ -121,6 +123,11 @@ class StandardFieldPropertyCamelModel(CamelModel):
     repeat: Optional[RepeatSettings] = None
     label: Optional[str] = Field(None, max_length=120)
     date_rules: Optional[List[DateRule]] = Field(None, max_length=DATE_RULES_MAX)
+    # A time question's earliest and latest time ("HH:MM") and a currency
+    # question's allowed currencies (common StandardFieldProperty).
+    min_time: Optional[str] = None
+    max_time: Optional[str] = None
+    currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
     # "Why we ask this" line under an identifying question (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     # A page's own section title (common StandardFieldProperty.section_title).
@@ -134,6 +141,11 @@ class StandardFieldPropertyCamelModel(CamelModel):
     unanswered_as_zero: Optional[bool] = None
     # Field rules (common StandardFieldProperty.rules), checked on every save.
     rules: Optional[List[FieldRule]] = Field(None, max_length=FIELD_RULES_MAX)
+
+    @model_validator(mode="after")
+    def _check_type_settings(self):
+        check_type_settings(self.min_time, self.max_time, self.currencies)
+        return self
 
 
 class StandardFormFieldCamelModel(CamelModel):

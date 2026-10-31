@@ -316,6 +316,9 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "repeat",
         "label",
         "date_rules",
+        "min_time",
+        "max_time",
+        "currencies",
         "why_we_ask",
         "section_title",
         "show_question_numbers",
@@ -369,6 +372,112 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "min_choices",
         "max_choices",
     }
+
+
+def _spec_with(field):
+    return {
+        "specVersion": "1",
+        "title": "Typed",
+        "pages": [{"id": "p1", "fields": [field]}],
+    }
+
+
+def _problems(document):
+    """The problems of a spec document, as the API reports them: those of the
+    document's own shape, else those of the stored model it converts to."""
+    try:
+        spec = FormSpec.model_validate(document)
+    except ValidationError as error:
+        return validation_errors(error)
+    try:
+        spec_to_form(spec)
+    except SpecConversionError as error:
+        return error.errors
+    return []
+
+
+def test_time_day_and_currency_questions_round_trip():
+    fields = [
+        {
+            "id": "t",
+            "type": "time",
+            "title": "Arrival",
+            "label": "Arrival time",
+            "minTime": "08:00",
+            "maxTime": "17:30",
+        },
+        {
+            "id": "d",
+            "type": "day",
+            "title": "Born",
+            "dateRules": [{"comparison": "before", "target": "today"}],
+        },
+        {
+            "id": "c",
+            "type": "currency",
+            "title": "Budget",
+            "currencies": ["GBP", "EUR"],
+            "validations": {"minValue": 1, "maxValue": 500},
+        },
+    ]
+    document = {
+        "specVersion": "1",
+        "title": "Typed",
+        "pages": [{"id": "p1", "fields": fields}],
+    }
+    assert _problems(document) == []
+    stored = spec_to_form(FormSpec.model_validate(document))
+    back = form_to_spec_dict(stored)
+    kept = back["pages"][0]["fields"]
+    assert [f["type"] for f in kept] == ["time", "day", "currency"]
+    assert kept[0]["minTime"] == "08:00" and kept[0]["maxTime"] == "17:30"
+    assert kept[1]["dateRules"] == [{"comparison": "before", "target": "today"}]
+    assert kept[2]["currencies"] == ["GBP", "EUR"]
+    assert kept[2]["validations"] == {"minValue": 1, "maxValue": 500}
+    assert {"time", "day", "currency"} <= CURRENT_FIELD_TYPES
+
+
+@pytest.mark.parametrize(
+    "field,path_part",
+    [
+        ({"id": "t", "type": "time", "minTime": "9:00"}, "minTime"),
+        ({"id": "t", "type": "time", "maxTime": "24:00"}, "maxTime"),
+        ({"id": "t", "type": "time", "minTime": "18:00", "maxTime": "08:00"}, "pages"),
+        ({"id": "c", "type": "currency", "currencies": []}, "currencies"),
+        ({"id": "c", "type": "currency", "currencies": ["EUR", "ZZZ"]}, "pages"),
+        ({"id": "c", "type": "currency", "currencies": ["EUR", "EUR"]}, "pages"),
+        ({"id": "c", "type": "currency", "currencies": ["EUR"] * 11}, "currencies"),
+        ({"id": "t", "type": "time", "dateRules": [{"comparison": "before", "target": "today"}]}, "pages"),
+    ],
+)
+def test_the_settings_of_time_and_currency_are_checked(field, path_part):
+    errors = _problems(_spec_with(field))
+    assert errors, field
+    assert any(path_part in error["path"] for error in errors), errors
+
+
+def test_day_questions_take_date_rules_and_compare_with_dates():
+    document = {
+        "specVersion": "1",
+        "title": "Rules",
+        "pages": [
+            {
+                "id": "p1",
+                "fields": [
+                    {"id": "start", "type": "date", "title": "Start"},
+                    {
+                        "id": "born",
+                        "type": "day",
+                        "title": "Born",
+                        "dateRules": [
+                            {"comparison": "before", "target": "field", "fieldId": "start"}
+                        ],
+                    },
+                ],
+            }
+        ],
+    }
+    assert _problems(document) == []
 
 
 def test_show_question_numbers_is_kept_by_the_stored_model():

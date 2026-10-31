@@ -2295,6 +2295,9 @@
             "type": "string",
             "enum": [
               "date",
+              "time",
+              "day",
+              "currency",
               "short_text",
               "long_text",
               "multiple_choice",
@@ -2389,6 +2392,9 @@
                 "type": "string",
                 "enum": [
                   "date",
+                  "time",
+                  "day",
+                  "currency",
                   "short_text",
                   "long_text",
                   "multiple_choice",
@@ -2752,7 +2758,51 @@
                 "type": "null"
               }
             ],
-            "title": "Daterules"
+            "title": "Daterules",
+            "description": "Constraints on a date or day question's answer."
+          },
+          "minTime": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mintime",
+            "description": "A time question: the earliest time that can be answered (HH:MM, 24-hour)."
+          },
+          "maxTime": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxtime",
+            "description": "A time question: the latest time that can be answered (HH:MM, 24-hour)."
+          },
+          "currencies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currencies",
+            "description": "A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations."
           },
           "whyWeAsk": {
             "anyOf": [

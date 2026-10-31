@@ -26,6 +26,7 @@ import datetime as dt
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from common.models.standard_form import (
+    DATE_RULE_TYPES,
     StandardForm,
     StandardFormFieldType,
     is_iso_date,
@@ -39,7 +40,7 @@ from backend.app.services.repeating_groups import (
     logic_sources,
 )
 
-DATE = StandardFormFieldType.DATE.value
+DATE_TYPES = DATE_RULE_TYPES
 
 COMPARISON_WORDS = {
     "before": "before",
@@ -136,7 +137,7 @@ def _check_field(
     answers layered over the form's inside a repeating group); ``siblings``
     the questions a rule may reference in that scope."""
     rules = _rules(field)
-    if not rules or _type_value(field.type) != DATE:
+    if not rules or _type_value(field.type) not in DATE_TYPES:
         return []
     raw = answers.get(field.id)
     if raw is None or is_hidden_by_logic(field, answers, sources):
@@ -158,7 +159,7 @@ def _check_field(
             what = "today"
         else:
             ref = siblings.get(rule.field_id)
-            if ref is None or _type_value(ref.type) != DATE:
+            if ref is None or _type_value(ref.type) not in DATE_TYPES:
                 continue
             if is_hidden_by_logic(ref, answers, sources):
                 continue

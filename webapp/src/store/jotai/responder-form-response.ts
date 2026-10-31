@@ -16,6 +16,8 @@ enum AnswerType {
     MATRIX = 'matrix',
     EMAIL = 'email',
     DATE = 'date',
+    TIME = 'time',
+    CURRENCY = 'currency',
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
@@ -51,6 +53,8 @@ export interface FormResponse {
             number?: number;
             email?: string;
             date?: string;
+            time?: string;
+            currency?: { code?: string; amount?: string };
             phone_number?: string;
             url?: string;
             choice?: ChoiceAnswer;
@@ -233,6 +237,32 @@ export const useFormResponse = () => {
         });
     };
 
+    const addFieldTimeAnswer = (fieldId: string, time: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.TIME,
+                    time: time
+                }
+            }
+        });
+    };
+
+    const addFieldCurrencyAnswer = (fieldId: string, code: string, amount: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.CURRENCY,
+                    currency: { code, amount }
+                }
+            }
+        });
+    };
+
     const addFieldURLAnswer = (fieldId: string, url: string) => {
         setFormResponse({
             ...formResponse,
@@ -340,6 +370,8 @@ export const useFormResponse = () => {
         addFieldBooleanAnswer,
         addFieldChoiceAnswer,
         addFieldDateAnswer,
+        addFieldTimeAnswer,
+        addFieldCurrencyAnswer,
         addFieldEmailAnswer,
         addFieldNumberAnswer,
         addFieldPhoneNumberAnswer,

@@ -428,6 +428,8 @@ async def update_form(
     every error is returned); the default applies what it can. Preview with dry_run_ops.
     At most 200 ops per call.
     Field types: short_text, long_text, email, number, url, phone_number, date,
+    day (a date typed as day, month and year), time (HH:MM; minTime and maxTime),
+    currency (an amount; currencies as ISO 4217 codes, minValue and maxValue),
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)

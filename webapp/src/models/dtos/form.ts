@@ -47,8 +47,13 @@ export interface StandardFormFieldProperties {
     repeat?: RepeatSettings;
     /** Short label shown with the control itself ("Start date" above a date picker), apart from the question title. */
     label?: string;
-    /** Date questions: constraints on the chosen date (see utils/date-rules.ts). */
+    /** Date and day questions: constraints on the chosen date (see utils/date-rules.ts). */
     dateRules?: DateRule[];
+    /** Time questions: the earliest and latest time that can be answered ("HH:MM", 24-hour; see utils/time-of-day.ts). */
+    minTime?: string;
+    maxTime?: string;
+    /** Currency questions: the ISO 4217 codes respondents may pick, the first being the default (see utils/currency.ts). */
+    currencies?: string[];
     /** "Why we ask this": the creator's reason for an identifying question, shown to respondents under it (see utils/publish-checks.ts). */
     whyWeAsk?: string;
     /**
@@ -331,6 +336,8 @@ export interface AnswerDto {
     boolean?: boolean;
     date?: string;
     time?: string;
+    /** A currency question's answer: the ISO 4217 code and the amount as a plain decimal string ("12.50"). */
+    currency?: { code?: string; amount?: string };
     url?: string;
     file_metadata?: FileMetadata;
     phoneNumber?: string;
@@ -377,6 +384,12 @@ export enum FieldTypes {
     YES_NO = 'yes_no',
     LINK = 'url',
     DATE = 'date',
+    /** A date typed as day, month and year (answers like a date: `date`, YYYY-MM-DD). */
+    DAY = 'day',
+    /** A time of day, "HH:MM" (answer slot `time`). */
+    TIME = 'time',
+    /** An amount of money with its currency (answer slot `currency`). */
+    CURRENCY = 'currency',
     PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',
     NUMBER = 'number',
@@ -414,6 +427,9 @@ export enum FieldTypes {
 
 export const V2InputFields = [
     FieldTypes.DATE,
+    FieldTypes.DAY,
+    FieldTypes.TIME,
+    FieldTypes.CURRENCY,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.RATING,

@@ -60,6 +60,13 @@ from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import re2
+from common.currencies import (
+    DEFAULT_CURRENCY,
+    is_currency_code,
+    is_time,
+    minutes_of,
+    parse_amount,
+)
 from common.form_spec.models import PATTERN_MAX_LENGTH
 from common.form_spec.re2_patterns import (  # noqa: F401  (re-exported)
     PATTERN_MAX_MEM,
@@ -67,7 +74,12 @@ from common.form_spec.re2_patterns import (  # noqa: F401  (re-exported)
     re2_options,
     to_re2_syntax,
 )
-from common.models.standard_form import default_ending, ending_by_id
+from common.models.standard_form import (
+    StandardFieldValidations,
+    default_ending,
+    ending_by_id,
+    is_iso_date,
+)
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -94,6 +106,8 @@ TOO_LARGE = "too_large"
 NOT_INTEGER = "not_integer"
 TOO_FEW_CHOICES = "too_few_choices"
 TOO_MANY_CHOICES = "too_many_choices"
+FORMAT = "format"
+CURRENCY_NOT_ALLOWED = "currency"
 TYPE = "type"
 CHOICE = "choice"
 UNKNOWN_FIELD = "unknown_field"
@@ -157,12 +171,15 @@ VALUE_SLOTS = {
     "url": {"url", "text"},
     "phone_number": {"phone_number"},
     "date": {"date"},
+    "day": {"date"},
+    "time": {"time"},
+    "currency": {"currency"},
     "yes_no": {"boolean"},
     "file_upload": {"file_metadata", "file_url"},
     "tabular_input": {"tabular_value"},
     **{number_type: {"number"} for number_type in NUMBER_TYPES},
 }
-STRING_SLOTS = {"text", "email", "url", "phone_number", "date"}
+STRING_SLOTS = {"text", "email", "url", "phone_number", "date", "time"}
 _NOT_VALUE_KEYS = {"field", "type"}
 
 # JavaScript's whitespace (String.prototype.trim, Number()).
@@ -645,7 +662,19 @@ def type_problem(
             return TYPE
         if slot in ("file_metadata",) and not isinstance(value, dict):
             return TYPE
+        if slot == "currency" and not _currency_shape(value):
+            return TYPE
     return None
+
+
+def _currency_shape(value: Any) -> bool:
+    """A currency answer is ``{"code": text, "amount": text}`` (either may
+    be missing)."""
+    return (
+        isinstance(value, dict)
+        and set(value) <= {"code", "amount"}
+        and all(v is None or isinstance(v, str) for v in value.values())
+    )
 
 
 def _choice_problem(
@@ -699,9 +728,9 @@ def answer_rule_problems(
     budget = budget if budget is not None else PatternBudget()
     if not isinstance(answer, dict):
         return []
-    rules = _rules(field)
-    if rules is None:
-        return []
+    # a question may have no validations at all: its type's own limits (time
+    # window, currencies) still apply
+    rules = _rules(field) or StandardFieldValidations()
     field_type = _type(field)
     field_id = str(getattr(field, "id", ""))
     problems: List[str] = []
@@ -732,6 +761,25 @@ def answer_rule_problems(
         compiled = budget.pattern(field_id, rules.regex)
         if compiled is not None and budget.breaks(field_id, compiled, typed):
             problems.append(NOT_INTEGER if rules.regex == INTEGER_PATTERN else PATTERN)
+    elif field_type == "day":
+        value = answer.get("date")
+        if isinstance(value, str) and value and not is_iso_date(value):
+            problems.append(FORMAT)
+    elif field_type == "time":
+        value = answer.get("time")
+        if not isinstance(value, str) or not value:
+            return []
+        if not is_time(value):
+            return [FORMAT]
+        properties = _props(field)
+        low = getattr(properties, "min_time", None)
+        high = getattr(properties, "max_time", None)
+        if is_time(low) and minutes_of(value) < minutes_of(low):
+            problems.append(TOO_SMALL)
+        if is_time(high) and minutes_of(value) > minutes_of(high):
+            problems.append(TOO_LARGE)
+    elif field_type == "currency":
+        problems.extend(_currency_problems(field, answer.get("currency"), rules))
     elif field_type == MULTIPLE_CHOICE and getattr(
         _props(field), "allow_multiple_selection", None
     ):
@@ -749,6 +797,32 @@ def answer_rule_problems(
             problems.append(TOO_FEW_CHOICES)
         if _is_set(rules.max_choices) and count > rules.max_choices:
             problems.append(TOO_MANY_CHOICES)
+    return problems
+
+
+def _currency_problems(field: Any, value: Any, rules: Any) -> List[str]:
+    """Code, amount and limits of a currency answer: the code must be one
+    the question offers (its ``currencies``, else EUR), the amount a plain
+    decimal with the currency's decimals, and within the lowest and highest
+    value (an amount of the currency in whole units)."""
+    if not _currency_shape(value):
+        return []  # the type check says so
+    code, amount = value.get("code"), value.get("amount")
+    if not code and not amount:
+        return []
+    allowed = getattr(_props(field), "currencies", None) or [DEFAULT_CURRENCY]
+    if not isinstance(code, str) or not is_currency_code(code):
+        return [FORMAT]
+    if code not in allowed:
+        return [CURRENCY_NOT_ALLOWED]
+    parsed = parse_amount(amount, code)
+    if parsed is None:
+        return [FORMAT]
+    problems: List[str] = []
+    if _is_set(rules.min_value) and parsed < Decimal(repr(float(rules.min_value))):
+        problems.append(TOO_SMALL)
+    if _is_set(rules.max_value) and parsed > Decimal(repr(float(rules.max_value))):
+        problems.append(TOO_LARGE)
     return problems
 
 

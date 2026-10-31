@@ -530,7 +530,12 @@ export function sampleVariables(variables: CalculationVariable[], slides: Standa
             case FieldTypes.YES_NO:
                 return 'Yes';
             case FieldTypes.DATE:
+            case FieldTypes.DAY:
                 return localToday();
+            case FieldTypes.TIME:
+                return '12:00';
+            case FieldTypes.CURRENCY:
+                return '10.00';
             case FieldTypes.MULTIPLE_CHOICE:
             case FieldTypes.DROP_DOWN: {
                 const choice = field.properties?.choices?.[0]?.id ?? 'option';

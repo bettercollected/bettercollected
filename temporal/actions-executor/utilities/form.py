@@ -16,6 +16,9 @@ FieldTypes = {
     'LINK': 'url',
     'EMAIL': 'email',
     'DATE': 'date',
+    'DAY': 'day',
+    'TIME': 'time',
+    'CURRENCY': 'currency',
     'YES_NO': 'yes_no',
     'MULTIPLE_CHOICE': 'multiple_choice',
     'DROP_DOWN': 'dropdown',
@@ -115,8 +118,15 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
         return answer.get('url')
     if field['type'] in [FieldTypes['EMAIL'], FormBuilderTagNames['INPUT_EMAIL']]:
         return answer.get('email')
-    if field['type'] in [FieldTypes['DATE'], FormBuilderTagNames['INPUT_DATE']]:
+    if field['type'] in [FieldTypes['DATE'], FieldTypes['DAY'], FormBuilderTagNames['INPUT_DATE']]:
         return answer.get('date')
+    if field['type'] == FieldTypes['TIME']:
+        return answer.get('time')
+    if field['type'] == FieldTypes['CURRENCY']:
+        # "EUR 12.50": the code, a space, a dot decimal (same as the CSV export)
+        currency = answer.get('currency') or {}
+        amount = currency.get('amount')
+        return f"{currency.get('code') or ''} {amount}".strip() if amount else ''
     if field['type'] == FieldTypes['YES_NO']:
         return 'Yes' if answer.get('boolean') else 'No' if answer.get('boolean') is False else ''
     if field['type'] in [FieldTypes['MULTIPLE_CHOICE'], FieldTypes['DROP_DOWN']]:
@@ -219,6 +229,9 @@ def get_placeholder_value_for_title(field_type):
         'text': 'Add Text',
         'rating': 'Rate from 1 to 5',
         'date': 'Select a date',
+        'day': 'Enter a date',
+        'time': 'Select a time',
+        'currency': 'Enter an amount',
         'linear_rating': 'Rate from 1 to 10',
         'matrix': 'Matrix Field',
         'tabular_input': 'Tabular Input Field'

@@ -67,6 +67,9 @@ export const ADDABLE_FIELD_TYPES = new Set<string>([
     FieldTypes.LINK,
     FieldTypes.PHONE_NUMBER,
     FieldTypes.DATE,
+    FieldTypes.DAY,
+    FieldTypes.TIME,
+    FieldTypes.CURRENCY,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.DROP_DOWN,
@@ -76,6 +79,12 @@ export const ADDABLE_FIELD_TYPES = new Set<string>([
     FieldTypes.TEXT,
     FieldTypes.CALCULATED
 ]);
+/** Questions that carry date rules (backend DATE_RULE_FIELD_TYPES). */
+export const DATE_RULE_FIELD_TYPES = new Set<string>([FieldTypes.DATE, FieldTypes.DAY]);
+/** Questions that take a short label beside the control (backend LABEL_FIELD_TYPES). */
+export const LABEL_FIELD_TYPES = new Set<string>([FieldTypes.DATE, FieldTypes.DAY, FieldTypes.TIME]);
+/** The comparisons that order values: time and date conditions check their value. */
+export const ORDERED_COMPARISONS = new Set<string>(['GREATER_THAN', 'GREATER_THAN_EQUAL', 'LESS_THAN', 'LESS_THAN_EQUAL']);
 export const CHOICE_FIELD_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
 export const RATING_FIELD_TYPES = new Set<string>([FieldTypes.RATING, FieldTypes.LINEAR_RATING]);
 export const REPEAT_CHILD_TYPES = new Set<string>(REPEAT_CHILD_FIELD_TYPES);

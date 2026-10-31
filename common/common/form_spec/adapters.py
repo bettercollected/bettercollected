@@ -200,6 +200,9 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                 "tabularValue": p.tabular_value,
                 "colSpan": p.col_span,
                 "label": p.label,
+                "minTime": p.min_time,
+                "maxTime": p.max_time,
+                "currencies": p.currencies,
                 "dateRules": (
                     [
                         {
@@ -469,6 +472,9 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
         "tabular_value": field.tabular_value,
         "col_span": field.col_span,
         "label": field.label,
+        "min_time": field.min_time,
+        "max_time": field.max_time,
+        "currencies": field.currencies,
         "date_rules": (
             [r.model_dump() for r in field.date_rules]
             if field.date_rules is not None

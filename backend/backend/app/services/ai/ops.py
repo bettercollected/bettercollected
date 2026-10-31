@@ -40,6 +40,7 @@ from common.form_spec.models import (
     checked_pattern,
     count_fields,
 )
+from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
 from common.expressions import MAX_DEPTH as EXPRESSION_DEPTH_MAX, validate_expression
 from common.models.standard_form import (
     DATE_RULES_MAX,
@@ -84,6 +85,7 @@ from common.models.standard_form import (
     with_ending_ids,
     WelcomePageField,
     date_rule_problems,
+    is_iso_date,
     prune_date_rules,
     SECTION_TITLE_MAX_LENGTH,
     THEME_TYPE_SHAPE_KEYS,
@@ -133,6 +135,15 @@ from backend.app.services.rich_text import style_value_problem
 from pydantic.alias_generators import to_camel
 
 
+# The comparisons that order values (time and date conditions check their value).
+ORDERED_COMPARISONS = (
+    "GREATER_THAN",
+    "GREATER_THAN_EQUAL",
+    "LESS_THAN",
+    "LESS_THAN_EQUAL",
+)
+
+
 class OpError(Exception):
     """A single operation failed; the turn continues with the next op."""
 
@@ -147,6 +158,9 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.LINK,
     StandardFormFieldType.PHONE_NUMBER,
     StandardFormFieldType.DATE,
+    StandardFormFieldType.DAY,
+    StandardFormFieldType.TIME,
+    StandardFormFieldType.CURRENCY,
     StandardFormFieldType.YES_NO,
     StandardFormFieldType.MULTIPLE_CHOICE,
     StandardFormFieldType.DROPDOWN,
@@ -218,8 +232,13 @@ class NewFieldSpec(_CamelModel):
     internal: Optional[bool] = None
     # multiple_choice only: respondents may pick several choices
     allow_multiple: Optional[bool] = None
-    # date only: a short label shown with the picker ("Start date")
+    # date, day and time only: a short label shown with the picker ("Start date")
     label: Optional[str] = Field(None, max_length=120)
+    # time only: the earliest and latest time that can be answered (HH:MM)
+    min_time: Optional[str] = None
+    max_time: Optional[str] = None
+    # currency only: ISO 4217 codes respondents may pick (the first is the default)
+    currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
     # "Why we ask this", shown under the question; publishing needs one on
     # email, phone and ID-number questions (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
@@ -267,10 +286,17 @@ class FieldPatch(_CamelModel):
     item_label: Optional[str] = None
     item_title: Optional[str] = None
     export_layout: Optional[Literal["columns", "rows"]] = None
-    # date questions only: a short label shown with the picker ("" clears),
-    # and the date rules (full replacement; [] clears).
+    # date, day and time questions only: a short label shown with the picker
+    # ("" clears); date and day questions: the date rules (full replacement;
+    # [] clears).
     label: Optional[str] = Field(None, max_length=120)
     date_rules: Optional[List[DateRuleSpec]] = None
+    # time questions only: the earliest and latest time (HH:MM; "" clears)
+    min_time: Optional[str] = None
+    max_time: Optional[str] = None
+    # currency questions only: the allowed ISO 4217 codes (full replacement;
+    # [] goes back to the default, EUR)
+    currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
     # "Why we ask this" line under the question ("" clears).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     # calculated fields only (see NewFieldSpec)
@@ -1117,9 +1143,10 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
     if spec.why_we_ask and spec.why_we_ask.strip():
         properties.why_we_ask = spec.why_we_ask.strip()
     if spec.label:
-        if spec.type != StandardFormFieldType.DATE:
-            raise OpError("A label only applies to date questions.")
+        if spec.type not in LABEL_FIELD_TYPES:
+            raise OpError("A label only applies to date, day and time questions.")
         properties.label = spec.label
+    _apply_type_settings(spec.type, properties, spec.min_time, spec.max_time, spec.currencies)
 
     _set_calculation(
         spec.type, properties, spec.expression, spec.format, spec.hidden_from_respondents, spec.unanswered_as_zero
@@ -1199,6 +1226,57 @@ def _ensure_can_be_internal(field_type) -> None:
         )
 
 
+# Questions that carry date rules.
+DATE_RULE_FIELD_TYPES = {StandardFormFieldType.DATE, StandardFormFieldType.DAY}
+# Questions that take a short label beside the control.
+LABEL_FIELD_TYPES = {
+    StandardFormFieldType.DATE,
+    StandardFormFieldType.DAY,
+    StandardFormFieldType.TIME,
+}
+
+
+def _apply_type_settings(
+    field_type: Optional[StandardFormFieldType],
+    properties: StandardFieldProperty,
+    min_time: Optional[str],
+    max_time: Optional[str],
+    currencies: Optional[List[str]],
+) -> List[str]:
+    """Set a time question's limits and a currency question's codes on
+    ``properties`` (checked like a builder save); returns the change
+    fragments. "" clears a time limit, [] the currency list."""
+    changed: List[str] = []
+    for key, value in (("min_time", min_time), ("max_time", max_time)):
+        if value is None:
+            continue
+        if field_type != StandardFormFieldType.TIME:
+            raise OpError("The earliest and latest time only apply to time questions.")
+        if value != "" and not is_time(value):
+            raise OpError("A time limit is written as HH:MM (24-hour), e.g. 09:30.")
+        setattr(properties, key, value or None)
+        changed.append("earliest time" if key == "min_time" else "latest time")
+    low, high = properties.min_time, properties.max_time
+    if low and high and low > high:
+        raise OpError(
+            f"The earliest time ({low}) cannot be after the latest time ({high})."
+        )
+    if currencies is not None:
+        if field_type != StandardFormFieldType.CURRENCY:
+            raise OpError("Currencies only apply to currency questions.")
+        for code in currencies:
+            if not is_currency_code(code):
+                raise OpError(
+                    f"'{code}' is not a currency the form offers (use an ISO 4217 "
+                    "code such as EUR, USD or GBP)."
+                )
+        if len(set(currencies)) != len(currencies):
+            raise OpError("A currency is listed twice.")
+        properties.currencies = list(currencies) or None
+        changed.append("currencies")
+    return changed
+
+
 def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     """Apply a partial update; returns human-readable change fragments."""
     changed: List[str] = []
@@ -1255,10 +1333,15 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
         field.internal = True if patch.internal else None
         changed.append("internal" if patch.internal else "respondent-facing")
     if patch.label is not None:
-        if field.type != StandardFormFieldType.DATE:
-            raise OpError("A label only applies to date questions.")
+        if field.type not in LABEL_FIELD_TYPES:
+            raise OpError("A label only applies to date, day and time questions.")
         field.properties.label = patch.label.strip() or None
         changed.append("label")
+    changed.extend(
+        _apply_type_settings(
+            field.type, field.properties, patch.min_time, patch.max_time, patch.currencies
+        )
+    )
     if patch.date_rules is not None:
         # validated against the form by _apply_update_field beforehand
         field.properties.date_rules = _date_rules(patch.date_rules) or None
@@ -1413,8 +1496,8 @@ def _check_date_rules_patch(
 ) -> None:
     """Date rules go through the same checks as a builder save: an existing
     date question of the same scope, never itself, no circle."""
-    if field.type != StandardFormFieldType.DATE:
-        raise OpError("Date rules only apply to date questions.")
+    if field.type not in DATE_RULE_FIELD_TYPES:
+        raise OpError("Date rules only apply to date and day questions.")
     rules = _date_rules(specs)
     previous = field.properties.date_rules if field.properties else None
     known = set(date_rule_problems(form.fields))
@@ -1653,6 +1736,11 @@ def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> An
             raise OpError(f"'{raw}' is not a choice of '{_title_text(source)}'. Choices: {', '.join(labels)}")
     if source.type == StandardFormFieldType.YES_NO and str(raw) not in ("Yes", "No"):
         raise OpError("Yes/No conditions take the value 'Yes' or 'No'.")
+    if comparison in ORDERED_COMPARISONS:
+        if source.type == StandardFormFieldType.TIME and not is_time(raw):
+            raise OpError("A condition on a time question takes a time written as HH:MM.")
+        if source.type in DATE_RULE_FIELD_TYPES and not is_iso_date(raw):
+            raise OpError("A condition on a date question takes a date written as YYYY-MM-DD.")
     return raw
 
 
@@ -2057,7 +2145,7 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
 # Which questions each kind of answer rule applies to.
 _LENGTH_TYPES = {StandardFormFieldType.SHORT_TEXT, StandardFormFieldType.LONG_TEXT}
 _PATTERN_TYPES = {StandardFormFieldType.SHORT_TEXT}
-_VALUE_TYPES = {StandardFormFieldType.NUMBER}
+_VALUE_TYPES = {StandardFormFieldType.NUMBER, StandardFormFieldType.CURRENCY}
 
 
 def _rule_applies(field: StandardFormField, types, rule: str, kinds: str) -> None:
@@ -2105,7 +2193,7 @@ def _apply_set_field_validation(form: StandardForm, op: SetFieldValidationOp) ->
             changed.append(label)
     for key, label in (("min_value", "minimum"), ("max_value", "maximum")):
         if key in given:
-            _rule_applies(field, _VALUE_TYPES, "Minimum and maximum values", "number")
+            _rule_applies(field, _VALUE_TYPES, "Minimum and maximum values", "number and currency")
             setattr(rules, key, getattr(patch, key))
             changed.append(label)
     for key, label in (("min_choices", "minimum choices"), ("max_choices", "maximum choices")):

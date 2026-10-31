@@ -217,8 +217,12 @@ childFieldId, a jump's target or endingId, an ending's endingId. Ops run in orde
 Never invent ids for new things: use refs. Existing things keep their ids from the snapshot.
 
 Field types you may create: short_text, long_text, email, number, url,
-phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
-file_upload, text (a display-only statement), calculated (a computed value).
+phone_number, date, day (a date typed as day, month and year: birth dates),
+time (HH:MM, 24-hour; "minTime"/"maxTime" limit it), currency (an amount with an
+ISO 4217 code; "currencies":["EUR","USD"], the first is the default; minValue and
+maxValue limit the amount), yes_no, multiple_choice, dropdown, rating,
+linear_rating, file_upload, text (a display-only statement), calculated (a computed
+value).
 
 Calculations (totals, scores): a "calculated" field shows a value computed from
 answers, never asked. add_field / update_field take "expression" (a JSON syntax

@@ -2,14 +2,20 @@
 import type { Draft } from 'immer';
 
 import { FieldTypes } from '@app/models/dtos/form';
+import { CURRENCIES_MAX, isCurrencyCode } from '@app/utils/currency';
+import { isIsoDate } from '@app/utils/iso-date';
+import { isTime } from '@app/utils/time-of-day';
 
 import { REQUIRED_CALCULATION_MESSAGE, setCalculation } from '../calculations';
 import { checkedDateRules, dateRuleProblems, dateRuleSources } from '../date-rules';
 import {
     ADDABLE_FIELD_TYPES,
     CHOICE_FIELD_TYPES,
+    DATE_RULE_FIELD_TYPES,
     INTERNAL_IN_GROUP_MESSAGE,
+    LABEL_FIELD_TYPES,
     LABEL_MAX_LENGTH,
+    ORDERED_COMPARISONS,
     OpError,
     PATTERN_MAX_LENGTH,
     RATING_FIELD_TYPES,
@@ -48,7 +54,13 @@ export function checkMaxLength(value: string | null | undefined, max: number): v
     if (typeof value === 'string' && pyLen(value) > max) throw new OpError(`String should have at most ${max} characters`);
 }
 
+/** At most CURRENCIES_MAX currencies, as pydantic words it. */
+export function checkCurrencyCount(currencies: string[] | null | undefined): void {
+    if (Array.isArray(currencies) && currencies.length > CURRENCIES_MAX) throw new OpError(`List should have at most ${CURRENCIES_MAX} items after validation, not ${currencies.length}`);
+}
+
 function checkSpec(spec: NewFieldSpec): void {
+    checkCurrencyCount(spec.currencies);
     checkColSpan(spec.colSpan);
     checkMaxLength(spec.label, LABEL_MAX_LENGTH);
     checkMaxLength(spec.whyWeAsk, WHY_WE_ASK_MAX_LENGTH);
@@ -108,9 +120,10 @@ export function buildField(spec: NewFieldSpec, index: number, newId: () => strin
     if (spec.colSpan != null) properties.colSpan = spec.colSpan;
     if (spec.whyWeAsk && spec.whyWeAsk.trim()) properties.whyWeAsk = spec.whyWeAsk.trim();
     if (spec.label) {
-        if (spec.type !== FieldTypes.DATE) throw new OpError('A label only applies to date questions.');
+        if (!LABEL_FIELD_TYPES.has(spec.type)) throw new OpError('A label only applies to date, day and time questions.');
         properties.label = spec.label;
     }
+    applyTypeSettings(spec.type, properties, spec.minTime, spec.maxTime, spec.currencies);
     setCalculation(spec.type, properties, spec);
     if (spec.type === FieldTypes.CALCULATED && spec.required) throw new OpError(REQUIRED_CALCULATION_MESSAGE);
     const validations = spec.required != null ? { required: spec.required } : {};
@@ -119,6 +132,38 @@ export function buildField(spec: NewFieldSpec, index: number, newId: () => strin
     if (spec.description != null) field.description = spec.description;
     if (spec.internal) field.internal = true;
     return field;
+}
+
+/**
+ * Set a time question's limits and a currency question's codes on
+ * `properties` (backend `_apply_type_settings`): "" clears a time limit, []
+ * the currency list. Returns the change fragments.
+ */
+function applyTypeSettings(type: string, properties: Record<string, any>, minTime: string | null | undefined, maxTime: string | null | undefined, currencies: string[] | null | undefined): string[] {
+    const changed: string[] = [];
+    for (const [key, value] of [
+        ['minTime', minTime],
+        ['maxTime', maxTime]
+    ] as const) {
+        if (value == null) continue;
+        if (type !== FieldTypes.TIME) throw new OpError('The earliest and latest time only apply to time questions.');
+        if (value !== '' && !isTime(value)) throw new OpError('A time limit is written as HH:MM (24-hour), e.g. 09:30.');
+        setKey(properties, key, value || undefined);
+        changed.push(key === 'minTime' ? 'earliest time' : 'latest time');
+    }
+    const low = properties.minTime;
+    const high = properties.maxTime;
+    if (low && high && low > high) throw new OpError(`The earliest time (${low}) cannot be after the latest time (${high}).`);
+    if (currencies != null) {
+        if (type !== FieldTypes.CURRENCY) throw new OpError('Currencies only apply to currency questions.');
+        for (const code of currencies) {
+            if (!isCurrencyCode(code)) throw new OpError(`'${code}' is not a currency the form offers (use an ISO 4217 code such as EUR, USD or GBP).`);
+        }
+        if (new Set(currencies).size !== currencies.length) throw new OpError('A currency is listed twice.');
+        setKey(properties, 'currencies', currencies.length ? [...currencies] : undefined);
+        changed.push('currencies');
+    }
+    return changed;
 }
 
 /** Apply a partial update (backend `_patch_field`); returns the change fragments. */
@@ -179,10 +224,11 @@ function patchField(target: Draft<FormField>, plain: FormField, patch: FieldPatc
         changed.push(patch.internal ? 'internal' : 'respondent-facing');
     }
     if (patch.label != null) {
-        if (type !== FieldTypes.DATE) throw new OpError('A label only applies to date questions.');
+        if (!LABEL_FIELD_TYPES.has(type)) throw new OpError('A label only applies to date, day and time questions.');
         setKey(properties, 'label', patch.label.trim() || undefined);
         changed.push('label');
     }
+    changed.push(...applyTypeSettings(type, properties, patch.minTime, patch.maxTime, patch.currencies));
     if (patch.dateRules != null) {
         // checked against the form by updateField beforehand
         const rules = checkedDateRules(patch.dateRules);
@@ -295,6 +341,7 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
     }
     checkTitle(patch.title);
     checkColSpan(patch.colSpan);
+    checkCurrencyCount(patch.currencies);
     checkMaxLength(patch.label, LABEL_MAX_LENGTH);
     checkMaxLength(patch.whyWeAsk, WHY_WE_ASK_MAX_LENGTH);
     if (patch.internal && parent !== null) throw new OpError(INTERNAL_IN_GROUP_MESSAGE);
@@ -305,7 +352,7 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
         throw new OpError(`'${titleText(field)}' is used by a date rule, so it cannot become internal — respondents never answer internal fields. Remove the rule first.`);
     }
     if (patch.dateRules != null) {
-        if (field.type !== FieldTypes.DATE) throw new OpError('Date rules only apply to date questions.');
+        if (!DATE_RULE_FIELD_TYPES.has(field.type)) throw new OpError('Date rules only apply to date and day questions.');
         const rules = checkedDateRules(patch.dateRules);
         const known = new Set(dateRuleProblems(ctx.state.fields));
         const problems = dateRuleProblems(ctx.state.fields, { field, rules }).filter((p) => !known.has(p));
@@ -390,7 +437,7 @@ export const VALIDATION_PRESETS: Record<string, string> = {
 
 const LENGTH_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT]);
 const PATTERN_TYPES = new Set<string>([FieldTypes.SHORT_TEXT]);
-const VALUE_TYPES = new Set<string>([FieldTypes.NUMBER]);
+const VALUE_TYPES = new Set<string>([FieldTypes.NUMBER, FieldTypes.CURRENCY]);
 const VALIDATION_KEYS = ['required', 'minLength', 'maxLength', 'minValue', 'maxValue', 'minChoices', 'maxChoices', 'pattern', 'preset'];
 
 function ruleApplies(field: FormField, types: Set<string>, rule: string, kinds: string): void {
@@ -449,7 +496,7 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
         ['maxValue', 'maximum']
     ]) {
         if (!given.has(key)) continue;
-        ruleApplies(field, VALUE_TYPES, 'Minimum and maximum values', 'number');
+        ruleApplies(field, VALUE_TYPES, 'Minimum and maximum values', 'number and currency');
         set(key, patch[key]);
         changed.push(label);
     }
@@ -511,6 +558,10 @@ function validatedValue(source: FormField, comparison: string, raw: any): any {
         if (!labels.includes(pyStr(raw))) throw new OpError(`'${pyStr(raw)}' is not a choice of '${titleText(source)}'. Choices: ${labels.join(', ')}`);
     }
     if (source.type === FieldTypes.YES_NO && pyStr(raw) !== 'Yes' && pyStr(raw) !== 'No') throw new OpError("Yes/No conditions take the value 'Yes' or 'No'.");
+    if (ORDERED_COMPARISONS.has(comparison)) {
+        if (source.type === FieldTypes.TIME && !isTime(raw)) throw new OpError('A condition on a time question takes a time written as HH:MM.');
+        if (DATE_RULE_FIELD_TYPES.has(source.type) && !isIsoDate(raw)) throw new OpError('A condition on a date question takes a date written as YYYY-MM-DD.');
+    }
     return raw;
 }
 
