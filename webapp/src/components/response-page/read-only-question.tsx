@@ -16,6 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
+import { formatAmount } from '@app/utils/currency';
 import { isoToLocalDate } from '@app/utils/date-rules';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
@@ -365,7 +366,13 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
             return <ReadOnlyBox labelledBy={labelledBy}>{typeof calculated === 'boolean' ? (calculated ? 'Yes' : 'No') : formatCalculatedValue(calculated, field.properties?.format, ctx.formatLanguage)}</ReadOnlyBox>;
         }
         case FieldTypes.DATE:
+        case FieldTypes.DAY:
             return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{dateText(String(value), ctx.formatLanguage)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        case FieldTypes.CURRENCY: {
+            // the amount as the form shows it ("€ 12,50"), not the export's "EUR 12.50"
+            const amount = formatAmount(answer?.currency, ctx.formatLanguage);
+            return amount ? <ReadOnlyBox labelledBy={labelledBy}>{amount}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        }
         case FieldTypes.LONG_TEXT:
             return present(value) ? (
                 <ReadOnlyBox labelledBy={labelledBy} multiline>

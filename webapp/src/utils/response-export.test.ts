@@ -110,6 +110,39 @@ describe('export columns', () => {
     });
 });
 
+describe('time, day and currency answers in the export', () => {
+    const arrival: StandardFormFieldDto = { id: 'arrival', index: 0, type: FieldTypes.TIME, title: 'Arrival' };
+    const born: StandardFormFieldDto = { id: 'born', index: 1, type: FieldTypes.DAY, title: 'Born' };
+    const budget: StandardFormFieldDto = { id: 'budget', index: 2, type: FieldTypes.CURRENCY, title: 'Budget', properties: { currencies: ['EUR', 'GBP'] } };
+    const typed = form(undefined, [arrival, born, budget]);
+
+    it('writes HH:MM, YYYY-MM-DD and "CODE amount" with a dot, the same in every language', () => {
+        const { main } = buildResponsesExport(typed, [
+            response({
+                responseId: 'r1',
+                answers: { arrival: { type: 'time', time: '09:05' }, born: { type: 'date', date: '1990-11-05' }, budget: { type: 'currency', currency: { code: 'GBP', amount: '1250.50' } } }
+            })
+        ]);
+        expect(main.headers.slice(0, 4)).toEqual(['Responder ID', 'Arrival', 'Born', 'Budget']);
+        expect(main.rows[0].slice(1, 4)).toEqual(['09:05', '1990-11-05', 'GBP 1250.50']);
+        expect(tableToCsv(main).split('\r\n')[1]).toContain('09:05,1990-11-05,GBP 1250.50');
+    });
+
+    it('leaves the cells of unanswered questions empty', () => {
+        const { main } = buildResponsesExport(typed, [response({ responseId: 'r2', answers: {} })]);
+        expect(main.rows[0].slice(1, 4)).toEqual(['', '', '']);
+    });
+
+    it('reads a half-typed or impossible day as typed, never as another date', () => {
+        const { main } = buildResponsesExport(typed, [response({ answers: { born: { type: 'date', date: '2026-02-31' } } })]);
+        expect(main.rows[0][2]).toBe('2026-02-31');
+    });
+
+    it('writes the same cells for a repeating group item', () => {
+        expect(getAnswerForField({ answers: { budget: { type: 'currency', currency: { code: 'EUR', amount: '3' } } } } as any, budget)).toBe('EUR 3');
+    });
+});
+
 describe('getAnswerForField separators', () => {
     const answers = { colours: { type: 'choices', choices: { values: ['c1', 'c3'] } } };
     it('keeps the display separator without one', () => {

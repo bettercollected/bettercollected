@@ -300,6 +300,16 @@ form spec, the ops engine, the REST API and the Open Formulieren import (an arch
 drops it). The builder asks `POST /workspaces/{id}/forms/pattern/check` while a pattern is typed. There is no
 shape analysis of patterns: two review rounds found bypasses in one, and RE2 makes it unnecessary.
 
+**Time, day and currency questions** (field types `time`, `day`, `currency`; spec section "Time, day and currency
+questions" in [../docs/spec/README.md](../docs/spec/README.md)): answers sit in the `time` slot (`"HH:MM"`), the `date` slot
+(a `day` is a date typed as three boxes) and the `currency` slot (`{code, amount}` with the amount a plain decimal string).
+`common/currencies.py` holds the currency table (twin `webapp/src/utils/currency.ts`, both compared with
+`docs/spec/currencies-v1.json`), `parse_amount`, `is_time`; the settings are `properties.min_time`, `max_time`, `currencies`
+(`check_type_settings`, checked by the model, the spec, the DTO and the ops engines). `answer_validation` checks them
+(rule codes `format`, `currency`, plus `too_small`/`too_large`; twin `utils/answer-rules.ts`); date rules apply to `day`
+too (`DATE_RULE_TYPES`). In logic and rules a time or a day compares as text that sorts (`_ordered_text_condition`, also for
+`date`), a currency reads as its amount string. Internal fields do not take these types.
+
 **Calculated fields** (`services/calculated_fields.py`, webapp twin `utils/calculated-fields.ts`): a
 `calculated` field on a page stores an expressions-v1 AST at `properties.expression`
 ([../docs/spec/expressions-v1.md](../docs/spec/expressions-v1.md)), a display `format` and

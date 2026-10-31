@@ -36,6 +36,33 @@ hide it), `rules` (see [Field rules](#field-rules)), `dateRules`, `whyWeAsk`,
 no longer offers are marked `deprecated` in the schema: they are still
 accepted so that older forms can be read, and validation warns about them.
 
+### Time, day and currency questions
+
+| Type | The respondent | The answer | Settings |
+|---|---|---|---|
+| `time` | a time box (the browser's own time picker) | `{"type":"time","time":"HH:MM"}`: 24 hours, zero-padded, no seconds, no zone | `minTime`, `maxTime` (`HH:MM`, the earliest not after the latest; an answer on a bound is fine); `label` |
+| `day` | three boxes: day, month, year | `{"type":"date","date":"YYYY-MM-DD"}`, the slot of a `date` question | `dateRules` (as a `date` question's), `label` |
+| `currency` | the currency (a choice when there are several) and an amount | `{"type":"currency","currency":{"code":"EUR","amount":"12.50"}}` | `currencies` (1 to 10 ISO 4217 codes, the first is the default; EUR when left out), `validations.minValue` and `maxValue` on the amount |
+
+An amount is a plain decimal string: digits, an optional leading `-`, a dot and
+at most the currency's own number of decimals (EUR 2, JPY 0, KWD 3; the table
+is [`currencies-v1.json`](currencies-v1.json)). A comma, a thousands separator,
+an exponent, a leading `+` or a leading zero is refused, so a stored amount reads
+the same everywhere. The server refuses an answer with the rule codes
+`format` (not a real time, day or amount), `currency` (a currency the question
+does not offer), `too_small` and `too_large` (before the earliest or after the
+latest time; below or above the lowest or highest amount), `type` and `required`.
+
+As a source (logic conditions, field rules, calculations) a time reads as its
+`HH:MM` text and a day as its `YYYY-MM-DD` text; ordered comparisons (`<`, `>=`,
+...) compare them as times and dates (a value that is not one never matches;
+this holds for `date` questions too). A currency reads as its amount, a number:
+`+`, `sum`, `>` and the rest just work, and the code is not part of the value, so
+add up amounts of one currency. Field rules may set a time or a day (a
+constant or an expression, as for a date) and a currency's amount (in its first
+currency). In the exports a time is `HH:MM`, a day `YYYY-MM-DD` and a currency
+`EUR 12.50` (code, a space, a dot decimal).
+
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or
 `"__SUBMIT__"`. A jump to `"__SUBMIT__"` may add `endingId` to show that
