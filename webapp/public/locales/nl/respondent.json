@@ -46,6 +46,7 @@
         "CONTINUE": "Volgende",
         "SUBMIT": "Antwoorden versturen",
         "SUBMIT_ERROR": "Je antwoorden zijn niet verstuurd. Probeer het nog een keer.",
+        "SUBMIT_UNMAPPED": "Je antwoorden zijn niet geaccepteerd en we konden niet zien welk antwoord nog een keer bekeken moet worden. Controleer ze en probeer het opnieuw.",
         "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd.",
         "SUBMIT_CLOSED": "Dit formulier is gesloten voordat je antwoorden zijn verstuurd. Je antwoorden zijn niet verstuurd.",
         "SUBMIT_NOT_OPEN": "Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.",
@@ -69,6 +70,9 @@
         "NEEDS_ANSWER": "Antwoord nodig",
         "ANSWER_IT": "Beantwoorden",
         "FIX": "Controleren",
+        "ALSO_SENT": "Ook verstuurd",
+        "ALSO_SENT_HINT": "Dit formulier toont deze vragen niet meer, door je latere antwoorden, maar je eerdere antwoorden erop worden nog wel verstuurd. Wil je ze wijzigen, ga dan terug en wijzig het antwoord waardoor ze verborgen werden.",
+        "UPLOADED_FILE": "Geüpload bestand",
         "FILLED_IN": "Ingevuld door het formulier"
     },
     "CONSENT": {

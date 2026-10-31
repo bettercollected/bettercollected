@@ -61,7 +61,7 @@ import VideoField from '../form-builder/fields/video-field';
 import { FORM_COLUMN, FORM_GUTTER, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import ShareIdentityConsent from './share-identity-consent';
-import { SUBMIT_REFUSED, useEmitFlow, useFinishForm } from './use-finish-form';
+import { submitErrorKey, useEmitFlow, useFinishForm } from './use-finish-form';
 
 // A #rrggbb page colour at ~90% opacity; anything else (unset, named colours)
 // falls back to a translucent white.
@@ -224,7 +224,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         const path = responderState.reviewPath ?? [];
         const answers = formResponse.answers || {};
         const states = statesFor(standardForm?.fields, answers, hiddenValues, standardForm?.hiddenFields, path);
-        const walk = walkReviewPath({ slides: standardForm?.fields, answers, path, from: path.indexOf(index), states });
+        const walk = walkReviewPath({ slides: standardForm?.fields, answers, path, states });
         if (walk.kind === 'review') returnToReview(walk.path, walk.endingId);
         else if (walk.kind === 'continue') continueFrom(walk.path, walk.target);
         else {
@@ -396,7 +396,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>
-                                {t(submitError === 'failed' ? 'NAV.SUBMIT_ERROR' : SUBMIT_REFUSED[submitError])}
+                                {t(submitErrorKey(submitError))}
                             </p>
                         )}
                     </div>

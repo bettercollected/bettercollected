@@ -150,8 +150,9 @@ export function answerLines(field: StandardFormFieldDto, answers: Record<string,
 }
 
 /** A question's title as plain text, as the respondent read it (pipes resolved, a rule's title in place of the form's). */
-export function questionTitle(field: StandardFormFieldDto, pipe: PipeContext, states: FieldRuleStates, t: Translate): string {
-    const ruleTitle = states.text(field.id)?.title;
+export function questionTitle(field: StandardFormFieldDto, pipe: PipeContext, states: FieldRuleStates, t: Translate, scope?: { groupId: string; index: number }): string {
+    // a question inside a repeating-group item has its rule texts per item
+    const ruleTitle = states.text(field.id, scope?.groupId, scope?.index)?.title;
     const legacy = legacyTitleText(field);
     const stringTitle = ruleTitle ? ruleTitle : typeof field.title === 'string' && field.title ? field.title : legacy;
     const title = stringTitle ? stringTitleToDoc(stringTitle) : field.title;
@@ -164,9 +165,12 @@ export function questionTitle(field: StandardFormFieldDto, pipe: PipeContext, st
  * would be submitted. Read from the answers `normalizeGroupAnswersForSubmit`
  * gives over the visited path (what the submit sends), so a repeating group
  * the respondent never saw or a page they skipped is not listed. Questions hidden
- * by logic and internal ones are left out (hidden fields are not questions),
- * values a field rule set or locked are listed and marked. Pages with nothing
- * to review (text blocks only) are left out.
+ * by logic and internal ones are left out here (hidden fields are not
+ * questions), values a field rule set or locked are listed and marked. Pages
+ * with nothing to review (text blocks only) are left out.
+ *
+ * What the form no longer shows but still sends is not hidden from the
+ * respondent: `alsoSentRows` lists it in a block of its own.
  */
 export function reviewSections(input: ReviewInput): ReviewSection[] {
     const { slides, path, states, hiddenValues, language, t } = input;
@@ -189,9 +193,9 @@ export function reviewSections(input: ReviewInput): ReviewSection[] {
         fields
             .filter((field) => isReviewable(field, hidden))
             .forEach((field) => {
-                const row = (target: StandardFormFieldDto, scope: Record<string, any>, key: string, context: PipeContext): ReviewRow => {
+                const row = (target: StandardFormFieldDto, scope: Record<string, any>, key: string, context: PipeContext, inItem?: { groupId: string; index: number }): ReviewRow => {
                     const lines = answerLines(target, scope, language, t);
-                    return { key, fieldId: target.id, title: questionTitle(target, context, states, t), lines, locked: key === target.id ? lockedOf(target) : null, problem: problemOf(key, lines) };
+                    return { key, fieldId: target.id, title: questionTitle(target, context, states, t, inItem), lines, locked: key === target.id ? lockedOf(target) : null, problem: problemOf(key, lines) };
                 };
                 if (!isRepeatingGroup(field)) {
                     questions.push(row(field, answers, field.id, pipe));
@@ -214,7 +218,7 @@ export function reviewSections(input: ReviewInput): ReviewSection[] {
                         return {
                             key: `${field.id}::${index}`,
                             header: getItemHeader(field, index, pipe, itemLabelOf(field)),
-                            rows: children.filter((child) => isReviewable(child, itemHidden)).map((child) => row(child, item, scopedFieldId(child.id, index), context))
+                            rows: children.filter((child) => isReviewable(child, itemHidden)).map((child) => row(child, item, scopedFieldId(child.id, index), context, { groupId: field.id, index }))
                         };
                     })
                 });
@@ -233,6 +237,77 @@ export const reviewProblems = (sections: ReviewSection[]): Array<{ slideIndex: n
             .map((row) => ({ slideIndex: section.slideIndex, row }))
     );
 
+export interface AlsoSentRow {
+    key: string;
+    fieldId: string;
+    title: string;
+    lines: string[];
+    /** The page the question is on, when known (1-based, as "Page x of y" counts). */
+    page: number | null;
+}
+
+/**
+ * What is sent although the review does not list it as a question: answers
+ * the respondent gave earlier to questions their later answers now hide (the
+ * form keeps and sends them), and uploaded files whose question is hidden or
+ * on a page they skipped. Listing them keeps the review true to what is sent.
+ * Questions hidden by logic are the plain ones on the visited pages, and the
+ * questions of a group item hidden by an item rule; a repeating group that is
+ * hidden is not sent at all, nor are the answers of skipped pages. Calculations
+ * kept from respondents and internal questions are the form's, not answers.
+ */
+export function alsoSentRows(input: ReviewInput & { files?: ReadonlyArray<{ fieldId: string; fileName?: string }>; sections: ReviewSection[] }): AlsoSentRow[] {
+    const { slides, path, states, hiddenValues, language, t } = input;
+    const sources = logicSourcesById(slides);
+    const answers = normalizeGroupAnswersForSubmit(slides, input.answers ?? {}, path);
+    const pipe: PipeContext = { slides, answers, hiddenValues, language };
+    const rows: AlsoSentRow[] = [];
+    const listed = new Set(input.sections.flatMap((section) => section.questions.flatMap((question) => [question.fieldId, ...(question.items ?? []).flatMap((item) => item.rows.map((row) => row.fieldId))])));
+    const isAnswer = (field: StandardFormFieldDto) => !field.internal && isShownToRespondents(field) && !isContent(field);
+
+    path.forEach((slideIndex) => {
+        const fields = slides?.[slideIndex]?.properties?.fields ?? [];
+        const hidden = getHiddenFieldIds(fields, answers, sources);
+        fields.forEach((field) => {
+            if (isRepeatingGroup(field)) {
+                if (hidden.has(field.id)) return;
+                const children = getGroupChildren(field);
+                getGroupItems(answers, field.id).forEach((item, index) => {
+                    const itemHidden = getItemHiddenChildIds(field, answers, index, sources);
+                    const scope = { groupId: field.id, index, childIds: children.map((child) => child.id) };
+                    children
+                        .filter((child) => itemHidden.has(child.id) && isAnswer(child))
+                        .forEach((child) => {
+                            const lines = answerLines(child, item, language, t);
+                            if (lines.length)
+                                rows.push({
+                                    key: `${field.id}::${index}::${child.id}`,
+                                    fieldId: child.id,
+                                    title: `${getItemHeader(field, index, pipe, field.properties?.repeat?.itemLabel?.trim() || t('GROUP.ITEM'))}: ${questionTitle(child, { ...pipe, answers: itemScopeAnswers(answers, scope) }, states, t, { groupId: field.id, index })}`,
+                                    lines,
+                                    page: slideIndex + 1
+                                });
+                        });
+                });
+                return;
+            }
+            if (!hidden.has(field.id) || !isAnswer(field)) return;
+            const lines = answerLines(field, answers, language, t);
+            if (lines.length) rows.push({ key: field.id, fieldId: field.id, title: questionTitle(field, pipe, states, t), lines, page: slideIndex + 1 });
+        });
+    });
+
+    // Files are sent whatever their page: one whose question the review does not list is named here.
+    const byId = new Map<string, { field: StandardFormFieldDto; page: number }>();
+    (slides ?? []).forEach((slide, index) => (slide?.properties?.fields ?? []).forEach((field) => byId.set(field.id, { field, page: index + 1 })));
+    (input.files ?? []).forEach((file, index) => {
+        if (listed.has(file.fieldId) || rows.some((row) => row.fieldId === file.fieldId)) return;
+        const known = byId.get(file.fieldId);
+        rows.push({ key: `file-${file.fieldId}-${index}`, fieldId: file.fieldId, title: known ? questionTitle(known.field, pipe, states, t) : t('REVIEW.UPLOADED_FILE'), lines: [file.fileName || t('REVIEW.ANSWERED')], page: known?.page ?? null });
+    });
+    return rows;
+}
+
 /** Where the form goes after the page at `slide`, with these answers: a page index, or `end` (submit). The same decision the page's Continue makes. */
 export function nextPageAfter(slides: StandardFormFieldDto[] | undefined, slide: number, answers: Record<string, any>, sources: LogicSources = logicSourcesById(slides)): { target: number | 'end'; endingId?: string } {
     const page = slides?.[slide];
@@ -246,36 +321,41 @@ export function nextPageAfter(slides: StandardFormFieldDto[] | undefined, slide:
 }
 
 export type ReviewWalk =
-    /** The pages after the edit still lead where they did: back to the review over `path`. */
+    /** The pages still lead where they did: back to the review over `path`. */
     | { kind: 'review'; path: number[]; endingId?: string }
-    /** An edit changed where the form goes at the page ending `path`: on from `target`, where the respondent fills in whatever is new. */
+    /** An edit sends the form to a page the respondent has not been through: on from `target`, where they fill in whatever is new. */
     | { kind: 'continue'; path: number[]; target: number }
-    /** A page after the edit is not complete any more (an answer now required): the respondent goes to it. */
+    /** A page on the way is not complete any more (an answer now required): the respondent goes to it. */
     | { kind: 'fix'; path: number[]; page: number };
 
 /**
- * After an edit on `path[from]`: replay the rest of the path with the
- * answers as they are now. The page's own answers were checked by the caller.
- * While every page still has its answers and its jump leads to the next
- * page of the path, the respondent goes back to the review. Where a jump now
- * leads elsewhere they continue from there (the pages after it are no longer
- * on their path, and are dropped when they submit); a jump that now ends the
- * form shortens the path. Pages that became incomplete are visited first.
+ * After an edit: replay the whole reviewed path from its first page with the
+ * answers as they are now, following the jumps as the form does (not from
+ * the edited page: a change there can alter where an earlier page of the path
+ * leads too, and the respondent may have moved on with Continue before coming
+ * back). While every page on the way is complete and one the respondent has
+ * been through, they go back to the review over the route as it now runs: a
+ * page the route skips drops off the path (and its answers are not sent), a
+ * jump that now ends the form shortens it. A route that reaches a page they
+ * never saw continues there; a page that became incomplete is visited first.
+ * Every page on the route, the edited one too, must be complete.
  */
-export function walkReviewPath(input: { slides: StandardFormFieldDto[] | undefined; answers: Record<string, any>; path: number[]; from: number; states: FieldRuleStates }): ReviewWalk {
-    const { slides, path, from, states } = input;
+export function walkReviewPath(input: { slides: StandardFormFieldDto[] | undefined; answers: Record<string, any>; path: number[]; states: FieldRuleStates }): ReviewWalk {
+    const { slides, path, states } = input;
     const sources = logicSourcesById(slides);
     const answers = normalizeGroupAnswersForSubmit(slides, input.answers ?? {}, path);
-    let endingId: string | undefined;
-    for (let at = from; at < path.length; at++) {
-        if (at > from && Object.keys(pageInvalidations(slides?.[path[at]], slides, answers, states, sources)).length) return { kind: 'fix', path: path.slice(0, at), page: path[at] };
-        const next = nextPageAfter(slides, path[at], answers, sources);
-        const last = at === path.length - 1;
-        if (next.target === 'end') {
-            endingId = next.endingId;
-            return { kind: 'review', path: path.slice(0, at + 1), endingId };
-        }
-        if (last || next.target !== path[at + 1]) return { kind: 'continue', path: path.slice(0, at + 1), target: next.target };
+    const reviewed = new Set(path);
+    const route: number[] = [];
+    let page = path[0];
+    for (let hops = 0; hops <= (slides?.length ?? 0) * 2 + 2 && page !== undefined; hops++) {
+        // a page twice on the route (rules that loop) is not one the review can list: the respondent carries on from it
+        if (route.includes(page)) return { kind: 'continue', path: route, target: page };
+        if (Object.keys(pageInvalidations(slides?.[page], slides, answers, states, sources)).length) return { kind: 'fix', path: [...route], page };
+        route.push(page);
+        const next = nextPageAfter(slides, page, answers, sources);
+        if (next.target === 'end') return { kind: 'review', path: route, endingId: next.endingId };
+        if (!reviewed.has(next.target)) return { kind: 'continue', path: route, target: next.target };
+        page = next.target;
     }
-    return { kind: 'review', path, endingId };
+    return { kind: 'review', path: route };
 }

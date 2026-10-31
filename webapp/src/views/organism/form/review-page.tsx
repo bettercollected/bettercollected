@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
+import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
 import { statesFor } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -10,12 +11,13 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { pageInvalidations } from '@app/utils/page-validation';
 import { parseScopedFieldId } from '@app/utils/repeating-groups';
-import { ReviewQuestion, ReviewRow, ReviewSection, pathPages, reviewProblems, reviewSections } from '@app/utils/review-page';
+import { AlsoSentRow, ReviewQuestion, ReviewRow, ReviewSection, alsoSentRows, pathPages, reviewProblems, reviewSections } from '@app/utils/review-page';
 import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
 import { actionText } from '@app/utils/theme-contrast';
 import BackButton from '@app/views/molecules/form-builder/back-button';
@@ -24,7 +26,7 @@ import { mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-s
 import { FORM_COLUMN, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
 import ShareIdentityConsent from './share-identity-consent';
-import { SUBMIT_REFUSED, useEmitFlow, useFinishForm } from './use-finish-form';
+import { submitErrorKey, useEmitFlow, useFinishForm } from './use-finish-form';
 
 const isHex = (value?: string) => !!value && /^#[0-9a-fA-F]{6}$/.test(value);
 
@@ -48,6 +50,10 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const { hiddenValues } = useHiddenFieldValues();
     const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize } = useFinishForm(isPreviewMode);
     const emitFlow = useEmitFlow(isPreviewMode);
+    const { files } = useFormAtom();
+    // Calculations and values the rules set follow the path as it stands now (an edit may have
+    // shortened it since the page they were last worked out on).
+    useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);
     const theme = standardForm?.theme;
     const leaflet = styleTokens(theme?.style).key === 'leaflet';
     const ink = theme?.primary;
@@ -57,12 +63,14 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const serif = leaflet ? { fontFamily: leafletSerif.style.fontFamily } : undefined;
 
     const path = useMemo(() => pathPages(responderState.history), [responderState.history]);
-    const sections = useMemo(() => {
+    const { sections, alsoSent } = useMemo(() => {
         const answers = formResponse.answers ?? {};
         // visited: the pages gone through (the review itself is not one)
         const states = statesFor(standardForm?.fields, answers, hiddenValues, standardForm?.hiddenFields, [...path, responderState.currentSlide]);
-        return reviewSections({ slides: standardForm?.fields, answers, path, states, hiddenValues, language: language === 'nl' ? 'nl' : 'en', t });
-    }, [standardForm?.fields, standardForm?.hiddenFields, formResponse.answers, hiddenValues, path, responderState.currentSlide, language, t]);
+        const input = { slides: standardForm?.fields, answers, path, states, hiddenValues, language: (language === 'nl' ? 'nl' : 'en') as 'en' | 'nl', t };
+        const sections = reviewSections(input);
+        return { sections, alsoSent: alsoSentRows({ ...input, sections, files }) };
+    }, [standardForm?.fields, standardForm?.hiddenFields, formResponse.answers, hiddenValues, path, responderState.currentSlide, language, t, files]);
     const problems = useMemo(() => reviewProblems(sections), [sections]);
 
     // To a page that needs something, with what it lacks marked, and the first such question in focus.
@@ -124,6 +132,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
                     />
                 ))}
             </div>
+            {alsoSent.length > 0 && <AlsoSentView rows={alsoSent} ink={ink} quiet={quiet} edge={edge} serif={serif} contentLang={contentLang} />}
             <div className="mt-10 flex flex-col items-start gap-4">
                 <ShareIdentityConsent effectiveAnonymize={effectiveAnonymize} />
                 <Button flat style={formButtonStyle(theme?.secondary, corner)} isLoading={isLoading} className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')} onClick={onSubmit} size="medium">
@@ -132,7 +141,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
                 {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                 {submitError && (
                     <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]">
-                        {t(submitError === 'failed' ? 'NAV.SUBMIT_ERROR' : SUBMIT_REFUSED[submitError])}
+                        {t(submitErrorKey(submitError))}
                     </p>
                 )}
             </div>
@@ -259,5 +268,47 @@ function RowView({ row, ink, quiet, edge, link, contentLang, onFix, last = false
                 )}
             </dd>
         </div>
+    );
+}
+
+/**
+ * What is sent although the review lists no question for it: earlier answers
+ * to questions the form no longer shows, and uploaded files of such questions
+ * or of pages that were skipped. Named, so that what the page says is what is sent.
+ */
+function AlsoSentView({ rows, ink, quiet, edge, serif, contentLang }: { rows: AlsoSentRow[]; ink?: string; quiet: string; edge: string; serif?: React.CSSProperties; contentLang: string | undefined }) {
+    const { t } = useRespondentLanguage();
+    return (
+        <section aria-labelledby="review-also-sent" className="mt-10" data-testid="review-also-sent">
+            <div className="border-b pb-2" style={{ borderColor: edge }}>
+                <h2 id="review-also-sent" className="text-[19px] leading-snug font-semibold" style={{ color: ink, ...serif }}>
+                    {t('REVIEW.ALSO_SENT')}
+                </h2>
+            </div>
+            <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed" style={{ color: quiet }}>
+                {t('REVIEW.ALSO_SENT_HINT')}
+            </p>
+            <dl className="flex flex-col">
+                {rows.map((row) => (
+                    <div key={row.key} className="border-b py-3" style={{ borderColor: edge }} data-testid="review-also-sent-row">
+                        <dt className="text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]" style={{ color: ink }}>
+                            <span lang={contentLang}>{row.title}</span>
+                            {row.page !== null && (
+                                <span className="ml-3 text-[13px] font-normal" style={{ color: quiet }}>
+                                    {t('REVIEW.PAGE', { n: row.page })}
+                                </span>
+                            )}
+                        </dt>
+                        <dd className="mt-1.5">
+                            {row.lines.map((line, index) => (
+                                <span key={index} className="block text-[16px] leading-relaxed break-words whitespace-pre-wrap" style={{ color: ink }}>
+                                    {line}
+                                </span>
+                            ))}
+                        </dd>
+                    </div>
+                ))}
+            </dl>
+        </section>
     );
 }

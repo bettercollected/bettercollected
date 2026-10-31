@@ -46,6 +46,7 @@
         "CONTINUE": "Continue",
         "SUBMIT": "Submit response",
         "SUBMIT_ERROR": "Your response could not be sent. Please try again.",
+        "SUBMIT_UNMAPPED": "Your answers could not be accepted, and we could not tell which one needs another look. Please check them and try again.",
         "SUBMIT_INVALID": "Some answers need another look. They are marked below.",
         "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent.",
         "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
@@ -69,6 +70,9 @@
         "NEEDS_ANSWER": "Needs an answer",
         "ANSWER_IT": "Answer",
         "FIX": "Check",
+        "ALSO_SENT": "Also sent",
+        "ALSO_SENT_HINT": "This form no longer shows these questions, because of your later answers, but your earlier answers to them are still sent. To change them, go back and change the answer that hid them.",
+        "UPLOADED_FILE": "Uploaded file",
         "FILLED_IN": "Filled in by the form"
     },
     "CONSENT": {

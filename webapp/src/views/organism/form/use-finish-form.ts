@@ -24,7 +24,11 @@ import { firstPageWithError, formRefusal, historyBackTo, serverAnswerErrors, ser
 /** The message for a submission the server refused because the form takes no responses. */
 export const SUBMIT_REFUSED = { closed: 'NAV.SUBMIT_CLOSED', not_yet_open: 'NAV.SUBMIT_NOT_OPEN', full: 'NAV.SUBMIT_FULL' } as const;
 
-export type SubmitError = false | 'failed' | 'closed' | 'not_yet_open' | 'full';
+/** `unmapped`: the server refused some answers (422) that belong to no page the respondent can go to. */
+export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full';
+
+/** The message to keep by the button for a failed submission. */
+export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : SUBMIT_REFUSED[error]);
 
 /**
  * Anonymous drop-off breadcrumb: page to page, never answers, never in preview.
@@ -123,6 +127,8 @@ export function useFinishForm(isPreviewMode: boolean) {
         setInvalidFields(invalid);
         toast({ description: t('NAV.SUBMIT_INVALID'), variant: 'destructive' });
         const page = firstPageWithError(slides, errors);
+        // Nothing to go to: the toast alone is gone in a moment, so the message stays by the button
+        if (page < 0) setSubmitError('unmapped');
         if (page >= 0 && page !== currentSlide) {
             const fromReview = currentSlide === REVIEW_SLIDE;
             setResponderState({

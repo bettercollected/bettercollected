@@ -16,6 +16,7 @@ import '@app/shared/hocs/i18n-provider';
 import { setAuth } from '@app/store/auth/slice';
 import { setForm } from '@app/store/forms/slice';
 import { useFormState } from '@app/store/jotai/form';
+import useFormFileAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { store } from '@app/store/store';
@@ -103,10 +104,12 @@ const ANSWERS = {
 
 let responder: ReturnType<typeof useResponderState>;
 let response: ReturnType<typeof useFormResponse>;
+let fileStore: ReturnType<typeof useFormFileAtom>;
 let preview = false;
 function Respondent() {
     responder = useResponderState();
     response = useFormResponse();
+    fileStore = useFormFileAtom();
     const { updateFormTheme } = useFormState();
     React.useEffect(() => {
         updateFormTheme(ThemeColors[0], { undoable: false });
@@ -136,6 +139,8 @@ const click = async (name: string | RegExp) => {
 };
 /** The submitted answers (the body of the request). */
 const sentAnswers = () => JSON.parse((submit.mock.calls.at(-1)![0].body as FormData).get('response') as string).answers;
+/** The page headings of the review, without the block of what is also sent. */
+const pageHeadings = () => screen.getAllByRole('heading', { level: 2 }).filter((heading) => heading.textContent !== 'Also sent');
 const reviewHeading = () => screen.findByRole('heading', { level: 1, name: /Review your answers|Controleer je antwoorden/ });
 const section = (slide: number) => screen.getByTestId(`review-section-${slide}`);
 /** The row of a question (its term), and what it answers (the definition after it). */
@@ -187,7 +192,7 @@ describe('the review page', () => {
     it('lists the answers of each page in a summary list under a heading per page', async () => {
         start();
         await toReview();
-        expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 2', 'Page 3']);
+        expect(pageHeadings().map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 2', 'Page 3']);
         const one = section(0);
         expect(valueOf(one, 'Your name')).toHaveTextContent('Ada');
         // choices say the option's words, not its id
@@ -217,12 +222,53 @@ describe('the review page', () => {
         const data = { ...FORM(), hiddenFields: ['utm_source'] };
         start(data, { ...ANSWERS });
         await toReview();
-        // "Plus code" shows only for Plus; "Staff note" is internal
-        expect(screen.queryByText('Plus code')).not.toBeInTheDocument();
-        expect(screen.queryByText('PLUS-123')).not.toBeInTheDocument();
+        // "Plus code" shows only for Plus: not a question of the review (it is sent, so it is named below)
+        expect(within(section(0)).queryByText('Plus code')).not.toBeInTheDocument();
+        expect(within(section(0)).queryByText('PLUS-123')).not.toBeInTheDocument();
         expect(screen.queryByText('Staff note')).not.toBeInTheDocument();
         expect(screen.queryByText('staff only')).not.toBeInTheDocument();
         expect(screen.queryByText('utm_source')).not.toBeInTheDocument();
+    });
+
+    describe('what is sent although the form no longer shows it', () => {
+        it('names an earlier answer to a question the later answers hide, apart from the questions', async () => {
+            start();
+            await toReview();
+            // the form keeps and sends it: "Plus code" was answered, then the plan changed to Basic
+            const block = screen.getByTestId('review-also-sent');
+            expect(within(block).getByRole('heading', { level: 2, name: 'Also sent' })).toBeInTheDocument();
+            expect(within(block).getByText('Plus code')).toBeInTheDocument();
+            expect(within(block).getByText('PLUS-123')).toBeInTheDocument();
+            expect(within(block).getByText(/still sent/)).toBeInTheDocument();
+            // staff-only answers are not the respondent's
+            expect(screen.queryByText('staff only')).not.toBeInTheDocument();
+            // and what the block names is what the submit sends
+            await click('Submit response');
+            expect(sentAnswers().secret.text).toBe('PLUS-123');
+        });
+
+        it('is not there when everything sent is listed above', async () => {
+            const { secret, ...answers } = ANSWERS;
+            start(FORM(), answers);
+            await toReview();
+            expect(screen.queryByTestId('review-also-sent')).not.toBeInTheDocument();
+        });
+
+        it('names a file whose question is hidden or on a skipped page, and sends it', async () => {
+            start(FORM(), { ...ANSWERS, plan: { type: 'choice', choice: { value: 'c-plus' } } });
+            const sent = new File(['x'], 'old-cv.pdf');
+            // a file picked for the question of page 2, which a Plus plan skips
+            act(() => fileStore.addFile('extra', 'file-1', 'old-cv.pdf', sent));
+            await click('Continue');
+            await screen.findByText('Page 3 of 3');
+            await click('Review your answers');
+            await reviewHeading();
+            const block = screen.getByTestId('review-also-sent');
+            expect(within(block).getByText('Anything else?')).toBeInTheDocument();
+            expect(within(block).getByText('old-cv.pdf')).toBeInTheDocument();
+            await click('Submit response');
+            expect((submit.mock.calls[0][0].body as FormData).getAll('file_field_ids')).toEqual(['extra']);
+        });
     });
 
     it('marks values a field rule filled in as read only', async () => {
@@ -230,6 +276,18 @@ describe('the review page', () => {
         await toReview();
         expect(termOf(section(2), 'Customer code')).toHaveTextContent('Filled in by the form');
         expect(valueOf(section(2), 'Customer code')).toHaveTextContent('CUST-1');
+    });
+
+    it("shows a rule-changed title of a question inside a group item (the item's, not the form's)", async () => {
+        const data = FORM();
+        const children = data.fields[2].properties!.fields![2];
+        children.properties!.fields!.push(q('cage', FieldTypes.NUMBER, 'Age'));
+        children.properties!.fields![0].properties = { fields: [], rules: [{ id: 'rc', when: { conditions: [{ fieldId: 'cage', fieldType: 'number', comparison: 'IS_NOT_EMPTY' }] }, then: { title: 'Name of the child you described' } }] as any };
+        start(data, { ...ANSWERS, children: { type: 'group', items: [{ 'child-name': text('Kim'), cage: { type: 'number', number: 7 } }] } });
+        await toReview();
+        const item = within(section(2)).getByTestId('review-item');
+        expect(within(item).getByText('Name of the child you described')).toBeInTheDocument();
+        expect(within(item).queryByText('Child name')).not.toBeInTheDocument();
     });
 
     it('lists a repeating group item by item', async () => {
@@ -249,7 +307,7 @@ describe('the review page', () => {
         await click('Review your answers');
         await reviewHeading();
         expect(screen.queryByText('Anything else?')).not.toBeInTheDocument();
-        expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 3']);
+        expect(pageHeadings().map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 3']);
         // the Plus-only question now shows
         expect(within(section(0)).getByText('PLUS-123')).toBeInTheDocument();
         await click('Submit response');
@@ -302,7 +360,7 @@ describe('the review page', () => {
             await reviewHeading();
             expect(valueOf(section(0), 'Your name')).toHaveTextContent('Ada Lovelace');
             // the same three pages, nothing was sent
-            expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3);
+            expect(pageHeadings()).toHaveLength(3);
             expect(submit).not.toHaveBeenCalled();
             await vi.waitFor(() => expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 })));
         });
@@ -315,23 +373,58 @@ describe('the review page', () => {
             expect(screen.queryByRole('button', { name: 'Back to review' })).not.toBeInTheDocument();
         });
 
-        it('follows the new way through the form when the edit changes a jump', async () => {
+        it('goes back to the review over the new route when the edit changes a jump to a page already gone through', async () => {
             start();
             await toReview();
-            expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3);
+            expect(pageHeadings()).toHaveLength(3);
             await click(/^Edit Page 1: About you/);
             await screen.findByText('Page 1 of 3');
             // a Plus plan now jumps past page 2
             act(() => response.setFormResponse({ ...response.formResponse, answers: { ...response.formResponse.answers, plan: { type: 'choice', choice: { value: 'c-plus' } } } as any }));
             await click('Back to review');
-            // the pages after the jump are not on the path any more: on from page 3, then the review
-            await screen.findByText('Page 3 of 3');
-            expect(screen.queryByRole('button', { name: 'Back to review' })).not.toBeInTheDocument();
-            await click('Review your answers');
             await reviewHeading();
-            expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 3']);
+            expect(pageHeadings().map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 3']);
             await click('Submit response');
             expect(sentAnswers().extra).toBeUndefined();
+        });
+
+        it('replays from the first page of the path: Edit, Continue past a skipped page, then Back to review lists and sends no stale page', async () => {
+            start();
+            await toReview();
+            await click(/^Edit Page 1: About you/);
+            await screen.findByText('Page 1 of 3');
+            // the edit makes page 1 jump past page 2; Continue (not Back to review) follows it
+            act(() => response.setFormResponse({ ...response.formResponse, answers: { ...response.formResponse.answers, plan: { type: 'choice', choice: { value: 'c-plus' } } } as any }));
+            await click('Continue');
+            await screen.findByText('Page 3 of 3');
+            // the way back is still offered on a page of the reviewed path
+            await click('Back to review');
+            await reviewHeading();
+            expect(pageHeadings().map((h) => h.textContent)).toEqual(['Page 1: About you', 'Page 3']);
+            expect(screen.queryByText('Anything else?')).not.toBeInTheDocument();
+            await click('Submit response');
+            expect(sentAnswers().extra).toBeUndefined();
+        });
+
+        it('continues at a page the respondent has not been through when the edit leads there', async () => {
+            const data = FORM();
+            // a fourth page; page 3 ends the form for "Yes", so it was never reached
+            data.fields.push(page('s4', 3, [q('last', FieldTypes.SHORT_TEXT, 'One more thing')]));
+            (data.fields[2].properties as any).jumps = [{ operator: LogicalOperator.AND, conditions: [{ fieldId: 'agree', fieldType: 'yes_no', comparison: 'IS_EQUAL', value: 'Yes' }], target: JUMP_TARGET_SUBMIT }];
+            (data.fields[0].properties as any).jumps = [{ ...when('plan', 'multiple_choice', 'Plus'), target: 's4' }];
+            start(data);
+            await click('Continue');
+            await screen.findByText('Page 2 of 4');
+            await click('Continue');
+            await screen.findByText('Last page');
+            await click('Review your answers');
+            await reviewHeading();
+            await click(/^Edit Page 1: About you/);
+            await screen.findByText('Page 1 of 4');
+            act(() => response.setFormResponse({ ...response.formResponse, answers: { ...response.formResponse.answers, plan: { type: 'choice', choice: { value: 'c-plus' } } } as any }));
+            await click('Back to review');
+            await screen.findByText('Page 4 of 4');
+            expect(screen.queryByRole('button', { name: 'Back to review' })).not.toBeInTheDocument();
         });
 
         it('shortens the path when the edit makes a page end the form', async () => {
@@ -344,7 +437,7 @@ describe('the review page', () => {
             act(() => response.setFormResponse({ ...response.formResponse, answers: { ...response.formResponse.answers, plan: { type: 'choice', choice: { value: 'c-plus' } } } as any }));
             await click('Back to review');
             await reviewHeading();
-            expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Page 1: About you']);
+            expect(pageHeadings().map((h) => h.textContent)).toEqual(['Page 1: About you']);
         });
 
         it('goes to a later page that the edit made incomplete', async () => {
@@ -369,6 +462,23 @@ describe('the review page', () => {
             expect(await screen.findByText('Please answer this question to continue.')).toBeInTheDocument();
             expect(responder.currentSlide).toBe(0);
         });
+    });
+
+    it('works out calculations again for the path as it now stands, after an edit shortened it', async () => {
+        const data = FORM();
+        data.fields[1].properties!.fields!.push(q('n', FieldTypes.NUMBER, 'How many?'));
+        data.fields[2].properties!.fields!.push(q('total', FieldTypes.CALCULATED, 'Doubled', {}, { expression: { '*': [{ var: 'n' }, 2] } }));
+        start(data, { ...ANSWERS, n: { type: 'number', number: 5 }, total: { type: 'number', number: 10 } });
+        await toReview();
+        expect(valueOf(section(2), 'Doubled')).toHaveTextContent('10');
+        await click(/^Edit Page 1: About you/);
+        await screen.findByText('Page 1 of 3');
+        // a Plus plan skips page 2, where "How many?" is: the 5 no longer counts
+        act(() => response.setFormResponse({ ...response.formResponse, answers: { ...response.formResponse.answers, plan: { type: 'choice', choice: { value: 'c-plus' } } } as any }));
+        await click('Back to review');
+        await reviewHeading();
+        await vi.waitFor(() => expect(valueOf(section(2), 'Doubled')).not.toHaveTextContent('10'));
+        expect(screen.queryByText('How many?')).not.toBeInTheDocument();
     });
 
     describe('a required question that is unanswered', () => {
@@ -420,6 +530,19 @@ describe('the review page', () => {
             // pages and answers are as they were
             expect(responder.responderState.history).toEqual([0]);
             expect(response.formResponse.answers.name.text).toBe('Ada');
+        });
+
+        it('answers that map to no page: the message stays by the button, not only in a toast', async () => {
+            submit.mockResolvedValue({ error: { status: 422, data: { code: 'invalid_answers', errors: [{ fieldId: 'a-question-this-form-has-no-page-for', rule: 'required' }] } } });
+            start();
+            await toReview();
+            await click('Submit response');
+            expect(await screen.findByRole('alert')).toHaveTextContent('Your answers could not be accepted, and we could not tell which one needs another look.');
+            expect(responder.currentSlide).toBe(REVIEW_SLIDE);
+            // the next attempt clears it
+            submit.mockReturnValue(new Promise(() => {}));
+            await click('Submit response');
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
         });
 
         it('a failed request keeps the answers and says so', async () => {

@@ -215,20 +215,23 @@ describe('nextPageAfter and walkReviewPath', () => {
     });
 
     it('goes back to the review while the pages still lead where they did', () => {
-        expect(walkReviewPath({ slides, answers: answers('go', 'c'), path: [0, 1, 2], from: 0, states: NO_RULES })).toEqual({ kind: 'review', path: [0, 1, 2], endingId: undefined });
+        expect(walkReviewPath({ slides, answers: answers('go', 'c'), path: [0, 1, 2], states: NO_RULES })).toEqual({ kind: 'review', path: [0, 1, 2], endingId: undefined });
     });
 
-    it('continues from where an edit changed the way, dropping the pages after it', () => {
-        expect(walkReviewPath({ slides, answers: answers('skip', 'c'), path: [0, 1, 2], from: 0, states: NO_RULES })).toEqual({ kind: 'continue', path: [0], target: 2 });
-        // a jump that did not lead on now does: the last page of the reviewed path is no longer the last
-        expect(walkReviewPath({ slides, answers: answers('go', 'c'), path: [0, 2], from: 0, states: NO_RULES })).toEqual({ kind: 'continue', path: [0], target: 1 });
+    it('replays from the first page: a route that skips a reviewed page drops it, one that reaches an unseen page continues there', () => {
+        // page 1 now jumps to page 3, which was reviewed: the review over the shorter route
+        expect(walkReviewPath({ slides, answers: answers('skip', 'c'), path: [0, 1, 2], states: NO_RULES })).toEqual({ kind: 'review', path: [0, 2], endingId: undefined });
+        // the same when the respondent went on to page 3 meanwhile: nothing depends on where the edit was
+        expect(walkReviewPath({ slides, answers: answers('skip', 'c'), path: [0, 2], states: NO_RULES })).toEqual({ kind: 'review', path: [0, 2], endingId: undefined });
+        // a route to a page the reviewed path never had
+        expect(walkReviewPath({ slides, answers: answers('go', 'c'), path: [0, 2], states: NO_RULES })).toEqual({ kind: 'continue', path: [0], target: 1 });
     });
 
     it('shortens the path when the edit makes a page end the form, with that ending', () => {
-        expect(walkReviewPath({ slides, answers: answers('stop', 'c'), path: [0, 1, 2], from: 0, states: NO_RULES })).toEqual({ kind: 'review', path: [0], endingId: 'bye' });
+        expect(walkReviewPath({ slides, answers: answers('stop', 'c'), path: [0, 1, 2], states: NO_RULES })).toEqual({ kind: 'review', path: [0], endingId: 'bye' });
     });
 
     it('goes to a later page that is not complete any more', () => {
-        expect(walkReviewPath({ slides, answers: answers('go'), path: [0, 1, 2], from: 0, states: NO_RULES })).toEqual({ kind: 'fix', path: [0, 1], page: 2 });
+        expect(walkReviewPath({ slides, answers: answers('go'), path: [0, 1, 2], states: NO_RULES })).toEqual({ kind: 'fix', path: [0, 1], page: 2 });
     });
 });
