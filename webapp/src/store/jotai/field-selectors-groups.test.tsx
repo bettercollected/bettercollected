@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Comparison, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
+import '@app/shared/hocs/i18n-provider';
 import { stringTitleToDoc } from '@app/utils/answer-piping';
 import { getGroupPipeOptions, newGroupChild, newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
 import { ConditionRow, isConditionComplete, newConditionFor } from '@app/views/molecules/form-builder/condition-editor-shared';

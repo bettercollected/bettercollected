@@ -5,6 +5,21 @@ import { Provider, useAtomValue, useSetAtom } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { Toaster } from '@app/shadcn/components/ui/toaster';
+import { setForm } from '@app/store/forms/slice';
+import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
+import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
+import { DispatchArgs, dispatchAtom, docHistoryAtom } from '@app/store/jotai/form-document';
+import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-language';
+import { store } from '@app/store/store';
+import { setWorkspace } from '@app/store/workspaces/slice';
+
+import AutoSaveForm, { flushAutosave, isFieldRulesDisabled, saveOutcomeOf } from './audo-save-form';
+import PublishButton from './publish-button';
+
 const patchFormMock = vi.fn();
 const publishFormMock = vi.fn();
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
@@ -20,21 +35,6 @@ vi.mock('@app/lib/hooks/use-dialog-modal', () => ({ useDialogModal: () => ({ ope
 const reloadMock = vi.fn();
 vi.mock('@app/utils/reload-page', () => ({ reloadPage: () => reloadMock() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => '/ws/dashboard/forms/form-1/edit' }));
-
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Toaster } from '@app/shadcn/components/ui/toaster';
-import { setForm } from '@app/store/forms/slice';
-import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
-import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { DispatchArgs, dispatchAtom, docHistoryAtom } from '@app/store/jotai/form-document';
-import { formLanguageAtom, useFormLanguageSync } from '@app/store/jotai/form-language';
-import { store } from '@app/store/store';
-import { setWorkspace } from '@app/store/workspaces/slice';
-
-import AutoSaveForm, { flushAutosave, saveOutcomeOf } from './audo-save-form';
-import PublishButton from './publish-button';
 
 const LOADED_VERSION = '2026-10-17T09:00:00.000+00:00';
 const SAVED_VERSION = '2026-10-17T09:00:02.000+00:00';
@@ -306,6 +306,16 @@ describe('publishing from the editor', () => {
         expect(patchFormMock).toHaveBeenCalledTimes(1);
         expect(lastBody().title).toBe('Loaded form');
         expect(lastBody().welcomePage.title).toBe('Welcome aboard');
+    });
+});
+
+describe('isFieldRulesDisabled', () => {
+    it('recognises the 422 the server answers while field rules are switched off', () => {
+        expect(isFieldRulesDisabled({ error: { status: 422, data: { code: 'field_rules_disabled', message: 'x' } } })).toBe(true);
+        expect(isFieldRulesDisabled({ error: { status: 422, data: { code: 'invalid_field_rules' } } })).toBe(false);
+        expect(isFieldRulesDisabled({ error: { status: 403, data: { code: 'field_rules_disabled' } } })).toBe(false);
+        expect(isFieldRulesDisabled({ data: {} })).toBe(false);
+        expect(isFieldRulesDisabled(undefined)).toBe(false);
     });
 });
 

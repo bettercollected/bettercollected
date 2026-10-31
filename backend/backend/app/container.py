@@ -56,6 +56,11 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
+from backend.app.repositories.postgres.webhooks import (
+    PostgresActionLogRepository,
+    PostgresFormWebhookRepository,
+    PostgresWebhookAuditRepository,
+)
 from backend.app.repositories.postgres.registration import (
     PostgresFormRegistrationRepository,
     PostgresRegistrationDeliveryRepository,
@@ -138,6 +143,7 @@ from backend.app.services.workspace_selection_service import (
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
+from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
@@ -235,6 +241,15 @@ class AppContainer(containers.DeclarativeContainer):
     )
     registration_delivery_repo: PostgresRegistrationDeliveryRepository = providers.Singleton(
         PostgresRegistrationDeliveryRepository, pg_sessionmaker
+    )
+    form_webhook_repo: PostgresFormWebhookRepository = providers.Singleton(
+        PostgresFormWebhookRepository, pg_sessionmaker
+    )
+    action_log_repo: PostgresActionLogRepository = providers.Singleton(
+        PostgresActionLogRepository, pg_sessionmaker
+    )
+    webhook_audit_repo: PostgresWebhookAuditRepository = providers.Singleton(
+        PostgresWebhookAuditRepository, pg_sessionmaker
     )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
@@ -406,6 +421,7 @@ class AppContainer(containers.DeclarativeContainer):
         aws_service=aws_service,
         workspace_repo=workspace_repo,
         registration_delivery_repo=registration_delivery_repo,
+        webhook_log_repo=action_log_repo,
     )
 
     respondent_feedback_service: RespondentFeedbackService = providers.Singleton(
@@ -494,6 +510,7 @@ class AppContainer(containers.DeclarativeContainer):
         pdf_import_repo=form_import_repo,
         # the registration service needs this service's neighbours: looked up per call
         registration_service=LazyRepository(lambda: container.registration_service()),
+        webhook_service=LazyRepository(lambda: container.webhook_service()),
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -508,6 +525,19 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         crypto=crypto,
         aws_service=aws_service,
+        rate_limiter=rate_limiter,
+    )
+
+    webhook_service: WebhookService = providers.Singleton(
+        WebhookService,
+        authorization_service=authorization_service,
+        webhook_repo=form_webhook_repo,
+        log_repo=action_log_repo,
+        audit_repo=webhook_audit_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_response_service=form_response_service,
+        crypto=crypto,
         rate_limiter=rate_limiter,
     )
 
@@ -606,6 +636,7 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         workspace_domain_service=workspace_domain_service,
         registration_service=registration_service,
+        webhook_service=webhook_service,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(

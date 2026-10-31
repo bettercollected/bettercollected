@@ -12,6 +12,7 @@ from common.models.standard_form import (
     StandardForm,
     StandardFormSettings,
     Trigger,
+    raw_expression_depth_problem,
     raw_option_logic_problem,
     raw_rule_count,
 )
@@ -113,13 +114,29 @@ def _parse_form_body(form_body: str) -> StandardForm:
     model. Structural errors (e.g. a nested repeating group) are the
     client's fault: answer 422 with the reason instead of a 500."""
     try:
-        body = json.loads(form_body)
+        try:
+            body = json.loads(form_body)
+        except RecursionError:
+            # json.loads itself gives up on a body nested some hundreds of levels deep
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content="The form is nested too deeply.",
+            )
         rules = raw_rule_count(body.get("fields")) if isinstance(body, dict) else 0
         if rules > FORM_FIELD_RULES_MAX:
             raise HTTPException(
                 status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 content=f"A form can have at most {FORM_FIELD_RULES_MAX} rules; "
                 f"this one has {rules}.",
+            )
+        too_deep = (
+            raw_expression_depth_problem(body.get("fields"))
+            if isinstance(body, dict)
+            else None
+        )
+        if too_deep:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=too_deep
             )
         too_much = (
             raw_option_logic_problem(body.get("fields"))
@@ -459,6 +476,32 @@ class WorkspaceFormsRouter(Routable):
                     form["registrationDestination"] = destination
                 else:
                     form.registration_destination = destination
+            # ... and the hosts of its webhooks. Fail closed: when that cannot be
+            # read, the panel could not name where answers also go, so the form
+            # is not served (a submission to it would be sent on undisclosed).
+            try:
+                webhooks = await container.webhook_service().destination_for(
+                    workspace_id, str(form_id)
+                )
+            except Exception as error:  # noqa: BLE001
+                logger.error(
+                    "webhook destination not read, form not served: workspace={} form={} ({})",
+                    workspace_id,
+                    form_id,
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                    content={
+                        "code": "form_unavailable",
+                        "message": "This form is temporarily unavailable. Try again in a moment.",
+                    },
+                )
+            if webhooks:
+                if isinstance(form, dict):
+                    form["webhookDestination"] = webhooks
+                else:
+                    form.webhook_destination = webhooks
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag

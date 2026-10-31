@@ -228,9 +228,10 @@ def test_the_rules_that_read_a_question_made_internal_go_too():
 def test_a_rule_moved_to_another_question_under_a_reused_id_is_a_change():
     stored = _form([_q("a"), _q("b", rules=[REQUIRE_B]), _q("c")])
     assert new_or_changed_rules(stored, stored) == []
-    # "b" is replaced by a question of another type that keeps the id and the rule
+    # "b" changes type and keeps the rule: not a change (the save validates the
+    # rule against the new type, and drops it if that type cannot carry it)
     other_type = _form([_q("a"), _q("b", "number", rules=[REQUIRE_B]), _q("c")])
-    assert new_or_changed_rules(other_type, stored) == [("b", "r1")]
+    assert new_or_changed_rules(other_type, stored) == []
     # the rule's own content counts too
     edited = _form(
         [
@@ -261,13 +262,14 @@ def test_moving_a_question_to_another_page_or_group_changes_no_rule():
         },
     }
     assert new_or_changed_rules(_form([_q("a"), group, _q("c")]), stored) == []
-    # a moved question that is edited is still a change, and so is another type
+    # a moved question that is edited is still a change
     edited = _q("b", rules=[_rule("r1", {"required": True}, [_is("a", "y")])])
     assert new_or_changed_rules(_form([_q("a"), _q("c")], [edited]), stored) == [
         ("b", "r1")
     ]
+    # a retyped question that moved keeps its rule: the type is not part of what a rule is
     other_type = _form([_q("a"), _q("c")], [_q("b", "number", rules=[REQUIRE_B])])
-    assert new_or_changed_rules(other_type, stored) == [("b", "r1")]
+    assert new_or_changed_rules(other_type, stored) == []
 
 
 def test_a_save_that_moves_a_ruled_question_passes_with_the_flag_off(rules_off):
@@ -301,11 +303,14 @@ def test_unchanged_rules_stay_unchanged_when_titles_and_neighbours_change():
 def test_ensure_rules_allowed_refuses_the_moved_rule_with_the_flag_off(rules_off):
     stored = _form([_q("a"), _q("b", rules=[REQUIRE_B])])
     ensure_rules_allowed(stored, stored)
-    moved = _form([_q("a"), _q("b", "number", rules=[REQUIRE_B])])
+    # a retyped question keeps its rule ...
+    ensure_rules_allowed(_form([_q("a"), _q("b", "number", rules=[REQUIRE_B])]), stored)
+    # ... the same rule on another question is a new rule
+    moved = _form([_q("a", rules=[REQUIRE_B]), _q("b")])
     with pytest.raises(HTTPException) as error:
         ensure_rules_allowed(moved, stored)
     assert error.value.content["code"] == "field_rules_disabled"
-    assert error.value.content["errors"] == [{"fieldId": "b", "ruleId": "r1"}]
+    assert error.value.content["errors"] == [{"fieldId": "a", "ruleId": "r1"}]
 
 
 def test_a_replace_field_op_is_compared_where_the_question_sits(rules_off):
@@ -321,10 +326,18 @@ def test_a_replace_field_op_is_compared_where_the_question_sits(rules_off):
         parse_ops([{"op": "replace_field", "field": same}], allow_editor_ops=True),
     )
     assert results[0].ok, results[0].message
+    # another type keeps the rule (it is the same rule on the same question) ...
     retyped = {**same, "type": "number"}
     _, results = apply_form_ops(
         form,
         parse_ops([{"op": "replace_field", "field": retyped}], allow_editor_ops=True),
+    )
+    assert results[0].ok, results[0].message
+    # ... another rule is not
+    changed = {**same, "properties": {"rules": [{**REQUIRE_B, "then": {"required": False}}]}}
+    _, results = apply_form_ops(
+        form,
+        parse_ops([{"op": "replace_field", "field": changed}], allow_editor_ops=True),
     )
     assert results[0].ok is False
     assert "FIELD_RULES_ENABLED" in results[0].message

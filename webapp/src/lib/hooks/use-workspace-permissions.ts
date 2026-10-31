@@ -32,11 +32,14 @@ export function useWorkspacePermissions() {
         }
     }, [dispatch, userId]);
 
-    const { data, isLoading, isError, isSuccess } = useGetWorkspacePermissionsQuery({ workspaceId: workspaceId as string, userId }, {
-        skip: !workspaceId || !userId,
-        // one fetch per workspace: every list row asks
-        refetchOnMountOrArgChange: false
-    });
+    const { data, isLoading, isError, isSuccess } = useGetWorkspacePermissionsQuery(
+        { workspaceId: workspaceId as string, userId },
+        {
+            skip: !workspaceId || !userId,
+            // one fetch per workspace: every list row asks
+            refetchOnMountOrArgChange: false
+        }
+    );
     const permissions = useMemo(() => new Set<WorkspacePermission>(!userId || isError ? [] : (data?.permissions ?? [])), [data, isError, userId]);
     const can = useCallback((permission: WorkspacePermission) => permissions.has(permission), [permissions]);
     // Settled: the answer for this workspace and user has arrived (or failed,
@@ -45,5 +48,7 @@ export function useWorkspacePermissions() {
     // The server's answer, not a failure: only then does a missing
     // permission mean the user does not have it.
     const answered = !!workspaceId && !!userId && !!isSuccess && !isError;
-    return { can, permissions, isLoading, ready, answered };
+    // Whether the server takes field rules (its FIELD_RULES_ENABLED), told with the permissions.
+    const fieldRulesEnabled = !!userId && !isError && !!data?.fieldRulesEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled };
 }

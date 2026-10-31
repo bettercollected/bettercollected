@@ -22,6 +22,7 @@ import AnswerRulesSettings from '@app/views/molecules/form-builder/answer-rules-
 import CalculatedFieldSettings from '@app/views/molecules/form-builder/calculated-field-settings';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
+import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 import OptionLogicSettings from '@app/views/molecules/form-builder/option-logic-settings';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
@@ -197,6 +198,8 @@ export default function FieldSettings() {
                     <OptionLogicSettings />
                 </InspectorSection>
             )}
+
+            <FieldRulesSection field={field} />
 
             <InspectorSection title="Appearance">
                 <div className="flex w-full flex-col gap-1.5">

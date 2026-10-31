@@ -321,7 +321,11 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
     }
     const changed = patchField(draftField(ctx.draft, location), field, patch, ctx.newId);
     const title = patch.title != null ? titleText({ ...field, title: patch.title } as FormField) : titleText(field);
-    return `Updated '${title}' (${changed.join(', ')})`;
+    // Field rules apply to what respondents answer: an internal question loses
+    // its own, and the ones that read it; replacing the options drops a rule
+    // that sets one that is gone.
+    const note = patch.internal || patch.choices != null ? droppedRulesNote() : '';
+    return `Updated '${title}' (${changed.join(', ')})${note}`;
 };
 
 export const removeField: Handler<RemoveFieldOp> = (ctx, op) => {

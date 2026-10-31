@@ -8,6 +8,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Atom, atom, useAtomValue, useSetAtom } from 'jotai';
 import { selectAtom } from 'jotai/utils';
 import { AlertTriangle, ChevronRight, GripVertical, Lock, Plus, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useEndingActions } from '@app/lib/hooks/use-ending-actions';
 import { jsonEqual } from '@app/lib/form-ops/model';
@@ -266,7 +267,9 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
     onMenuMoved: MenuMoved;
 }) {
     const field = useField(fieldId);
+    const { t } = useTranslation('builder');
     if (!field) return null;
+    const rulesCount = Array.isArray(field.properties?.rules) ? field.properties.rules.length : 0;
     const qKey = questionKey(fieldId);
     const title = fieldText(field);
     const missingWhy = !field.internal && asksForIdentity(field) && !field.properties?.whyWeAsk?.trim();
@@ -288,6 +291,12 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
                                 <span title='Asks for personal details without a "Why we ask this" line' className="text-brand-olive shrink-0">
                                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
                                     <span className="sr-only">, missing why we ask</span>
+                                </span>
+                            )}
+                            {rulesCount > 0 && (
+                                <span title={t('FIELD_RULES.BADGE_TITLE', { count: rulesCount })} data-testid="rules-badge" className="bg-brand-100 text-brand-600 shrink-0 rounded px-1 text-[10px] leading-4 font-semibold">
+                                    <span className="sr-only">, </span>
+                                    {t('FIELD_RULES.BADGE', { count: rulesCount })}
                                 </span>
                             )}
                             {fieldHasLogic(field) && (

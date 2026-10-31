@@ -104,8 +104,9 @@ describe('rules a save left out', () => {
         await advance(1000);
         await advance(0);
         expect(patchFormMock).toHaveBeenCalledTimes(1);
-        expect(bodyOf(0).fields[0].properties.fields[1].properties.rules.map((r: any) => r.id)).toEqual(['r1', 'r2']);
-        // the builder lets go of the dropped rule only, with no undo step
+        // the builder already let go of the rule that no longer fits (its own check, as the server's), so the save does not carry it
+        expect(bodyOf(0).fields[0].properties.fields[1].properties.rules.map((r: any) => r.id)).toEqual(['r2']);
+        // and it keeps the other, with no extra undo step
         expect(rulesOfQ2().map((r: any) => r.id)).toEqual(['r2']);
         expect(editor.undoSteps).toBe(steps);
         expect(screen.getByText(NOTICE)).toBeTruthy();

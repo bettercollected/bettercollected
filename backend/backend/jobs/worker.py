@@ -1,7 +1,7 @@
 """The backend's job worker: ``python -m backend.jobs.worker``.
 
 Same image and configuration as the API; boots the container (the Postgres
-engine; Mongo is not used) and consumes the ``default`` queue — never
+engine; Mongo is not used) and consumes the ``default`` and ``webhooks`` queues — never
 ``actions``, which belongs to the actions-executor. Concurrency is small on
 purpose (jobs are deletions).
 """
@@ -23,20 +23,42 @@ from loguru import logger
 from backend.config import settings  # first of ours: it loads the settings snapshot
 from backend.app.container import container
 from backend.app.services.internal_auth import log_if_internal_key_missing
+from backend.app.services.webhooks.mode import webhooks_enabled
 from backend.app.utils import AiohttpClient
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
-from backend.jobs.app import DEFAULT_QUEUE, app
+from backend.jobs.app import DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
 from common.services.crypto_service import crypto_service
 
 
+def warn_if_webhooks_unserved(queues: list) -> bool:
+    """Webhooks are on but ``JOBS_QUEUES`` leaves out the ``webhooks`` queue:
+    deliveries would be queued and never sent. Warns (True) at worker start."""
+    if not webhooks_enabled() or WEBHOOKS_QUEUE in queues:
+        return False
+    logger.warning(
+        "WEBHOOKS_ENABLED is on but this worker does not serve the '{}' queue "
+        "(JOBS_QUEUES={}): webhook deliveries stay queued until a worker "
+        "serves it. Add '{}' to JOBS_QUEUES.",
+        WEBHOOKS_QUEUE,
+        ",".join(queues),
+        WEBHOOKS_QUEUE,
+    )
+    return True
+
+
 async def main() -> None:
-    queues = [q for q in os.environ.get("JOBS_QUEUES", DEFAULT_QUEUE).split(",") if q]
+    queues = [
+        q
+        for q in os.environ.get("JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE}").split(",")
+        if q
+    ]
     concurrency = int(os.environ.get("JOBS_CONCURRENCY", "4"))
     log_if_internal_key_missing()  # delete_user removes the account in auth
     crypto_service.load()  # the response keyset: fail at startup when there is none
     AiohttpClient.get_aiohttp_client()
     await check_postgres_at_startup(container)
     logger.info("jobs worker: queues={} concurrency={}", queues, concurrency)
+    warn_if_webhooks_unserved(queues)
     try:
         async with app.open_async():
             await app.run_worker_async(

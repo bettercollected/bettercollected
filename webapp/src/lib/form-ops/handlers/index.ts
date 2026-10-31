@@ -6,6 +6,7 @@ import { addField, addGroup, moveField, removeField, setFieldLogic, setFieldVali
 import { setFormLanguage, setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
 import { setOptionFilter, setOptionLogic } from './options';
 import { addPage, duplicatePage, movePage, removePage, setPageJumps, setQuestionNumbering, setSectionTitle } from './pages';
+import { setFieldRules } from './rules';
 
 /** The handler of each op, in the backend's order (ops.py `_HANDLERS`), then the editor ops. */
 export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> } = {
@@ -21,6 +22,7 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     set_field_logic: setFieldLogic,
     set_option_logic: setOptionLogic,
     set_option_filter: setOptionFilter,
+    set_field_rules: setFieldRules,
     set_page_jumps: setPageJumps,
     duplicate_page: duplicatePage,
     update_theme: updateTheme,

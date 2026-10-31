@@ -161,6 +161,11 @@ export interface StandardFormDto {
      * to a case system: the organisation that runs it. The privacy panel names it.
      */
     registrationDestination?: { organisation: string } | null;
+    /**
+     * Only on the published form read, while an enabled webhook sends this form's
+     * answers on: the host names of the destinations. The privacy panel names them.
+     */
+    webhookDestination?: { hosts: string[] } | null;
     welcomePage?: {
         title?: string;
         description?: string;
