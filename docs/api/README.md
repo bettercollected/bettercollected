@@ -81,8 +81,10 @@ The operations are those of the MCP `update_form` tool (`add_field`,
 `update_field`, `move_page`, `set_field_validation`, `add_ending`,
 `update_ending`, `remove_ending`, ...), with client
 references: an op that creates a page or field takes `"ref": "<name>"`, and
-later ops in the same batch use `"$ref:<name>"` as its id. At most 200
-operations per batch. With `atomic` (the default here), any failed
+later ops in the same batch use `"$ref:<name>"` as its id. `set_field_rules`
+sets the field rules of a question (form spec "Field rules"); it, like a
+document with `rules`, is refused with 422 `field_rules_disabled` until the
+server has field rules switched on. At most 200 operations per batch. With `atomic` (the default here), any failed
 operation is a 422 `ops_failed` listing every failure, and nothing is
 stored.
 

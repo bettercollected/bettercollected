@@ -382,6 +382,12 @@ async def update_form(
     "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No";
     a repeating group is referenced as a whole: "groupMode":"COUNT"|"ANY"|"ALL", with
     "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
+    {"op":"set_field_rules","fieldId":str,"rules":[{"id":str,"when":{"operator"?:"AND"|"OR",
+    "conditions"?:[...as set_field_logic] | "expression"?:<expressions-v1 tree>},"then":{"required"?:bool,
+    "readOnly"?:true,"title"?:str,"description"?:str,"setValue"?:{"const"?:value | "expression"?:tree}}}]|null}
+    (what a question does while a condition holds: required or optional, read-only, a value the server
+    sets, another title or description; the whole list is replaced, the last active rule wins per
+    property; null clears; never shows or hides; refused while the server has field rules switched off) ·
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
     "target":"<page id or __SUBMIT__>","endingId"?:str}]|null} (branching; "__SUBMIT__"
     submits and shows the default ending, or the ending "endingId" names) ·

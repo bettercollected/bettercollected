@@ -19,6 +19,7 @@ from backend.app.constants.themes import (
 )
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.ai.profile import render_prompt_block
+from backend.app.services.field_rules import field_rules_enabled
 from backend.app.services.ai.structured import extract_json_object  # noqa: F401
 from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES, fence
 
@@ -64,6 +65,20 @@ STYLE_DESCRIPTIONS = {
     "studio": "bold and graphic: large numbers, heavy type, square edges",
     "leaflet": "a plain-language information leaflet: numbered section bars and questions",
 }
+
+
+RULES_GUIDE = """## Field rules
+- {"op":"set_field_rules","fieldId":"...","rules":[{"id":"r1","when":{"operator":"AND"?,"conditions":[{"fieldId":"<other field>","comparison":"IS_EQUAL","value":"..."}]},"then":{"required":true?,"readOnly":true?,"title":"?","description":"?","setValue":{"const":"..."}?}}]}
+  (what a question does while a condition holds: "required":true makes it required,
+  false makes it optional; "readOnly":true locks it; "setValue" gives it a value the
+  server computes ({"const":...} or {"expression":<syntax tree>}; a choice question is set
+  by the id of one of its options); "title" / "description" replace the text. Conditions
+  are written as in set_field_logic; or use "expression" in "when" for a formula that is
+  true or false. "rules" replaces the question's whole list, at most 8; the last active
+  rule wins for each property; null clears. Rules never show or hide a question (use
+  set_field_logic). Use a rule only when the user asks for it, e.g. "make the postcode
+  required for Dutch addresses". Never use a rule to require consent or to force an answer
+  the respondent could refuse.)"""
 
 
 def _looks_guide() -> str:
@@ -393,6 +408,7 @@ def build_chat_system_prompt(form_snapshot: str, profile, memory_entries: Option
     parts = [
         "You are the form-editing copilot inside BetterCollected, a privacy-first form builder.",
         OPS_GUIDE,
+        *([RULES_GUIDE] if field_rules_enabled() else []),
         UNTRUSTED_CONTENT_RULES.strip(),
         "## Current form snapshot\n" + fence("form_snapshot", form_snapshot),
     ]

@@ -139,14 +139,18 @@ question the save removes) and lists it in the response as
 removed question. A form whose rules are too costly to check for each
 response (long expressions inside large repeating groups) cannot be saved.
 
-**Rollout.** The form builder has no rule editor yet, and the AI assistant,
-the MCP server and the importers do not create rules. Rules can come in
-through a form spec document (the public API create and replace), the
-builder's whole-form save, the builder's edit operations that carry whole
-questions or pages, and templates. Until the server setting
-`FIELD_RULES_ENABLED` is on, each of these refuses a save that brings new
-or changed rules (422 `field_rules_disabled`); rules already stored are kept
-and still enforced.
+**Rollout.** The form builder has no rule editor yet, and the importers do
+not create rules. Rules can come in through a form spec document (the public
+API create and replace), the operation `set_field_rules` (the public API, the
+MCP server and the AI assistant), the builder's whole-form save, the
+builder's edit operations that carry whole questions or pages, and
+templates. Until the server setting `FIELD_RULES_ENABLED` is on, each of
+these refuses a save that brings new or changed rules (422
+`field_rules_disabled`; an operation fails with the same message), and the
+validation of a document warns about them; rules already stored are kept and
+still enforced. A question that cannot carry rules (for example one made
+internal) loses its rules in the builder's save, which lists them in
+`droppedFieldRules`.
 
 **Hidden answers.** Rules do not hide anything and keep with the rest of
 the form: an answer to a question hidden by `logic` is kept, and a value a
@@ -251,6 +255,17 @@ logo settings (`update_logo`), choices by id (`set_choice`, `add_choice`,
 repeating group rules). The public API, the MCP server and the AI assistant
 refuse them, with an error for each such operation.
 
+`set_field_rules {fieldId, rules}` sets the rules of a question (see
+"Field rules" above): `rules` replaces the question's list, in order, and
+`null` or `[]` clears it. Each rule is `{id, when, then}` as in the document,
+with `when.conditions` written as in `set_field_logic` (a choice by its label,
+yes/no as "Yes"/"No") and `$ref:<name>` accepted for a question in a
+condition and in an expression's `var`. The operation fails (and the rest of
+a non-atomic batch still applies) when the rules break the checks of a save,
+or while `FIELD_RULES_ENABLED` is off, unless the rules are the ones the
+question already has. Making a question internal removes its rules and
+the rules that read it, and says so in the result.
+
 ## Conformance cases
 
 [`form-ops-v1.cases.json`](form-ops-v1.cases.json) lists operations applied
@@ -284,6 +299,10 @@ should pass every case.
 - `expect.form`: the whole form afterwards, with `index` values renumbered.
   It is left out when the form does not change, and for generated forms.
 - `expect` without `error` means every operation applies.
+- `engines` (optional): the engines that run the case. A case without it is
+  run by every implementation; `["backend"]` marks behaviour the form
+  builder's TypeScript engine does not have yet (field rules). A case that
+  brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.

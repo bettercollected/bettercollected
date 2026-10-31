@@ -88,6 +88,9 @@ export function fieldMutators(ctx: BuilderContext) {
         if (internal) {
             // Its own show/hide rule is moot too: staff always see it.
             if (target.properties?.logic) delete target.properties.logic;
+            // Field rules apply to what respondents answer: the server refuses
+            // rules on an internal question, so they go with the flag.
+            dropFieldRules(target);
             pruneOrphanedConditions(formFields);
             pruneOrphanedPipes(formFields);
             pruneOrphanedDateRules(formFields);

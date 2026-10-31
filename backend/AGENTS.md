@@ -324,15 +324,24 @@ edit, set-value questions are overwritten like calculations and questions whose 
 re-checked (an active value rule's question too). Every save path checks them: spec `_check_rules` refuses
 (paths into the rules); create/update form and templates run `ensure_valid_field_rules(drop=True)` off the
 event loop, dropping broken rules (the builder PATCH lists them as `droppedFieldRules`; caps, circles and
-cost still 422 `invalid_field_rules`); editor ops via `_new_problems`; `finished_form` prunes after ops.
+cost still 422 `invalid_field_rules`; a question that cannot carry rules at all, e.g. one made internal,
+loses every rule: `FieldRuleProblem.whole_field`); the op `set_field_rules {fieldId, rules | null}` (and the
+editor ops that carry whole questions) via `_new_problems`; `finished_form` prunes after ops.
 `FIELD_RULES_ENABLED` (default off) gates every write that brings new or changed rules (`ensure_rules_allowed`,
-422 `field_rules_disabled`; editor ops fail with the same message); stored rules are kept and enforced.
-Bounds: 8 per question, 100 per form (counted before parsing a builder body or spec), 50 variables per
-expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`: forms that
-could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`). Date rules do
-not apply to a question a rule sets or locks. No editor, op, MCP tool or importer writes rules yet.
-Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner skips them
-until its evaluator exists).
+422 `field_rules_disabled`; ops fail with the same message). Paths that hold it: create/update form (builder,
+spec API), templates, `set_field_rules`, the editor ops' questions and pages, and `persist_form` as the last
+gate for every op writer (chat, proposals, MCP, public API). Never add a parallel check: use
+`ensure_rules_allowed` / `new_or_changed_rules`, which compares a rule by its question (id, type, page or
+group) and its content, so a rule moved to another question reads as new. Stored rules are kept and enforced.
+Bounds: 8 per question, 100 per form (counted before parsing a builder body, a spec or an ops payload), 50
+variables per expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`:
+forms that could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`).
+Date rules do not apply to a question a rule sets or locks. The MCP `update_form` text documents the op; the
+chat prompt (`RULES_GUIDE`) only while the flag is on; the spec check warns while it is off. The builder
+(`updateFieldInternal`) clears a question's rules when it becomes internal. No editor UI or importer writes
+rules yet. Shared cases: `docs/spec/answer-validation.cases.json` (checks `fieldRules`; the webapp runner
+skips them until its evaluator exists) and the `set_field_rules` cases of `docs/spec/form-ops-v1.cases.json`
+(`"engines": ["backend"]`: the builder's TypeScript engine does not implement rules).
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record

@@ -51,8 +51,9 @@ rather than store unchecked answers. The save check stops after
 ``PROBLEMS_MAX`` problems.
 """
 
+import json
 import re
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field as dataclass_field
 from decimal import Decimal
 from http import HTTPStatus
@@ -817,12 +818,16 @@ def required_by_rules(field: Any) -> bool:
 class FieldRuleProblem:
     """A problem with the rules of one field: its id, the JSON pointer into
     its ``rules`` (``/0/when/expression/+/1/var``; ``""`` = all of them),
-    a readable message and, for a problem of one rule, its position."""
+    a readable message and, for a problem of one rule, its position.
+    ``whole_field`` marks a problem with the question itself (it is internal,
+    cannot have rules, or is not a question at all): none of its rules can
+    stand, and a save that drops broken rules drops all of them."""
 
     field_id: str
     path: str
     message: str
     rule: Optional[int] = None
+    whole_field: bool = False
 
     def as_json(self) -> Dict[str, str]:
         return {"fieldId": self.field_id, "path": self.path, "message": self.message}
@@ -855,8 +860,17 @@ class _Checker:
             str(_get(f, "id")) for f in calculated_fields(form) if _get(f, "id")
         }
 
-    def add(self, field_id: str, path: str, message: str, rule: Optional[int]):
-        self.problems.append(FieldRuleProblem(field_id, path, message, rule))
+    def add(
+        self,
+        field_id: str,
+        path: str,
+        message: str,
+        rule: Optional[int],
+        whole_field: bool = False,
+    ):
+        self.problems.append(
+            FieldRuleProblem(field_id, path, message, rule, whole_field)
+        )
         if self.limit is not None and len(self.problems) >= self.limit:
             raise _Enough()
 
@@ -874,6 +888,7 @@ class _Checker:
                     f"'{_title(field)}' cannot have rules: only questions on the "
                     "pages of a form (or in a repeating group) can.",
                     None,
+                    whole_field=True,
                 )
 
     def check(self) -> List[FieldRuleProblem]:
@@ -920,6 +935,7 @@ class _Checker:
                 f"'{name}' is an internal field: rules apply to what respondents "
                 "answer.",
                 None,
+                whole_field=True,
             )
         elif _type(field) in NOT_RULE_TARGETS:
             self.add(
@@ -929,6 +945,7 @@ class _Checker:
                 "answer (not content, calculations, groups, matrices, uploads, "
                 "tables or payments).",
                 None,
+                whole_field=True,
             )
 
     def rule(self, target: _Target, index: int, rule: Any) -> None:
@@ -1309,34 +1326,71 @@ def _rule_signature(rule: Any) -> Any:
     return rule.model_dump() if hasattr(rule, "model_dump") else rule
 
 
-def _stored_rules(form: Any) -> Dict[Tuple[str, str], Any]:
-    return {
-        (str(_get(field, "id")), str(_get(rule, "id"))): _rule_signature(rule)
-        for field in _walk(form)
-        for rule in _rules(field)
-    }
+def _walk_with_parent(form: Any, parent: str = "") -> Iterable[Tuple[Any, str]]:
+    """Every field of ``form`` with the id of the field it sits in (``parent``
+    for the top level)."""
+    pending = [(field, parent) for field in _get(form, "fields") or []]
+    while pending:
+        field, above = pending.pop()
+        yield field, above
+        here = str(_get(field, "id") or "")
+        pending.extend((child, here) for child in _children(field))
+
+
+def parent_id(form: Any, field_id: str) -> str:
+    """The id of the page or group ``field_id`` sits in, in ``form`` (empty
+    when it is not there, or at the top level)."""
+    for field, above in _walk_with_parent(form):
+        if str(_get(field, "id") or "") == field_id:
+            return above
+    return ""
+
+
+def _stored_rules(form: Any, parent: str = "") -> Dict[Tuple[str, str], Counter]:
+    """The rules of ``form`` by ``(question id, rule id)``, each as what makes
+    it the same rule: its content, and which question it is on (the
+    question's type and where it sits), so a rule that moved to another
+    question under a reused id reads as a different one."""
+    stored: Dict[Tuple[str, str], Counter] = {}
+    for field, above in _walk_with_parent(form, parent):
+        for rule in _rules(field):
+            signature = json.dumps(
+                [_type(field), above, _rule_signature(rule)],
+                sort_keys=True,
+                default=str,
+            )
+            key = (str(_get(field, "id")), str(_get(rule, "id")))
+            stored.setdefault(key, Counter())[signature] += 1
+    return stored
 
 
 def prune_field_rules(form: Any) -> List[FieldRuleProblem]:
     """Drop every rule with a problem of its own (references, targets,
     values), in place, and return the first problem of each dropped rule.
+    A question that cannot carry rules at all (internal, not a question of a
+    page or group, of a type without rules) loses every one of them, so
+    marking a question internal never leaves rules the save would refuse.
     Form-wide problems (caps, circles, cost) are left to the check."""
     problems = field_rule_problems(form, limit=None)
     first: Dict[Tuple[str, int], FieldRuleProblem] = {}
+    whole: Dict[str, FieldRuleProblem] = {}
     for problem in problems:
-        if problem.rule is not None:
+        if problem.whole_field and problem.field_id:
+            whole.setdefault(problem.field_id, problem)
+        elif problem.rule is not None:
             first.setdefault((problem.field_id, problem.rule), problem)
-    if not first:
+    if not first and not whole:
         return []
+    owners = {key[0] for key in first} | set(whole)
     dropped: List[FieldRuleProblem] = []
     for field in _walk(form):
         field_id = str(_get(field, "id"))
         rules = _rules(field)
-        if not rules or not any(key[0] == field_id for key in first):
+        if not rules or field_id not in owners:
             continue
         kept = []
         for index, rule in enumerate(rules):
-            problem = first.get((field_id, index))
+            problem = whole.get(field_id) or first.get((field_id, index))
             if problem is None:
                 kept.append(rule)
                 continue
@@ -1417,16 +1471,21 @@ def _dropped_rule_id(
     return None
 
 
-def new_or_changed_rules(form: Any, existing: Any = None) -> List[Tuple[str, str]]:
+def new_or_changed_rules(
+    form: Any, existing: Any = None, parent: str = ""
+) -> List[Tuple[str, str]]:
     """``(field id, rule id)`` of the rules ``form`` has that ``existing``
-    (the stored version, or None) does not have exactly as they are, in the
-    same order on their question (the last active rule wins, so an order
-    change is a change: every rule of that question counts)."""
+    (the stored version, or None) does not have exactly as they are: the same
+    content, on a question of the same type that sits in the same page or
+    group, in the same order on that question (the last active rule wins, so
+    an order change is a change: every rule of that question counts).
+    ``parent`` is the id of the page or group the top-level fields of
+    ``form`` sit in, when ``form`` is only a part of the stored form."""
     stored = _stored_rules(existing) if existing is not None else {}
     changed = [
         key
-        for key, signature in _stored_rules(form).items()
-        if stored.get(key) != signature
+        for key, signatures in _stored_rules(form, parent).items()
+        if stored.get(key) != signatures
     ]
     before = _rule_orders(existing) if existing is not None else {}
     for field_id, ids in _rule_orders(form).items():
@@ -1450,13 +1509,18 @@ def _rule_orders(form: Any) -> Dict[str, List[str]]:
     }
 
 
+def field_rules_enabled() -> bool:
+    """Is ``FIELD_RULES_ENABLED`` on: may rules be created or changed?"""
+    from backend.config import settings
+
+    return bool(getattr(settings, "FIELD_RULES_ENABLED", False))
+
+
 def ensure_rules_allowed(form: Any, existing: Any = None) -> None:
     """While ``FIELD_RULES_ENABLED`` is off, refuse (422
     ``field_rules_disabled``) a save that brings new or changed rules. Rules
     already stored, unchanged, pass (and are still enforced)."""
-    from backend.config import settings
-
-    if getattr(settings, "FIELD_RULES_ENABLED", False):
+    if field_rules_enabled():
         return
     changed = new_or_changed_rules(form, existing)
     if changed:

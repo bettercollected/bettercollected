@@ -20,7 +20,10 @@ from common.models.standard_form import date_rule_problems
 from pydantic import ValidationError
 
 from backend.app.services.calculated_fields import calculated_field_problems
-from backend.app.services.field_rules import field_rule_problems
+from backend.app.services.field_rules import (
+    field_rule_problems,
+    field_rules_enabled,
+)
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.publish_checks import (
@@ -333,6 +336,18 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                     "use a current type for new questions.",
                 )
             )
+    if not field_rules_enabled():
+        # a write with new or changed rules is refused (422 field_rules_disabled)
+        for path, field, _ in index.questions.values():
+            if field.rules:
+                warnings.append(
+                    _problem(
+                        f"{path}/rules",
+                        "Field rules are switched off on this server: saving "
+                        "these rules, new or changed, is refused. Rules the form "
+                        "already has are kept.",
+                    )
+                )
     for problem in publish_problems(form):
         if problem["code"] == MISSING_ENDING:
             continue  # already an error (_check_endings)
