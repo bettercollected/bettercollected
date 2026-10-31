@@ -16,7 +16,9 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import {
     Webhook,
+    WebhookVariable,
     WebhookWithSecret,
+    useGetWebhookDetailQuery,
     useDeleteWebhookMutation,
     useGetWebhookVariablesQuery,
     useGetWebhooksQuery,
@@ -141,12 +143,11 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                                 return (
                                     <li key={hook.id} className="flex flex-col gap-3 rounded-lg border border-black-300 bg-white p-4" data-testid={`webhook-${hook.id}`}>
                                         {editing?.kind === 'edit' && editing.id === hook.id && editingHook ? (
-                                            <WebhookEditor
+                                            <EditWebhook
                                                 workspaceId={workspaceId}
                                                 formId={formId}
+                                                hook={editingHook}
                                                 variables={variables.data ?? []}
-                                                webhook={editingHook}
-                                                onCreated={() => undefined}
                                                 onSaved={() => {
                                                     setEditing(null);
                                                     say(t('WEBHOOKS.LIST.SAVED', { host: hook.host }));
@@ -232,6 +233,28 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                 )}
             </section>
             <WebhookDeliveries workspaceId={workspaceId} formId={formId} />
+        </>
+    );
+}
+
+/**
+ * The editor of an existing webhook. The list never carries an address (it can
+ * hold a token): this reads the owner-facing view, which opens it, and only
+ * while the webhook is being edited.
+ */
+function EditWebhook({ workspaceId, formId, hook, variables, onSaved, onCancel }: { workspaceId: string; formId: string; hook: Webhook; variables: WebhookVariable[]; onSaved: () => void; onCancel: () => void }) {
+    const { t } = useTranslation('builder');
+    const detail = useGetWebhookDetailQuery({ workspaceId, formId, webhookId: hook.id });
+    if (detail.isLoading) return <p className="text-sm text-black-600">{t('WEBHOOKS.LOADING')}</p>;
+    return (
+        <>
+            {detail.isError && (
+                <p role="alert" className="text-sm font-medium text-[#A83434]">
+                    {t(errorKey(errorCodeOf(detail.error)))}
+                </p>
+            )}
+            {/* a webhook whose address cannot be read is edited with the address left empty: entering it again repairs it */}
+            <WebhookEditor workspaceId={workspaceId} formId={formId} variables={variables} webhook={detail.data ?? { ...hook, url: '' }} onCreated={() => undefined} onSaved={onSaved} onCancel={onCancel} />
         </>
     );
 }

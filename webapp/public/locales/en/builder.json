@@ -818,6 +818,7 @@
       "rate_limited": "Too many test events. Wait a minute and try again.",
       "forbidden": "You do not have permission to change webhooks.",
       "not_found": "This webhook no longer exists. Reload the page.",
+      "url_unreadable": "The address of this webhook could not be read. Enter it again.",
       "unknown": "That did not work. Try again."
     },
     "DELIVERIES": {
@@ -861,6 +862,7 @@
         "invalid_url": "The address is not valid. Edit the webhook and correct it.",
         "too_large": "The data was too large to send.",
         "secret_unreadable": "The signing secret could not be read. Rotate the secret.",
+        "url_unreadable": "The address of the webhook could not be read. Edit the webhook and enter the address again.",
         "answers_unreadable": "The answers of this submission could not be read, so nothing was sent.",
         "disabled": "The webhook was turned off or deleted before this was sent.",
         "internal_error": "Something went wrong on our side.",

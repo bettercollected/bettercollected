@@ -10,9 +10,9 @@ export interface WebhookField {
     key: string;
 }
 
+/** What the list shows: the host, never the address (it can hold a token). */
 export interface Webhook {
     id: string;
-    url: string;
     host: string;
     enabled: boolean;
     fields: WebhookField[];
@@ -20,6 +20,11 @@ export interface Webhook {
     secretSetAt?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;
+}
+
+/** The owner-facing view of one webhook: the only read that carries the address, to edit it. */
+export interface WebhookDetail extends Webhook {
+    url: string;
 }
 
 /** The answer of create and rotate: the only place the secret is. */
@@ -103,6 +108,10 @@ export const webhooksApi = workspacesApi.enhanceEndpoints({ addTagTypes: [WEBHOO
             query: ({ workspaceId, formId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/webhooks`, method: 'GET' }),
             providesTags: [WEBHOOKS_TAG]
         }),
+        getWebhookDetail: builder.query<WebhookDetail, FormKey & { webhookId: string }>({
+            query: ({ workspaceId, formId, webhookId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/webhooks/${webhookId}/detail`, method: 'GET' }),
+            providesTags: [WEBHOOKS_TAG]
+        }),
         getWebhookVariables: builder.query<WebhookVariable[], FormKey>({
             query: ({ workspaceId, formId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/webhooks/variables`, method: 'GET' })
         }),
@@ -147,6 +156,7 @@ export const webhooksApi = workspacesApi.enhanceEndpoints({ addTagTypes: [WEBHOO
 export const {
     useGetWebhooksStatusQuery,
     useGetWebhooksQuery,
+    useGetWebhookDetailQuery,
     useGetWebhookVariablesQuery,
     useCreateWebhookMutation,
     useUpdateWebhookMutation,

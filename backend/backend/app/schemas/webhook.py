@@ -29,15 +29,16 @@ class WebhookField(BaseModel):
 
 class FormWebhookDocument(Record):
     """A destination a workspace's admins registered for one form.
-    ``secret_sealed`` is the sealed signing secret (``services/registration/
+    ``url_sealed`` is the sealed address and ``secret_sealed`` the sealed signing secret (``services/registration/
     secrets.py``'s envelope, naming the workspace and this webhook); it is
     never returned by the API nor logged."""
 
     workspace_id: RecordId
     form_id: str
-    # the normalised address (https, ASCII host); sensitive: it can hold a token
-    url: str
-    # its host, kept apart for the respondent's privacy panel
+    # the normalised address (https, ASCII host), sealed: it can hold a token
+    # (``services/webhooks/sealing.py``); never returned by the list, logged or queued
+    url_sealed: str
+    # its host, in clear, for the list and the respondent's privacy panel
     host: str
     enabled: bool = False
     fields: List[WebhookField] = []

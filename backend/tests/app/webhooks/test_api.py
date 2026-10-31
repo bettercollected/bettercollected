@@ -16,6 +16,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.webhook import LogStatus
 from backend.app.services.registration.secrets import SecretUnreadable, unseal
 from backend.app.services.webhooks import payload
+from backend.app.services.webhooks.sealing import seal_url, unseal_url
 from backend.app.services.webhooks.service import (
     MAX_WEBHOOKS_PER_FORM,
     FieldDto,
@@ -110,7 +111,9 @@ async def test_the_address_is_checked_and_stored_normalised(workspace):
         error = await refused(make_webhook(workspace, form, url=url))
         assert error.status_code == 422 and code_of(error) == code, url
     created = await make_webhook(workspace, form, url="https://Case.Example.ORG/h#x")
-    assert created.url == "https://case.example.org/h" and created.host == "case.example.org"
+    assert created.host == "case.example.org"
+    detail = await service().get_webhook(workspace.id, form.form_id, created.id, testUser)
+    assert detail.url == "https://case.example.org/h"
 
 
 async def test_a_name_that_resolves_inward_is_refused_when_saved(workspace, monkeypatch):
@@ -400,3 +403,118 @@ async def test_the_privacy_panel_names_the_hosts_of_enabled_webhooks(workspace, 
     assert "webhookDestination" not in again.json() or again.json()["webhookDestination"] is None
     monkeypatch.setattr(settings.webhooks, "ENABLED", True)
     await service().delete_webhook(ws, fid, hook.id, testUser)
+
+
+# --------------------------------------------------- the address is sealed
+
+
+TOKEN_URL = "https://case.example.org/hooks/intake?key=tok-8f3a1c"
+
+
+async def test_the_address_is_sealed_and_only_the_owner_view_opens_it(workspace, lines):
+    form = await publish(workspace)
+    created = await make_webhook(workspace, form, url=TOKEN_URL)
+    ws, fid = workspace.id, form.form_id
+    # the stored row holds the host in clear and the address only sealed
+    row = await container.form_webhook_repo().get(ws, fid, created.id)
+    stored = json.dumps(row.model_dump(mode="json"))
+    for text in ("tok-8f3a1c", "hooks/intake", "https://"):
+        assert text not in stored
+    assert row.host == "case.example.org" and row.url_sealed
+    assert unseal_url(container.crypto(), ws, created.id, row.url_sealed) == TOKEN_URL
+    # the create response, the list and the audit trail never carry it
+    listed = await service().list_webhooks(ws, fid, testUser)
+    audit = await service().list_audit(ws, fid, testUser)
+    for dump in (
+        created.model_dump_json(by_alias=True),
+        json.dumps([w.model_dump(mode="json") for w in listed]),
+        json.dumps([a.model_dump(mode="json") for a in audit]),
+    ):
+        assert "tok-8f3a1c" not in dump and "hooks/intake" not in dump
+        assert '"url"' not in dump
+    # the owner-facing view opens it
+    detail = await service().get_webhook(ws, fid, created.id, testUser)
+    assert detail.url == TOKEN_URL and detail.host == "case.example.org"
+    # logs never have it
+    assert not any("tok-8f3a1c" in line or "hooks/intake" in line for line in lines)
+
+
+async def test_a_sealed_address_is_bound_to_its_webhook_and_purpose(workspace):
+    form = await publish(workspace)
+    one = await make_webhook(workspace, form, url=TOKEN_URL)
+    two = await make_webhook(workspace, form, ["name"])
+    crypto = container.crypto()
+    row = await container.form_webhook_repo().get(workspace.id, form.form_id, one.id)
+    other = await container.form_webhook_repo().get(workspace.id, form.form_id, two.id)
+    with pytest.raises(SecretUnreadable):
+        unseal_url(crypto, workspace.id, two.id, row.url_sealed)
+    with pytest.raises(SecretUnreadable):
+        unseal_url(crypto, "another-workspace", one.id, row.url_sealed)
+    with pytest.raises(SecretUnreadable):
+        unseal_url(crypto, workspace.id, one.id, "not a ciphertext")
+    with pytest.raises(SecretUnreadable):
+        unseal_url(crypto, workspace.id, one.id, "")
+    # the sealed address cannot be opened as a secret, nor the secret as an address
+    with pytest.raises(SecretUnreadable):
+        unseal(crypto, workspace.id, one.id, row.url_sealed)
+    with pytest.raises(SecretUnreadable):
+        unseal_url(crypto, workspace.id, one.id, row.secret_sealed)
+    # a copied sealed address does not open under another webhook's id either
+    assert other.url_sealed != row.url_sealed
+
+
+async def test_updating_the_address_reseals_it_and_audits_the_name_only(workspace):
+    form = await publish(workspace)
+    created = await make_webhook(workspace, form, url=TOKEN_URL)
+    ws, fid = workspace.id, form.form_id
+    before = (await container.form_webhook_repo().get(ws, fid, created.id)).url_sealed
+    # the same address again: nothing changes, no entry
+    await service().update_webhook(ws, fid, created.id, WebhookUpdateDto(url=TOKEN_URL), testUser)
+    assert (await container.form_webhook_repo().get(ws, fid, created.id)).url_sealed == before
+    new = "https://other.example.org/x?key=tok-new"
+    updated = await service().update_webhook(ws, fid, created.id, WebhookUpdateDto(url=new), testUser)
+    assert updated.host == "other.example.org"
+    assert (await service().get_webhook(ws, fid, created.id, testUser)).url == new
+    entries = await service().list_audit(ws, fid, testUser)
+    assert [e.event for e in reversed(entries)] == ["created", "updated"]
+    assert entries[0].changed == ["url"]
+    assert "tok-new" not in json.dumps([e.model_dump(mode="json") for e in entries])
+    # an edit that leaves the address out keeps it
+    await service().update_webhook(ws, fid, created.id, WebhookUpdateDto(enabled=False), testUser)
+    assert (await service().get_webhook(ws, fid, created.id, testUser)).url == new
+
+
+async def test_the_job_opens_the_address_and_sends_to_it(workspace, tls, memory_jobs):
+    form = await publish(workspace)
+    await make_webhook(workspace, form, url=TOKEN_URL)
+    await submit(workspace, form)
+    (log,) = await logs_of(form)
+    assert (await service().run_delivery(str(log.id))).status == "delivered"
+    (request,) = tls.requests
+    assert request.target == "/hooks/intake?key=tok-8f3a1c"
+    for job in memory_jobs.jobs.values():
+        assert "tok-8f3a1c" not in json.dumps(job, default=str)
+    stored = json.dumps((await container.action_log_repo().get(log.id)).model_dump(mode="json"))
+    assert "tok-8f3a1c" not in stored
+
+
+async def test_an_unreadable_address_fails_the_delivery_for_good(workspace, tls, memory_jobs):
+    form = await publish(workspace)
+    created = await make_webhook(workspace, form)
+    await submit(workspace, form)
+    (log,) = await logs_of(form)
+    repo = container.form_webhook_repo()
+    row = await repo.get(workspace.id, form.form_id, created.id)
+    row.url_sealed = "garbage"
+    await repo.save(row)
+    outcome = await service().run_delivery(str(log.id))
+    done = await container.action_log_repo().get(log.id)
+    assert (outcome.status, outcome.retry) == ("failed", False)
+    assert done.last_error_code == "url_unreadable" and tls.requests == []
+    error = await refused(service().get_webhook(workspace.id, form.form_id, created.id, testUser))
+    assert error.status_code == 409 and code_of(error) == "url_unreadable"
+    # saving a new address repairs it
+    await service().update_webhook(
+        workspace.id, form.form_id, created.id, WebhookUpdateDto(url=TOKEN_URL), testUser
+    )
+    assert (await service().get_webhook(workspace.id, form.form_id, created.id, testUser)).url == TOKEN_URL

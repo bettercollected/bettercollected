@@ -26,6 +26,8 @@ vi.stubGlobal(
 const status = { data: { enabled: true } as { enabled: boolean } | undefined, isLoading: false };
 const hooksState: { data: Webhook[] | undefined; isLoading: boolean; isError: boolean } = { data: [], isLoading: false, isError: false };
 const variablesState: { data: WebhookVariable[] | undefined; isLoading: boolean; isError: boolean } = { data: [], isLoading: false, isError: false };
+const detailState: { data: any; isLoading: boolean; isError: boolean; error?: any } = { data: undefined, isLoading: false, isError: false };
+const detailCalls: any[] = [];
 const createMock = vi.fn();
 const updateMock = vi.fn();
 const deleteMock = vi.fn();
@@ -38,6 +40,10 @@ vi.mock('@app/store/workspaces/webhooks-api', async (importOriginal) => {
         useGetWebhooksStatusQuery: () => status,
         useGetWebhooksQuery: () => hooksState,
         useGetWebhookVariablesQuery: () => variablesState,
+        useGetWebhookDetailQuery: (arg: any) => {
+            detailCalls.push(arg);
+            return detailState;
+        },
         useGetWebhookDeliveriesQuery: () => ({ data: { items: [], total: 0 }, isLoading: false, isError: false }),
         useGetWebhookAuditQuery: () => ({ data: undefined, isError: false }),
         useCreateWebhookMutation: () => [createMock, { isLoading: false }],
@@ -61,7 +67,7 @@ vi.mock('@app/store/workspaces/slice', async (importOriginal) => {
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <ReduxProvider store={store}>{children}</ReduxProvider>;
 
-const hook = (over: Partial<Webhook> = {}): Webhook => ({ id: 'w1', url: 'https://hooks.example.org/in', host: 'hooks.example.org', enabled: true, fields: [{ source: 'name', key: 'full_name' }], hasSecret: true, ...over });
+const hook = (over: Partial<Webhook> = {}): Webhook => ({ id: 'w1', host: 'hooks.example.org', enabled: true, fields: [{ source: 'name', key: 'full_name' }], hasSecret: true, ...over });
 const variables: WebhookVariable[] = [
     { source: 'name', label: 'Full name', type: 'short_text', supported: true },
     { source: 'age', label: 'Age', type: 'number', supported: true },
@@ -81,6 +87,10 @@ beforeEach(() => {
     status.data = { enabled: true };
     hooksState.data = [];
     hooksState.isError = false;
+    detailState.data = { ...hook(), url: 'https://hooks.example.org/in?key=tok-1' };
+    detailState.isError = false;
+    detailState.isLoading = false;
+    detailCalls.length = 0;
     variablesState.data = variables;
     permissions = new Set([WorkspacePermission.WORKSPACE_MANAGE, WorkspacePermission.FORM_EDIT]);
     [createMock, updateMock, deleteMock, rotateMock, testMock].forEach((m) => m.mockReset());
@@ -292,7 +302,8 @@ describe('the list', () => {
         updateMock.mockReturnValue(ok(hook()));
         render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
         fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for hooks.example.org' }));
-        expect(screen.getByLabelText('Address to send to')).toHaveValue('https://hooks.example.org/in');
+        expect(screen.getByLabelText('Address to send to')).toHaveValue('https://hooks.example.org/in?key=tok-1');
+        expect(detailCalls).toEqual([{ workspaceId: 'ws1', formId: 'f1', webhookId: 'w1' }]);
         expect(screen.getByLabelText('Full name')).toBeChecked();
         expect(screen.getByLabelText('Name in the sent data')).toHaveValue('full_name');
         fireEvent.click(screen.getByLabelText('Age'));
@@ -302,11 +313,28 @@ describe('the list', () => {
                 workspaceId: 'ws1',
                 formId: 'f1',
                 webhookId: 'w1',
-                body: { url: 'https://hooks.example.org/in', fields: [{ source: 'name', key: 'full_name' }, { source: 'age', key: 'age' }], enabled: true }
+                body: { url: 'https://hooks.example.org/in?key=tok-1', fields: [{ source: 'name', key: 'full_name' }, { source: 'age', key: 'age' }], enabled: true }
             })
         );
         expect(await screen.findByText('The webhook for hooks.example.org was saved.')).toBeInTheDocument();
         expect(screen.queryByTestId('webhook-editor')).not.toBeInTheDocument();
+    });
+
+    it('never asks for an address until a webhook is edited, and the list shows none', () => {
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(detailCalls).toEqual([]);
+        expect(document.body.textContent).not.toContain('tok-1');
+        expect(document.body.textContent).not.toContain('https://hooks');
+    });
+
+    it('edits a webhook whose address cannot be read with the address left empty', () => {
+        detailState.data = undefined;
+        detailState.isError = true;
+        detailState.error = { status: 409, data: { code: 'url_unreadable' } };
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for hooks.example.org' }));
+        expect(screen.getByRole('alert')).toHaveTextContent('The address of this webhook could not be read. Enter it again.');
+        expect(screen.getByLabelText('Address to send to')).toHaveValue('');
     });
 
     it('speaks Dutch in the same register as the dashboard', async () => {

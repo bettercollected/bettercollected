@@ -818,6 +818,7 @@
       "rate_limited": "Te veel testgebeurtenissen. Wacht een minuut en probeer het opnieuw.",
       "forbidden": "U heeft geen toestemming om webhooks te wijzigen.",
       "not_found": "Deze webhook bestaat niet meer. Laad de pagina opnieuw.",
+      "url_unreadable": "Het adres van deze webhook kon niet worden gelezen. Vul het opnieuw in.",
       "unknown": "Dat is niet gelukt. Probeer het opnieuw."
     },
     "DELIVERIES": {
@@ -861,6 +862,7 @@
         "invalid_url": "Het adres is niet geldig. Bewerk de webhook en corrigeer het.",
         "too_large": "De gegevens waren te groot om te versturen.",
         "secret_unreadable": "Het ondertekeningsgeheim kon niet worden gelezen. Vernieuw het geheim.",
+        "url_unreadable": "Het adres van de webhook kon niet worden gelezen. Bewerk de webhook en vul het adres opnieuw in.",
         "answers_unreadable": "De antwoorden van deze inzending konden niet worden gelezen, dus er is niets verstuurd.",
         "disabled": "De webhook is uitgezet of verwijderd voordat dit verstuurd werd.",
         "internal_error": "Er ging iets mis aan onze kant.",

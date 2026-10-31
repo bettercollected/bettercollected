@@ -53,6 +53,8 @@ CASES = [
     Case("status", "GET", W + "/webhooks/status", None),
     Case("list", "GET", F + "/webhooks", MANAGE),
     Case("variables", "GET", F + "/webhooks/variables", MANAGE),
+    Case("detail", "GET", F + "/webhooks/{hook}/detail", MANAGE),
+    Case("detail.other", "GET", F + "/webhooks/{other_hook}/detail", MANAGE, ok=404),
     Case("create", "POST", F + "/webhooks", MANAGE, lambda c: NEW, ok=201),
     Case("update", "PATCH", F + "/webhooks/{hook}", MANAGE, lambda c: {"json": {"enabled": False}}),
     Case("rotate", "POST", F + "/webhooks/{hook}/rotate-secret", MANAGE),
@@ -131,6 +133,11 @@ async def test_no_response_but_the_create_and_rotate_carries_a_secret(client: As
         response = await client.request(method, path.format(**hooks), cookies=cookies, **kwargs)
         assert response.status_code == 200
         assert "whsec_" not in response.text and "secret\"" not in response.text.lower().replace("hassecret", "")
+    # nor does the list carry an address (it can hold a token): only the detail view does
+    listed = await client.get((F + "/webhooks").format(**hooks), cookies=cookies)
+    assert all("url" not in item for item in listed.json())
+    detail = await client.get((F + "/webhooks/{hook}/detail").format(**hooks), cookies=cookies)
+    assert detail.json()["url"] == "https://case.example.org/hooks/intake"
     created = await client.post(
         (F + "/webhooks").format(**hooks), cookies=cookies, **NEW
     )

@@ -17,6 +17,7 @@ from backend.app.services.webhooks.service import (
     VariableDto,
     WebhookCreatedDto,
     WebhookCreateDto,
+    WebhookDetailDto,
     WebhookDto,
     WebhookUpdateDto,
 )
@@ -171,4 +172,17 @@ class WebhooksRouter(Routable):
     ) -> List[AuditDto]:
         return await container.webhook_service().list_audit(
             workspace_id, form_id, user
+        )
+
+    @get("/{workspace_id}/forms/{form_id}/webhooks/{webhook_id}/detail")
+    async def get_webhook(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        webhook_id: str,
+        user: User = Depends(get_full_user),
+    ) -> WebhookDetailDto:
+        """The owner-facing view of one webhook, with its address (to edit it)."""
+        return await container.webhook_service().get_webhook(
+            workspace_id, form_id, webhook_id, user
         )

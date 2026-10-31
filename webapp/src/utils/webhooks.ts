@@ -18,6 +18,7 @@ export const ERROR_CODES = [
     'file_not_sent',
     'too_many_fields',
     'too_many_webhooks',
+    'url_unreadable',
     'rate_limited',
     'forbidden',
     'not_found'
@@ -34,6 +35,7 @@ export const DELIVERY_ERROR_CODES = [
     'invalid_url',
     'too_large',
     'secret_unreadable',
+    'url_unreadable',
     'answers_unreadable',
     'disabled',
     'internal_error'

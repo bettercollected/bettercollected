@@ -898,6 +898,7 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
   **`webhooks` queue** (`deliver_webhook(log_id)`, `webhooks_redefer`, `purge_action_logs`), never the actions
   executor. `bc_jobs_exec` must stay unable to see or queue it (`jobs/schema.py`, the RLS test in
   `tests/app/jobs/test_executor_role.py`): any new queue is invisible to it by default, keep it that way.
+- The address is sealed (`services/webhooks/sealing.py`, `url_sealed`; only `host` in clear): open it only in the delivery job and `get_webhook` (the owner-facing detail read); lists, DTOs, audit and logs never carry it.
 - The log row is the delivery (its id is the `X-Bettercollected-Delivery` header on every attempt): ids, status,
   counters, timings and one of our codes. **Never** an answer, body, address, secret or the destination's text, in the
   row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types may write the same

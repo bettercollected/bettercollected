@@ -51,6 +51,7 @@ from backend.app.services.registration import body as body_builder
 from backend.app.services.registration import client
 from backend.app.services.registration.secrets import SecretUnreadable, seal, unseal
 from backend.app.services.webhooks import guard, payload, sender
+from backend.app.services.webhooks.sealing import seal_url, unseal_url
 from backend.app.services.webhooks.mode import refuse_when_off, webhooks_enabled
 from backend.app.services.webhooks.retry import (  # noqa: F401
     MAX_ATTEMPTS,
@@ -91,8 +92,9 @@ class FieldDto(_CamelModel):
 
 
 class WebhookDto(_CamelModel):
+    """What the list shows: the host, never the address (it can hold a token)."""
+
     id: str
-    url: str
     host: str
     enabled: bool
     fields: List[FieldDto] = Field(default_factory=list)
@@ -101,6 +103,13 @@ class WebhookDto(_CamelModel):
     secret_set_at: Optional[dt.datetime] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
+
+
+class WebhookDetailDto(WebhookDto):
+    """The owner-facing view of one webhook (to edit it): the address, opened
+    from its sealed form for ``workspace.manage`` only."""
+
+    url: str
 
 
 class WebhookCreatedDto(WebhookDto):
@@ -178,7 +187,6 @@ def _not_found(message: str = MESSAGE_NOT_FOUND) -> HTTPException:
 def _webhook_dto(document: FormWebhookDocument) -> WebhookDto:
     return WebhookDto(
         id=str(document.id),
-        url=document.url,
         host=document.host,
         enabled=document.enabled,
         fields=[FieldDto(source=f.source, key=f.key) for f in document.fields],
@@ -326,6 +334,29 @@ class WebhookService:
             for d in await self._webhooks.list_for_form(workspace_id, form_id)
         ]
 
+    def _open_url(self, document: FormWebhookDocument) -> str:
+        try:
+            return unseal_url(
+                self._crypto, document.workspace_id, document.id, document.url_sealed
+            )
+        except SecretUnreadable:
+            raise _refused(
+                HTTPStatus.CONFLICT,
+                "url_unreadable",
+                "The address of this webhook could not be read. Enter it again.",
+            )
+
+    async def get_webhook(
+        self, workspace_id: RecordId, form_id: str, webhook_id: str, user: User
+    ) -> WebhookDetailDto:
+        """The owner-facing view: the one place the address is opened for a
+        person (to edit it)."""
+        await self._manage(user, workspace_id, form_id)
+        document = await self._webhook_of(workspace_id, form_id, webhook_id)
+        return WebhookDetailDto(
+            **_webhook_dto(document).model_dump(), url=self._open_url(document)
+        )
+
     async def _checked_url(self, url: str) -> tuple[str, str]:
         try:
             return await guard.check_destination(url)
@@ -447,7 +478,7 @@ class WebhookService:
         document = FormWebhookDocument(
             workspace_id=workspace_id,
             form_id=str(form_id),
-            url=url,
+            url_sealed="",
             host=host,
             enabled=request.enabled,
             fields=fields,
@@ -455,6 +486,7 @@ class WebhookService:
             updated_by=str(user.id),
         )
         document.ensure_id()
+        document.url_sealed = seal_url(self._crypto, workspace_id, document.id, url)
         document.secret_sealed = seal(self._crypto, workspace_id, document.id, secret)
         document.secret_set_at = self._clock()
         document = await self._webhooks.save(document)
@@ -483,13 +515,22 @@ class WebhookService:
         changed: List[str] = []
         if request.url is not None:
             url, host = await self._checked_url(request.url)
-            if url != document.url:
-                document.url, document.host = url, host
+            try:
+                same = url == unseal_url(
+                    self._crypto, workspace_id, document.id, document.url_sealed
+                )
+            except SecretUnreadable:
+                same = False
+            if not same:
+                document.url_sealed = seal_url(
+                    self._crypto, workspace_id, document.id, url
+                )
+                document.host = host
                 changed.append("url")
         elif enabling and not document.enabled:
             # switched on: the address is checked again, not trusted from when
             # it was saved
-            await self._checked_url(document.url)
+            await self._checked_url(self._open_url(document))
         if request.fields is not None:
             fields = await self._checked_fields(
                 await self._form_for_variables(form_id), request.fields
@@ -812,6 +853,10 @@ class WebhookService:
             secret = None
         if not secret:
             raise client.SendFailed("secret_unreadable", permanent=True)
+        try:
+            url = unseal_url(self._crypto, hook.workspace_id, hook.id, hook.url_sealed)
+        except SecretUnreadable:
+            raise client.SendFailed("url_unreadable", permanent=True)
         mapping = [(f.source, f.key) for f in hook.fields]
         response_id: Optional[str] = None
         submitted_at: Optional[str] = None
@@ -859,7 +904,7 @@ class WebhookService:
         if stopped is not None:
             return stopped
         sent = await sender.post(
-            hook.url,
+            url,
             secret,
             body,
             delivery_id=str(log.id),

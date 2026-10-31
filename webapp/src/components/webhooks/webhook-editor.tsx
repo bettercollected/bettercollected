@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Field, inputClass } from '@app/components/registration/field';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import { Webhook, WebhookVariable, WebhookWithSecret, useCreateWebhookMutation, useUpdateWebhookMutation } from '@app/store/workspaces/webhooks-api';
+import { WebhookDetail, WebhookVariable, WebhookWithSecret, useCreateWebhookMutation, useUpdateWebhookMutation } from '@app/store/workspaces/webhooks-api';
 import { variableTypeKey } from '@app/utils/registration';
 import { MAX_FIELDS, defaultKeyOf, errorCodeOf, errorField, errorKey, isValidKey, urlProblem } from '@app/utils/webhooks';
 
@@ -16,7 +16,7 @@ interface Props {
     formId: string;
     variables: WebhookVariable[];
     /** The webhook being edited; none creates one. */
-    webhook?: Webhook;
+    webhook?: WebhookDetail;
     onCreated: (created: WebhookWithSecret) => void;
     onSaved: () => void;
     onCancel: () => void;
