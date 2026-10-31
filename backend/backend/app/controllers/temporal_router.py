@@ -1,9 +1,12 @@
 from common.ids import RecordId
 from classy_fastapi import Routable, post, patch
+from http import HTTPStatus
+
 from fastapi import Depends
 from pydantic import BaseModel, Field, field_validator
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
@@ -38,6 +41,7 @@ class TemporalRouter(Routable):
         form_schedular=container.form_schedular(),
         form_actions_service=container.form_actions_service(),
         copy_recipient_service=container.copy_recipient_service(),
+        action_service=container.action_service(),
         *args,
         **kwargs
     ):
@@ -45,6 +49,7 @@ class TemporalRouter(Routable):
         self.form_schedular = form_schedular
         self.form_actions_service = form_actions_service
         self.copy_recipient_service = copy_recipient_service
+        self.action_service = action_service
 
     @patch("/forms/{form_id}/actions/{action_id}/secrets")
     async def patch_form_secrets(
@@ -74,6 +79,32 @@ class TemporalRouter(Routable):
             payload.address, workspace_id, form_id
         )
         return {"allowed": allowed}
+
+    @post(
+        "/workspaces/{workspace_id}/forms/{form_id}/actions/{action_id}"
+        "/runs/{response_id}/context"
+    )
+    async def action_run_context(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
+        response_id: str,
+        api_key=Depends(get_api_key),
+    ):
+        """The actions executor reads what one queued run needs, when it runs:
+        the job carries ids only, so no answers or action secrets sit in the
+        job queue's rows. 410 when the run no longer applies (the response was
+        erased, the action was switched off or removed): the executor skips
+        the job, it is not retried."""
+        context = await self.action_service.action_run_context(
+            workspace_id, form_id, action_id, response_id
+        )
+        if context is None:
+            raise HTTPException(
+                status_code=HTTPStatus.GONE, content="This action run no longer applies."
+            )
+        return context
 
     @post("/delete/submissions/{submission_id}")
     async def delete_expired_submissions(

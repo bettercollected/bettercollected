@@ -1,7 +1,7 @@
 import asyncio
 import json
+import logging
 import os
-import traceback
 from http import HTTPStatus
 from random import Random
 from typing import Any, Dict, List, Optional
@@ -35,6 +35,8 @@ from utilities.mail_headers import (
     respondent_from_name,
 )
 from settings.application import settings
+
+logger = logging.getLogger(__name__)
 
 
 async def run_action(
@@ -732,6 +734,10 @@ def execute_action_code(
                 url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
                 headers={"api-key": settings.api_key},
             )
-        traceback.print_exception(e)
+        # the class of the error, not its message or traceback: an exception
+        # raised by a creator's code or a provider can carry an answer
+        logger.error(
+            "action %s failed in its code: %s", action.get("id"), type(e).__name__
+        )
         raise RuntimeError("\n".join(log_string))
     return {"status": status, "log": "\n".join(log_string)}

@@ -19,6 +19,17 @@ Each is a standalone Python service with its own `main.py`, `requirements.txt`, 
 | [csv-worker/](csv-worker/) | `ExportCSVWorkflow` | `export_as_csv` | Export form responses to CSV |
 | [actions-executor/](actions-executor/) | `RunActionCode` | `run_action_code` | Execute user-defined form-action / automation code |
 
+## The actions executor on the Postgres queue (default)
+
+`actions-executor/main.py` follows `JOBS_BACKEND` (default `postgres`): `procrastinate_worker.py` consumes the
+`actions` queue as the `bc_jobs_exec` role (`DATABASE_URL`; the role sees only the `actions` queue's rows, and the
+executor refuses to start where the backend has not applied that policy: `utilities/queue_isolation.py`). The job
+carries **ids only**; `utilities/run_context.py` fetches the run's data from the backend's in-network route when
+it runs (410 = the run no longer applies, skipped). Three runs at most (waits of 5 s and 25 s), cut off after 90 s;
+a failure names ids and the error's class, never its message (it can hold an answer), and the job's result is one
+word. Jobs queued by 4.1.x with the whole run in them are still run once. Tests: `tests/test_run_job.py`,
+`tests/test_queue_isolation.py`. `JOBS_BACKEND=temporal` runs the workflow below instead.
+
 ## Tech
 
 `temporalio==1.2.0`, **`pydantic==1.10.9`** (note: v1, unlike some other services), `httpx`/`requests`,

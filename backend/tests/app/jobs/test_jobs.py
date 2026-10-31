@@ -131,13 +131,13 @@ async def test_user_deletion_is_deferred_once_with_an_encrypted_request(memory_j
 
 
 async def test_run_action_is_deferred_by_name_to_the_actions_queue(memory_jobs):
-    svc = service({"JOBS_BACKEND__run_action": "postgres"})
+    # the body lives in the executor; the backend only knows the name and queue.
+    # What a run queues (ids only) is tested in test_action_runs.py
     params = {
-        "action": '{"id": "x"}',
-        "form": "{}",
-        "response": "{}",
-        "user_email": "e",
-        "workspace": "{}",
+        "action_id": "a",
+        "form_id": "f",
+        "response_id": "r",
+        "workspace_id": "w",
     }
     await tasks.run_action_deferrer(queueing_lock="action_1").defer_async(**params)
     (job,) = memory_jobs.jobs.values()
