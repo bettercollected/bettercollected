@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_STATE, activeFilterCount, hasListParams, localDayStart, nearbyPages, parseResponseListState, responseListApiParams, responseListSearchParams, responseListView } from './response-list-state';
 
@@ -85,11 +85,6 @@ describe('writing the list state to a URL', () => {
 });
 
 describe('asking the API', () => {
-    const original = process.env.TZ;
-    afterEach(() => {
-        process.env.TZ = original;
-    });
-
     it('asks for keyset paging with the sort and the filters', () => {
         const params = responseListApiParams({ ...DEFAULT_STATE, page: 3, size: 50, sort: 'version-low', status: 'pending', who: 'known', version: 2, cursor: 'tok' });
         expect(params).toMatchObject({ paging: 'keyset', page: 3, size: 50, sort_by: 'form_version', sort_order: 'ASCENDING', status: 'pending', respondent: 'known', formVersion: 2, cursor: 'tok' });
@@ -97,19 +92,27 @@ describe('asking the API', () => {
         expect(responseListApiParams(DEFAULT_STATE)).toMatchObject({ sort_by: 'created_at', sort_order: 'DESCENDING' });
     });
 
+    // The zone of the test process is whatever it is (a worker cannot change its own): the expected instants
+    // are computed from the runtime's own local days, which is what the code must follow in any zone.
     it('sends the instants the viewer\'s days begin at: from inclusive, to = the start of the day after', () => {
-        process.env.TZ = 'Europe/Amsterdam';
         const params = responseListApiParams({ ...DEFAULT_STATE, from: '2026-01-05', to: '2026-01-05' });
-        // a one-day range: [Jan 5 00:00 CET, Jan 6 00:00 CET)
-        expect(params.submittedFrom).toBe('2026-01-04T23:00:00.000Z');
-        expect(params.submittedTo).toBe('2026-01-05T23:00:00.000Z');
+        // a one-day range: [Jan 5 00:00 local, Jan 6 00:00 local)
+        expect(params.submittedFrom).toBe(new Date(2026, 0, 5).toISOString());
+        expect(params.submittedTo).toBe(new Date(2026, 0, 6).toISOString());
+        // and a range of several days ends at the start of the day after the last one
+        const range = responseListApiParams({ ...DEFAULT_STATE, from: '2026-01-05', to: '2026-01-09' });
+        expect(range.submittedTo).toBe(new Date(2026, 0, 10).toISOString());
     });
 
-    it('follows the viewer\'s time zone over a daylight-saving change', () => {
-        process.env.TZ = 'Europe/Amsterdam';
-        // 29 March 2026 has 23 hours: clocks go forward at 02:00
-        expect(localDayStart('2026-03-29')).toBe('2026-03-28T23:00:00.000Z');
-        expect(localDayStart('2026-03-29', 1)).toBe('2026-03-29T22:00:00.000Z');
+    it('follows the viewer\'s local days, also over a daylight-saving change', () => {
+        // 29 March 2026: clocks go forward in much of Europe (a 23-hour day there), not in UTC (24 hours)
+        expect(localDayStart('2026-03-29')).toBe(new Date(2026, 2, 29).toISOString());
+        expect(localDayStart('2026-03-29', 1)).toBe(new Date(2026, 2, 30).toISOString());
+        const hours = (Date.parse(localDayStart('2026-03-29', 1)) - Date.parse(localDayStart('2026-03-29'))) / 3_600_000;
+        expect([23, 24, 25]).toContain(hours);
+        // the days either side of a change are still contiguous: one day ends where the next begins
+        expect(localDayStart('2026-03-28', 1)).toBe(localDayStart('2026-03-29'));
+        expect(localDayStart('2026-10-24', 1)).toBe(localDayStart('2026-10-25'));
     });
 });
 
