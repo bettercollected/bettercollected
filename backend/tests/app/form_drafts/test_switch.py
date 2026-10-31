@@ -344,7 +344,7 @@ async def test_respondents_are_served_the_form_without_the_setting_while_off(
 async def test_a_form_that_requires_sign_in_offers_no_link_with_the_switch_on_or_off(
     client, workspace, mails, monkeypatch
 ):
-    """Owner decision: an identity-required form saves to the account only."""
+    """A form that requires a verified identity saves to the account only: no emailed link."""
     form = await drafting_form(workspace, require_verified_identity=True)
     for enabled in (True, False):
         monkeypatch.setattr(settings, "SAVE_DRAFTS_ENABLED", enabled)
