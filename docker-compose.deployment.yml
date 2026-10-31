@@ -69,8 +69,8 @@ services:
   # If you want to run webapp locally without using docker-compose,
   # you will also need to run nginx locally and not from docker-compose
   webapp:
-    image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.1.2}
-    # image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.2.0}
+    # image: bettercollected/webapp:${BC_IMAGE_TAG:-v4.2.0}
     environment:
       INTERNAL_DOCKER_API_ENDPOINT_HOST: http://backend:8000/api/v1
       API_ENDPOINT_HOST: http://localhost:8000/api/v1
@@ -178,8 +178,8 @@ services:
 
 
   backend:
-    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
-    # image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
+    # image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
     environment:
       # Settings come from the settings store (docs/settings-loader.md): the
       # service refuses to start when it cannot read it. SETTINGS_STORE=off in
@@ -288,7 +288,7 @@ services:
   # deployments keep working; deploy.sh generates the first two, and
   # PLATFORM_ADMIN_EMAILS (the super admin list) is set by the operator.
   admin:
-    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.serve"]
     user: "65534:65534"
     read_only: true
@@ -352,7 +352,7 @@ services:
   # attached to admin-edge. Task implementations that need Mongo or other
   # services add exactly the variables they need here.
   task-runner:
-    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.admin.runner"]
     user: "65534:65534"
     read_only: true
@@ -407,7 +407,7 @@ services:
   # seccomp syscall allowlist and no environment file (it holds no secrets). The backend and the jobs worker reach
   # it over a Unix socket on the doc-sandbox volume.
   document-sandbox:
-    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
     command: ["/api/backend/.venv/bin/python", "-I", "/api/backend/backend/app/services/pdf_import/server.py", "/run/doc-sandbox/sandbox.sock"]
     user: "65534:65534"
     network_mode: none
@@ -443,7 +443,7 @@ services:
   # this worker's JOBS_CONCURRENCY with the deletions; to keep them apart, run a second
   # worker with JOBS_QUEUES=exports and give this one JOBS_QUEUES=default,webhooks,emails.
   jobs-worker:
-    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/backend:${BC_IMAGE_TAG:-v4.2.0}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.jobs.worker"]
     environment:
       # reads the same settings as the backend (same database role), with a
@@ -484,8 +484,8 @@ services:
         condition: service_healthy
 
   auth:
-    image: bettercollected/auth:${BC_IMAGE_TAG:-v4.1.2}
-    # image: bettercollected/auth:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/auth:${BC_IMAGE_TAG:-v4.2.0}
+    # image: bettercollected/auth:${BC_IMAGE_TAG:-v4.2.0}
     environment:
       SETTINGS_STORE: ${SETTINGS_STORE:-required}
       SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
@@ -529,7 +529,7 @@ services:
       - no-new-privileges:true
 
   integrations-googleform:
-    image: bettercollected/integrations-google:${BC_IMAGE_TAG:-v4.1.2}
+    image: bettercollected/integrations-google:${BC_IMAGE_TAG:-v4.2.0}
     environment:
       SETTINGS_STORE: ${SETTINGS_STORE:-required}
       SETTINGS_MASTER_KEY: ${SETTINGS_MASTER_KEY:?set by deploy.sh in the root .env}
