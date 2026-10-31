@@ -1,6 +1,7 @@
-"use client";
+'use client';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+
 import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
 
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
@@ -37,16 +38,18 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
 }
 
 /**
+ * What an empty read-only question shows where a box shows its prompt: a dash,
+ * not "Answer" (nothing can be answered there). Where it is page text rather
+ * than an input's placeholder, mark it `aria-hidden`: it is decoration, and a
+ * screen reader would read it as "en dash".
+ */
+export const READ_ONLY_EMPTY = '\u2013';
+
+/**
  * The placeholder a respondent sees when the creator set none, in the
  * respondent's language (`t` from useRespondentLanguage). Number, link and
  * phone examples read the same in every language.
  */
-/**
- * What an empty read-only question shows where a box shows its prompt: a dash,
- * not "Answer" (nothing can be answered there).
- */
-export const READ_ONLY_EMPTY = '\u2013';
-
 export function getRespondentPlaceholder(fieldType: FieldTypes | undefined, t: (key: string) => string): string {
     switch (fieldType) {
         case FieldTypes.SHORT_TEXT:

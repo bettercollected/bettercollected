@@ -22,14 +22,17 @@
  * refuses, is carried by local ops that never leave the builder:
  * `local_set_form_keys` and `local_set_fields`.
  */
+import i18n from 'i18next';
 import { atom } from 'jotai';
 
 import { applied, applyOps, compactOps, entityDiff } from '@app/lib/form-ops';
 import type { FormOp } from '@app/lib/form-ops';
 import { immer } from '@app/lib/form-ops/apply';
+import { fieldRuleFixes, fieldRuleProblems, hasFieldRules } from '@app/lib/form-ops/field-rule-checks';
 import { formImageUrls } from '@app/lib/form-ops/images';
 import { clone, isSlide, jsonEqual } from '@app/lib/form-ops/model';
 import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
+import { toast } from '@app/shadcn/components/ui/use-toast';
 import { isStorageImageUrl, rememberStorageImageUrls } from '@app/utils/storage-image-urls';
 
 import { initialFieldsState, initialFormState } from './form-defaults';
@@ -527,12 +530,57 @@ export const resetFromServerAtom = atom(null, (get, set, form: Partial<FormDocum
 // ---------------------------------------------------------------------------
 
 /**
+ * Field rules in pages the builder hands over, held to what a save accepts
+ * (the server's builder save: every rule with a problem of its own is
+ * dropped, but a problem no single rule is to blame for, such as too many
+ * rules, too high a cost or a circle, refuses the save). The pages are the
+ * builder's own copy, so the dropped rules are taken out of it in place. A
+ * problem that the edit would bring in is `refusal`: the edit is not made,
+ * since every save would otherwise fail until it was undone.
+ */
+function guardFieldRules(doc: FormDocument, fields: StandardFormFieldDto[]): { refusal?: string; questions: number } {
+    const form = { fields, hiddenFields: doc.hiddenFields };
+    if (!hasFieldRules(form)) return { questions: 0 };
+    const fixes = fieldRuleFixes(form);
+    for (const fix of fixes) {
+        let node: any = fields[fix.path[0]];
+        for (const at of fix.path.slice(1)) node = node.properties.fields[at];
+        if (fix.rules) node.properties.rules = fix.rules;
+        else delete node.properties.rules;
+    }
+    const known = new Set(fieldRuleProblems({ fields: doc.fields, hiddenFields: doc.hiddenFields }, { limit: null }).map((problem) => problem.message));
+    const brought = fieldRuleProblems(form, { limit: null }).find((problem) => !known.has(problem.message));
+    return brought ? { refusal: brought.message, questions: 0 } : { questions: fixes.length };
+}
+
+/** Say what the guard did: a refused edit and why, or that rules which no longer fit were dropped. */
+function noteRuleGuard(guard: { refusal?: string; questions: number }) {
+    if (guard.refusal) toast({ description: i18n.t('builder:FIELD_RULES.REFUSED', { reason: guard.refusal }) });
+    else if (guard.questions) toast({ description: i18n.t('builder:FIELD_RULES.DROPPED', { count: guard.questions }) });
+}
+
+/** The builder's copy of the pages back to what the document holds (an edit that was not made). */
+function restoreBuilderCopy(set: Setter, doc: FormDocument) {
+    const fresh = (doc.fields ?? []).map(copyOf);
+    set(builderFieldsAtom, fresh);
+    rememberCopies(doc, doc, fresh);
+}
+
+/**
  * The builder handed over its pages (`setFormFields`): what changed becomes
  * one undo step of ops; the handed-over array stays the builder's copy.
  */
 export const commitBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormFieldDto[], meta?: string | CommitMeta) => {
     const doc = get(formDocAtom);
-    return commitPlanned(get, set as Setter, planFields(doc, fields), typeof meta === 'string' ? { coalesceKey: meta } : (meta ?? {}), fields);
+    const guard = guardFieldRules(doc, fields);
+    if (guard.refusal) {
+        restoreBuilderCopy(set as Setter, doc);
+        noteRuleGuard(guard);
+        return false;
+    }
+    const committed = commitPlanned(get, set as Setter, planFields(doc, fields), typeof meta === 'string' ? { coalesceKey: meta } : (meta ?? {}), fields);
+    noteRuleGuard(guard);
+    return committed;
 });
 
 /** Seed the pages and start undo history over (the form-level parts stay). */
@@ -562,6 +610,12 @@ export interface CommitTogetherArgs extends CommitMeta {
  */
 export const commitTogetherAtom = atom(null, (get, set, { fields, formValues, fieldsFirst = true, ...meta }: CommitTogetherArgs) => {
     const doc = get(formDocAtom);
+    const guard = fields ? guardFieldRules(doc, fields) : { questions: 0 };
+    if (guard.refusal) {
+        restoreBuilderCopy(set as Setter, doc);
+        noteRuleGuard(guard);
+        return false;
+    }
     const pages = (from: FormDocument) => (fields ? planFields(from, fields) : noChange(from));
     const form = (from: FormDocument) => (formValues ? planFormKeys(from, formValues) : noChange(from));
     let change: PlannedChange;
@@ -572,7 +626,9 @@ export const commitTogetherAtom = atom(null, (get, set, { fields, formValues, fi
         const first = form(doc);
         change = chain(first, pages(first.doc));
     }
-    return commitPlanned(get, set as Setter, change, meta, fields);
+    const committed = commitPlanned(get, set as Setter, change, meta, fields);
+    noteRuleGuard(guard);
+    return committed;
 });
 
 /** Form-level values written by the form state: one undo step (unless `undoable` is false). */

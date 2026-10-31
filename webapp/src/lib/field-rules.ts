@@ -74,11 +74,11 @@ export interface FieldRule {
 type Answers = Record<string, any>;
 
 /** Question types whose value a rule may set or lock (page questions only). */
-const VALUE_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.YES_NO]);
+export const VALUE_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT, FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN, FieldTypes.NUMBER, FieldTypes.DATE, FieldTypes.YES_NO]);
 const TEXT_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT]);
-const CHOICE_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
+export const CHOICE_TYPES = new Set<string>([FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN]);
 
-const rulesOf = (field: StandardFormFieldDto | undefined): FieldRule[] => {
+export const rulesOf = (field: StandardFormFieldDto | undefined): FieldRule[] => {
     const rules = field?.properties?.rules;
     return Array.isArray(rules) ? (rules as FieldRule[]).filter((rule) => rule && typeof rule === 'object') : [];
 };
@@ -88,13 +88,13 @@ export function formHasFieldRules(slides: StandardFormFieldDto[] | undefined | n
     return targetsOf(slides).some((target) => rulesOf(target.field).length > 0);
 }
 
-interface Target {
+export interface Target {
     field: StandardFormFieldDto;
     group?: StandardFormFieldDto;
 }
 
 /** Every question of a page-based form, a repeating group's children right after the group. */
-function targetsOf(slides: StandardFormFieldDto[] | undefined | null): Target[] {
+export function targetsOf(slides: StandardFormFieldDto[] | undefined | null): Target[] {
     const found: Target[] = [];
     pageFields(slides).forEach((field) => {
         found.push({ field });
@@ -103,20 +103,20 @@ function targetsOf(slides: StandardFormFieldDto[] | undefined | null): Target[] 
     return found;
 }
 
-const effect = (rule: FieldRule, key: keyof FieldRuleEffect): unknown => (rule.then as FieldRuleEffect | undefined)?.[key];
-const present = (value: unknown): boolean => value !== undefined && value !== null;
-const hasValueEffect = (rule: FieldRule): boolean => present(effect(rule, 'readOnly')) || present(effect(rule, 'setValue'));
-const hasStateEffect = (rule: FieldRule): boolean => ['required', 'title', 'description'].some((key) => present(effect(rule, key as keyof FieldRuleEffect)));
+export const effect = (rule: FieldRule, key: keyof FieldRuleEffect): unknown => (rule.then as FieldRuleEffect | undefined)?.[key];
+export const present = (value: unknown): boolean => value !== undefined && value !== null;
+export const hasValueEffect = (rule: FieldRule): boolean => present(effect(rule, 'readOnly')) || present(effect(rule, 'setValue'));
+export const hasStateEffect = (rule: FieldRule): boolean => ['required', 'title', 'description'].some((key) => present(effect(rule, key as keyof FieldRuleEffect)));
 
-const isMultiple = (field: StandardFormFieldDto): boolean => field.type === FieldTypes.MULTIPLE_CHOICE && !!field.properties?.allowMultipleSelection;
+export const isMultiple = (field: StandardFormFieldDto): boolean => field.type === FieldTypes.MULTIPLE_CHOICE && !!field.properties?.allowMultipleSelection;
 
-function isValueNode(target: Target): boolean {
+export function isValueNode(target: Target): boolean {
     return !target.group && !target.field.internal && VALUE_TYPES.has(target.field.type) && !isMultiple(target.field) && rulesOf(target.field).some(hasValueEffect);
 }
 
-const answerKey = (key: string): string => key.split('.', 1)[0];
+export const answerKey = (key: string): string => key.split('.', 1)[0];
 
-function triggerReads(rule: FieldRule): string[] {
+export function triggerReads(rule: FieldRule): string[] {
     const when = rule.when;
     if (present(when?.expression)) return expressionVariables(when.expression);
     const keys: string[] = [];
@@ -127,12 +127,12 @@ function triggerReads(rule: FieldRule): string[] {
     return keys;
 }
 
-function valueReads(rule: FieldRule): string[] {
+export function valueReads(rule: FieldRule): string[] {
     const expression = (effect(rule, 'setValue') as FieldRuleEffect['setValue'])?.expression;
     return present(expression) ? expressionVariables(expression) : [];
 }
 
-function ruleReads(rule: FieldRule): string[] {
+export function ruleReads(rule: FieldRule): string[] {
     const trigger = triggerReads(rule);
     return [...trigger, ...valueReads(rule).filter((key) => !trigger.includes(key))];
 }
@@ -170,7 +170,7 @@ function astCost(ast: unknown, groupItems: Record<string, number>): number {
 }
 
 /** What one evaluation of a rule (trigger and set value) costs, with every group at its maximum. */
-function ruleCost(rule: FieldRule, groupItems: Record<string, number>): number {
+export function ruleCost(rule: FieldRule, groupItems: Record<string, number>): number {
     const when = rule.when;
     let cost = 0;
     if (present(when?.expression)) cost += astCost(when.expression, groupItems);
@@ -183,7 +183,7 @@ function ruleCost(rule: FieldRule, groupItems: Record<string, number>): number {
     return cost;
 }
 
-function groupMaxima(targets: Target[]): Record<string, number> {
+export function groupMaxima(targets: Target[]): Record<string, number> {
     const found = idMap<number>();
     targets.forEach(({ field }) => {
         if (isRepeatingGroup(field)) found[field.id] = getRepeatSettings(field).maxItems;
