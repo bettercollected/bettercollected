@@ -97,6 +97,12 @@ function withRules(slides: StandardFormFieldDto[], fieldId: string, rules: Field
     return swap(slides);
 }
 
+/** The sources a condition can pick from; a question the form no longer has is listed (as such) so the row does not show another one in its place. */
+function sourcesWith(condition: LogicCondition, sources: SourceField[], missing: string): SourceField[] {
+    if (!condition.fieldId || sources.some((source) => source.field.id === condition.fieldId)) return sources;
+    return [{ field: { id: condition.fieldId, index: 0, type: condition.fieldType as FieldTypes } as StandardFormFieldDto, label: missing }, ...sources];
+}
+
 type TriggerKind = 'conditions' | 'expression';
 const triggerKind = (rule: FieldRule): TriggerKind => (rule.when?.expression !== undefined && rule.when?.expression !== null ? 'expression' : 'conditions');
 
@@ -410,7 +416,7 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                                 <ConditionRow
                                     key={at}
                                     condition={condition}
-                                    sources={sources}
+                                    sources={sourcesWith(condition, sources, t('FIELD_RULES.MISSING_SOURCE'))}
                                     onChange={(patch) => patchCondition(at, patch)}
                                     onRemove={conditions.length > 1 ? () => setWhen({ ...rule.when, conditions: conditions.filter((_, i) => i !== at) as unknown as FieldRuleCondition[] }) : undefined}
                                 />

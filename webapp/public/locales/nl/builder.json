@@ -816,6 +816,7 @@
     "BADGE_TITLE_one": "Deze vraag heeft {{count}} regel",
     "BADGE_TITLE_other": "Deze vraag heeft {{count}} regels",
     "FLOW_BADGE_one": "{{count}} met regels",
-    "FLOW_BADGE_other": "{{count}} met regels"
+    "FLOW_BADGE_other": "{{count}} met regels",
+    "MISSING_SOURCE": "(vraag staat niet meer in het formulier)"
   }
 }

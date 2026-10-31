@@ -146,6 +146,8 @@ describe('the rules editor (props)', () => {
         const dangling: FieldRule = { ...NL, when: { conditions: [{ fieldId: 'gone', fieldType: 'dropdown', comparison: 'IS_NOT_EMPTY' }] } };
         renderEditor([dangling]);
         expect(within(screen.getByTestId('field-rule-1')).getByText(/uses 'gone', which is no question of this form/)).toBeInTheDocument();
+        // the row does not show another question in its place
+        expect(within(screen.getByTestId('field-rule-1')).getByRole('combobox', { name: 'Question' })).toHaveDisplayValue('(question no longer on the form)');
     });
 
     it('warns about a circle of set values', () => {
