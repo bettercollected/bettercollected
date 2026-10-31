@@ -87,6 +87,10 @@ NAME_MAX = 80
 COPY_SUFFIX = ".copy"
 CHANNEL_TEAM = "team"
 CHANNEL_RESPONDENT = "respondent"
+# the code of a copy that was not planned for want of a verified, signed-in submitter, and of one
+# whose account is gone when it is sent
+NOT_VERIFIED = "not_verified"
+ACCOUNT_GONE = "account_gone"
 EVENT_SUBMISSION = "submission"
 EVENT_TEST = "test"
 
@@ -139,7 +143,7 @@ class EmailActionDto(_CamelModel):
     nl: TemplateDto
     fields: List[FieldDto] = Field(default_factory=list)
     team_recipients: List[str] = Field(default_factory=list)
-    respondent_field: Optional[str] = None
+    respondent_copy: bool = False
     condition: Optional[ActionCondition] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
@@ -152,7 +156,7 @@ class EmailActionCreateDto(_CamelModel):
     nl: TemplateDto
     fields: List[FieldDto] = Field(default_factory=list)
     team_recipients: List[str] = Field(default_factory=list, max_length=20)
-    respondent_field: Optional[str] = Field(None, max_length=200)
+    respondent_copy: bool = False
     condition: Optional[ActionCondition] = None
 
 
@@ -163,7 +167,7 @@ class EmailActionUpdateDto(_CamelModel):
     nl: Optional[TemplateDto] = None
     fields: Optional[List[FieldDto]] = None
     team_recipients: Optional[List[str]] = Field(None, max_length=20)
-    respondent_field: Optional[str] = Field(None, max_length=200)
+    respondent_copy: Optional[bool] = None
     # an explicit null removes the condition (``model_fields_set`` tells)
     condition: Optional[ActionCondition] = None
 
@@ -237,7 +241,7 @@ def _action_dto(document: FormEmailActionDocument) -> EmailActionDto:
         nl=TemplateDto(**document.nl.model_dump()),
         fields=[FieldDto(source=f.source, key=f.key) for f in document.fields],
         team_recipients=list(document.team_recipients),
-        respondent_field=document.respondent_field,
+        respondent_copy=document.respondent_copy,
         condition=document.condition,
         created_at=document.created_at,
         updated_at=document.updated_at,
@@ -280,21 +284,6 @@ def _plain(value: Any) -> Dict[str, Any]:
     if hasattr(value, "model_dump"):
         value = value.model_dump(mode="json")
     return value if isinstance(value, dict) else {}
-
-
-def respondent_address(form: Any, source: Optional[str], answers: Any) -> Optional[str]:
-    """The address in the answer to the email question ``source`` of this
-    submission **as typed** (surrounding space removed), or None (no such
-    question, not an email question, unanswered, or not one plain address).
-    Only counting and comparing use the case-folded form."""
-    if not source:
-        return None
-    variable = body_builder.variables_of(form).get(source)
-    if variable is None or variable.type != "email" or variable.kind != "question":
-        return None
-    answer = _plain((answers or {}).get(source) if isinstance(answers, dict) else None)
-    value = answer.get("email") or answer.get("text")
-    return value.strip() if normalize_address(value) is not None else None
 
 
 def _form_title(form: Any) -> str:
@@ -500,18 +489,6 @@ class EmailActionService:
             )
         return list(typed.values())
 
-    @staticmethod
-    def _checked_respondent_field(form, source: Optional[str]) -> Optional[str]:
-        source = (source or "").strip() or None
-        if source is None:
-            return None
-        variable = body_builder.variables_of(form).get(source)
-        if variable is None or variable.type != "email" or variable.kind != "question":
-            raise _invalid(
-                "invalid_respondent_field", "Choose an email question of this form."
-            )
-        return source
-
     async def _validated(
         self,
         workspace_id,
@@ -522,17 +499,16 @@ class EmailActionService:
         nl,
         fields,
         team,
-        respondent_field,
+        respondent_copy,
         condition,
     ):
         form = await self._form_for_variables(form_id)
         mapping = await self._checked_fields(form, fields)
         en_t, nl_t = self._checked_templates(en, nl, mapping)
         team = await self._checked_team(team, workspace_id, form_id)
-        respondent_field = self._checked_respondent_field(form, respondent_field)
-        if not team and respondent_field is None:
+        if not team and not respondent_copy:
             raise _invalid(
-                "no_recipient", "Add a team address or an email question for a copy."
+                "no_recipient", "Add a team address, or turn on the copy to signed-in respondents."
             )
         clean_name = templates.one_line(name, NAME_MAX)
         if not clean_name:
@@ -543,7 +519,7 @@ class EmailActionService:
             nl_t,
             mapping,
             team,
-            respondent_field,
+            bool(respondent_copy),
             action_conditions.checked_condition(form, condition),
         )
 
@@ -576,7 +552,7 @@ class EmailActionService:
             raise _invalid(
                 "too_many_actions", f"At most {MAX_ACTIONS_PER_FORM} email actions per form."
             )
-        name, en, nl, fields, team, respondent_field, condition = await self._validated(
+        name, en, nl, fields, team, respondent_copy, condition = await self._validated(
             workspace_id,
             form_id,
             name=request.name,
@@ -584,7 +560,7 @@ class EmailActionService:
             nl=request.nl,
             fields=request.fields,
             team=request.team_recipients,
-            respondent_field=request.respondent_field,
+            respondent_copy=request.respondent_copy,
             condition=request.condition,
         )
         document = await self._actions.save(
@@ -597,7 +573,7 @@ class EmailActionService:
                 nl=nl,
                 fields=fields,
                 team_recipients=team,
-                respondent_field=respondent_field,
+                respondent_copy=respondent_copy,
                 condition=condition,
                 created_by=str(user.id),
                 updated_by=str(user.id),
@@ -629,7 +605,7 @@ class EmailActionService:
                 "nl",
                 "fields",
                 "team_recipients",
-                "respondent_field",
+                "respondent_copy",
                 "condition",
             }
         )
@@ -638,7 +614,7 @@ class EmailActionService:
             # the whole stored action is checked again: an edit never leaves a
             # template naming a question that was unmapped, nor a team address
             # that is no longer a member's
-            name, en, nl, fields, team, respondent_field, condition = (
+            name, en, nl, fields, team, respondent_copy, condition = (
                 await self._validated(
                     workspace_id,
                     form_id,
@@ -655,10 +631,10 @@ class EmailActionService:
                         if "team_recipients" in sent and request.team_recipients is not None
                         else document.team_recipients
                     ),
-                    respondent_field=(
-                        request.respondent_field
-                        if "respondent_field" in sent
-                        else document.respondent_field
+                    respondent_copy=(
+                        bool(request.respondent_copy)
+                        if "respondent_copy" in sent and request.respondent_copy is not None
+                        else document.respondent_copy
                     ),
                     condition=(
                         request.condition if "condition" in sent else document.condition
@@ -671,14 +647,14 @@ class EmailActionService:
                 ("nl", document.nl, nl),
                 ("fields", document.fields, fields),
                 ("team_recipients", document.team_recipients, team),
-                ("respondent_field", document.respondent_field, respondent_field),
+                ("respondent_copy", document.respondent_copy, respondent_copy),
                 ("condition", document.condition, condition),
             ):
                 if old != new:
                     changed.append(label)
             document.name, document.en, document.nl = name, en, nl
             document.fields, document.team_recipients = fields, team
-            document.respondent_field, document.condition = respondent_field, condition
+            document.respondent_copy, document.condition = respondent_copy, condition
         if request.enabled is not None and request.enabled != document.enabled:
             document.enabled = request.enabled
             changed.append("enabled")
@@ -813,7 +789,7 @@ class EmailActionService:
             if not action.enabled:
                 continue
             team = team or bool(action.team_recipients)
-            copy = copy or bool(action.respondent_field)
+            copy = copy or bool(action.respondent_copy)
         return {"team": team, "copy": copy} if (team or copy) else None
 
     # ------------------------------------------------------------ test mail
@@ -834,7 +810,7 @@ class EmailActionService:
         refuse_when_not_configured()
         document = await self._action_of(workspace_id, form_id, action_id)
         channel = request.channel if request.channel in (CHANNEL_TEAM, CHANNEL_RESPONDENT) else CHANNEL_TEAM
-        if channel == CHANNEL_RESPONDENT and not document.respondent_field:
+        if channel == CHANNEL_RESPONDENT and not document.respondent_copy:
             raise _invalid("no_copy", "This action sends no copy to the respondent.")
         sub = getattr(user, "sub", None)
         if normalize_address(sub) is None:
@@ -931,8 +907,15 @@ class EmailActionService:
         *,
         form: Any = None,
         answers: Optional[Dict[str, Any]] = None,
+        verified_account_id: Optional[str] = None,
     ) -> List[str]:
-        """Called after a response is stored. For each enabled action whose
+        """Called after a response is stored. ``verified_account_id``: the account
+        of a respondent who submitted signed in with a verified email, and not
+        anonymously (``copy_recipient.verified_account_id_of``). The respondent's
+        copy is planned only for such an account, and goes to that account's
+        email when it is sent, never to an address typed in an answer; for anyone
+        else a ``cancelled`` row with the code ``not_verified`` records that there
+        is no copy (ids and status). For each enabled action whose
         condition holds on ``answers`` (the submitted, normalised ones, in
         memory only): one log row per mail and one job each, by log id. Calls
         nothing external and never raises (the submission does not depend on
@@ -961,13 +944,29 @@ class EmailActionService:
                 rows = []
                 if action.team_recipients:
                     rows.append((str(action.id), CHANNEL_TEAM))
-                if action.respondent_field and respondent_address(
-                    form, action.respondent_field, answers
-                ):
-                    rows.append((str(action.id) + COPY_SUFFIX, CHANNEL_RESPONDENT))
+                copy_extra = {}
+                if action.respondent_copy:
+                    if verified_account_id:
+                        rows.append((str(action.id) + COPY_SUFFIX, CHANNEL_RESPONDENT))
+                        copy_extra = {"account_id": verified_account_id}
+                    else:
+                        # not signed in with a verified email (or anonymous): no
+                        # copy, no job, no budget; the log says so
+                        await self._logs.create_if_absent(
+                            self._new_log(
+                                workspace_id, form_id, str(action.id) + COPY_SUFFIX,
+                                response_id, CHANNEL_RESPONDENT,
+                                status=LogStatus.CANCELLED,
+                                last_error_code=NOT_VERIFIED,
+                                finished_at=self._clock(),
+                            )
+                        )
                 for action_id, channel in rows:
                     log = await self._logs.create_if_absent(
-                        self._new_log(workspace_id, form_id, action_id, response_id, channel)
+                        self._new_log(
+                            workspace_id, form_id, action_id, response_id, channel,
+                            **(copy_extra if channel == CHANNEL_RESPONDENT else {}),
+                        )
                     )
                     if log is None:
                         continue
@@ -1083,9 +1082,13 @@ class EmailActionService:
         title = _form_title(form)
         when = _when(getattr(response, "created_at", None))
         if respondent:
-            address = respondent_address(form, action.respondent_field, answers)
+            # the verified email of the account that submitted, as it is now:
+            # never an answer. An account that is gone gets nothing.
+            if not log.account_id:
+                return await self._cancel(log, NOT_VERIFIED)
+            address = await self._copy.email_of_account(log.account_id)
             if address is None:
-                return await self._cancel(log, "no_address")
+                return await self._cancel(log, ACCOUNT_GONE)
             if await self._first_attempt(log) and not await self._copy_within_limits(
                 log.workspace_id, log.form_id, address
             ):
@@ -1282,7 +1285,7 @@ class EmailActionService:
             if len(kept) == len(action.team_recipients):
                 continue
             action.team_recipients = kept
-            if not kept and not action.respondent_field:
+            if not kept and not action.respondent_copy:
                 action.enabled = False
             action.touch()
             await self._actions.save(action)

@@ -1089,11 +1089,8 @@
       "RECIPIENTS_HINT": "Kies het team, een kopie voor de respondent, of allebei.",
       "TEAM": "Adressen van het team",
       "TEAM_HINT": "Eén adres per regel, hooguit {{count}}. Elk adres moet van een lid van deze werkruimte zijn en wordt bij elke verzending opnieuw gecontroleerd.",
-      "COPY": "Stuur de respondent een kopie van de eigen antwoorden",
-      "COPY_HINT": "De kopie gaat alleen naar het adres dat ze invulden bij de vraag die u kiest, in vaste tekst die u niet schrijft, met de antwoorden op de vragen hieronder. Het aantal per adres en uur is beperkt.",
-      "COPY_QUESTION": "E-mailvraag",
-      "COPY_CHOOSE": "Kies een vraag…",
-      "NO_EMAIL_QUESTION": "Dit formulier heeft nog geen e-mailvraag. Voeg er een toe om een kopie te versturen.",
+      "COPY": "Stuur ingelogde respondenten een kopie van hun eigen antwoorden",
+      "COPY_HINT": "De kopie gaat naar het geverifieerde e-mailadres van het account waarmee de respondent is ingelogd (e-mailcode, Google of single sign-on), nooit naar een adres dat in een antwoord is getypt. De tekst staat vast en schrijft u niet zelf, met de antwoorden op de vragen hieronder, en het aantal per adres en uur is beperkt. Anonieme respondenten krijgen geen kopie: niet wie niet is ingelogd, en niet wie ervoor kiest anoniem in te dienen.",
       "FIELDS": "Vragen die de e-mail mag gebruiken",
       "FIELDS_HINT": "Vink de vragen aan die de e-mail mag noemen en tonen. Geef elke vraag de naam die u in de tekst gebruikt, als {{name}}.",
       "NO_FIELDS": "Dit formulier heeft nog geen vragen die gebruikt kunnen worden.",
@@ -1118,14 +1115,16 @@
       "ENABLED_HINT": "Zet dit uit om te pauzeren zonder te verwijderen. Inzendingen die gedaan worden terwijl het uit staat, worden later niet alsnog gemaild.",
       "ADD": "E-mailactie toevoegen",
       "SAVE": "Wijzigingen opslaan",
-      "CANCEL": "Annuleren"
+      "CANCEL": "Annuleren",
+      "COPY_VERIFIED": "Dit formulier vraagt respondenten in te loggen voordat ze antwoorden, dus ieder krijgt een kopie op het e-mailadres van het eigen account.",
+      "COPY_UNVERIFIED": "Dit formulier vraagt respondenten niet om in te loggen, dus anonieme respondenten krijgen geen kopie, en er worden geen kopieën naar hen verstuurd. Zet \"Require verified identity\" aan in de instellingen van dit formulier (zo heet de schakelaar nu in de app), zodat elke respondent inlogt voordat hij antwoordt."
     },
     "LIST": {
       "LABEL": "E-mailacties van dit formulier",
       "NONE": "Nog geen e-mailacties. Voeg er een toe om het team te mailen wanneer iemand invult.",
       "TEAM_one": "Mailt {{count}} teamadres",
       "TEAM_other": "Mailt {{count}} teamadressen",
-      "COPY": "Kopie naar de respondent",
+      "COPY": "Kopie naar ingelogde respondenten",
       "ENABLED_FOR": "E-mail versturen voor {{name}}",
       "ON": "Aan",
       "OFF": "Uit",
@@ -1134,7 +1133,7 @@
       "TEST": "Test-e-mail versturen",
       "TEST_NAMED": "Een test-e-mail voor {{name}} naar uzelf versturen",
       "TEST_COPY": "De kopie testen",
-      "TEST_COPY_NAMED": "Een test van de kopie voor de respondent van {{name}} naar uzelf versturen",
+      "TEST_COPY_NAMED": "Een test van de kopie voor ingelogde respondenten van {{name}} naar uzelf versturen",
       "DELETE": "Verwijderen",
       "DELETE_NAMED": "De e-mailactie {{name}} verwijderen",
       "ADD": "E-mailactie toevoegen",
@@ -1152,8 +1151,7 @@
       "invalid_recipient": "Gebruik één gewoon e-mailadres per regel, zonder namen of extra tekens.",
       "recipient_not_allowed": "Een teamadres moet het adres zijn van een lid van deze werkruimte.",
       "too_many_recipients": "Hooguit 5 teamadressen.",
-      "no_recipient": "Voeg een teamadres toe, of kies een e-mailvraag voor een kopie.",
-      "invalid_respondent_field": "Kies een e-mailvraag van dit formulier.",
+      "no_recipient": "Voeg een teamadres toe, of zet de kopie voor ingelogde respondenten aan.",
       "unknown_placeholder": "De tekst gebruikt een plaatsaanduiding die niet beschikbaar is. Gebruik de knoppen om er een in te voegen.",
       "invalid_placeholder": "Een plaatsaanduiding is een naam tussen dubbele accolades. Andere dubbele accolades zijn niet toegestaan.",
       "template_missing": "Schrijf een onderwerp en een bericht in zowel het Engels als het Nederlands.",
@@ -1226,7 +1224,9 @@
         "condition_invalid": "De voorwaarde kon niet worden gelezen (een vraag is verwijderd), dus er is niets verstuurd.",
         "internal_error": "Er ging iets mis aan onze kant.",
         "unknown": "Het is niet verstuurd.",
-        "address_not_supported": "Naar dit adres kan niet worden verstuurd: de mailserver accepteert alleen adressen met gewone letters voor de @. Dat proberen we niet opnieuw."
+        "address_not_supported": "Naar dit adres kan niet worden verstuurd: de mailserver accepteert alleen adressen met gewone letters voor de @. Dat proberen we niet opnieuw.",
+        "not_verified": "Er is geen kopie verstuurd: de respondent was niet ingelogd met een geverifieerd e-mailadres, of diende anoniem in.",
+        "account_gone": "Er is geen kopie verstuurd: het account waarmee de respondent was ingelogd bestaat niet meer."
       }
     }
   },

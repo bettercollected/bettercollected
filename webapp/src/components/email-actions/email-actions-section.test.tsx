@@ -48,6 +48,7 @@ vi.mock('@app/store/workspaces/email-actions-api', async (importOriginal) => {
 });
 
 let permissions = new Set<string>();
+const formSettings: { provider: string; requireVerifiedIdentity?: boolean } = { provider: 'self' };
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ can: (p: string) => permissions.has(p), ready: true, isLoading: false }) }));
 vi.mock('@app/store/forms/slice', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -55,7 +56,7 @@ vi.mock('@app/store/forms/slice', async (importOriginal) => {
         ...actual,
         selectForm: () => ({
             formId: 'f1',
-            settings: { provider: 'self' },
+            settings: formSettings,
             fields: [
                 {
                     id: 's1',
@@ -88,7 +89,7 @@ const action = (over: Partial<EmailAction> = {}): EmailAction => ({
     nl: template,
     fields: [{ source: 'name', key: 'name' }],
     teamRecipients: ['owner@acme.example'],
-    respondentField: null,
+    respondentCopy: false,
     condition: null,
     ...over
 });
@@ -106,6 +107,7 @@ beforeEach(() => {
     actionsState.isError = false;
     variablesState.data = variables;
     permissions = new Set([WorkspacePermission.WORKSPACE_MANAGE, WorkspacePermission.FORM_EDIT]);
+    formSettings.requireVerifiedIdentity = undefined;
     [createMock, updateMock, deleteMock, testMock, previewMock].forEach((m) => m.mockReset());
 });
 afterEach(async () => {
@@ -144,13 +146,13 @@ describe('who sees the email actions', () => {
 
 describe('the list', () => {
     it('shows each action with who it mails, and switches it on and off', async () => {
-        actionsState.data = [action({ respondentField: 'mail', condition: { operator: 'AND', conditions: [{ fieldId: 'age', fieldType: 'number', comparison: 'GREATER_THAN', value: 1 } as any] } })];
+        actionsState.data = [action({ respondentCopy: true, condition: { operator: 'AND', conditions: [{ fieldId: 'age', fieldType: 'number', comparison: 'GREATER_THAN', value: 1 } as any] } })];
         updateMock.mockReturnValue(ok(action({ enabled: false })));
         render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
         const card = screen.getByTestId('email-action-a1');
         expect(card).toHaveTextContent('Notify the team');
         expect(card).toHaveTextContent('Mails 1 team address');
-        expect(card).toHaveTextContent('Copy to the respondent');
+        expect(card).toHaveTextContent('Copy to signed-in respondents');
         expect(card).toHaveTextContent('Runs only when conditions match');
         fireEvent.click(within(card).getByRole('switch', { name: 'Send email for Notify the team' }));
         await waitFor(() => expect(updateMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', actionId: 'a1', body: { enabled: false } }));
@@ -158,13 +160,13 @@ describe('the list', () => {
     });
 
     it('sends a test to yourself, for the team mail and for the copy', async () => {
-        actionsState.data = [action({ respondentField: 'mail' })];
+        actionsState.data = [action({ respondentCopy: true })];
         testMock.mockReturnValue(ok({ id: 'd1', actionId: 'a1', status: 'delivered', attempts: 1, event: 'test' }));
         render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
         fireEvent.click(screen.getByRole('button', { name: 'Send a test email for Notify the team to yourself' }));
         await waitFor(() => expect(testMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', actionId: 'a1', channel: 'team' }));
         expect(await screen.findByText('A test email for Notify the team was sent to your own address, with made-up answers.')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: "Send a test of the respondent's copy of Notify the team to yourself" }));
+        fireEvent.click(screen.getByRole('button', { name: "Send a test of the signed-in respondent's copy of Notify the team to yourself" }));
         await waitFor(() => expect(testMock).toHaveBeenLastCalledWith({ workspaceId: 'ws1', formId: 'f1', actionId: 'a1', channel: 'respondent' }));
     });
 
@@ -209,7 +211,7 @@ describe('adding an email action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add email action', hidden: false }));
         await waitFor(() => expect(createMock).toHaveBeenCalled());
         const body = createMock.mock.calls[0][0].body;
-        expect(body).toMatchObject({ name: 'Notify', enabled: true, teamRecipients: ['owner@acme.example'], respondentField: null, condition: null, fields: [{ source: 'name', key: 'name' }] });
+        expect(body).toMatchObject({ name: 'Notify', enabled: true, teamRecipients: ['owner@acme.example'], respondentCopy: false, condition: null, fields: [{ source: 'name', key: 'name' }] });
         expect(body.en.subject).toBe('New response to {{form_title}}');
         expect(body.nl.subject).toBe('Nieuwe inzending voor {{form_title}}');
     });
@@ -219,7 +221,7 @@ describe('adding an email action', () => {
         openAdd();
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Notify' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add email action' }));
-        expect(screen.getByText('Add a team address, or choose an email question for a copy.')).toBeInTheDocument();
+        expect(screen.getByText('Add a team address, or turn on the copy to signed-in respondents.')).toBeInTheDocument();
         fireEvent.change(screen.getByLabelText('Team addresses'), { target: { value: 'Owner <owner@acme.example>' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add email action' }));
         expect(screen.getByText(/one plain email address per line/)).toBeInTheDocument();
@@ -264,17 +266,25 @@ describe('adding an email action', () => {
         expect(previewMock.mock.calls[0][0].body).toMatchObject({ language: 'nl', fields: [{ source: 'name', key: 'name' }] });
     });
 
-    it('offers a copy to the respondent only from an email question', () => {
+    it('offers a copy to signed-in respondents as a switch, with no question to choose', () => {
         render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
         openAdd();
-        fireEvent.click(screen.getByLabelText('Send the respondent a copy of their own answers'));
-        const select = screen.getByLabelText('Email question') as HTMLSelectElement;
-        expect(
-            within(select)
-                .getAllByRole('option')
-                .map((o) => o.textContent)
-        ).toEqual(['Choose a question…', 'Email']);
-        expect(select.value).toBe('mail');
+        expect(screen.queryByLabelText('Email question')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByLabelText('Send signed-in respondents a copy of their own answers'));
+        expect(screen.queryByLabelText('Email question')).not.toBeInTheDocument();
+        expect(screen.queryByRole('combobox', { name: /question/i })).not.toBeInTheDocument();
+    });
+
+    it('can be saved with the copy alone, and sends respondentCopy', async () => {
+        createMock.mockReturnValue(ok(action({ teamRecipients: [], respondentCopy: true })));
+        render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
+        openAdd();
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copy' } });
+        fireEvent.click(screen.getByLabelText('Send signed-in respondents a copy of their own answers'));
+        fireEvent.click(screen.getByRole('button', { name: 'Add email action' }));
+        await waitFor(() => expect(createMock).toHaveBeenCalled());
+        expect(createMock.mock.calls[0][0].body).toMatchObject({ respondentCopy: true, teamRecipients: [] });
+        expect(createMock.mock.calls[0][0].body).not.toHaveProperty('respondentField');
     });
 
     it('puts a refusal of the server next to what it is about', async () => {
@@ -324,10 +334,72 @@ describe('editing and a11y', () => {
     });
 
     it('has no accessibility violations in the list and in the editor', async () => {
-        actionsState.data = [action({ respondentField: 'mail' })];
+        actionsState.data = [action({ respondentCopy: true })];
         const { container } = render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
         expect(await axeViolations(container)).toEqual([]);
         openAdd();
         expect(await axeViolations(container)).toEqual([]);
+    });
+});
+
+
+describe('the copy to the respondent: only to a verified address', () => {
+    const openCopy = () => {
+        render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
+        openAdd();
+        fireEvent.click(screen.getByLabelText('Send signed-in respondents a copy of their own answers'));
+    };
+
+    it('says plainly that the copy goes to the verified account email and that anonymous respondents get none', () => {
+        openCopy();
+        expect(screen.getByText(/goes to the verified email address of the account the respondent is signed in with \(email code, Google or single sign-on\), never to an address typed in an answer/)).toBeInTheDocument();
+        expect(screen.getByText(/Anonymous respondents get no copy: not those who are not signed in, and not those who choose to submit anonymously/)).toBeInTheDocument();
+    });
+
+    it('warns that no copies will be sent while the form does not ask respondents to sign in', () => {
+        openCopy();
+        const warning = screen.getByTestId('email-copy-verification');
+        expect(warning).toHaveAttribute('role', 'alert');
+        expect(warning).toHaveTextContent('anonymous respondents get no copy, and no copies will be sent to them');
+        expect(warning).toHaveTextContent('Require verified identity');
+    });
+
+    it('says a copy can be sent once the form asks respondents to sign in', () => {
+        formSettings.requireVerifiedIdentity = true;
+        openCopy();
+        const note = screen.getByTestId('email-copy-verification');
+        expect(note).not.toHaveAttribute('role', 'alert');
+        expect(note).toHaveTextContent('so each gets a copy at the email address of their account');
+        expect(note).not.toHaveTextContent('no copies will be sent');
+    });
+
+    it('shows nothing about it while no copy is chosen', () => {
+        render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
+        openAdd();
+        expect(screen.queryByTestId('email-copy-verification')).not.toBeInTheDocument();
+    });
+
+    it.each([
+        ['en', false],
+        ['en', true],
+        ['nl', false],
+        ['nl', true]
+    ])('has no accessibility violations (%s, form asks for sign-in: %s)', async (language, asks) => {
+        await i18n.changeLanguage(language);
+        formSettings.requireVerifiedIdentity = asks;
+        const { container } = render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
+        fireEvent.click(screen.getByTestId('email-add'));
+        fireEvent.click(container.querySelector('#email-copy') as HTMLElement);
+        expect(screen.getByTestId('email-copy-verification')).toBeInTheDocument();
+        expect(await axeViolations(container)).toEqual([]);
+    });
+
+    it('says the same thing in Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        const { container } = render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
+        fireEvent.click(screen.getByTestId('email-add'));
+        fireEvent.click(container.querySelector('#email-copy') as HTMLElement);
+        expect(screen.getByTestId('email-copy-verification')).toHaveTextContent('anonieme respondenten krijgen geen kopie');
+        expect(container.textContent).toContain('Anonieme respondenten krijgen geen kopie: niet wie niet is ingelogd, en niet wie ervoor kiest anoniem in te dienen');
     });
 });
