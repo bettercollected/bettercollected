@@ -23,7 +23,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - **Job queues:** the jobs worker now serves `default,webhooks,emails,exports`. If you set `JOBS_QUEUES` yourself, include all four; the worker warns at start about a missing one. A second jobs worker with `JOBS_QUEUES=exports` keeps large exports from ever delaying deletion jobs.
 - **Database migrations** `0024` to `0028` run with the backend's usual migrate step (`./deploy.sh`, or `DB_AUTO_MIGRATE=true`).
 - **Old action jobs:** 4.1.x kept the response, the responder's address and the action's secrets in queued action jobs. `./deploy.sh` removes that data, and so does the backend's start with `DB_AUTO_MIGRATE=true`; look for `legacy action jobs scrubbed` in the backend's log.
-- **Mail:** email actions and the "continue later" links use the instance's `MAIL_*` sender. Update the auth service together with the backend: it sends the continue-later mail.
+- **Mail:** email actions send with the backend's `MAIL_*` settings, from the jobs worker, and the "continue later" links go through the auth service. On a compose stack `.env.deployment` already gives them all the same `MAIL_*`. On an orchestrated stack, set `MAIL_*` on the backend and the jobs worker as well as on auth, and update the auth service together with the backend.
 - **Exports** run on the server now. The browser export and the `all-submissions/export` route are gone; a large export is built as a job and kept, encrypted, for 24 hours.
 - **The webapp image** is built on Node 26.
 
