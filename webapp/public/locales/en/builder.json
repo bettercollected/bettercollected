@@ -1042,6 +1042,11 @@
     "WARNING_UNMAPPED": "Choosing “{{option}}” in “{{source}}” leaves no option to choose here.",
     "WARNING_EMPTY": "Some answers leave nothing to choose here. The question is then not required.",
     "WARNINGS": "Check these",
-    "UNTITLED": "Untitled question"
+    "UNTITLED": "Untitled question",
+    "DISABLED_NOTE": "Option logic cannot be created or changed on this server yet. The logic this question has is still applied to responses.",
+    "WARNING_TOO_MANY": "This question has more than {{max}} options, too many for option logic: remove its option logic or some options, or the form cannot be saved.",
+    "DROPPED_one": "{{count}} piece of option logic no longer fitted the form and was removed.",
+    "DROPPED_other": "{{count}} pieces of option logic no longer fitted the form and were removed.",
+    "DISABLED": "Option logic cannot be saved: it is switched off on this server. Option logic already saved is kept."
   }
 }

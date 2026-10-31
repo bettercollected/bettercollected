@@ -28,6 +28,8 @@ from backend.app.services.image_urls import checked_image_url
 from backend.app.services.option_logic import (
     CAN_END_EMPTY,
     SOURCE_OPTION_UNMAPPED,
+    TOO_MANY_OPTIONS,
+    choice_logic_enabled,
     UNREACHABLE_OPTION,
     option_logic_problems,
     option_logic_warnings,
@@ -355,6 +357,18 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "already has are kept.",
                     )
                 )
+    if not choice_logic_enabled():
+        # a write with new or changed choice logic is refused (422 choice_logic_disabled)
+        for path, field, _ in index.questions.values():
+            if field.option_filter or any(c.logic for c in field.choices or []):
+                warnings.append(
+                    _problem(
+                        path,
+                        "Choice logic is switched off on this server: saving "
+                        "options with logic or a filter, new or changed, is "
+                        "refused. Choice logic the form already has is kept.",
+                    )
+                )
     for problem in publish_problems(form):
         if problem["code"] == MISSING_ENDING:
             continue  # already an error (_check_endings)
@@ -462,6 +476,11 @@ def _option_logic_warning_messages(form: Any, index: "_Index") -> List[Dict[str,
                 warning.option_id,
             )
             message = f"Choosing '{label}' leaves no option to choose here."
+        elif warning.code == TOO_MANY_OPTIONS:
+            message = (
+                "Too many options for option logic: a save is refused until "
+                "the logic or some options go."
+            )
         elif warning.code == CAN_END_EMPTY:
             message = (
                 "Some answers leave nothing to choose here; the question is "

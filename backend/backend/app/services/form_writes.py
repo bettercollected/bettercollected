@@ -15,7 +15,10 @@ from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.field_rules import ensure_rules_allowed
-from backend.app.services.option_logic import ensure_valid_option_logic
+from backend.app.services.option_logic import (
+    ensure_choice_logic_allowed,
+    ensure_valid_option_logic,
+)
 
 # the parts of a form its content writers may replace
 FORM_PARTS = (
@@ -85,6 +88,7 @@ async def persist_form(
         # Choice logic (services/option_logic.py): the last gate repairs what
         # a structural change left broken and refuses the size caps.
         ensure_valid_option_logic(new_form, drop=True)
+        ensure_choice_logic_allowed(new_form, form_document)
     if expected_updated_at is not None:
         if guard is not None:
             raise ValueError("guard and expected_updated_at do not combine")

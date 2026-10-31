@@ -134,7 +134,10 @@ from backend.app.services.internal_fields import (
     internal_logic_violations,
 )
 from backend.app.services.option_logic import (
+    DISABLED_MESSAGE as CHOICE_LOGIC_DISABLED_MESSAGE,
+    choice_logic_enabled,
     form_has_option_logic,
+    new_or_changed_option_logic,
     option_logic_problems,
     prune_option_logic,
 )
@@ -1901,7 +1904,12 @@ def _apply_set_option_logic(form: StandardForm, op: SetOptionLogicOp) -> str:
     conditions = _validated_conditions(form, op.logic.conditions, None)
     previous = choice.logic
     known = _option_problem_messages(form, field.id)
-    choice.logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
+    new_logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
+    # While CHOICE_LOGIC_ENABLED is off, only the logic the option already has
+    probe = field.model_copy(deep=True)
+    next(c for c in probe.properties.choices if c.id == choice.id).logic = new_logic
+    _check_choice_logic_allowed(probe, form)
+    choice.logic = new_logic
     problem = _new_option_problems(form, field.id, known)
     if problem:
         choice.logic = previous
@@ -1936,6 +1944,9 @@ def _apply_set_option_filter(form: StandardForm, op: SetOptionFilterOp) -> str:
         raise OpError(_validation_message(error))
     previous = field.properties.option_filter
     known = _option_problem_messages(form, field.id)
+    probe = field.model_copy(deep=True)
+    probe.properties.option_filter = option_filter
+    _check_choice_logic_allowed(probe, form)
     field.properties.option_filter = option_filter
     problem = _new_option_problems(form, field.id, known)
     if problem:
@@ -2042,17 +2053,13 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     id_map: Dict[str, str] = {}
     page_fields = (clone.properties.fields if clone.properties else None) or []
     all_fields = list(page_fields) + [c for f in page_fields if _is_repeating_group(f) for c in _children(f)]
-    choice_map: Dict[str, str] = {}
     for field in all_fields:
         new_id = str(uuid.uuid4())
         id_map[field.id] = new_id
         field.id = new_id
         if field.properties and field.properties.choices:
             for choice in field.properties.choices:
-                new_choice_id = str(uuid.uuid4())
-                if choice.id:
-                    choice_map[choice.id] = new_choice_id
-                choice.id = new_choice_id
+                choice.id = str(uuid.uuid4())
     # Remap in-page logic references onto the cloned fields; references to
     # fields outside the page stay as they are.
     for field in all_fields:
@@ -2062,21 +2069,6 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
                 condition.field_id = id_map[condition.field_id]
             if condition.child_field_id in id_map:
                 condition.child_field_id = id_map[condition.child_field_id]
-        # option logic: conditions on the page's own questions follow the
-        # copies, and a filter's option ids follow the copied options
-        for choice in (field.properties.choices if field.properties else None) or []:
-            for condition in (choice.logic.conditions if choice.logic else None) or []:
-                if condition.field_id in id_map:
-                    condition.field_id = id_map[condition.field_id]
-                if condition.child_field_id in id_map:
-                    condition.child_field_id = id_map[condition.child_field_id]
-        option_filter = field.properties.option_filter if field.properties else None
-        if option_filter is not None:
-            if option_filter.field_id in id_map:
-                option_filter.field_id = id_map[option_filter.field_id]
-            for entry in option_filter.mapping:
-                entry.when = choice_map.get(entry.when, entry.when)
-                entry.show = [choice_map.get(option, option) for option in entry.show]
         for rule in (field.properties.date_rules if field.properties else None) or []:
             if rule.field_id in id_map:
                 rule.field_id = id_map[rule.field_id]
@@ -2087,9 +2079,14 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     # Field rules are not copied (rule ids are unique per form, and their
     # references point at the original page), as in the builder
     # (webapp utils/field-rule-copies.ts).
+    # Option logic is not copied either: a copy starts with every option
+    # offered (its conditions and filter name the original's options).
     for field in _subtree(clone):
         if field.properties is not None:
             field.properties.rules = None
+            field.properties.option_filter = None
+            for choice in field.properties.choices or []:
+                choice.logic = None
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None
@@ -2816,6 +2813,16 @@ def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
         raise OpError(DISABLED_MESSAGE)
 
 
+def _check_choice_logic_allowed(item: StandardFormField, form: StandardForm) -> None:
+    """While CHOICE_LOGIC_ENABLED is off, an op may give a question option
+    logic or a filter only as the form already has them
+    (services/option_logic.py)."""
+    if choice_logic_enabled():
+        return
+    if new_or_changed_option_logic(StandardForm(fields=[item]), form):
+        raise OpError(CHOICE_LOGIC_DISABLED_MESSAGE)
+
+
 def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> StandardFormField:
     """A question or page as the editor sends it, read the way a whole-form
     save reads it and checked like one: the stored model (its group and date
@@ -2836,6 +2843,7 @@ def _editor_item(raw: Dict[str, Any], form: StandardForm, page: bool) -> Standar
     except ValueError as error:
         raise OpError(_validation_message(error))
     _check_rules_allowed(item, form)
+    _check_choice_logic_allowed(item, form)
     is_page = item.type == StandardFormFieldType.SLIDE
     if page and not is_page:
         raise OpError("insert_page needs a page: a field of type 'slide'.")

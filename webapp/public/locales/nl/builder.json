@@ -1042,6 +1042,11 @@
     "WARNING_UNMAPPED": "Wie “{{option}}” kiest bij “{{source}}”, houdt hier geen optie over.",
     "WARNING_EMPTY": "Bij sommige antwoorden valt hier niets te kiezen. De vraag is dan niet verplicht.",
     "WARNINGS": "Let hierop",
-    "UNTITLED": "Vraag zonder titel"
+    "UNTITLED": "Vraag zonder titel",
+    "DISABLED_NOTE": "Optielogica kan op deze server nog niet worden gemaakt of gewijzigd. De logica die deze vraag al heeft, wordt nog wel op antwoorden toegepast.",
+    "WARNING_TOO_MANY": "Deze vraag heeft meer dan {{max}} opties, te veel voor optielogica: haal de optielogica of een deel van de opties weg, anders kan het formulier niet worden opgeslagen.",
+    "DROPPED_one": "{{count}} stuk optielogica paste niet meer in het formulier en is verwijderd.",
+    "DROPPED_other": "{{count}} stukken optielogica pasten niet meer in het formulier en zijn verwijderd.",
+    "DISABLED": "Optielogica kan niet worden opgeslagen: ze staat uit op deze server. Optielogica die al is opgeslagen blijft bewaard."
   }
 }

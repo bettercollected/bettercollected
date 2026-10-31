@@ -368,8 +368,16 @@ question or option prunes via `_dropped_rules_note`) refuse; the builder's creat
 entry or filter that broke) and refuses only the size caps, so autosave never sticks. Rules: page-level choice
 questions only, sources are earlier respondent-facing questions (acyclic: one forward pass is the fixpoint),
 caps in common (`OPTION_CONDITIONS_MAX` 20 per option, 200 options, 1,000 conditions and 50 filters per form,
-counted raw before parsing in the builder body, templates and ops payloads). Unlike field rules there is no flag:
-the evaluator, the runtime and the builder ship with the enforcement. The server never clears an answer; the
+counted raw before parsing in the builder body, templates and ops payloads). `CHOICE_LOGIC_ENABLED` (default off, kept off until the 4.2 release) gates every write that
+brings new or changed option logic or filters (`ensure_choice_logic_allowed` / `new_or_changed_option_logic`: a piece is
+new or changed unless it is stored as it is or is a stored one with some of it taken away, so a repair, a clearing and
+moving a question pass): create/update form (builder, spec API), templates, `set_option_logic` / `set_option_filter` and
+the editor ops' questions (`_check_choice_logic_allowed`), and `persist_form` as the last gate (chat, proposals, MCP, public
+API); 422 `choice_logic_disabled`. Stored option logic is enforced either way. A provider import strips it
+(`strip_option_logic`), `duplicate_page` and the builder's copies start without it, the AI prompt names the ops only while
+it is on, and the permissions answer carries `choiceLogicEnabled` for the builder. A builder save repairs and returns
+what it repaired (`droppedOptionLogic`, toasted by autosave); a question with more than 200 options, a form over the
+evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
 respondent page does (`clearUnavailableOptions`).
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's

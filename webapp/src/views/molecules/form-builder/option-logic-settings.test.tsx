@@ -3,7 +3,7 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import i18n from 'i18next';
 import { Provider, createStore } from 'jotai';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
@@ -12,6 +12,10 @@ import { builderFieldsAtom, resetFromServerAtom } from '@app/store/jotai/form-do
 import { axeViolations } from '@app/test/axe';
 
 import OptionLogicSettings from './option-logic-settings';
+
+// The server's answer (with the permissions): whether it takes choice logic.
+const served = vi.hoisted(() => ({ choiceLogicEnabled: true }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ choiceLogicEnabled: served.choiceLogicEnabled }) }));
 
 const choices = (...pairs: Array<[string, string]>) => pairs.map(([id, value]) => ({ id, value }));
 const question = (id: string, index: number, type: FieldTypes, title: string, properties: StandardFormFieldDto['properties'] = {}, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({
@@ -43,7 +47,10 @@ function setup(fields: StandardFormFieldDto[], activeId: string) {
 }
 
 describe('option logic in the builder', () => {
-    beforeEach(() => i18n.changeLanguage('en'));
+    beforeEach(() => {
+        served.choiceLogicEnabled = true;
+        i18n.changeLanguage('en');
+    });
     afterEach(cleanup);
 
     it('shows nothing for a question that is not a choice question', () => {
@@ -151,5 +158,50 @@ describe('option logic in the builder', () => {
         };
         const { view } = setup([COUNTRY, city], 'city');
         expect(await axeViolations(view.container)).toEqual([]);
+    });
+
+    describe('with choice logic switched off on the server', () => {
+        beforeEach(() => {
+            served.choiceLogicEnabled = false;
+        });
+
+        it('shows nothing on a question that has no option logic', () => {
+            setup([COUNTRY, CITY], 'city');
+            expect(screen.queryByTestId('option-logic-settings')).not.toBeInTheDocument();
+        });
+
+        it('lists what a question already has, read-only, and says it is still applied', () => {
+            const logicChoice = { id: 'ber', value: 'Berlin', logic: { action: 'SHOW' as const, operator: 'AND' as any, conditions: [{ fieldId: 'country', fieldType: 'dropdown', comparison: 'IS_EQUAL' as any, value: 'Germany' }] } };
+            const city = {
+                ...CITY,
+                properties: {
+                    ...CITY.properties,
+                    choices: [CITY.properties!.choices![0], logicChoice, CITY.properties!.choices![2]],
+                    optionFilter: {
+                        fieldId: 'country',
+                        mapping: [
+                            { when: 'nl', show: ['ams'] },
+                            { when: 'de', show: ['ber'] },
+                            { when: 'be', show: ['bru'] }
+                        ]
+                    }
+                }
+            };
+            setup([COUNTRY, city], 'city');
+            expect(screen.getByTestId('option-logic-disabled').textContent).toContain('cannot be created or changed on this server yet');
+            // every control is disabled: nothing can be edited
+            const group = screen.getByTestId('option-logic-settings').querySelector('fieldset')!;
+            expect(group.disabled).toBe(true);
+            expect(screen.getByRole('switch', { name: 'Filter options by an earlier answer' })).toBeDisabled();
+            expect(screen.getByRole('switch', { name: 'Show or hide the option “Berlin” based on answers' })).toBeDisabled();
+            expect(screen.getByRole('table')).toBeInTheDocument();
+        });
+    });
+
+    it('warns about a question with more options than option logic may sit on', () => {
+        const many = Array.from({ length: 201 }, (_, i) => ({ id: `o${i}`, value: `City ${i}` }));
+        const city = { ...CITY, properties: { ...CITY.properties, choices: many, optionFilter: { fieldId: 'country', mapping: [{ when: 'nl', show: ['o0'] }] } } };
+        setup([COUNTRY, city], 'city');
+        expect(screen.getByRole('note', { name: 'Check these' }).textContent).toContain('more than 200 options');
     });
 });

@@ -15,6 +15,9 @@ export const OPTION_LOGIC_OPTIONS_MAX = 200; // options read on a question with 
 export const FORM_OPTION_CONDITIONS_MAX = 1000; // option conditions read in a form
 export const FORM_OPTION_FILTERS_MAX = 50; // option filters read in a form
 export const OPTION_FILTER_PAIRS_MAX = 2000; // (when, show) pairs read in one filter
+/** What one response may spend on option conditions, in units of work (server OPTION_LOGIC_COST_PER_RESPONSE). */
+export const OPTION_LOGIC_COST_PER_RESPONSE = 500_000;
+const GROUP_ITEMS_MAX = 50;
 
 /** One row of an option filter: while the earlier question's option `when` is chosen, `show` are offered. */
 export interface OptionFilterEntry {
@@ -65,7 +68,7 @@ export function formHasOptionLogic(slides: StandardFormFieldDto[] | undefined): 
 // Warnings (the builder shows them; the server's twin is option_logic_warnings)
 // ---------------------------------------------------------------------------
 
-export type OptionLogicWarningCode = 'unreachable_option' | 'source_option_unmapped' | 'can_end_empty';
+export type OptionLogicWarningCode = 'unreachable_option' | 'source_option_unmapped' | 'can_end_empty' | 'too_many_options';
 
 export interface OptionLogicWarning {
     fieldId: string;
@@ -85,6 +88,11 @@ export function optionLogicWarnings(slides: StandardFormFieldDto[] | undefined):
     const byId = new Map(questions.filter((field) => field?.id).map((field) => [field.id, field] as const));
     questions.forEach((field) => {
         if (!isOptionTarget(field) || !hasOptionLogicOn(field)) return;
+        if ((field.properties?.choices ?? []).length > OPTION_LOGIC_OPTIONS_MAX) {
+            // a save is refused (the logic is never dropped unseen)
+            found.push({ fieldId: field.id, code: 'too_many_options' });
+            return;
+        }
         const filter = field.properties?.optionFilter;
         const source = filter ? byId.get(filter.fieldId) : undefined;
         if (filter && source) {
@@ -288,7 +296,11 @@ export function checkOptionLogic(slides: StandardFormFieldDto[] | undefined, fix
             if (!hasOptionLogicOn(question)) return;
             if (question !== field) return whole(question, `'${titleOf(question)}' is in a repeating group: option logic is not supported there yet.`);
             if (!isOptionTarget(question)) return whole(question, `'${titleOf(question)}' is not a single or multiple choice or dropdown question (or is internal), so its options cannot have logic.`);
-            if ((question.properties?.choices ?? []).length > OPTION_LOGIC_OPTIONS_MAX) return whole(question, `'${titleOf(question)}' has more than ${OPTION_LOGIC_OPTIONS_MAX} options, too many for option logic.`);
+            if ((question.properties?.choices ?? []).length > OPTION_LOGIC_OPTIONS_MAX) {
+                // never repaired away: a save that would lose the logic is refused, saying why
+                caps.push(`'${titleOf(question)}' has more than ${OPTION_LOGIC_OPTIONS_MAX} options, too many for option logic: remove its option logic or some of its options.`);
+                return;
+            }
             (question.properties?.choices ?? []).forEach((choice) => checkChoiceLogic(question, choice));
             checkFilter(question);
             conditionCount += (question.properties?.choices ?? []).reduce((sum, choice) => sum + (Array.isArray(choice.logic?.conditions) ? choice.logic!.conditions.length : 0), 0);
@@ -297,7 +309,41 @@ export function checkOptionLogic(slides: StandardFormFieldDto[] | undefined, fix
     });
     if (conditionCount > FORM_OPTION_CONDITIONS_MAX) caps.push(`A form can have at most ${FORM_OPTION_CONDITIONS_MAX} option conditions; this one has ${conditionCount}.`);
     if (filterCount > FORM_OPTION_FILTERS_MAX) caps.push(`A form can have at most ${FORM_OPTION_FILTERS_MAX} option filters; this one has ${filterCount}.`);
+    if (conditionCount > 0 && caps.length === 0 && worstCaseCost(slides) > OPTION_LOGIC_COST_PER_RESPONSE) {
+        caps.push("This form's option logic is too costly to check for each response (many conditions on questions with many options or on repeating groups): use fewer conditions.");
+    }
     return { problems, caps, repaired };
+}
+
+/**
+ * The most a response can spend on the form's option conditions, in the units
+ * of the server's budget (backend `worst_case_cost`): every option of a
+ * question a condition reads chosen, every group it reads at 50 items with
+ * every option chosen in each.
+ */
+export function worstCaseCost(slides: StandardFormFieldDto[] | undefined): number {
+    const questions = pageQuestions(slides);
+    const byId = new Map<string, StandardFormFieldDto>();
+    questions.forEach((question) => {
+        if (question?.id) byId.set(question.id, question);
+        if (question?.type === FieldTypes.GROUP) (question.properties?.fields ?? []).forEach((child) => child?.id && !byId.has(child.id) && byId.set(child.id, child));
+    });
+    let total = 0;
+    questions.forEach((question) => {
+        (question.properties?.choices ?? []).forEach((choice) => {
+            const logic = choiceLogic(choice);
+            ((logic?.conditions as any[]) ?? []).slice(0, OPTION_CONDITIONS_MAX).forEach((condition) => {
+                total += 1;
+                const source = byId.get(condition?.fieldId ?? '');
+                if (!source || condition.groupMode === 'COUNT') return;
+                if (condition.groupMode === 'ANY' || condition.groupMode === 'ALL') {
+                    const child = byId.get(condition.childFieldId ?? '');
+                    total += GROUP_ITEMS_MAX * (1 + (child && CHOICE_TYPES.has(child.type) ? (child.properties?.choices ?? []).length : 0));
+                } else if (CHOICE_TYPES.has(source.type)) total += (source.properties?.choices ?? []).length;
+            });
+        });
+    });
+    return total;
 }
 
 /** What a save of the form would refuse (messages), for the questions that carry option logic; not repaired. */

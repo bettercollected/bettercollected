@@ -35,6 +35,16 @@ from backend.app.services.option_logic import (
 )
 from tests.app.controllers.data import testUser
 
+
+@pytest.fixture(autouse=True)
+def choice_logic_on(monkeypatch):
+    """These tests are about what choice logic does; the switch that refuses
+    new choice logic has its own tests (test_choice_logic_switch.py)."""
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", True)
+
+
 COUNTRIES = [
     {"id": "nl", "value": "Netherlands"},
     {"id": "de", "value": "Germany"},
@@ -219,7 +229,7 @@ def test_a_valid_form_has_no_problems():
 def test_a_form_without_option_logic_costs_nothing():
     form = _form([_country()])
     assert not form_has_option_logic(form)
-    assert ensure_valid_option_logic(form) == 0
+    assert ensure_valid_option_logic(form) == []
     assert option_states(form, {}).hidden == {}
 
 
@@ -470,7 +480,9 @@ def test_a_filter_whose_source_is_gone_is_dropped_whole():
 
 def test_a_builder_style_save_repairs_instead_of_refusing():
     form = _form([_city(), _country()])  # the source moved after the question
-    assert ensure_valid_option_logic(form, drop=True) == 1
+    repaired = ensure_valid_option_logic(form, drop=True)
+    assert [r["fieldId"] for r in repaired] == ["city"]
+    assert "earlier question" in repaired[0]["message"]
     assert form.fields[0].properties.fields[0].properties.option_filter is None
     # the spec path is strict
     strict = _form([_city(), _country()])
@@ -759,18 +771,30 @@ def test_a_source_of_option_logic_cannot_become_internal():
     assert "conditional logic" in results[0].message
 
 
-def test_duplicating_a_page_remaps_option_logic_onto_the_copy():
-    form = _form([_country(), _city()])
+def test_duplicating_a_page_does_not_copy_option_logic():
+    form = _form(
+        [
+            _country(),
+            _city(
+                choices=[
+                    {
+                        "id": "ams",
+                        "value": "Amsterdam",
+                        "logic": _show(_is("country", "Netherlands")),
+                    },
+                    *CITIES[1:],
+                ]
+            ),
+        ]
+    )
     form, results = _apply(form, [{"op": "duplicate_page", "pageId": "p0"}])
     assert results[0].ok
     clone = form.fields[1].properties.fields
-    flt = clone[1].properties.option_filter
-    assert flt.field_id == clone[0].id != "country"
-    new_ids = {c.id for c in clone[0].properties.choices}
-    assert {e.when for e in flt.mapping} == new_ids
-    assert {s for e in flt.mapping for s in e.show} == {
-        c.id for c in clone[1].properties.choices
-    }
+    assert clone[1].properties.option_filter is None
+    assert all(c.logic is None for c in clone[1].properties.choices)
+    # the original keeps its own
+    original = form.fields[0].properties.fields[1].properties
+    assert original.option_filter is not None and original.choices[0].logic is not None
     assert option_logic_problems(form) == []
 
 
@@ -975,30 +999,38 @@ def test_a_crafted_answer_is_read_as_the_options_it_selects():
     assert states.hidden_options("city") == frozenset({"ber"})
 
 
-def test_option_logic_over_its_budget_is_refused_not_half_checked():
-    from backend.app.services.option_logic import OptionLogicTooCostly
-
-    # a source with many options, all chosen, read by many conditions
-    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(300)]
+def _heavy_form(options=1000, conditions=30):
+    """A source with many options read by many conditions: over the budget
+    when every option is chosen (not a form a save accepts)."""
+    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(options)]
     pick = [
         {
             "id": f"o{i}",
             "value": f"Option {i}",
-            "logic": _show(_is("country", "Country 0", "multiple_choice")),
+            "logic": _show(*[_is("country", "Country 0", "multiple_choice")] * 20),
         }
-        for i in range(30)
+        for i in range(conditions)
     ]
-    form = _unchecked_form(
-        [
-            _field(
-                "country",
-                "multiple_choice",
-                choices=countries,
-                allowMultipleSelection=True,
-            ),
-            _field("pick", choices=pick),
-        ]
+    return (
+        _unchecked_form(
+            [
+                _field(
+                    "country",
+                    "multiple_choice",
+                    choices=countries,
+                    allowMultipleSelection=True,
+                ),
+                _field("pick", choices=pick),
+            ]
+        ),
+        countries,
     )
+
+
+def test_option_logic_over_its_budget_is_refused_not_half_checked():
+    from backend.app.services.option_logic import OptionLogicTooCostly
+
+    form, countries = _heavy_form()
     everything = {
         "country": {
             "type": "choices",
@@ -1012,18 +1044,87 @@ def test_option_logic_over_its_budget_is_refused_not_half_checked():
     assert option_states(form, one).hidden == {}
 
 
-async def test_the_server_answers_422_when_the_option_logic_is_too_costly(workspace):
-    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(300)]
+def test_a_form_whose_worst_case_is_over_the_budget_cannot_be_saved():
+    form, _ = _heavy_form()
+    assert any("too costly to check" in m for m in _messages(form))
+    with pytest.raises(HTTPException) as error:
+        ensure_valid_option_logic(form, drop=True)
+    assert error.value.content["code"] == "invalid_option_logic"
+    # a form within the caps is not held up
+    fine, _ = _heavy_form(options=200, conditions=5)
+    assert not any("too costly" in m for m in _messages(fine))
+
+
+def test_honest_responses_to_a_form_a_save_accepts_never_meet_the_budget():
+    # 4 options x 20 group conditions (every response on this form used to be
+    # refused), COUNT conditions cost 1, and the real work is charged
+    group = _field(
+        "g",
+        "group",
+        fields=[_field("inner", choices=CITIES)],
+        repeat={"minItems": 0, "maxItems": 50},
+    )
     pick = [
         {
             "id": f"o{i}",
             "value": f"Option {i}",
-            "logic": _show(_is("country", "Country 0", "multiple_choice")),
+            "logic": _show(
+                *[
+                    {
+                        "fieldId": "g",
+                        "fieldType": "group",
+                        "comparison": "IS_EQUAL",
+                        "value": "Berlin",
+                        "groupMode": "ANY",
+                        "childFieldId": "inner",
+                        "childFieldType": "dropdown",
+                    }
+                ]
+                * 20
+            ),
         }
-        for i in range(30)
+        for i in range(4)
     ]
-    form = await _published(
-        workspace,
+    form = _form([group, _field("pick", choices=pick)])
+    assert option_logic_problems(form) == []
+    items = [{"inner": {"type": "choice", "choice": {"value": "ber"}}}] * 50
+    states = option_states(form, {"g": {"type": "group", "items": items}})
+    assert states.hidden == {}
+    count = [
+        {
+            "id": f"c{i}",
+            "value": f"Count {i}",
+            "logic": _show(
+                *[
+                    {
+                        "fieldId": "g",
+                        "fieldType": "group",
+                        "comparison": "GREATER_THAN_EQUAL",
+                        "value": 1,
+                        "groupMode": "COUNT",
+                    }
+                ]
+                * 20
+            ),
+        }
+        for i in range(40)
+    ]
+    form = _form([group, _field("pick", choices=count)])
+    assert option_logic_problems(form) == []
+    option_states(form, {"g": {"type": "group", "items": items}})
+
+
+def test_a_source_with_many_chosen_options_costs_what_is_chosen():
+    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(250)]
+    pick = [
+        {
+            "id": f"o{i}",
+            "value": f"Option {i}",
+            "logic": _show(_is("country", "Country 1", "multiple_choice")),
+        }
+        for i in range(40)
+    ]
+    form = _form(
         [
             _field(
                 "country",
@@ -1032,13 +1133,25 @@ async def test_the_server_answers_422_when_the_option_logic_is_too_costly(worksp
                 allowMultipleSelection=True,
             ),
             _field("pick", choices=pick),
-        ],
+        ]
     )
-    service = container.workspace_form_service()
+    assert option_logic_problems(form) == []
+    everything = {
+        "country": {
+            "type": "choices",
+            "choices": {"values": [c["id"] for c in countries]},
+        }
+    }
+    assert option_states(form, everything).hidden == {}
+
+
+def test_the_server_answers_422_when_the_option_logic_is_too_costly():
+    from backend.app.services.answer_validation import check_answers
+
+    form, countries = _heavy_form()
     with pytest.raises(HTTPException) as error:
-        await service.submit_response(
-            workspace.id,
-            form.form_id,
+        check_answers(
+            form,
             StandardFormResponseCamelModel(
                 answers={
                     "country": {
@@ -1046,8 +1159,49 @@ async def test_the_server_answers_422_when_the_option_logic_is_too_costly(worksp
                         "choices": {"values": [c["id"] for c in countries]},
                     }
                 }
-            ),
-            testUser,
+            ).answers,
+            "form-1",
+            enforce=True,
         )
     assert error.value.status_code == 422
     assert error.value.content["code"] == "option_logic_too_costly"
+
+
+def test_a_repair_counts_each_dropped_piece_once():
+    # two conditions, one broken: 1; both broken: 2 (the logic that goes with
+    # the last of them is not counted again)
+    def logic_with(*conditions):
+        return _form(
+            [
+                _country(),
+                _field(
+                    "city",
+                    choices=[
+                        {
+                            "id": "ams",
+                            "value": "Amsterdam",
+                            "logic": _show(*conditions),
+                        },
+                        CITIES[1],
+                    ],
+                ),
+            ]
+        )
+
+    assert prune_option_logic(logic_with(_is("country", "x"), _is("gone", "x"))) == 1
+    assert prune_option_logic(logic_with(_is("gone", "x"), _is("gone2", "x"))) == 2
+    form = logic_with(_is("gone", "x"), _is("gone2", "x"))
+    assert len(ensure_valid_option_logic(form, drop=True)) == 2
+
+
+def test_a_question_with_too_many_options_is_refused_not_wiped():
+    many = [{"id": f"o{i}", "value": str(i)} for i in range(201)]
+    many[0]["logic"] = _show(_is("country", "Netherlands"))
+    form = _form([_country(), _field("city", choices=many)])
+    with pytest.raises(HTTPException) as error:
+        ensure_valid_option_logic(form, drop=True)
+    assert error.value.status_code == 422
+    assert "more than 200 options" in error.value.content["message"]
+    # nothing was wiped
+    assert form.fields[0].properties.fields[1].properties.choices[0].logic is not None
+    assert {w.code for w in option_logic_warnings(form)} == {"too_many_options"}

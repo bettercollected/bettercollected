@@ -531,6 +531,7 @@ class WorkspaceFormsRouter(Routable):
         form = await run_in_threadpool(_parse_form_body, form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
         dropped_rules: list = []
+        dropped_option_logic: list = []
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -540,6 +541,7 @@ class WorkspaceFormsRouter(Routable):
             cover_image=cover_image,
             expected_updated_at=expected,
             dropped_rules=dropped_rules,
+            dropped_option_logic=dropped_option_logic,
         )
         saved = StandardFormCamelModel(**response.model_dump(mode="json"))
         if dropped_rules:
@@ -547,6 +549,11 @@ class WorkspaceFormsRouter(Routable):
             # (services/field_rules.py); the draft no longer has them
             # (FormDtoCamelModel.dropped_field_rules carries it out)
             saved.droppedFieldRules = dropped_rules
+        if dropped_option_logic:
+            # choice logic the save repaired (services/option_logic.py); the
+            # draft no longer has what was dropped
+            # (FormDtoCamelModel.dropped_option_logic carries it out)
+            saved.droppedOptionLogic = dropped_option_logic
         return saved
 
     @put("/{form_id}/logo", response_model=StandardFormCamelModel)

@@ -391,7 +391,7 @@ async def update_form(
     (filter this choice question's options by an EARLIER choice question's answer: "filter.fieldId" is
     that question, each row says which of this question's options to offer while its option "when" is
     chosen (labels or ids); several chosen options offer the union; no answer there filters nothing;
-    null clears) ·
+    null clears; both refused while the server has choice logic switched off) ·
     {"op":"set_field_rules","fieldId":str,"rules":[{"id":str,"when":{"operator"?:"AND"|"OR",
     "conditions"?:[...as set_field_logic] | "expression"?:<expressions-v1 tree>},"then":{"required"?:bool,
     "readOnly"?:true,"title"?:str,"description"?:str,"setValue"?:{"const"?:value | "expression"?:tree}}}]|null}

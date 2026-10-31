@@ -99,8 +99,11 @@ available options (radios, checkboxes and the dropdown render only those: `offer
 carries them; the question says so in `option-cleared-notice.tsx` (a polite status region under its options). The builder
 edits an option's logic and a question's filter in `form-builder/option-logic-settings.tsx` (Logic section of a choice
 question; the existing `ConditionRow`), with the shared warnings; `pruneOrphanedConditions` also runs `pruneOptionLogic`, so
-every structural edit repairs option logic as the server's save does. Page-level choice questions only. The server stays
-authoritative (`hidden_option`).
+every structural edit repairs option logic as the server's save does (and autosave tells the creator what the server
+repaired: `droppedOptionLogic`). Page-level choice questions only. The section shows only while `CHOICE_LOGIC_ENABLED` is on
+(`useWorkspacePermissions().choiceLogicEnabled`, from the permissions answer like `fieldRulesEnabled`); with it off, existing
+option logic is listed read-only. A copy of a question or page starts without option logic (`dropOptionLogic`). The server
+stays authoritative (`hidden_option`).
 
 ## Commands
 

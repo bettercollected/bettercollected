@@ -5,12 +5,13 @@ import { useId } from 'react';
 import { useAtomValue } from 'jotai';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicCondition, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { activeFieldAtom, activeSlideAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '@app/store/jotai/entity-hooks';
-import { OPTION_CONDITIONS_MAX, OptionFilter, OptionLogicWarning, optionLogicWarnings } from '@app/utils/option-logic-checks';
+import { OPTION_CONDITIONS_MAX, OPTION_LOGIC_OPTIONS_MAX, OptionFilter, OptionLogicWarning, optionLogicWarnings } from '@app/utils/option-logic-checks';
 
 import { ConditionRow, SourceField, buildSourceFields, isConditionSource, newConditionFor, sameSourceFields, selectClass } from './condition-editor-shared';
 
@@ -65,8 +66,13 @@ export default function OptionLogicSettings() {
         (a, b) => JSON.stringify(a) === JSON.stringify(b)
     );
 
+    // The server says whether it takes choice logic (with the permissions): one switch, the backend's.
+    const { choiceLogicEnabled: editable } = useWorkspacePermissions();
+
     if (!field || !slide || !isChoiceQuestion(field) || field.internal || !onPageLevel) return null;
     const choices = (field.properties?.choices ?? []).filter((choice) => !!choice.id);
+    // Switched off: nothing to create, and what the question has is shown read-only (it is still applied to responses).
+    if (!editable && !field.properties?.optionFilter && !choices.some((choice) => !!choice.logic)) return null;
 
     return (
         <div className="flex flex-col gap-4 border-t border-black-300 pt-4" data-testid="option-logic-settings">
@@ -74,22 +80,28 @@ export default function OptionLogicSettings() {
                 <div className="text-xs font-medium text-black-700">{t('OPTION_LOGIC.TITLE')}</div>
                 <div className="text-[11px] text-black-600">{t('OPTION_LOGIC.HINT')}</div>
             </div>
-
-            {sources.length === 0 ? (
-                <p className="text-xs text-black-600">{t('OPTION_LOGIC.NO_SOURCES')}</p>
-            ) : (
-                <ul className="flex flex-col gap-3">
-                    {choices.map((choice, index) => (
-                        <li key={choice.id}>
-                            <OptionLogicRow label={optionLabel(choice, index, t)} logic={choice.logic} sources={sources} t={t} onChange={(next) => updateChoiceLogic(field.id, choice.id, next)} />
-                        </li>
-                    ))}
-                </ul>
+            {!editable && (
+                <p className="text-[11px] leading-relaxed text-black-600" data-testid="option-logic-disabled">
+                    {t('OPTION_LOGIC.DISABLED_NOTE')}
+                </p>
             )}
+            <fieldset disabled={!editable} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
+                {sources.length === 0 ? (
+                    <p className="text-xs text-black-600">{t('OPTION_LOGIC.NO_SOURCES')}</p>
+                ) : (
+                    <ul className="flex flex-col gap-3">
+                        {choices.map((choice, index) => (
+                            <li key={choice.id}>
+                                <OptionLogicRow label={optionLabel(choice, index, t)} logic={choice.logic} sources={sources} t={t} onChange={(next) => updateChoiceLogic(field.id, choice.id, next)} />
+                            </li>
+                        ))}
+                    </ul>
+                )}
 
-            <OptionFilterEditor field={field} choices={choices} sources={choiceSources} t={t} onChange={(filter) => updateOptionFilter(field.id, filter)} />
+                <OptionFilterEditor field={field} choices={choices} sources={choiceSources} t={t} onChange={(filter) => updateOptionFilter(field.id, filter)} />
 
-            {warnings.length > 0 && <Warnings field={field} warnings={warnings} sources={choiceSources} t={t} />}
+                {warnings.length > 0 && <Warnings field={field} warnings={warnings} sources={choiceSources} t={t} />}
+            </fieldset>
         </div>
     );
 }
@@ -271,6 +283,8 @@ function Warnings({ field, warnings, sources, t }: { field: StandardFormFieldDto
         switch (warning.code) {
             case 'unreachable_option':
                 return t('OPTION_LOGIC.WARNING_UNREACHABLE', { option: optionName(field, warning.optionId), source: questionText(source, t) });
+            case 'too_many_options':
+                return t('OPTION_LOGIC.WARNING_TOO_MANY', { max: OPTION_LOGIC_OPTIONS_MAX });
             case 'source_option_unmapped':
                 return t('OPTION_LOGIC.WARNING_UNMAPPED', { option: optionName(source, warning.optionId), source: questionText(source, t) });
             default:

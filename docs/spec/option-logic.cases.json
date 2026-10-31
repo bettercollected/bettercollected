@@ -1488,6 +1488,354 @@
       "noneLeft": []
     },
     {
+      "name": "a number comparison on an empty text reads it as 0, as the browser does",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "n",
+                "type": "short_text",
+                "title": "N"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "young",
+                      "value": "Young",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "n",
+                            "fieldType": "short_text",
+                            "comparison": "LESS_THAN",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "n": {
+          "type": "text",
+          "text": ""
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "a number comparison on a missing answer is false",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "n",
+                "type": "short_text",
+                "title": "N"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "young",
+                      "value": "Young",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "n",
+                            "fieldType": "short_text",
+                            "comparison": "LESS_THAN",
+                            "value": "18"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {
+        "drink": [
+          "young"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "a number comparison on a text that is not a number as the browser reads it (1_0) is false",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "n",
+                "type": "short_text",
+                "title": "N"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "big",
+                      "value": "Big",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "n",
+                            "fieldType": "short_text",
+                            "comparison": "GREATER_THAN",
+                            "value": "5"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "n": {
+          "type": "text",
+          "text": "1_0"
+        }
+      },
+      "hidden": {
+        "drink": [
+          "big"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "a number comparison on a text with spaces around a number reads the number",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "n",
+                "type": "short_text",
+                "title": "N"
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "big",
+                      "value": "Big",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "n",
+                            "fieldType": "short_text",
+                            "comparison": "GREATER_THAN",
+                            "value": "5"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "n": {
+          "type": "text",
+          "text": " 7 "
+        }
+      },
+      "hidden": {},
+      "noneLeft": []
+    },
+    {
+      "name": "starts with and ends with on a multiple choice read the chosen options joined with commas",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "dutch-start",
+                      "value": "Dutch start",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "STARTS_WITH",
+                            "value": "c-nl"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "dutch-end",
+                      "value": "Dutch end",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "ENDS_WITH",
+                            "value": "netherlands"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "german-start",
+                      "value": "German start",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "STARTS_WITH",
+                            "value": "Germany"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "c-nl"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "german-start"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
       "name": "filter: only the options the chosen option maps to are offered",
       "checks": [
         "evaluate"
@@ -5108,6 +5456,876 @@
       "hidden": {},
       "noneLeft": [],
       "warnings": []
+    },
+    {
+      "name": "warnings: a question with more options than option logic may sit on",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-0",
+                      "value": "City 0"
+                    },
+                    {
+                      "id": "ct-1",
+                      "value": "City 1"
+                    },
+                    {
+                      "id": "ct-2",
+                      "value": "City 2"
+                    },
+                    {
+                      "id": "ct-3",
+                      "value": "City 3"
+                    },
+                    {
+                      "id": "ct-4",
+                      "value": "City 4"
+                    },
+                    {
+                      "id": "ct-5",
+                      "value": "City 5"
+                    },
+                    {
+                      "id": "ct-6",
+                      "value": "City 6"
+                    },
+                    {
+                      "id": "ct-7",
+                      "value": "City 7"
+                    },
+                    {
+                      "id": "ct-8",
+                      "value": "City 8"
+                    },
+                    {
+                      "id": "ct-9",
+                      "value": "City 9"
+                    },
+                    {
+                      "id": "ct-10",
+                      "value": "City 10"
+                    },
+                    {
+                      "id": "ct-11",
+                      "value": "City 11"
+                    },
+                    {
+                      "id": "ct-12",
+                      "value": "City 12"
+                    },
+                    {
+                      "id": "ct-13",
+                      "value": "City 13"
+                    },
+                    {
+                      "id": "ct-14",
+                      "value": "City 14"
+                    },
+                    {
+                      "id": "ct-15",
+                      "value": "City 15"
+                    },
+                    {
+                      "id": "ct-16",
+                      "value": "City 16"
+                    },
+                    {
+                      "id": "ct-17",
+                      "value": "City 17"
+                    },
+                    {
+                      "id": "ct-18",
+                      "value": "City 18"
+                    },
+                    {
+                      "id": "ct-19",
+                      "value": "City 19"
+                    },
+                    {
+                      "id": "ct-20",
+                      "value": "City 20"
+                    },
+                    {
+                      "id": "ct-21",
+                      "value": "City 21"
+                    },
+                    {
+                      "id": "ct-22",
+                      "value": "City 22"
+                    },
+                    {
+                      "id": "ct-23",
+                      "value": "City 23"
+                    },
+                    {
+                      "id": "ct-24",
+                      "value": "City 24"
+                    },
+                    {
+                      "id": "ct-25",
+                      "value": "City 25"
+                    },
+                    {
+                      "id": "ct-26",
+                      "value": "City 26"
+                    },
+                    {
+                      "id": "ct-27",
+                      "value": "City 27"
+                    },
+                    {
+                      "id": "ct-28",
+                      "value": "City 28"
+                    },
+                    {
+                      "id": "ct-29",
+                      "value": "City 29"
+                    },
+                    {
+                      "id": "ct-30",
+                      "value": "City 30"
+                    },
+                    {
+                      "id": "ct-31",
+                      "value": "City 31"
+                    },
+                    {
+                      "id": "ct-32",
+                      "value": "City 32"
+                    },
+                    {
+                      "id": "ct-33",
+                      "value": "City 33"
+                    },
+                    {
+                      "id": "ct-34",
+                      "value": "City 34"
+                    },
+                    {
+                      "id": "ct-35",
+                      "value": "City 35"
+                    },
+                    {
+                      "id": "ct-36",
+                      "value": "City 36"
+                    },
+                    {
+                      "id": "ct-37",
+                      "value": "City 37"
+                    },
+                    {
+                      "id": "ct-38",
+                      "value": "City 38"
+                    },
+                    {
+                      "id": "ct-39",
+                      "value": "City 39"
+                    },
+                    {
+                      "id": "ct-40",
+                      "value": "City 40"
+                    },
+                    {
+                      "id": "ct-41",
+                      "value": "City 41"
+                    },
+                    {
+                      "id": "ct-42",
+                      "value": "City 42"
+                    },
+                    {
+                      "id": "ct-43",
+                      "value": "City 43"
+                    },
+                    {
+                      "id": "ct-44",
+                      "value": "City 44"
+                    },
+                    {
+                      "id": "ct-45",
+                      "value": "City 45"
+                    },
+                    {
+                      "id": "ct-46",
+                      "value": "City 46"
+                    },
+                    {
+                      "id": "ct-47",
+                      "value": "City 47"
+                    },
+                    {
+                      "id": "ct-48",
+                      "value": "City 48"
+                    },
+                    {
+                      "id": "ct-49",
+                      "value": "City 49"
+                    },
+                    {
+                      "id": "ct-50",
+                      "value": "City 50"
+                    },
+                    {
+                      "id": "ct-51",
+                      "value": "City 51"
+                    },
+                    {
+                      "id": "ct-52",
+                      "value": "City 52"
+                    },
+                    {
+                      "id": "ct-53",
+                      "value": "City 53"
+                    },
+                    {
+                      "id": "ct-54",
+                      "value": "City 54"
+                    },
+                    {
+                      "id": "ct-55",
+                      "value": "City 55"
+                    },
+                    {
+                      "id": "ct-56",
+                      "value": "City 56"
+                    },
+                    {
+                      "id": "ct-57",
+                      "value": "City 57"
+                    },
+                    {
+                      "id": "ct-58",
+                      "value": "City 58"
+                    },
+                    {
+                      "id": "ct-59",
+                      "value": "City 59"
+                    },
+                    {
+                      "id": "ct-60",
+                      "value": "City 60"
+                    },
+                    {
+                      "id": "ct-61",
+                      "value": "City 61"
+                    },
+                    {
+                      "id": "ct-62",
+                      "value": "City 62"
+                    },
+                    {
+                      "id": "ct-63",
+                      "value": "City 63"
+                    },
+                    {
+                      "id": "ct-64",
+                      "value": "City 64"
+                    },
+                    {
+                      "id": "ct-65",
+                      "value": "City 65"
+                    },
+                    {
+                      "id": "ct-66",
+                      "value": "City 66"
+                    },
+                    {
+                      "id": "ct-67",
+                      "value": "City 67"
+                    },
+                    {
+                      "id": "ct-68",
+                      "value": "City 68"
+                    },
+                    {
+                      "id": "ct-69",
+                      "value": "City 69"
+                    },
+                    {
+                      "id": "ct-70",
+                      "value": "City 70"
+                    },
+                    {
+                      "id": "ct-71",
+                      "value": "City 71"
+                    },
+                    {
+                      "id": "ct-72",
+                      "value": "City 72"
+                    },
+                    {
+                      "id": "ct-73",
+                      "value": "City 73"
+                    },
+                    {
+                      "id": "ct-74",
+                      "value": "City 74"
+                    },
+                    {
+                      "id": "ct-75",
+                      "value": "City 75"
+                    },
+                    {
+                      "id": "ct-76",
+                      "value": "City 76"
+                    },
+                    {
+                      "id": "ct-77",
+                      "value": "City 77"
+                    },
+                    {
+                      "id": "ct-78",
+                      "value": "City 78"
+                    },
+                    {
+                      "id": "ct-79",
+                      "value": "City 79"
+                    },
+                    {
+                      "id": "ct-80",
+                      "value": "City 80"
+                    },
+                    {
+                      "id": "ct-81",
+                      "value": "City 81"
+                    },
+                    {
+                      "id": "ct-82",
+                      "value": "City 82"
+                    },
+                    {
+                      "id": "ct-83",
+                      "value": "City 83"
+                    },
+                    {
+                      "id": "ct-84",
+                      "value": "City 84"
+                    },
+                    {
+                      "id": "ct-85",
+                      "value": "City 85"
+                    },
+                    {
+                      "id": "ct-86",
+                      "value": "City 86"
+                    },
+                    {
+                      "id": "ct-87",
+                      "value": "City 87"
+                    },
+                    {
+                      "id": "ct-88",
+                      "value": "City 88"
+                    },
+                    {
+                      "id": "ct-89",
+                      "value": "City 89"
+                    },
+                    {
+                      "id": "ct-90",
+                      "value": "City 90"
+                    },
+                    {
+                      "id": "ct-91",
+                      "value": "City 91"
+                    },
+                    {
+                      "id": "ct-92",
+                      "value": "City 92"
+                    },
+                    {
+                      "id": "ct-93",
+                      "value": "City 93"
+                    },
+                    {
+                      "id": "ct-94",
+                      "value": "City 94"
+                    },
+                    {
+                      "id": "ct-95",
+                      "value": "City 95"
+                    },
+                    {
+                      "id": "ct-96",
+                      "value": "City 96"
+                    },
+                    {
+                      "id": "ct-97",
+                      "value": "City 97"
+                    },
+                    {
+                      "id": "ct-98",
+                      "value": "City 98"
+                    },
+                    {
+                      "id": "ct-99",
+                      "value": "City 99"
+                    },
+                    {
+                      "id": "ct-100",
+                      "value": "City 100"
+                    },
+                    {
+                      "id": "ct-101",
+                      "value": "City 101"
+                    },
+                    {
+                      "id": "ct-102",
+                      "value": "City 102"
+                    },
+                    {
+                      "id": "ct-103",
+                      "value": "City 103"
+                    },
+                    {
+                      "id": "ct-104",
+                      "value": "City 104"
+                    },
+                    {
+                      "id": "ct-105",
+                      "value": "City 105"
+                    },
+                    {
+                      "id": "ct-106",
+                      "value": "City 106"
+                    },
+                    {
+                      "id": "ct-107",
+                      "value": "City 107"
+                    },
+                    {
+                      "id": "ct-108",
+                      "value": "City 108"
+                    },
+                    {
+                      "id": "ct-109",
+                      "value": "City 109"
+                    },
+                    {
+                      "id": "ct-110",
+                      "value": "City 110"
+                    },
+                    {
+                      "id": "ct-111",
+                      "value": "City 111"
+                    },
+                    {
+                      "id": "ct-112",
+                      "value": "City 112"
+                    },
+                    {
+                      "id": "ct-113",
+                      "value": "City 113"
+                    },
+                    {
+                      "id": "ct-114",
+                      "value": "City 114"
+                    },
+                    {
+                      "id": "ct-115",
+                      "value": "City 115"
+                    },
+                    {
+                      "id": "ct-116",
+                      "value": "City 116"
+                    },
+                    {
+                      "id": "ct-117",
+                      "value": "City 117"
+                    },
+                    {
+                      "id": "ct-118",
+                      "value": "City 118"
+                    },
+                    {
+                      "id": "ct-119",
+                      "value": "City 119"
+                    },
+                    {
+                      "id": "ct-120",
+                      "value": "City 120"
+                    },
+                    {
+                      "id": "ct-121",
+                      "value": "City 121"
+                    },
+                    {
+                      "id": "ct-122",
+                      "value": "City 122"
+                    },
+                    {
+                      "id": "ct-123",
+                      "value": "City 123"
+                    },
+                    {
+                      "id": "ct-124",
+                      "value": "City 124"
+                    },
+                    {
+                      "id": "ct-125",
+                      "value": "City 125"
+                    },
+                    {
+                      "id": "ct-126",
+                      "value": "City 126"
+                    },
+                    {
+                      "id": "ct-127",
+                      "value": "City 127"
+                    },
+                    {
+                      "id": "ct-128",
+                      "value": "City 128"
+                    },
+                    {
+                      "id": "ct-129",
+                      "value": "City 129"
+                    },
+                    {
+                      "id": "ct-130",
+                      "value": "City 130"
+                    },
+                    {
+                      "id": "ct-131",
+                      "value": "City 131"
+                    },
+                    {
+                      "id": "ct-132",
+                      "value": "City 132"
+                    },
+                    {
+                      "id": "ct-133",
+                      "value": "City 133"
+                    },
+                    {
+                      "id": "ct-134",
+                      "value": "City 134"
+                    },
+                    {
+                      "id": "ct-135",
+                      "value": "City 135"
+                    },
+                    {
+                      "id": "ct-136",
+                      "value": "City 136"
+                    },
+                    {
+                      "id": "ct-137",
+                      "value": "City 137"
+                    },
+                    {
+                      "id": "ct-138",
+                      "value": "City 138"
+                    },
+                    {
+                      "id": "ct-139",
+                      "value": "City 139"
+                    },
+                    {
+                      "id": "ct-140",
+                      "value": "City 140"
+                    },
+                    {
+                      "id": "ct-141",
+                      "value": "City 141"
+                    },
+                    {
+                      "id": "ct-142",
+                      "value": "City 142"
+                    },
+                    {
+                      "id": "ct-143",
+                      "value": "City 143"
+                    },
+                    {
+                      "id": "ct-144",
+                      "value": "City 144"
+                    },
+                    {
+                      "id": "ct-145",
+                      "value": "City 145"
+                    },
+                    {
+                      "id": "ct-146",
+                      "value": "City 146"
+                    },
+                    {
+                      "id": "ct-147",
+                      "value": "City 147"
+                    },
+                    {
+                      "id": "ct-148",
+                      "value": "City 148"
+                    },
+                    {
+                      "id": "ct-149",
+                      "value": "City 149"
+                    },
+                    {
+                      "id": "ct-150",
+                      "value": "City 150"
+                    },
+                    {
+                      "id": "ct-151",
+                      "value": "City 151"
+                    },
+                    {
+                      "id": "ct-152",
+                      "value": "City 152"
+                    },
+                    {
+                      "id": "ct-153",
+                      "value": "City 153"
+                    },
+                    {
+                      "id": "ct-154",
+                      "value": "City 154"
+                    },
+                    {
+                      "id": "ct-155",
+                      "value": "City 155"
+                    },
+                    {
+                      "id": "ct-156",
+                      "value": "City 156"
+                    },
+                    {
+                      "id": "ct-157",
+                      "value": "City 157"
+                    },
+                    {
+                      "id": "ct-158",
+                      "value": "City 158"
+                    },
+                    {
+                      "id": "ct-159",
+                      "value": "City 159"
+                    },
+                    {
+                      "id": "ct-160",
+                      "value": "City 160"
+                    },
+                    {
+                      "id": "ct-161",
+                      "value": "City 161"
+                    },
+                    {
+                      "id": "ct-162",
+                      "value": "City 162"
+                    },
+                    {
+                      "id": "ct-163",
+                      "value": "City 163"
+                    },
+                    {
+                      "id": "ct-164",
+                      "value": "City 164"
+                    },
+                    {
+                      "id": "ct-165",
+                      "value": "City 165"
+                    },
+                    {
+                      "id": "ct-166",
+                      "value": "City 166"
+                    },
+                    {
+                      "id": "ct-167",
+                      "value": "City 167"
+                    },
+                    {
+                      "id": "ct-168",
+                      "value": "City 168"
+                    },
+                    {
+                      "id": "ct-169",
+                      "value": "City 169"
+                    },
+                    {
+                      "id": "ct-170",
+                      "value": "City 170"
+                    },
+                    {
+                      "id": "ct-171",
+                      "value": "City 171"
+                    },
+                    {
+                      "id": "ct-172",
+                      "value": "City 172"
+                    },
+                    {
+                      "id": "ct-173",
+                      "value": "City 173"
+                    },
+                    {
+                      "id": "ct-174",
+                      "value": "City 174"
+                    },
+                    {
+                      "id": "ct-175",
+                      "value": "City 175"
+                    },
+                    {
+                      "id": "ct-176",
+                      "value": "City 176"
+                    },
+                    {
+                      "id": "ct-177",
+                      "value": "City 177"
+                    },
+                    {
+                      "id": "ct-178",
+                      "value": "City 178"
+                    },
+                    {
+                      "id": "ct-179",
+                      "value": "City 179"
+                    },
+                    {
+                      "id": "ct-180",
+                      "value": "City 180"
+                    },
+                    {
+                      "id": "ct-181",
+                      "value": "City 181"
+                    },
+                    {
+                      "id": "ct-182",
+                      "value": "City 182"
+                    },
+                    {
+                      "id": "ct-183",
+                      "value": "City 183"
+                    },
+                    {
+                      "id": "ct-184",
+                      "value": "City 184"
+                    },
+                    {
+                      "id": "ct-185",
+                      "value": "City 185"
+                    },
+                    {
+                      "id": "ct-186",
+                      "value": "City 186"
+                    },
+                    {
+                      "id": "ct-187",
+                      "value": "City 187"
+                    },
+                    {
+                      "id": "ct-188",
+                      "value": "City 188"
+                    },
+                    {
+                      "id": "ct-189",
+                      "value": "City 189"
+                    },
+                    {
+                      "id": "ct-190",
+                      "value": "City 190"
+                    },
+                    {
+                      "id": "ct-191",
+                      "value": "City 191"
+                    },
+                    {
+                      "id": "ct-192",
+                      "value": "City 192"
+                    },
+                    {
+                      "id": "ct-193",
+                      "value": "City 193"
+                    },
+                    {
+                      "id": "ct-194",
+                      "value": "City 194"
+                    },
+                    {
+                      "id": "ct-195",
+                      "value": "City 195"
+                    },
+                    {
+                      "id": "ct-196",
+                      "value": "City 196"
+                    },
+                    {
+                      "id": "ct-197",
+                      "value": "City 197"
+                    },
+                    {
+                      "id": "ct-198",
+                      "value": "City 198"
+                    },
+                    {
+                      "id": "ct-199",
+                      "value": "City 199"
+                    },
+                    {
+                      "id": "ct-200",
+                      "value": "City 200"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-0"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "hidden": {},
+      "noneLeft": [],
+      "warnings": [
+        {
+          "fieldId": "city",
+          "code": "too_many_options"
+        }
+      ]
     }
   ]
 }

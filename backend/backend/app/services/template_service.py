@@ -21,7 +21,10 @@ from backend.app.services.field_rules import (
     ensure_rules_allowed,
     ensure_valid_field_rules,
 )
-from backend.app.services.option_logic import ensure_valid_option_logic
+from backend.app.services.option_logic import (
+    ensure_choice_logic_allowed,
+    ensure_valid_option_logic,
+)
 from starlette.concurrency import run_in_threadpool
 from backend.app.services.form_logo import logo_key, read_logo_upload
 from backend.app.services.retention import checked_retention
@@ -170,6 +173,7 @@ class FormTemplateService:
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body)
         ensure_valid_option_logic(template_body, drop=True)
+        ensure_choice_logic_allowed(template_body, None)
         template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
@@ -216,6 +220,7 @@ class FormTemplateService:
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body, template)
         ensure_valid_option_logic(template_body, drop=True)
+        ensure_choice_logic_allowed(template_body, template)
         if logo:
             # The previous file stays: forms and imported copies made from this
             # template may still show it.

@@ -40,6 +40,12 @@ evaluator only together with the other. The server is the authority.
   save repairs what a structural edit broke (``prune_option_logic``);
   documents, the API and ops refuse (422 ``invalid_option_logic``).
 
+**The switch:** ``CHOICE_LOGIC_ENABLED`` (default off, until an operator turns it
+on): while it is off every write that brings new or changed option logic or a
+filter is refused (422 ``choice_logic_disabled``: builder save, spec and API,
+edit operations of both kinds, templates, the AI and MCP paths; a provider
+import never brings any), and what is stored is kept and still enforced.
+
 Creator conditions are untrusted: caps keep one response's evaluation
 bounded (``OPTION_CONDITIONS_MAX`` per option,
 ``OPTION_LOGIC_OPTIONS_MAX`` options on a question with option logic,
@@ -50,6 +56,7 @@ an answer. Callers run it with the rest of answer validation, off the event
 loop.
 """
 
+import json
 from dataclasses import dataclass, field as dataclass_field
 from types import SimpleNamespace
 from http import HTTPStatus
@@ -64,18 +71,27 @@ from common.models.standard_form import (
     FieldLogic,
 )
 
+from loguru import logger
+
 from backend.app.exceptions import HTTPException
-from backend.app.services.repeating_groups import evaluate_conditions, logic_sources
+from backend.app.services.repeating_groups import (
+    evaluate_conditions,
+    group_items,
+    logic_sources,
+)
 
 ERROR_CODE = "invalid_option_logic"
 COSTLY_CODE = "option_logic_too_costly"
-# What one response may spend on evaluating option conditions: a condition
-# costs 1, plus the square of the options chosen in the choice question it
-# reads (its text is looked up for each of them), plus the items of a repeating
-# group it reads. Far above what a form within the caps needs; a response past
-# it (a crafted form, a crafted answer) is refused, never half checked.
-OPTION_LOGIC_COST_PER_RESPONSE = 200_000
-_GROUP_ITEMS_COST = 50 * 50
+# What one response may spend on evaluating option conditions, in units of
+# work: a condition costs 1, plus the options chosen in the choice question it
+# reads (each is looked up once), or, for ANY / ALL on a repeating group, the
+# items it holds (at most 50) and the options chosen in the question it reads
+# in each. Far above what a form within the caps needs: a save refuses a form
+# whose worst case (every option chosen, every group at 50 items) is over it,
+# so respondents never meet the limit; one that is over anyway (data no save
+# accepted) refuses the response, never half checks it.
+OPTION_LOGIC_COST_PER_RESPONSE = 500_000
+_GROUP_ITEMS_MAX = 50
 # The rule code of an answer that selects an unavailable option.
 HIDDEN_OPTION = "hidden_option"
 
@@ -295,70 +311,159 @@ def _allowed_by_filter(
     return allowed
 
 
+def _indexed(source: Any) -> Any:
+    """A choice question as a condition reads it: its options looked up once
+    (``token_index``: option id -> what the option answers to: its id, text
+    and label), so a condition costs the options chosen, not a search of the
+    question's list for each."""
+    index: Dict[str, List[str]] = {}
+    for choice in _choices(source):
+        choice_id = _get(choice, "id")
+        if not choice_id:
+            continue
+        tokens: List[str] = []
+        for token in (str(choice_id), _get(choice, "value"), _get(choice, "label")):
+            if isinstance(token, bool):
+                continue
+            if isinstance(token, (str, int, float)) and token != "":
+                text = str(token)
+                if text not in tokens:
+                    tokens.append(text)
+        index[str(choice_id)] = tokens
+    return SimpleNamespace(
+        id=_get(source, "id"),
+        type=_type(source),
+        internal=False,
+        properties=SimpleNamespace(choices=_choices(source)),
+        token_index=index,
+    )
+
+
+def _bounded_answer(answer: Any, source: Any) -> Tuple[Any, int]:
+    """A choice answer reduced to the options it really selects (each once,
+    only options the question has; the text typed as "Other" stays), and how
+    many that are."""
+    answer = _as_dict(answer)
+    if not isinstance(answer, dict):
+        return answer, 0
+    picked = selected_option_ids(answer, source)
+    many = _as_dict(answer.get("choices"))
+    one = _as_dict(answer.get("choice"))
+    if isinstance(many, dict):
+        return {"choices": {"values": picked, "other": many.get("other")}}, len(picked)
+    other = one.get("other") if isinstance(one, dict) else None
+    return (
+        {"choice": {"value": picked[0] if picked else None, "other": other}},
+        len(picked),
+    )
+
+
 class _Reading:
     """The answers and questions a condition reads. A choice question's answer
     is read as the options it really selects (each once, only options the
-    question has) and its text is looked up among those alone, so that the
-    cost of a condition does not grow with the size of an answer or of the
-    question's list of options."""
+    question has) and its options are looked up once, so that the work of a
+    condition follows the options chosen, never the size of an answer or of
+    the question's list of options. The answers of a repeating group are read
+    the same way, for at most 50 items."""
 
     def __init__(self, answers: Dict[str, Any], sources: Dict[str, Any]):
         self.answers = dict(answers)
         self.sources = dict(sources)
+        # top-level choice question -> options chosen
         self.chosen: Dict[str, int] = {}
+        # repeating group -> its items as read
+        self.items: Dict[str, List[Dict[str, Any]]] = {}
         for key, source in sources.items():
-            if _type(source) not in CHOICE_TYPES:
-                continue
-            answer = answers.get(key)
-            if not isinstance(answer, dict):
-                continue
-            picked = selected_option_ids(answer, source)
-            self.chosen[key] = len(picked)
-            others = {
-                slot: _as_dict(answer.get(slot)).get("other")
-                for slot in ("choice", "choices")
-                if isinstance(_as_dict(answer.get(slot)), dict)
-            }
-            if isinstance(_as_dict(answer.get("choices")), dict):
-                read: Dict[str, Any] = {
-                    "choices": {"values": picked, "other": others.get("choices")}
-                }
-            else:
-                read = {
-                    "choice": {
-                        "value": picked[0] if picked else None,
-                        "other": others.get("choice"),
+            if _type(source) in CHOICE_TYPES:
+                self.sources[key] = _indexed(source)
+        for key, source in sources.items():
+            kind = _type(source)
+            if kind in CHOICE_TYPES:
+                if isinstance(answers.get(key), dict):
+                    self.answers[key], self.chosen[key] = _bounded_answer(
+                        answers[key], source
+                    )
+            elif kind == GROUP:
+                items = group_items(answers.get(key))[:_GROUP_ITEMS_MAX]
+                read_items: List[Dict[str, Any]] = []
+                for item in items:
+                    read = dict(item)
+                    for child in _group_children(source):
+                        child_id = str(_get(child, "id"))
+                        if _type(child) in CHOICE_TYPES and isinstance(
+                            item.get(child_id), dict
+                        ):
+                            read[child_id], _ = _bounded_answer(item[child_id], child)
+                    read_items.append(read)
+                self.items[key] = read_items
+                if isinstance(_as_dict(answers.get(key)), dict):
+                    self.answers[key] = {
+                        **_as_dict(answers.get(key)),
+                        "items": read_items,
                     }
-                }
-            self.answers[key] = read
-            wanted = set(picked)
-            self.sources[key] = SimpleNamespace(
-                id=key,
-                type=_type(source),
-                internal=False,
-                properties=SimpleNamespace(
-                    choices=[
-                        {
-                            "id": str(_get(choice, "id")),
-                            "value": _get(choice, "value"),
-                            "label": _get(choice, "label"),
-                        }
-                        for choice in _choices(source)
-                        if str(_get(choice, "id")) in wanted
-                    ]
-                ),
-            )
 
     def cost(self, conditions: Iterable[Any]) -> int:
+        """The work of evaluating these conditions on these answers."""
         total = 0
         for condition in conditions:
             total += 1
-            if _get(condition, "group_mode"):
-                total += _GROUP_ITEMS_COST
+            field_id = str(_get(condition, "field_id") or "")
+            mode = _get(condition, "group_mode")
+            if mode == "COUNT":
                 continue
-            chosen = self.chosen.get(str(_get(condition, "field_id") or ""), 0)
-            total += chosen * chosen
+            if mode in ("ANY", "ALL"):
+                child = str(_get(condition, "child_field_id") or "")
+                for item in self.items.get(field_id, []):
+                    total += 1 + _values_in(item.get(child))
+            else:
+                total += self.chosen.get(field_id, 0)
         return total
+
+
+def _values_in(answer: Any) -> int:
+    many = (
+        _as_dict(answer).get("choices") if isinstance(_as_dict(answer), dict) else None
+    )
+    values = _as_dict(many).get("values") if isinstance(_as_dict(many), dict) else None
+    return len(values) if isinstance(values, list) else 0
+
+
+def worst_case_cost(form: Any) -> int:
+    """The most a response can spend on the form's option conditions: every
+    option of a question a condition reads chosen, every group it reads at
+    50 items with every option chosen in each."""
+    questions = _page_questions(form)
+    by_id: Dict[str, Any] = {}
+    for question in questions:
+        if _get(question, "id"):
+            by_id[str(_get(question, "id"))] = question
+        if _type(question) == GROUP:
+            for child in _group_children(question):
+                if _get(child, "id"):
+                    by_id.setdefault(str(_get(child, "id")), child)
+    total = 0
+    for question in questions:
+        for choice in _choices(question):
+            logic = _option_logic(choice)
+            for condition in (
+                (_get(logic, "conditions") or [])[:OPTION_CONDITIONS_MAX]
+                if logic
+                else []
+            ):
+                total += 1
+                source = by_id.get(str(_get(condition, "field_id") or ""))
+                mode = _get(condition, "group_mode")
+                if source is None or mode == "COUNT":
+                    continue
+                if mode in ("ANY", "ALL"):
+                    child = by_id.get(str(_get(condition, "child_field_id") or ""))
+                    per_item = 1 + (
+                        len(_choices(child)) if _type(child) in CHOICE_TYPES else 0
+                    )
+                    total += _GROUP_ITEMS_MAX * per_item
+                elif _type(source) in CHOICE_TYPES:
+                    total += len(_choices(source))
+    return total
 
 
 def _question_state(
@@ -649,10 +754,12 @@ class _Check:
             self._problem(owner, f"{what}: {problem}", choice)
             self._fixed()
         if self.fix and len(kept) != len(conditions):
+            # (the dropped conditions are what is counted, not the logic left
+            # without any: it goes with the last of them)
             if kept:
                 self._set(logic, "conditions", kept)
             else:
-                self._drop_logic(choice)
+                self._set(choice, "logic", None)
 
     def _fixed(self) -> None:
         if self.fix:
@@ -729,8 +836,8 @@ class _Check:
                     "does not have.",
                     in_filter=True,
                 )
-                self._fixed()
                 if self.fix:
+                    self.repaired += len(show) - len(good)
                     self._set(entry, "show", good)
             kept.append(entry)
         if self.fix and len(kept) != len(mapping):
@@ -765,11 +872,12 @@ class _Check:
                     )
                     continue
                 if len(_choices(question)) > OPTION_LOGIC_OPTIONS_MAX:
-                    self._whole(
-                        question,
+                    # never repaired away: a save that would lose the logic is
+                    # refused, saying why, so nobody loses it unseen
+                    self._cap(
                         f"'{_title(question)}' has more than "
-                        f"{OPTION_LOGIC_OPTIONS_MAX} options, too many for "
-                        "option logic.",
+                        f"{OPTION_LOGIC_OPTIONS_MAX} options, too many for option "
+                        "logic: remove its option logic or some of its options."
                     )
                     continue
                 for choice in _choices(question):
@@ -789,6 +897,16 @@ class _Check:
             self._cap(
                 f"A form can have at most {FORM_OPTION_FILTERS_MAX} option "
                 f"filters; this one has {filters}."
+            )
+        if (
+            conditions
+            and not self.caps
+            and worst_case_cost(self.form) > OPTION_LOGIC_COST_PER_RESPONSE
+        ):
+            self._cap(
+                "This form's option logic is too costly to check for each "
+                "response (many conditions on questions with many options or on "
+                "repeating groups): use fewer conditions."
             )
         return self.problems
 
@@ -839,20 +957,25 @@ def _refuse(problems: List[OptionLogicProblem]) -> None:
     )
 
 
-def ensure_valid_option_logic(form: Any, drop: bool = False) -> int:
+def ensure_valid_option_logic(form: Any, drop: bool = False) -> List[Dict[str, Any]]:
     """Refuse (422 ``invalid_option_logic``) a form whose option logic breaks
     the rules above. ``drop``: the builder's save repairs what a structural
-    edit broke instead (the size caps still refuse); returns how many
-    pieces were dropped."""
+    edit broke instead (the size caps still refuse, a question with too many
+    options included: its logic is never dropped unseen); returns what it
+    repaired (``fieldId``, ``optionId``, ``message``), for the creator to be
+    told."""
     if not form_has_option_logic(form):
-        return 0
+        return []
     check = _Check(form, fix=drop)
     problems = check.run()
     if check.caps:
         _refuse([OptionLogicProblem("", message) for message in check.caps])
     if problems and not drop:
         _refuse(problems)
-    return check.repaired if drop else 0
+    if drop and problems:
+        logger.info("Repaired {} piece(s) of option logic on save", check.repaired)
+        return [problem.as_json() for problem in problems]
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -862,6 +985,7 @@ def ensure_valid_option_logic(form: Any, drop: bool = False) -> int:
 UNREACHABLE_OPTION = "unreachable_option"
 SOURCE_OPTION_UNMAPPED = "source_option_unmapped"
 CAN_END_EMPTY = "can_end_empty"
+TOO_MANY_OPTIONS = "too_many_options"
 
 
 @dataclass(frozen=True)
@@ -888,7 +1012,9 @@ def option_logic_warnings(form: Any) -> List[OptionLogicWarning]:
     - ``can_end_empty``: a required question whose every option has its own
       logic, so some answers leave it with nothing to choose (it is then never
       required, but the creator probably did not mean it). A filter that leaves
-      nothing is ``source_option_unmapped``'s to say.
+      nothing is ``source_option_unmapped``'s to say;
+    - ``too_many_options``: more options than option logic may sit on (a save
+      is refused).
     """
     found: List[OptionLogicWarning] = []
     by_id = {str(_get(f, "id")): f for f in _page_questions(form) if _get(f, "id")}
@@ -896,6 +1022,10 @@ def option_logic_warnings(form: Any) -> List[OptionLogicWarning]:
         if not _is_option_target(field) or not has_option_logic(field):
             continue
         field_id = str(_get(field, "id"))
+        if len(_choices(field)) > OPTION_LOGIC_OPTIONS_MAX:
+            # a save is refused (the logic is never dropped unseen)
+            found.append(OptionLogicWarning(field_id, TOO_MANY_OPTIONS))
+            continue
         flt = _filter(field)
         source = by_id.get(str(_get(flt, "field_id") or "")) if flt else None
         if flt is not None and source is not None:
@@ -930,3 +1060,151 @@ def option_logic_warnings(form: Any) -> List[OptionLogicWarning]:
         ):
             found.append(OptionLogicWarning(field_id, CAN_END_EMPTY))
     return found
+
+
+# ---------------------------------------------------------------------------
+# The switch: CHOICE_LOGIC_ENABLED (off until an operator turns it on)
+# ---------------------------------------------------------------------------
+
+DISABLED_CODE = "choice_logic_disabled"
+DISABLED_MESSAGE = (
+    "Choice logic (options shown or hidden by answers, option filters) cannot "
+    "be created or changed on this server yet (CHOICE_LOGIC_ENABLED is off). "
+    "Choice logic already saved is kept."
+)
+
+
+def choice_logic_enabled() -> bool:
+    """Is ``CHOICE_LOGIC_ENABLED`` on: may option logic and filters be created
+    or changed? Stored ones are enforced either way."""
+    from backend.config import settings
+
+    return bool(getattr(settings, "CHOICE_LOGIC_ENABLED", False))
+
+
+def _condition_key(condition: Any) -> Tuple[Any, ...]:
+    return (
+        str(_get(condition, "field_id") or ""),
+        _get(condition, "comparison"),
+        json.dumps(_get(condition, "value"), sort_keys=True, default=str),
+        _get(condition, "group_mode"),
+        str(_get(condition, "child_field_id") or ""),
+    )
+
+
+def _logic_piece(logic: Any) -> Tuple[Any, Any, FrozenSet[Tuple[Any, ...]]]:
+    return (
+        _get(logic, "action"),
+        _get(logic, "operator") or "AND",
+        frozenset(_condition_key(c) for c in (_get(logic, "conditions") or [])),
+    )
+
+
+def _filter_piece(flt: Any) -> Tuple[str, Dict[str, FrozenSet[str]]]:
+    rows: Dict[str, Set[str]] = {}
+    for entry in _get(flt, "mapping") or []:
+        rows.setdefault(str(_get(entry, "when")), set()).update(
+            str(option) for option in (_get(entry, "show") or [])
+        )
+    return (
+        str(_get(flt, "field_id") or ""),
+        {when: frozenset(show) for when, show in rows.items()},
+    )
+
+
+def _logic_pieces(form: Any) -> Dict[Tuple[str, str], Any]:
+    """Every piece of option logic of the form: an option's logic and a
+    question's filter, by ``(question id, "option:<id>" | "filter")``."""
+    pieces: Dict[Tuple[str, str], Any] = {}
+    # every field wherever it sits (a bare question as an op brings it too)
+    pending = list(_get(form, "fields") or [])
+    while pending:
+        field = pending.pop()
+        field_id = str(_get(field, "id"))
+        for choice in _choices(field):
+            logic = _option_logic(choice)
+            if logic is not None:
+                pieces[(field_id, f"option:{_get(choice, 'id')}")] = _logic_piece(logic)
+        if _filter(field) is not None:
+            pieces[(field_id, "filter")] = _filter_piece(_filter(field))
+        pending.extend(_group_children(field))
+    return pieces
+
+
+def _no_more_than(kind: str, new: Any, stored: Any) -> bool:
+    """Is the piece ``new`` nothing but ``stored`` with some of it taken away
+    (conditions, filter entries or options dropped by a repair)?"""
+    if stored is None:
+        return False
+    if kind == "filter":
+        if new[0] != stored[0]:
+            return False
+        return all(
+            when in stored[1] and show <= stored[1][when]
+            for when, show in new[1].items()
+        )
+    return new[0] == stored[0] and new[1] == stored[1] and new[2] <= stored[2]
+
+
+def new_or_changed_option_logic(
+    form: Any, existing: Any = None
+) -> List[Tuple[str, str]]:
+    """``(question id, piece)`` of the option logic ``form`` has that
+    ``existing`` (the stored version, or None) does not have, as it is: an
+    option's logic or a filter that is new, or changed by more than taking
+    some of it away. Clearing, a repair and moving a question change
+    nothing in this sense."""
+    stored = _logic_pieces(existing) if existing is not None else {}
+    return [
+        key
+        for key, piece in _logic_pieces(form).items()
+        if piece != stored.get(key)
+        and not _no_more_than(
+            "filter" if key[1] == "filter" else "option", piece, stored.get(key)
+        )
+    ]
+
+
+def ensure_choice_logic_allowed(form: Any, existing: Any = None) -> None:
+    """While ``CHOICE_LOGIC_ENABLED`` is off, refuse (422
+    ``choice_logic_disabled``) a save that brings new or changed option logic
+    or filters. What is stored, unchanged, passes (and is still enforced)."""
+    if choice_logic_enabled():
+        return
+    changed = new_or_changed_option_logic(form, existing)
+    if changed:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": DISABLED_CODE,
+                "message": DISABLED_MESSAGE,
+                "errors": [
+                    {
+                        "fieldId": field_id,
+                        "optionId": (
+                            piece.removeprefix("option:") if piece != "filter" else None
+                        ),
+                    }
+                    for field_id, piece in changed[:PROBLEMS_MAX]
+                ],
+            },
+        )
+
+
+def strip_option_logic(form: Any) -> int:
+    """Remove every option's logic and every filter of the form, in place (a
+    provider import never brings option logic, whatever its payload holds).
+    Returns how many pieces went."""
+    removed = 0
+    pending = list(_get(form, "fields") or [])
+    while pending:
+        field = pending.pop()
+        for choice in _choices(field):
+            if _get(choice, "logic") is not None:
+                _Check._set(choice, "logic", None)
+                removed += 1
+        if _filter(field) is not None:
+            _Check._set(_props(field), "option_filter", None)
+            removed += 1
+        pending.extend(_group_children(field))
+    return removed

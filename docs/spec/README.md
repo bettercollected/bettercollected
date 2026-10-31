@@ -203,7 +203,11 @@ the whole question) as it is.
 an internal one, or a question of a repeating group; a repeating group as a whole
 by `groupMode`), so the evaluation has no circle. A filter's ids name real
 options of the two questions. At most 200 options on a question that has option
-logic, 1,000 option conditions and 50 filters in a form. Validation and the API
+logic (a save that would drop its logic is refused, saying so, never wiped), 1,000
+option conditions and 50 filters in a form, and the worst case of one response
+(every option chosen in the questions the conditions read, every group at 50
+items) must stay within the server's evaluation budget, or the form cannot be
+saved. Validation and the API
 refuse a document that breaks these rules (`errors` with JSON pointers); the
 builder's whole-form save repairs instead what a structural edit broke (a
 removed or moved question, a removed option), so autosave never stops.
@@ -220,7 +224,21 @@ option). The respondent page clears such a selection itself and says so
 politely; the server never deletes an answer silently. A question with nothing
 available (and no "Other") is never required, `minChoices` is held to the
 number of options offered, and a question a field rule sets or locks is not
-filtered.
+filtered. With "Other" enabled a respondent can type the label of a hidden
+option as free text: that is an answer to "Other", not a selection of the option,
+so do not use "Other" on a question whose options gate access.
+
+**Rollout.** Until the server setting `CHOICE_LOGIC_ENABLED` is on (it is off by
+default, and stays off until the 4.2 release), every write that brings new or
+changed option logic or filters is refused with 422 `choice_logic_disabled` (an
+operation fails with the same message): the builder's save, the form spec API
+(create and replace), `set_option_logic`, `set_option_filter`, the editor
+operations that carry whole questions, templates, and the AI and MCP paths; the
+validation of a document warns about them. A provider import never brings any,
+and a copy of a page or question starts without option logic. Option logic
+already stored is kept and still enforced. The builder reads the switch from the
+workspace permissions answer (`choiceLogicEnabled`): with it off the option
+logic settings are hidden, and what a question already has is listed read-only.
 
 **Warnings** (never refused): an option no filter row shows, an earlier option
 with no row, and a required question whose every option has its own logic.
