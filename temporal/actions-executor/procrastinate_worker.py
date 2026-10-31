@@ -70,6 +70,7 @@ async def run_action_job(
     form_id: Optional[str] = None,
     response_id: Optional[str] = None,
     workspace_id: Optional[str] = None,
+    run_token: Optional[str] = None,
     # jobs queued by 4.1.x carried the whole run; they are still run, once
     action: Optional[str] = None,
     form: Optional[str] = None,
@@ -80,7 +81,7 @@ async def run_action_job(
     try:
         if action_id is not None:
             context = await fetch_run_context(
-                workspace_id, form_id, action_id, response_id
+                workspace_id, form_id, action_id, response_id, run_token
             )
             if context is None:
                 logger.info(

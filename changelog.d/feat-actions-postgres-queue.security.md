@@ -5,6 +5,10 @@
   now the whole response, the responder's address and the action's stored secrets were
   written to the queue's table and kept there. Finished action jobs are now deleted
   after a week (a month for failed ones), including those queued by earlier releases.
+- The route that serves a run's data needs the run's own token as well as the job key.
+  The backend derives the token (HMAC, under a key only it holds) from the run's four ids
+  and puts it in the job, so the shared job key alone no longer reads any response, and
+  a run's token opens no other run.
 - The actions executor's database role sees and changes only the `actions` queue. A
   row-level policy on the queue's table, applied by `python -m backend.jobs.schema`
   (which `deploy.sh` runs), keeps it from reading, queueing or cancelling the other

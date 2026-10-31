@@ -2,11 +2,12 @@ from common.ids import RecordId
 from classy_fastapi import Routable, post, patch
 from http import HTTPStatus
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from pydantic import BaseModel, Field, field_validator
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
+from backend.app.services.action_run_token import HEADER, is_valid_run_token
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
@@ -90,13 +91,27 @@ class TemporalRouter(Routable):
         form_id: RecordId,
         action_id: RecordId,
         response_id: str,
+        request: Request,
         api_key=Depends(get_api_key),
     ):
         """The actions executor reads what one queued run needs, when it runs:
         the job carries ids only, so no answers or action secrets sit in the
-        job queue's rows. 410 when the run no longer applies (the response was
-        erased, the action was switched off or removed): the executor skips
-        the job, it is not retried."""
+        job queue's rows. Besides the job key it must present the run's own
+        token (``run-token``, minted when the run was queued: the job key alone
+        reads nobody's answers). 410 when the run no longer applies (the
+        response was erased, the action was switched off or removed): the
+        executor skips the job, it is not retried."""
+        if not is_valid_run_token(
+            request.headers.get(HEADER, ""),
+            workspace_id,
+            form_id,
+            action_id,
+            response_id,
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content="You are not allowed to perform this action.",
+            )
         context = await self.action_service.action_run_context(
             workspace_id, form_id, action_id, response_id
         )

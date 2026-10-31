@@ -926,7 +926,9 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   response, so the same run is queued once and a second queueing answers `already_queued`): the answers, the
   responder's address and the action's stored secrets are not written to the queue's rows, which outlive the run.
   The executor reads them when it runs from `POST /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/context`
-  (`ActionService.action_run_context`: the response decrypted for the run), which answers **410** when the run no
+  (`ActionService.action_run_context`: the response decrypted for the run; needs the job key **and** the run's own
+  `run-token` header, `services/action_run_token.py`: HMAC of the four ids under a subkey of the respondent identity
+  key, minted when the run is queued and kept in the job's args), which answers **410** when the run no
   longer applies (response deleted, action off or removed, a legacy Sheets grant); a run that cannot be queued is
   logged with ids and never fails the submission. Finished `actions` rows are deleted by the `purge_finished_action_jobs`
   periodic task (a week, a month for failed). The executor's role `bc_jobs_exec` sees and writes only the `actions`

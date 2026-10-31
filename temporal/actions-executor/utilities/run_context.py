@@ -8,7 +8,9 @@ after it was queued, or an action switched off, is skipped.
 
 The backend answers on its in-network route
 ``POST /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/context`` with
-the ``api-key`` the executor already uses. 410 means the run no longer applies.
+the ``api-key`` the executor already uses and the run's own token (``run-token``,
+minted by the backend when it queued the run: the job key alone reads no
+response). 410 means the run no longer applies.
 Nothing here puts a response body or a value in an exception message.
 """
 
@@ -46,14 +48,23 @@ def context_url(
 
 
 async def fetch_run_context(
-    workspace_id: Any, form_id: Any, action_id: Any, response_id: Any
+    workspace_id: Any,
+    form_id: Any,
+    action_id: Any,
+    response_id: Any,
+    run_token: Any,
 ) -> Optional[Dict[str, Any]]:
     """The run's ``action``, ``form``, ``response``, ``workspace`` (JSON text)
     and ``user_email``, or None when the run no longer applies (410)."""
     url = context_url(workspace_id, form_id, action_id, response_id)
+    if not run_token:
+        raise RunContextUnavailable("the job has no run token")
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
-            res = await client.post(url, headers={"api-key": settings.api_key})
+            res = await client.post(
+                url,
+                headers={"api-key": settings.api_key, "run-token": str(run_token)},
+            )
     except httpx.HTTPError as error:
         raise RunContextUnavailable(type(error).__name__) from None
     if res.status_code == 410:

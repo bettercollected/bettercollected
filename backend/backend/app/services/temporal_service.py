@@ -31,6 +31,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.action_run_token import run_token
 from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
 from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
@@ -251,15 +252,18 @@ class TemporalService:
         workspace = WorkspaceRequestWithActionDto(**workspace)
         if self._on_postgres("run_action"):
             # Ids only: the executor reads the run's data from the backend when
-            # it runs (``POST /temporal/.../runs/{response_id}/context``), so no
-            # answer, responder address or action secret is stored in the
-            # queue's rows, which outlive the run.
+            # it runs (``POST /temporal/.../runs/{response_id}/context``, against
+            # the run's own token), so no answer, responder address or action
+            # secret is stored in the queue's rows, which outlive the run.
             try:
                 await tasks.run_action_deferrer(queueing_lock=lock).defer_async(
                     action_id=str(action.id),
                     form_id=str(form.form_id),
                     response_id=str(response.response_id),
                     workspace_id=str(workspace.id),
+                    run_token=run_token(
+                        workspace.id, form.form_id, action.id, response.response_id
+                    ),
                 )
                 return "Job Started"
             except AlreadyEnqueued:

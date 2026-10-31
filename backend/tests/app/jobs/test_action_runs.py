@@ -13,6 +13,7 @@ from procrastinate.testing import InMemoryConnector
 
 from backend.app.container import container
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
+from backend.app.services.action_run_token import HEADER, run_token
 from backend.config import settings
 from backend.jobs import tasks
 from backend.jobs.app import ACTIONS_QUEUE, app
@@ -60,9 +61,14 @@ def _context_url(workspace, form, action, response_id):
     )
 
 
-def _ask(client, workspace, form, action, response_id, key=JOB_KEY):
+def _ask(client, workspace, form, action, response_id, key=JOB_KEY, token=None):
+    """The executor's request; the run's own token is the one the backend minted
+    for this run unless a test gives another."""
+    if token is None:
+        token = run_token(workspace.id, form.form_id, action.id, response_id)
     return client.post(
-        _context_url(workspace, form, action, response_id), headers={"api-key": key}
+        _context_url(workspace, form, action, response_id),
+        headers={"api-key": key, HEADER: token},
     )
 
 
@@ -87,12 +93,17 @@ class TestWhatIsQueued:
         response, job = await _submitted(workspace, configured_form, memory_jobs)
 
         assert job["queue_name"] == ACTIONS_QUEUE
-        assert job["args"] == {
+        args = dict(job["args"])
+        token = args.pop("run_token")
+        assert args == {
             "action_id": str(partner_action.id),
             "form_id": configured_form.form_id,
             "response_id": response.response_id,
             "workspace_id": str(workspace.id),
         }
+        assert token == run_token(
+            workspace.id, configured_form.form_id, partner_action.id, response.response_id
+        )
 
     async def test_no_answer_secret_or_address_is_in_the_job_row(
         self, workspace, configured_form, memory_jobs
@@ -249,9 +260,78 @@ class TestWhatTheExecutorGets:
         got = await client.post(
             f"/api/v1/temporal/workspaces/{workspace.id}/forms/{other_form}"
             f"/actions/{partner_action.id}/runs/{response.response_id}/context",
-            headers={"api-key": JOB_KEY},
+            headers={
+                "api-key": JOB_KEY,
+                HEADER: run_token(
+                    workspace.id, other_form, partner_action.id, response.response_id
+                ),
+            },
         )
         assert got.status_code == 410
+
+
+class TestTheRunsOwnToken:
+    """The job key is shared by every internal route; it must not be enough to
+    read a response. The token is the backend's, per run."""
+
+    async def test_the_token_in_the_job_opens_that_run_only(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        response, job = await _submitted(workspace, configured_form, memory_jobs)
+        second = await _submit(workspace, configured_form.form_id, "ANOTHER-ANSWER")
+        token = job["args"]["run_token"]
+
+        mine = await _ask(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            token=token,
+        )
+        theirs = await _ask(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            second.response_id,
+            token=token,
+        )
+
+        assert mine.status_code == 200, mine.text
+        assert theirs.status_code == 403
+        assert ANSWER not in theirs.text and "ANOTHER-ANSWER" not in theirs.text
+
+    @pytest.mark.parametrize("token", ["", "0" * 64, "not-a-token"])
+    async def test_the_job_key_alone_reads_nothing(
+        self, client, workspace, configured_form, partner_action, memory_jobs, token
+    ):
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await client.post(
+            _context_url(workspace, configured_form, partner_action, response.response_id),
+            headers={"api-key": JOB_KEY, HEADER: token},
+        )
+        assert got.status_code == 403
+        assert ANSWER not in got.text and CRED not in got.text
+
+    async def test_without_any_token_header_it_is_refused(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await client.post(
+            _context_url(workspace, configured_form, partner_action, response.response_id),
+            headers={"api-key": JOB_KEY},
+        )
+        assert got.status_code == 403
+
+    async def test_the_token_is_not_made_of_the_ids_or_the_job_key(
+        self, workspace, configured_form, partner_action
+    ):
+        token = run_token(workspace.id, configured_form.form_id, partner_action.id, "r1")
+        assert len(token) == 64 and token != run_token(
+            workspace.id, configured_form.form_id, partner_action.id, "r2"
+        )
+        assert JOB_KEY not in token and str(workspace.id) not in token
 
 
 class TestRetention:

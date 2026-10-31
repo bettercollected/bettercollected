@@ -16,6 +16,8 @@ from utilities.run_context import RunContextUnavailable, context_url, fetch_run_
 IDS = dict(
     workspace_id="w1", form_id="f1", action_id="a1", response_id="r1"
 )
+RUN_TOKEN = "t0k3n-of-this-run"
+JOB = dict(**IDS, run_token=RUN_TOKEN)
 CONTEXT = {
     "action": '{"id": "a1"}',
     "form": '{"form_id": "f1"}',
@@ -42,7 +44,7 @@ def ran(monkeypatch):
 
 
 def serve(monkeypatch, context):
-    async def fetch(workspace_id, form_id, action_id, response_id):
+    async def fetch(workspace_id, form_id, action_id, response_id, run_token):
         return context
 
     monkeypatch.setattr(worker, "fetch_run_context", fetch)
@@ -50,7 +52,7 @@ def serve(monkeypatch, context):
 
 def test_a_run_is_fetched_by_ids_then_run(monkeypatch, ran):
     serve(monkeypatch, CONTEXT)
-    assert job(**IDS) == "ok"
+    assert job(**JOB) == "ok"
     assert ran == [
         dict(
             action=CONTEXT["action"],
@@ -65,12 +67,12 @@ def test_a_run_is_fetched_by_ids_then_run(monkeypatch, ran):
 def test_the_job_returns_no_run_data(monkeypatch, ran):
     """The worker logs a job's result: it must be a word, not the run's log."""
     serve(monkeypatch, CONTEXT)
-    assert job(**IDS) == "ok"
+    assert job(**JOB) == "ok"
 
 
 def test_a_run_that_no_longer_applies_is_skipped_not_retried(monkeypatch, ran):
     serve(monkeypatch, None)
-    assert job(**IDS) == "skipped"
+    assert job(**JOB) == "skipped"
     assert ran == []
 
 
@@ -80,7 +82,7 @@ def test_an_unreachable_backend_fails_the_attempt_so_it_is_retried(monkeypatch, 
 
     monkeypatch.setattr(worker, "fetch_run_context", down)
     with pytest.raises(worker.ActionRunFailed) as failed:
-        job(**IDS)
+        job(**JOB)
     assert "503" in str(failed.value) and ran == []
 
 
@@ -94,7 +96,7 @@ def test_a_failure_never_carries_the_message_of_the_code_that_failed(
 
     monkeypatch.setattr(worker, "run_action", failing)
     with pytest.raises(worker.ActionRunFailed) as failed:
-        job(**IDS)
+        job(**JOB)
     text = str(failed.value)
     assert "RuntimeError" in text and "a1" in text and "f1" in text
     assert "THE-ANSWER" not in text and "responder@example.org" not in text
@@ -110,7 +112,7 @@ def test_a_run_is_cut_off_at_the_time_limit(monkeypatch):
 
     monkeypatch.setattr(worker, "run_action", stuck)
     with pytest.raises(worker.ActionRunFailed) as failed:
-        job(**IDS)
+        job(**JOB)
     assert "TimeoutError" in str(failed.value)
 
 
@@ -176,13 +178,15 @@ def test_context_is_asked_in_network_with_the_job_key_and_returned(monkeypatch):
         seen["url"] = str(request.url)
         seen["method"] = request.method
         seen["key"] = request.headers.get("api-key")
+        seen["token"] = request.headers.get("run-token")
         return httpx.Response(200, json=CONTEXT)
 
     monkeypatch.setattr(run_context.settings, "api_key", "job-key")
     with_backend(monkeypatch, handler)
-    got = asyncio.run(fetch_run_context(**IDS))
+    got = asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
     assert got == CONTEXT
     assert seen["method"] == "POST" and seen["key"] == "job-key"
+    assert seen["token"] == RUN_TOKEN
     assert seen["url"].endswith(
         "/temporal/workspaces/w1/forms/f1/actions/a1/runs/r1/context"
     )
@@ -190,7 +194,7 @@ def test_context_is_asked_in_network_with_the_job_key_and_returned(monkeypatch):
 
 def test_410_means_the_run_no_longer_applies(monkeypatch):
     with_backend(monkeypatch, lambda request: httpx.Response(410, json={}))
-    assert asyncio.run(fetch_run_context(**IDS)) is None
+    assert asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN)) is None
 
 
 @pytest.mark.parametrize("status", [401, 403, 404, 500, 503])
@@ -201,7 +205,7 @@ def test_any_other_answer_is_unavailable_and_says_only_the_status(
         monkeypatch, lambda request: httpx.Response(status, text="THE-ANSWER body")
     )
     with pytest.raises(RunContextUnavailable) as failed:
-        asyncio.run(fetch_run_context(**IDS))
+        asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
     assert str(status) in str(failed.value) and "THE-ANSWER" not in str(failed.value)
 
 
@@ -211,7 +215,7 @@ def test_a_network_error_is_unavailable(monkeypatch):
 
     with_backend(monkeypatch, handler)
     with pytest.raises(RunContextUnavailable) as failed:
-        asyncio.run(fetch_run_context(**IDS))
+        asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
     assert str(failed.value) == "ConnectError"
 
 
@@ -226,7 +230,16 @@ def test_a_network_error_is_unavailable(monkeypatch):
 def test_an_incomplete_answer_is_unavailable(monkeypatch, body):
     with_backend(monkeypatch, lambda request: httpx.Response(200, json=body))
     with pytest.raises(RunContextUnavailable):
-        asyncio.run(fetch_run_context(**IDS))
+        asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
+
+
+@pytest.mark.parametrize("token", [None, ""])
+def test_a_job_without_a_run_token_is_not_asked_for(monkeypatch, token):
+    asked = []
+    with_backend(monkeypatch, lambda request: asked.append(request) or httpx.Response(200))
+    with pytest.raises(RunContextUnavailable):
+        asyncio.run(fetch_run_context(**IDS, run_token=token))
+    assert asked == []
 
 
 def test_ids_are_one_path_segment_each():

@@ -25,7 +25,7 @@ Each is a standalone Python service with its own `main.py`, `requirements.txt`, 
 `actions` queue as the `bc_jobs_exec` role (`DATABASE_URL`; the role sees only the `actions` queue's rows, and the
 executor refuses to start where the backend has not applied that policy: `utilities/queue_isolation.py`). The job
 carries **ids only**; `utilities/run_context.py` fetches the run's data from the backend's in-network route when
-it runs (410 = the run no longer applies, skipped). Three runs at most (waits of 5 s and 25 s), cut off after 90 s;
+it runs, presenting the job's `run_token` (the job key alone reads nothing; 410 = the run no longer applies, skipped). Three runs at most (waits of 5 s and 25 s), cut off after 90 s;
 a failure names ids and the error's class, never its message (it can hold an answer), and the job's result is one
 word. Jobs queued by 4.1.x with the whole run in them are still run once. Tests: `tests/test_run_job.py`,
 `tests/test_queue_isolation.py`. `JOBS_BACKEND=temporal` runs the workflow below instead.
