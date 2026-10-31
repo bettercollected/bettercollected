@@ -56,7 +56,19 @@ vi.mock('@app/store/forms/slice', async (importOriginal) => {
         selectForm: () => ({
             formId: 'f1',
             settings: { provider: 'self' },
-            fields: [{ id: 's1', type: 'slide', index: 0, properties: { fields: [{ id: 'age', index: 0, type: 'number', title: 'Age' }, { id: 'name', index: 1, type: 'short_text', title: 'Full name' }] } }]
+            fields: [
+                {
+                    id: 's1',
+                    type: 'slide',
+                    index: 0,
+                    properties: {
+                        fields: [
+                            { id: 'age', index: 0, type: 'number', title: 'Age' },
+                            { id: 'name', index: 1, type: 'short_text', title: 'Full name' }
+                        ]
+                    }
+                }
+            ]
         })
     };
 });
@@ -68,7 +80,18 @@ vi.mock('@app/store/workspaces/slice', async (importOriginal) => {
 const wrapper = ({ children }: { children: React.ReactNode }) => <ReduxProvider store={store}>{children}</ReduxProvider>;
 
 const template = { subject: 'Hi {{name}}', body: '{{answers}}' };
-const action = (over: Partial<EmailAction> = {}): EmailAction => ({ id: 'a1', name: 'Notify the team', enabled: true, en: template, nl: template, fields: [{ source: 'name', key: 'name' }], teamRecipients: ['owner@acme.example'], respondentField: null, condition: null, ...over });
+const action = (over: Partial<EmailAction> = {}): EmailAction => ({
+    id: 'a1',
+    name: 'Notify the team',
+    enabled: true,
+    en: template,
+    nl: template,
+    fields: [{ source: 'name', key: 'name' }],
+    teamRecipients: ['owner@acme.example'],
+    respondentField: null,
+    condition: null,
+    ...over
+});
 const variables: WebhookVariable[] = [
     { source: 'name', label: 'Full name', type: 'short_text', supported: true },
     { source: 'mail', label: 'Email', type: 'email', supported: true },
@@ -228,7 +251,7 @@ describe('adding an email action', () => {
         expect(screen.getByRole('button', { name: 'Insert answers' })).toBeInTheDocument();
     });
 
-    it('shows the server\'s preview of the template, in the language being edited', async () => {
+    it("shows the server's preview of the template, in the language being edited", async () => {
         previewMock.mockReturnValue(ok({ subject: 'Hi Example text', body: 'Full name: Example text' }));
         render(<EmailActionsSettings workspaceId="ws1" formId="f1" configured />, { wrapper });
         openAdd();
@@ -246,7 +269,11 @@ describe('adding an email action', () => {
         openAdd();
         fireEvent.click(screen.getByLabelText('Send the respondent a copy of their own answers'));
         const select = screen.getByLabelText('Email question') as HTMLSelectElement;
-        expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual(['Choose a question…', 'Email']);
+        expect(
+            within(select)
+                .getAllByRole('option')
+                .map((o) => o.textContent)
+        ).toEqual(['Choose a question…', 'Email']);
         expect(select.value).toBe('mail');
     });
 

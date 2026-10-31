@@ -8,10 +8,10 @@ import ActionConditionEditor, { conditionIncomplete } from '@app/components/emai
 import { Field, inputClass } from '@app/components/registration/field';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import { EmailAction, EmailVariable, usePreviewEmailMutation, useCreateEmailActionMutation, useUpdateEmailActionMutation } from '@app/store/workspaces/email-actions-api';
+import { EmailAction, EmailVariable, useCreateEmailActionMutation, usePreviewEmailMutation, useUpdateEmailActionMutation } from '@app/store/workspaces/email-actions-api';
 import type { ActionCondition } from '@app/store/workspaces/webhooks-api';
-import { variableTypeKey } from '@app/utils/registration';
 import { DEFAULT_TEMPLATES, EditorField, LANGUAGES, MAX_TEAM, NAME_MAX, TemplateLanguage, addressProblem, errorField, errorKey, insertPlaceholder, parseRecipients, placeholdersFor, templateProblem } from '@app/utils/email-actions';
+import { variableTypeKey } from '@app/utils/registration';
 import { defaultKeyOf, errorCodeOf, isValidKey } from '@app/utils/webhooks';
 
 interface Props {
@@ -72,7 +72,9 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
 
     const emailQuestions = useMemo(() => variables.filter((v) => v.supported && v.type === 'email'), [variables]);
     const choosable = useMemo(() => variables.filter((v) => v.supported), [variables]);
-    const keys = Object.values(chosen).map((k) => k.trim()).filter(Boolean);
+    const keys = Object.values(chosen)
+        .map((k) => k.trim())
+        .filter(Boolean);
     const saving = creating || updating;
     const fail = (field: EditorField | 'general', message: string) => setErrors((e) => ({ ...e, [field]: message }));
     const clear = (field: EditorField) => setErrors((e) => ({ ...e, [field]: undefined }));
@@ -227,7 +229,15 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                             <li key={variable.source} className="flex flex-col gap-2 px-3 py-2.5" data-testid={`email-variable-${variable.source}`}>
                                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                                     <div className="flex min-w-0 items-start gap-2.5">
-                                        <input id={id} type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500" checked={key !== undefined} disabled={!can} aria-describedby={!can ? `${id}-reason` : undefined} onChange={(e) => toggleQuestion(variable.source, e.target.checked)} />
+                                        <input
+                                            id={id}
+                                            type="checkbox"
+                                            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+                                            checked={key !== undefined}
+                                            disabled={!can}
+                                            aria-describedby={!can ? `${id}-reason` : undefined}
+                                            onChange={(e) => toggleQuestion(variable.source, e.target.checked)}
+                                        />
                                         <label htmlFor={id} className={can ? 'text-sm break-words text-black-900' : 'text-sm break-words text-black-600'}>
                                             {variable.label}
                                         </label>
@@ -281,10 +291,14 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                     ))}
                 </div>
                 <Field id="email-subject" label={t('EMAIL_ACTIONS.EDITOR.SUBJECT')}>
-                    {(props) => <input {...props} ref={subjectField} className={inputClass} value={current.subject} maxLength={200} autoComplete="off" onFocus={() => (lastFocused.current = 'subject')} onChange={(e) => setTemplate('subject', e.target.value)} />}
+                    {(props) => (
+                        <input {...props} ref={subjectField} className={inputClass} value={current.subject} maxLength={200} autoComplete="off" onFocus={() => (lastFocused.current = 'subject')} onChange={(e) => setTemplate('subject', e.target.value)} />
+                    )}
                 </Field>
                 <Field id="email-body" label={t('EMAIL_ACTIONS.EDITOR.BODY')} error={errors.templates}>
-                    {(props) => <textarea {...props} ref={bodyField} className={inputClass + ' h-44 py-2 font-mono'} value={current.body} maxLength={10000} onFocus={() => (lastFocused.current = 'body')} onChange={(e) => setTemplate('body', e.target.value)} />}
+                    {(props) => (
+                        <textarea {...props} ref={bodyField} className={inputClass + ' h-44 py-2 font-mono'} value={current.body} maxLength={10000} onFocus={() => (lastFocused.current = 'body')} onChange={(e) => setTemplate('body', e.target.value)} />
+                    )}
                 </Field>
                 <div className="flex flex-col gap-1.5">
                     <span id="email-placeholders-label" className="text-xs font-medium text-black-700">
@@ -292,7 +306,13 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                     </span>
                     <div role="group" aria-labelledby="email-placeholders-label" className="flex flex-wrap gap-1.5">
                         {placeholdersFor(keys, 'body').map((placeholder) => (
-                            <button key={placeholder} type="button" className="rounded-md border border-black-300 bg-black-100 px-2 py-1 font-mono text-xs text-black-800 hover:border-brand-500" onClick={() => insert(placeholder)} aria-label={t('EMAIL_ACTIONS.EDITOR.INSERT', { name: placeholder })}>
+                            <button
+                                key={placeholder}
+                                type="button"
+                                className="rounded-md border border-black-300 bg-black-100 px-2 py-1 font-mono text-xs text-black-800 hover:border-brand-500"
+                                onClick={() => insert(placeholder)}
+                                aria-label={t('EMAIL_ACTIONS.EDITOR.INSERT', { name: placeholder })}
+                            >
                                 {`{{${placeholder}}}`}
                             </button>
                         ))}

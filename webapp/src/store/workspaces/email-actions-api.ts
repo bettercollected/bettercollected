@@ -1,6 +1,6 @@
+import { workspacesApi } from '@app/store/workspaces/api';
 import type { WebhookVariable } from '@app/store/workspaces/webhooks-api';
 import { ActionCondition, DeliveryStatus } from '@app/store/workspaces/webhooks-api';
-import { workspacesApi } from '@app/store/workspaces/api';
 
 // Email actions per form (docs/email-actions.md): mail to the form's team and a
 // copy to the respondent. Every call is `/workspaces/{id}/forms/{form}/email-actions...`.

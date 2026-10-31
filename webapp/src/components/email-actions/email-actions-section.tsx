@@ -136,27 +136,59 @@ export function EmailActionsSettings({ workspaceId, formId, configured }: { work
                                                 <div className="flex min-w-0 flex-col">
                                                     <span className="text-sm font-semibold break-words text-black-900">{action.name}</span>
                                                     <span className="text-xs text-black-600">
-                                                        {[action.teamRecipients.length > 0 ? t('EMAIL_ACTIONS.LIST.TEAM', { count: action.teamRecipients.length }) : null, action.respondentField ? t('EMAIL_ACTIONS.LIST.COPY') : null, action.condition && action.condition.conditions.length > 0 ? t('ACTION_CONDITION.BADGE') : null]
+                                                        {[
+                                                            action.teamRecipients.length > 0 ? t('EMAIL_ACTIONS.LIST.TEAM', { count: action.teamRecipients.length }) : null,
+                                                            action.respondentField ? t('EMAIL_ACTIONS.LIST.COPY') : null,
+                                                            action.condition && action.condition.conditions.length > 0 ? t('ACTION_CONDITION.BADGE') : null
+                                                        ]
                                                             .filter(Boolean)
                                                             .join(' · ')}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <Switch id={`email-on-${action.id}`} checked={action.enabled} disabled={busy === action.id} aria-label={t('EMAIL_ACTIONS.LIST.ENABLED_FOR', { name: action.name })} onCheckedChange={(checked) => toggle(action, checked)} />
+                                                    <Switch
+                                                        id={`email-on-${action.id}`}
+                                                        checked={action.enabled}
+                                                        disabled={busy === action.id}
+                                                        aria-label={t('EMAIL_ACTIONS.LIST.ENABLED_FOR', { name: action.name })}
+                                                        onCheckedChange={(checked) => toggle(action, checked)}
+                                                    />
                                                     <span className="text-sm text-black-800" aria-hidden="true">
                                                         {t(action.enabled ? 'EMAIL_ACTIONS.LIST.ON' : 'EMAIL_ACTIONS.LIST.OFF')}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                <Button type="button" variant="v2Button" size="sm" disabled={busy === action.id} onClick={() => setEditing({ kind: 'edit', id: action.id })} aria-label={t('EMAIL_ACTIONS.LIST.EDIT_NAMED', { name: action.name })}>
+                                                <Button
+                                                    type="button"
+                                                    variant="v2Button"
+                                                    size="sm"
+                                                    disabled={busy === action.id}
+                                                    onClick={() => setEditing({ kind: 'edit', id: action.id })}
+                                                    aria-label={t('EMAIL_ACTIONS.LIST.EDIT_NAMED', { name: action.name })}
+                                                >
                                                     {t('EMAIL_ACTIONS.LIST.EDIT')}
                                                 </Button>
-                                                <Button type="button" variant="v2Button" size="sm" isLoading={busy === action.id} disabled={busy !== null || !configured} onClick={() => test(action, 'team')} aria-label={t('EMAIL_ACTIONS.LIST.TEST_NAMED', { name: action.name })}>
+                                                <Button
+                                                    type="button"
+                                                    variant="v2Button"
+                                                    size="sm"
+                                                    isLoading={busy === action.id}
+                                                    disabled={busy !== null || !configured}
+                                                    onClick={() => test(action, 'team')}
+                                                    aria-label={t('EMAIL_ACTIONS.LIST.TEST_NAMED', { name: action.name })}
+                                                >
                                                     {t('EMAIL_ACTIONS.LIST.TEST')}
                                                 </Button>
                                                 {action.respondentField && (
-                                                    <Button type="button" variant="v2Button" size="sm" disabled={busy !== null || !configured} onClick={() => test(action, 'respondent')} aria-label={t('EMAIL_ACTIONS.LIST.TEST_COPY_NAMED', { name: action.name })}>
+                                                    <Button
+                                                        type="button"
+                                                        variant="v2Button"
+                                                        size="sm"
+                                                        disabled={busy !== null || !configured}
+                                                        onClick={() => test(action, 'respondent')}
+                                                        aria-label={t('EMAIL_ACTIONS.LIST.TEST_COPY_NAMED', { name: action.name })}
+                                                    >
                                                         {t('EMAIL_ACTIONS.LIST.TEST_COPY')}
                                                     </Button>
                                                 )}
