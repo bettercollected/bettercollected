@@ -13,8 +13,8 @@ answers, is exported and shown with the response, and a save that leaves its
 type and settings as they are (a new title, a moved question, another
 question changed) passes. Stored data is never touched.
 
-``GATED_TYPES`` is the one list of types behind the switch (time, day and
-currency), and ``signature`` is what
+``GATED_TYPES`` is the one list of types behind the switch (time, day, currency,
+date range and tags), and ``signature`` is what
 counts as "the question's type and settings".
 """
 
@@ -28,7 +28,7 @@ from backend.app.services.calculated_fields import _get, _type
 DISABLED_CODE = "question_type_disabled"
 # Types behind the switch. Keep in step with GATED_TYPES in
 # webapp/src/lib/form-ops/new-question-types.ts.
-GATED_TYPES = frozenset({"time", "day", "currency"})
+GATED_TYPES = frozenset({"time", "day", "currency", "date_range", "tags"})
 # Operations that can give a form such a question or change one.
 GATED_OPS = frozenset(
     {
@@ -46,7 +46,7 @@ GATED_OPS = frozenset(
 PROBLEMS_MAX = 50
 
 DISABLED_MESSAGE = (
-    "These question types (time, day and currency) cannot be added or changed "
+    "These question types (time, day, currency, date range and tags) cannot be added or changed "
     "on this server yet (NEW_QUESTION_TYPES_ENABLED is off). Questions of these "
     "types that a form already has are kept."
 )
@@ -80,7 +80,7 @@ def _plain(value: Any) -> Any:
 def signature(field: Any) -> str:
     """What makes a gated question the same one: its type and the settings
     that belong to the type (the time limits, the currencies, the date rules
-    of a day, the amount limits). Its title, its place and the settings every
+    of a day or a date range, the amount limits, the number and length of tags). Its title, its place and the settings every
     question has do not count."""
     props = _get(field, "properties")
     validations = _get(field, "validations")
@@ -93,6 +93,10 @@ def signature(field: Any) -> str:
             "dateRules": _plain(_get(props, "date_rules")),
             "minValue": _get(validations, "min_value"),
             "maxValue": _get(validations, "max_value"),
+            # a tags question: the number of tags and the length of one
+            "minChoices": _get(validations, "min_choices"),
+            "maxChoices": _get(validations, "max_choices"),
+            "maxLength": _get(validations, "max_length"),
         },
         sort_keys=True,
         default=str,

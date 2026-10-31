@@ -177,7 +177,7 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Allows saving new or changed field rules (stored rules are enforced either way).",
           tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
-          "Allows adding or changing the newer question types (time, day, currency); "
+          "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",
           tier=T2),
     _bool("COUPON_ENABLED", "features", (BACKEND,), False, "Enables coupon codes."),

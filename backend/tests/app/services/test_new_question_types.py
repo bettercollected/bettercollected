@@ -51,12 +51,19 @@ MONEY = {
     "properties": {"currencies": ["EUR"]},
     "validations": {"min_value": 1},
 }
+STAY = {
+    "id": "r",
+    "type": "date_range",
+    "title": "Stay",
+    "properties": {"date_rules": [{"comparison": "after", "target": "today"}]},
+}
+TAGS = {"id": "g", "type": "tags", "title": "Topics", "validations": {"max_choices": 3}}
 DAY = {"id": "d", "type": "day", "title": "Born"}
 TEXT = {"id": "s", "type": "short_text", "title": "Name"}
 
 
-def test_the_list_is_the_three_types_for_now():
-    assert GATED_TYPES == {"time", "day", "currency"}
+def test_the_list_is_the_five_types():
+    assert GATED_TYPES == {"time", "day", "currency", "date_range", "tags"}
 
 
 def test_only_gated_questions_have_signatures_nested_ones_included():
@@ -80,10 +87,14 @@ def test_a_question_that_is_the_same_is_not_new_or_changed():
         {**MONEY, "properties": {"currencies": ["EUR", "USD"]}},
         {**MONEY, "validations": {"min_value": 1, "max_value": 9}},
         {**DAY, "properties": {"date_rules": [{"comparison": "before", "target": "today"}]}},
+        {**STAY, "properties": {"date_rules": [{"comparison": "before", "target": "today"}]}},
+        {**TAGS, "validations": {"max_choices": 4}},
+        {**TAGS, "validations": {"max_choices": 3, "max_length": 10}},
+        {**TAGS, "validations": {"max_choices": 3, "min_choices": 1}},
     ],
 )
 def test_changed_settings_count(changed):
-    stored = _form(TIME, MONEY, DAY)
+    stored = _form(TIME, MONEY, DAY, STAY, TAGS)
     result = new_or_changed_questions(_form(changed), stored)
     assert [r[0] for r in result] == [changed["id"]]
 

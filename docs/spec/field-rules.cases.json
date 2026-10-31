@@ -5101,6 +5101,586 @@
         }
       },
       "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression counts the nights of a date range",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "date_diff_days": [
+                                {
+                                  "var": "s.start"
+                                },
+                                {
+                                  "var": "s.end"
+                                }
+                              ]
+                            },
+                            3
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a short stay does not meet a night count",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "date_diff_days": [
+                                {
+                                  "var": "s.start"
+                                },
+                                {
+                                  "var": "s.end"
+                                }
+                              ]
+                            },
+                            6
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an unanswered date range reads as nothing",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">": [
+                            {
+                              "date_diff_days": [
+                                {
+                                  "var": "s.start"
+                                },
+                                {
+                                  "var": "s.end"
+                                }
+                              ]
+                            },
+                            0
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a condition on a date range that includes a day",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "s",
+                            "fieldType": "date_range",
+                            "comparison": "CONTAINS",
+                            "value": "2026-11-05"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a condition on a date range that does not include a day",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "s",
+                            "fieldType": "date_range",
+                            "comparison": "CONTAINS",
+                            "value": "2026-12-01"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a condition on a date range that ends before a day",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "s",
+                "type": "date_range",
+                "title": "s"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "s",
+                            "fieldType": "date_range",
+                            "comparison": "LESS_THAN",
+                            "value": "2026-11-08"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "s": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a condition on tags that contain a label in another case",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "tags",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "t",
+                            "fieldType": "tags",
+                            "comparison": "CONTAINS",
+                            "value": "VEGAN"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "tags",
+          "tags": [
+            "vegan",
+            "gluten free"
+          ]
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: a condition on tags that do not contain a label",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "tags",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "conditions": [
+                          {
+                            "fieldId": "t",
+                            "fieldType": "tags",
+                            "comparison": "CONTAINS",
+                            "value": "halal"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "tags",
+          "tags": [
+            "vegan"
+          ]
+        }
+      },
+      "states": {},
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression looks a label up in tags",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "tags",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          "contains": [
+                            {
+                              "var": "t"
+                            },
+                            "vegan"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "tags",
+          "tags": [
+            "vegan",
+            "gluten free"
+          ]
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
+    },
+    {
+      "name": "rule: an expression counts the tags",
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "t",
+                "type": "tags",
+                "title": "t"
+              },
+              {
+                "id": "b",
+                "type": "short_text",
+                "title": "b",
+                "properties": {
+                  "rules": [
+                    {
+                      "id": "r1",
+                      "when": {
+                        "expression": {
+                          ">=": [
+                            {
+                              "count": [
+                                {
+                                  "var": "t"
+                                }
+                              ]
+                            },
+                            2
+                          ]
+                        }
+                      },
+                      "then": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "t": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "states": {
+        "b": {
+          "required": true
+        }
+      },
+      "answersAfter": {}
     }
   ]
 }

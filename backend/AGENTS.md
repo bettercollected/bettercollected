@@ -345,9 +345,9 @@ gate for every op writer (chat, proposals, MCP, public API). Never add a paralle
 where it sits: moving a question changes no rule) and its content, so a rule moved to another question, or
 to one of another type under a reused id, reads as new. Stored rules are kept and enforced.
 `NEW_QUESTION_TYPES_ENABLED` (default off) is the same kind of switch for the newer question types (`time`, `day`,
-`currency`; the list is `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
+`currency`, `date_range`, `tags`; the list is `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
 brings a new gated question, or changes the type or the type's own settings of one (`signature`: time limits,
-currencies, a day's date rules, amount limits; not the title, label, required flag or place), is refused with 422
+currencies, the date rules of a day or a range, amount limits, a tags question's number and length limits; not the title, label, required flag or place), is refused with 422
 `question_type_disabled`, and an op fails with the same message (`question_type_problem`, after each op in
 `GATED_OPS`, against the form the batch started from). Paths: `write_form_parts` (the last gate for every op writer),
 create/update form (a copy, `drop_unusable_settings`, keeps what its source has), templates, the spec API (its
@@ -356,6 +356,17 @@ prompt leaves the types out (`ops_guide()`). Never add a parallel check. Stored 
 answers and exporting: answer validation and exports do not read the switch. The shared ops corpus runs a case with
 the switch off through `newQuestionTypes: false`. A test that needs such a form builds it with the switch on, then
 turns it off.
+**Date range and tags** (`date_range`, `tags`; spec section "Date range and tags questions"): answer slots
+`date_range` (`{start, end}`) and `tags` (list of text); rule codes `range_order` and `duplicate` next to `format`,
+`required` (one end only), `too_long` (a tag), `too_few_choices`/`too_many_choices` (the tags), checked in
+`answer_validation._date_range_problems` / `_tags_problems` (twin `utils/answer-rules.ts`; tag rules in
+`common/tags.py`, twin `utils/tags.ts`; caps `TAGS_MAX` 30, `TAG_LENGTH_MAX` 40, case compared with `lower()`/`toLowerCase()`
+on both sides). Date rules (`date_rules._check_field`) check each end of a range; a range is never the target of
+another question's date rule (`DATE_RULE_SOURCE_TYPES`). A range is two variables `<id>.start`/`<id>.end`
+(`calculated_fields.question_variable_keys` / `question_variables`, used wherever variable keys are listed or built,
+field rules' group-item scope included), conditions on it go through `repeating_groups._date_range_condition`, tags read
+as a list compared ignoring case. Exports: `YYYY-MM-DD/YYYY-MM-DD` and `a; b` (temporal `get_answer_for_field`, webapp
+`getAnswerForField`). Both types are behind the switch (`signature` includes `minChoices`, `maxChoices`, `maxLength`).
 Bounds: 8 per question, 100 per form (counted before parsing a builder body, a spec or an ops payload), 50
 variables per expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`:
 forms that could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`).

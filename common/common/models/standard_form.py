@@ -285,6 +285,9 @@ class StandardFormFieldType(str, Enum):
     TIME = "time"
     DAY = "day"
     CURRENCY = "currency"
+    # A start and an end day, and free-entry short labels.
+    DATE_RANGE = "date_range"
+    TAGS = "tags"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
     MULTIPLE_CHOICE = "multiple_choice"
@@ -374,6 +377,8 @@ class StandardResponseType(str, Enum):
     TABULAR_INPUT = "tabular_input"
     TIME = "time"
     CURRENCY = "currency"
+    DATE_RANGE = "date_range"
+    TAGS = "tags"
     # A repeating group: the answer carries one answers-dict per item in
     # ``StandardFormResponseAnswer.items``.
     GROUP = "group"
@@ -430,6 +435,14 @@ class StandardCurrencyAnswer(BaseModel):
 
     code: Optional[str] = None
     amount: Optional[str] = None
+
+
+class StandardDateRangeAnswer(BaseModel):
+    """The answer of a ``date_range`` question: the first and the last day,
+    both ``YYYY-MM-DD``, the last not before the first."""
+
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class StandardChoiceAnswer(BaseModel):
@@ -669,6 +682,8 @@ REPEAT_CHILD_FIELD_TYPES = {
     "day",
     "time",
     "currency",
+    "date_range",
+    "tags",
     "yes_no",
     "multiple_choice",
     "dropdown",
@@ -727,7 +742,10 @@ DATE_RULES_MAX = 5
 # Question types that answer with a calendar day (``YYYY-MM-DD`` in the
 # ``date`` slot) and so carry date rules and are compared as dates: a date
 # picked from a calendar, and a day typed as day, month and year.
-DATE_RULE_TYPES = ("date", "day")
+DATE_RULE_TYPES = ("date", "day", "date_range")
+# The ones another question's date rule may compare with (one day each; a
+# range has two).
+DATE_RULE_SOURCE_TYPES = ("date", "day")
 # Length cap of a question's "why we ask this" line (StandardFieldProperty).
 WHY_WE_ASK_MAX_LENGTH = 280
 # Length cap of a page's own section title (StandardFieldProperty).
@@ -1284,7 +1302,7 @@ def date_rule_problems(fields: Any) -> List[str]:
                 continue
             ref, ref_group = entry
             ref_title = _question_title(ref)
-            if _type_value(getattr(ref, "type", None)) not in DATE_RULE_TYPES:
+            if _type_value(getattr(ref, "type", None)) not in DATE_RULE_SOURCE_TYPES:
                 problems.append(
                     f"A date rule of '{title}' uses '{ref_title}', which is not a date question."
                 )
@@ -1325,7 +1343,7 @@ def _usable_date_rule_source(question: Any, group: Any, entry: Any) -> bool:
     ref, ref_group = entry
     if ref is question:
         return False
-    if _type_value(getattr(ref, "type", None)) not in DATE_RULE_TYPES:
+    if _type_value(getattr(ref, "type", None)) not in DATE_RULE_SOURCE_TYPES:
         return False
     if getattr(ref, "internal", None):
         return False
@@ -1593,6 +1611,9 @@ class StandardFormResponseAnswer(BaseModel):
     # question's code and amount.
     time: Optional[str] = None
     currency: Optional[StandardCurrencyAnswer] = None
+    # A ``date_range`` question's two days; a ``tags`` question's labels.
+    date_range: Optional[StandardDateRangeAnswer] = None
+    tags: Optional[List[str]] = None
     file_metadata: Optional[FileMetadata] = None
     tabular_value: Optional[List[List[str]]] = None
     # Repeating group answer (type ``group``): one answers-dict per item, keyed

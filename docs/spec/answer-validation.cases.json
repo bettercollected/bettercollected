@@ -10859,6 +10859,2900 @@
           "rule": "required"
         }
       ]
+    },
+    {
+      "name": "date range with a start and a later end",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "date range on one day",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-03"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "date range across a year end",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-12-30",
+            "end": "2027-01-02"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "date range ending before it starts",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-07",
+            "end": "2026-11-03"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "range_order"
+        }
+      ]
+    },
+    {
+      "name": "date range with only a start",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "date range with only an end",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "end": "2026-11-03"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "date range with an empty end",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": ""
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "date range with a day that does not exist",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-02-30",
+            "end": "2026-03-05"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "date range written day first is not stored",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "03-11-2026",
+            "end": "07-11-2026"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "date range with a one-digit month",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-1-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "date range with a leap day",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2028-02-28",
+            "end": "2028-02-29"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "date range in the date slot is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date",
+          "date": "2026-11-03"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "date range with an extra key is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07",
+            "nights": 4
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "date range with a number for a day is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": 20261103,
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "date range given as a list is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": [
+            "2026-11-03",
+            "2026-11-07"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "a date answered in a date range question's slot of a day question",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "day",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "required date range unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required date range with empty days",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "",
+            "end": ""
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required date range answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with a few labels",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "blue",
+            "green"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with one label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with spaces and accents inside",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "blue sky",
+            "café",
+            "日本"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with an empty label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            ""
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a label that starts with a space",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            " red"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a label that ends with a space",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red "
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a comma in a label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red,blue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a semicolon in a label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red;blue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a tab in a label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red\tblue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a line break in a label",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red\nblue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "tags with a label of the longest length",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with a label over the longest length",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "tags with a label over the question's own length",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "abcdef"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "tags with a label on the question's own length",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 5
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "abcde"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags with a length limit above the hard cap",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxLength": 100
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "tags with the same label twice",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "red"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        }
+      ]
+    },
+    {
+      "name": "tags with the same label in another case",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "Red",
+            "rEd"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        }
+      ]
+    },
+    {
+      "name": "tags with labels that only look alike",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "red1",
+            "re d"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags under the fewest",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "minChoices": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_few_choices"
+        }
+      ]
+    },
+    {
+      "name": "tags on the fewest",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "minChoices": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "blue"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags over the most",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "b",
+            "c"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "tags on the most",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "thirty tags",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "thirty-one tags",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29",
+            "t30"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "tags over a limit above the hard cap",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 50
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "t0",
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t11",
+            "t12",
+            "t13",
+            "t14",
+            "t15",
+            "t16",
+            "t17",
+            "t18",
+            "t19",
+            "t20",
+            "t21",
+            "t22",
+            "t23",
+            "t24",
+            "t25",
+            "t26",
+            "t27",
+            "t28",
+            "t29",
+            "t30"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "tags with two problems",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "maxChoices": 2
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a",
+            "A",
+            "b"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "duplicate"
+        },
+        {
+          "fieldId": "q1",
+          "rule": "too_many_choices"
+        }
+      ]
+    },
+    {
+      "name": "tags in the text slot are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "red, blue"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags that are not a list are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": "red"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags with a number in the list are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            3
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "tags in a choice question's slot are the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "short_text",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "required tags unanswered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required tags with an empty list",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": []
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required tags answered",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a range that includes a day shows what the rule shows",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "CONTAINS",
+                        "value": "2026-11-05"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range includes its first day",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "CONTAINS",
+                        "value": "2026-11-03"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range includes its last day",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "CONTAINS",
+                        "value": "2026-11-07"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range that does not include a day hides what the rule shows",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "CONTAINS",
+                        "value": "2026-11-08"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a range that does not include a day, in a does-not-include rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "DOES_NOT_CONTAIN",
+                        "value": "2026-11-08"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range that includes a day, in a does-not-include rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "DOES_NOT_CONTAIN",
+                        "value": "2026-11-05"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a range that starts after a day",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "GREATER_THAN",
+                        "value": "2026-11-02"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range that starts on a day does not start after it",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "GREATER_THAN",
+                        "value": "2026-11-03"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a range that ends before a day",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "LESS_THAN",
+                        "value": "2026-11-08"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range that ends on a day does not end before it",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "LESS_THAN",
+                        "value": "2026-11-07"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a half-typed range includes nothing",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "CONTAINS",
+                        "value": "2026-11-03"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a range left empty is empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "IS_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "an answered range is not empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "date_range",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "date_range",
+                        "comparison": "IS_NOT_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "date_range",
+          "date_range": {
+            "start": "2026-11-03",
+            "end": "2026-11-07"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "tags that contain a label in another case",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "CONTAINS",
+                        "value": "RED"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "blue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "tags that do not contain a label",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "CONTAINS",
+                        "value": "green"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "blue"
+          ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "tags that do not contain a label, in a does-not-contain rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "DOES_NOT_CONTAIN",
+                        "value": "green"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "red",
+            "blue"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "tags left empty are empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "IS_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "answered tags are not empty in a rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "tags",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "tags",
+                        "comparison": "IS_NOT_EMPTY",
+                        "value": null
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "tags",
+          "tags": [
+            "a"
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
     }
   ]
 }
