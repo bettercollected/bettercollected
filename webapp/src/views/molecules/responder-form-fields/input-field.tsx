@@ -1,12 +1,14 @@
-import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import { getRespondentPlaceholder } from '@app/utils/form-utils';
-
 import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
+
+import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { getRespondentPlaceholder } from '@app/utils/form-utils';
+
 import { useEnterToNextQuestion } from './next-question';
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
@@ -24,6 +26,8 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const { currentSlide } = useResponderState();
     const { t } = useRespondentLanguage();
     const onKeyDown = useEnterToNextQuestion(field);
+    // A field rule can lock the question and set its value (a 0 is a value then).
+    const locked = useFieldRuleStates().isLocked(field.id);
     const handleChange = (value: any) => {
         if (!value) {
             removeAnswer(field.id);
@@ -52,8 +56,10 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
         switch (field.type) {
             case FieldTypes.LINK:
                 return (formResponse.answers && formResponse.answers[field.id]?.url) || '';
-            case FieldTypes.NUMBER:
-                return (formResponse.answers && formResponse.answers[field.id]?.number) || '';
+            case FieldTypes.NUMBER: {
+                const number = formResponse.answers?.[field.id]?.number;
+                return locked ? (number ?? '') : number || '';
+            }
             case FieldTypes.EMAIL:
                 return (formResponse.answers && formResponse.answers[field.id]?.email) || '';
             case FieldTypes.SHORT_TEXT:

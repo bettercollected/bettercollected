@@ -6,7 +6,8 @@ import { Shield } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 
 import { FormTheme } from '@app/constants/theme';
-import { useCalculatedFields } from '@app/lib/hooks/use-calculated-fields';
+import { useDerivedAnswers } from '@app/lib/hooks/use-derived-answers';
+import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -23,7 +24,6 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { getInputFieldsById, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { validateAnswerRulesInSlide } from '@app/utils/answer-rules';
@@ -38,12 +38,14 @@ import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, v
 import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
 import { firstPageWithError, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
+import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
+import FieldRuleAnnouncer from '@app/views/molecules/responder-form-fields/field-rule-announcer';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
 import InputField from '@app/views/molecules/responder-form-fields/input-field';
 import LinearRatingField from '@app/views/molecules/responder-form-fields/linear-rating';
@@ -143,8 +145,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
-    // Calculated fields follow the answers live (logic, jumps and piping read them).
-    useCalculatedFields(standardForm?.fields);
+    // Calculated fields, and the values field rules set or lock, follow the
+    // answers live (logic, jumps and piping read them).
+    useDerivedAnswers(standardForm?.fields, standardForm?.hiddenFields);
+    // What the rules decide now: effective Required, locked questions.
+    const ruleStates = useFieldRuleStates();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
@@ -306,18 +311,19 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // Only validate fields the responder can actually see.
         const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
         const invalidations = {
-            ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}),
+            ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}, ruleStates),
             // Repeating groups: item limits, and required questions per item
             // (keyed by the item-scoped id the question renders under).
-            ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources)
+            ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources, ruleStates)
         };
         // Answer rules (length, format, value range, number of options) on
         // answers given; a missing one is Required's to report.
-        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources)).forEach(([id, problems]) => {
+        // (A question the form sets or locks is not the respondent's to correct.)
+        Object.entries(validateAnswerRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, logicSources, ruleStates.locked)).forEach(([id, problems]) => {
             if (!invalidations[id]) invalidations[id] = problems as any;
         });
         // Date rules (e.g. "after Start date"), on top of a missing answer.
-        Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields))).forEach(([id, problems]) => {
+        Object.entries(validateDateRulesInSlide(visibleSlide.properties.fields, formResponse.answers || {}, getInputFieldsById(standardForm?.fields), undefined, ruleStates.locked)).forEach(([id, problems]) => {
             invalidations[id] = [...(invalidations[id] ?? []), ...problems] as any;
         });
         setInvalidFields(invalidations);
@@ -373,6 +379,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         {standardForm.title}
                     </h1>
                 )}
+                {/* What the form's field rules changed on this page, said once, politely. */}
+                <FieldRuleAnnouncer fields={pageFields} />
                 {/* The bar sits over the scrolling questions: give it the page's
                     ground (translucent + blur, so it also works over gradient or image
                     backgrounds) or questions scroll through the header text. */}

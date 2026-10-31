@@ -1,6 +1,7 @@
 import { JSONContent } from '@tiptap/react';
 
 import { FormTheme } from '@app/constants/theme';
+import type { FieldRule } from '@app/lib/field-rules';
 import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { DateRule, FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
@@ -33,6 +34,8 @@ export interface StandardFormFieldProperties {
     actions?: any;
     /** v2 conditional visibility rule for this field (see utils/conditional-logic). */
     logic?: FieldConditionalLogic;
+    /** Field rules: require, lock, set a value or change the text of this question while a condition holds (see lib/field-rules.ts). */
+    rules?: FieldRule[];
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */

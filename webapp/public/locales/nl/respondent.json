@@ -96,6 +96,7 @@
         "CALCULATED_TRUE": "Ja",
         "CALCULATED_FALSE": "Nee",
         "OPTIONAL": "Niet verplicht",
+        "READ_ONLY": "Alleen lezen",
         "ANSWER_REQUIRED": "Beantwoord deze vraag om verder te gaan.",
         "YES": "Ja",
         "NO": "Nee",
@@ -107,6 +108,17 @@
         "RATE": "{{value}} van {{total}} geven",
         "RATED": "{{value}} van {{total}}",
         "CHOOSE_MANY": "Kies er zoveel als je wilt."
+    },
+    "FIELD_RULES": {
+        "NOW_REQUIRED": "\u201c{{title}}\u201d is nu verplicht.",
+        "NOW_OPTIONAL": "\u201c{{title}}\u201d is nu optioneel.",
+        "NOW_READ_ONLY": "\u201c{{title}}\u201d is nu alleen lezen.",
+        "NOW_FILLED_IN": "\u201c{{title}}\u201d is voor u ingevuld en is alleen lezen.",
+        "NOW_EDITABLE": "\u201c{{title}}\u201d kan weer worden aangepast.",
+        "NOW_TITLED": "Een vraag heet nu \u201c{{title}}\u201d.",
+        "DESCRIPTION_CHANGED": "De toelichting bij \u201c{{title}}\u201d is gewijzigd.",
+        "MORE_one": "{{count}} wijziging meer op deze pagina.",
+        "MORE_other": "{{count}} wijzigingen meer op deze pagina."
     },
     "RULE": {
         "TOO_SHORT_one": "Gebruik minstens {{count}} teken.",

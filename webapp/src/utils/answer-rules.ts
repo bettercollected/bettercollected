@@ -160,7 +160,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any): Answ
  * id its question renders under, skipping questions hidden in that item (the
  * server checks items the same way).
  */
-export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources): Record<string, AnswerRuleProblem[]> {
+export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFieldDto> | undefined, answers: Record<string, any>, sources?: LogicSources, locked?: ReadonlySet<string>): Record<string, AnswerRuleProblem[]> {
     const invalid: Record<string, AnswerRuleProblem[]> = {};
     (fields ?? []).forEach((field) => {
         if (field.internal) return;
@@ -177,6 +177,8 @@ export function validateAnswerRulesInSlide(fields: ReadonlyArray<StandardFormFie
             }
             return;
         }
+        // The form's own value (a field rule sets or locks it): not the respondent's to correct.
+        if (locked?.has(field.id)) return;
         const problems = checkAnswerRules(field, answers[field.id]);
         if (problems.length) invalid[field.id] = problems;
     });

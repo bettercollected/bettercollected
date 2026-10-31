@@ -1,6 +1,6 @@
-
-import { atom, useAtom } from 'jotai';
 import { useMemo } from 'react';
+
+import { atom, useAtom, useAtomValue } from 'jotai';
 
 import { FileMetadata } from '@app/models/types/field-types';
 import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
@@ -76,6 +76,13 @@ const initialFormResponse: FormResponse = {
 };
 
 const formResponseAtom = atom<FormResponse>(initialFormResponse);
+
+/**
+ * The form's own answers, also inside a repeating-group item (where
+ * `useFormResponse` presents that item's answers layered over them): what
+ * field rules are evaluated against.
+ */
+export const useRootFormAnswers = (): FormResponse['answers'] => useAtomValue(formResponseAtom).answers;
 
 type FormResponseUpdate = FormResponse | ((previous: FormResponse) => FormResponse);
 

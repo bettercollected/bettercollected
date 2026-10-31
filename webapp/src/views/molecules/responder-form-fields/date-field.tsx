@@ -1,8 +1,10 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { format } from 'date-fns';
 import { nl as dutch } from 'date-fns/locale/nl';
 import { CalendarIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -14,7 +16,6 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import { DateRuleContext, getDateRuleError, getDisabledDayMatcher, isoToLocalDate, resolveDateRuleBounds, toIsoDate, todayIso } from '@app/utils/date-rules';
-
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { joinIds, useQuestionLabel } from './question-label-context';
@@ -102,10 +103,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         type="button"
                         aria-labelledby={labelledBy}
                         aria-describedby={group['aria-describedby']}
-                        className={cn(
-                            'flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg',
-                            isBuilder && 'pointer-events-none'
-                        )}
+                        className={cn('flex min-h-12 w-full cursor-pointer items-center gap-2 border bg-white px-4 py-3 text-base transition duration-150 hover:border-(--hover-border)! lg:text-lg', isBuilder && 'pointer-events-none')}
                         style={{
                             ['--hover-border' as string]: theme?.primary ?? '#101828',
                             borderRadius: styleTokens(theme?.style).fieldRadius,
@@ -114,11 +112,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             color: date ? theme?.primary : '#667085'
                         }}
                     >
-                        <CalendarIcon
-                            aria-hidden="true"
-                            className="h-6 w-6 shrink-0"
-                            style={{ color: secondaryColor }}
-                        />
+                        <CalendarIcon aria-hidden="true" className="h-6 w-6 shrink-0" style={{ color: secondaryColor }} />
                         {date ? (
                             // The chosen date is the answer — ink, not the action colour.
                             <span id={valueId} style={{ color: theme?.primary }}>
@@ -145,7 +139,9 @@ const DateField = ({ field, slide, isBuilder = false }: IDateField) => {
     const ruleContext = useDateRuleContext();
     // A date that breaks a rule (e.g. the date it is compared with changed
     // afterwards) shows why right away; Continue/Submit is blocked too.
-    const ruleError = isBuilder ? undefined : getDateRuleError(field, ruleContext);
+    // (Not for a date the form sets or locks: its date rules are not the respondent's to meet.)
+    const locked = useFieldRuleStates().isLocked(field.id);
+    const ruleError = isBuilder || locked ? undefined : getDateRuleError(field, ruleContext);
     const flagged = (formResponse.invalidFields?.[field.id] ?? []).includes('DATE_RULE');
     const errorMessage = ruleError ?? (flagged ? '' : undefined);
 
