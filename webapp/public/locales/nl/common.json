@@ -327,6 +327,10 @@
     "SETTINGS": {
       "DEFAULT": {
         "DESCRIPTION": "Pas moeiteloos formulierlinks aan en beheer uw formulieren effectief.",
+        "REVIEW_PAGE": {
+          "TITLE": "Antwoorden laten controleren voor het verzenden",
+          "DESCRIPTION": "Respondenten zien na de laatste vraag al hun antwoorden op één pagina, met een link om elke pagina aan te passen, en verzenden ze vanaf daar. Er wordt niets verstuurd of opgeslagen voordat ze dat doen."
+        },
         "PIN_FORM": {
           "TITLE": "Formulier vastzetten",
           "DESCRIPTION": "Wanneer u een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat uw publiek kan zien op uw formulierpagina."
@@ -1130,12 +1134,12 @@
     "DISMISS": "Sluiten",
     "ERROR_RATE_LIMITED": "U hebt dit formulier te vaak geëxporteerd. Probeer het over {{minutes}} minuten opnieuw.",
     "ERROR_IN_PROGRESS": "Er wordt al een export van dit formulier voorbereid.",
-    "ERROR_TOO_MANY": "Dit formulier heeft meer reacties dan één export kan bevatten (100.000). Zoek op een respondent om een kleinere set te exporteren.",
+    "ERROR_TOO_MANY": "Dit formulier heeft meer reacties dan één export kan bevatten (100.000). Beperk de lijst met de filters of een zoekopdracht en exporteer opnieuw.",
     "ERROR_FORBIDDEN": "U mag deze reacties niet exporteren.",
     "ERROR_FAILED": "De export kon niet worden voorbereid. Er is niets bewaard. Probeer het opnieuw.",
     "ERROR_DELETED": "Tijdens het voorbereiden van uw export zijn reacties verwijderd, daarom hebben we het bestand weggegooid. Start de export opnieuw.",
     "ERROR_PERMISSION": "U mag de reacties van dit formulier niet meer exporteren.",
-    "ERROR_TOO_LARGE": "De export is te groot voor één bestand. Zoek op een respondent om een kleinere set te exporteren.",
+    "ERROR_TOO_LARGE": "De export is te groot voor één bestand. Beperk de lijst met de filters of een zoekopdracht en exporteer opnieuw.",
     "ERROR_GONE": "Deze export is niet meer beschikbaar. Start hem opnieuw.",
     "ERROR_GENERIC": "De export is niet gelukt. Probeer het opnieuw.",
     "ERROR_READY": "Er staat al een export van dit formulier klaar. Download die, of verwijder het bestand om een nieuwe te starten.",
@@ -1144,5 +1148,45 @@
     "DISCARD": "Bestand verwijderen",
     "DISCARDING": "Bestand wordt verwijderd…",
     "DISCARDED": "Het bestand is van onze servers verwijderd. U kunt een nieuwe export starten."
+  },
+  "RESPONSES_LIST": {
+    "FILTERS": "Reacties filteren en sorteren",
+    "FROM": "Ingediend vanaf",
+    "TO": "Ingediend tot en met",
+    "STATUS": "Verwijderverzoek",
+    "STATUS_ANY": "Alle",
+    "STATUS_NONE": "Geen verzoek",
+    "STATUS_PENDING": "Verwijdering gevraagd",
+    "STATUS_DECLINED": "Verzoek geweigerd",
+    "WHO": "Respondent",
+    "WHO_ANY": "Iedereen",
+    "WHO_ANONYMOUS": "Anoniem",
+    "WHO_KNOWN": "Bekend",
+    "VERSION": "Formulierversie",
+    "VERSION_ANY": "Alle versies",
+    "VERSION_N": "Versie {{n}}",
+    "VERSION_CURRENT": "Versie {{n}} (huidig)",
+    "SORT": "Sorteren op",
+    "SORT_NEWEST": "Nieuwste eerst",
+    "SORT_OLDEST": "Oudste eerst",
+    "SORT_VERSION_HIGH": "Formulierversie, nieuwste eerst",
+    "SORT_VERSION_LOW": "Formulierversie, oudste eerst",
+    "CLEAR": "Filters wissen",
+    "SHOWING": "{{from}}–{{to}} van {{total}} getoond",
+    "NONE_MATCH_TITLE": "Geen reacties voldoen aan deze filters",
+    "NONE_MATCH_BODY": "Probeer een ruimere periode of wis een filter.",
+    "PAGER": "Pagina's met reacties",
+    "PAGER_TOP": "Pagina's met reacties (boven de tabel)",
+    "PAGER_BOTTOM": "Pagina's met reacties (onder de tabel)",
+    "FIRST": "Eerste pagina",
+    "PREVIOUS": "Vorige pagina",
+    "NEXT": "Volgende pagina",
+    "LAST": "Laatste pagina",
+    "PAGE_N": "Pagina {{n}}",
+    "LAST_UNAVAILABLE": "De laatste pagina is niet beschikbaar bij meer dan 10.000 reacties. Sorteer andersom om het andere uiteinde te zien.",
+    "PAGE_SIZE": "Rijen per pagina",
+    "TOO_DEEP_TITLE": "Die pagina is te ver om direct te openen",
+    "TOO_DEEP_BODY": "Blader door de lijst met de paginering, of begin bij de eerste pagina.",
+    "GO_FIRST": "Naar de eerste pagina"
   }
 }

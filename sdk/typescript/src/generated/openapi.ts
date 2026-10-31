@@ -262,6 +262,8 @@ export interface components {
             /** Label */
             label?: string | null;
             attachment?: components["schemas"]["Attachment"] | null;
+            /** @description Offer this option only (SHOW) or unless (HIDE) its conditions hold, at most 20. The conditions read earlier questions of the form. An answer that selects an option that is not offered is refused. */
+            logic?: components["schemas"]["Logic"] | null;
         };
         /** ClosedDeletionRequestResult */
         ClosedDeletionRequestResult: {
@@ -509,6 +511,8 @@ export interface components {
             /** Whyweask */
             whyWeAsk?: string | null;
             logic?: components["schemas"]["Logic"] | null;
+            /** @description A choice question's options filtered by an earlier choice question's answer (see OptionFilter). */
+            optionFilter?: components["schemas"]["OptionFilter"] | null;
             /**
              * Rules
              * @description At most 8 rules per question and 100 per form (see Rule).
@@ -668,6 +672,31 @@ export interface components {
             results: components["schemas"]["OpResult"][];
             /** @description The form after the batch. */
             form: components["schemas"]["FormSpec"];
+        };
+        /**
+         * OptionFilter
+         * @description Filter a choice question's options by an earlier choice question's
+         *     answer: the options offered are those the chosen options of ``fieldId``
+         *     map to (the union over a multiple choice's selection). Without an answer
+         *     to it (or with only "Other" text) nothing is filtered; a chosen option
+         *     with no entry offers nothing.
+         */
+        OptionFilter: {
+            /** Fieldid */
+            fieldId: string;
+            /** Mapping */
+            mapping?: components["schemas"]["OptionFilterEntry"][];
+        };
+        /**
+         * OptionFilterEntry
+         * @description While the earlier question's option ``when`` (its id) is chosen, the
+         *     question offers the options in ``show`` (their ids).
+         */
+        OptionFilterEntry: {
+            /** When */
+            when: string;
+            /** Show */
+            show?: string[];
         };
         /**
          * Page
@@ -1022,6 +1051,11 @@ export interface components {
             allowEditingResponse?: boolean | null;
             /** Showsubmissionnumber */
             showSubmissionNumber?: boolean | null;
+            /**
+             * Showreviewpage
+             * @description Respondents see their answers on a page of their own, with a link back to each page, before they send them.
+             */
+            showReviewPage?: boolean | null;
         };
         /** ValidationResult */
         ValidationResult: {

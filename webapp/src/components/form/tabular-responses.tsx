@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation';
 
 import { useTranslation } from 'react-i18next';
 
-import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import globalConstants from '@app/constants/global';
 import { Page } from '@app/models/dtos/page';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -53,13 +51,11 @@ const customTableStyles = {
 
 interface TabularResponsesProps {
     form: StandardFormDto;
-    /** The listed responses: the one query (search text and page included) is made by the parent. */
+    /** The listed responses: the one query (search text, filters and page included) is made by the parent, which also pages. */
     data?: Page<StandardFormResponseDto>;
-    page: number;
-    onPageChange: (page: number) => void;
 }
 
-export default function TabularResponses({ form, data, page, onPageChange }: TabularResponsesProps) {
+export default function TabularResponses({ form, data }: TabularResponsesProps) {
     const { toast } = useToast();
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);
@@ -198,20 +194,12 @@ export default function TabularResponses({ form, data, page, onPageChange }: Tab
         }))
     ];
 
-    const handlePageChange = (e: any, nextPage: number) => {
-        onPageChange(nextPage);
-    };
-
     return (
         <>
             {Array.isArray(data?.items) && (
                 <div className="responders-frozen-table border-black-300 overflow-hidden rounded-lg border">
-                    <DataTable onRowClicked={openResponse} pointerOnHover columns={columns} customStyles={customTableStyles} data={data?.items || []} fixedHeader fixedHeaderScrollHeight="65vh" />
-                </div>
-            )}
-            {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
-                <div className="mt-8 flex justify-center">
-                    <StyledPagination shape="rounded" count={data?.pages || 0} page={page} onChange={handlePageChange} />
+                    {/* No inner scroll height: the page scrolls, the table only scrolls sideways */}
+                    <DataTable onRowClicked={openResponse} pointerOnHover columns={columns} customStyles={customTableStyles} data={data?.items || []} />
                 </div>
             )}
         </>

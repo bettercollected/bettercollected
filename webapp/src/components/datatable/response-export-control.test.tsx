@@ -119,6 +119,15 @@ describe('a small export', () => {
         expect(server.starts[0]).toEqual({ workspaceId: 'ws-1', formId: 'form-1', search: 'sita@example.org' });
     });
 
+    it('holds what the list shows: its filters go with the request too', async () => {
+        server.started = { kind: 'file', blob: new Blob(['a']), mediaType: 'text/csv' };
+        const filters = { submittedFrom: '2026-10-01T00:00:00.000Z', respondent: 'known' as const, formVersion: [2], status: ['pending'] };
+        render(tree({ filters }));
+        click('Export matching responses');
+        await waitFor(() => expect(server.starts).toHaveLength(1));
+        expect(server.starts[0]).toEqual({ workspaceId: 'ws-1', formId: 'form-1', ...filters });
+    });
+
     it('can be dismissed, and started again', async () => {
         server.started = { kind: 'file', blob: new Blob(['a']), mediaType: 'text/csv' };
         render(tree());
@@ -332,13 +341,13 @@ describe('when following or fetching goes wrong', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent(words);
     });
 
-    it('says what the too-many-responses refusal offers: a search', async () => {
+    it("says what the too-many-responses refusal offers: the list's filters or a search", async () => {
         server.startError = { status: 413, data: { code: 'too_many_rows' } };
         render(tree());
         click('Export CSV');
         const alert = await screen.findByRole('alert');
         expect(alert).toHaveTextContent('100,000');
-        expect(alert).toHaveTextContent('Search for a responder');
+        expect(alert).toHaveTextContent('Narrow the list with the filters or a search');
     });
 });
 

@@ -24,6 +24,7 @@ import DateFieldSettings from '@app/views/molecules/form-builder/date-field-sett
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
+import OptionLogicSettings from '@app/views/molecules/form-builder/option-logic-settings';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 
 // Field types that show content and collect no answer.
@@ -193,6 +194,8 @@ export default function FieldSettings() {
                     <div className={NO_OWN_RULE}>
                         <FieldConditionalLogicEditor />
                     </div>
+                    {/* A choice question's options: each can have its own logic, and the list can follow an earlier answer */}
+                    <OptionLogicSettings />
                 </InspectorSection>
             )}
 

@@ -5,6 +5,7 @@ from camel_converter import to_camel
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend.app.models.filter_queries.response_export import (
+    DeletionStatusFilter,
     RespondentFilter,
     ResponseExportFilters,
 )
@@ -23,6 +24,7 @@ class ResponseExportRequest(BaseModel):
     columns: Optional[List[str]] = Field(default=None, max_length=1000)
     submitted_from: Optional[dt.datetime] = None
     submitted_to: Optional[dt.datetime] = None
+    status: List[DeletionStatusFilter] = Field(default_factory=list, max_length=4)
     respondent: Optional[RespondentFilter] = None
     form_version: List[int] = Field(default_factory=list, max_length=50)
     search: Optional[str] = Field(default=None, max_length=320)
@@ -49,6 +51,7 @@ class ResponseExportRequest(BaseModel):
         return ResponseExportFilters(
             submitted_from=self.submitted_from,
             submitted_to=self.submitted_to,
+            status=tuple(dict.fromkeys(self.status)),
             respondent=self.respondent,
             form_version=tuple(dict.fromkeys(self.form_version)),
             search=(self.search or "").strip() or None,

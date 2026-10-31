@@ -160,10 +160,32 @@ async def test_the_list_filters_narrow_an_export(client: AsyncClient, workspace)
     assert len(await ask(submittedFrom="2021-01-01T00:00:00Z", respondent="known")) == 1
 
 
+async def test_the_deletion_request_status_filter_narrows_an_export(client: AsyncClient, workspace):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    stored = sorted(await container.form_response_repo().many(), key=lambda r: str(r.id))
+    await container.form_response_service().request_for_response_deletion(
+        workspace.id, stored[0].response_id, testUser
+    )
+
+    async def names(**body):
+        response = await start(client, workspace, form, body)
+        assert response.status_code == 200, response.text
+        return [r[1] for r in rows(response)[1:]]
+
+    assert len(await names()) == 3
+    assert await names(status=["pending"]) == ["Person 0"]
+    assert len(await names(status=["none"])) == 2
+    assert len(await names(status=["none", "pending"])) == 3
+    (entry,) = [e for e in await audit_of(workspace, form) if e.filters.get("status") == ["pending"]]
+    assert entry.row_count == 1
+
+
 @pytest.mark.parametrize(
     "body",
     [
         {"submittedFrom": "2026-01-01T00:00:00"},
+        {"status": ["lost"]},
         {"submittedFrom": "2026-02-01T00:00:00Z", "submittedTo": "2026-01-01T00:00:00Z"},
         {"respondent": "robots"},
         {"formVersion": [-1]},

@@ -1,6 +1,8 @@
 """update_form_settings semantics live in one place (apply_settings_ops),
 used by the save and the dry run alike."""
 
+import pytest
+
 from common.models.standard_form import StandardForm
 
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -57,3 +59,21 @@ def test_the_dry_run_uses_a_copy_with_the_same_result():
     apply_settings_ops(saved, OPS, _results())
     assert preview == saved
     assert settings_after_ops(None, OPS, _results()) is None
+
+
+def test_the_review_page_switch_is_set_as_given_and_must_be_a_boolean():
+    ops = parse_ops(
+        [{"op": "update_form_settings", "patch": {"showReviewPage": True}}]
+    )
+    _, results = apply_form_ops(StandardForm(fields=[]), ops)
+    assert results[0].ok
+    settings = WorkspaceFormSettings()
+    assert settings.show_review_page is None
+    assert apply_settings_ops(settings, ops, results) is True
+    assert settings.show_review_page is True
+    off = parse_ops([{"op": "update_form_settings", "patch": {"showReviewPage": False}}])
+    _, off_results = apply_form_ops(StandardForm(fields=[]), off)
+    apply_settings_ops(settings, off, off_results)
+    assert settings.show_review_page is False
+    with pytest.raises(ValueError):
+        parse_ops([{"op": "update_form_settings", "patch": {"showReviewPage": "banana"}}])

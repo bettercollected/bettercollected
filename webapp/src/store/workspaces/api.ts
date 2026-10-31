@@ -46,6 +46,7 @@ export interface StartResponseExportRequest {
     /** the responses list's filters, by their names */
     submittedFrom?: string;
     submittedTo?: string;
+    status?: string[];
     respondent?: 'anonymous' | 'known';
     formVersion?: number[];
     search?: string;
@@ -243,7 +244,17 @@ export const workspacesApi = createApi({
                     request_for_deletion: query.requestedForDeletionOly,
                     page: query.page,
                     size: query.size,
-                    dataOwnerIdentifier: query.dataOwnerIdentifier
+                    dataOwnerIdentifier: query.dataOwnerIdentifier,
+                    // keyset list: filters, sort and the cursor (undefined ones are not sent)
+                    paging: query.paging,
+                    sort_by: query.sort_by,
+                    sort_order: query.sort_order,
+                    submittedFrom: query.submittedFrom,
+                    submittedTo: query.submittedTo,
+                    status: query.status,
+                    respondent: query.respondent,
+                    formVersion: query.formVersion,
+                    cursor: query.cursor
                 },
                 method: 'GET'
             }),
@@ -482,7 +493,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'

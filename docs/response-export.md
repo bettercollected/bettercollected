@@ -13,7 +13,7 @@ its file.
 | Route | What it does |
 |---|---|
 | `GET /columns` | The columns an export may be limited to: `key`, `label`, `kind`. |
-| `POST /` | Starts an export. Body (all optional): `columns` (keys), `submittedFrom`, `submittedTo` (UTC instants), `respondent` (`anonymous` or `known`), `formVersion` (list), `search` (responder email). Up to 5,000 matching responses: **200** and the file itself. More: **202** and the export to follow. |
+| `POST /` | Starts an export. Body (all optional): `columns` (keys), `submittedFrom`, `submittedTo` (UTC instants), `respondent` (`anonymous` or `known`), `formVersion` (list), `status` (deletion-request status: `none`, `pending`, `declined`, `success`), `search` (responder email). Up to 5,000 matching responses: **200** and the file itself. More: **202** and the export to follow. |
 | `GET /` | The caller's own exports of the form that are running, ready or failed. |
 | `GET /{export_id}` | State of one export; once its file is ready, `downloadUrl`, a fresh signed link. |
 | `GET /{export_id}/download?token=` | The file, as often as wanted until it is deleted. |
@@ -54,9 +54,8 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   worker for it. The executor's database role cannot see this queue. The filters wait sealed on the export row and are removed when the job ends. The
   job reads the live rows when it runs and asks again whether the requester still holds
   `response.export`.
-* `MAX_ROWS` (100,000) and `MAX_FILE_BYTES` (256 MiB) bound one export. The Export control offers a search
-  as its only filter, so a form above 100,000 responses cannot be exported whole from the page yet: the
-  API takes the list's date and version filters (`submittedFrom`, `submittedTo`, `formVersion`).
+* `MAX_ROWS` (100,000) and `MAX_FILE_BYTES` (256 MiB) bound one export. The Export control sends the
+  responses list's filters and search, so a form above 100,000 responses is exported in parts by narrowing the list.
 * **One live export per requester and form** (a job in flight, or whose file waits to be fetched: 409
   `export_in_progress` or `export_ready`), enforced by a partial unique index, so two requests at once
   make one job. **At most `WORKSPACE_MAX_JOBS` (3) jobs in flight per workspace** (429 `workspace_busy`);

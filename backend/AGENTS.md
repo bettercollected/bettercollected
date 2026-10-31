@@ -177,6 +177,15 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   `COLLECTION_GROUPS` map). A clean full `verify` writes the "migration verified" marker into `<schema>.store_migration`
   (`common/db/marker.py`, read with `migration_verified(conn, service)`); `status --json` is the operators'
   machine-readable view.
+- **The staff responses list pages by keyset** (`GET .../forms/{form_id}/submissions` with `paging=keyset`, any of the
+  filters `submittedFrom`/`submittedTo`/`status`/`respondent`/`formVersion`, or a `cursor`; `list_form_page` in
+  `postgres/responses.py`, plan in `services/response_paging.py`, cursor in `services/response_cursor.py`). Filters are
+  plaintext columns only (answers are encrypted: no answer-level filter exists or is to be added here). The page is
+  reached by a seek on the sort index plus a skip of a few rows: from a signed cursor (the first row of a page the client
+  has, at most 10 pages away), from the start (at most 10,000 rows) or, with an exact total, from the end. The total is
+  exact up to 10,000 (`COUNT_CAP`), then `totalExact` is false. A query predicate meant to match a partial or expression
+  index is written with its constant in the statement (`literal_column`), not bound, or the planner cannot use the index;
+  check with `tests/app/repositories/test_responses_list_performance.py` (`RESPONSES_PERF_ROWS=300000 pytest -s`).
 - **Tests:** the Postgres repositories' results are pinned in JSON fixtures written from the 4.0 parity runs
   (`tests/fixtures/forms_repositories.json`, `responses_repositories.json`; `tests/app/repositories/pinned.py`),
   never regenerated to make a change pass. Test fixtures go through `container.<repo>()`; Beanie appears only in the
@@ -350,6 +359,35 @@ counts as empty, as an expression's input does), and a condition on an internal 
 (`field_rule_checker`) can run before and after an op replaced a question's rules, keeping the form's
 structure and the cost of the other questions; an expression nested more than 32 levels is refused when
 an op is parsed, and the op walks (`_resolve_refs`, `ref_dependencies`) are iterative.
+
+**Choice logic** (`services/option_logic.py`; spec section "Choice logic" in
+[../docs/spec/README.md](../docs/spec/README.md); webapp twin `utils/option-logic.ts`, shared cases
+`docs/spec/option-logic.cases.json` run by `tests/app/services/test_option_logic_cases.py` and vitest): a
+choice (`choices[].logic`, the question-level `FieldLogic`) and a question (`properties.option_filter`,
+common `OptionFilter` `{field_id, mapping: [{when, show}]}`) decide which options respondents are offered.
+`answer_validation.validate_answers` evaluates `option_states` on the answers it is handed (after the field rules'
+values) and refuses a counted question's selection of an unavailable option (rule `hidden_option`); a question
+with nothing left (no "Other") is never required and `minChoices` is clamped (`OptionStates.min_choices`);
+a locked question (`FieldRuleStates.locked`) is not filtered. The respondent's edit also checks the questions
+`option_keys_affected` names (those whose options read a changed answer, transitively). Save paths: the spec
+check (`form_spec/checks._check_option_logic`, strict, with paths) and the ops engine (`set_option_logic`,
+`set_option_filter`; a move that would put a condition's source after its question is refused; removing a
+question or option prunes via `_dropped_rules_note`) refuse; the builder's create/update, templates and
+`persist_form` call `ensure_valid_option_logic(form, drop=True)`, which repairs (drops the condition, filter
+entry or filter that broke) and refuses only the size caps, so autosave never sticks. Rules: page-level choice
+questions only, sources are earlier respondent-facing questions (acyclic: one forward pass is the fixpoint),
+caps in common (`OPTION_CONDITIONS_MAX` 20 per option, 200 options, 1,000 conditions and 50 filters per form,
+counted raw before parsing in the builder body, templates and ops payloads). `CHOICE_LOGIC_ENABLED` (default off, kept off until the 4.2 release) gates every write that
+brings new or changed option logic or filters (`ensure_choice_logic_allowed` / `new_or_changed_option_logic`: a piece is
+new or changed unless it is stored as it is or is a stored one with some of it taken away, so a repair, a clearing and
+moving a question pass): create/update form (builder, spec API), templates, `set_option_logic` / `set_option_filter` and
+the editor ops' questions (`_check_choice_logic_allowed`), and `persist_form` as the last gate (chat, proposals, MCP, public
+API); 422 `choice_logic_disabled`. Stored option logic is enforced either way. A provider import strips it
+(`strip_option_logic`), `duplicate_page` and the builder's copies start without it, the AI prompt names the ops only while
+it is on, and the permissions answer carries `choiceLogicEnabled` for the builder. A builder save repairs and returns
+what it repaired (`droppedOptionLogic`, toasted by autosave); a question with more than 200 options, a form over the
+evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
+respondent page does (`clearUnavailableOptions`).
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
@@ -1070,5 +1108,4 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
 - A run owns an export only while its claim (`attempts`) is current: store chunks with `add_chunk_if_owned` (row lock plus heartbeat) and end with `_end_owned`, never with a bare write. One live export per requester and form is a partial unique index; `admit_job` also caps jobs per workspace. `GET .../all-submissions` goes through `ResponseExportService.bulk_read` (audit and rate limit).
 - The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
 - Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
-  else's is a 404). A new filter goes in `models/filter_queries/response_export.py` (the names of the responses list's
-  filters) and, with its SQL, in `PostgresFormResponseRepository._export_where`: plaintext columns only.
+  else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.

@@ -13,12 +13,22 @@ export const EXPORT_POLL_MS = 3000;
 
 type Phase = 'idle' | 'starting' | 'preparing' | 'ready' | 'downloading' | 'discarding' | 'done' | 'error';
 
+/** The responses list's filters, by the API's names: the export holds what the list shows. */
+export interface ExportFilters {
+    submittedFrom?: string;
+    submittedTo?: string;
+    status?: string[];
+    respondent?: 'anonymous' | 'known';
+    formVersion?: number[];
+}
+
 interface Props {
     workspaceId: string;
     formId: string;
     formTitle: string;
     /** the responses list's search, in force: the export holds what the list shows */
     search?: string;
+    filters?: ExportFilters;
 }
 
 /** A message key (and its values) for what went wrong: the server's code first, then its status. */
@@ -48,7 +58,7 @@ function endedMessage(exportRow: ResponseExportDto): string {
  * ("We're preparing your export"), found again after a reload, and handed over
  * through a short-lived link once it is ready (docs/response-export.md).
  */
-export default function ResponseExportControl({ workspaceId, formId, formTitle, search }: Props) {
+export default function ResponseExportControl({ workspaceId, formId, formTitle, search, filters }: Props) {
     const { t } = useTranslation();
     const [phase, setPhase] = useState<Phase>('idle');
     const [exportId, setExportId] = useState<string | undefined>();
@@ -123,7 +133,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
         setNotice(undefined);
         setPhase('starting');
         try {
-            const started = await startExport({ workspaceId, formId, ...(search ? { search } : {}) }).unwrap();
+            const started = await startExport({ workspaceId, formId, ...(search ? { search } : {}), ...(filters ?? {}) }).unwrap();
             if (!mounted.current) return;
             if (started.kind === 'file') {
                 // small enough to come in the response itself: nothing was stored
@@ -147,7 +157,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
             setMessage(refusalMessage(error));
             setPhase('error');
         }
-    }, [workspaceId, formId, formTitle, search, startExport]);
+    }, [workspaceId, formId, formTitle, search, filters, startExport]);
 
     const handleDownload = useCallback(async () => {
         if (!exportId) return;
@@ -225,7 +235,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
     return (
         <div className="flex flex-col items-start gap-2 sm:items-end">
             <Button data-umami-event="Export CSV Button" isLoading={phase === 'starting'} disabled={busy} aria-describedby="response-export-status" variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleStart}>
-                {t(search ? responseExportLocale.buttonMatching : responseExportLocale.button)}
+                {t(search || (filters && Object.keys(filters).length > 0) ? responseExportLocale.buttonMatching : responseExportLocale.button)}
             </Button>
             <div id="response-export-status" role={phase === 'error' ? 'alert' : 'status'} aria-live={phase === 'error' ? 'assertive' : 'polite'} aria-busy={busy} className="max-w-[420px] text-left text-sm text-black-700 sm:text-right">
                 {phase === 'starting' && <span>{t(responseExportLocale.starting)}</span>}

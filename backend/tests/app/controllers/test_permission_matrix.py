@@ -1355,6 +1355,20 @@ async def test_effective_permissions_say_whether_field_rules_are_on(
     assert response.json()["fieldRulesEnabled"] is enabled
 
 
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_effective_permissions_say_whether_choice_logic_is_on(
+    client: AsyncClient, matrix, monkeypatch, enabled: bool
+):
+    """The builder shows its option logic settings from this (CHOICE_LOGIC_ENABLED)."""
+    monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", enabled)
+    response = await client.get(
+        f"/api/v1/workspaces/{matrix['ws']}/permissions",
+        cookies=_cookies(USERS[ROLES[0]]),
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["choiceLogicEnabled"] is enabled
+
+
 async def test_effective_permissions_need_a_signed_in_user(client: AsyncClient, matrix):
     response = await client.get(f"/api/v1/workspaces/{matrix['ws']}/permissions")
     assert response.status_code == 401

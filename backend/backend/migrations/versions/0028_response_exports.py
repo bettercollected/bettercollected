@@ -1,7 +1,7 @@
 """response exports: the audit entry of each export and the chunks of a job's file
 
 Revision ID: 0028
-Revises: 0024
+Revises: 0025
 Create Date: 2026-10-31
 
 Two new tables (``backend/app/services/response_export``): one row per export of
@@ -12,9 +12,8 @@ when responses of the form are deleted. New
 tables only, so expand-only. Written by hand in the shape autogenerate produces
 for a BaseRow table.
 
-``down_revision`` is develop's head when this was written (0024); it is set to
-the head at the time the branch is merged (0025, 0026 and 0027 belong to other
-branches).
+``down_revision`` is 0025, the head of develop when this was merged (0026 and 0027
+belong to other branches that also revise 0025; whichever merges later is re-pointed).
 """
 
 from typing import Sequence, Union
@@ -24,7 +23,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0028"
-down_revision: Union[str, None] = "0024"
+down_revision: Union[str, None] = "0025"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
