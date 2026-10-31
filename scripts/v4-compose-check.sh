@@ -289,11 +289,13 @@ rewrite_compose() { # rewrite_compose <dir> new|old
   local dir="$1" layout="$2" file hp new
   file="$dir/docker-compose.deployment.yml"
   if [ "$layout" = new ]; then
+    # this checkout's compose file: the tag is ${BC_IMAGE_TAG:-<release>}
+    local tag='\$\{BC_IMAGE_TAG:-[^}]*\}'
     sed -i -E \
-      -e "s#bettercollected/backend:nightly#$img_backend#" \
-      -e "s#bettercollected/auth:nightly#$img_auth#" \
-      -e "s#bettercollected/webapp:nightly#$img_webapp#" \
-      -e "s#bettercollected/integrations-google:nightly#$img_google#" \
+      -e "s#bettercollected/backend:${tag}#$img_backend#" \
+      -e "s#bettercollected/auth:${tag}#$img_auth#" \
+      -e "s#bettercollected/webapp:${tag}#$img_webapp#" \
+      -e "s#bettercollected/integrations-google:${tag}#$img_google#" \
       -e "s#ghcr.io/umami-software/umami:postgresql-latest#$img_umami#" "$file"
   else
     sed -i -E \

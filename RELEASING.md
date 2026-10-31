@@ -71,6 +71,11 @@ us automate release notes later.
    tags (optionally with a pre-release suffix), and any other tag name is refused. Confirm
    it picked up the release as expected.
 
+The deployment compose file runs `bettercollected/<service>:${BC_IMAGE_TAG:-vX.Y.Z}`, so a
+self-hoster who has not chosen a tag gets the latest release, not `nightly`. Set that default
+to the new version in the changelog PR of step 2 (`docker-compose.deployment.yml`, every
+`BC_IMAGE_TAG` default); a test fails until it equals the newest version in CHANGELOG.md.
+
 ## Keeping the changelog current
 
 Every PR notes its user- or operator-facing changes **as part of the PR that makes

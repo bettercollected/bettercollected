@@ -170,7 +170,7 @@ operator's webhook (`event_service.py`, `EVENT_WEBHOOK_URL`) with the event type
 
 ## Deployment
 
-- Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
+- Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly` on develop and `bettercollected/<service>:vX.Y.Z` on a release. The deployment compose file runs `:${BC_IMAGE_TAG}`, by default the latest release (see RELEASING.md).
 - `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, the Google Forms integration, temporal + workers,
   the application postgres, nginx, **umami + its own postgres**, the admin service, the jobs worker, the
   document sandbox and the task runner). `deploy.sh` seeds a new stack's reference data

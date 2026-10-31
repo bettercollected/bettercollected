@@ -810,9 +810,13 @@ window: the deploy recreates every service and runs migrations.
 4. **Set in the root `.env`** (create it if it is not there): `PLATFORM_ADMIN_EMAILS`,
    `TRUSTED_PROXIES` if you run a proxy or load balancer, and the `MAIL_*` values for the
    sign-in mail. Leave `ADMIN_ALLOWED_IPS` alone unless you need it.
-5. **Images.** `docker-compose.deployment.yml` runs the `bettercollected/<service>:nightly`
-   images and `deploy.sh` pulls them on every run. Check out the release tag so the compose
-   file, `deploy.sh` and the scripts are the release's.
+5. **Images.** `docker-compose.deployment.yml` runs the `bettercollected/<service>:<tag>`
+   images, with `<tag>` taken from `BC_IMAGE_TAG` (the shell's, else the root `.env`'s) and
+   by default the latest release (`v4.1.2`), never `nightly`. `deploy.sh` pulls them on
+   every run and, with no `BC_IMAGE_TAG` set, uses the release tag the checkout is on, so
+   check out the release tag: the compose file, `deploy.sh`, the scripts and the images are
+   then the release's. A checkout between releases keeps the compose file's default and
+   `deploy.sh` says so; set `BC_IMAGE_TAG=nightly` in `.env` to follow `develop` on purpose.
 6. **Keep `.env.deployment` across the update.** From 4.0 the repository no longer tracks
    `.env.deployment`. It ships the template `.env.deployment.example` instead, and
    `.env.deployment` is git-ignored: `deploy.sh` creates it from the template (mode 600)
