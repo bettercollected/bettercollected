@@ -865,6 +865,8 @@ class FormField(BaseModel):
             "time",
             "day",
             "currency",
+            "date_range",
+            "tags",
             "short_text",
             "long_text",
             "multiple_choice",

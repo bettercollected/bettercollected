@@ -52,7 +52,11 @@ function DayFieldSection({ field, isBuilder }: IDayField) {
         setBoxes((current) => (dayBoxesToIso(current) === next ? current : isoToDayBoxes(next)));
     }, [stored]);
 
+    // A field rule that locks the question sets its value: the boxes show it, and cannot be typed over.
+    const locked = useFieldRuleStates().isLocked(field.id);
+
     const change = (part: 'day' | 'month' | 'year') => (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (locked) return;
         const next = { ...boxes, [part]: event.target.value.replace(/\D/g, '').slice(0, part === 'year' ? 4 : 2) };
         setBoxes(next);
         const iso = dayBoxesToIso(next);
@@ -76,6 +80,8 @@ function DayFieldSection({ field, isBuilder }: IDayField) {
                     maxLength={part === 'year' ? 4 : 2}
                     value={boxes[part]}
                     disabled={isBuilder}
+                    readOnly={locked}
+                    aria-readonly={locked || undefined}
                     aria-describedby={hintId}
                     aria-invalid={question?.invalid || undefined}
                     $formTheme={theme}

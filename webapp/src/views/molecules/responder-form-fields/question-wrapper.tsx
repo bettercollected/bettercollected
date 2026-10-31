@@ -18,6 +18,7 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { answerRuleMessage, browserChecksPattern, checkAnswerRules, isAnswerRuleProblem } from '@app/utils/answer-rules';
+import { rawDateRange } from '@app/utils/date-range';
 import { isAnswerableField } from '@app/utils/leaflet-sections';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
@@ -74,7 +75,10 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // stops requiring the question. What the server said stays: it is the server's
     // word on the answer it was sent, and only the next Continue replaces it.
     const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || code !== Invalidations.REQUIRED);
-    const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
+    // A date range with one end given is flagged "required" by the answer rules; it is re-checked like the other rules (and an empty one is only ever the page's "required").
+    const rangeAnswer = rawDateRange(formResponse.answers?.[field.id]);
+    const rangeRule = field.type === FieldTypes.DATE_RANGE && flagged.includes('REQUIRED') && !!(rangeAnswer?.start || rangeAnswer?.end);
+    const flaggedOnlyRules = flagged.length > 0 && flagged.every((code) => isAnswerRuleProblem(code) || (rangeRule && code === 'REQUIRED'));
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id], optionStates) : [];
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
     // the server finds a miss, and its message stays until the next Continue.

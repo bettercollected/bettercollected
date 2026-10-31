@@ -75,6 +75,14 @@ describe('comparisonsForField — comparators adapt to the source type', () => {
         expect(multi).not.toContain(Comparison.IS_EQUAL);
     });
 
+    it('a date range asks whether it includes a day, starts after one or ends before one, or is empty', () => {
+        expect(comparisonsForField(field('f', 0, { type: FieldTypes.DATE_RANGE }))).toEqual([Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.GREATER_THAN, Comparison.LESS_THAN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
+    });
+
+    it('tags are asked like a multi-select: contains, does not contain, empty', () => {
+        expect(comparisonsForField(field('f', 0, { type: FieldTypes.TAGS }))).toEqual([Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
+    });
+
     it('text types offer the full string set', () => {
         const c = comparisonsForField(field('f', 0));
         expect(c).toEqual(expect.arrayContaining([Comparison.CONTAINS, Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EMPTY]));
@@ -100,5 +108,9 @@ describe('rule completeness', () => {
         const sources = buildSourceFields([slide('s1', [field('a', 0, { title: 'A' })])], () => true);
         expect(newConditionFor(sources)).toMatchObject({ fieldId: 'a', comparison: Comparison.IS_EQUAL, value: '' });
         expect(newConditionFor([])).toMatchObject({ fieldId: '', comparison: Comparison.IS_EQUAL });
+        // a date range or tags question starts with a comparison it can make
+        const ranged = buildSourceFields([slide('s1', [field('r', 0, { title: 'R', type: FieldTypes.DATE_RANGE }), field('t', 1, { title: 'T', type: FieldTypes.TAGS })])], () => true);
+        expect(newConditionFor(ranged)).toMatchObject({ fieldId: 'r', fieldType: FieldTypes.DATE_RANGE, comparison: Comparison.CONTAINS });
+        expect(newConditionFor(ranged.slice(1))).toMatchObject({ fieldId: 't', fieldType: FieldTypes.TAGS, comparison: Comparison.CONTAINS });
     });
 });

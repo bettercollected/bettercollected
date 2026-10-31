@@ -47,6 +47,8 @@ const FIELDS: Array<{ name: string; field: StandardFormFieldDto }> = [
     { name: 'day', field: base(FieldTypes.DAY) },
     { name: 'time', field: base(FieldTypes.TIME) },
     { name: 'currency', field: base(FieldTypes.CURRENCY) },
+    { name: 'date_range', field: base(FieldTypes.DATE_RANGE) },
+    { name: 'tags', field: base(FieldTypes.TAGS) },
     { name: 'yes_no', field: base(FieldTypes.YES_NO, { properties: { fields: [], choices: choices('Yes', 'No') } }) },
     { name: 'multiple_choice (single)', field: base(FieldTypes.MULTIPLE_CHOICE, { properties: { fields: [], choices: choices('Red', 'Green', 'Blue') } }) },
     { name: 'multiple_choice (multi-select)', field: base(FieldTypes.MULTIPLE_CHOICE, { properties: { fields: [], choices: choices('Red', 'Green', 'Blue'), allowMultipleSelection: true } }) },

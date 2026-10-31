@@ -236,9 +236,11 @@ Field types you may create: short_text, long_text, email, number, url,
 phone_number, date, day (a date typed as day, month and year: birth dates),
 time (HH:MM, 24-hour; "minTime"/"maxTime" limit it), currency (an amount with an
 ISO 4217 code; "currencies":["EUR","USD"], the first is the default; minValue and
-maxValue limit the amount), yes_no, multiple_choice, dropdown, rating,
-linear_rating, file_upload, text (a display-only statement), calculated (a computed
-value).
+maxValue limit the amount), date_range (a first and a last day, the last not before
+the first: stays, periods; date rules apply to both), tags (short free-entry labels;
+minChoices/maxChoices limit how many, maxLength one label's length), yes_no,
+multiple_choice, dropdown, rating, linear_rating, file_upload, text (a display-only
+statement), calculated (a computed value).
 
 Calculations (totals, scores): a "calculated" field shows a value computed from
 answers, never asked. add_field / update_field take "expression" (a JSON syntax
@@ -287,9 +289,11 @@ Rules:
 _TYPES_WITH_NEW = """phone_number, date, day (a date typed as day, month and year: birth dates),
 time (HH:MM, 24-hour; "minTime"/"maxTime" limit it), currency (an amount with an
 ISO 4217 code; "currencies":["EUR","USD"], the first is the default; minValue and
-maxValue limit the amount), yes_no, multiple_choice, dropdown, rating,
-linear_rating, file_upload, text (a display-only statement), calculated (a computed
-value)."""
+maxValue limit the amount), date_range (a first and a last day, the last not before
+the first: stays, periods; date rules apply to both), tags (short free-entry labels;
+minChoices/maxChoices limit how many, maxLength one label's length), yes_no,
+multiple_choice, dropdown, rating, linear_rating, file_upload, text (a display-only
+statement), calculated (a computed value)."""
 _TYPES_WITHOUT_NEW = """phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
 file_upload, text (a display-only statement), calculated (a computed value)."""
 

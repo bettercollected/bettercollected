@@ -61,6 +61,8 @@ const CHOICE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Compar
 const MULTI_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const DATE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const BOOL_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
+// A date range includes a day, does not include it, starts after it or ends before it (compareDateRange); tags are asked like a multi-select.
+const RANGE_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.GREATER_THAN, Comparison.LESS_THAN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 
 export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] {
     switch (field?.type) {
@@ -78,6 +80,10 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
         case FieldTypes.DAY:
         case FieldTypes.TIME:
             return DATE_COMPARISONS;
+        case FieldTypes.DATE_RANGE:
+            return RANGE_COMPARISONS;
+        case FieldTypes.TAGS:
+            return MULTI_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
         case FieldTypes.DROP_DOWN:
@@ -125,7 +131,9 @@ export function ConditionRow({ condition, sources, onChange, onRemove }: { condi
     const valueField: StandardFormFieldDto | undefined = group ? (condition.groupMode === 'COUNT' ? ({ id: 'count', index: 0, type: FieldTypes.NUMBER } as StandardFormFieldDto) : child) : src;
     const counting = !!group && condition.groupMode === 'COUNT';
     const comparisons = counting ? COUNT_COMPARISONS : comparisonsForField(valueField);
-    const comparisonText = (c: Comparison) => t(counting ? `CONDITION.COUNT_COMPARISON.${c}` : `CONDITION.COMPARISON.${c}`);
+    // a date range reads "includes", "starts after", "ends before"
+    const ranging = valueField?.type === FieldTypes.DATE_RANGE;
+    const comparisonText = (c: Comparison) => t(counting ? `CONDITION.COUNT_COMPARISON.${c}` : ranging ? `CONDITION.RANGE_COMPARISON.${c}` : `CONDITION.COMPARISON.${c}`);
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
         <div className="relative flex flex-col gap-1.5 rounded-md border border-black-300 bg-black-100 p-2">
@@ -222,7 +230,8 @@ export function ConditionValueInput({ field, value, onChange, invalid, described
         );
     }
     const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING || field?.type === FieldTypes.CURRENCY;
-    const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY;
+    // a date range is asked about a day
+    const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY || field?.type === FieldTypes.DATE_RANGE;
     const time = field?.type === FieldTypes.TIME;
     // An amount may have cents: the number box must not insist on whole steps.
     return <input {...state} className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder={t('CONDITION.VALUE_PLACEHOLDER')} onChange={(e) => onChange(e.target.value)} />;
@@ -231,7 +240,9 @@ export function ConditionValueInput({ field, value, onChange, invalid, described
 export function newConditionFor(sources: SourceField[]): LogicCondition {
     const first = sources[0]?.field;
     if (first && isRepeatingGroup(first)) return groupConditionFor(first) as LogicCondition;
-    return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison: Comparison.IS_EQUAL, value: '' };
+    // a date range or tags question is not asked "is equal to": its own first comparison
+    const comparison = first?.type === FieldTypes.DATE_RANGE || first?.type === FieldTypes.TAGS ? comparisonsForField(first)[0] : Comparison.IS_EQUAL;
+    return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison, value: '' };
 }
 
 /** Condition sources: answerable questions plus repeating groups (conditioned on as a whole). */

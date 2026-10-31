@@ -868,6 +868,14 @@
       "COUNT": "Aantal items",
       "ANY": "Een willekeurig item",
       "ALL": "Alle items"
+    },
+    "RANGE_COMPARISON": {
+      "CONTAINS": "omvat",
+      "DOES_NOT_CONTAIN": "omvat niet",
+      "GREATER_THAN": "begint na",
+      "LESS_THAN": "eindigt voor",
+      "IS_EMPTY": "is leeg",
+      "IS_NOT_EMPTY": "is niet leeg"
     }
   },
   "WEBHOOKS": {
@@ -1242,6 +1250,14 @@
     "currency": {
       "NAME": "Geldbedrag",
       "DESCRIPTION": "Een bedrag met de valuta"
+    },
+    "date_range": {
+      "NAME": "Periode (van - tot)",
+      "DESCRIPTION": "Een eerste en een laatste dag, zoals een verblijf"
+    },
+    "tags": {
+      "NAME": "Tags",
+      "DESCRIPTION": "Korte labels die de respondent typt"
     }
   },
   "TYPED_SETTINGS": {
@@ -1260,7 +1276,12 @@
     "LOWEST_AMOUNT": "Laagste bedrag",
     "HIGHEST_AMOUNT": "Hoogste bedrag",
     "NO_LIMIT": "Geen grens",
-    "AMOUNT_ORDER": "Het laagste bedrag is hoger dan het hoogste."
+    "AMOUNT_ORDER": "Het laagste bedrag is hoger dan het hoogste.",
+    "FEWEST_TAGS": "Minste tags",
+    "MOST_TAGS": "Meeste tags",
+    "LONGEST_TAG": "Langste tag (tekens)",
+    "TAGS_ORDER": "Het minimum aantal tags is hoger dan het maximum.",
+    "TAGS_HINT": "Hooguit {{most}} tags en elke tag hooguit {{length}} tekens. Tags worden vergeleken zonder op hoofdletters te letten en bevatten geen komma of puntkomma."
   },
   "NEW_TYPES": {
     "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",

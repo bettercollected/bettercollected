@@ -9,6 +9,7 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import { questionCurrencies } from '@app/utils/answer-rules';
 import { CURRENCIES_MAX, CURRENCY_CODES } from '@app/utils/currency';
+import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
 import { isTime } from '@app/utils/time-of-day';
 
 import { selectClass } from './condition-editor-shared';
@@ -138,13 +139,45 @@ function CurrencySettings({ field, onChange, onPropertyChange }: { field: Standa
     );
 }
 
-/** The answer rules of the time and currency types, in the builder's language (the day type has only date rules). */
+/**
+ * A tags question's limits: the fewest and the most tags (never above
+ * TAGS_MAX) and the longest one tag may be (never above TAG_LENGTH_MAX).
+ * Left empty, the caps themselves apply.
+ */
+function TagsSettings({ field, onChange }: { field: StandardFormFieldDto; onChange: (patch: Partial<IFormFieldValidation>) => void }) {
+    const { t } = useTranslation('builder');
+    const rules = field.validations ?? {};
+    const conflict = rules.minChoices !== undefined && rules.maxChoices !== undefined && rules.minChoices > rules.maxChoices;
+    // a number above the cap is brought back to it; 0 or less is no limit
+    const clamp = (value: number | undefined, max: number) => (value === undefined || value < 1 ? undefined : Math.min(max, Math.trunc(value)));
+    return (
+        <div className="flex flex-col gap-3" data-testid="tags-settings">
+            <div className="flex gap-2">
+                <NumberSetting label={t('TYPED_SETTINGS.FEWEST_TAGS')} min={1} max={TAGS_MAX} placeholder={t('TYPED_SETTINGS.NO_LIMIT')} value={rules.minChoices} onChange={(minChoices) => onChange({ minChoices: clamp(minChoices, TAGS_MAX) })} invalid={conflict} />
+                <NumberSetting label={t('TYPED_SETTINGS.MOST_TAGS')} min={1} max={TAGS_MAX} placeholder={t('TYPED_SETTINGS.NO_LIMIT')} value={rules.maxChoices} onChange={(maxChoices) => onChange({ maxChoices: clamp(maxChoices, TAGS_MAX) })} invalid={conflict} />
+            </div>
+            <div className="flex gap-2">
+                <NumberSetting label={t('TYPED_SETTINGS.LONGEST_TAG')} min={1} max={TAG_LENGTH_MAX} placeholder={String(TAG_LENGTH_MAX)} value={rules.maxLength} onChange={(maxLength) => onChange({ maxLength: clamp(maxLength, TAG_LENGTH_MAX) })} />
+            </div>
+            {conflict && (
+                <p role="status" className="text-[11px] leading-relaxed text-amber-700">
+                    {t('TYPED_SETTINGS.TAGS_ORDER')}
+                </p>
+            )}
+            <p className="text-[11px] leading-relaxed text-black-600">{t('TYPED_SETTINGS.TAGS_HINT', { most: TAGS_MAX, length: TAG_LENGTH_MAX })}</p>
+        </div>
+    );
+}
+
+/** The answer rules of the time, currency and tags types, in the builder's language (the day and date range types have only date rules). */
 export default function TypedFieldSettings({ field, onChange, onPropertyChange }: { field: StandardFormFieldDto; onChange: (patch: Partial<IFormFieldValidation>) => void; onPropertyChange: (patch: PropertyPatch) => void }) {
     switch (field.type) {
         case 'time':
             return <TimeWindowSettings field={field} onPropertyChange={onPropertyChange} />;
         case 'currency':
             return <CurrencySettings field={field} onChange={onChange} onPropertyChange={onPropertyChange} />;
+        case 'tags':
+            return <TagsSettings field={field} onChange={onChange} />;
         default:
             return null;
     }

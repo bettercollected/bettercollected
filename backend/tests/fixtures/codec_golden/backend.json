@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:555667ee8d2c1550ed7d416645ccec91bd551c17a1909c976b841d0a2d8f9777",
+  "checksum": "sha256:84ac7078b74d5cba8708faaaf69a0613158339934da0b42933597809ffd7f3ee",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2241,6 +2241,10 @@
       "code": null
      },
      "date": "FormResponseDocument.answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
+     "date_range": {
+      "end": null,
+      "start": null
+     },
      "email": "FormResponseDocument.answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
       "id": "FormResponseDocument.answers.value.field.id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2262,6 +2266,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2271,6 +2276,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2284,6 +2290,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2293,6 +2300,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2316,6 +2324,10 @@
        "FormResponseDocument.answers.value.tabular_value[1][0] tëxt ✓ \"quoted\" \\ line\nbreak",
        "FormResponseDocument.answers.value.tabular_value[1][1] tëxt ✓ \"quoted\" \\ line\nbreak"
       ]
+     ],
+     "tags": [
+      "FormResponseDocument.answers.value.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "FormResponseDocument.answers.value.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
      ],
      "text": "FormResponseDocument.answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
      "time": "FormResponseDocument.answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2370,6 +2382,10 @@
       "code": null
      },
      "date": "FormResponseDocument.internal_answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
+     "date_range": {
+      "end": null,
+      "start": null
+     },
      "email": "FormResponseDocument.internal_answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
       "id": "FormResponseDocument.internal_answers.value.field.id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2391,6 +2407,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2400,6 +2417,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2413,6 +2431,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2422,6 +2441,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2445,6 +2465,10 @@
        "FormResponseDocument.internal_answers.value.tabular_value[1][0] tëxt ✓ \"quoted\" \\ line\nbreak",
        "FormResponseDocument.internal_answers.value.tabular_value[1][1] tëxt ✓ \"quoted\" \\ line\nbreak"
       ]
+     ],
+     "tags": [
+      "FormResponseDocument.internal_answers.value.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "FormResponseDocument.internal_answers.value.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
      ],
      "text": "FormResponseDocument.internal_answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
      "time": "FormResponseDocument.internal_answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2618,7 +2642,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:13bf1363d7985997016bca4c0c362bce767cb77d3335cd7c5cc46e5b450f4255",
+  "checksum": "sha256:763fee11e920ecbed59dfae5df7fcb985ff7f816a6d30f07499cf860aa6eadd0",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2642,6 +2666,10 @@
       "code": null
      },
      "date": "FormResponseDocument.answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
+     "date_range": {
+      "end": null,
+      "start": null
+     },
      "email": "FormResponseDocument.answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
       "id": "FormResponseDocument.answers.value.field.id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2663,6 +2691,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2672,6 +2701,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2685,6 +2715,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2694,6 +2725,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2717,6 +2749,10 @@
        "FormResponseDocument.answers.value.tabular_value[1][0] tëxt ✓ \"quoted\" \\ line\nbreak",
        "FormResponseDocument.answers.value.tabular_value[1][1] tëxt ✓ \"quoted\" \\ line\nbreak"
       ]
+     ],
+     "tags": [
+      "FormResponseDocument.answers.value.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "FormResponseDocument.answers.value.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
      ],
      "text": "FormResponseDocument.answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
      "time": "FormResponseDocument.answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2771,6 +2807,10 @@
       "code": null
      },
      "date": "FormResponseDocument.internal_answers.value.date tëxt ✓ \"quoted\" \\ line\nbreak",
+     "date_range": {
+      "end": null,
+      "start": null
+     },
      "email": "FormResponseDocument.internal_answers.value.email tëxt ✓ \"quoted\" \\ line\nbreak",
      "field": {
       "id": "FormResponseDocument.internal_answers.value.field.id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2792,6 +2832,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2801,6 +2842,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2814,6 +2856,7 @@
         "choices": null,
         "currency": null,
         "date": null,
+        "date_range": null,
         "email": null,
         "field": null,
         "file_metadata": null,
@@ -2823,6 +2866,7 @@
         "payment": null,
         "phone_number": null,
         "tabular_value": null,
+        "tags": null,
         "text": null,
         "time": null,
         "type": null,
@@ -2846,6 +2890,10 @@
        "FormResponseDocument.internal_answers.value.tabular_value[1][0] tëxt ✓ \"quoted\" \\ line\nbreak",
        "FormResponseDocument.internal_answers.value.tabular_value[1][1] tëxt ✓ \"quoted\" \\ line\nbreak"
       ]
+     ],
+     "tags": [
+      "FormResponseDocument.internal_answers.value.tags[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+      "FormResponseDocument.internal_answers.value.tags[1] tëxt ✓ \"quoted\" \\ line\nbreak"
      ],
      "text": "FormResponseDocument.internal_answers.value.text tëxt ✓ \"quoted\" \\ line\nbreak",
      "time": "FormResponseDocument.internal_answers.value.time tëxt ✓ \"quoted\" \\ line\nbreak",

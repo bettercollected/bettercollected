@@ -34,6 +34,8 @@ const CLIENT_CODES: Record<string, string> = {
     too_many_choices: 'TOO_MANY_CHOICES',
     format: 'FORMAT',
     currency: 'CURRENCY',
+    range_order: 'RANGE_ORDER',
+    duplicate: 'DUPLICATE',
     type: 'SERVER_TYPE',
     choice: 'SERVER_CHOICE',
     hidden_option: 'SERVER_OPTION'

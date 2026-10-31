@@ -1,7 +1,9 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@app/utils/currency';
-import { isIsoDate } from '@app/utils/iso-date';
+import { isDay } from '@app/utils/iso-date';
+import { rawDateRange } from '@app/utils/date-range';
+import { TAGS_MAX, TAG_LENGTH_MAX, duplicateIndex, isTag, tagLength } from '@app/utils/tags';
 import { isTime, minutesOf } from '@app/utils/time-of-day';
 import type { LogicSources } from '@app/utils/conditional-logic';
 import type { OptionStates } from '@app/utils/option-logic';
@@ -23,16 +25,27 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
  * - Currency: the currency must be one of the question's (EUR when it names
  *   none), the amount a plain decimal with the currency's own decimals, and
  *   within the lowest and highest value.
+ * - Date range: both days once either is given, well-formed, the end not
+ *   before the start (each end also meets the question's date rules: utils/date-rules.ts).
+ * - Tags: each tag trimmed, not empty, without `,` `;` or control characters,
+ *   at most the question's longest tag (never above TAG_LENGTH_MAX), no two the
+ *   same ignoring case, and their number within the fewest and most (never
+ *   above TAGS_MAX).
  *
  * An empty answer is never checked here: whether one is needed is what
  * Required says.
  */
 
-export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency';
+export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency' | 'date_range' | 'tags';
 
-export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY';
+export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY' | 'REQUIRED' | 'RANGE_ORDER' | 'DUPLICATE';
 
-export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY'];
+/**
+ * What the problems are, by the server's rule code (lower case). `REQUIRED` is
+ * a date range with only one end given; it is not listed in ANSWER_RULE_PROBLEMS
+ * because the server and the page also use it for an unanswered required question.
+ */
+export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY', 'RANGE_ORDER', 'DUPLICATE'];
 
 /** "Whole numbers only" on a number question. */
 export const INTEGER_PATTERN = '^-?\\d+$';
@@ -104,6 +117,10 @@ export function answerRuleKind(field: Pick<StandardFormFieldDto, 'type' | 'prope
             return 'day';
         case FieldTypes.CURRENCY:
             return 'currency';
+        case FieldTypes.DATE_RANGE:
+            return 'date_range';
+        case FieldTypes.TAGS:
+            return 'tags';
         default:
             return null;
     }
@@ -127,6 +144,27 @@ function answerNumber(answer: any): { value: number; typed: string } | undefined
 /** A currency answer is `{ code: text, amount: text }` (either may be missing); another shape is the server's "type" problem. */
 function currencyShape(value: any): value is { code?: string; amount?: string } {
     return !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every((key) => key === 'code' || key === 'amount') && Object.values(value).every((v) => v === undefined || v === null || typeof v === 'string');
+}
+
+/** A date range answer is `{ start: text, end: text }` (either may be missing); another shape is the server's "type" problem. */
+function dateRangeShape(value: any): value is { start?: string | null; end?: string | null } {
+    return !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every((key) => key === 'start' || key === 'end') && Object.values(value).every((v) => v === undefined || v === null || typeof v === 'string');
+}
+
+/** Is only one end of a date range given? (the answer is not finished: `REQUIRED`) */
+export function isRangeHalfFilled(answer: any): boolean {
+    const value = rawDateRange(answer);
+    return dateRangeShape(value) && !!value.start !== !!value.end;
+}
+
+/** The number of characters one tag of this question may have, and the fewest and most tags it takes (the hard caps apply even when the question's own limits are higher). */
+export function tagLimits(field: Pick<StandardFormFieldDto, 'validations'> | undefined | null): { length: number; fewest: number; most: number } {
+    const rules: IFormFieldValidation = field?.validations ?? {};
+    return {
+        length: isSet(rules.maxLength) ? Math.min(TAG_LENGTH_MAX, Math.max(Math.trunc(rules.maxLength), 0)) : TAG_LENGTH_MAX,
+        fewest: isSet(rules.minChoices) ? Math.trunc(rules.minChoices) : 0,
+        most: isSet(rules.maxChoices) ? Math.min(TAGS_MAX, Math.trunc(rules.maxChoices)) : TAGS_MAX
+    };
 }
 
 function answerChoiceCount(answer: any): number | undefined {
@@ -186,7 +224,7 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
         }
         case 'day': {
             const date = answer?.date;
-            if (typeof date === 'string' && date && !isIsoDate(date)) problems.push('FORMAT');
+            if (typeof date === 'string' && date && !isDay(date)) problems.push('FORMAT');
             break;
         }
         case 'currency': {
@@ -198,8 +236,31 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
             if (!questionCurrencies(field).includes(code)) return ['CURRENCY'];
             const parsed = parseAmount(amount, code);
             if (parsed === undefined) return ['FORMAT'];
-            if (isSet(rules.minValue) && parsed < rules.minValue) problems.push('TOO_SMALL');
+            // an amount is not below zero unless the question's lowest amount says so
+            if (parsed < (isSet(rules.minValue) ? rules.minValue : 0)) problems.push('TOO_SMALL');
             if (isSet(rules.maxValue) && parsed > rules.maxValue) problems.push('TOO_LARGE');
+            break;
+        }
+        case 'date_range': {
+            const value = rawDateRange(answer);
+            if (!dateRangeShape(value)) break;
+            const { start, end } = { start: value.start || '', end: value.end || '' };
+            if (!start && !end) break;
+            // both ends are needed once it is answered
+            if (!start || !end) return ['REQUIRED'];
+            if (!isDay(start) || !isDay(end)) return ['FORMAT'];
+            if (end < start) problems.push('RANGE_ORDER');
+            break;
+        }
+        case 'tags': {
+            const tags = answer?.tags;
+            if (!Array.isArray(tags) || !tags.length || !tags.every((tag) => typeof tag === 'string')) break;
+            const limits = tagLimits(field);
+            if (!tags.every(isTag)) problems.push('FORMAT');
+            if (tags.some((tag) => tagLength(tag) > limits.length)) problems.push('TOO_LONG');
+            if (duplicateIndex(tags) !== null) problems.push('DUPLICATE');
+            if (tags.length < limits.fewest) problems.push('TOO_FEW_CHOICES');
+            if (tags.length > limits.most) problems.push('TOO_MANY_CHOICES');
             break;
         }
     }
@@ -249,6 +310,7 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
         case 'TOO_SHORT':
             return t('RULE.TOO_SHORT', { count: rules.minLength });
         case 'TOO_LONG':
+            if (field?.type === FieldTypes.TAGS) return t('RULE.TAG_TOO_LONG', { count: tagLimits(field).length });
             return t('RULE.TOO_LONG', { count: rules.maxLength });
         case 'PATTERN': {
             const preset = presetForPattern(rules.regex);
@@ -256,7 +318,7 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
         }
         case 'TOO_SMALL':
             if (field?.type === FieldTypes.TIME) return t('RULE.TOO_EARLY', { time: field.properties?.minTime });
-            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_SMALL', { min: formatAmount({ code: questionCurrencies(field)[0], amount: String(rules.minValue) }, language) });
+            if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_SMALL', { min: formatAmount({ code: questionCurrencies(field)[0], amount: String(isSet(rules.minValue) ? rules.minValue : 0) }, language) });
             return t('RULE.TOO_SMALL', { min: rules.minValue });
         case 'TOO_LARGE':
             if (field?.type === FieldTypes.TIME) return t('RULE.TOO_LATE', { time: field.properties?.maxTime });
@@ -265,14 +327,24 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
         case 'FORMAT':
             if (field?.type === FieldTypes.TIME) return t('RULE.FORMAT_TIME');
             if (field?.type === FieldTypes.DAY) return t('RULE.FORMAT_DAY');
+            if (field?.type === FieldTypes.DATE_RANGE) return t('RULE.FORMAT_RANGE');
+            if (field?.type === FieldTypes.TAGS) return t('RULE.FORMAT_TAGS');
             return t('RULE.FORMAT_AMOUNT');
+        case 'REQUIRED':
+            return t('RULE.RANGE_INCOMPLETE');
+        case 'RANGE_ORDER':
+            return t('RULE.RANGE_ORDER');
+        case 'DUPLICATE':
+            return t('RULE.TAG_DUPLICATE');
         case 'CURRENCY':
             return t('RULE.CURRENCY', { currencies: questionCurrencies(field).join(', ') });
         case 'NOT_INTEGER':
             return t('RULE.NOT_INTEGER');
         case 'TOO_FEW_CHOICES':
+            if (field?.type === FieldTypes.TAGS) return t('RULE.TOO_FEW_TAGS', { count: tagLimits(field).fewest });
             return t('RULE.TOO_FEW_CHOICES', { count: rules.minChoices });
         case 'TOO_MANY_CHOICES':
+            if (field?.type === FieldTypes.TAGS) return t('RULE.TOO_MANY_TAGS', { count: tagLimits(field).most });
             return t('RULE.TOO_MANY_CHOICES', { count: rules.maxChoices });
     }
 }
@@ -308,6 +380,13 @@ export function summarizeAnswerRules(field: StandardFormFieldDto): string[] {
         case 'choices': {
             const count = range(rules.minChoices, rules.maxChoices, 'options');
             if (count) lines.push(`Pick ${count}.`);
+            break;
+        }
+        case 'tags': {
+            const limits = tagLimits(field);
+            const count = range(limits.fewest || undefined, rules.maxChoices === undefined ? undefined : limits.most, 'tags');
+            if (count) lines.push(`Enter ${count}.`);
+            lines.push(`Each tag is at most ${limits.length} characters.`);
             break;
         }
     }

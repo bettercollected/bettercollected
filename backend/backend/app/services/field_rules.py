@@ -101,6 +101,8 @@ from backend.app.services.calculated_fields import (
     _title,
     _type,
     build_variables,
+    question_variable_keys,
+    question_variables,
     calculated_answer,
     calculated_fields,
     expression_variables,
@@ -763,7 +765,12 @@ def resolve_field_rules(
     for group_id, group in groups.items():
         items = group_items(plain.get(group_id))
         children = _children(group)
-        sibling_ids = {str(_get(c, "id")) for c in children if _get(c, "id")}
+        sibling_keys = {
+            key
+            for c in children
+            if _get(c, "id")
+            for key in question_variable_keys(c)
+        }
         for index in range(_item_count(group, items)):
             item = items[index] if index < len(items) else {}
             item_scope = _Scope(
@@ -771,14 +778,15 @@ def resolve_field_rules(
                 {
                     **variables,
                     **{
-                        str(_get(child, "id")): comparable_answer_value(
-                            item.get(str(_get(child, "id"))), _type(child)
-                        )
+                        key: value
                         for child in children
                         if _get(child, "id")
+                        for key, value in question_variables(
+                            child, item.get(str(_get(child, "id")))
+                        ).items()
                     },
                 },
-                known | sibling_ids,
+                known | sibling_keys,
                 sources,
                 context,
                 budget,
@@ -962,7 +970,13 @@ class _Checker:
     def siblings(self, target: _Target) -> Set[str]:
         key = id(target.group)
         if key not in self._siblings:
-            self._siblings[key] = _sibling_ids(target)
+            # a sibling's id reads its answer; a date range reads as its two days
+            self._siblings[key] = _sibling_ids(target) | {
+                variable
+                for c in _children(target.group)
+                if _get(c, "id")
+                for variable in question_variable_keys(c)
+            }
         return self._siblings[key]
 
     def cost(self) -> int:

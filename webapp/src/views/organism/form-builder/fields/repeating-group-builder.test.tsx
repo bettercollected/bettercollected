@@ -84,7 +84,7 @@ describe('RepeatingGroupBuilder', () => {
         expect(latest[0].properties!.fields![0].properties!.repeat!.itemLabel).toBe('Employer');
     });
 
-    it('offers time, day and currency only while the server takes them, and keeps a child that has one', () => {
+    it('offers time, day, currency, date range and tags only while the server takes them, and keeps a child that has one', () => {
         const options = () => Array.from((screen.getByLabelText('Add a question to the group') as HTMLSelectElement).options).map((o) => o.value);
         served.newQuestionTypesEnabled = false;
         const { unmount } = render(
@@ -93,7 +93,7 @@ describe('RepeatingGroupBuilder', () => {
             </Provider>
         );
         expect(options()).toContain(FieldTypes.DATE);
-        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY]) expect(options()).not.toContain(type);
+        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY, FieldTypes.DATE_RANGE, FieldTypes.TAGS]) expect(options()).not.toContain(type);
         unmount();
         served.newQuestionTypesEnabled = true;
         render(
@@ -101,6 +101,22 @@ describe('RepeatingGroupBuilder', () => {
                 <Harness />
             </Provider>
         );
-        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY]) expect(options()).toContain(type);
+        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY, FieldTypes.DATE_RANGE, FieldTypes.TAGS]) expect(options()).toContain(type);
+    });
+
+    it('adds a date range or a tags question to a group, with their names', () => {
+        served.newQuestionTypesEnabled = true;
+        render(
+            <Provider>
+                <Harness />
+            </Provider>
+        );
+        const names = Array.from((screen.getByLabelText('Add a question to the group') as HTMLSelectElement).options).map((o) => o.textContent);
+        expect(names).toEqual(expect.arrayContaining(['Date range', 'Tags']));
+        fireEvent.change(screen.getByLabelText('Add a question to the group'), { target: { value: FieldTypes.DATE_RANGE } });
+        fireEvent.change(screen.getByLabelText('Add a question to the group'), { target: { value: FieldTypes.TAGS } });
+        expect(children().map((c) => c.type)).toEqual([FieldTypes.SHORT_TEXT, FieldTypes.DATE_RANGE, FieldTypes.TAGS]);
+        // a range in a group has date rules of its own, like a date
+        expect(screen.getAllByTestId('date-field-settings')).toHaveLength(1);
     });
 });

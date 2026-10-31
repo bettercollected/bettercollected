@@ -25,6 +25,7 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermiss
 afterEach(() => {
     served.newQuestionTypesEnabled = false;
     withTime = false;
+    gatedType = FieldTypes.TIME;
 });
 // The rich-text editor and the field renderers are not what is tested here.
 vi.mock('@app/views/molecules/rich-text-editor', () => ({
@@ -36,6 +37,8 @@ vi.mock('@app/lib/hooks/use-form-logo', () => ({ useBuilderFormLogo: () => null 
 
 // Set to add a time question as a fourth.
 let withTime = false;
+// The type of that question.
+let gatedType: FieldTypes = FieldTypes.TIME;
 
 // Stored indexes that do not match the positions: the toolbar must go by id.
 const form = () => ({
@@ -51,7 +54,7 @@ const form = () => ({
                     { id: 'q-1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name' },
                     { id: 'q-2', index: 0, type: FieldTypes.SHORT_TEXT, title: 'City' },
                     { id: 'q-3', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Age' },
-                    ...(withTime ? [{ id: 'q-4', index: 0, type: FieldTypes.TIME, title: 'Arrival' }] : [])
+                    ...(withTime ? [{ id: 'q-4', index: 0, type: gatedType, title: 'Arrival' }] : [])
                 ]
             }
         }
@@ -116,6 +119,25 @@ describe('the selected question toolbar acts on that question, by id', () => {
         const duplicate = screen.getByRole('button', { name: 'Duplicate question' });
         expect(duplicate).not.toBeDisabled();
         act(() => void fireEvent.click(duplicate));
+        expect(ids()).toHaveLength(5);
+    });
+
+    it.each([FieldTypes.DATE_RANGE, FieldTypes.TAGS])('cannot duplicate a %s question while the server does not take it, and can once it does', async (type) => {
+        withTime = true;
+        gatedType = type;
+        const { ids } = renderSelected('q-4');
+        const duplicate = screen.getByRole('button', { name: 'Duplicate question' });
+        expect(duplicate).toBeDisabled();
+        act(() => void fireEvent.click(duplicate));
+        expect(ids()).toEqual(['q-1', 'q-2', 'q-3', 'q-4']);
+    });
+
+    it.each([FieldTypes.DATE_RANGE, FieldTypes.TAGS])('duplicates a %s question once the server takes the newer types', async (type) => {
+        withTime = true;
+        gatedType = type;
+        served.newQuestionTypesEnabled = true;
+        const { ids } = renderSelected('q-4');
+        act(() => void fireEvent.click(screen.getByRole('button', { name: 'Duplicate question' })));
         expect(ids()).toHaveLength(5);
     });
 });

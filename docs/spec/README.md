@@ -49,7 +49,13 @@ An amount is a plain decimal string: digits, an optional leading `-`, a dot and
 at most the currency's own number of decimals (EUR 2, JPY 0, KWD 3; the table
 is [`currencies-v1.json`](currencies-v1.json)). A comma, a thousands separator,
 an exponent, a leading `+` or a leading zero is refused, so a stored amount reads
-the same everywhere. The server refuses an answer with the rule codes
+the same everywhere; so is a zero written with a minus (`-0`, `-0.00`). An
+amount is not below zero unless the question's lowest amount (`minValue`) says
+it may be: with no lowest amount, or one of 0 or more, a negative amount breaks
+`too_small`, and a negative lowest amount allows negative ones. A `day` has its
+year from 1000 on: a year of fewer than four digits ("90") is a typing slip, so
+the boxes do not pad it and `0090-11-05` is refused (`format`), as is an end of
+a date range in such a year. The server refuses an answer with the rule codes
 `format` (not a real time, day or amount), `currency` (a currency the question
 does not offer), `too_small` and `too_large` (before the earliest or after the
 latest time; below or above the lowest or highest amount), `type` and `required`.
@@ -64,11 +70,44 @@ constant or an expression, as for a date) and a currency's amount (in its first
 currency). In the exports a time is `HH:MM`, a day `YYYY-MM-DD` and a currency
 `EUR 12.50` (code, a space, a dot decimal).
 
-**Rollout.** The newer question types (`time`, `day` and `currency`) are behind one
+### Date range and tags questions
+
+| Type | The respondent | The answer | Settings |
+|---|---|---|---|
+| `date_range` | two date pickers, the first and the last day | `{"type":"date_range","date_range":{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}}` | `dateRules` (as a `date` question's: each end must meet them) |
+| `tags` | a box that turns what is typed into removable labels | `{"type":"tags","tags":["vegan","quiet"]}` | `validations.minChoices` and `maxChoices` (the number of tags, at most 30), `validations.maxLength` (one tag's length, at most 40) |
+
+A date range needs both ends once either is typed, and the end is not before
+the start (the same day is fine). A tag is stored the way it is shown: trimmed,
+not empty, without `,` or `;` (they separate tags in the box and in an export)
+or control characters, and no two tags are the same ignoring case; a question
+holds at most 30 tags of at most 40 characters, and its own limits can only be
+lower. The server refuses an answer with the rule codes `format` (a day that
+does not exist, a tag that is empty, untrimmed or has a forbidden character),
+`required` (only one end of a range), `range_order` (the end is before the
+start), `too_long` (a tag over its length), `duplicate`, `too_few_choices` and
+`too_many_choices` (the number of tags) and `type`. Another
+question's date rule can compare with a `date` or a `day` question, not with a
+range.
+
+As a source a date range is two variables, `<id>.start` and `<id>.end` (both
+`YYYY-MM-DD`, so `date_diff_days({stay.start},{stay.end})` gives the nights),
+and in a repeating group the lists `<group>.<id>.start` and `<group>.<id>.end`.
+A logic condition on a range compares it with a day: `CONTAINS` (the range
+includes the day), `DOES_NOT_CONTAIN`, `GREATER_THAN` (it starts after the day),
+`LESS_THAN` (it ends before the day), `IS_EMPTY` and `IS_NOT_EMPTY`; it needs
+both ends and a well-formed day, else it does not hold. Tags read as a list, like
+a multiple choice, compared ignoring case (`CONTAINS`, `DOES_NOT_CONTAIN`,
+`IS_EMPTY`...). Field rules do not set the value of either type. In the exports a
+range is `YYYY-MM-DD/YYYY-MM-DD` (an ISO 8601 interval, an end that is missing
+leaves its side empty) and tags are one cell, joined with `; `, with the CSV's
+formula guard as for every cell.
+
+**Rollout.** The newer question types (`time`, `day`, `currency`, `date_range` and `tags`) are behind one
 server setting,
 `NEW_QUESTION_TYPES_ENABLED`, off by default. While it is off, every write
 that gives a form such a question, or changes the type or the settings of one
-(the limits, the currencies, a day's date rules), is refused with 422
+(the limits, the currencies, the date rules of a day or a range, the number and length of tags), is refused with 422
 `question_type_disabled`: a form spec document (the public API create and
 replace), the builder's whole-form save, the edit operations (the public API,
 the MCP server, the AI assistant and the builder's own, in both engines),

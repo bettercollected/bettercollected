@@ -4,6 +4,7 @@ import type { Draft } from 'immer';
 import { FieldTypes } from '@app/models/dtos/form';
 import { CURRENCIES_MAX, isCurrencyCode } from '@app/utils/currency';
 import { isIsoDate } from '@app/utils/iso-date';
+import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
 import { isTime } from '@app/utils/time-of-day';
 
 import { REQUIRED_CALCULATION_MESSAGE, setCalculation } from '../calculations';
@@ -360,7 +361,7 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
         throw new OpError(`'${titleText(field)}' is used by a date rule, so it cannot become internal — respondents never answer internal fields. Remove the rule first.`);
     }
     if (patch.dateRules != null) {
-        if (!DATE_RULE_FIELD_TYPES.has(field.type)) throw new OpError('Date rules only apply to date and day questions.');
+        if (!DATE_RULE_FIELD_TYPES.has(field.type)) throw new OpError('Date rules only apply to date, day and date range questions.');
         const rules = checkedDateRules(patch.dateRules);
         const known = new Set(dateRuleProblems(ctx.state.fields));
         const problems = dateRuleProblems(ctx.state.fields, { field, rules }).filter((p) => !known.has(p));
@@ -448,6 +449,8 @@ export const VALIDATION_PRESETS: Record<string, string> = {
 };
 
 const LENGTH_TYPES = new Set<string>([FieldTypes.SHORT_TEXT, FieldTypes.LONG_TEXT]);
+// A tags question's maximum length is the length of one tag.
+const TAG_LENGTH_TYPES = new Set<string>([...LENGTH_TYPES, FieldTypes.TAGS]);
 const PATTERN_TYPES = new Set<string>([FieldTypes.SHORT_TEXT]);
 const VALUE_TYPES = new Set<string>([FieldTypes.NUMBER, FieldTypes.CURRENCY]);
 const VALIDATION_KEYS = ['required', 'minLength', 'maxLength', 'minValue', 'maxValue', 'minChoices', 'maxChoices', 'pattern', 'preset'];
@@ -498,8 +501,11 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
         ['maxLength', 'maximum length']
     ]) {
         if (!given.has(key)) continue;
-        ruleApplies(field, LENGTH_TYPES, 'Text lengths', 'short or long text');
+        // a tags question's maximum length is the length of one tag
+        if (key === 'maxLength') ruleApplies(field, TAG_LENGTH_TYPES, 'Text lengths', 'short text, long text and tags');
+        else ruleApplies(field, LENGTH_TYPES, 'Text lengths', 'short or long text');
         if (patch[key] != null && patch[key] < 0) throw new OpError(`The ${label} cannot be negative.`);
+        if (field.type === FieldTypes.TAGS && patch[key] != null && !(patch[key] >= 1 && patch[key] <= TAG_LENGTH_MAX)) throw new OpError(`The length of a tag is between 1 and ${TAG_LENGTH_MAX} characters.`);
         set(key, patch[key]);
         changed.push(label);
     }
@@ -518,6 +524,14 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
     ]) {
         if (!given.has(key)) continue;
         const value = patch[key];
+        if (field.type === FieldTypes.TAGS) {
+            // the number of tags: at most TAGS_MAX
+            const lowest = key === 'maxChoices' ? 1 : 0;
+            if (value != null && !(value >= lowest && value <= TAGS_MAX)) throw new OpError(`The ${label} of a tags question is between ${lowest} and ${TAGS_MAX}.`);
+            set(key, value);
+            changed.push(label.replace('choices', 'tags'));
+            continue;
+        }
         if (field.type !== FieldTypes.MULTIPLE_CHOICE || !field.properties?.allowMultipleSelection) {
             throw new OpError(`A number of choices only applies to a multiple choice question that allows several answers; '${titleText(field)}' does not.`);
         }
@@ -560,6 +574,8 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
 // ---------------------------------------------------------------------------
 
 export const VALUELESS_COMPARISONS = new Set(['IS_EMPTY', 'IS_NOT_EMPTY']);
+/** What a condition on a date range question may ask (backend DATE_RANGE_COMPARISONS, `compareDateRange`). */
+const DATE_RANGE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN', 'GREATER_THAN', 'LESS_THAN']);
 const COUNT_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LESS_THAN', 'LESS_THAN_EQUAL']);
 
 function validatedValue(source: FormField, comparison: string, raw: any): any {
@@ -570,6 +586,14 @@ function validatedValue(source: FormField, comparison: string, raw: any): any {
         if (!labels.includes(pyStr(raw))) throw new OpError(`'${pyStr(raw)}' is not a choice of '${titleText(source)}'. Choices: ${labels.join(', ')}`);
     }
     if (source.type === FieldTypes.YES_NO && pyStr(raw) !== 'Yes' && pyStr(raw) !== 'No') throw new OpError("Yes/No conditions take the value 'Yes' or 'No'.");
+    if (source.type === FieldTypes.DATE_RANGE) {
+        // includes / does not include a day, starts after, ends before
+        if (!DATE_RANGE_COMPARISONS.has(comparison)) {
+            throw new OpError('A condition on a date range question uses CONTAINS (includes a day), DOES_NOT_CONTAIN, GREATER_THAN (starts after a day), LESS_THAN (ends before a day), IS_EMPTY or IS_NOT_EMPTY.');
+        }
+        if (!isIsoDate(raw)) throw new OpError('A condition on a date range question takes a day written as YYYY-MM-DD.');
+        return raw;
+    }
     if (ORDERED_COMPARISONS.has(comparison)) {
         if (source.type === FieldTypes.TIME && !isTime(raw)) throw new OpError('A condition on a time question takes a time written as HH:MM.');
         if (DATE_RULE_FIELD_TYPES.has(source.type) && !isIsoDate(raw)) throw new OpError('A condition on a date question takes a date written as YYYY-MM-DD.');

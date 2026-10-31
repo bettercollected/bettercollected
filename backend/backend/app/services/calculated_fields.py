@@ -49,6 +49,7 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 from backend.app.services.repeating_groups import (
     comparable_answer_value,
+    date_range_days,
     group_items,
 )
 
@@ -160,6 +161,30 @@ def _expression(field: Any) -> Any:
     return _get(_get(field, "properties"), "expression")
 
 
+DATE_RANGE = "date_range"
+# A date range is two variables: its first and its last day.
+DATE_RANGE_PARTS = ("start", "end")
+
+
+def question_variable_keys(field: Any, prefix: str = "") -> List[str]:
+    """The variable keys one question answers to: its id, or for a date range
+    ``<id>.start`` and ``<id>.end``; ``prefix`` is ``<group id>.`` inside a
+    repeating group. Twin of the webapp's ``questionVariableKeys``."""
+    key = f"{prefix}{_get(field, 'id')}"
+    if _type(field) == DATE_RANGE:
+        return [f"{key}.{part}" for part in DATE_RANGE_PARTS]
+    return [key]
+
+
+def question_variables(field: Any, answer: Any, prefix: str = "") -> Dict[str, Any]:
+    """The variables one question's answer gives, by key (``question_variable_keys``)."""
+    keys = question_variable_keys(field, prefix)
+    if _type(field) == DATE_RANGE:
+        start, end = date_range_days(answer)
+        return dict(zip(keys, (start, end)))
+    return {keys[0]: comparable_answer_value(answer, _type(field))}
+
+
 def variable_keys(form: Any) -> Set[str]:
     """Every key a formula of this form may read."""
     keys: Set[str] = set(str(name) for name in (_get(form, "hidden_fields") or []))
@@ -171,11 +196,11 @@ def variable_keys(form: Any) -> Set[str]:
             for child in _children(field):
                 child_id = _get(child, "id")
                 if child_id and not _get(child, "internal"):
-                    keys.add(f"{field_id}.{child_id}")
+                    keys.update(question_variable_keys(child, f"{field_id}."))
             continue
         if _type(field) in NOT_VARIABLES or _type(field) == GROUP:
             continue
-        keys.add(str(field_id))
+        keys.update(question_variable_keys(field))
     return keys
 
 
@@ -399,16 +424,16 @@ def build_variables(
                 child_id = _get(child, "id")
                 if not child_id or _get(child, "internal"):
                     continue
-                variables[f"{field_id}.{child_id}"] = [
-                    comparable_answer_value(item.get(str(child_id)), _type(child))
+                per_item = [
+                    question_variables(child, item.get(str(child_id)), f"{field_id}.")
                     for item in items
                 ]
+                for key in question_variable_keys(child, f"{field_id}."):
+                    variables[key] = [values[key] for values in per_item]
             continue
         if _type(field) in NOT_VARIABLES or _type(field) == GROUP:
             continue
-        variables[str(field_id)] = comparable_answer_value(
-            answers.get(str(field_id)), _type(field)
-        )
+        variables.update(question_variables(field, answers.get(str(field_id))))
     return variables
 
 

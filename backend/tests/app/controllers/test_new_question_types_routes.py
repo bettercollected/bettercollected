@@ -65,6 +65,14 @@ def _day(**properties):
     return {"id": "d", "type": "day", "title": "Born", "properties": properties}
 
 
+def _stay(**properties):
+    return {"id": "r", "type": "date_range", "title": "Stay", "properties": properties}
+
+
+def _tags(**validations):
+    return {"id": "g", "type": "tags", "title": "Topics", "validations": validations}
+
+
 async def _save(client, workspace, form, cookies, fields):
     return await client.patch(
         f"{API}/workspaces/{workspace.id}/forms/{form.form_id}",
@@ -76,11 +84,17 @@ async def _save(client, workspace, form, cookies, fields):
 # --- the builder save ----------------------------------------------------------------
 
 
-@pytest.mark.parametrize("kind", ["time", "day", "currency"])
+@pytest.mark.parametrize("kind", ["time", "day", "currency", "date_range", "tags"])
 async def test_the_builder_save_refuses_a_new_question_while_off(
     client: AsyncClient, workspace, workspace_form, test_user_cookies, monkeypatch, kind
 ):
-    question = {"time": _time(), "day": _day(), "currency": _money()}[kind]
+    question = {
+        "time": _time(),
+        "day": _day(),
+        "currency": _money(),
+        "date_range": _stay(),
+        "tags": _tags(),
+    }[kind]
     _switch(monkeypatch, False)
     response = await _save(
         client, workspace, workspace_form, test_user_cookies, [_short(), question]
@@ -117,6 +131,8 @@ async def test_questions_a_form_has_keep_saving_while_off(
         _time(minTime="08:00", maxTime="18:00"),
         _money(currencies=["EUR"]),
         _day(),
+        _stay(dateRules=[{"comparison": "after", "target": "today"}]),
+        _tags(maxChoices=3),
     ]
     _switch(monkeypatch, True)
     response = await _save(client, workspace, workspace_form, test_user_cookies, fields)
@@ -145,6 +161,19 @@ async def test_questions_a_form_has_keep_saving_while_off(
             field["properties"]["currencies"] = ["EUR", "USD"]
     response = await _save(client, workspace, workspace_form, test_user_cookies, changed)
     assert response.status_code == 422 and response.json()["code"] == CODE
+    # new date rules on a range, a new number of tags: refused
+    for field_id, edit in (
+        ("r", lambda f: f["properties"].__setitem__("dateRules", [{"comparison": "before", "target": "today"}])),
+        ("g", lambda f: f["validations"].__setitem__("maxChoices", 5)),
+        ("g", lambda f: f["validations"].__setitem__("maxLength", 10)),
+    ):
+        changed = json.loads(json.dumps(fields))
+        for field in changed:
+            if field["id"] == field_id:
+                edit(field)
+        response = await _save(client, workspace, workspace_form, test_user_cookies, changed)
+        assert response.status_code == 422 and response.json()["code"] == CODE
+        assert [e["fieldId"] for e in response.json()["errors"]] == [field_id]
     # a question turned into one of the new types: refused
     changed = json.loads(json.dumps(fields))
     for field in changed:
@@ -157,6 +186,26 @@ async def test_questions_a_form_has_keep_saving_while_off(
     changed[0]["type"] = "short_text"
     response = await _save(client, workspace, workspace_form, test_user_cookies, changed)
     assert response.status_code == 200, response.text
+
+
+async def test_deleting_the_date_question_a_day_rule_points_at_does_not_strand_the_day_question(
+    client: AsyncClient, workspace, workspace_form, test_user_cookies, monkeypatch
+):
+    start = {"id": "s", "type": "date", "title": "Start", "properties": {}}
+    rule = {"comparison": "after", "target": "field", "fieldId": "s"}
+    day = _day(dateRules=[rule, {"comparison": "before", "target": "today"}])
+    _switch(monkeypatch, True)
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [start, day])
+    assert response.status_code == 200, response.text
+    _switch(monkeypatch, False)
+    # the builder removes the date question and the rule that read it: allowed
+    day_after = _day(dateRules=[{"comparison": "before", "target": "today"}])
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [day_after])
+    assert response.status_code == 200, response.text
+    # a date rule that was not there is new
+    added = _day(dateRules=[{"comparison": "before", "target": "today"}, {"comparison": "after", "target": "date", "date": "1900-01-01"}])
+    response = await _save(client, workspace, workspace_form, test_user_cookies, [added])
+    assert response.status_code == 422 and response.json()["code"] == CODE
 
 
 # --- creating a form, a copy, a template ------------------------------------------
@@ -392,3 +441,76 @@ def test_the_assistant_is_told_about_the_types_only_while_they_are_on(monkeypatc
     _switch(monkeypatch, True)
     on = ops_guide()
     assert "currency (an amount" in on and "time (HH:MM" in on
+
+
+# --- the date range and tags types through the operations ----------------------------
+
+
+@pytest.mark.parametrize("kind", ["date_range", "tags"])
+async def test_the_public_api_ops_follow_the_switch_for_ranges_and_tags(
+    client: AsyncClient, workspace, monkeypatch, kind
+):
+    ops = [{"op": "add_field", "pageId": "page-1", "field": {"title": "New", "type": kind}}]
+    token = await _token(workspace.id)
+    form_id = (await _create(client, token, SPEC)).json()["formId"]
+    url = f"{PUBLIC}/forms/{form_id}/ops"
+    _switch(monkeypatch, False)
+    body = _is_error(
+        await client.post(url, json={"ops": ops}, headers=_auth(token)), 422, "ops_failed"
+    )
+    assert "NEW_QUESTION_TYPES_ENABLED" in body["errors"][0]["message"]
+    _switch(monkeypatch, True)
+    response = await client.post(url, json={"ops": ops}, headers=_auth(token))
+    assert response.status_code == 200, response.text
+    stored = await container.form_repo().get_form_document_by_id(form_id)
+    added = next(f for f in stored.fields[0].properties.fields if f.type.value == kind)
+    # off again: a title edit applies, new limits do not
+    _switch(monkeypatch, False)
+    rename = [{"op": "update_field", "fieldId": added.id, "patch": {"title": "Renamed"}}]
+    assert (await client.post(url, json={"ops": rename}, headers=_auth(token))).status_code == 200
+    if kind == "tags":
+        change = [{"op": "set_field_validation", "fieldId": added.id, "validation": {"maxChoices": 4}}]
+    else:
+        change = [
+            {
+                "op": "update_field",
+                "fieldId": added.id,
+                "patch": {"dateRules": [{"comparison": "after", "target": "today"}]},
+            }
+        ]
+    _is_error(
+        await client.post(url, json={"ops": change}, headers=_auth(token)), 422, "ops_failed"
+    )
+
+
+@pytest.mark.parametrize("kind", ["date_range", "tags"])
+async def test_mcp_update_form_follows_the_switch_for_ranges_and_tags(
+    client: AsyncClient, workspace, workspace_form, monkeypatch, kind
+):
+    doc = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+    await _make_v2(doc)
+    token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+    ops = [{"op": "add_field", "pageId": "page-1", "field": {"title": "New", "type": kind}}]
+    args = {"form_id": workspace_form.form_id, "ops": ops, "atomic": True}
+    _switch(monkeypatch, False)
+    result = _tool_text(await _call_tool(client, token, "update_form", args))
+    assert result["applied"] is False
+    assert "NEW_QUESTION_TYPES_ENABLED" in result["results"][0]["message"]
+    _switch(monkeypatch, True)
+    result = _tool_text(await _call_tool(client, token, "update_form", args))
+    assert result["applied"] is True, result
+
+
+@pytest.mark.parametrize("kind", ["date_range", "tags"])
+async def test_the_spec_api_follows_the_switch_for_ranges_and_tags(
+    client: AsyncClient, workspace, monkeypatch, kind
+):
+    token = await _token(workspace.id)
+    spec = _spec_with({"id": "x", "type": kind, "title": "New"})
+    _switch(monkeypatch, False)
+    _is_error(await client.post(f"{PUBLIC}/forms", json=spec, headers=_auth(token)), 422, CODE)
+    _switch(monkeypatch, True)
+    response = await client.post(f"{PUBLIC}/forms", json=spec, headers=_auth(token))
+    assert response.status_code == 201, response.text
+    fetched = await client.get(f"{PUBLIC}/forms/{response.json()['formId']}", headers=_auth(token))
+    assert kind in [f["type"] for f in fetched.json()["pages"][0]["fields"]]

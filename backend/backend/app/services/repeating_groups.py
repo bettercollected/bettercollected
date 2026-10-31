@@ -17,7 +17,7 @@ respect the limits. (``answer_validation`` replays page navigation and checks
 the required questions of the items a group shows on the respondent's path.)
 """
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from common.currencies import is_time
 from common.expressions import format_expression_value
@@ -80,6 +80,14 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
         currency = answer.get("currency")
         amount = currency.get("amount") if isinstance(currency, dict) else None
         return amount if isinstance(amount, str) and amount else None
+    if field_type == "date_range":
+        # {"start", "end"} once either is given (conditions and formulas read
+        # the two days: ``date_range_days``)
+        start, end = date_range_days(answer)
+        return {"start": start, "end": end} if start or end else None
+    if field_type == "tags":
+        tags = answer.get("tags")
+        return [tag for tag in tags if isinstance(tag, str)] if isinstance(tags, list) else None
     if field_type == "phone_number":
         return answer.get("phoneNumber") or answer.get("phone_number")
     if field_type == "calculated":
@@ -96,6 +104,17 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
         choice = answer.get("choice") or {}
         return choice.get("value") if isinstance(choice, dict) else None
     return answer.get("text", answer.get("value"))
+
+
+def date_range_days(answer: Any) -> Tuple[Optional[str], Optional[str]]:
+    """The start and end of a date range answer (``None`` for a missing or
+    not well-formed day)."""
+    answer = _as_dict(answer)
+    value = _as_dict(answer.get("date_range", answer.get("dateRange"))) if isinstance(answer, dict) else None
+    if not isinstance(value, dict):
+        return None, None
+    start, end = value.get("start"), value.get("end")
+    return (start if is_iso_date(start) else None, end if is_iso_date(end) else None)
 
 
 def _is_empty(value: Any) -> bool:
@@ -329,6 +348,31 @@ def _ordered_text_condition(
     return value <= target
 
 
+def _date_range_condition(
+    answer: Any, comparison: Optional[str], target: Any
+) -> bool:
+    """A condition on a date range: includes a day (CONTAINS), does not
+    include it, starts after it (GREATER_THAN), ends before it (LESS_THAN),
+    is empty or is not. Needs both days and a well-formed target. Twin of the
+    webapp's ``compareDateRange``."""
+    start, end = date_range_days(answer)
+    if comparison == "IS_EMPTY":
+        return start is None and end is None
+    if comparison == "IS_NOT_EMPTY":
+        return start is not None or end is not None
+    if start is None or end is None or not is_iso_date(target):
+        return False
+    if comparison == "CONTAINS":
+        return start <= target <= end
+    if comparison == "DOES_NOT_CONTAIN":
+        return not start <= target <= end
+    if comparison == "GREATER_THAN":
+        return start > target
+    if comparison == "LESS_THAN":
+        return end < target
+    return False
+
+
 def evaluate_condition(
     answers: Dict[str, Any],
     condition: Any,
@@ -363,6 +407,17 @@ def evaluate_condition(
             return bool(matches) and all(matches)
         return False
     field_type = get("field_type", "fieldType")
+    if field_type == "date_range":
+        return _date_range_condition(answers.get(field_id), comparison, target)
+    if field_type == "tags":
+        # tags are compared ignoring case
+        tags = comparable_answer_value(answers.get(field_id), field_type)
+        return compare(
+            [tag.lower() for tag in tags] if tags else tags,
+            comparison,
+            target.lower() if isinstance(target, str) else target,
+            text_max,
+        )
     if field_type in ORDERED_TEXT_TYPES and comparison in ORDERED_COMPARISONS:
         return _ordered_text_condition(
             comparable_answer_value(answers.get(field_id), field_type),

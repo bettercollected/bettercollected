@@ -7,10 +7,14 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule } from '@app/models/types/form-builder-shared';
 import { getInputFieldsById } from '@app/utils/answer-piping';
 import {
+    DATE_RULE_SOURCE_TYPES,
+    DATE_RULE_TYPES,
     formatIsoDate,
     getDateRuleError,
     getDateRuleSources,
     getDisabledDayMatcher,
+    isDateRuleSourceType,
+    isDateRuleType,
     isDateRuleViolated,
     isIsoDate,
     isoToLocalDate,
@@ -219,5 +223,79 @@ describe('naming the other date question', () => {
         const rich = { id: 'd2', type: 'date', title: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Start date' }] }] }, properties: {} } as any;
         expect(dateFieldName(rich)).toBe('Start date');
         expect(dateFieldName({ ...rich, properties: { label: 'Arrival' } })).toBe('Arrival');
+    });
+});
+
+describe('date range questions', () => {
+    const range = (id: string, title: string, dateRules?: DateRule[]): StandardFormFieldDto => ({ ...date(id, title, dateRules), type: FieldTypes.DATE_RANGE });
+    const stay = (from: string, to: string) => ({ type: 'date_range', date_range: { start: from, end: to } });
+    const ranged = () => [slide('s1', [date('arrival', 'Arrival'), range('stay', 'Stay', [after('arrival'), { comparison: 'before', target: 'date', date: '2027-01-01' }])])];
+
+    it('knows which questions carry date rules and which can be compared with', () => {
+        expect(DATE_RULE_TYPES).toEqual(['date', 'day', 'date_range']);
+        expect(DATE_RULE_SOURCE_TYPES).toEqual(['date', 'day']);
+        expect(isDateRuleType('date_range')).toBe(true);
+        expect(isDateRuleSourceType('date_range')).toBe(false);
+        expect(isDateRuleSourceType('day')).toBe(true);
+    });
+
+    it('meets the rules at both ends: the message names the end', () => {
+        const forms = ranged();
+        const check = (answer: any) => getDateRuleError(forms[0].properties!.fields![1], context({ arrival: day('2026-11-05'), stay: answer }, forms));
+        expect(check(stay('2026-11-06', '2026-12-31'))).toBeUndefined();
+        expect(check(stay('2026-11-05', '2026-12-31'))).toBe('Start: Must be after Arrival (5 Nov 2026).');
+        expect(check(stay('2026-11-06', '2027-01-01'))).toBe('End: Must be before 1 Jan 2027.');
+        // the start is said first when both ends break a rule
+        expect(check(stay('2026-11-01', '2027-02-01'))).toMatch(/^Start: /);
+    });
+
+    it('leaves a missing or malformed end to the answer rules, and asks nothing of an unanswered range', () => {
+        const forms = ranged();
+        const field = forms[0].properties!.fields![1];
+        expect(getDateRuleError(field, context({ arrival: day('2026-11-05') }, forms))).toBeUndefined();
+        expect(getDateRuleError(field, context({ arrival: day('2026-11-05'), stay: stay('', '2026-12-31') }, forms))).toBeUndefined();
+        expect(getDateRuleError(field, context({ arrival: day('2026-11-05'), stay: stay('2026-02-30', '2026-12-31') }, forms))).toBeUndefined();
+        expect(getDateRuleError(field, context({ arrival: day('2026-11-05'), stay: stay('2026-11-06', '2026-11-07') }, forms))).toBeUndefined();
+    });
+
+    it('is in the page check, per group item too', () => {
+        const forms = ranged();
+        expect(validateDateRulesInSlide(forms[0].properties!.fields, { arrival: day('2026-11-05'), stay: stay('2026-11-01', '2026-12-01') }, getInputFieldsById(forms), '2026-10-02')).toEqual({ stay: ['DATE_RULE'] });
+        const grouped = [slide('s1', [group('g', [range('stay', 'Stay', [{ comparison: 'after', target: 'date', date: '2026-06-01' }])])])];
+        const answers = { g: { type: 'group', items: [{ stay: stay('2026-07-01', '2026-07-05') }, { stay: stay('2026-05-01', '2026-07-05') }] } };
+        expect(validateDateRulesInSlide(grouped[0].properties!.fields, answers, getInputFieldsById(grouped), '2026-10-02')).toEqual({ 'stay::1': ['DATE_RULE'] });
+    });
+
+    it('disables the days the rules rule out in the calendar of either end', () => {
+        const forms = ranged();
+        const disabled = getDisabledDayMatcher(forms[0].properties!.fields![1], context({ arrival: day('2026-11-05') }, forms))!;
+        expect(disabled(new Date(2026, 10, 5))).toBe(true);
+        expect(disabled(new Date(2026, 10, 6))).toBe(false);
+        expect(disabled(new Date(2027, 0, 1))).toBe(true);
+    });
+
+    it('can be compared with by no other question: only a date or a day is offered as a source', () => {
+        const forms = [slide('s1', [range('stay', 'Stay'), date('other', 'Other')])];
+        expect(getDateRuleSources(forms, 'other')).toEqual([]);
+        const ordered = [slide('s1', [date('first', 'First'), range('stay', 'Stay'), date('last', 'Last')])];
+        expect(getDateRuleSources(ordered, 'last').map((s) => s.id)).toEqual(['first']);
+        expect(getDateRuleSources(ordered, 'stay').map((s) => s.id)).toEqual(['first']);
+    });
+
+    it('prunes a rule that compares with a range, and keeps the rules of a range question', () => {
+        const forms = [slide('s1', [range('stay', 'Stay', [{ comparison: 'after', target: 'date', date: '2026-01-01' }]), date('late', 'Late', [after('stay')])])];
+        pruneOrphanedDateRules(forms);
+        expect(forms[0].properties!.fields![0].properties!.dateRules).toHaveLength(1);
+        expect(forms[0].properties!.fields![1].properties!.dateRules).toBeUndefined();
+        const fine = [slide('s1', [date('first', 'First'), range('stay', 'Stay', [after('first')])])];
+        pruneOrphanedDateRules(fine);
+        expect(fine[0].properties!.fields![1].properties!.dateRules).toEqual([after('first')]);
+    });
+
+    it('speaks the respondent’s language', () => {
+        const forms = ranged();
+        const t = (key: string, options?: Record<string, unknown>) => i18n.t(`respondent:${key}`, { ...options, lng: 'nl' });
+        const error = getDateRuleError(forms[0].properties!.fields![1], { ...context({ arrival: day('2026-11-05'), stay: stay('2026-11-01', '2026-12-01') }, forms), messages: { t, language: 'nl' } });
+        expect(error).toBe('Begin: Moet na Arrival (5 nov 2026) zijn.');
     });
 });

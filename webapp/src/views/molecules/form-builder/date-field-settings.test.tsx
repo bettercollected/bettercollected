@@ -2,7 +2,7 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -83,5 +83,26 @@ describe('DateFieldSettings', () => {
         for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('+ Add date rule'));
         expect(endProps().dateRules).toHaveLength(5);
         expect(screen.queryByText('+ Add date rule')).not.toBeInTheDocument();
+    });
+});
+
+describe('DateFieldSettings for a date range question', () => {
+    const stay: StandardFormFieldDto = { id: 'stay', index: 2, type: FieldTypes.DATE_RANGE, title: 'Stay', properties: { dateRules: [{ comparison: 'after', target: 'field', fieldId: 'start' }] } };
+
+    it('has no label (its pickers are named Start and End), and says its rules are for both days', () => {
+        const onChange = vi.fn();
+        render(<DateFieldSettings field={stay} sources={[{ id: 'start', label: 'Start date' }]} onChange={onChange} />);
+        expect(screen.queryByPlaceholderText('e.g. Start date')).toBeNull();
+        expect(screen.queryByText('Label')).toBeNull();
+        expect(screen.getByText(/Both days must meet the rules/)).toBeInTheDocument();
+        // the rules edit as for a date: the answer to an earlier date question, today or a fixed date
+        expect(screen.getByLabelText('Rule 1 compares with')).toHaveValue('field:start');
+        fireEvent.click(screen.getByText('+ Add date rule'));
+        expect(onChange).toHaveBeenCalledWith({ dateRules: [{ comparison: 'after', target: 'field', fieldId: 'start' }, { comparison: 'after', target: 'field', fieldId: 'start' }] });
+    });
+
+    it('keeps the label box for a date question', () => {
+        render(<DateFieldSettings field={{ ...stay, type: FieldTypes.DATE }} sources={[]} onChange={vi.fn()} />);
+        expect(screen.getByPlaceholderText('e.g. Start date')).toBeInTheDocument();
     });
 });

@@ -66,15 +66,17 @@ export const isCurrencyCode = (code: unknown): code is string => typeof code ===
 export const currencyDecimals = (code: string): number => (isCurrencyCode(code) ? CURRENCY_DECIMALS[code] : 2);
 
 const AMOUNT = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
+// A zero written with a minus ("-0", "-0.00") is not an amount: zero has one writing.
+const NEGATIVE_ZERO = /^-0(?:\.0+)?$/;
 
 /**
  * `amount` as a number when it is a plain decimal string with at most the
  * currency's decimals (any number when the code is unknown), else undefined:
  * no `+`, no thousands separators, no decimal comma, no exponent, no leading
- * zeros ("007"), no more than AMOUNT_MAX_INTEGER_DIGITS integer digits.
+ * zeros ("007"), no "-0", no more than AMOUNT_MAX_INTEGER_DIGITS integer digits.
  */
 export function parseAmount(amount: unknown, code?: string): number | undefined {
-    if (typeof amount !== 'string' || !AMOUNT.test(amount)) return undefined;
+    if (typeof amount !== 'string' || !AMOUNT.test(amount) || NEGATIVE_ZERO.test(amount)) return undefined;
     const [whole, fraction = ''] = amount.replace(/^-/, '').split('.');
     if (whole.length > AMOUNT_MAX_INTEGER_DIGITS) return undefined;
     if (isCurrencyCode(code) && fraction.length > CURRENCY_DECIMALS[code]) return undefined;
@@ -90,7 +92,9 @@ export function parseAmount(amount: unknown, code?: string): number | undefined 
 export function amountFromInput(text: string, code?: string): string | undefined {
     const typed = text.trim().replace(',', '.');
     if (!typed) return undefined;
-    return parseAmount(typed, code) === undefined ? undefined : typed;
+    // "-0" and "-0.00" are zero: stored without the minus, so zero reads one way
+    const normalised = NEGATIVE_ZERO.test(typed) ? typed.slice(1) : typed;
+    return parseAmount(normalised, code) === undefined ? undefined : normalised;
 }
 
 /**

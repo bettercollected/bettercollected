@@ -190,7 +190,18 @@
         "FORMAT_AMOUNT": "Vul een bedrag in met cijfers, bijvoorbeeld 12,50. Gebruik een punt of komma voor de centen en geen duizendtalscheiding.",
         "CURRENCY": "Kies een van deze valuta: {{currencies}}.",
         "AMOUNT_TOO_SMALL": "Vul een bedrag van {{min}} of meer in.",
-        "AMOUNT_TOO_LARGE": "Vul een bedrag van {{max}} of minder in."
+        "AMOUNT_TOO_LARGE": "Vul een bedrag van {{max}} of minder in.",
+        "RANGE_ORDER": "Het einde ligt vóór het begin. Kies een einde op of na het begin.",
+        "RANGE_INCOMPLETE": "Kies zowel het begin als het einde.",
+        "FORMAT_RANGE": "Kies echte dagen voor het begin en het einde.",
+        "FORMAT_TAGS": "Een tag mag niet leeg zijn, niet beginnen of eindigen met een spatie en geen komma of puntkomma bevatten.",
+        "TAG_DUPLICATE": "Elke tag kan maar één keer worden gebruikt, ook als hij met hoofdletters is geschreven.",
+        "TAG_TOO_LONG_one": "Houd elke tag op {{count}} teken of korter.",
+        "TAG_TOO_LONG_other": "Houd elke tag op {{count}} tekens of korter.",
+        "TOO_FEW_TAGS_one": "Vul minstens {{count}} tag in.",
+        "TOO_FEW_TAGS_other": "Vul minstens {{count}} tags in.",
+        "TOO_MANY_TAGS_one": "Vul hooguit {{count}} tag in.",
+        "TOO_MANY_TAGS_other": "Vul hooguit {{count}} tags in."
     },
     "DATE": {
         "PICK": "Kies een datum",
@@ -200,7 +211,8 @@
         "MUST_BE_on_or_before": "Moet op of vóór {{label}} zijn.",
         "MUST_BE_on_or_after": "Moet op of na {{label}} zijn.",
         "TODAY": "vandaag ({{date}})",
-        "OTHER_DATE": "de andere datum"
+        "OTHER_DATE": "de andere datum",
+        "RANGE_PART": "{{part}}: {{message}}"
     },
     "FILE": {
         "CHOOSE": "Kies een bestand of sleep het hierheen",
@@ -338,5 +350,26 @@
         "PLACEHOLDER": "12,50",
         "IN": "Bedrag in {{code}}",
         "ONE_OF": "Kies de valuta en vul daarna het bedrag in"
+    },
+    "DATE_RANGE": {
+        "START": "Begin",
+        "END": "Einde"
+    },
+    "TAGS": {
+        "ADD": "Voeg een tag toe",
+        "PLACEHOLDER": "Typ een tag en druk op Enter",
+        "HINT": "Druk na elke tag op Enter, een komma of een puntkomma.",
+        "HINT_MIN_one": "Druk na elke tag op Enter, een komma of een puntkomma. Vul minstens {{count}} tag in.",
+        "HINT_MIN_other": "Druk na elke tag op Enter, een komma of een puntkomma. Vul minstens {{count}} tags in.",
+        "COUNT": "{{count}} van {{max}} tags",
+        "LIST": "Tags die je hebt toegevoegd",
+        "REMOVE": "Verwijder {{tag}}",
+        "ADDED_one": "“{{tag}}” toegevoegd. In totaal {{count}} tag.",
+        "ADDED_other": "“{{tag}}” toegevoegd. In totaal {{count}} tags.",
+        "REMOVED_one": "“{{tag}}” verwijderd. Nog {{count}} tag.",
+        "REMOVED_other": "“{{tag}}” verwijderd. Nog {{count}} tags.",
+        "DUPLICATE": "“{{tag}}” is al toegevoegd.",
+        "AT_MOST_one": "Je kunt hooguit {{count}} tag toevoegen.",
+        "AT_MOST_other": "Je kunt hooguit {{count}} tags toevoegen."
     }
 }

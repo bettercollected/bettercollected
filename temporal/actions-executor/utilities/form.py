@@ -19,6 +19,8 @@ FieldTypes = {
     'DAY': 'day',
     'TIME': 'time',
     'CURRENCY': 'currency',
+    'DATE_RANGE': 'date_range',
+    'TAGS': 'tags',
     'YES_NO': 'yes_no',
     'MULTIPLE_CHOICE': 'multiple_choice',
     'DROP_DOWN': 'dropdown',
@@ -127,6 +129,15 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
         currency = answer.get('currency') or {}
         amount = currency.get('amount')
         return f"{currency.get('code') or ''} {amount}".strip() if amount else ''
+    if field['type'] == FieldTypes['DATE_RANGE']:
+        # "YYYY-MM-DD/YYYY-MM-DD" (an ISO 8601 interval), as in the CSV export
+        date_range = answer.get('date_range') or {}
+        start, end = date_range.get('start') or '', date_range.get('end') or ''
+        return f"{start}/{end}" if start or end else ''
+    if field['type'] == FieldTypes['TAGS']:
+        # one cell, "; " between the tags (same as the CSV export)
+        tags = answer.get('tags')
+        return '; '.join(str(tag) for tag in tags) if isinstance(tags, list) else ''
     if field['type'] == FieldTypes['YES_NO']:
         return 'Yes' if answer.get('boolean') else 'No' if answer.get('boolean') is False else ''
     if field['type'] in [FieldTypes['MULTIPLE_CHOICE'], FieldTypes['DROP_DOWN']]:
@@ -232,6 +243,8 @@ def get_placeholder_value_for_title(field_type):
         'day': 'Enter a date',
         'time': 'Select a time',
         'currency': 'Enter an amount',
+        'date_range': 'Select the first and the last day',
+        'tags': 'Type a tag and press Enter',
         'linear_rating': 'Rate from 1 to 10',
         'matrix': 'Matrix Field',
         'tabular_input': 'Tabular Input Field'

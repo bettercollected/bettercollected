@@ -39,7 +39,9 @@ import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/vi
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
+import DateRangeField from '@app/views/molecules/responder-form-fields/date-range-field';
 import DayField from '@app/views/molecules/responder-form-fields/day-field';
+import TagsField from '@app/views/molecules/responder-form-fields/tags-field';
 import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FieldRuleAnnouncer from '@app/views/molecules/responder-form-fields/field-rule-announcer';
@@ -112,6 +114,10 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <TimeField field={field} />;
         case FieldTypes.CURRENCY:
             return <CurrencyField field={field} />;
+        case FieldTypes.DATE_RANGE:
+            return <DateRangeField field={field} />;
+        case FieldTypes.TAGS:
+            return <TagsField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
         case FieldTypes.IMAGE_CONTENT:

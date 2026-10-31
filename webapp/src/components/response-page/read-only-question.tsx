@@ -5,8 +5,6 @@ import { CSSProperties, ReactNode } from 'react';
 import Image from 'next/image';
 
 import { StarIcon } from '@Components/icons/start';
-import { format } from 'date-fns';
-import { nl as dutch } from 'date-fns/locale/nl';
 import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
 
@@ -17,7 +15,8 @@ import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc 
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { formatAmount } from '@app/utils/currency';
-import { isoToLocalDate } from '@app/utils/date-rules';
+import { dateRangeText } from '@app/utils/date-range';
+import { calendarDayIn } from '@app/utils/date-utils';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { DISPLAY_LIST_SEPARATOR, getAnswerForField } from '@app/utils/form-builder-block-utils';
@@ -313,11 +312,8 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
     );
 }
 
-/** The date as the form shows it ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
-function dateText(value: string, language: 'en' | 'nl'): string {
-    const date = isoToLocalDate(value);
-    return date ? format(date, 'PPP', { locale: language === 'nl' ? dutch : undefined }) : value;
-}
+/** The date in the app's date style ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
+const dateText = (value: string, language: 'en' | 'nl'): string => calendarDayIn(value, language);
 
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
 
@@ -368,6 +364,14 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.DATE:
         case FieldTypes.DAY:
             return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{dateText(String(value), ctx.formatLanguage)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        case FieldTypes.DATE_RANGE: {
+            // two dates as the form shows them ("3 November 2026 – 7 November 2026")
+            const range = dateRangeText(answer, ctx.formatLanguage);
+            return range ? <ReadOnlyBox labelledBy={labelledBy}>{range}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        }
+        case FieldTypes.TAGS:
+            // the tags, in the order they were entered
+            return present(value) ? <ReadOnlyBox labelledBy={labelledBy}>{String(value)}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
         case FieldTypes.CURRENCY: {
             // the amount as the form shows it ("€ 12,50"), not the export's "EUR 12.50"
             const amount = formatAmount(answer?.currency, ctx.formatLanguage);

@@ -72,6 +72,7 @@ from common.currencies import (
     minutes_of,
     parse_amount,
 )
+from common.tags import TAG_LENGTH_MAX, TAGS_MAX, duplicate_index, is_tag
 from common.form_spec.models import PATTERN_MAX_LENGTH
 from common.form_spec.re2_patterns import (  # noqa: F401  (re-exported)
     PATTERN_MAX_MEM,
@@ -83,7 +84,7 @@ from common.models.standard_form import (
     StandardFieldValidations,
     default_ending,
     ending_by_id,
-    is_iso_date,
+    is_day,
 )
 from loguru import logger
 
@@ -122,6 +123,8 @@ TOO_FEW_CHOICES = "too_few_choices"
 TOO_MANY_CHOICES = "too_many_choices"
 FORMAT = "format"
 CURRENCY_NOT_ALLOWED = "currency"
+RANGE_ORDER = "range_order"
+DUPLICATE = "duplicate"
 TYPE = "type"
 CHOICE = "choice"
 UNKNOWN_FIELD = "unknown_field"
@@ -188,6 +191,8 @@ VALUE_SLOTS = {
     "day": {"date"},
     "time": {"time"},
     "currency": {"currency"},
+    "date_range": {"date_range"},
+    "tags": {"tags"},
     "yes_no": {"boolean"},
     "file_upload": {"file_metadata", "file_url"},
     "tabular_input": {"tabular_value"},
@@ -678,7 +683,23 @@ def type_problem(
             return TYPE
         if slot == "currency" and not _currency_shape(value):
             return TYPE
+        if slot == "date_range" and not _date_range_shape(value):
+            return TYPE
+        if slot == "tags" and not (
+            isinstance(value, list) and all(isinstance(tag, str) for tag in value)
+        ):
+            return TYPE
     return None
+
+
+def _date_range_shape(value: Any) -> bool:
+    """A date range answer is ``{"start": text, "end": text}`` (either may
+    be missing)."""
+    return (
+        isinstance(value, dict)
+        and set(value) <= {"start", "end"}
+        and all(v is None or isinstance(v, str) for v in value.values())
+    )
 
 
 def _currency_shape(value: Any) -> bool:
@@ -782,7 +803,7 @@ def answer_rule_problems(
             problems.append(NOT_INTEGER if rules.regex == INTEGER_PATTERN else PATTERN)
     elif field_type == "day":
         value = answer.get("date")
-        if isinstance(value, str) and value and not is_iso_date(value):
+        if isinstance(value, str) and value and not is_day(value):
             problems.append(FORMAT)
     elif field_type == "time":
         value = answer.get("time")
@@ -799,6 +820,10 @@ def answer_rule_problems(
             problems.append(TOO_LARGE)
     elif field_type == "currency":
         problems.extend(_currency_problems(field, answer.get("currency"), rules))
+    elif field_type == "date_range":
+        problems.extend(_date_range_problems(answer.get("date_range")))
+    elif field_type == "tags":
+        problems.extend(_tags_problems(answer.get("tags"), rules))
     elif field_type == MULTIPLE_CHOICE and getattr(
         _props(field), "allow_multiple_selection", None
     ):
@@ -843,10 +868,58 @@ def _currency_problems(field: Any, value: Any, rules: Any) -> List[str]:
     if parsed is None:
         return [FORMAT]
     problems: List[str] = []
-    if _is_set(rules.min_value) and parsed < Decimal(repr(float(rules.min_value))):
+    # an amount is not below zero unless the question's lowest amount says so
+    lowest = rules.min_value if _is_set(rules.min_value) else 0
+    if parsed < Decimal(repr(float(lowest))):
         problems.append(TOO_SMALL)
     if _is_set(rules.max_value) and parsed > Decimal(repr(float(rules.max_value))):
         problems.append(TOO_LARGE)
+    return problems
+
+
+def _date_range_problems(value: Any) -> List[str]:
+    """Both days of a date range answer, once it is answered: well-formed
+    days, the end not before the start. (The date rules are
+    ``date_rules.validate_date_rule_answers``'s, for each end.)"""
+    if not _date_range_shape(value):
+        return []  # the type check says so
+    start, end = value.get("start") or "", value.get("end") or ""
+    if not start and not end:
+        return []
+    if not start or not end:
+        return [REQUIRED]  # both ends are needed once it is answered
+    if not is_day(start) or not is_day(end):
+        return [FORMAT]
+    return [RANGE_ORDER] if end < start else []
+
+
+def _tags_problems(value: Any, rules: Any) -> List[str]:
+    """The tags of a tags answer: well-formed (trimmed, no ``,`` or ``;``), no
+    longer than the question allows (never above ``TAG_LENGTH_MAX``), no
+    repeats ignoring case, and their number within the question's own limits
+    (never above ``TAGS_MAX``)."""
+    if not isinstance(value, list) or not value:
+        return []
+    if not all(isinstance(tag, str) for tag in value):
+        return []  # the type check says so
+    problems: List[str] = []
+    if not all(is_tag(tag) for tag in value):
+        problems.append(FORMAT)
+    cap = TAG_LENGTH_MAX
+    if _is_set(rules.max_length):
+        cap = min(cap, max(int(rules.max_length), 0))
+    if any(len(tag) > cap for tag in value):
+        problems.append(TOO_LONG)
+    if duplicate_index(value) is not None:
+        problems.append(DUPLICATE)
+    low = int(rules.min_choices) if _is_set(rules.min_choices) else 0
+    high = TAGS_MAX
+    if _is_set(rules.max_choices):
+        high = min(high, int(rules.max_choices))
+    if len(value) < low:
+        problems.append(TOO_FEW_CHOICES)
+    if len(value) > high:
+        problems.append(TOO_MANY_CHOICES)
     return problems
 
 
