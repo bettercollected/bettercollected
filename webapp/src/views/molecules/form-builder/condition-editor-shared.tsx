@@ -1,6 +1,7 @@
 'use client';
 
 import { jsonEqual } from '@app/lib/form-ops/model';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { Comparison, GroupConditionMode, LogicCondition } from '@app/models/types/form-builder-shared';
 import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
@@ -149,6 +150,7 @@ export function ConditionRow({
     const comparisons = group && condition.groupMode === 'COUNT' ? (Object.keys(COUNT_COMPARISON_LABELS) as Comparison[]) : comparisonsForField(valueField);
     const labels = group && condition.groupMode === 'COUNT' ? COUNT_COMPARISON_LABELS : COMPARISON_LABELS;
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
+    const { t } = useBuilderTranslation();
     return (
         <div className="border-black-300 bg-black-100 relative flex flex-col gap-1.5 rounded-md border p-2">
             {onRemove && (
@@ -157,6 +159,7 @@ export function ConditionRow({
                 </button>
             )}
             <select
+                aria-label={t('CONDITION.QUESTION')}
                 className={selectClass}
                 value={condition.fieldId}
                 onChange={(e) => {
@@ -197,7 +200,7 @@ export function ConditionRow({
                     ))}
                 </select>
             )}
-            <select className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
+            <select aria-label={t('CONDITION.COMPARISON')} className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
                 {comparisons.map((c) => (
                     <option key={c} value={c}>
                         {labels[c]}
@@ -212,9 +215,11 @@ export function ConditionRow({
 
 export function ConditionValueInput({ field, value, onChange, invalid }: { field?: StandardFormFieldDto; value: any; onChange: (v: any) => void; invalid?: boolean }) {
     const cls = invalid ? invalidSelectClass : selectClass;
+    const { t } = useBuilderTranslation();
+    const label = t('CONDITION.VALUE');
     if (field?.type === FieldTypes.YES_NO) {
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select aria-label={label} className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
@@ -224,7 +229,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     if (field?.type === FieldTypes.MULTIPLE_CHOICE || field?.type === FieldTypes.DROP_DOWN) {
         const choices = field?.properties?.choices ?? [];
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select aria-label={label} className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 {choices.map((c) => (
                     <option key={c.id} value={c.value ?? c.label ?? ''}>
@@ -236,7 +241,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     }
     const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING;
     const date = field?.type === FieldTypes.DATE;
-    return <input className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+    return <input aria-label={label} className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

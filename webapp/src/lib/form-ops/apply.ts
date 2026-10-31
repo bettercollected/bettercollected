@@ -13,13 +13,15 @@
 import { Immer } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
+import { formHasOptionLogic, optionLogicProblems, pruneOptionLogic } from '@app/utils/option-logic';
+
 import { calculationsTouched, newCalculationProblem } from './calculations';
 import { dateRuleFixes } from './date-rules';
 import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
-import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem } from './model';
+import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem, titleText, tryLocateField } from './model';
 import { referenceFixes } from './references';
 import { type RefTable, refsDefined, resolveRefs } from './refs';
 import type { ApplyOptions, ApplyResult, FormDoc, FormField, FormOp, OpResult } from './types';
@@ -66,6 +68,25 @@ function mayStrandDateRules(op: FormOp): boolean {
 }
 
 /**
+ * Ops that can strand option logic (a condition or filter that read a removed
+ * or moved question, or an option that is gone): they change which questions
+ * and options exist, where they are, their type or whether they are internal.
+ */
+function mayStrandOptionLogic(op: FormOp): boolean {
+    return STRUCTURAL.has(op.op) || op.op === 'remove_choice' || (op.op === 'update_field' && (op.patch?.internal != null || op.patch?.choices != null));
+}
+
+/** `doc` without the option logic a save would not accept (backend `prune_option_logic`), and how many pieces that dropped. */
+function withoutBrokenOptionLogic(doc: FormDoc): [FormDoc, number] {
+    if (!formHasOptionLogic(doc.fields as FormField[])) return [doc, 0];
+    let dropped = 0;
+    const next = immer.produce(doc, (draft) => {
+        dropped = pruneOptionLogic(draft.fields as any);
+    });
+    return [next, dropped];
+}
+
+/**
  * The document as a batch leaves it (backend `finished_form`): renumbered,
  * and without the date rules a save would refuse. Only what is off is
  * written, so a document already in order comes back as is.
@@ -93,11 +114,12 @@ export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): Form
         });
     });
     const fixes = sweepRules ? dateRuleFixes(doc.fields as FormField[]) : [];
-    if (!renumber.length && !fixes.length) return doc;
-    return immer.produce(doc, (draft) => {
+    if (!renumber.length && !fixes.length) return withoutBrokenOptionLogic(doc)[0];
+    const renumbered = immer.produce(doc, (draft) => {
         for (const [path, index] of renumber) draftAt(draft, path).index = index;
         for (const fix of fixes) setKey(draftAt(draft, fix.path).properties, 'dateRules', fix.rules);
     });
+    return withoutBrokenOptionLogic(renumbered)[0];
 }
 
 /**
@@ -133,6 +155,12 @@ function settleMarks(doc: FormDoc, message: string, ctx: OpContext | null): [For
         text = hidden ? text.replace(DROPPED_HIDDEN_REFERENCES_MARK, removed ? ` (and ${removed} piping reference(s) to removed ones)` : '') : text.replace(DROPPED_REFERENCES_MARK, removed ? ` (and ${removed} logic or piping reference(s) to it)` : '');
     }
     return [next, text];
+}
+
+/** The title of a question as the guard names it. */
+function movedTitle(doc: FormDoc, fieldId: string): string {
+    const found = tryLocateField(doc, fieldId);
+    return found ? titleText(found.field) : fieldId;
 }
 
 const emptyResult = (doc: FormDoc, results: OpResult[]): ApplyResult => ({ doc, results, createdIds: [], inverse: [], touched: { pages: new Set(), fields: new Set(), form: new Set() } });
@@ -199,6 +227,21 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             });
             if (failure) throw failure;
             [working, message] = settleMarks(working, message, opContext);
+            // Option logic reads earlier questions: a move may not break that
+            // (it would silently drop the logic), as in the backend.
+            if ((name === 'move_field' || name === 'move_page') && formHasOptionLogic(state.fields as FormField[])) {
+                const known = new Set(optionLogicProblems(state.fields as any).map((p) => p.message));
+                const broken = optionLogicProblems(working.fields as any).find((p) => !known.has(p.message));
+                if (broken) {
+                    working = state;
+                    throw new OpError(name === 'move_field' ? `Moving '${movedTitle(state, (op as any).fieldId)}' there would break option logic: ${broken.message}` : `Moving that page would break option logic: ${broken.message}`);
+                }
+            }
+            if (mayStrandOptionLogic(op)) {
+                const [pruned, dropped] = withoutBrokenOptionLogic(working);
+                working = pruned;
+                if (dropped) message += ` (and ${dropped} option logic piece(s) that used it)`;
+            }
             // Calculations stay valid after every op (backend apply_form_ops):
             // one left broken refuses the op and undoes it.
             if (calculationsTouched(state, working, op)) {

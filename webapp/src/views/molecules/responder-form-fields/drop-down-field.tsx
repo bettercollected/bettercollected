@@ -2,22 +2,26 @@
 
 import * as React from 'react';
 
+import { ChevronDown } from 'lucide-react';
+
+import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { offeredChoices, useOptionStates } from '@app/lib/hooks/use-option-states';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
-import { useFormState } from '@app/store/jotai/form';
-import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useResponderState } from '@app/store/jotai/responder-form-state';
-import Choice from '@app/views/atoms/choice';
-import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
-import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
+import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
 import { moveOnFrom } from '@app/utils/scroll-utils';
-import { ChevronDown } from 'lucide-react';
-import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import Choice from '@app/views/atoms/choice';
 import { inputTextOf } from '@app/views/molecules/theme/theme-root';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+
+import OptionClearedNotice from './option-cleared-notice';
 import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -27,6 +31,9 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
     const { t } = useRespondentLanguage();
     const contentLang = useFormContentLanguage();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
+    // Only the options the form's option logic offers now (utils/option-logic.ts).
+    const optionStates = useOptionStates();
+    const inGroup = !!useGroupItemScope();
 
     const form = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
@@ -76,7 +83,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         <QuestionWrapper field={field}>
             <WithQuestionLabel hints={[valueId]}>
                 {({ label, group }) => (
-                    <Collapsible open={isOpen} onOpenChange={setIsOpen} className=" space-y-2">
+                    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
                         <CollapsibleTrigger asChild>
                             {/* Same input language as every other field: bordered white
                                 rounded-md box, base/lg type, real button semantics — the old
@@ -99,10 +106,11 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                             </button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className={tokens.ruledChoices ? '' : 'space-y-2'}>
-                            {field.properties?.choices?.map((choice, index) => {
+                            {offeredChoices(field.properties?.choices, field.id, optionStates, inGroup).map(({ choice, index }) => {
                                 return <Choice key={choice.id} index={index} isSelected={!!selectedChoiceId && choice.id === selectedChoiceId} theme={theme} choice={choice} onClick={handleClick} lang={contentLang} />;
                             })}
                         </CollapsibleContent>
+                        {!inGroup && <OptionClearedNotice fieldId={field.id} />}
                     </Collapsible>
                 )}
             </WithQuestionLabel>

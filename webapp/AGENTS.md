@@ -78,6 +78,19 @@ questions (read-only, not disabled; a locked question is never required and meet
 page's status region (`field-rule-announcer.tsx`) says once, politely, what an answer changed. A form without rules
 takes none of these paths. The server stays authoritative.
 
+**Choice logic (respondent runtime and builder):** a choice's `logic` and a question's `properties.optionFilter`
+(which options are offered; `utils/option-logic.ts` is the pure twin of backend `services/option_logic.py`, its structure,
+save checks, repair and warnings are in `utils/option-logic-checks.ts`; shared cases `docs/spec/option-logic.cases.json`)
+are evaluated by `optionStates`. `useOptionStates` (`lib/hooks/use-option-states.ts`) hands the choice components the
+available options (radios, checkboxes and the dropdown render only those: `offeredChoices`), `QuestionWrapper` and
+`validateSlide` treat a question with nothing to choose as optional, and `useClearUnavailableOptions` (called next to
+`useDerivedAnswers` in `form-slide.tsx`) clears a selection that stopped being available, from the answers as a submission
+carries them; the question says so in `option-cleared-notice.tsx` (a polite status region under its options). The builder
+edits an option's logic and a question's filter in `form-builder/option-logic-settings.tsx` (Logic section of a choice
+question; the existing `ConditionRow`), with the shared warnings; `pruneOrphanedConditions` also runs `pruneOptionLogic`, so
+every structural edit repairs option logic as the server's save does. Page-level choice questions only. The server stays
+authoritative (`hidden_option`).
+
 ## Commands
 
 ```bash
