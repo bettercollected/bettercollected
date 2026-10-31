@@ -29,6 +29,7 @@ from backend.app.services.response_cursor import Anchor
 ROWS = int(os.getenv("RESPONSES_PERF_ROWS", "30000"))
 ORDERED_INDEXES = {
     "ix_form_responses_list_submitted",
+    "ix_form_responses_list_version",
     "ix_form_responses_form_created",
     "ix_form_responses_workspace_form_created",
 }
@@ -56,6 +57,21 @@ SEED = text("""
     """)
 
 
+# a few deletion requests (one in a thousand responses), so the status filter has rows to find
+SEED_REQUESTS = text("""
+    INSERT INTO app.responses_deletion_requests (id, created_at, updated_at, doc, _bc_checksum)
+    SELECT
+      lpad(to_hex(g + 100000000), 24, '0'), now(), now(),
+      jsonb_build_object(
+        '_id', jsonb_build_object('$oid', lpad(to_hex(g + 100000000), 24, '0')),
+        'form_id', cast(:form_id as text), 'workspace_id', cast(:workspace_id as text),
+        'response_id', 'r' || (g * 1000), 'provider', 'self',
+        'status', CASE WHEN g % 2 = 0 THEN 'pending' ELSE 'declined' END),
+      'x'
+    FROM generate_series(1, cast(:rows as int) / 1000) AS g
+    """)
+
+
 @pytest.fixture()
 async def big_form(workspace, published_form):
     engine = container.pg_engine()
@@ -64,6 +80,15 @@ async def big_form(workspace, published_form):
             SEED,
             {
                 "base": BASE,
+                "form_id": published_form.form_id,
+                "workspace_id": str(workspace.id),
+                "rows": ROWS,
+            },
+        )
+    async with engine.begin() as connection:
+        await connection.execute(
+            SEED_REQUESTS,
+            {
                 "form_id": published_form.form_id,
                 "workspace_id": str(workspace.id),
                 "rows": ROWS,
@@ -160,14 +185,17 @@ async def test_every_way_of_reaching_a_page_is_an_ordered_index_scan(big_form, c
     size = 25
     report = []
 
-    async def measure(label, query, anchor=None, expect_total=None, max_rows=2000):
+    async def measure(
+        label, query, anchor=None, expect_total=None, max_rows=2000, ordered=True
+    ):
         listed, _, sql, counted = await page_and_plan(scope, query, anchor)
         times = []
         for _ in range(5):
             _, ms, _, _ = await page_and_plan(scope, query, anchor)
             times.append(ms)
         plan, db_ms = await explain(*sql[-1])
-        assert_uses_index(plan, label, max_rows)
+        if ordered:
+            assert_uses_index(plan, label, max_rows)
         count_plan, count_ms = await explain(*counted[-1])
         report.append(
             (
@@ -248,6 +276,16 @@ async def test_every_way_of_reaching_a_page_is_an_ordered_index_scan(big_form, c
         query(1, filters=ResponseListFilters(form_version=(2,))),
     )
 
+    await measure(
+        "status none (no request), page 1",
+        query(1, filters=ResponseListFilters(status=("none",))),
+    )
+    pending = await measure(
+        "status pending (rare), page 1",
+        query(1, filters=ResponseListFilters(status=("pending",))),
+        ordered=False,  # a rare status is found from the requests, then sorted
+    )
+    assert pending.total == ROWS // 1000 // 2
     # the worst case of a filter: one that matches (almost) nothing makes the
     # database read the form once, for the page and for the count; no index
     # order helps, so this is reported, not required to use one
@@ -258,6 +296,12 @@ async def test_every_way_of_reaching_a_page_is_an_ordered_index_scan(big_form, c
     )
     worst = (time.perf_counter() - started) * 1000
     assert nothing.items == [] and nothing.total == 0
+    started = time.perf_counter()
+    no_pending = await repo.list_form_page(
+        scope, query(1, filters=ResponseListFilters(status=("success",)))
+    )
+    worst_status = (time.perf_counter() - started) * 1000
+    assert no_pending.items == []
 
     with capsys.disabled():
         print(f"\nresponses list, {ROWS:,} rows, page size {size} (ms)")
@@ -269,9 +313,12 @@ async def test_every_way_of_reaching_a_page_is_an_ordered_index_scan(big_form, c
                 f"{label:46} {e2e:7.1f} {db_ms:9.2f} {count_ms:10.2f} {total:8d} {rows:5d}"
             )
         print(f"{'filter that matches nothing (reads the form)':46} {worst:7.1f}")
+        print(
+            f"{'status success, none exists (reads the form)':46} {worst_status:7.1f}"
+        )
     for label, e2e, *_ in report:
         assert e2e < 1500, f"{label}: {e2e:.0f} ms"
-    assert worst < 5000
+    assert worst < 5000 and worst_status < 10000
 
 
 async def test_the_version_sort_uses_its_own_index(big_form, capsys):

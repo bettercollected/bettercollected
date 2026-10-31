@@ -12,8 +12,9 @@ The cursor is client-held, so it is tamper-safe by construction:
   ``AUTH_JWT_SECRET`` with a purpose label of its own (the same pattern as the
   other signed tokens). Without that secret no cursor is issued or accepted
   and the list still works from the start.
-- **Bound** to the workspace, the form, the sort, the filters (a hash: no
-  filter value, no search text is in it) and the page size, so a cursor from
+- **Bound** to the workspace, the form, the sort, the page size (all in the
+  token) and the filters (in the signature only, never in the token: no
+  filter value and nothing derived from the search text is readable in it), so a cursor from
   another form, another workspace, another sort or filter, or another page
   size is refused, not reinterpreted.
 - **Typed**: even a correctly signed token is checked again (a timestamp, a
@@ -98,9 +99,17 @@ def _binding(workspace_id, form_id, query: ResponseListQuery) -> dict:
         "f": str(form_id),
         "s": query.sort_by,
         "d": bool(query.descending),
-        "q": query.filters.fingerprint(),
         "z": query.size,
     }
+
+
+def _signed_text(body: str, query: ResponseListQuery) -> str:
+    """What the signature covers: the token, and the filters (search text
+    included) it is for. The filters are *not* in the token: a hash of them
+    in a readable token would let anyone who sees the address check guesses
+    of the searched email offline. Under the HMAC key the same hash tells
+    nothing, and a cursor used with other filters simply fails to verify."""
+    return f"{body}|{query.filters.fingerprint()}"
 
 
 def issue(
@@ -124,7 +133,7 @@ def issue(
     claims["i"] = int(_utc(now or dt.datetime.now(dt.timezone.utc)).timestamp() * 1000)
     payload = _b64(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
     body = f"{_VERSION}.{payload}"
-    return f"{body}.{_sign(key, body)}"
+    return f"{body}.{_sign(key, _signed_text(body, query))}"
 
 
 def read(
@@ -144,7 +153,7 @@ def read(
         raise InvalidCursor()
     body = f"{parts[0]}.{parts[1]}"
     try:
-        if not hmac.compare_digest(_sign(key, body), parts[2]):
+        if not hmac.compare_digest(_sign(key, _signed_text(body, query)), parts[2]):
             raise InvalidCursor()
         claims = json.loads(_unb64(parts[1]))
     except (ValueError, TypeError):

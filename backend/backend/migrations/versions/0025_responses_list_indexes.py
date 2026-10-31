@@ -21,15 +21,27 @@ so the default sort needs no index of its own. Two things did lack one:
   it.
 
 Revisions run in one transaction, so these are plain ``CREATE INDEX`` and the
-build blocks writes to the table meanwhile (seconds at hundreds of thousands of
-rows). ``IF NOT EXISTS``: a large deployment may create them first by hand,
-without blocking, then run this revision, which finds them there:
+build blocks writes to the table meanwhile: about 2 seconds per million rows on
+a warm disk, more on a cold one. The runtime ``lock_timeout`` is 5 seconds, so
+submissions can fail while a long build runs: on a large table build the
+indexes first by hand, without blocking, then run this revision, which finds
+them there (``IF NOT EXISTS``):
 
     CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_form_responses_list_version
       ON app.form_responses (form_id, (coalesce(form_version, 0)), created_at, id)
       WHERE doc ? 'answers';
     CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_deletion_requests_response
       ON app.responses_deletion_requests (response_id);
+
+A failed or cancelled ``CREATE INDEX CONCURRENTLY`` leaves an INVALID index of
+that name, which ``IF NOT EXISTS`` would skip silently. This revision therefore
+drops an invalid one before creating it. To check by hand:
+
+    SELECT indisvalid FROM pg_index
+     WHERE indexrelid = 'app.ix_form_responses_list_version'::regclass;
+
+and, when it is false, ``DROP INDEX app.ix_form_responses_list_version`` and
+build it again.
 """
 
 from typing import Sequence, Union
@@ -44,7 +56,29 @@ depends_on: Union[str, Sequence[str], None] = None
 SCHEMA = "app"
 
 
+def _drop_if_invalid(name: str) -> None:
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_index i
+                JOIN pg_class c ON c.oid = i.indexrelid
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = '{SCHEMA}' AND c.relname = '{name}'
+                  AND NOT i.indisvalid
+            ) THEN
+                DROP INDEX {SCHEMA}.{name};
+            END IF;
+        END
+        $$
+        """
+    )
+
+
 def upgrade() -> None:
+    _drop_if_invalid("ix_form_responses_list_version")
+    _drop_if_invalid("ix_deletion_requests_response")
     op.execute(
         f"CREATE INDEX IF NOT EXISTS ix_form_responses_list_version "
         f"ON {SCHEMA}.form_responses "

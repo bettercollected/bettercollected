@@ -47,6 +47,7 @@ from sqlalchemy import (
     tuple_,
 )
 from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.orm import aliased
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
@@ -244,15 +245,31 @@ def _first_request():
     )
 
 
+def _instant(moment: dt.datetime) -> dt.datetime:
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=dt.timezone.utc)
+    return moment.astimezone(dt.timezone.utc)
+
+
+def _requests_of(r, dr):
+    """The deletion requests a response row shows (those of this copy's
+    workspace, or stored before requests had one)."""
+    return and_(
+        dr.response_id == r.response_id,
+        or_(dr.workspace_id == r.workspace_id, dr.workspace_id.is_(None)),
+    )
+
+
 def _list_filters(filters: ResponseListFilters) -> list:
     """The SQL conditions of the list filters (plaintext columns only; every
     value is bound)."""
     r, dr = FormResponseRow, ResponseDeletionRequestRow
     where = []
+    # the instants as given, to the microsecond (``utc`` truncates to the second)
     if filters.submitted_from is not None:
-        where.append(r.created_at >= utc(filters.submitted_from))
+        where.append(r.created_at >= _instant(filters.submitted_from))
     if filters.submitted_to is not None:
-        where.append(r.created_at < utc(filters.submitted_to))
+        where.append(r.created_at < _instant(filters.submitted_to))
     if filters.respondent == RespondentFilter.ANONYMOUS:
         where.append(
             or_(r.data_owner_identifier.is_(None), r.data_owner_identifier == "")
@@ -262,22 +279,37 @@ def _list_filters(filters: ResponseListFilters) -> list:
             and_(r.data_owner_identifier.is_not(None), r.data_owner_identifier != "")
         )
     if filters.form_version:
-        where.append(r.form_version.in_(sorted(set(filters.form_version))))
+        # a response without a stored version is version 0, as the sort reads it
+        where.append(_version_expr().in_(sorted(set(filters.form_version))))
     if filters.status:
-        # the response's request: of this copy's workspace, or stored before
-        # requests had one (the rule of ``first_request`` in get_form_responses)
-        mine = and_(
-            dr.response_id == r.response_id,
-            or_(dr.workspace_id == r.workspace_id, dr.workspace_id.is_(None)),
+        # the status the row shows is that of its first request
+        # (``_first_request``): "none" is no request at all; any other is a
+        # request with that status that no earlier request of the row
+        # precedes. Written as (anti-)semi-joins, so a rare status is found
+        # from the requests, not by probing every response.
+        wanted = sorted(
+            s.value for s in filters.status if s != DeletionStatusFilter.NONE
         )
-        wanted = {s for s in filters.status if s != DeletionStatusFilter.NONE}
         terms = []
         if DeletionStatusFilter.NONE in filters.status:
-            terms.append(not_(exists().where(mine).correlate(r)))
+            terms.append(not_(exists().where(_requests_of(r, dr)).correlate(r)))
         if wanted:
+            earlier = aliased(ResponseDeletionRequestRow)
             terms.append(
                 exists()
-                .where(mine, dr.status.in_(sorted(s.value for s in wanted)))
+                .where(
+                    _requests_of(r, dr),
+                    dr.status.in_(wanted),
+                    not_(
+                        exists()
+                        .where(
+                            _requests_of(r, earlier),
+                            tuple_(earlier.created_at, earlier.id)
+                            < tuple_(dr.created_at, dr.id),
+                        )
+                        .correlate(r, dr)
+                    ),
+                )
                 .correlate(r)
             )
         where.append(or_(*terms))
@@ -380,7 +412,14 @@ class PostgresFormResponseRepository(RecordRepository):
         if form_id in scope.legacy_form_ids:
             in_workspace = or_(in_workspace, r.workspace_id.is_(None))
         here = and_(r.form_id == form_id, in_workspace)
-        where = [here, _HAS_ANSWERS, *_list_filters(query.filters)]
+        # a response without a stored submission time cannot be placed in the
+        # order (none is expected); it is left out of the list and of its count
+        where = [
+            here,
+            _HAS_ANSWERS,
+            r.created_at.is_not(None),
+            *_list_filters(query.filters),
+        ]
 
         async with self._session() as session:
             counted = (

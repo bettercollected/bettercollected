@@ -5,6 +5,7 @@ from common.ids import RecordId
 from classy_fastapi import delete, get, patch, post
 from common.models.user import User
 from fastapi import Depends, Query
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
 from fastapi_pagination import Page, Params
@@ -126,17 +127,34 @@ class WorkspaceResponsesRouter(CustomRoutable):
                     HTTPStatus.BAD_REQUEST,
                     f"Sort by one of: {', '.join(KEYSET_SORTS)}.",
                 )
-            query = ResponseListQuery(
-                filters=ResponseListFilters(
-                    **list_options.filters,
-                    search=filter_query.data_owner_identifier if filter_query else None,
-                ),
-                sort_by=sort.sort_by,
-                descending=sort.sort_order != SortOrder.ASCENDING,
-                page=params.page,
-                size=params.size,
-                cursor=list_options.cursor,
-            )
+            order = (sort.sort_order or SortOrder.DESCENDING).upper()
+            if order not in ("ASCENDING", "DESCENDING", "ASC", "DESC"):
+                raise HTTPException(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "sort_order is ASCENDING or DESCENDING.",
+                )
+            try:
+                query = ResponseListQuery(
+                    filters=ResponseListFilters(
+                        **list_options.filters,
+                        search=(
+                            filter_query.data_owner_identifier
+                            if filter_query
+                            else None
+                        ),
+                    ),
+                    sort_by=sort.sort_by,
+                    descending=not order.startswith("ASC"),
+                    page=params.page,
+                    size=params.size,
+                    cursor=list_options.cursor,
+                )
+            except ValidationError:
+                # e.g. a search longer than the 320 characters of an address
+                raise HTTPException(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "The search is too long (at most 320 characters).",
+                ) from None
             return await self._form_response_service.get_workspace_form_response_page(
                 workspace_id, form_id, query, user
             )

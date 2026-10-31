@@ -41,8 +41,10 @@ class Seed:
         self.monkeypatch = monkeypatch
         self.repo = container.form_response_repo()
 
-    async def add(self, minutes: int, owner=None, version=1, status=None) -> str:
-        moment = BASE + dt.timedelta(minutes=minutes)
+    async def add(
+        self, minutes: int, owner=None, version=1, status=None, micro=0
+    ) -> str:
+        moment = BASE + dt.timedelta(minutes=minutes, microseconds=micro)
         self.monkeypatch.setattr(responses_module, "utcnow", lambda: moment)
         response = StandardFormResponse(
             response_id=str(RecordId()),
@@ -546,7 +548,8 @@ def test_a_signed_cursor_with_a_bad_value_is_still_refused():
             .decode()
         )
         body = f"c1.{payload}"
-        return f"{body}.{response_cursor._sign(response_cursor._key(), body)}"
+        key, text = response_cursor._key(), response_cursor._signed_text(body, query)
+        return f"{body}.{response_cursor._sign(key, text)}"
 
     assert response_cursor.read(signed({}), "w", "f", query, now=BASE).page == 2
     for bad in (
@@ -670,3 +673,155 @@ def test_the_plan_refuses_a_page_nothing_reaches():
         response_paging.plan(5000, 25, 10_000, False, None)
     with pytest.raises(response_paging.PageTooDeep):
         response_paging.plan(5000, 25, 200_000, False, 4000)  # cursor too far
+
+
+# -- review fixes --------------------------------------------------------------
+
+
+def _claims(token: str) -> dict:
+    import base64
+    import json
+
+    payload = token.split(".")[1]
+    return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+
+
+async def test_the_cursor_holds_nothing_derived_from_the_search(client, seed, url):
+    import hashlib
+
+    await seed.add(0, owner="ann@example.com")
+    for minute in range(1, 30):
+        await seed.add(minute, owner=f"ann{minute}@example.com")
+    search = "ann@example.com"
+    page = (
+        await get(
+            client,
+            url,
+            {"paging": "keyset", "size": 10, "dataOwnerIdentifier": search},
+        )
+    ).json()
+    cursor = page["cursor"]
+    claims = _claims(cursor)
+    assert "q" not in claims
+    # no claim is the search, a hash of it, or contains either
+    candidates = {
+        search,
+        hashlib.sha256(search.encode()).hexdigest(),
+        hashlib.sha256(search.encode()).hexdigest()[:32],
+    }
+    for value in claims.values():
+        assert not any(str(c) in str(value) for c in candidates), value
+    assert search not in cursor
+    # a different search (or none) refuses the cursor; the same one accepts it
+    ok = {"paging": "keyset", "size": 10, "page": 2, "cursor": cursor}
+    assert (
+        await get(client, url, {**ok, "dataOwnerIdentifier": search})
+    ).status_code == 200
+    for other in ({"dataOwnerIdentifier": "bob"}, {}):
+        assert (await get(client, url, {**ok, **other})).status_code == 400
+
+
+async def test_a_search_over_320_characters_is_a_422_not_a_500(client, seed, url):
+    await fill(seed, 1)
+    long = await get(
+        client, url, {"paging": "keyset", "dataOwnerIdentifier": "a" * 321}
+    )
+    assert long.status_code == 422
+    fine = await get(
+        client, url, {"paging": "keyset", "dataOwnerIdentifier": "a" * 320}
+    )
+    assert fine.status_code == 200
+
+
+async def test_sort_order_is_ascending_or_descending(client, seed, url):
+    await fill(seed, 2)
+    for good in ("ASCENDING", "descending", "asc", "DESC"):
+        ok = await get(client, url, {"paging": "keyset", "sort_order": good})
+        assert ok.status_code == 200, good
+    bad = await get(client, url, {"paging": "keyset", "sort_order": "sideways"})
+    assert bad.status_code == 422
+
+
+async def test_the_status_filter_follows_the_status_a_row_shows(client, seed, url):
+    from backend.app.schemas.standard_form_response import (
+        FormResponseDeletionRequest,
+    )
+    from backend.db.models import ResponseDeletionRequestRow
+
+    # two requests for one response (two providers): the row shows the first
+    first_pending = await seed.add(
+        0, owner="a@example.com", status=DeletionRequestStatus.PENDING
+    )
+    stored = await seed.repo.get_response(first_pending)
+    await seed.repo.save_document(
+        FormResponseDeletionRequest(
+            form_id=stored.form_id,
+            response_id=first_pending,
+            provider="other",
+            workspace_id=stored.workspace_id,
+            status=DeletionRequestStatus.DECLINED,
+        ),
+        row=ResponseDeletionRequestRow,
+    )
+    page = (await get(client, url, {"paging": "keyset"})).json()
+    assert page["items"][0]["status"] == "pending"
+    assert ids((await get(client, url, {"status": "pending"})).json()) == [
+        first_pending
+    ]
+    assert (await get(client, url, {"status": "declined"})).json()["items"] == []
+    assert (await get(client, url, {"status": "none"})).json()["items"] == []
+
+
+async def test_the_range_keeps_sub_second_precision(client, seed, url):
+    early = await seed.add(0, micro=100_000)
+    late = await seed.add(0, micro=500_000)
+    t = BASE
+    # from 0.25 s: only the later; to exactly 0.5 s (exclusive): only the earlier
+    page = (
+        await get(
+            client,
+            url,
+            {"submittedFrom": iso(t + dt.timedelta(microseconds=250_000))},
+        )
+    ).json()
+    assert ids(page) == [late]
+    page = (
+        await get(
+            client,
+            url,
+            {"submittedTo": iso(t + dt.timedelta(microseconds=500_000))},
+        )
+    ).json()
+    assert ids(page) == [early]
+    exact = (
+        await get(
+            client,
+            url,
+            {"submittedFrom": iso(t + dt.timedelta(microseconds=500_000))},
+        )
+    ).json()
+    assert ids(exact) == [late]
+
+
+async def test_form_version_zero_matches_responses_without_one(client, seed, url):
+    none = await seed.add(0, version=None)
+    await seed.add(1, version=2)
+    assert ids((await get(client, url, {"formVersion": 0})).json()) == [none]
+
+
+async def test_a_response_without_a_submission_time_does_not_break_the_list(
+    client, seed, url
+):
+    from sqlalchemy import text
+
+    made = await fill(seed, 5)
+    async with container.pg_engine().begin() as connection:
+        await connection.execute(
+            text(
+                "UPDATE app.form_responses SET created_at = NULL WHERE response_id = :r"
+            ),
+            {"r": made[0]},
+        )
+    page = (await get(client, url, {"paging": "keyset", "size": 10})).json()
+    assert set(ids(page)) == set(made[1:]) and page["total"] == 4
+    assert page["cursor"]
