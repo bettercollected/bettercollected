@@ -12,7 +12,9 @@ from smoke.redact import Redactor
 from smoke.report import Abort, Report
 from tests.conftest import API_KEY
 
-NOW = dt.datetime(2026, 10, 31, 12, 0, tzinfo=dt.timezone.utc)
+# The real clock: the command-line tests go through cleanup.main(), which reads
+# it too, so a fixed date here would make FRESH forms stale as time passes.
+NOW = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
 OLD = (NOW - dt.timedelta(days=3)).isoformat()
 FRESH = (NOW - dt.timedelta(minutes=5)).isoformat()
 
