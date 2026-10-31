@@ -21,8 +21,12 @@ class FakeKey:
     """The public API with a key: records every call, deletes what it is told
     to, and can refuse deletes."""
 
-    def __init__(self, existing=None, delete_error=None, spec_purpose=None):
+    def __init__(
+        self, existing=None, delete_error=None, spec_purpose=None, pages=None, gone=()
+    ):
         self.existing = list(existing or [])
+        self.pages = pages  # a server that answers short pages
+        self.gone = set(gone)
         self.delete_error = delete_error
         self.spec_purpose = spec_purpose or {}
         self.created = []
@@ -33,8 +37,15 @@ class FakeKey:
         self.calls.append(("GET", path))
         if path.startswith("/forms?"):
             page = int(path.split("page=")[1].split("&")[0])
-            return Reply(200, {}, {"items": self.existing if page == 1 else []})
+            if self.pages is not None:
+                batch = self.pages[page - 1] if page <= len(self.pages) else []
+                total = sum(len(p) for p in self.pages) + 1  # one entry has no form row
+                return Reply(200, {}, {"items": batch, "total": total})
+            batch = self.existing if page == 1 else []
+            return Reply(200, {}, {"items": batch, "total": len(self.existing)})
         form_id = path.split("/forms/")[1].split("?")[0]
+        if form_id in self.gone:
+            raise HttpError("GET", path, 404, "not_found")
         item = next(f for f in self.existing if f["formId"] == form_id)
         purpose = self.spec_purpose.get(form_id, forms.PURPOSE)
         return Reply(
@@ -233,20 +244,28 @@ RUN_TITLE = forms.run_title("smoke-123456-1-0a1b2c")
 LOCAL_TITLE = forms.run_title("smoke-local-0a1b2c")
 
 
-def listed(form_id, title, updated=OLD, slug="slug"):
+def listed(form_id, title, updated=OLD, slug="default"):
+    if slug == "default":
+        slug = f"s-{form_id}"
     return {"formId": form_id, "title": title, "slug": slug, "updatedAt": updated}
 
 
 class FakeApi:
-    def __init__(self, workspace_ok=True):
+    """The app's API: the configured workspace holds the forms whose slug is
+    ``s-<form id>``; ``other`` maps a slug to the id of a different form (the
+    same slug taken by another form of the workspace)."""
+
+    def __init__(self, workspace_ok=True, other=None):
         self.workspace_ok = workspace_ok
+        self.other = other or {}
 
     def get(self, path, **kwargs):
         if path.startswith("/workspaces?workspace_name="):
             return Reply(200, {}, {"id": "a" * 24})
         if path.startswith("/workspaces/") and "/forms/" in path:
-            if self.workspace_ok:
-                return Reply(200, {}, {})
+            slug = path.split("/forms/")[1].split("?")[0]
+            if self.workspace_ok and slug.startswith("s-"):
+                return Reply(200, {}, {"formId": self.other.get(slug, slug[2:])})
             raise HttpError("GET", path, 404)
         if path.startswith("/workspaces/"):
             return Reply(200, {}, {"id": "a" * 24})
@@ -293,7 +312,7 @@ def test_the_cleanup_deletes_only_forms_with_both_markers_when_asked():
     # a look-alike without the purpose text
     for kept in ("3", "4", "5", "6", "7", "8"):
         assert kept * 24 not in key.deleted
-    assert "1 skipped" in "\n".join(lines)
+    assert "1 skipped (changed in the last 60 min" in "\n".join(lines)
 
 
 def test_the_cleanup_refuses_when_the_workspace_is_not_the_configured_one():
@@ -370,3 +389,157 @@ def test_the_command_needs_the_key_and_a_workspace(cli, capsys):
     assert cleanup.main(["--api-url", "http://admin.example.com/api/v1"], env=cli_env()) == 2
     assert cli.calls == []
     assert API_KEY not in capsys.readouterr().err
+
+
+# -- review follow-ups -----------------------------------------------------------------
+def test_unicode_digits_do_not_make_a_run_title():
+    # Arabic-Indic digits are \d for str patterns, but no run tag has them
+    assert not forms.RUN_TITLE.fullmatch("Smoke run smoke-\u0661\u0662\u0663-\u0661-abcdef")
+    assert not forms.is_run_form(
+        "Smoke run smoke-\u0661\u0662\u0663-\u0661-abcdef", forms.PURPOSE
+    )
+
+
+def test_a_candidate_without_a_slug_is_skipped_not_deleted():
+    key = old_forms_key()
+    key.existing[0]["slug"] = None  # 1111...: marked, but not tied to a workspace
+    code = cleanup.run_cleanup(
+        FakeApi(), key, "smoke-test", delete=True, now=NOW, say=lambda t: None
+    )
+    assert code == 0
+    assert key.deleted == ["2" * 24]
+
+
+def test_every_candidate_is_checked_against_the_configured_workspace():
+    # the slug of 1111... leads to another form: not ours to delete
+    key = old_forms_key()
+    api = FakeApi(other={"s-" + "1" * 24: "9" * 24})
+    cleanup.run_cleanup(
+        api, key, "smoke-test", delete=True, now=NOW, say=lambda t: None
+    )
+    assert key.deleted == ["2" * 24]
+
+
+def test_nothing_is_deleted_when_no_candidate_can_be_confirmed():
+    key, lines = old_forms_key(), []
+    for item in key.existing:
+        item["slug"] = None
+    code = cleanup.run_cleanup(
+        FakeApi(), key, "smoke-test", delete=True, now=NOW, say=lines.append
+    )
+    assert code == 2 and key.deleted == []
+    assert "nothing was touched" in "\n".join(lines)
+
+
+def test_a_form_without_a_readable_time_counts_as_recent():
+    key = old_forms_key()
+    key.existing[0]["updatedAt"] = None
+    key.existing[1]["updatedAt"] = "not a time"
+    cleanup.run_cleanup(
+        FakeApi(), key, "smoke-test", delete=True, now=NOW, say=lambda t: None
+    )
+    assert key.deleted == []
+
+
+def test_a_form_gone_since_the_list_is_skipped_not_fatal():
+    key = old_forms_key()
+    key.gone = {"1" * 24}
+    code = cleanup.run_cleanup(
+        FakeApi(), key, "smoke-test", delete=True, now=NOW, say=lambda t: None
+    )
+    assert code == 0
+    assert key.deleted == ["2" * 24]
+
+
+def test_the_list_is_read_to_its_end_even_when_pages_come_back_short():
+    # page 1 holds 99 of its 100 (one entry had no form row), page 2 holds 50
+    pages = [[listed("a" * 24, "x")] * 99, [listed("b" * 24, "y")] * 50]
+    key = FakeKey(pages=pages)
+    assert len(cleanup.list_all_forms(key)) == 149
+
+
+def test_a_list_too_long_to_read_raises_instead_of_truncating(monkeypatch):
+    monkeypatch.setattr(cleanup, "MAX_LIST_PAGES", 2)
+    full = [listed("a" * 24, "x")] * 100
+    key = FakeKey(pages=[full] * 5)
+    with pytest.raises(cleanup.ListTruncated):
+        cleanup.list_all_forms(key)
+
+
+def test_the_suites_form_lookup_reads_short_pages_too(base_env):
+    pages = [[listed("a" * 24, "x")] * 99, [listed("b" * 24, "y")] * 5]
+    suite = make_suite(base_env, FakeKey(pages=pages))
+    assert len(suite._all_forms()) == 104
+
+
+def test_the_warning_annotations_are_printed_even_when_the_run_blows_up(
+    monkeypatch, base_env, tmp_path, capsys
+):
+    import contextlib
+    import types
+
+    from playwright import sync_api
+
+    from smoke import __main__ as entry
+    from smoke import checks, mailbox
+
+    for name, value in base_env.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setenv("SMOKE_IMAP_APP_PASSWORD", "abcd efgh ijkl mnop")
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setattr(
+        sync_api, "sync_playwright", lambda: contextlib.nullcontext(object())
+    )
+    monkeypatch.setattr(
+        mailbox, "open_mailbox", lambda *a, **k: types.SimpleNamespace(close=lambda: None)
+    )
+
+    def blows_up(self):
+        self.report.warn("1 form(s) left behind: " + "a" * 24)
+        raise RuntimeError("unhandled")
+
+    monkeypatch.setattr(checks.Suite, "run", blows_up)
+    with pytest.raises(RuntimeError):
+        entry.main(["--report-dir", str(tmp_path)])
+    assert "::warning title=Smoke test cleanup::1 form(s) left behind" in capsys.readouterr().out
+    assert (tmp_path / "report.json").exists()
+
+
+# -- the dry run's publish refusal ------------------------------------------------------
+def test_a_refused_publish_names_the_missing_workspace_title(base_env):
+    class Refusing(FakeKey):
+        def post(self, path, body=None, **kwargs):
+            if path.endswith("/publish"):
+                raise HttpError("POST", path, 422, "form_not_publishable")
+            return super().post(path, body, **kwargs)
+
+    suite = make_suite(base_env, Refusing())
+    suite.state.workspace_title = ""
+    with pytest.raises(Exception) as caught:
+        suite._publish("a" * 24)
+    assert "workspace_title_missing" in str(caught.value)
+    assert "form_not_publishable" in str(caught.value)
+
+
+def test_the_hint_is_only_for_that_refusal_and_that_cause():
+    from smoke.checks import has_workspace_title, publish_refusal_hint
+
+    refused = HttpError("POST", "/forms/x/publish", 422, "form_not_publishable")
+    assert "workspace_title_missing" in publish_refusal_hint(refused, "")
+    assert "workspace_title_missing" in publish_refusal_hint(refused, " Untitled ")
+    assert "workspace_title_missing" not in publish_refusal_hint(refused, "Smoke")
+    assert publish_refusal_hint(HttpError("POST", "/x", 403, "missing_scope"), "") == ""
+    assert not has_workspace_title("\u200b ")
+    assert has_workspace_title("Smoke test workspace")
+
+
+def test_the_dry_run_workspace_gets_a_title_that_passes_the_publish_check():
+    from smoke import devstack
+    from smoke.checks import has_workspace_title
+
+    assert has_workspace_title(devstack.WORKSPACE_TITLE)
+    body, content_type = devstack.multipart_form({"title": devstack.WORKSPACE_TITLE})
+    boundary = content_type.split("boundary=")[1]
+    assert f"--{boundary}--".encode() in body
+    assert b'name="title"\r\n\r\n' + devstack.WORKSPACE_TITLE.encode() in body

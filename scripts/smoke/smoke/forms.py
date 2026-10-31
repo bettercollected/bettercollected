@@ -111,7 +111,7 @@ def run_title(tag: str) -> str:
 
 # The title every run form gets (see config.run_tag: the Actions run id, the
 # attempt and 6 random hex digits, or "local" and 6 random hex digits).
-RUN_TITLE = re.compile(r"^Smoke run smoke-(?:\d{1,20}-\d{1,4}|local)-[0-9a-f]{6}$")
+RUN_TITLE = re.compile(r"^Smoke run smoke-(?:[0-9]{1,20}-[0-9]{1,4}|local)-[0-9a-f]{6}$")
 
 
 def is_run_form(title: Any, purpose: Any) -> bool:

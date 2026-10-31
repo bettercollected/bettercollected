@@ -47,6 +47,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def emit_warnings(report: Report) -> None:
+    """GitHub warning annotations for the report's warnings (a form left
+    behind), in Actions only."""
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    for text in report.warnings:
+        safe = text.replace("%", "%25").replace("\r", " ").replace("\n", " ")
+        print(f"::warning title=Smoke test cleanup::{safe}")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     redactor = Redactor()
@@ -82,13 +92,14 @@ def main(argv: list[str] | None = None) -> int:
         with sync_playwright() as playwright:
             Suite(config, report, mailbox, playwright, args.debug_dir).run()
     finally:
-        mailbox.close()
-        report.write(args.report_dir)
+        # also when something unhandled escaped: what was left behind must
+        # still be reported
+        try:
+            mailbox.close()
+        finally:
+            report.write(args.report_dir)
+            emit_warnings(report)
     print(report.markdown())
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        for text in report.warnings:
-            safe = text.replace("%", "%25").replace("\r", " ").replace("\n", " ")
-            print(f"::warning title=Smoke test cleanup::{safe}")
     return 0 if report.ok else 1
 
 

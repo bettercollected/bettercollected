@@ -4,3 +4,6 @@
   and the forms left behind. A new one-off cleanup (`python -m smoke.cleanup`,
   or the production smoke workflow's `cleanup` choice) lists, and with
   `--delete` removes, the forms earlier runs left behind.
+- The smoke test's report now says why a form could not be published (for
+  example a workspace without a title), and its dry-run stack's workspace gets
+  a title, so the dry run publishes again.

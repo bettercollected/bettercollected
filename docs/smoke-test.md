@@ -112,6 +112,11 @@ pasted into an issue, a pull request or a chat.
 2. **Test account and workspace in production.** Sign up with the mailbox's
    base address. Its workspace is the test workspace; give it a plan that
    allows custom domains. Note its name (or id) for `SMOKE_WORKSPACE_ID`.
+   Give the workspace a **title** in its settings (onboarding asks for one; "Untitled"
+   does not count): the product refuses to publish any form into a workspace
+   without a title (`form_not_publishable`, problem `workspace_title_missing`),
+   and every run publishes its form. A refused publish shows in the report as
+   `... answered 422 (form_not_publishable); problem workspace_title_missing: ...`.
 3. **API key.** In the test workspace, as its owner: dashboard → AI → MCP →
    new key, with the six scopes above and the acknowledgement for
    `responses:read`. Store it as `SMOKE_API_KEY`.
@@ -249,7 +254,8 @@ uv run pytest
 
 **Dry run.** `.github/workflows/smoke-dry-run.yml` runs the whole suite
 against a throwaway stack it builds itself (Postgres, auth, backend, web app
-and a Mailpit inbox for the codes): by hand, and on pull requests that change
+and a Mailpit inbox for the codes; `smoke.devstack` gives its workspace a title,
+which publishing needs): by hand, and on pull requests that change
 the suite. It is not part of `CI ok`. The Google Forms check is skipped there
 (no provider) and the run account's deletion stays queued (no worker).
 

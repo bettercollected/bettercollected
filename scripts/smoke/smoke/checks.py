@@ -41,6 +41,7 @@ class State:
     forms_base: str = ""
     workspace_id: str = ""
     handle: str = ""
+    workspace_title: str = ""
     standing_form: str = ""
     run_form: str = ""
     # every form this run created, by the id the API answered with:
@@ -90,6 +91,28 @@ def api_urls(script: str) -> List[str]:
     return re.findall(
         r"[\"'](https?://[A-Za-z0-9.-]+(?::\d{1,5})?/api/v1)[\"'/]", script
     )
+
+
+def has_workspace_title(title: str) -> bool:
+    """Mirrors the product's publish check: a workspace title needs a visible
+    character and "untitled" is the placeholder, not a title."""
+    visible = "".join(c for c in title if c.isprintable() and not c.isspace())
+    return bool(visible) and visible.casefold() != "untitled"
+
+
+def publish_refusal_hint(error: HttpError, workspace_title: str) -> str:
+    """What to add to a refused publish so nobody has to guess. The public
+    API's 422 carries ``code: form_not_publishable`` and a message but no
+    problem list, so the one reason known from outside is named here, by the
+    product's own problem code."""
+    if error.status != 422 or error.code != "form_not_publishable":
+        return ""
+    if not has_workspace_title(workspace_title):
+        return (
+            "; problem workspace_title_missing: the test workspace has no "
+            "title, give it one in the workspace settings (docs/smoke-test.md)"
+        )
+    return "; the form itself is refused: see the publish checks"
 
 
 def forms_base_from(config_values: Dict[str, str], app_url: str) -> str:
@@ -211,6 +234,7 @@ class Suite:
         if not isinstance(body, dict) or not body.get("id"):
             raise Abort("SMOKE_WORKSPACE_ID names no workspace")
         self.state.workspace_id = str(body["id"])
+        self.state.workspace_title = str(body.get("title") or "")
         self.state.handle = str(
             body.get("workspaceName") or body.get("workspace_name") or ""
         )
@@ -254,7 +278,13 @@ class Suite:
 
     def _publish(self, form_id: str) -> str:
         assert self.key is not None
-        body = self.key.post(f"/forms/{quote(form_id)}/publish").body or {}
+        try:
+            body = self.key.post(f"/forms/{quote(form_id)}/publish").body or {}
+        except HttpError as error:
+            hint = publish_refusal_hint(error, self.state.workspace_title)
+            if hint:
+                raise FlowError(f"{error}{hint}") from error
+            raise
         slug = body.get("slug") if isinstance(body, dict) else None
         if not slug:
             raise FlowError("publishing gave no share slug")

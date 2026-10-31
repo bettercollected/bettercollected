@@ -39,6 +39,7 @@ MISSING_SCOPE_CODE = "missing_scope"
 CREATOR_LACKS_CODE = "key_creator_lacks_permission"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 MAX_LIST_PAGES = 50
+PAGE_SIZE = 100
 DEFAULT_MIN_AGE_MINUTES = 60
 
 
@@ -115,16 +116,27 @@ def describe(result: DeleteResult) -> Tuple[List[str], List[str]]:
 
 
 # -- the one-off cleanup of old runs' forms ---------------------------------------------
+class ListTruncated(Exception):
+    """The workspace has more forms than the pages read: acting on part of
+    the list would be guessing."""
+
+
 def list_all_forms(key: Http) -> List[dict]:
-    """Every form of the key's workspace, page by page."""
+    """Every form of the key's workspace, page by page. A page can come back
+    shorter than asked (the API drops entries whose form row is gone), so the
+    end is the API's ``total`` or an empty page, never a short page. Raises
+    ``ListTruncated`` instead of returning part of a long list."""
     items: List[dict] = []
     for page in range(1, MAX_LIST_PAGES + 1):
-        body = key.get(f"/forms?page={page}&size=100").body or {}
+        body = key.get(f"/forms?page={page}&size={PAGE_SIZE}").body or {}
         batch = body.get("items", []) if isinstance(body, dict) else []
         items.extend(batch)
-        if len(batch) < 100:
-            break
-    return items
+        total = body.get("total") if isinstance(body, dict) else None
+        if not batch or (isinstance(total, int) and page * PAGE_SIZE >= total):
+            return items
+    raise ListTruncated(
+        f"more than {MAX_LIST_PAGES * PAGE_SIZE} forms in the workspace"
+    )
 
 
 def _parse_time(value: object) -> Optional[dt.datetime]:
@@ -147,39 +159,38 @@ class Plan:
     candidates: List[Tuple[str, str]] = field(default_factory=list)  # (id, title)
     too_recent: int = 0
     other_forms: int = 0
+    unverified: int = 0
 
 
-def verify_workspace(api: Http, listed: Sequence[dict], workspace: str) -> str:
-    """The configured workspace's id, after checking that the forms the key
-    lists belong to it (the suite's own safety check, repeated here)."""
-    wanted = workspace
+def resolve_workspace_id(api: Http, workspace: str) -> str:
+    """The id of the workspace SMOKE_WORKSPACE_ID names."""
     body = None
-    if OBJECT_ID.match(wanted):
+    if OBJECT_ID.match(workspace):
         try:
-            body = api.get(f"/workspaces/{wanted}").body
+            body = api.get(f"/workspaces/{workspace}").body
         except HttpError as error:
             if error.status not in (404, 422):
                 raise
     if not isinstance(body, dict) or not body.get("id"):
-        body = api.get(f"/workspaces?workspace_name={quote(wanted)}").body
+        body = api.get(f"/workspaces?workspace_name={quote(workspace)}").body
     if not isinstance(body, dict) or not body.get("id"):
         raise Refused("SMOKE_WORKSPACE_ID names no workspace")
-    workspace_id = str(body["id"])
-    slug = next((str(f["slug"]) for f in listed if f.get("slug")), "")
-    if not slug:
-        raise Refused(
-            "cannot tell which workspace the key belongs to (none of its forms "
-            "is published): nothing was touched"
-        )
+    return str(body["id"])
+
+
+def form_in_workspace(api: Http, workspace_id: str, form_id: str, slug: str) -> bool:
+    """Whether the published form behind ``slug`` in the configured workspace
+    is this very form. Slugs are unique per workspace only, so the id must
+    match too: the same slug in another workspace proves nothing."""
     try:
-        api.get(f"/workspaces/{workspace_id}/forms/{quote(slug, safe='')}?published=true")
+        body = api.get(
+            f"/workspaces/{workspace_id}/forms/{quote(slug, safe='')}?published=true"
+        ).body
     except HttpError as error:
         if error.status in (403, 404):
-            raise Refused(
-                "the API key's workspace is not SMOKE_WORKSPACE_ID: stopping"
-            )
+            return False
         raise
-    return workspace_id
+    return isinstance(body, dict) and str(body.get("formId") or "") == form_id
 
 
 def plan_cleanup(
@@ -190,8 +201,9 @@ def plan_cleanup(
     min_age_minutes: int = DEFAULT_MIN_AGE_MINUTES,
 ) -> Plan:
     listed = list_all_forms(key)
-    plan = Plan(workspace_id=verify_workspace(api, listed, workspace))
+    plan = Plan(workspace_id=resolve_workspace_id(api, workspace))
     cutoff = now - dt.timedelta(minutes=min_age_minutes)
+    failed_lookups = 0
     for item in listed:
         form_id, title = str(item.get("formId") or ""), item.get("title")
         # first marker, from the list: the title's exact shape
@@ -201,7 +213,13 @@ def plan_cleanup(
             plan.other_forms += 1
             continue
         # second marker, from the stored form itself
-        document = key.get(f"/forms/{quote(form_id, safe='')}").body
+        try:
+            document = key.get(f"/forms/{quote(form_id, safe='')}").body
+        except HttpError as error:
+            if error.status == 404:  # gone since the list was read
+                plan.other_forms += 1
+                continue
+            raise
         trust = document.get("trust") if isinstance(document, dict) else None
         purpose = trust.get("purpose") if isinstance(trust, dict) else None
         if not (
@@ -211,11 +229,23 @@ def plan_cleanup(
         ):
             plan.other_forms += 1
             continue
+        # not touched lately; a form with no readable time counts as recent
         updated = _parse_time(item.get("updatedAt"))
-        if updated is not None and updated > cutoff:
+        if updated is None or updated > cutoff:
             plan.too_recent += 1
             continue
+        # it belongs to the configured workspace, not only to the key's
+        slug = str(item.get("slug") or "")
+        if not slug or not form_in_workspace(api, plan.workspace_id, form_id, slug):
+            plan.unverified += 1
+            failed_lookups += 1
+            continue
         plan.candidates.append((form_id, title))
+    if failed_lookups and not plan.candidates:
+        raise Refused(
+            "the API key's workspace is not SMOKE_WORKSPACE_ID, or none of the "
+            "matching forms is published: nothing was touched"
+        )
     return plan
 
 
@@ -238,7 +268,9 @@ def run_cleanup(
         return 2
     say(
         f"{len(plan.candidates)} smoke run form(s) match both markers; "
-        f"{plan.too_recent} skipped (changed in the last {min_age_minutes} min); "
+        f"{plan.too_recent} skipped (changed in the last {min_age_minutes} min, "
+        f"or no readable time); {plan.unverified} skipped (not confirmed in the "
+        "configured workspace); "
         f"{plan.other_forms} other form(s) not touched."
     )
     for form_id, title in plan.candidates:
